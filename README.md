@@ -9,6 +9,17 @@
 <br/>
 
 
+
+
+## Development
+
+```bash
+pnpm install
+pnpm build
+pnpm turbo run dev --filter=web
+```
+Now open localhost:3000
+
 ## Authors
 
 - [@chronark_](https://twitter.com/chronark_)
