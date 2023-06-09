@@ -1,0 +1,5 @@
+.vercel
+
+.env*
+!.env.example
+rm
