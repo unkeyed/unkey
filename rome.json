@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/rome/configuration_schema.json",
+
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "style": {
+        "useBlockStatements": "error"
+      }
+    },
+    "ignore": ["node_modules", ".next", "dist"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentSize": 2,
+    "enabled": true,
+    "lineWidth": 100,
+    "ignore": ["node_modules", ".next", "dist"]
+  }
+}

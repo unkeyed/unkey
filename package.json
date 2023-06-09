@@ -1,0 +1,35 @@
+{
+  "name": "unkey",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "cm": "cz",
+    "semantic-release": "semantic-release",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "fmt": "pnpm rome check . --apply-suggested && pnpm rome format . --write",
+    "test": "turbo run test"
+  },
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "commitizen": "^4.3.0",
+    "conventional-changelog-conventionalcommits": "^5.0.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "rome": "^11.0.0",
+    "semantic-release": "^21.0.2",
+    "turbo": "^1.10.2",
+    "typescript": "^5.0.4"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  }
+}
