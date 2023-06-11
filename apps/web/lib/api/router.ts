@@ -44,7 +44,6 @@ export function init<THono extends Hono>(app: THono, { db }: Bindings): THono {
       "json",
       z.object({
         prefix: z.string().optional(),
-        name: z.string().optional(),
         apiId: z.string(),
         byteLength: z.number().int().optional().default(32),
         ownerId: z.string().optional(),
@@ -79,11 +78,12 @@ export function init<THono extends Hono>(app: THono, { db }: Bindings): THono {
         .values({
           id: keyId,
           apiId: req.apiId,
-          name: req.name,
           tenantId: api.tenantId,
           hash,
           ownerId: req.ownerId,
           meta: req.meta,
+          start: key.substring(0, (req.prefix?.length ?? 0) + 4),
+          createdAt: new Date(),
         })
         .execute();
 

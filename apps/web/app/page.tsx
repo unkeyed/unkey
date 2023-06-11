@@ -2,7 +2,7 @@
 import { Particles } from "@/components/particles";
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 import { addToWaitlist } from "./addToWaitlist";
-import { toast, Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 export default function Home() {
   const { pending } = useFormStatus();
@@ -77,7 +77,6 @@ export default function Home() {
         <div className="absolute inset-0 -z-10 rounded-lg transition peer-focus:ring-4 peer-focus:ring-indigo-300/15" />
         <div className="absolute inset-0 -z-10 rounded-lg bg-white/2.5 ring-1 ring-white/15 transition peer-focus:ring-indigo-300" />
       </form>
-
       <Toaster />
     </main>
   );

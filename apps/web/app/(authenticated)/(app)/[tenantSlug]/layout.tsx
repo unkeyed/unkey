@@ -18,12 +18,12 @@ export default function Layout({ params, children }: LayoutProps) {
 
   return (
     <ReactQueryProvider>
-      <div className="bg-gray-100 flex">
+      <div className="bg-gradient-to-tl from-stone-200 to-stone-100 flex">
         <DesktopSidebar navigation={[]} tenantSlug={params.tenantSlug} />
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 
-        <div className=" w-full rounded-xl m-2 bg-white p-4">{children}</div>
+        <div className=" w-full rounded-xl m-4 bg-white p-8 shadow">{children}</div>
       </div>
     </ReactQueryProvider>
   );
