@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Loading } from "@/components/loading";
 
 import { cn } from "@/lib/utils";
-import { useAuth, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
+import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type Props = {
@@ -38,8 +38,6 @@ export const TeamSwitcher: React.FC<Props> = ({ tenantSlug }): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
   const currentPath = usePathname();
-
-  const { signOut } = useAuth();
   const { user } = useUser();
 
   const router = useRouter();
@@ -150,16 +148,14 @@ export const TeamSwitcher: React.FC<Props> = ({ tenantSlug }): JSX.Element => {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <button
-              onClick={async () => {
-                await signOut();
-                router.refresh();
-              }}
-              className="w-full"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              <span>Sign out</span>
-            </button>
+            <SignOutButton>
+              <button
+                className="w-full"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                <span>Sign out</span>
+              </button>
+            </SignOutButton>
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
