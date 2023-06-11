@@ -65,7 +65,7 @@ export const DesktopSidebar: React.FC<Props> = ({ navigation, tenantSlug }) => {
         </div>
       </div>
       <div className="absolute inset-x-0 mx-6 bottom-8">
-        <TeamSwitcher tenantSlug={tenantSlug} />
+        <TeamSwitcher />
       </div>
     </aside>
   );

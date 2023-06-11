@@ -6,7 +6,7 @@ type Props = {
 
 export const PageHeader: React.FC<Props> = ({ title, description, actions }) => {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between mb-4 md:mb-8 lg:mb-12">
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">{description}</p>

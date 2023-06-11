@@ -30,44 +30,28 @@ import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-type Props = {
-  tenantSlug: string;
-};
+type Props = {};
 
-export const TeamSwitcher: React.FC<Props> = ({ tenantSlug }): JSX.Element => {
+export const TeamSwitcher: React.FC<Props> = (): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
-  const currentPath = usePathname();
   const { user } = useUser();
-
-  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
 
-  async function changeOrg(newOrg: { id: string; slug: string } | null) {
+  async function changeOrg(orgId: string | null) {
+    if (!setActive) {
+      return;
+    }
     try {
       setLoading(true);
-      router.push(`/${newOrg?.slug ?? "personal"}/overview`);
-      console.log({ currentPath });
+      await setActive({
+        organization: orgId,
+      });
     } finally {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (!setActive) {
-      return;
-    }
-    if (tenantSlug !== currentOrg?.slug) {
-      console.log("different org", { tenantSlug, slug: currentOrg?.slug });
-      const want = organizationList?.find((o) => o.organization.slug === tenantSlug)?.organization;
-      console.log("want", want);
-
-      setActive({
-        organization: want ?? null,
-      });
-    }
-  }, [tenantSlug, currentOrg, setActive]);
 
   return (
     <DropdownMenu>
@@ -122,12 +106,7 @@ export const TeamSwitcher: React.FC<Props> = ({ tenantSlug }): JSX.Element => {
 
           {organizationList?.map((org) => (
             <DropdownMenuItem
-              onClick={() =>
-                changeOrg({
-                  id: org.organization.id,
-                  slug: org.organization.slug!,
-                })
-              }
+              onClick={() => changeOrg(org.organization.id)}
               className={cn("flex items-center justify-between", {
                 "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100":
                   currentOrg?.slug === org.organization.slug,
@@ -149,9 +128,7 @@ export const TeamSwitcher: React.FC<Props> = ({ tenantSlug }): JSX.Element => {
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <SignOutButton>
-              <button
-                className="w-full"
-              >
+              <button className="w-full">
                 <LogOut className="w-4 h-4 mr-2" />
                 <span>Sign out</span>
               </button>

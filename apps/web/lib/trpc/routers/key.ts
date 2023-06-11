@@ -1,9 +1,11 @@
-import { db } from "@unkey/db";
+import { db, schema } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { t, auth } from "../trpc";
 import { newId } from "@unkey/id";
+import { toBase58 } from "@/lib/api/base58";
+import { toBase64 } from "@/lib/api/base64";
 
 export const keyRouter = t.router({
   // list: t.procedure.use(auth).query(async ({ ctx }) => {
@@ -38,24 +40,47 @@ export const keyRouter = t.router({
   //       },
   //     });
   //   }),
-  // create: t.procedure
-  //   .use(auth)
-  //   .input(
-  //     z.object({
-  //       name: z.string().min(1).regex(/^[a-zA-Z0-9-_\.]+$/),
-  //     }),
-  //   )
-  //   .mutation(async ({ input, ctx }) => {
-  //     return await db.channel.create({
-  //       data: {
-  //         id: newId("channel"),
-  //         name: input.name,
-  //         tenant: {
-  //           connect: {
-  //             id: ctx.tenant.id,
-  //           },
-  //         },
-  //       },
-  //     });
-  //   }),
+  create: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        prefix: z.string().optional(),
+        bytes: z.number().int().gte(1).default(16),
+        apiId: z.string(),
+        ownerId: z.string().nullish(),
+        meta: z.record(z.unknown()).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const buf = new Uint8Array(input.bytes);
+      crypto.getRandomValues(buf);
+
+      let key = toBase58(buf);
+      if (input.prefix) {
+        key = [input.prefix, key].join("_");
+      }
+
+      const hash = toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(key)));
+
+      const id = newId("key");
+
+      await db
+        .insert(schema.keys)
+        .values({
+          id,
+          apiId: input.apiId,
+          tenantId: ctx.tenant.id,
+          hash,
+          ownerId: input.ownerId,
+          meta: input.meta,
+          start: key.substring(0, (input.prefix?.length ?? 0) + 4),
+          createdAt: new Date(),
+        })
+        .execute();
+
+      return {
+        key,
+        id,
+      };
+    }),
 });
