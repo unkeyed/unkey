@@ -24,7 +24,7 @@
     "cz-conventional-changelog": "^3.3.0",
     "rome": "^11.0.0",
     "semantic-release": "^21.0.2",
-    "turbo": "^1.10.2",
+    "turbo": "^1.10.3",
     "typescript": "^5.0.4"
   },
   "config": {

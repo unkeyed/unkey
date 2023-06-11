@@ -1,0 +1,24 @@
+{
+  "name": "@unkey/db",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@unkey/tsconfig": "workspace:*",
+    "@types/node": "^20.2.3",
+    "drizzle-kit": "^0.18.1",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@planetscale/database": "^1.7.0",
+    "drizzle-orm": "^0.26.5",
+    "mysql2": "^3.3.3"
+  }
+}

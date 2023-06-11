@@ -3,3 +3,7 @@
 .env*
 !.env.example
 rm
+
+.turbo
+node_modules
+dist

@@ -1,14 +1,14 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
+import "./globals.css";
+import { Inter } from "next/font/google";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: 'Open Source API Key Management',
-  description: 'Accelerate your API development',
+  title: "Open Source API Key Management",
+  description: "Accelerate your API development",
   openGraph: {
     title: "Open Source API Key Management",
-    description: 'Accelerate your API development',
+    description: "Accelerate your API development",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
     images: [
@@ -16,8 +16,8 @@ export const metadata = {
         url: "https://unkey.dev/og.png",
         width: 1200,
         height: 675,
-      }
-    ]
+      },
+    ],
   },
   twitter: {
     title: "Unkey",
@@ -26,12 +26,12 @@ export const metadata = {
   icons: {
     shortcut: "/og.png",
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
@@ -42,7 +42,7 @@ export default function RootLayout({
           async
         />
       </head>
-      <body className={`${inter.className} bg-black `}>{children}</body>
+      <body className={`${inter.className}`}>{children}</body>
     </html>
-  )
+  );
 }
