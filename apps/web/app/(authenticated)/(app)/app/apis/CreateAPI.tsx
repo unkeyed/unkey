@@ -38,6 +38,7 @@ import { trpc } from "@/lib/trpc/client";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
+  slug: z.string().min(2).max(50).regex(/^[a-zA-Z0-9._-]+$/),
 });
 type Props = {
   tenant: {
@@ -57,7 +58,7 @@ export const CreateApiButton: React.FC<Props> = ({ tenant }) => {
         title: "API created",
         description: "Your API has been created",
       });
-      router.push(`/${tenant.slug}/${res.id}`);
+      router.push(`/app/${res.id}`);
     },
     onError(err) {
       console.error(err);
@@ -92,6 +93,22 @@ export const CreateApiButton: React.FC<Props> = ({ tenant }) => {
                     </FormControl>
                     <FormDescription>
                       This is just a human readable name for you and not visible to anyone else
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Slug</FormLabel>
+                    <FormControl>
+                      <Input placeholder="my-api" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      This shows up in the URL on the unkey dashboard
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

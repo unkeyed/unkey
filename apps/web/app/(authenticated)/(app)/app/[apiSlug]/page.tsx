@@ -1,20 +1,20 @@
 import { PageHeader } from "@/components/PageHeader";
 import { CreateKeyButton } from "./CreateKey";
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq, and } from "@unkey/db";
 import { notFound } from "next/navigation";
 import { KeyTable } from "./KeyTable";
 
 type Props = {
   params: {
     tenantSlug: string;
-    apiId: string;
+    apiSlug: string;
   };
 };
 export default async function ApiOverviewPage(props: Props) {
-  const _tenantId = getTenantId();
+  const tenantId = getTenantId();
   const api = await db.query.apis.findFirst({
-    where: eq(schema.apis.id, props.params.apiId),
+    where: and(eq(schema.apis.slug, props.params.apiSlug), eq(schema.apis.tenantId, tenantId)),
     with: {
       keys: true,
     },
