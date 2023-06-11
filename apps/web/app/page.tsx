@@ -17,7 +17,7 @@ export default function Home() {
         color="#7c3aed"
       />
 
-      <div className="flex flex-col items-center my-4 md:my-8 lg:my-16 xl:my-24">
+      <div className="z-10 flex flex-col items-center my-4 md:my-8 lg:my-16 xl:my-24">
         <h1 className="text-center text-6xl xl:text-7xl text-transparent bg-clip-text bg-gradient-to-t py-2 from-violet-100 to-zinc-300 font-display font-bold">
           Unkey Your Development
         </h1>
@@ -33,7 +33,7 @@ export default function Home() {
       </div>
 
       <form
-        className="relative w-full max-w-sm isolate mt-8 flex items-center pr-1"
+        className="z-10 relative w-full max-w-sm isolate mt-8 flex items-center pr-1"
         action={async (data: FormData) => {
           const email = data.get("email");
           if (!email) {
@@ -48,7 +48,7 @@ export default function Home() {
           });
         }}
       >
-        n
+
         <label htmlFor="email" className="sr-only">
           Email address
         </label>
