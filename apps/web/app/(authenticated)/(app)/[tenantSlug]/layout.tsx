@@ -5,7 +5,7 @@ import { DesktopSidebar } from "./DesktopSidebar";
 // import { MobileNav } from "@/components/mobile-nav";
 // import { MobileSidebar } from "./MobileSidebar";
 import { getTenantId } from "@/lib/auth";
-
+import { ReactQueryProvider } from "./ReactQueryProvider";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
@@ -17,12 +17,14 @@ export default function Layout({ params, children }: LayoutProps) {
   const _tenantId = getTenantId();
 
   return (
-    <div className="bg-gray-100 flex">
-      <DesktopSidebar navigation={[]} tenantSlug={params.tenantSlug} />
+    <ReactQueryProvider>
+      <div className="bg-gray-100 flex">
+        <DesktopSidebar navigation={[]} tenantSlug={params.tenantSlug} />
 
-      {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
+        {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 
-      <div className=" w-full rounded-xl m-2 bg-white p-4">{children}</div>
-    </div>
+        <div className=" w-full rounded-xl m-2 bg-white p-4">{children}</div>
+      </div>
+    </ReactQueryProvider>
   );
 }

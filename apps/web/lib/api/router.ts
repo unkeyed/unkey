@@ -2,6 +2,7 @@
 // import { zValidator } from "@hono/zod-validator";
 import { zValidator } from "@hono/zod-validator";
 import { eq, schema, type Database } from "@unkey/db";
+
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
