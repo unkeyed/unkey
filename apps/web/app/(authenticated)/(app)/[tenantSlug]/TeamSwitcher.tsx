@@ -149,9 +149,7 @@ export const TeamSwitcher: React.FC<Props> = ({ tenantSlug }): JSX.Element => {
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <SignOutButton>
-              <button
-                className="w-full"
-              >
+              <button className="w-full">
                 <LogOut className="w-4 h-4 mr-2" />
                 <span>Sign out</span>
               </button>

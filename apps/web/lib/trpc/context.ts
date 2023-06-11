@@ -1,13 +1,12 @@
 import { inferAsyncReturnType } from "@trpc/server";
-import * as trpcNext from "@trpc/server/adapters/next";
+import * as trpcFetch from "@trpc/server/adapters/fetch";
 
 import { getAuth } from "@clerk/nextjs/server";
-export async function createContext({ req, res }: trpcNext.CreateNextContextOptions) {
-  const { userId, orgId, orgSlug, orgRole } = getAuth(req);
+export async function createContext({ req }: trpcFetch.FetchCreateContextFnOptions) {
+  const { userId, orgId, orgSlug, orgRole } = getAuth(req as any);
 
   return {
     req,
-    res,
     user: userId ? { id: userId } : null,
     tenant:
       orgId && orgSlug && orgRole

@@ -1,5 +1,5 @@
 "use client";
-
+import { toast } from "sonner";
 import { useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -41,51 +41,42 @@ const formSchema = z.object({
   name: z.string().min(2).max(50),
 });
 type Props = {
-  tenantId: string;
+  tenant: {
+    slug: string;
+  };
 };
 
-export const CreateApiButton: React.FC<Props> = ({ tenantId }) => {
-  const { toast } = useToast();
-
+export const CreateApiButton: React.FC<Props> = ({ tenant }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   const create = trpc.api.create.useMutation({
-    onSuccess() {
-      toast({
-        title: "Channel Created",
-        description: "Your channel has been created",
+    onSuccess(res) {
+      toast.success("API created", {
+        description: "Your API has been created",
       });
-      router.refresh();
+      router.push(`/${tenant.slug}/${res.id}`);
     },
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast.error("Error", { description: err.message });
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate(values);
-    console.log({ values });
   }
   const router = useRouter();
 
   return (
     <>
       <Dialog>
-        <DialogTrigger>
+        <DialogTrigger asChild>
           <Button>Create API</Button>
         </DialogTrigger>
 
         <DialogContent>
           <DialogTitle>Create a new API</DialogTitle>
-          <DialogDescription>
-            API names must be alphanumeric and can include underscores, dashes and periods.
-          </DialogDescription>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -107,9 +98,7 @@ export const CreateApiButton: React.FC<Props> = ({ tenantId }) => {
               />
 
               <DialogFooter className="justify-end">
-                <Button type="submit">
-                  {form.formState.isSubmitting ? <Loading /> : "Create"}
-                </Button>
+                <Button type="submit">{create.isLoading ? <Loading /> : "Create"}</Button>
               </DialogFooter>
             </form>
           </Form>
