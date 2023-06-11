@@ -1,11 +1,11 @@
 import { t } from "../trpc";
 import { keyRouter } from "./key";
 import { apiRouter } from "./api";
-import { teamRouter } from "./team";
+import { tenantRouter } from "./tenant";
 export const router = t.router({
   key: keyRouter,
   api: apiRouter,
-  team: teamRouter,
+  tenant: tenantRouter,
 });
 
 // export type definition of API

@@ -30,12 +30,12 @@ const steps = [
 type Props = {
   tenantId: string;
 };
-export const Onboarding: React.FC<Props> = (props) => {
+export const Onboarding: React.FC<Props> = ({ tenantId }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [teamName, setTeamName] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
   const { toast } = useToast();
-  const user = trpc.team.create.useMutation({
+  const tenant = trpc.tenant.create.useMutation({
     onSuccess() {
       toast({
         title: "Team Created",
@@ -48,13 +48,6 @@ export const Onboarding: React.FC<Props> = (props) => {
     },
   });
 
-  async function createTeam() {
-    await user.mutateAsync({
-      id: props.tenantId,
-      name: teamName,
-      slug: teamSlug,
-    });
-  }
   return (
     <div>
       <ol
@@ -86,7 +79,7 @@ export const Onboarding: React.FC<Props> = (props) => {
             <Card>
               <CardHeader>
                 <CardTitle>Choose your team Name</CardTitle>
-                <CardDescription>Let's choose a name for your team'</CardDescription>
+                <CardDescription>Let's choose a name for your team</CardDescription>
               </CardHeader>
               <CardContent>
                 <div>
@@ -195,7 +188,13 @@ export const Onboarding: React.FC<Props> = (props) => {
                   <Button
                     disabled={!(teamName && teamSlug)}
                     className=" my-4 w-1/3"
-                    onClick={createTeam}
+                    onClick={() =>
+                      tenant.mutate({
+                        tenantId: tenantId,
+                        name: teamName,
+                        slug: teamSlug,
+                      })
+                    }
                   >
                     Submit
                   </Button>
