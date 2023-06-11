@@ -14,7 +14,9 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const email = new FormData(e.currentTarget).get("email");
-    if (!signInLoaded || typeof email !== "string") return null;
+    if (!signInLoaded || typeof email !== "string") {
+      return null;
+    }
     setIsLoading(true);
     await signIn
       .create({
@@ -24,9 +26,9 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
         console.log("sign-in error", JSON.stringify(error));
       });
 
-    const firstFactor = signIn.supportedFirstFactors.find(
-      (f) => f.strategy === "email_code",
-    ) as { emailAddressId: string } | undefined;
+    const firstFactor = signIn.supportedFirstFactors.find((f) => f.strategy === "email_code") as
+      | { emailAddressId: string }
+      | undefined;
 
     if (firstFactor) {
       await signIn.prepareFirstFactor({
@@ -36,7 +38,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
 
       setIsLoading(false);
       // set verification to true so we can show the code input
-      props.verification(true)
+      props.verification(true);
     }
   };
 

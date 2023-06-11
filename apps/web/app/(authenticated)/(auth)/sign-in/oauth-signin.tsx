@@ -12,7 +12,9 @@ export function OAuthSignIn() {
   const { toast } = useToast();
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
-    if (!signInLoaded) return null;
+    if (!signInLoaded) {
+      return null;
+    }
     try {
       setIsLoading(provider);
       await signIn.authenticateWithRedirect({

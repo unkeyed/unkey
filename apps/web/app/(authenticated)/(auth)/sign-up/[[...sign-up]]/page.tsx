@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import * as React from "react";
 
 import { EmailSignUp } from "../email-signup";
@@ -13,12 +13,8 @@ export default function AuthenticationPage() {
       {!verify && (
         <>
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Sign In to Your Account
-            </h1>
-            <p className="text-md text-muted-foreground">
-              Enter your email below to sign in
-            </p>
+            <h1 className="text-3xl font-semibold tracking-tight">Sign In to Your Account</h1>
+            <p className="text-md text-muted-foreground">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
             <EmailSignUp verification={setVerify} />
@@ -28,29 +24,25 @@ export default function AuthenticationPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
             <OAuthSignUp />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Already been here before? Just <a className="text-black" href="/sign-in">Sign In</a>
+              Already been here before? Just{" "}
+              <a className="text-black" href="/sign-in">
+                Sign In
+              </a>
             </span>
-
           </div>
         </>
       )}
       {verify && (
         <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Enter your email code
-          </h1>
-          <p className="text-md text-muted-foreground">
-            We sent you a 6 digit code to your email
-          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">Enter your email code</h1>
+          <p className="text-md text-muted-foreground">We sent you a 6 digit code to your email</p>
           <EmailCode />
         </div>
       )}

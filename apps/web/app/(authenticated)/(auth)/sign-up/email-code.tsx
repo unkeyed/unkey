@@ -16,19 +16,19 @@ export function EmailCode() {
   const verifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const emailCode = new FormData(e.currentTarget).get("code");
-    if (!signUpLoaded || typeof emailCode !== "string") return null;
+    if (!signUpLoaded || typeof emailCode !== "string") {
+      return null;
+    }
     setIsLoading(true);
-    const verify = await signUp
-      .attemptEmailAddressVerification({
-        code: emailCode,
-      })
-
+    const verify = await signUp.attemptEmailAddressVerification({
+      code: emailCode,
+    });
 
     if (verify.status === "complete" && verify.createdSessionId) {
       await setActive({ session: verify.createdSessionId });
-      router.push("/1/overview")
+      router.push("/1/overview");
     }
-  }
+  };
 
   return (
     <form className="grid gap-2" onSubmit={verifyCode}>

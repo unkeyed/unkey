@@ -16,22 +16,23 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const email = new FormData(e.currentTarget).get("email");
-    if (!signUpLoaded || typeof email !== "string") return null;
+    if (!signUpLoaded || typeof email !== "string") {
+      return null;
+    }
     setIsLoading(true);
     try {
-      await signUp
-        .create({
-          emailAddress: email,
-        })
+      await signUp.create({
+        emailAddress: email,
+      });
 
       await signUp.prepareEmailAddressVerification();
 
       setIsLoading(false);
       // set verification to true so we can show the code input
-      props.verification(true)
+      props.verification(true);
     } catch (error) {
       setIsLoading(false);
-      console.log(error)
+      console.log(error);
     }
   };
 
