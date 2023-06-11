@@ -1,19 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
 import { Loading } from "@/components/loading";
 
-export function EmailSignIn(props) {
+export function EmailSignIn(props: { verification: (value: boolean) => void }) {
   const [isLoading, setIsLoading] = React.useState(false);
-  const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
-  const router = useRouter();
-  const { toast } = useToast();
+  const { signIn, isLoaded: signInLoaded } = useSignIn();
 
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

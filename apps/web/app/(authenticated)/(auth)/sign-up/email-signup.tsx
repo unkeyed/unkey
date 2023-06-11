@@ -6,13 +6,12 @@ import { useSignUp } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+
 import { Loading } from "@/components/loading";
 
-export function EmailSignUp(props) {
+export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const [isLoading, setIsLoading] = React.useState(false);
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
-  const { toast } = useToast();
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
