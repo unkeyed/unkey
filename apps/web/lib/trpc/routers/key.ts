@@ -1,4 +1,4 @@
-import { db, schema } from "@unkey/db";
+import { db, schema, eq } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -73,7 +73,7 @@ export const keyRouter = t.router({
           hash,
           ownerId: input.ownerId,
           meta: input.meta,
-          start: key.substring(0, (input.prefix?.length ?? 0) + 4),
+          start: key.substring(0, key.indexOf("_") + 4),
           createdAt: new Date(),
         })
         .execute();
@@ -82,5 +82,56 @@ export const keyRouter = t.router({
         key,
         id,
       };
+    }),
+  createInternalRootKey: t.procedure.use(auth)
+
+  .mutation(async ({ ctx }) => {
+    const buf = new Uint8Array(16);
+    crypto.getRandomValues(buf);
+
+    let key = ["unkey", toBase58(buf)].join("_");
+
+    const hash = toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(key)));
+
+    const id = newId("key");
+
+    await db
+      .insert(schema.keys)
+      .values({
+        id,
+        tenantId: ctx.tenant.id,
+        hash,
+        start: key.substring(0, key.indexOf("_") + 4),
+        createdAt: new Date(),
+        internal: true,
+      })
+      .execute();
+
+    return {
+      key,
+      id,
+    };
+  }),
+  delete: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        keyId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const where = eq(schema.keys.id, input.keyId);
+
+      const key = await db.query.keys.findFirst({
+        where,
+      });
+
+      if (!key || key.tenantId !== ctx.tenant.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
+      }
+
+      await db.delete(schema.keys).where(where);
+
+      return;
     }),
 });

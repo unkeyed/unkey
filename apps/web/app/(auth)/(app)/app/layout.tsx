@@ -19,7 +19,7 @@ export default function Layout({ params, children }: LayoutProps) {
   return (
     <ReactQueryProvider>
       <div className="bg-gradient-to-tl from-stone-200 to-stone-100 flex">
-        <DesktopSidebar navigation={[]} tenantSlug={params.tenantSlug} />
+        <DesktopSidebar tenantSlug={params.tenantSlug} />
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 

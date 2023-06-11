@@ -38,15 +38,10 @@ import { trpc } from "@/lib/trpc/client";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
-  slug: z.string().min(2).max(50).regex(/^[a-zA-Z0-9._-]+$/),
 });
-type Props = {
-  tenant: {
-    slug: string;
-  };
-};
+type Props = {};
 
-export const CreateApiButton: React.FC<Props> = ({ tenant }) => {
+export const CreateApiButton: React.FC<Props> = () => {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,22 +88,6 @@ export const CreateApiButton: React.FC<Props> = ({ tenant }) => {
                     </FormControl>
                     <FormDescription>
                       This is just a human readable name for you and not visible to anyone else
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="slug"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug</FormLabel>
-                    <FormControl>
-                      <Input placeholder="my-api" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      This shows up in the URL on the unkey dashboard
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
