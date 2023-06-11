@@ -47,7 +47,7 @@ export const keyRouter = t.router({
         prefix: z.string().optional(),
         bytes: z.number().int().gte(1).default(16),
         apiId: z.string(),
-        ownerId: z.string().optional(),
+        ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
       }),
     )

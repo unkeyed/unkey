@@ -31,7 +31,7 @@ export default async function ApiOverviewPage(props: Props) {
         actions={[<CreateKeyButton key="createKey" apiId={api.id} />]}
       />
 
-      <KeyTable data={api.keys} />
+      <KeyTable data={api.keys.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())} />
     </div>
   );
 }
