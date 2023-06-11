@@ -48,7 +48,6 @@ export default function Home() {
           });
         }}
       >
-
         <label htmlFor="email" className="sr-only">
           Email address
         </label>
