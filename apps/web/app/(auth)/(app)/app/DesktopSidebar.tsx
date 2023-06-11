@@ -32,16 +32,16 @@ export const DesktopSidebar: React.FC<Props> = ({ navigation, tenantSlug }) => {
         <div className="px-6 py-2">
           <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">{/* Events */}</h2>
           <div className="space-y-1">
-            <Link href="/overview">
+            <Link href="/app">
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <Home className="w-4 h-4 mr-2" />
                 Overview
               </Button>
             </Link>
-            <Link href="/keys">
+            <Link href="/apps/apis">
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <FileKey className="w-4 h-4 mr-2" />
-                API Keys
+                APIs
               </Button>
             </Link>
 
