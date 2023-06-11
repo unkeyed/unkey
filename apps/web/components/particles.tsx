@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
-
+import React, { useEffect, useRef, useState } from "react";
 
 interface MousePosition {
   x: number;
@@ -9,7 +8,10 @@ interface MousePosition {
 }
 
 export default function useMousePosition(): MousePosition {
-  const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState<MousePosition>({
+    x: 0,
+    y: 0,
+  });
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -145,10 +147,21 @@ export const Particles: React.FC<ParticlesProps> = ({
     const size = Math.floor(Math.random() * 2) + 1;
     const alpha = 0;
     const targetAlpha = parseFloat((Math.random() * 0.6 + 0.1).toFixed(1));
-    const dx = (Math.random() - 0.5);
-    const dy = (Math.random() - 0.5);
+    const dx = Math.random() - 0.5;
+    const dy = Math.random() - 0.5;
     const magnetism = 0.1 + Math.random() * 4;
-    return { x, y, translateX, translateY, size, alpha, targetAlpha, dx, dy, magnetism };
+    return {
+      x,
+      y,
+      translateX,
+      translateY,
+      size,
+      alpha,
+      targetAlpha,
+      dx,
+      dy,
+      magnetism,
+    };
   };
 
   const rgb = hexToRgb(color);
