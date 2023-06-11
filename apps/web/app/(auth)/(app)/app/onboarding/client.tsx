@@ -26,7 +26,11 @@ const steps = [
     description: "Let's make sure everything is correct before we create your team",
   },
 ];
-export const Onboarding: React.FC = (props) => {
+
+type Props = {
+  tenantId: string;
+};
+export const Onboarding: React.FC<Props> = (props) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [teamName, setTeamName] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
@@ -68,8 +72,8 @@ export const Onboarding: React.FC = (props) => {
                 stepIdx < currentStep
                   ? "completed"
                   : stepIdx === currentStep
-                    ? "current"
-                    : "upcoming"
+                  ? "current"
+                  : "upcoming"
               }
             />
           </li>
@@ -82,18 +86,33 @@ export const Onboarding: React.FC = (props) => {
             <Card>
               <CardHeader>
                 <CardTitle>Choose your team Name</CardTitle>
-                <CardDescription>
-                  Let's choose a name for your team'
-                </CardDescription>
+                <CardDescription>Let's choose a name for your team'</CardDescription>
               </CardHeader>
               <CardContent>
                 <div>
                   <div className="flex items-center justify-center px-2 py-1 mt-8 rounded gap-4 ">
-                    <Input name="teamName" type="text" placeholder="Team Name" value={teamName} onChange={(e) => setTeamName(e.target.value.replace(/[^a-zA-Z0-9_-\s]+/g, ''))} />
+                    <Input
+                      name="teamName"
+                      type="text"
+                      placeholder="Team Name"
+                      value={teamName}
+                      onChange={(e) =>
+                        setTeamName(e.target.value.replace(/[^a-zA-Z0-9_-\s]+/g, ""))
+                      }
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end ">
-                  <Button disabled={teamName.length < 1} className="my-4 w-1/3" onClick={() => { setCurrentStep(1); setTeamSlug(teamName.replace(/\s+/g, '-').toLowerCase()) }}>Next</Button>
+                  <Button
+                    disabled={teamName.length < 1}
+                    className="my-4 w-1/3"
+                    onClick={() => {
+                      setCurrentStep(1);
+                      setTeamSlug(teamName.replace(/\s+/g, "-").toLowerCase());
+                    }}
+                  >
+                    Next
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -105,18 +124,39 @@ export const Onboarding: React.FC = (props) => {
               <CardHeader>
                 <CardTitle>Choose your team slug</CardTitle>
                 <CardDescription>
-                  Let's choose a slug for your team. by default we used your team name as a slug. You can change it if you want.'
+                  Let's choose a slug for your team. by default we used your team name as a slug.
+                  You can change it if you want.'
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div>
                   <div className="flex items-start justify-between px-2 py-1 mt-8 rounded gap-4 ">
-                    <Input name="teamSlug" type="text" defaultValue={teamSlug} onChange={(e) => setTeamSlug(e.target.value.replace(/^[a-zA-Z0-9-_\.]+$/, ''))} placeholder="Team Slug" />
+                    <Input
+                      name="teamSlug"
+                      type="text"
+                      defaultValue={teamSlug}
+                      onChange={(e) =>
+                        setTeamSlug(e.target.value.replace(/^[a-zA-Z0-9-_\.]+$/, ""))
+                      }
+                      placeholder="Team Slug"
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end items- gap-4 px-2">
-                  <Button variant="secondary" className="my-4 w-1/3" onClick={() => setCurrentStep(0)}>Previous</Button>
-                  <Button disabled={teamSlug.length < 1} className="my-4 w-1/3" onClick={() => setCurrentStep(2)}>Next</Button>
+                  <Button
+                    variant="secondary"
+                    className="my-4 w-1/3"
+                    onClick={() => setCurrentStep(0)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    disabled={teamSlug.length < 1}
+                    className="my-4 w-1/3"
+                    onClick={() => setCurrentStep(2)}
+                  >
+                    Next
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -134,13 +174,31 @@ export const Onboarding: React.FC = (props) => {
               <CardContent>
                 <div>
                   <div className="flex flex-col items-center justify-center px-2 py-1 mt-8 rounded gap-4">
-                    <p> <span className="font-bold">Team Name: </span> {teamName}</p>
-                    <p> <span className="font-bold">Team Slug: </span> {teamSlug}</p>
+                    <p>
+                      {" "}
+                      <span className="font-bold">Team Name: </span> {teamName}
+                    </p>
+                    <p>
+                      {" "}
+                      <span className="font-bold">Team Slug: </span> {teamSlug}
+                    </p>
                   </div>
                 </div>
                 <div className="flex justify-end gap-4 px-2">
-                  <Button variant="secondary" className="my-4 w-1/3" onClick={() => setCurrentStep(1)}>Previous</Button>
-                  <Button disabled={!teamName || !teamSlug} className=" my-4 w-1/3" onClick={createTeam}>Submit</Button>
+                  <Button
+                    variant="secondary"
+                    className="my-4 w-1/3"
+                    onClick={() => setCurrentStep(1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    disabled={!(teamName && teamSlug)}
+                    className=" my-4 w-1/3"
+                    onClick={createTeam}
+                  >
+                    Submit
+                  </Button>
                 </div>
               </CardContent>
             </Card>

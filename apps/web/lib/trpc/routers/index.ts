@@ -5,7 +5,7 @@ import { teamRouter } from "./team";
 export const router = t.router({
   key: keyRouter,
   api: apiRouter,
-  team: teamRouter
+  team: teamRouter,
 });
 
 // export type definition of API

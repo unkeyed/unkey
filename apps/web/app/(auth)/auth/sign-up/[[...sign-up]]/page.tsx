@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
-import { useAuth } from "@clerk/nextjs"
-import { useRouter } from 'next/navigation'
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
 import { EmailCode } from "../email-code";
@@ -12,10 +12,11 @@ export default function AuthenticationPage() {
 
   const { isSignedIn, isLoaded } = useAuth();
 
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return null;
+  }
   if (isSignedIn) {
-
-    router.push("/app")
+    router.push("/app");
     return null;
   }
   const [verify, setVerify] = React.useState(false);

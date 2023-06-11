@@ -1,4 +1,3 @@
-
 import { Onboarding } from "./client";
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
@@ -10,7 +9,7 @@ export default async function OnboardingPage() {
     where: eq(schema.tenants.id, tenantId),
   });
   if (tenant) {
-    redirect("/app")
+    redirect("/app");
   }
 
   return <Onboarding tenantId={tenantId} />;
