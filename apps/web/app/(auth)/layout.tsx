@@ -8,10 +8,10 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <ClerkProvider
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
+      signInUrl="/auth/sign-in"
+      signUpUrl="/auth/sign-up"
       afterSignInUrl="/app"
-      afterSignUpUrl="/app"
+      afterSignUpUrl="/onboarding"
       appearance={{
         variables: {
           colorPrimary: "#5C36A3",
