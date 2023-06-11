@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <main className="bg-black relative flex min-h-screen flex-col items-center justify-between px-4 py-24 bg-gradient-to-t from-transparent from-violet-400/0 to-violet-400/20">
       <Particles
-        className="absolute inset-0 -z-10 "
+        className="absolute inset-0"
         vy={-1}
         quantity={50}
         staticity={200}
