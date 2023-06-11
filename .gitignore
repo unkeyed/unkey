@@ -7,3 +7,4 @@ rm
 .turbo
 node_modules
 dist
+.next
