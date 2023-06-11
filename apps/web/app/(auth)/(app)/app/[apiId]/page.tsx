@@ -7,14 +7,13 @@ import { KeyTable } from "./KeyTable";
 
 type Props = {
   params: {
-    tenantSlug: string;
-    apiSlug: string;
+    apiId: string;
   };
 };
 export default async function ApiOverviewPage(props: Props) {
   const tenantId = getTenantId();
   const api = await db.query.apis.findFirst({
-    where: and(eq(schema.apis.slug, props.params.apiSlug), eq(schema.apis.tenantId, tenantId)),
+    where: and(eq(schema.apis.id, props.params.apiId), eq(schema.apis.tenantId, tenantId)),
     with: {
       keys: true,
     },

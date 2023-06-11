@@ -2,6 +2,7 @@
 import { int, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { keys } from "./keys";
+import { apis } from "./apis";
 
 export const tenants = mysqlTable("tenants", {
   id: varchar("id", { length: 256 }).primaryKey(),
@@ -11,4 +12,5 @@ export const tenants = mysqlTable("tenants", {
 
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   keys: many(keys),
+  apis: many(apis),
 }));
