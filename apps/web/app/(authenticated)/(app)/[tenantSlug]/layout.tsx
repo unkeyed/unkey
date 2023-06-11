@@ -23,7 +23,7 @@ export default function Layout({ params, children }: LayoutProps) {
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 
-        <div className=" w-full rounded-xl m-4 bg-white p-8 shadow">{children}</div>
+        <div className=" w-full rounded-xl m-2 bg-white p-8 shadow">{children}</div>
       </div>
     </ReactQueryProvider>
   );

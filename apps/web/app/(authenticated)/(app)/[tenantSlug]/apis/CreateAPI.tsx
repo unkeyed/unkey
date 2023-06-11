@@ -1,8 +1,7 @@
 "use client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
 
 import { CopyButton } from "@/components/CopyButton";
 import { Loading } from "@/components/loading";
@@ -47,20 +46,22 @@ type Props = {
 };
 
 export const CreateApiButton: React.FC<Props> = ({ tenant }) => {
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   const create = trpc.api.create.useMutation({
     onSuccess(res) {
-      toast.success("API created", {
+      toast({
+        title: "API created",
         description: "Your API has been created",
       });
       router.push(`/${tenant.slug}/${res.id}`);
     },
     onError(err) {
       console.error(err);
-      toast.error("Error", { description: err.message });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
