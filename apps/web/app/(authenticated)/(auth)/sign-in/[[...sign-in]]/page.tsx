@@ -37,7 +37,7 @@ export default function AuthenticationPage() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Already been here before? Just <a className="text-black" href="/sign-up">Sign Up</a>
+              Not been here before? Just <a className="text-black" href="/sign-up">Sign Up</a>
             </span>
 
           </div>
