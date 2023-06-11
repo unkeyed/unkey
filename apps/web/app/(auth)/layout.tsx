@@ -1,4 +1,4 @@
-import { ClerkProvider, SignIn, SignedIn, SignedOut } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Particles } from "@/components/particles";
 import { Toaster } from "sonner";
 export default function AuthenticatedLayout({

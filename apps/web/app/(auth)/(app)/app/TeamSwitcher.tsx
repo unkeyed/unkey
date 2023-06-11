@@ -17,7 +17,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown, Plus, Key, Book, LogOut, Rocket } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Key, Book, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -86,6 +86,12 @@ export const TeamSwitcher: React.FC<Props> = (): JSX.Element => {
             <DropdownMenuItem>
               <Book className="w-4 h-4 mr-2" />
               <span>Docs</span>
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/app/settings/keys">
+            <DropdownMenuItem>
+              <Key className="w-4 h-4 mr-2" />
+              <span>Keys</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>

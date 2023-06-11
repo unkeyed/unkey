@@ -5,15 +5,10 @@ import Link from "next/link";
 import { AppLink } from "./AppLink";
 import { TeamSwitcher } from "./TeamSwitcher";
 type Props = {
-  navigation: {
-    href: string;
-    external?: boolean;
-    label: string;
-  }[];
   tenantSlug: string;
 };
 
-export const DesktopSidebar: React.FC<Props> = ({ navigation, tenantSlug }) => {
+export const DesktopSidebar: React.FC<Props> = ({ tenantSlug }) => {
   const apps: {
     name: string;
     slug: string;
@@ -38,7 +33,7 @@ export const DesktopSidebar: React.FC<Props> = ({ navigation, tenantSlug }) => {
                 Overview
               </Button>
             </Link>
-            <Link href="/apps/apis">
+            <Link href="/app/apis">
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <FileKey className="w-4 h-4 mr-2" />
                 APIs
@@ -64,7 +59,7 @@ export const DesktopSidebar: React.FC<Props> = ({ navigation, tenantSlug }) => {
           </ScrollArea>
         </div>
       </div>
-      <div className="absolute inset-x-0 mx-6 bottom-8">
+      <div className="absolute inset-x-0  bottom-8 mx-6">
         <TeamSwitcher />
       </div>
     </aside>

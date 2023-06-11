@@ -44,7 +44,6 @@ export const apiRouter = t.router({
     .input(
       z.object({
         name: z.string().min(1).max(50),
-        slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -53,7 +52,6 @@ export const apiRouter = t.router({
         id,
         tenantId: ctx.tenant.id,
         name: input.name,
-        slug: input.slug,
       });
 
       return {
