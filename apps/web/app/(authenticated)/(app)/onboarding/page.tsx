@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Onboarding } from "./client";
 export default async function OnboardingPage() {
   const tenantId = getTenantId();
-  let tenant = await db.query.tenants.findFirst({
+  const tenant = await db.query.tenants.findFirst({
     where: eq(schema.tenants.id, tenantId),
   });
   if (tenant) {

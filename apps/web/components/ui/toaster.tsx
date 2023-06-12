@@ -1,21 +1,20 @@
 "use client";
 
-import React, { PropsWithChildren } from "react";
-
 import {
-  ToastProvider as Provider,
   Toast,
-  ToastTitle,
-  ToastDescription,
   ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
 
-export const ToastProvider: React.FC<PropsWithChildren> = ({ children }) => {
+export function Toaster() {
   const { toasts } = useToast();
+
   return (
-    <Provider>
+    <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
@@ -29,7 +28,6 @@ export const ToastProvider: React.FC<PropsWithChildren> = ({ children }) => {
         );
       })}
       <ToastViewport />
-      {children}
-    </Provider>
+    </ToastProvider>
   );
-};
+}

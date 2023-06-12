@@ -4,7 +4,7 @@ import { Policy } from "@unkey/policies";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { DeleteKeyButton } from "../DeleteKey";
 import { Badge } from "@/components/ui/badge";
 import { Trash } from "lucide-react";
