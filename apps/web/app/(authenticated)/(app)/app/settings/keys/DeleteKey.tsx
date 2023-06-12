@@ -2,7 +2,7 @@
 
 import React, { PropsWithChildren, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 import { trpc } from "@/lib/trpc";
 import { Loading } from "@/components/loading";
