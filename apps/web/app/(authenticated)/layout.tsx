@@ -1,6 +1,4 @@
-import { ClerkProvider } from "@clerk/nextjs";
-import { Particles } from "@/components/particles";
-import { Toaster } from "sonner";
+import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/nextjs";
 export default function AuthenticatedLayout({
   children,
 }: {
@@ -19,7 +17,10 @@ export default function AuthenticatedLayout({
         },
       }}
     >
-      {children}
+      <SignedIn>{children}</SignedIn>
+      <SignedOut>
+        <RedirectToSignIn afterSignInUrl="/app" afterSignUpUrl="/onboarding" />
+      </SignedOut>
     </ClerkProvider>
   );
 }
