@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignIn } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,23 +10,24 @@ import { Loading } from "@/components/loading";
 
 export function EmailCode() {
   const [isLoading, setIsLoading] = React.useState(false);
-  const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
+  const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
   const router = useRouter();
 
   const verifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const emailCode = new FormData(e.currentTarget).get("code");
-    if (!signUpLoaded || typeof emailCode !== "string") {
+    if (!signInLoaded || typeof emailCode !== "string") {
       return null;
     }
     setIsLoading(true);
-    const verify = await signUp.attemptEmailAddressVerification({
+    const verify = await signIn.attemptFirstFactor({
+      strategy: "email_code",
       code: emailCode,
     });
 
     if (verify.status === "complete" && verify.createdSessionId) {
       await setActive({ session: verify.createdSessionId });
-      router.push("/1/overview");
+      router.push("/app");
     }
   };
 

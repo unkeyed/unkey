@@ -1,4 +1,4 @@
-import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 export default function AuthenticatedLayout({
   children,
 }: {
@@ -6,8 +6,6 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <ClerkProvider
-      signInUrl="/auth/sign-in"
-      signUpUrl="/auth/sign-up"
       afterSignInUrl="/app"
       afterSignUpUrl="/onboarding"
       appearance={{
@@ -17,10 +15,7 @@ export default function AuthenticatedLayout({
         },
       }}
     >
-      <SignedIn>{children}</SignedIn>
-      <SignedOut>
-        <RedirectToSignIn afterSignInUrl="/app" afterSignUpUrl="/onboarding" />
-      </SignedOut>
+      {children}
     </ClerkProvider>
   );
 }

@@ -2,13 +2,12 @@
 import * as React from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { EmailSignIn } from "../email-signin";
-import { OAuthSignIn } from "../oauth-signin";
+import { EmailSignUp } from "../email-signup";
+import { OAuthSignUp } from "../oauth-signup";
 import { EmailCode } from "../email-code";
 export const runtime = "edge";
 
 export default function AuthenticationPage() {
-  const [verify, setVerify] = React.useState(false);
   const router = useRouter();
 
   const { isSignedIn, isLoaded } = useAuth();
@@ -20,6 +19,7 @@ export default function AuthenticationPage() {
     router.push("/app");
     return null;
   }
+  const [verify, setVerify] = React.useState(false);
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
       {!verify && (
@@ -29,7 +29,7 @@ export default function AuthenticationPage() {
             <p className="text-md text-muted-foreground">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
-            <EmailSignIn verification={setVerify} />
+            <EmailSignUp verification={setVerify} />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -39,13 +39,13 @@ export default function AuthenticationPage() {
                 <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
-            <OAuthSignIn />
+            <OAuthSignUp />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Not been here before? Just{" "}
-              <a className="text-black" href="/sign-up">
-                Sign Up
+              Already been here before? Just{" "}
+              <a className="text-black" href="/auth/sign-in">
+                Sign In
               </a>
             </span>
           </div>
