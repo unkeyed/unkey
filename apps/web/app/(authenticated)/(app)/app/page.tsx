@@ -11,7 +11,7 @@ export default async function TenantOverviewPage() {
     where: eq(schema.tenants.id, tenantId),
   });
   if (!tenant) {
-    redirect("/app/onboarding");
+    redirect("/onboarding");
   }
 
   return (
