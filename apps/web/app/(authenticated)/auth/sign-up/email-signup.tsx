@@ -12,7 +12,6 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = React.useState(false);
-
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const email = new FormData(e.currentTarget).get("email");
