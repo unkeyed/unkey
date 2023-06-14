@@ -8,7 +8,7 @@ export default function Home() {
   const { pending } = useFormStatus();
 
   return (
-    <main className="bg-black relative flex min-h-screen flex-col items-center justify-between px-4 py-24 bg-gradient-to-t from-transparent from-violet-400/0 to-violet-400/20">
+    <main className="relative flex flex-col items-center justify-between min-h-screen px-4 py-24 bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20">
       <Particles
         className="absolute inset-0"
         vy={-1}
@@ -18,22 +18,22 @@ export default function Home() {
       />
 
       <div className="z-10 flex flex-col items-center my-4 md:my-8 lg:my-16 xl:my-24">
-        <h1 className="text-center text-6xl xl:text-7xl text-transparent bg-clip-text bg-gradient-to-t py-2 from-violet-100 to-zinc-300 font-display font-bold">
+        <h1 className="py-2 text-6xl font-bold text-center text-transparent xl:text-7xl bg-clip-text bg-gradient-to-t from-violet-100 to-zinc-300 font-display">
           Unkey Your Development
         </h1>
 
-        <p className="text-center font-thin text-lg text-gray-300 mt-8 max-w-lg">
+        <p className="max-w-lg mt-8 text-lg font-thin text-center text-gray-300">
           Unkey is an open source API key management platform. Issue, revoke and rotate keys for
           your product in minutes
         </p>
 
-        <span className="rounded-full mt-8 bg-black/10 px-3 py-1 text-sm  leading-6 text-violet-200 ring-1 ring-inset ring-violet-100/20">
+        <span className="px-3 py-1 mt-8 text-sm leading-6 rounded-full bg-black/10 text-violet-200 ring-1 ring-inset ring-violet-100/20">
           Coming soon
         </span>
       </div>
 
       <form
-        className="z-10 relative w-full max-w-sm isolate mt-8 flex items-center pr-1"
+        className="relative z-10 flex items-center w-full max-w-sm pr-1 mt-8 isolate"
         action={async (data: FormData) => {
           const email = data.get("email");
           if (!email) {
@@ -73,7 +73,7 @@ export default function Home() {
           </kbd>
         </button>
 
-        <div className="absolute inset-0 -z-10 rounded-lg transition peer-focus:ring-4 peer-focus:ring-indigo-300/15" />
+        <div className="absolute inset-0 transition rounded-lg -z-10 peer-focus:ring-4 peer-focus:ring-indigo-300/15" />
         <div className="absolute inset-0 -z-10 rounded-lg bg-white/2.5 ring-1 ring-white/15 transition peer-focus:ring-indigo-300" />
       </form>
       <Toaster />

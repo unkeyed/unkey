@@ -89,7 +89,7 @@ export const keyRouter = t.router({
     const buf = new Uint8Array(16);
     crypto.getRandomValues(buf);
 
-    let key = ["unkey", toBase58(buf)].join("_");
+    const key = ["unkey", toBase58(buf)].join("_");
 
     const hash = toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(key)));
 
