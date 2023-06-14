@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { Loading } from "@/components/loading";
-
+import { useToast } from "@/components/ui/use-toast";
 export function EmailSignUp(props: { verification: (value: boolean) => void }) {
-  const [isLoading, setIsLoading] = React.useState(false);
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const { toast } = useToast();
+
+  const [isLoading, setIsLoading] = React.useState(false);
+
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,13 +24,20 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
     try {
       await signUp.create({
         emailAddress: email,
-      });
-
-      await signUp.prepareEmailAddressVerification();
-
-      setIsLoading(false);
-      // set verification to true so we can show the code input
-      props.verification(true);
+      }).then(async () => {
+        await signUp.prepareEmailAddressVerification();
+        setIsLoading(false);
+        // set verification to true so we can show the code input
+        props.verification(true);
+      })
+        .catch((err) => {
+          setIsLoading(false);
+          if (err.errors[0].code === "form_identifier_exists")
+            toast({ title: "Error", description: "Sorry, it looks like you have an account. Please use sign in", variant: "destructive" });
+          else {
+            toast({ title: "Error", description: "Sorry, We couldn't sign you up. Please try again later", variant: "destructive" });
+          }
+        });
     } catch (error) {
       setIsLoading(false);
       console.log(error);

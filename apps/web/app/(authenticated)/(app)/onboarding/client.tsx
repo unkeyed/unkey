@@ -27,7 +27,7 @@ import {
   FormMessage,
 } from "@/components/Form";
 import { useForm } from "react-hook-form";
-
+import { useRouter } from "next/navigation";
 const formSchema = z.object({
   name: z.string().min(3).max(50),
   slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
@@ -41,12 +41,14 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
     resolver: zodResolver(formSchema),
   });
   const { toast } = useToast();
+  const router = useRouter();
   const create = trpc.tenant.create.useMutation({
     onSuccess() {
       toast({
         title: "Team Created",
         description: "Your team has been created",
       });
+      router.push("/app");
     },
     onError(err) {
       console.error(err);

@@ -25,8 +25,8 @@ export default function AuthenticationPage() {
       {!verify && (
         <>
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-3xl font-semibold tracking-tight">Sign In to Your Account</h1>
-            <p className="text-md text-muted-foreground">Enter your email below to sign in</p>
+            <h1 className="text-3xl font-semibold tracking-tight">Sign Up to Unkey</h1>
+            <p className="text-md text-muted-foreground">Enter your email below to sign up</p>
           </div>
           <div className="grid gap-6">
             <EmailSignUp verification={setVerify} />
@@ -44,7 +44,7 @@ export default function AuthenticationPage() {
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
               Already been here before? Just{" "}
-              <a className="text-black" href="/sign-in">
+              <a className="text-black" href="/auth/sign-in">
                 Sign In
               </a>
             </span>
