@@ -12,7 +12,7 @@ const testimonials: {
   {
     quote: <p>“I build stuff before asking if anyone wants it“</p>,
     author: {
-      image: "https://pbs.twimg.com/profile_images/1629470718630002692/Dax4prIG_400x400.jpg",
+      image: "https://pbs.twimg.com/profile_images/1437670380957835264/gu8S0olw_400x400.jpg",
       name: "Andreas Thomas",
       title: "Random Dude at Upstash",
     },
