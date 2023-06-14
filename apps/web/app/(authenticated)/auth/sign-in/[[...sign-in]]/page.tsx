@@ -12,6 +12,7 @@ export default function AuthenticationPage() {
   const router = useRouter();
 
   const { isSignedIn, isLoaded } = useAuth();
+
   if (!isLoaded) {
     return null;
   }

@@ -12,8 +12,6 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = React.useState(false);
-
-
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const email = new FormData(e.currentTarget).get("email");
@@ -22,20 +20,30 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
     }
     setIsLoading(true);
     try {
-      await signUp.create({
-        emailAddress: email,
-      }).then(async () => {
-        await signUp.prepareEmailAddressVerification();
-        setIsLoading(false);
-        // set verification to true so we can show the code input
-        props.verification(true);
-      })
+      await signUp
+        .create({
+          emailAddress: email,
+        })
+        .then(async () => {
+          await signUp.prepareEmailAddressVerification();
+          setIsLoading(false);
+          // set verification to true so we can show the code input
+          props.verification(true);
+        })
         .catch((err) => {
           setIsLoading(false);
-          if (err.errors[0].code === "form_identifier_exists")
-            toast({ title: "Error", description: "Sorry, it looks like you have an account. Please use sign in", variant: "destructive" });
-          else {
-            toast({ title: "Error", description: "Sorry, We couldn't sign you up. Please try again later", variant: "destructive" });
+          if (err.errors[0].code === "form_identifier_exists") {
+            toast({
+              title: "Error",
+              description: "Sorry, it looks like you have an account. Please use sign in",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: "Sorry, We couldn't sign you up. Please try again later",
+              variant: "destructive",
+            });
           }
         });
     } catch (error) {
