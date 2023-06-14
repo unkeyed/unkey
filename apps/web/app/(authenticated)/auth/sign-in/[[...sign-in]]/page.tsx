@@ -12,7 +12,7 @@ export default function AuthenticationPage() {
   const router = useRouter();
 
   const { isSignedIn, isLoaded } = useAuth();
-
+  console.log(isSignedIn, isLoaded)
   if (!isLoaded) {
     return null;
   }
@@ -44,7 +44,7 @@ export default function AuthenticationPage() {
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
               Not been here before? Just{" "}
-              <a className="text-black" href="/sign-up">
+              <a className="text-black" href="/auth/sign-up">
                 Sign Up
               </a>
             </span>

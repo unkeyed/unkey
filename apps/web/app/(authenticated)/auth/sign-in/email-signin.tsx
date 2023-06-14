@@ -6,10 +6,12 @@ import { useSignIn } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/loading";
-
+import { useToast } from "@/components/ui/use-toast";
 export function EmailSignIn(props: { verification: (value: boolean) => void }) {
-  const [isLoading, setIsLoading] = React.useState(false);
   const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const { toast } = useToast();
+
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,25 +23,29 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
     await signIn
       .create({
         identifier: email,
+      }).then(async () => {
+        const firstFactor = signIn.supportedFirstFactors.find((f) => f.strategy === "email_code") as
+          | { emailAddressId: string }
+          | undefined;
+
+        if (firstFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: "email_code",
+            emailAddressId: firstFactor.emailAddressId,
+          });
+
+          setIsLoading(false);
+          props.verification(true);
+        }
       })
-      .catch((error) => {
-        console.log("sign-in error", JSON.stringify(error));
+      .catch((err) => {
+        setIsLoading(false);
+        if (err.errors[0].code === "form_identifier_not_found")
+          toast({ title: "Error", description: "Sorry, We couldn't find your account. Please use sign up", variant: "destructive" });
+        else {
+          toast({ title: "Error", description: "Sorry, We couldn't sign you in. Please try again later", variant: "destructive" });
+        }
       });
-
-    const firstFactor = signIn.supportedFirstFactors.find((f) => f.strategy === "email_code") as
-      | { emailAddressId: string }
-      | undefined;
-
-    if (firstFactor) {
-      await signIn.prepareFirstFactor({
-        strategy: "email_code",
-        emailAddressId: firstFactor.emailAddressId,
-      });
-
-      setIsLoading(false);
-      // set verification to true so we can show the code input
-      props.verification(true);
-    }
   };
 
   return (

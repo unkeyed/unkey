@@ -1,5 +1,4 @@
 import { db, schema } from "@unkey/db";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { t, auth } from "../trpc";
