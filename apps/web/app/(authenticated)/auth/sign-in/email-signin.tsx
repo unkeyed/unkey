@@ -23,7 +23,8 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
     await signIn
       .create({
         identifier: email,
-      }).then(async () => {
+      })
+      .then(async () => {
         const firstFactor = signIn.supportedFirstFactors.find((f) => f.strategy === "email_code") as
           | { emailAddressId: string }
           | undefined;
@@ -40,10 +41,18 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
       })
       .catch((err) => {
         setIsLoading(false);
-        if (err.errors[0].code === "form_identifier_not_found")
-          toast({ title: "Error", description: "Sorry, We couldn't find your account. Please use sign up", variant: "destructive" });
-        else {
-          toast({ title: "Error", description: "Sorry, We couldn't sign you in. Please try again later", variant: "destructive" });
+        if (err.errors[0].code === "form_identifier_not_found") {
+          toast({
+            title: "Error",
+            description: "Sorry, We couldn't find your account. Please use sign up",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Sorry, We couldn't sign you in. Please try again later",
+            variant: "destructive",
+          });
         }
       });
   };

@@ -23,20 +23,27 @@ export function EmailCode() {
       return null;
     }
     setIsLoading(true);
-    await signIn.attemptFirstFactor({
-      strategy: "email_code",
-      code: emailCode,
-    }).then(async (result) => {
-      if (result.status === "complete" && result.createdSessionId) {
-        await setActive({ session: result.createdSessionId });
-        router.push("/app");
-      }
-    }).catch((err) => {
-      setIsLoading(false);
-      if (err.errors[0].code === "form_code_incorrect")
-        toast({ title: "Error", description: "Please check the 6 digit code, the one you entered is incorrect", variant: "destructive" });
-    });
-
+    await signIn
+      .attemptFirstFactor({
+        strategy: "email_code",
+        code: emailCode,
+      })
+      .then(async (result) => {
+        if (result.status === "complete" && result.createdSessionId) {
+          await setActive({ session: result.createdSessionId });
+          router.push("/app");
+        }
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        if (err.errors[0].code === "form_code_incorrect") {
+          toast({
+            title: "Error",
+            description: "Please check the 6 digit code, the one you entered is incorrect",
+            variant: "destructive",
+          });
+        }
+      });
   };
 
   const resendCode = async (e: React.FormEvent) => {
@@ -53,11 +60,15 @@ export function EmailCode() {
         emailAddressId: firstFactor.emailAddressId,
       });
       setTimeLeft(30);
-      toast({ title: "Success", description: "A new code has been sent to your email", variant: "default" });
-      const interval = setInterval(() => {
+      toast({
+        title: "Success",
+        description: "A new code has been sent to your email",
+        variant: "default",
+      });
+      const _interval = setInterval(() => {
         setTimeLeft((time) => {
           if (time === 0) {
-            clearInterval(interval);
+            clearInterval(_interval);
             return 0;
           }
           return time - 1;
@@ -88,15 +99,10 @@ export function EmailCode() {
           {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
           Verify Code
         </Button>
-        <Button
-          disabled={isLoading || timeLeft > 0}
-          variant="ghost"
-          onClick={resendCode}
-        >
+        <Button disabled={isLoading || timeLeft > 0} variant="ghost" onClick={resendCode}>
           Resend Code {timeLeft > 0 && `(${timeLeft})`}
         </Button>
       </form>
-
     </>
   );
 }
