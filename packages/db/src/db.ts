@@ -1,9 +1,8 @@
 // db.ts
-import { drizzle, type PlanetScaleDatabase } from "drizzle-orm/planetscale-serverless";
+import { drizzle } from "drizzle-orm/planetscale-serverless";
 
 import { connect } from "@planetscale/database";
 import * as schema from "./schema";
-import { InferModel } from "drizzle-orm";
 
 export const createDatabase = (c: {
   host: string;
@@ -28,8 +27,3 @@ export const db = createDatabase({
   username: process.env.DATABASE_USERNAME!,
   password: process.env.DATABASE_PASSWORD!,
 });
-export type Database = PlanetScaleDatabase<typeof schema>;
-
-export type Key = InferModel<typeof schema.keys>;
-export type Api = InferModel<typeof schema.apis>;
-export type Tenant = InferModel<typeof schema.tenants>;
