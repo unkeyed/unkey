@@ -7,7 +7,7 @@ export const runtime = "edge";
 
 export default function SSOCallback() {
   return (
-    <div className="flex items-center justify-center">
+    <div className="h-screen flex items-center justify-center ">
       <Icons.spinner className="mr-2 h-16 w-16 animate-spin" />
       <AuthenticateWithRedirectCallback afterSignInUrl="/app" afterSignUpUrl="/onboarding" />
     </div>
