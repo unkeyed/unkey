@@ -21,7 +21,6 @@ type Props = {
     name?: string;
     start: string;
     createdAt: Date;
-    policy: string | null;
   };
 };
 
@@ -33,7 +32,7 @@ export const Row: React.FC<Props> = ({ apiKey }) => {
     >
       <div>
         <p className="text-zinc-200 whitespace-nowrap">{apiKey.name}</p>
-        <div className="flex items-center mt-1 text-xs gap-x-2 leading-5 text-zinc-500">
+        <div className="flex items-center mt-1 text-xs leading-5 gap-x-2 text-zinc-500">
           <p className="whitespace-nowrap">
             Created at{" "}
             <time dateTime={apiKey.createdAt.toISOString()}>{apiKey.createdAt.toUTCString()}</time>

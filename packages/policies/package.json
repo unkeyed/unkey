@@ -2,20 +2,21 @@
   "name": "@unkey/policies",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsup"
   },
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "ISC",
-  "devDependencies": {
-    "@types/node": "^20.3.1",
-    "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.1.3"
-  },
   "dependencies": {
     "@chronark/access-policies": "^0.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.2.3",
+    "@unkey/tsconfig": "workspace:*",
+    "tsup": "^6.7.0",
+    "typescript": "^5.0.4"
   }
 }

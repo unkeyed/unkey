@@ -19,7 +19,7 @@ export class Logger {
       });
 
       this.logger.attachTransport((logObj) => {
-        axiom.ingestEvents("scheduler", [logObj]).catch((err) => {
+        axiom.ingestEvents("api", [logObj]).catch((err) => {
           console.error(`Failed to send log to axiom: ${err.message}`);
         });
       });

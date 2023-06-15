@@ -12,6 +12,7 @@ import { Logger } from "./logger";
 import { webcrypto as crypto } from "node:crypto";
 import type { Cache } from "./cache";
 import { RatelimitResult, Ratelimiter } from "./ratelimit";
+import { Policy } from "@unkey/policies";
 
 export type Bindings = {
   db: Database;
@@ -22,7 +23,7 @@ export type Bindings = {
   };
 };
 
-export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }: Bindings): THono {
+export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, cache }: Bindings): THono {
   app.onError((err, c) => {
     logger.error(err.message);
     if (err instanceof HTTPException) {
@@ -35,7 +36,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
     const now = Date.now();
     await next();
     const responseTime = Date.now() - now;
-    logger.info(`Request took ${responseTime}ms`);
+    logger.info("Request duration", { duration: responseTime });
   });
 
   app.get("/v1/liveness", (c) => c.text("ok"));
@@ -75,21 +76,23 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
         throw new AuthorizationError("Missing Authorization header");
       }
       const token = authorization.replace("Bearer ", "");
+      logger.info("Got token", { token });
       const unkeyKey = await db.query.keys.findFirst({
         where: eq(
           schema.keys.hash,
           toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(token))),
         ),
       });
-
+      logger.info("Found key", unkeyKey);
       if (!unkeyKey) {
         throw new AuthorizationError("Unauthorized");
       }
+      logger.info("Found key", unkeyKey);
+      //  for (const policy of unkeyKey) {
+      //    const p = Policy.fromJSON(policy.policy);
+      //  }
 
       const req = c.req.valid("json");
-      if (unkeyKey.apiId !== req.apiId) {
-        throw new AuthorizationError("Unauthorized to access this api");
-      }
 
       const api = await db.query.apis.findFirst({
         where: eq(schema.apis.id, req.apiId),
@@ -98,6 +101,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
       if (!api) {
         throw new NotFoundError("This api does not exist");
       }
+      logger.info("Found api", api);
 
       const buf = new Uint8Array(req.byteLength);
       crypto.getRandomValues(buf);
@@ -157,13 +161,23 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
       }),
     ),
     async (c) => {
-      const buf = await crypto.subtle.digest(
-        "sha-256",
-        new TextEncoder().encode(c.req.valid("json").key),
-      );
-      const hash = toBase64(buf);
-      const found = await db.select().from(schema.keys).where(eq(schema.keys.hash, hash)).execute();
-      const key = found.at(0);
+
+
+      const rawKey = c.req.valid("json").key;
+
+
+      let key: Key | undefined = cache.keys.get(rawKey);
+      if (!key) {
+
+        const buf = await crypto.subtle.digest(
+          "sha-256",
+          new TextEncoder().encode(rawKey),
+        );
+        const hash = toBase64(buf);
+        const found = await db.select().from(schema.keys).where(eq(schema.keys.hash, hash)).execute();
+        key = found.at(0);
+        
+      }
 
       if (!key) {
         return c.json(
@@ -190,6 +204,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
         );
       }
 
+      cache.keys.set(rawKey, key);
       const headers: Record<string, string> = {};
 
       if (key.ratelimitType) {

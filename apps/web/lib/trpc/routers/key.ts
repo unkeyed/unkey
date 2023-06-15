@@ -6,40 +6,9 @@ import { t, auth } from "../trpc";
 import { newId } from "@unkey/id";
 import { toBase58 } from "@/lib/api/base58";
 import { toBase64 } from "@/lib/api/base64";
+import { Policy, type GRID } from "@unkey/policies";
 
 export const keyRouter = t.router({
-  // list: t.procedure.use(auth).query(async ({ ctx }) => {
-  //   return await db.channel.findMany({
-  //     where: {
-  //       tenantId: ctx.tenant.id,
-  //     },
-  //   });
-  // }),
-  // delete: t.procedure
-  //   .use(auth)
-  //   .input(
-  //     z.object({
-  //       channelId: z.string(),
-  //     }),
-  //   )
-  //   .mutation(async ({ input, ctx }) => {
-  //     const channel = await db.channel.findFirst({
-  //       where: {
-  //         AND: {
-  //           id: input.channelId,
-  //           tenantId: ctx.tenant.id,
-  //         },
-  //       },
-  //     });
-  //     if (!channel) {
-  //       throw new TRPCError({ code: "NOT_FOUND" });
-  //     }
-  //     await db.channel.delete({
-  //       where: {
-  //         id: channel.id,
-  //       },
-  //     });
-  //   }),
   create: t.procedure
     .use(auth)
     .input(
@@ -82,7 +51,6 @@ export const keyRouter = t.router({
         meta: input.meta,
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
-        policy: null,
         internal: false,
         expires: input.expires ? new Date(input.expires) : null,
         ratelimitType: null,
@@ -97,8 +65,61 @@ export const keyRouter = t.router({
         values.ratelimitRefillRate = input.ratelimit.refillRate;
         values.ratelimitLimit = input.ratelimit.limit;
       }
-      await db.insert(schema.keys).values(values).execute();
 
+      await db.insert(schema.keys).values(values).execute();
+      const policyId = newId("policy");
+      await db
+        .insert(schema.policies)
+        .values({
+          id: policyId,
+          createdAt: new Date(),
+          name: "root",
+          policy: new Policy([
+            {
+              resources: {
+                api: {
+                  [`${ctx.tenant.id}::api::*` satisfies GRID]: [
+                    "create",
+                    "read",
+                    "update",
+                    "delete",
+                    "create:key",
+                  ],
+                },
+                key: {
+                  [`${ctx.tenant.id}::key::*` satisfies GRID]: [
+                    "create",
+                    "read",
+                    "update",
+                    "delete",
+                    "attach:policy",
+                    "detach:policy",
+                  ],
+                },
+                policy: {
+                  [`${ctx.tenant.id}::policy::*` satisfies GRID]: [
+                    "create",
+                    "read",
+                    "update",
+                    "delete",
+                  ],
+                },
+              },
+            },
+          ]).toString(),
+          tenantId: ctx.tenant.id,
+          updatedAt: new Date(),
+          version: "v1",
+        })
+        .execute();
+
+      await db
+        .insert(schema.keysToPolicies)
+        .values({
+          keyId: values.id,
+          policyId,
+        })
+        .execute();
       return {
         key,
         id,

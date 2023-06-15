@@ -10,7 +10,7 @@ import { env } from "./src/env";
 
 const logger = new Logger();
 
-const keyCache = new Cache<Key>({ ttlSeconds: 10 });
+const keyCache = new Cache<Key>({ ttlSeconds: 60 });
 const ratelimiter = new Ratelimiter(env.REDIS_URL);
 
 const router = init(new Hono(), { db, logger, cache: { keys: keyCache }, ratelimiter });
