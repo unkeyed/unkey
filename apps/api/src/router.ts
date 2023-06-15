@@ -63,8 +63,8 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
           .object({
             type: z.enum(["consistent", "fast"]),
             limit: z.number().int().gte(1),
-            tokens: z.number().int().gte(1),
-            duration: z.number().int().gte(1),
+            refillRate: z.number().int().gte(1),
+            refillInterval: z.number().int().gte(1),
           })
           .optional(),
       }),
@@ -127,8 +127,8 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
           expires: req.expires ? new Date(req.expires) : undefined,
           ratelimitType: req.ratelimit?.type,
           ratelimitLimit: req.ratelimit?.limit,
-          ratelimitRefillRate: req.ratelimit?.tokens,
-          ratelimitRefillTime: req.ratelimit?.duration,
+          ratelimitRefillRate: req.ratelimit?.refillRate,
+          ratelimitRefillInterval: req.ratelimit?.refillInterval,
         })
         .execute()
         .catch((err) => {
