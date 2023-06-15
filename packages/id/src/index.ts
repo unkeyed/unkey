@@ -2,6 +2,7 @@ import baseX from "base-x";
 
 const prefixes = {
   key: "key",
+  policy: "pol",
   api: "api",
 } as const;
 

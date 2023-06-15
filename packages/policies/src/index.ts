@@ -7,7 +7,7 @@ export type Resources = {
      */
     "create",
     /**
-     * Read an api's configuration
+     * Read api config
      */
     "read",
     /**
@@ -15,19 +15,32 @@ export type Resources = {
      */
     "update",
     /**
-     * Can delete an api and all its keys
+     * Can delete an api
      */
     "delete",
-    "read:keys",
-    "create:keys",
+    "create:key",
   ];
+  policy: ["create", "read", "update", "delete"];
+  key: ["create", "read", "update", "delete", "attach:policy", "detach:policy"];
 };
 
 type TenantId = string;
-type ResourceId = string;
+type ResourceId = string; // a specific apiId or keyId for example
 /**
  * Global Resource ID
  */
-export type GRID = `${TenantId}::${keyof Resources | "*"}::${ResourceId}`;
+export type GRID =
+  | `${TenantId}::${keyof Resources}::${ResourceId | "*"}` // standard
+  | `${TenantId}::api::${ResourceId}::${Exclude<keyof Resources, "api"> | "*"}::${
+      | ResourceId
+      | "*"}`; // api specific nesting
 
-export class Policy extends GenericPolicy<Resources, GRID> {}
+export class Policy extends GenericPolicy<Resources, GRID> {
+  toJSON() {
+    return JSON.parse(this.toString());
+  }
+
+  static fromJSON(json: unknown) {
+    return Policy.parse(JSON.stringify(json));
+  }
+}

@@ -16,6 +16,7 @@
     "@planetscale/database": "^1.7.0",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
+    "@unkey/policies": "workspace:^",
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.26.5",
     "hono": "^3.2.5",
