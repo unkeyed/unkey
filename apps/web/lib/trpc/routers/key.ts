@@ -1,4 +1,4 @@
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq, Key } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -49,6 +49,15 @@ export const keyRouter = t.router({
         apiId: z.string(),
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
+        expires: z.number().int().optional(), // unix timestamp in milliseconds
+        ratelimit: z
+          .object({
+            type: z.enum(["consistent", "fast"]),
+            refillInterval: z.number().int().positive(),
+            refillRate: z.number().int().positive(),
+            limit: z.number().int().positive(),
+          })
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -64,19 +73,31 @@ export const keyRouter = t.router({
 
       const id = newId("key");
 
-      await db
-        .insert(schema.keys)
-        .values({
-          id,
-          apiId: input.apiId,
-          tenantId: ctx.tenant.id,
-          hash,
-          ownerId: input.ownerId,
-          meta: input.meta,
-          start: key.substring(0, key.indexOf("_") + 4),
-          createdAt: new Date(),
-        })
-        .execute();
+      const values: Key = {
+        id,
+        apiId: input.apiId,
+        tenantId: ctx.tenant.id,
+        hash,
+        ownerId: input.ownerId ?? null,
+        meta: input.meta,
+        start: key.substring(0, key.indexOf("_") + 4),
+        createdAt: new Date(),
+        policy: null,
+        internal: false,
+        expires: input.expires ? new Date(input.expires) : null,
+        ratelimitType: null,
+        ratelimitRefillInterval: null,
+        ratelimitRefillRate: null,
+        ratelimitLimit: null,
+      };
+
+      if (input.ratelimit) {
+        values.ratelimitType = input.ratelimit.type;
+        values.ratelimitRefillInterval = input.ratelimit.refillInterval;
+        values.ratelimitRefillRate = input.ratelimit.refillRate;
+        values.ratelimitLimit = input.ratelimit.limit;
+      }
+      await db.insert(schema.keys).values(values).execute();
 
       return {
         key,

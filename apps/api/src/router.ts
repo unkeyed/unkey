@@ -11,7 +11,7 @@ import { toBase58, toBase64 } from "./encoding";
 import { Logger } from "./logger";
 import { webcrypto as crypto } from "node:crypto";
 import type { Cache } from "./cache";
-import { Ratelimiter } from "./ratelimit";
+import { RatelimitResult, Ratelimiter } from "./ratelimit";
 
 export type Bindings = {
   db: Database;
@@ -62,7 +62,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),
-            burstLimit: z.number().int().gte(1).optional(),
+            limit: z.number().int().gte(1),
             tokens: z.number().int().gte(1),
             duration: z.number().int().gte(1),
           })
@@ -126,7 +126,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
           createdAt: new Date(),
           expires: req.expires ? new Date(req.expires) : undefined,
           ratelimitType: req.ratelimit?.type,
-          ratelimitBurst: req.ratelimit?.burstLimit,
+          ratelimitLimit: req.ratelimit?.limit,
           ratelimitRefillRate: req.ratelimit?.tokens,
           ratelimitRefillTime: req.ratelimit?.duration,
         })
@@ -190,15 +190,44 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter }
         );
       }
 
+      const headers: Record<string, string> = {};
+
+      if (key.ratelimitType) {
+        const ratelimitRequest = {
+          limit: key.ratelimitLimit,
+          refillInterval: key.ratelimitRefillInterval,
+          refillRate: key.ratelimitRefillRate,
+        };
+
+        const ratelimit =
+          key.ratelimitType === "fast"
+            ? ratelimiter.limitLocal(key.id, ratelimitRequest)
+            : await ratelimiter.limitGlobal(key.id, ratelimitRequest);
+
+        headers["Ratelimit-Limit"] = ratelimit.limit.toString();
+        headers["Ratelimit-Remaining"] = ratelimit.remaining.toString();
+        headers["Ratelimit-Reset"] = ratelimit.reset.toString();
+
+        if (!ratelimit.pass) {
+          return c.json(
+            {
+              valid: false,
+              error: "Ratelimit exceeded",
+            },
+            429,
+            headers,
+          );
+        }
+      }
+
       return c.json(
         {
           valid: true,
           ownerId: key.ownerId ?? undefined,
           meta: key.meta ?? undefined,
         },
-        {
-          status: 200,
-        },
+        200,
+        headers,
       );
     },
   );
