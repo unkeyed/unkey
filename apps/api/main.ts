@@ -6,10 +6,12 @@ import { db, type Key } from "./src/db";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { Cache } from "./src/cache";
+import { env } from "./src/env";
+
 const logger = new Logger();
 
 const keyCache = new Cache<Key>({ ttlSeconds: 10 });
-const ratelimiter = new Ratelimiter();
+const ratelimiter = new Ratelimiter(env.REDIS_URL);
 
 const router = init(new Hono(), { db, logger, cache: { keys: keyCache }, ratelimiter });
 const port = parseInt(process.env.PORT ?? "8080");

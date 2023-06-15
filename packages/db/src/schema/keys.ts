@@ -17,9 +17,9 @@ export const keys = mysqlTable("keys", {
   // Internal keys are used to interact with the unkey API instead of 3rd party users
   internal: boolean("internal"),
   ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
-  ratelimitBurst: int("ratelimit_burst"),
-  ratelimitRefillRate: int("ratelimit_rate"),
-  ratelimitRefillTime: int("ratelimit_time"), // seconds
+  ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
+  ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
+  ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
 });
 
 export const keysRelations = relations(keys, ({ one }) => ({
