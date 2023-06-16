@@ -1,0 +1,45 @@
+{
+    "$schema": "https://mintlify.com/schema.json",
+    "name": "Unkey Docs",
+    "colors": {
+        "primary": "#252737",
+        "light": "#c2c4c4",
+        "dark": "#252737"
+    },
+    "topbarLinks": [
+        {
+            "name": "Documentation",
+            "url": "https://docs.unkey.dev"
+        }
+    ],
+    "topbarCtaButton": {
+        "name": "Dashboard",
+        "url": "https://unley.dev/app"
+    },
+    "tabs": [
+        {
+            "name": "API Reference",
+            "url": "api-reference"
+        }
+    ],
+    "navigation": [
+        {
+            "group": "Get Started",
+            "pages": [
+                "introduction",
+                "quickstart",
+                "development"
+            ]
+        },
+        {
+            "group": "API Documentation",
+            "pages": [
+                "api-reference/authentication"
+            ]
+        }
+    ],
+    "footerSocials": {
+        "twitter": "https://twitter.com/james_r_perkins",
+        "github": "https://github.com/chronark/unkey"
+    }
+}
