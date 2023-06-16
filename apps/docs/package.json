@@ -1,0 +1,10 @@
+{
+    "name": "@unkey/docs",
+    "version": "1.0.0",
+    "scripts": {
+        "dev": "npx mintlify dev --port 3333"
+    },
+    "keywords": [],
+    "author": "Andreas Thomas & James Perkins",
+    "license": "MIT"
+}
