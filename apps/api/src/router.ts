@@ -23,7 +23,13 @@ export type Bindings = {
   };
 };
 
-export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, cache }: Bindings): THono {
+export type Variables = {
+  requestId: string;
+  logger: Logger;
+};
+
+export function init({ db, logger, ratelimiter, cache }: Bindings) {
+  const app = new Hono<{ Variables: Variables }>();
   app.onError((err, c) => {
     logger.error(err.message);
     if (err instanceof HTTPException) {
@@ -31,20 +37,30 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, 
     }
     return c.json({ error: "Internal Server Error", message: err.message }, { status: 500 });
   });
-  app.use("*", honoLogger());
-  app.use("*", async (_c, next) => {
-    const now = Date.now();
+
+  // add request id
+  app.use("*", async (c, next) => {
+    const requestId = newId("request");
+    c.set("requestId", requestId);
+    c.res.headers.set("x-request-id", requestId);
     await next();
-    const responseTime = Date.now() - now;
-    logger.info("Request duration", { duration: responseTime });
+  });
+
+  // add request id
+  app.use("*", async (c, next) => {
+    c.set("logger", logger.with({ requestId: c.get("requestId"), path: c.req.path }));
+    await next();
+  });
+
+  app.use("*", async (c, next) => {
+    const now = performance.now();
+    await next();
+    const responseTime = performance.now() - now;
+    c.get("logger").info("Request duration", { duration: responseTime });
   });
 
   app.get("/v1/liveness", (c) => c.text("ok"));
 
-  app.get("/v1/tenants", async (c) => {
-    const tenants = await db.query.tenants.findMany();
-    return c.json({ tenants });
-  });
   /**
    * Create a new API key
    *
@@ -71,23 +87,24 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, 
       }),
     ),
     async (c) => {
+      const log = c.get("logger");
       const authorization = c.req.headers.get("authorization");
       if (!authorization) {
         throw new AuthorizationError("Missing Authorization header");
       }
       const token = authorization.replace("Bearer ", "");
-      logger.info("Got token", { token });
+      log.info("Got token", { token });
       const unkeyKey = await db.query.keys.findFirst({
         where: eq(
           schema.keys.hash,
           toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(token))),
         ),
       });
-      logger.info("Found key", unkeyKey);
+      log.info("Found key", unkeyKey);
       if (!unkeyKey) {
         throw new AuthorizationError("Unauthorized");
       }
-      logger.info("Found key", unkeyKey);
+      log.info("Found key", unkeyKey);
       //  for (const policy of unkeyKey) {
       //    const p = Policy.fromJSON(policy.policy);
       //  }
@@ -101,7 +118,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, 
       if (!api) {
         throw new NotFoundError("This api does not exist");
       }
-      logger.info("Found api", api);
+      log.info("Found api", api);
 
       const buf = new Uint8Array(req.byteLength);
       crypto.getRandomValues(buf);
@@ -115,7 +132,7 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, 
 
       const keyId = newId("key");
 
-      logger.info("Creating key", { key, keyId, apiId: req.apiId, tenantId: api.tenantId });
+      log.info("Creating key", { key, keyId, apiId: req.apiId, tenantId: api.tenantId });
 
       await db
         .insert(schema.keys)
@@ -161,22 +178,26 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, 
       }),
     ),
     async (c) => {
-
-
+      const log = c.get("logger");
       const rawKey = c.req.valid("json").key;
 
-
+      const beforeCache = performance.now();
       let key: Key | undefined = cache.keys.get(rawKey);
+      log.info("report.cache.key.get", { hit: !!key, latency: performance.now() - beforeCache });
       if (!key) {
-
-        const buf = await crypto.subtle.digest(
-          "sha-256",
-          new TextEncoder().encode(rawKey),
-        );
+        const buf = await crypto.subtle.digest("sha-256", new TextEncoder().encode(rawKey));
         const hash = toBase64(buf);
-        const found = await db.select().from(schema.keys).where(eq(schema.keys.hash, hash)).execute();
+        const beforeDb = performance.now();
+        const found = await db
+          .select()
+          .from(schema.keys)
+          .where(eq(schema.keys.hash, hash))
+          .execute();
+        log.info("report.database.key.get", {
+          hit: found.length > 0,
+          latency: performance.now() - beforeDb,
+        });
         key = found.at(0);
-        
       }
 
       if (!key) {
@@ -209,16 +230,21 @@ export function init<THono extends Hono>(app: THono, { db, logger, ratelimiter, 
 
       if (key.ratelimitType) {
         const ratelimitRequest = {
-          limit: key.ratelimitLimit,
-          refillInterval: key.ratelimitRefillInterval,
-          refillRate: key.ratelimitRefillRate,
+          limit: key.ratelimitLimit!,
+          refillInterval: key.ratelimitRefillInterval!,
+          refillRate: key.ratelimitRefillRate!,
         };
 
+        const beforeRatelimit = performance.now();
         const ratelimit =
           key.ratelimitType === "fast"
             ? ratelimiter.limitLocal(key.id, ratelimitRequest)
             : await ratelimiter.limitGlobal(key.id, ratelimitRequest);
-
+        log.info("report.ratelimit", {
+          type: key.ratelimitType,
+          pass: ratelimit.pass,
+          latency: performance.now() - beforeRatelimit,
+        });
         headers["Ratelimit-Limit"] = ratelimit.limit.toString();
         headers["Ratelimit-Remaining"] = ratelimit.remaining.toString();
         headers["Ratelimit-Reset"] = ratelimit.reset.toString();

@@ -16,6 +16,10 @@ primary_region = "iad"
   auto_start_machines = true
   min_machines_running = 0
 
+[http_service.concurrency]
+  type = "requests"
+  hard_limit = 1000
+  soft_limit = 200
 
 
 [deploy]
