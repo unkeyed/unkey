@@ -4,6 +4,7 @@ const prefixes = {
   key: "key",
   policy: "pol",
   api: "api",
+  request: "req",
 } as const;
 
 export function newId(prefix: keyof typeof prefixes): string {

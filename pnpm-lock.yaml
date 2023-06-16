@@ -81,6 +81,8 @@ importers:
         specifier: ^5.1.3
         version: 5.1.3
 
+  apps/docs: {}
+
   apps/web:
     dependencies:
       '@clerk/nextjs':
@@ -344,6 +346,12 @@ importers:
         version: 5.1.3
 
   packages/tsconfig: {}
+
+  tools/k6:
+    devDependencies:
+      k6:
+        specifier: ^0.0.0
+        version: 0.0.0
 
 packages:
 
@@ -3617,6 +3625,10 @@ packages:
       cli-color: 2.0.3
       difflib: 0.2.4
       dreamopt: 0.8.0
+    dev: true
+
+  /k6@0.0.0:
+    resolution: {integrity: sha512-GAQSWayS2+LjbH5bkRi+pMPYyP1JSp7o+4j58ANZ762N/RH/SdlAT3CHHztnn8s/xgg8kYNM24Gd2IPo9b5W+g==}
     dev: true
 
   /lilconfig@2.1.0:
