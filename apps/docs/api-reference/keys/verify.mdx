@@ -1,0 +1,71 @@
+---
+title: "Verify Key"
+description: "Verify a key"
+api: "POST /v2/keys/verify"
+
+---
+
+Verify a key from your users. Notice how this endpoint does not require an Unkey api key. You only need to send the api key from your user.
+
+## Request
+
+<ParamField body="key" type="string" required>
+The key you want to verify.
+</ParamField>
+
+## Response
+
+<ResponseField name="valid" type="boolean" required>
+  Whether or not this key is valid and has passed the ratelimit.
+  If `false` you should not grant access to whatever the user is requesting
+</ResponseField>
+<ResponseField name="ownerId" type="string">
+  If you have set an `ownerId` on this key it is returned here. You can use this to clearly authenticate a user in your system.
+</ResponseField>
+
+
+<ResponseField name="meta" type="object" >
+This is the `meta` data you have set when creating the key.
+
+Example:
+```json
+{
+  "billingTier":"PRO",
+  "trialEnds": "2023-06-16T17:16:37.161Z"
+}
+```
+
+</ResponseField>
+
+<RequestExample>
+
+
+
+```sh 
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys/verify \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"key":"xyz_AS5HDkXXPot2MMoPHD8jnL"
+}'
+```
+
+
+
+
+
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+	"valid": true,
+	"ownerId": "chronark",
+	"meta": {
+		"hello": "world"
+	}
+}
+```
+
+
+</ResponseExample>

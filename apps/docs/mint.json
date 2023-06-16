@@ -2,14 +2,14 @@
     "$schema": "https://mintlify.com/schema.json",
     "name": "Unkey Docs",
     "colors": {
-        "primary": "#252737",
+        "primary": "#6030B3",
         "light": "#c2c4c4",
         "dark": "#252737"
     },
     "topbarLinks": [
         {
-            "name": "Documentation",
-            "url": "https://docs.unkey.dev"
+            "name": "GitHub",
+            "url": "https://github.com/chronark/unkey"
         }
     ],
     "topbarCtaButton": {
@@ -34,7 +34,17 @@
         {
             "group": "API Documentation",
             "pages": [
-                "api-reference/authentication"
+                "api-reference/authentication",
+              
+                {
+                  "group":"Keys",
+                  "pages":[
+                    "api-reference/keys/create",
+                    "api-reference/keys/verify"
+
+        
+                  ]
+                }
             ]
         }
     ],
