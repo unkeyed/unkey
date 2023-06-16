@@ -26,6 +26,12 @@ pnpm turbo run dev --filter=web
 ```
 3. Open localhost:3000
 
+
+## Docs Development
+
+```bash
+pnpm turbo run dev --filter=docs
+```
 ## Authors
 
 - [@chronark_](https://twitter.com/chronark_)
