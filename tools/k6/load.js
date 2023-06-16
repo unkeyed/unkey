@@ -24,7 +24,7 @@ export default function () {
   const res = http.post(
     "https://api.unkey.dev/v1/keys/verify",
     JSON.stringify({
-      key: "TODO:",
+      key: "XXX",
     }),
     {
       headers: {
