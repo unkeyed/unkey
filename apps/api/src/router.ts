@@ -31,16 +31,20 @@ export type Variables = {
 export function init({ db, logger, ratelimiter, cache }: Bindings) {
   const app = new Hono<{ Variables: Variables }>();
   app.onError((err, c) => {
-    logger.error(err.message);
     if (err instanceof HTTPException) {
       return err.getResponse();
     }
+
+    const log = c.get("logger") ?? logger;
+    log.error("unhandled error", { error: err.message, stack: err.stack });
+
     return c.json({ error: "Internal Server Error", message: err.message }, { status: 500 });
   });
 
   // add request id
   app.use("*", async (c, next) => {
     const requestId = newId("request");
+    
     c.set("requestId", requestId);
     c.res.headers.set("x-request-id", requestId);
     await next();
@@ -48,7 +52,10 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
   // add request id
   app.use("*", async (c, next) => {
-    c.set("logger", logger.with({ requestId: c.get("requestId"), path: c.req.path }));
+    const log = logger.with({ requestId: c.get("requestId"), path: c.req.path })
+    log.info("incoming request")
+    c.set("logger", log);
+
     await next();
   });
 
