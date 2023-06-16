@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger as honoLogger } from "hono/logger";
 import { z } from "zod";
-import { AuthorizationError, NotFoundError } from "./errors";
+import { AuthorizationError, BadRequestError, NotFoundError } from "./errors";
 import { newId } from "@unkey/id";
 import { toBase58, toBase64 } from "./encoding";
 import { Logger } from "./logger";
@@ -44,7 +44,7 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
   // add request id
   app.use("*", async (c, next) => {
     const requestId = newId("request");
-    
+
     c.set("requestId", requestId);
     c.res.headers.set("x-request-id", requestId);
     await next();
@@ -52,8 +52,8 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
   // add request id
   app.use("*", async (c, next) => {
-    const log = logger.with({ requestId: c.get("requestId"), path: c.req.path })
-    log.info("incoming request")
+    const log = logger.with({ requestId: c.get("requestId"), path: c.req.path });
+    log.info("incoming request");
     c.set("logger", log);
 
     await next();
@@ -95,6 +95,12 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
     ),
     async (c) => {
       const log = c.get("logger");
+      const req = c.req.valid("json");
+
+      if (req.expires && req.expires < Date.now()) {
+        throw new BadRequestError("'expires' must be in the future");
+      }
+
       const authorization = c.req.headers.get("authorization");
       if (!authorization) {
         throw new AuthorizationError("Missing Authorization header");
@@ -115,8 +121,6 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
       //  for (const policy of unkeyKey) {
       //    const p = Policy.fromJSON(policy.policy);
       //  }
-
-      const req = c.req.valid("json");
 
       const api = await db.query.apis.findFirst({
         where: eq(schema.apis.id, req.apiId),
@@ -139,7 +143,7 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
       const keyId = newId("key");
 
-      log.info("Creating key", { key, keyId, apiId: req.apiId, tenantId: api.tenantId });
+      log.info("Creating key", { key, keyId, apiId: req.apiId, tenantId: api.tenantId, hash });
 
       await db
         .insert(schema.keys)
@@ -190,10 +194,16 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
       const beforeCache = performance.now();
       let key: Key | undefined = cache.keys.get(rawKey);
-      log.info("report.cache.key.get", { hit: !!key, latency: performance.now() - beforeCache });
+      log.info("report.cache.key.get", {
+        hit: Boolean(key),
+        latency: performance.now() - beforeCache,
+        key,
+      });
       if (!key) {
-        const buf = await crypto.subtle.digest("sha-256", new TextEncoder().encode(rawKey));
-        const hash = toBase64(buf);
+        const hash = toBase64(
+          await crypto.subtle.digest("sha-256", new TextEncoder().encode(rawKey)),
+        );
+
         const beforeDb = performance.now();
         const found = await db
           .select()
@@ -203,6 +213,7 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
         log.info("report.database.key.get", {
           hit: found.length > 0,
           latency: performance.now() - beforeDb,
+          hash,
         });
         key = found.at(0);
       }
