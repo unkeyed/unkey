@@ -45,8 +45,8 @@ export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
   const create = trpc.workspace.create.useMutation({
     onSuccess() {
       toast({
-        title: "Team Created",
-        description: "Your team has been created",
+        title: "Workspace Created",
+        description: "Your workspace has been created",
       });
       router.push("/app");
     },
@@ -60,7 +60,7 @@ export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
     <div className="flex items-center justify-center min-h-screen w-full">
       <Card>
         <CardHeader>
-          <CardTitle>Create your Team</CardTitle>
+          <CardTitle>Create your Workspace</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -77,7 +77,7 @@ export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>What should your name be called?</FormDescription>
+                    <FormDescription>What should your workspace be called?</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

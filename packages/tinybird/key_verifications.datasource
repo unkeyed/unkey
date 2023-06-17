@@ -1,0 +1,12 @@
+VERSION 1
+
+SCHEMA >
+    `keyId` String `json:$.keyId`,
+    `apiId` String `json:$.apiId`,
+    `workspaceId` String `json:$.workspaceId`,
+    `time` Int64 `json:$.time`,
+    `ratelimited` Int8 `json:$.ratelimited`
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "apiId"
+ENGINE_SORTING_KEY "workspaceId, apiId, time"

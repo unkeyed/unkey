@@ -14,7 +14,7 @@ export default async function TenantOverviewPage() {
 
   return (
     <div>
-      <PageHeader title={workspace?.name ?? "N/A"} description="Your team" />
+      <PageHeader title={workspace?.name ?? "N/A"} description="Your Workspace" />
     </div>
   );
 }

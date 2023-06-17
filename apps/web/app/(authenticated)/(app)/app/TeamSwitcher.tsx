@@ -32,7 +32,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type Props = {};
 
-export const TeamSwitcher: React.FC<Props> = (): JSX.Element => {
+export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
   const { user } = useUser();
@@ -98,7 +98,7 @@ export const TeamSwitcher: React.FC<Props> = (): JSX.Element => {
 
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Switch Teams</DropdownMenuLabel>
+          <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
 
           <DropdownMenuItem
             onClick={() => changeOrg(null)}
@@ -127,7 +127,7 @@ export const TeamSwitcher: React.FC<Props> = (): JSX.Element => {
         <DropdownMenuGroup>
           <DropdownMenuItem disabled>
             <Plus className="w-4 h-4 mr-2" />
-            <span>Create Team</span>
+            <span>Create Workspace</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

@@ -1,0 +1,14 @@
+VERSION 1
+TOKEN "endpoint__api_usage__v1_endpoint_read_6835" READ
+
+NODE get_usage
+SQL >
+
+    %
+    SELECT time, countMerge(count) as usage
+    FROM mv_daily_usage
+    where
+        workspaceId ={{ String("workspaceId", required) }}
+        and apiId ={{ String("apiId", required) }}
+        and time > now() - INTERVAL 30 day
+    GROUP BY time
