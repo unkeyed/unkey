@@ -10,7 +10,6 @@ export const workspaces = mysqlTable("workspaces", {
   slug: varchar("slug", { length: 256 }).notNull(),
 });
 
-
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
   keys: many(keys),
   apis: many(apis),
