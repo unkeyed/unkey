@@ -9,7 +9,7 @@ export const apiRouter = t.router({
   // list: t.procedure.use(auth).query(async ({ ctx }) => {
   //   return await db.channel.findMany({
   //     where: {
-  //       tenantId: ctx.tenant.id,
+  //       workspaceId: ctx.workspace.id,
   //     },
   //   });
   // }),
@@ -25,7 +25,7 @@ export const apiRouter = t.router({
   //       where: {
   //         AND: {
   //           id: input.channelId,
-  //           tenantId: ctx.tenant.id,
+  //           workspaceId: ctx.workspace.id,
   //         },
   //       },
   //     });
@@ -50,7 +50,7 @@ export const apiRouter = t.router({
       const id = newId("api");
       await db.insert(schema.apis).values({
         id,
-        tenantId: ctx.tenant.id,
+        workspaceId: ctx.workspace.id,
         name: input.name,
       });
 

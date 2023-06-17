@@ -34,15 +34,15 @@ const formSchema = z.object({
 });
 
 type Props = {
-  tenantId: string;
+  workspaceId: string;
 };
-export const Onboarding: React.FC<Props> = ({ tenantId }) => {
+export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
   const { toast } = useToast();
   const router = useRouter();
-  const create = trpc.tenant.create.useMutation({
+  const create = trpc.workspace.create.useMutation({
     onSuccess() {
       toast({
         title: "Team Created",
@@ -65,7 +65,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) => create.mutate({ ...values, tenantId }))}
+              onSubmit={form.handleSubmit((values) => create.mutate({ ...values, workspaceId }))}
               className="flex flex-col space-y-4"
             >
               <FormField

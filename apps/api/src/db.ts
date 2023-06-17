@@ -12,4 +12,4 @@ const connection = connect({
 
 export const db = drizzle(connection, { schema });
 export type Database = typeof db;
-export type { Key, Api, Tenant } from "@unkey/db";
+export type { Key, Api, Workspace } from "@unkey/db";

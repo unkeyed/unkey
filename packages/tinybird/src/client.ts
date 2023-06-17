@@ -7,7 +7,7 @@ export const publishKeyVerification = (tb: Tinybird) =>
     event: z.object({
       keyId: z.string(),
       apiId: z.string(),
-      tenantId: z.string(),
+      workspaceId: z.string(),
       time: z.number(),
       ratelimited: z.boolean(),
     }),
@@ -17,7 +17,7 @@ export const getApiUsage = (tb: Tinybird) =>
   tb.buildPipe({
     pipe: "endpoint__api_usage__v1",
     parameters: z.object({
-      tenantId: z.string(),
+      workspaceId: z.string(),
       apiId: z.string(),
     }),
     data: z.object({

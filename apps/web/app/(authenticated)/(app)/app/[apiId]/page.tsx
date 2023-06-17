@@ -11,9 +11,9 @@ type Props = {
   };
 };
 export default async function ApiOverviewPage(props: Props) {
-  const tenantId = getTenantId();
+  const workspaceId = getTenantId();
   const api = await db.query.apis.findFirst({
-    where: and(eq(schema.apis.id, props.params.apiId), eq(schema.apis.tenantId, tenantId)),
+    where: and(eq(schema.apis.id, props.params.apiId), eq(schema.apis.workspaceId, workspaceId)),
     with: {
       keys: true,
     },

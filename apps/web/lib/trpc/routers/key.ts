@@ -45,7 +45,7 @@ export const keyRouter = t.router({
       const values: Key = {
         id,
         apiId: input.apiId,
-        tenantId: ctx.tenant.id,
+        workspaceId: ctx.workspace.id,
         hash,
         ownerId: input.ownerId ?? null,
         meta: input.meta,
@@ -78,7 +78,7 @@ export const keyRouter = t.router({
             {
               resources: {
                 api: {
-                  [`${ctx.tenant.id}::api::*` satisfies GRID]: [
+                  [`${ctx.workspace.id}::api::*` satisfies GRID]: [
                     "create",
                     "read",
                     "update",
@@ -87,7 +87,7 @@ export const keyRouter = t.router({
                   ],
                 },
                 key: {
-                  [`${ctx.tenant.id}::key::*` satisfies GRID]: [
+                  [`${ctx.workspace.id}::key::*` satisfies GRID]: [
                     "create",
                     "read",
                     "update",
@@ -97,7 +97,7 @@ export const keyRouter = t.router({
                   ],
                 },
                 policy: {
-                  [`${ctx.tenant.id}::policy::*` satisfies GRID]: [
+                  [`${ctx.workspace.id}::policy::*` satisfies GRID]: [
                     "create",
                     "read",
                     "update",
@@ -107,7 +107,7 @@ export const keyRouter = t.router({
               },
             },
           ]).toString(),
-          tenantId: ctx.tenant.id,
+          workspaceId: ctx.workspace.id,
           updatedAt: new Date(),
           version: "v1",
         })
@@ -141,7 +141,7 @@ export const keyRouter = t.router({
       .insert(schema.keys)
       .values({
         id,
-        tenantId: ctx.tenant.id,
+        workspaceId: ctx.workspace.id,
         hash,
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
@@ -168,7 +168,7 @@ export const keyRouter = t.router({
         where,
       });
 
-      if (!key || key.tenantId !== ctx.tenant.id) {
+      if (!key || key.workspaceId !== ctx.workspace.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
       }
 
