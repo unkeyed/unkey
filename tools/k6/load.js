@@ -20,7 +20,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function() {
   const res = http.post(
     "https://api.unkey.dev/v1/keys/verify",
     JSON.stringify({
