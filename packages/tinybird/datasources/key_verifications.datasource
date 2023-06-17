@@ -1,0 +1,14 @@
+VERSION 1
+
+SCHEMA >
+    `keyId` String `json:$.keyId`,
+    `apiId` String `json:$.apiId`,
+    `tenantId` String `json:$.tenantId`,
+    `time` Int64 `json:$.time`,
+    `ratelimited` Int8 `json:$.ratelimited` 
+    
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "apiId"
+ENGINE_SORTING_KEY "tenantId, apiId, time"
+ENGINE_TTL "fromUnixTimestamp(time) + INTERVAL 90 DAY"
