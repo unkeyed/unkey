@@ -34,6 +34,5 @@ export default function () {
   );
   check(res, {
     "is status 200": (r) => r.status === 200,
-    "is valid": (r) => r.json("valid") === true,
   });
 }

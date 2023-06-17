@@ -1,0 +1,22 @@
+{
+  "name": "@unkey/tinybird",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.t.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@unkey/tsconfig": "workspace:*",
+    "@types/node": "20.2.3",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@chronark/zod-bird": "^0.0.3",
+    "zod": "^3.21.4"
+  }
+}
