@@ -1,13 +1,13 @@
 import { mysqlTable, varchar, json, datetime, boolean, text, int } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { apis } from "./apis";
-import { tenants } from "./tenants";
+import { workspaces } from "./workspaces";
 import { policies } from "./policies";
 
 export const keys = mysqlTable("keys", {
   id: varchar("id", { length: 256 }).primaryKey(),
   apiId: varchar("api_id", { length: 256 }),
-  tenantId: varchar("tenant_id", { length: 256 }).notNull(),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   hash: varchar("hash", { length: 256 }).notNull(),
   start: varchar("start", { length: 256 }).notNull(),
   ownerId: varchar("owner_id", { length: 256 }),
@@ -23,11 +23,11 @@ export const keys = mysqlTable("keys", {
 });
 
 export const keysRelations = relations(keys, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [keys.tenantId],
-    references: [tenants.id],
+  workspace: one(workspaces, {
+    fields: [keys.workspaceId],
+    references: [workspaces.id],
   }),
-  app: one(apis, {
+  api: one(apis, {
     fields: [keys.apiId],
     references: [apis.id],
   }),

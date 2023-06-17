@@ -129,7 +129,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
 
       const api = await db.query.apis.findFirst({
         where: eq(schema.apis.id, req.apiId),
-        columns: { tenantId: true },
+        columns: { workspaceId: true },
       });
       if (!api) {
         throw new NotFoundError("This api does not exist");
@@ -148,14 +148,20 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
 
       const keyId = newId("key");
 
-      log.info("Creating key", { key, keyId, apiId: req.apiId, tenantId: api.tenantId, hash });
+      log.info("Creating key", {
+        key,
+        keyId,
+        apiId: req.apiId,
+        workspaceId: api.workspaceId,
+        hash,
+      });
 
       await db
         .insert(schema.keys)
         .values({
           id: keyId,
           apiId: req.apiId,
-          tenantId: api.tenantId,
+          workspaceId: api.workspaceId,
           hash,
           ownerId: req.ownerId,
           meta: req.meta,
@@ -282,7 +288,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
       tinybird
         .publishKeyVerification({
           apiId: key.apiId ?? "",
-          tenantId: key.tenantId,
+          workspaceId: key.workspaceId,
           keyId: key.id,
           ratelimited,
           time: Date.now(),

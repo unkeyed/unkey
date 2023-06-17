@@ -8,17 +8,17 @@ import { getTenantId } from "@/lib/auth";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
-    tenantSlug: string;
+    workspaceSlug: string;
   };
 }
 
 export default function Layout({ params, children }: LayoutProps) {
-  const _tenantId = getTenantId();
+  const _workspaceId = getTenantId();
 
   return (
     <>
       <div className="bg-gradient-to-tl from-stone-200 to-stone-100 flex">
-        <DesktopSidebar tenantSlug={params.tenantSlug} />
+        <DesktopSidebar workspaceSlug={params.workspaceSlug} />
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 

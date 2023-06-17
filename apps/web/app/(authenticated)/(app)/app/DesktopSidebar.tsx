@@ -5,10 +5,10 @@ import Link from "next/link";
 import { AppLink } from "./AppLink";
 import { TeamSwitcher } from "./TeamSwitcher";
 type Props = {
-  tenantSlug: string;
+  workspaceSlug: string;
 };
 
-export const DesktopSidebar: React.FC<Props> = ({ tenantSlug }) => {
+export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
   const apps: {
     name: string;
     slug: string;

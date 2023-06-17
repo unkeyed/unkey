@@ -3,13 +3,13 @@ import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";
 import { Onboarding } from "./client";
 export default async function OnboardingPage() {
-  const tenantId = getTenantId();
-  const tenant = await db.query.tenants.findFirst({
-    where: eq(schema.tenants.id, tenantId),
+  const workspaceId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.id, workspaceId),
   });
-  if (tenant) {
+  if (workspace) {
     redirect("/app");
   }
 
-  return <Onboarding tenantId={tenantId} />;
+  return <Onboarding workspaceId={workspaceId} />;
 }
