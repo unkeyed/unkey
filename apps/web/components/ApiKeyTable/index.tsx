@@ -79,20 +79,21 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       id: "select",
       header: ({ table }) => (
         <div className="flex items-center justify-center">
-
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
           />
-          </div>
+        </div>
       ),
       cell: ({ row }) => (
-        <div className="flex items-center justify-center"><Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        /></div>
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        </div>
       ),
       enableSorting: false,
       enableHiding: false,
@@ -119,7 +120,11 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       accessorKey: "expires",
       header: "Expires",
       cell: ({ row }) =>
-        row.original.expires? <span>in {ms(row.original.expires.getTime()-Date.now(),{long:true})}</span> : <Minus className="w-4 h-4 text-gray-300" />,
+        row.original.expires ? (
+          <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+        ) : (
+          <Minus className="w-4 h-4 text-gray-300" />
+        ),
     },
     {
       accessorKey: "ownerId",
