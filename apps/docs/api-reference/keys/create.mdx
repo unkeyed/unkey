@@ -90,78 +90,9 @@ Example:
 
 ## Response
 
-<ResponseField name="id" type="string" required>
-  The endpoint ID.
+<ResponseField name="key" type="string" required>
+  The newly created api key
 </ResponseField>
-<ResponseField name="method" type="string" required>
-The HTTP method to use when making requests to this endpoint.
-</ResponseField>
-<ResponseField name="name" type="string" required>
-The name of the endpoint.
-</ResponseField>
-<ResponseField name="workspaceId" type="string" required>
-The ID of the team that owns this endpoint.
-</ResponseField>
-<ResponseField name="url" type="string" required>
-The URL of the endpoint.
-</ResponseField>
-<ResponseField name="createdAt" type="string" required>
-When this endpoint was created.
-</ResponseField>
-
-
-<ResponseField name="updatedAt" type="string" required>
-When this endpoint was last updated.
-</ResponseField>
-<ResponseField name="followRedirects" type="boolean" required>
-Whether or not to follow redirects when making requests to this endpoint.
-If `false`, redirects will be returned as responses.
-</ResponseField>
-<ResponseField name="prewarm" type="boolean" required>
-Whether or not to prewarm this endpoint.
-When `true`, the endpoint will be called twice and only the second response will be measured.
-</ResponseField>
-<ResponseField name="runs" type="number" required>
-The number of runs to make when measuring this endpoint.
-</ResponseField>
-<ResponseField name="interval" type="number" required>
-The interval between checks. In milliseconds.
-</ResponseField>
-<ResponseField name="active" type="boolean" required>
-Whether or not this endpoint is active.
-</ResponseField>
-<ResponseField name="degradedAfter" type="number">
-After this time in milliseconds, the endpoint will be considered degraded.
-</ResponseField>
-<ResponseField name="timeout" type="number" required>
-The timeout for requests to this endpoint. In milliseconds.
-</ResponseField>
-<ResponseField name="distribution" type="ALL | RANDOM" required>
-The distribution of runs across regions. `ALL` will run in all regions at the same time. `RANDOM` will run in a random region.
-</ResponseField>
-
-<ResponseField name="regions" type="Array" required>
-  <Expandable title="properties">
-
-  <ResponseField name="id" type="string" required>
-    The ID of the region.
-  </ResponseField>
-</Expandable>
-</ResponseField>
-
-
-<ResponseField name="headers" type="Record<string, string>" >
-  The headers to send with requests to this endpoint.
-</ResponseField>
-
-<ResponseField name="body" type="string" >
-  The body to send with requests to this endpoint.
-</ResponseField>
-
-<ResponseField name="assertions" type="Array" >
-  Assertions to run against responses from this endpoint.
-</ResponseField>
-
 
 <RequestExample>
 
