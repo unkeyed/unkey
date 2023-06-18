@@ -15,14 +15,14 @@ import {
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 import {
   Accordion,
@@ -37,7 +37,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   bytes: z.number().int().gte(1),
@@ -103,7 +103,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
 
   return (
     <>
-      <Dialog
+      <Sheet 
         onOpenChange={(v) => {
           if (!v) {
             // Remove the key from memory when closing the modal
@@ -112,24 +112,24 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
           }
         }}
       >
-        <DialogTrigger asChild>
+        <SheetTrigger asChild>
           <Button>Create Key</Button>
-        </DialogTrigger>
+        </SheetTrigger>
 
         {key.data ? (
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Your API Key</DialogTitle>
-              <DialogDescription>
+          <SheetContent size="full" >
+            <SheetHeader>
+              <SheetTitle>Your API Key</SheetTitle>
+              <SheetDescription>
                 This key is only shown once and can not be recovered. Please store it somewhere
                 safe.
-              </DialogDescription>
+              </SheetDescription>
 
               <div className="flex items-center justify-between gap-4 px-2 py-1 mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
                 <pre className="font-mono">{key.data.key}</pre>
                 <CopyButton value={key.data.key} />
               </div>
-            </DialogHeader>
+            </SheetHeader>
 
             <p className="mt-2 text-sm font-medium text-center text-zinc-100 ">
               Try it out with curl
@@ -138,13 +138,13 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               <pre className="font-mono">{snippet}</pre>
               <CopyButton value={snippet} />
             </div>
-          </DialogContent>
+          </SheetContent>
         ) : (
-          <DialogContent>
-            <DialogTitle>Create a new Key</DialogTitle>
-            <ScrollArea className="max-h-[70vh] -m-5 p-5">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col space-y-4">
+          <SheetContent size="full">
+            <SheetTitle>Create a new Key</SheetTitle>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <ScrollArea className="flex flex-col max-h-[80vh] space-y-4 pr-4">
                   <FormField
                     control={form.control}
                     name="prefix"
@@ -275,16 +275,16 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                       <AccordionContent>TODO: andreas</AccordionContent>
                     </AccordionItem>
                   </Accordion>
-
-                  <DialogFooter className="justify-end">
-                    <Button type="submit">{key.isLoading ? <Loading /> : "Create"}</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </ScrollArea>
-          </DialogContent>
+                  <ScrollBar />
+                </ScrollArea>
+                <SheetFooter className="justify-end mt-8">
+                  <Button type="submit">{key.isLoading ? <Loading /> : "Create"}</Button>
+                </SheetFooter>
+              </form>
+            </Form>
+          </SheetContent>
         )}
-      </Dialog>
+      </Sheet>
     </>
   );
 };

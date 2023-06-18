@@ -43,15 +43,7 @@ export const CreateKeyButton: React.FC<Props> = () => {
     },
   });
 
-  const snippet = `curl 'https://highstorm.app/api/v1/events/user.signup' \\
-  -H 'Authorization: Bearer ${key.data?.key}' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-    "event": "Chronark has signed up",
-    "content": "A new user has signed up",
-    "metadata": {"userId": "123"}
-  }'
-  `;
+  const snippet = "TODO: andreas";
 
   return (
     <>
@@ -65,7 +57,7 @@ export const CreateKeyButton: React.FC<Props> = () => {
         }}
       >
         <DialogTrigger>
-          <Button>Create Key</Button>
+          <Button>Create New Key</Button>
         </DialogTrigger>
 
         {key.data ? (
@@ -90,7 +82,7 @@ export const CreateKeyButton: React.FC<Props> = () => {
                 </Alert>
               </div>
 
-              <div className="flex items-center justify-between px-2 py-1 mt-4 border rounded  gap-4 lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
+              <div className="flex items-center justify-between gap-4 px-2 py-1 mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
                 <pre className="font-mono">{key.data.key}</pre>
                 <CopyButton value={key.data.key} />
               </div>
@@ -99,7 +91,7 @@ export const CreateKeyButton: React.FC<Props> = () => {
             <p className="mt-2 text-sm font-medium text-center text-zinc-100 ">
               Try it out with curl
             </p>
-            <div className="flex items-start justify-between px-2 py-1 border rounded gap-4 lg:p-4 border-white/10  bg-zinc-100 dark:bg-zinc-900">
+            <div className="flex items-start justify-between gap-4 px-2 py-1 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
               <pre className="font-mono">{snippet}</pre>
               <CopyButton value={snippet} />
             </div>

@@ -1,6 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BarChart, Database, FileKey, Filter, FormInput, Home } from "lucide-react";
+import {
+  BarChart,
+  Code,
+  Database,
+  FileJson,
+  FileKey,
+  Filter,
+  FormInput,
+  Home,
+  Key,
+  KeyRound,
+} from "lucide-react";
 import Link from "next/link";
 import { AppLink } from "./AppLink";
 import { WorkspaceSwitcher } from "./TeamSwitcher";
@@ -15,7 +26,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
   }[] = [];
 
   return (
-    <aside className="relative min-h-screen pb-12 border-r fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
+    <aside className="fixed relative min-h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
       <Link
         href="/overview"
         className="flex items-center gap-2 px-8 py-6 text-2xl font-semibold tracking-tight duration-200 stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
@@ -25,7 +36,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
       </Link>
       <div className="space-y-4">
         <div className="px-6 py-2">
-          <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">{/* Events */}</h2>
+          <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
           <div className="space-y-1">
             <Link href="/app">
               <Button variant="ghost" size="sm" className="justify-start w-full">
@@ -35,7 +46,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
             </Link>
             <Link href="/app/apis">
               <Button variant="ghost" size="sm" className="justify-start w-full">
-                <FileKey className="w-4 h-4 mr-2" />
+                <FileJson className="w-4 h-4 mr-2" />
                 APIs
               </Button>
             </Link>
@@ -44,10 +55,18 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
               <BarChart className="w-4 h-4 mr-2" />
               Audit
             </Button>
+
+            <Link href="/app/keys">
+              <Button variant="ghost" size="sm" className="justify-start w-full">
+                <KeyRound className="w-4 h-4 mr-2" />
+                Keys
+              </Button>
+            </Link>
           </div>
         </div>
+
         <div className="py-2">
-          <h2 className="relative px-8 text-lg font-semibold tracking-tight">Apps</h2>
+          <h2 className="relative px-8 text-lg font-semibold tracking-tight">Apis</h2>
           <ScrollArea className="h-[230px] px-4">
             <div className="p-2 space-y-1">
               {apps
@@ -59,7 +78,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
           </ScrollArea>
         </div>
       </div>
-      <div className="absolute inset-x-0  bottom-8 mx-6">
+      <div className="absolute inset-x-0 mx-6 bottom-8">
         <WorkspaceSwitcher />
       </div>
     </aside>
