@@ -2,11 +2,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound, redirect } from "next/navigation";
-import { Row } from "./row";
 import { CreateKeyButton } from "./CreateKey";
 import { Separator } from "@/components/ui/separator";
-import { env } from "@/lib/env";
 
+import { ApiKeyTable } from "@/components/ApiKeyTable";
 export default async function SettingsKeysPage() {
   const tenantId = getTenantId();
 
@@ -30,18 +29,7 @@ export default async function SettingsKeysPage() {
       />
       <Separator className="my-6" />
 
-      {keys.length === 0 ? (
-        "No keys here, did you look in the fridge?"
-      ) : (
-        <ul role="list" className="mt-8 divide-y divide-white/10">
-          {keys
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-            .map((apiKey) => (
-              <Row key={apiKey.id} apiKey={apiKey} />
-            ))}
-        </ul>
-      )
-      }
-    </div >
+      <ApiKeyTable data={keys} />
+    </div>
   );
 }

@@ -1,44 +1,35 @@
 import { PageHeader } from "@/components/PageHeader";
-import { CreateKeyButton } from "./CreateKey";
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq, and } from "@unkey/db";
+import { db, schema, eq } from "@unkey/db";
 import { notFound, redirect } from "next/navigation";
-import { KeyTable } from "./KeyTable";
+import { CreateKeyButton } from "./CreateKey";
+import { Separator } from "@/components/ui/separator";
 
-type Props = {
-  params: {
-    apiId: string;
-  };
-};
-export default async function ApiOverviewPage(props: Props) {
+import { ApiKeyTable } from "@/components/ApiKeyTable";
+export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+
+  const api = await db.query.apis.findFirst({
+    where: eq(schema.apis.id, props.params.apiId),
     with: {
-      apis: {
-        where: eq(schema.apis.id, props.params.apiId),
-        with: {
-          keys: true,
-        },
-      },
+      workspace: true,
+      keys: true,
     },
   });
-  if (!workspace) {
-    return redirect("/onboarding");
-  }
-  const api = workspace.apis.at(0);
-  if (!api) {
+  if (!api || api.workspace.tenantId !== tenantId) {
     return notFound();
   }
+
   return (
     <div>
       <PageHeader
-        title={api.name}
-        description={api.id}
-        actions={[<CreateKeyButton key="createKey" apiId={api.id} />]}
+        title="Keys"
+        description="All API keys belonging to this api"
+        actions={[<CreateKeyButton key="create-key" apiId={props.params.apiId} />]}
       />
+      <Separator className="my-6" />
 
-      <KeyTable data={api.keys.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())} />
+      <ApiKeyTable data={api.keys} />
     </div>
   );
 }
