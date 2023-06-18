@@ -127,14 +127,20 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
       //    const p = Policy.fromJSON(policy.policy);
       //  }
 
+      if (!unkeyKey.forWorkspaceId) {
+        throw new AuthorizationError("Wrong key type");
+      }
+      log.info("This key belongs to", { workspaceId: unkeyKey.forWorkspaceId });
+
       const api = await db.query.apis.findFirst({
         where: eq(schema.apis.id, req.apiId),
-        columns: { workspaceId: true },
       });
       if (!api) {
-        throw new NotFoundError("This api does not exist");
+        throw new NotFoundError("API not found");
       }
-      log.info("Found api", api);
+      if (api.workspaceId !== unkeyKey.forWorkspaceId) {
+        throw new AuthorizationError("Unauthorized");
+      }
 
       const buf = new Uint8Array(req.byteLength);
       crypto.getRandomValues(buf);
@@ -152,7 +158,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
         key,
         keyId,
         apiId: req.apiId,
-        workspaceId: api.workspaceId,
+        workspaceId: unkeyKey.forWorkspaceId,
         hash,
       });
 
@@ -161,7 +167,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
         .values({
           id: keyId,
           apiId: req.apiId,
-          workspaceId: api.workspaceId,
+          workspaceId: unkeyKey.forWorkspaceId,
           hash,
           ownerId: req.ownerId,
           meta: req.meta,

@@ -178,29 +178,36 @@ export const keyRouter = t.router({
     .use(auth)
     .input(
       z.object({
-        keyId: z.string(),
+        keyIds: z.array(z.string()),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const where = eq(schema.keys.id, input.keyId);
+      await Promise.all(
+        input.keyIds.map(async (keyId) => {
+          const where = eq(schema.keys.id, keyId);
 
-      const key = await db.query.keys.findFirst({
-        where,
-        with: {
-          api: {
-            with: {
-              workspace: true,
-            },
-          },
-        },
-      });
+          const key = await db.query.keys.findFirst({
+            where,
+          });
+          console.log({ keyId, key }, ctx.tenant);
 
-      if (!key || key.api?.workspace?.tenantId !== ctx.tenant.id) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
-      }
+          if (!key) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
+          }
 
-      await db.delete(schema.keys).where(where);
+          const workspace = await db.query.workspaces.findFirst({
+            where: eq(schema.workspaces.id, key.forWorkspaceId ?? key.workspaceId),
+          });
+          if (!workspace) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+          }
+          if (workspace.tenantId !== ctx.tenant.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED" });
+          }
 
+          await db.delete(schema.keys).where(where);
+        }),
+      );
       return;
     }),
 });

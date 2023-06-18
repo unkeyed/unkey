@@ -43,7 +43,7 @@ export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, chi
               disabled={deleteKey.isLoading}
               onClick={async () => {
                 try {
-                  await deleteKey.mutateAsync({ keyId });
+                  await deleteKey.mutateAsync({ keyIds: [keyId] });
 
                   router.refresh();
                   toast({
