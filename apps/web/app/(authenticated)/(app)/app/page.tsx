@@ -4,9 +4,9 @@ import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";
 
 export default async function TenantOverviewPage() {
-  const workspaceId = getTenantId();
-  let workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.id, workspaceId),
+  const tenantId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
     redirect("/onboarding");
@@ -14,7 +14,7 @@ export default async function TenantOverviewPage() {
 
   return (
     <div>
-      <PageHeader title={workspace?.name ?? "N/A"} description="Your Workspace" />
+      <PageHeader title={workspace.name} description="Your Workspace" />
     </div>
   );
 }
