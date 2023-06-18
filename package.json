@@ -12,7 +12,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "fmt": "pnpm rome check . --apply-suggested && pnpm rome format . --write",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "bootstrap": "turbo run bootstrap"
   },
   "author": "Andreas Thomas",
   "license": "ISC",

@@ -29,9 +29,9 @@ const formSchema = z.object({
 });
 
 type Props = {
-  workspaceId: string;
+  tenantId: string;
 };
-export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
+export const Onboarding: React.FC<Props> = ({ tenantId }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -52,7 +52,7 @@ export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
   });
 
   return (
-    <div className="flex items-center justify-center min-h-screen w-full">
+    <div className="flex items-center justify-center w-full min-h-screen">
       <Card>
         <CardHeader>
           <CardTitle>Create your Workspace</CardTitle>
@@ -60,7 +60,7 @@ export const Onboarding: React.FC<Props> = ({ workspaceId }) => {
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) => create.mutate({ ...values, workspaceId }))}
+              onSubmit={form.handleSubmit((values) => create.mutate({ ...values, tenantId }))}
               className="flex flex-col space-y-4"
             >
               <FormField

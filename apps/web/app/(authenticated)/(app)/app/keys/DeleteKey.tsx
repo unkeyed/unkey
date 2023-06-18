@@ -4,7 +4,7 @@ import React, { PropsWithChildren, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
-import { trpc } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc/client";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ type Props = {
   keyId: string;
 };
 export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, children }) => {
-  const [loading, setLoading] = useState(false);
+  const deleteKey = trpc.key.delete.useMutation();
 
   const { toast } = useToast();
   const router = useRouter();
@@ -40,12 +40,10 @@ export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, chi
           <DialogFooter>
             <Button
               variant="destructive"
-              disabled={loading}
+              disabled={deleteKey.isLoading}
               onClick={async () => {
                 try {
-                  setLoading(true);
-
-                  await trpc.key.delete.mutate({ keyId });
+                  await deleteKey.mutateAsync({ keyId });
 
                   router.refresh();
                   toast({
@@ -57,12 +55,10 @@ export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, chi
                     description: (e as Error).message,
                     variant: "destructive",
                   });
-                } finally {
-                  setLoading(false);
                 }
               }}
             >
-              {loading ? <Loading /> : "Delete Key"}
+              {deleteKey.isLoading ? <Loading /> : "Delete Key"}
             </Button>
           </DialogFooter>
         </DialogContent>

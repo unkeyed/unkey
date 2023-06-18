@@ -1,7 +1,8 @@
-import { mysqlTable, json, varchar, index } from "drizzle-orm/mysql-core";
+import { mysqlTable, json, varchar, index, uniqueIndex } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { workspaces } from "./workspaces";
 import { keys } from "./keys";
+import { table } from "console";
 
 export const apis = mysqlTable("apis", {
   id: varchar("id", { length: 256 }).primaryKey(),
