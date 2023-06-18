@@ -1,0 +1,27 @@
+---
+title: Temporary Keys
+description: 'How to create temporary API Keys in Unkey'
+---
+
+## What are temporary API Keys?
+Temporary API Keys are API Keys that expire after a certain amount of time. They are useful for when you want to give a user access to your API for a limited amount of time. For example, you might want to give a user access to your API for 1 hour, or 1 day, or 1 week. You can do this by creating a temporary API Key that expires after a certain amount of time.
+
+## How to create a temporary API Key
+
+To create a temporary API Key, you need to make a `POST` request to the `/v1/keys` endpoint. You can read about all the parameters you can send in the [API Reference](/docs/api-reference/create).
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"apiId":"<API_ID>",
+	"prefix":"xyz",
+	"byteLength":16,
+	"ownerId":"USER_ID",
+	"expires": 1718718673000,
+}'
+```
+
+Once the key is created, you can send it to your user. They can then use it to access your API. Once the key expires, they will no longer be able to access your API and the key will be deleted.
