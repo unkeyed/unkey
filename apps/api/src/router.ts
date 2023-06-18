@@ -102,8 +102,10 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
       const log = c.get("logger");
       const req = c.req.valid("json");
 
-      if (req.expires && req.expires < Date.now()) {
-        throw new BadRequestError("'expires' must be in the future");
+      const now = Date.now()
+    
+      if (req.expires && req.expires < now) {
+        throw new BadRequestError("'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?");
       }
 
       const authorization = c.req.headers.get("authorization");
