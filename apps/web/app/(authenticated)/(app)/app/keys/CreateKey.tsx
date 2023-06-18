@@ -56,7 +56,7 @@ export const CreateKeyButton: React.FC<Props> = () => {
           }
         }}
       >
-        <DialogTrigger>
+        <DialogTrigger asChild>
           <Button>Create New Key</Button>
         </DialogTrigger>
 
