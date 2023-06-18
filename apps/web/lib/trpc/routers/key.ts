@@ -18,7 +18,7 @@ export const keyRouter = t.router({
         apiId: z.string(),
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
-        expires: z.number().int().optional(), // unix timestamp in milliseconds
+        expires: z.number().int().nullish(), // unix timestamp in milliseconds
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),

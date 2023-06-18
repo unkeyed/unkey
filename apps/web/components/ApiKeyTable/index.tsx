@@ -37,12 +37,17 @@ import { trpc } from "@/lib/trpc/client";
 import { Loading } from "@/components/loading";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import ms from "ms";
 type Column = {
   id: string;
   start: string;
   createdAt: Date;
   expires: Date | null;
   ownerId: string | null;
+  ratelimitType: string | null;
+  ratelimitLimit: number | null;
+  ratelimitRefillRate: number | null;
+  ratelimitRefillInterval: number | null;
 };
 
 type Props = {
@@ -69,28 +74,25 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
     },
   });
 
-  const columns: ColumnDef<{
-    id: string;
-    start: string;
-    createdAt: Date;
-    expires: Date | null;
-    ownerId: string | null;
-  }>[] = [
+  const columns: ColumnDef<Column>[] = [
     {
       id: "select",
       header: ({ table }) => (
+        <div className="flex items-center justify-center">
+
         <Checkbox
           checked={table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
-        />
+          />
+          </div>
       ),
       cell: ({ row }) => (
-        <Checkbox
+        <div className="flex items-center justify-center"><Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
-        />
+        /></div>
       ),
       enableSorting: false,
       enableHiding: false,
@@ -117,7 +119,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       accessorKey: "expires",
       header: "Expires",
       cell: ({ row }) =>
-        row.original.expires?.toUTCString() ?? <Minus className="w-4 h-4 text-gray-300" />,
+        row.original.expires? <span>in {ms(row.original.expires.getTime()-Date.now(),{long:true})}</span> : <Minus className="w-4 h-4 text-gray-300" />,
     },
     {
       accessorKey: "ownerId",
@@ -125,6 +127,22 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) =>
         row.original.ownerId ? (
           <Badge variant="secondary">{row.original.ownerId}</Badge>
+        ) : (
+          <Minus className="w-4 h-4 text-gray-300" />
+        ),
+    },
+    {
+      accessorKey: "ratelimit",
+      header: "Ratelimit",
+      cell: ({ row }) =>
+        row.original.ratelimitType &&
+        row.original.ratelimitLimit &&
+        row.original.ratelimitRefillInterval &&
+        row.original.ratelimitRefillRate ? (
+          <div>
+            <span>{row.original.ratelimitRefillRate}</span> /{" "}
+            <span>{ms(row.original.ratelimitRefillInterval)}</span>
+          </div>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),
