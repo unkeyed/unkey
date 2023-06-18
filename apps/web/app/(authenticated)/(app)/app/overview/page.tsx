@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function OverviewPage() {
-  return <div>Hello World</div>;
+  return redirect("/app/apis");
 }

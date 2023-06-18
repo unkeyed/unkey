@@ -12,9 +12,11 @@ export default async function TenantOverviewPage() {
     redirect("/onboarding");
   }
 
-  return (
-    <div>
-      <PageHeader title={workspace.name} description="Your Workspace" />
-    </div>
-  );
+  return redirect("/app/apis");
+
+  // return (
+  //   <div>
+  //     <PageHeader title={workspace.name} description="Your Workspace" />
+  //   </div>
+  // );
 }

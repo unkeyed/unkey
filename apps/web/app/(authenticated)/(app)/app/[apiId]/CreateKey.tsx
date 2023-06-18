@@ -92,12 +92,10 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
     });
   }
 
-  const snippet = `curl 'https://api.unkey.dev/v1/keys' \\
-  -H 'Authorization: Bearer ${key.data?.key}' \\
+  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/keys/verify' \\
   -H 'Content-Type: application/json' \\
   -d '{
-    "prefix": "hello",
-    "apiId": "${apiId}"
+    "key": "${key.data?.key}"
   }'
   `;
 
@@ -131,9 +129,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               </div>
             </SheetHeader>
 
-            <p className="mt-2 text-sm font-medium text-center text-zinc-100 ">
-              Try it out with curl
-            </p>
+            <p className="mt-2 text-sm font-medium text-center text-zinc-700 ">Try verifying it:</p>
             <div className="flex items-start justify-between gap-4 px-2 py-1 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
               <pre className="font-mono">{snippet}</pre>
               <CopyButton value={snippet} />
