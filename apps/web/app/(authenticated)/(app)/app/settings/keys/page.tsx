@@ -29,7 +29,7 @@ export default async function SettingsKeysPage() {
       <Separator className="my-6" />
 
       {tenant.keys.length === 0 ? (
-        "EMpty"
+        ""
       ) : (
         <ul role="list" className="mt-8 divide-y divide-white/10">
           {tenant.keys
@@ -38,7 +38,8 @@ export default async function SettingsKeysPage() {
               <Row key={apiKey.id} apiKey={apiKey} />
             ))}
         </ul>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }

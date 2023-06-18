@@ -1,18 +1,13 @@
 "use client";
-import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Particles } from "@/components/particles";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import {
-  CardDescription,
   CardHeader,
   CardTitle,
   Card,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,8 +40,8 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
   const create = trpc.tenant.create.useMutation({
     onSuccess() {
       toast({
-        title: "Team Created",
-        description: "Your team has been created",
+        title: "Workspace Created",
+        description: "Your workspace has been created",
       });
       router.push("/app");
     },
@@ -60,7 +55,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
     <div className="flex items-center justify-center min-h-screen w-full">
       <Card>
         <CardHeader>
-          <CardTitle>Create your Team</CardTitle>
+          <CardTitle>Create your Workspace</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -77,7 +72,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>What should your name be called?</FormDescription>
+                    <FormDescription>What should your workspace be called?</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
