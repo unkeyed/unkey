@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { t, auth } from "../trpc";
 import { newId } from "@unkey/id";
+import { eq } from "drizzle-orm";
 
 export const apiRouter = t.router({
   // list: t.procedure.use(auth).query(async ({ ctx }) => {
@@ -48,9 +49,16 @@ export const apiRouter = t.router({
     )
     .mutation(async ({ input, ctx }) => {
       const id = newId("api");
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
+
       await db.insert(schema.apis).values({
         id,
-        workspaceId: ctx.workspace.id,
+        workspaceId: workspace.id,
         name: input.name,
       });
 

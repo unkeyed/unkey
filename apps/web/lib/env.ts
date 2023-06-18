@@ -6,6 +6,9 @@ const schema = z.object({
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
+
+  UNKEY_WORKSPACE_ID: z.string(),
+  UNKEY_API_ID: z.string(),
 });
 
 export const env = schema.parse(process.env);

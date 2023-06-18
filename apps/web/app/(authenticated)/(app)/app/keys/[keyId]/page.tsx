@@ -5,16 +5,23 @@ import { getTenantId } from "@/lib/auth";
 import { Client } from "./client";
 
 export default async function Page(props: { params: { keyId: string } }) {
-  const workspaceId = getTenantId();
+  const tenantId = getTenantId();
   console.log({ props });
   const apiKey = await db.query.keys.findFirst({
-    where: and(eq(schema.keys.workspaceId, workspaceId), eq(schema.keys.id, props.params.keyId)),
+    where: eq(schema.keys.id, props.params.keyId),
+    with: {
+      api: {
+        with: {
+          workspace: true,
+        },
+      },
+    },
   });
   console.log({ apiKey });
   if (!apiKey) {
     return notFound();
   }
-  if (apiKey.workspaceId !== workspaceId) {
+  if (apiKey.api?.workspace?.tenantId !== tenantId) {
     return notFound();
   }
 

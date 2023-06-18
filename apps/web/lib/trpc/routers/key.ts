@@ -1,7 +1,7 @@
 import { db, schema, eq, Key } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
+import { env } from "@/lib/env";
 import { t, auth } from "../trpc";
 import { newId } from "@unkey/id";
 import { toBase58 } from "@/lib/api/base58";
@@ -30,6 +30,12 @@ export const keyRouter = t.router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
       const buf = new Uint8Array(input.bytes);
       crypto.getRandomValues(buf);
 
@@ -45,18 +51,18 @@ export const keyRouter = t.router({
       const values: Key = {
         id,
         apiId: input.apiId,
-        workspaceId: ctx.workspace.id,
         hash,
         ownerId: input.ownerId ?? null,
         meta: input.meta,
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
-        internal: false,
         expires: input.expires ? new Date(input.expires) : null,
         ratelimitType: null,
         ratelimitRefillInterval: null,
         ratelimitRefillRate: null,
         ratelimitLimit: null,
+        workspaceId: workspace.id,
+        forWorkspaceId: null,
       };
 
       if (input.ratelimit) {
@@ -78,7 +84,7 @@ export const keyRouter = t.router({
             {
               resources: {
                 api: {
-                  [`${ctx.workspace.id}::api::*` satisfies GRID]: [
+                  [`${workspace.id}::api::*` satisfies GRID]: [
                     "create",
                     "read",
                     "update",
@@ -87,7 +93,7 @@ export const keyRouter = t.router({
                   ],
                 },
                 key: {
-                  [`${ctx.workspace.id}::key::*` satisfies GRID]: [
+                  [`${workspace.id}::key::*` satisfies GRID]: [
                     "create",
                     "read",
                     "update",
@@ -97,7 +103,7 @@ export const keyRouter = t.router({
                   ],
                 },
                 policy: {
-                  [`${ctx.workspace.id}::policy::*` satisfies GRID]: [
+                  [`${workspace.id}::policy::*` satisfies GRID]: [
                     "create",
                     "read",
                     "update",
@@ -107,7 +113,6 @@ export const keyRouter = t.router({
               },
             },
           ]).toString(),
-          workspaceId: ctx.workspace.id,
           updatedAt: new Date(),
           version: "v1",
         })
@@ -125,9 +130,7 @@ export const keyRouter = t.router({
         id,
       };
     }),
-  createInternalRootKey: t.procedure.use(auth)
-
-  .mutation(async ({ ctx }) => {
+  createInternalRootKey: t.procedure.use(auth).mutation(async ({ ctx, input }) => {
     const buf = new Uint8Array(16);
     crypto.getRandomValues(buf);
 
@@ -137,15 +140,32 @@ export const keyRouter = t.router({
 
     const id = newId("key");
 
+    const api = await db.query.apis.findFirst({
+      where: eq(schema.apis.id, env.UNKEY_API_ID),
+      with: {
+        workspace: true,
+      },
+    });
+    if (!api) {
+      throw new TRPCError({ code: "NOT_FOUND", message: `api ${env.UNKEY_API_ID} not found` });
+    }
+
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+    });
+    if (!workspace) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+    }
     await db
       .insert(schema.keys)
       .values({
         id,
-        workspaceId: ctx.workspace.id,
         hash,
+        apiId: env.UNKEY_API_ID,
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
-        internal: true,
+        workspaceId: env.UNKEY_WORKSPACE_ID,
+        forWorkspaceId: workspace.id,
       })
       .execute();
 
@@ -166,9 +186,16 @@ export const keyRouter = t.router({
 
       const key = await db.query.keys.findFirst({
         where,
+        with: {
+          api: {
+            with: {
+              workspace: true,
+            },
+          },
+        },
       });
 
-      if (!key || key.workspaceId !== ctx.workspace.id) {
+      if (!key || key.api?.workspace?.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
       }
 

@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { CreateKeyButton } from "./CreateKey";
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, and } from "@unkey/db";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { KeyTable } from "./KeyTable";
 
 type Props = {
@@ -11,17 +11,25 @@ type Props = {
   };
 };
 export default async function ApiOverviewPage(props: Props) {
-  const workspaceId = getTenantId();
-  const api = await db.query.apis.findFirst({
-    where: and(eq(schema.apis.id, props.params.apiId), eq(schema.apis.workspaceId, workspaceId)),
+  const tenantId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.tenantId, tenantId),
     with: {
-      keys: true,
+      apis: {
+        where: eq(schema.apis.id, props.params.apiId),
+        with: {
+          keys: true,
+        },
+      },
     },
   });
+  if (!workspace) {
+    return redirect("/onboarding");
+  }
+  const api = workspace.apis.at(0);
   if (!api) {
     return notFound();
   }
-  console.log(api);
   return (
     <div>
       <PageHeader

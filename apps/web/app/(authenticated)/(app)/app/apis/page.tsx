@@ -7,9 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { Row } from "./row";
 
 export default async function TenantOverviewPage() {
-  const workspaceId = getTenantId();
+  const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.id, workspaceId),
+    where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: true,
     },
