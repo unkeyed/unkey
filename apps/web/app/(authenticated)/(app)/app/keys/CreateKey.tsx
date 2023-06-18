@@ -17,17 +17,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Info } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { AlertTriangle } from "lucide-react";
 
-type Props = {};
+type Props = {
+  apiId?: string;
+};
 
-export const CreateKeyButton: React.FC<Props> = () => {
+export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
 
   const router = useRouter();
@@ -43,8 +40,14 @@ export const CreateKeyButton: React.FC<Props> = () => {
     },
   });
 
-  const snippet = "TODO: andreas";
-
+  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/keys' \\
+  -H 'Authorization: Bearer ${key.data?.key}' \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "prefix": "hello",
+    "apiId": "${apiId ?? "<API_ID>"}"
+  }'
+  `;
   return (
     <>
       <Dialog
@@ -88,8 +91,8 @@ export const CreateKeyButton: React.FC<Props> = () => {
               </div>
             </DialogHeader>
 
-            <p className="mt-2 text-sm font-medium text-center text-zinc-100 ">
-              Try it out with curl
+            <p className="mt-2 text-sm font-medium text-center text-zinc-700 ">
+              Try creating a new api key for your users:
             </p>
             <div className="flex items-start justify-between gap-4 px-2 py-1 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
               <pre className="font-mono">{snippet}</pre>

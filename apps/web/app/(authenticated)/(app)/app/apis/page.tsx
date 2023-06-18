@@ -50,7 +50,7 @@ export default async function TenantOverviewPage() {
             <CardTitle>Create New API</CardTitle>
           </CardHeader>
 
-          <CardContent></CardContent>
+          <CardContent />
           <CardFooter>
             <CreateApiButton key="createApi" />
           </CardFooter>

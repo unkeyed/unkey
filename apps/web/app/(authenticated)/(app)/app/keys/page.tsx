@@ -11,6 +11,11 @@ export default async function SettingsKeysPage() {
 
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
+    with: {
+      apis: {
+        limit: 1,
+      },
+    },
   });
   if (!workspace) {
     return redirect("/onboarding");
@@ -25,7 +30,7 @@ export default async function SettingsKeysPage() {
       <PageHeader
         title="Keys"
         description="These keys are used to interact with the unkey API"
-        actions={[<CreateKeyButton key="create-key" />]}
+        actions={[<CreateKeyButton key="create-key" apiId={workspace.apis.at(0)?.id} />]}
       />
       <Separator className="my-6" />
 

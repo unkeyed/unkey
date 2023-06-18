@@ -38,12 +38,12 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
         <div className="px-6 py-2">
           <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
           <div className="space-y-1">
-            <Link href="/app">
+            {/* <Link href="/app">
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <Home className="w-4 h-4 mr-2" />
                 Overview
               </Button>
-            </Link>
+            </Link> */}
             <Link href="/app/apis">
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <FileJson className="w-4 h-4 mr-2" />
