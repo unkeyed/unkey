@@ -20,11 +20,7 @@ export default async function TenantOverviewPage() {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
-      apis: {
-        with: {
-          keys: {},
-        },
-      },
+      apis: true,
     },
   });
   if (!workspace) {
