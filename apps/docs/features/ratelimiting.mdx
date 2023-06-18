@@ -1,0 +1,26 @@
+---
+title: Ratelimiting
+description: 'How ratelimiting works in unkey'
+---
+
+// TODO: james, please refine and/or move to a proper place
+
+Unkey offers `token-bucket` ratelimiting out of the box for all API keys. You only need to specify the total number of tokens as well as the refill rate.
+
+We provide 2 ways of ratelimiting, optimized for different usecases.
+
+## Local, fast ratelimiting at the edge
+
+API key validation is very sensitive to latency because it is in the critical path of your application. Therefore minimizing the latency impact of ratelimiting is a key priority.
+
+Ratelimiting at the edge comes with minimal performance penalties (around 0.1ms) and effectively ratelimits your users at each edge location. To make this possible, each edge location maintains their own ratelimiting, thus a user could exceed your ratelimit if they go through different edge locations.
+
+This way of limiting is effective to protect your application because there is a guaranteed upper bound after all edge locations the user is accessing have reached their limit.
+
+However if you require a strict limit with global consensus then please use the second type below:
+
+## Global consensus ratelimiting
+
+If having a strict ratelimit that must not be exceeded, even when verifying keys in multiple regions, then the global ratelimiting is a good option.
+
+Be aware that this can add significant latency to your application, because all ratelimit operations need to go through a single service, which is currently running in `us-east-1`.
