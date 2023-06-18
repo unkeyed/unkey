@@ -1,72 +1,72 @@
 {
-  "$schema": "https://mintlify.com/schema.json",
-  "name": "Unkey Docs",
-  "colors": {
-    "primary": "#6030B3",
-    "light": "#c2c4c4",
-    "dark": "#252737"
-  },
-  "topbarLinks": [
-    {
-      "name": "GitHub",
-      "url": "https://github.com/chronark/unkey"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://unkey.dev/app"
-  },
-  "tabs": [
-    {
-      "name": "API Reference",
-      "url": "api-reference"
-    }
-  ],
-  "anchors": [
-    {
-      "name": "Issues",
-      "icon": "envelope",
-      "url": "https://github.com/chronark/unkey/issues/new"
+    "$schema": "https://mintlify.com/schema.json",
+    "name": "Unkey Docs",
+    "colors": {
+        "primary": "#6030B3",
+        "light": "#c2c4c4",
+        "dark": "#252737"
     },
-    {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/chronark/unkey"
-    }
-  ],
-  "navigation": [
-    {
-      "group": "Get Started",
-      "pages": [
-        "introduction",
-        "quickstart",
-        "development"
-      ]
-    },
-    {
-      "group": "Features",
-      "icon": "bolt",
-      "pages": [
-        "features/ratelimiting"
-      ]
-    },
-    {
-      "group": "API Documentation",
-      "icon": "code",
-      "pages": [
-        "api-reference/authentication",
+    "topbarLinks": [
         {
-          "group": "Keys",
-          "pages": [
-            "api-reference/keys/create",
-            "api-reference/keys/verify"
-          ]
+            "name": "GitHub",
+            "url": "https://github.com/chronark/unkey"
         }
-      ]
+    ],
+    "topbarCtaButton": {
+        "name": "Dashboard",
+        "url": "https://unkey.dev/app"
+    },
+    "tabs": [
+        {
+            "name": "API Reference",
+            "url": "api-reference"
+        }
+    ],
+    "anchors": [
+        {
+            "name": "Issues",
+            "icon": "envelope",
+            "url": "https://github.com/chronark/unkey/issues/new"
+        },
+        {
+            "name": "GitHub",
+            "icon": "github",
+            "url": "https://github.com/chronark/unkey"
+        }
+    ],
+    "navigation": [
+        {
+            "group": "Get Started",
+            "pages": [
+                "introduction",
+                "quickstart"
+            ]
+        },
+        {
+            "group": "Features",
+            "icon": "bolt",
+            "pages": [
+                "features/ratelimiting",
+                "features/temp-keys"
+            ]
+        },
+        {
+            "group": "API Documentation",
+            "icon": "code",
+            "pages": [
+                "api-reference/authentication",
+                {
+                    "group": "Keys",
+                    "pages": [
+                        "api-reference/keys/create",
+                        "api-reference/keys/verify"
+                    ]
+                }
+            ]
+        }
+    ],
+    "footerSocials": {
+        "twitter": "https://twitter.com/james_r_perkins",
+        "github": "https://github.com/chronark/unkey"
     }
-  ],
-  "footerSocials": {
-    "twitter": "https://twitter.com/james_r_perkins",
-    "github": "https://github.com/chronark/unkey"
-  }
 }
