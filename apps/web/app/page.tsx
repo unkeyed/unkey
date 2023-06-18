@@ -4,7 +4,6 @@ import { addToWaitlist } from "./addToWaitlist";
 import { Toaster, toast } from "sonner";
 
 export default function Home() {
-
   return (
     <main className="relative flex flex-col items-center justify-between min-h-screen px-4 py-24 bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20">
       <Particles
@@ -59,13 +58,19 @@ export default function Home() {
           className="peer w-0 flex-auto bg-transparent px-2 py-2.5 text-base  text-white placeholder:text-gray-500 focus:outline-none focus:ring-0 "
         />
 
-        <button type="submit" className="hidden sm:block group relative isolate flex-none rounded-md py-1.5 text-[0.8125rem]/6 font-semibold text-white pl-2.5 pr-[calc(9/16*1rem)] bg-indigo-300/20">
+        <button
+          type="submit"
+          className="hidden sm:block group relative isolate flex-none rounded-md py-1.5 text-[0.8125rem]/6 font-semibold text-white pl-2.5 pr-[calc(9/16*1rem)] bg-indigo-300/20"
+        >
           Enter Waitlist
           <span aria-hidden="true" className="ml-1">
             &rarr;
           </span>
         </button>
-        <button type="submit" className="sm:hidden group relative isolate flex-none rounded-md p-1.5  text-white  bg-indigo-300/20">
+        <button
+          type="submit"
+          className="sm:hidden group relative isolate flex-none rounded-md p-1.5  text-white  bg-indigo-300/20"
+        >
           <kbd aria-hidden="true" className="ml-1">
             ⏎
           </kbd>

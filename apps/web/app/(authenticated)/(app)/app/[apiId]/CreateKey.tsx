@@ -50,10 +50,10 @@ const formSchema = z.object({
     .optional(),
   ratelimit: z
     .object({
-      type: z.enum(["consistent", "fast"]),
-      refillInterval: z.number().int().positive(),
-      refillRate: z.number().int().positive(),
-      limit: z.number().int().positive(),
+      type: z.enum(["consistent", "fast"]).default("fast"),
+      refillInterval: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
+      refillRate: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
+      limit: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
     })
     .optional(),
 });
@@ -88,6 +88,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
     await key.mutateAsync({
       apiId,
       ...values,
+      expires: values.expires ?? undefined,
       ownerId: values.ownerId ?? undefined,
     });
   }
