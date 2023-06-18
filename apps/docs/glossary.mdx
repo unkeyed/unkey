@@ -1,0 +1,22 @@
+---
+title: 'Glossary'
+description: 'Glossary of terms used in the Unkey documentation'
+---
+
+### Workspace
+
+A workspace should be treated as a single account. It can be a personal account or a team account. A workspace can have multiple users, but only one user can be the owner of the workspace. The owner of the workspace can invite other users to the workspace and assign them roles. The owner of the workspace can also delete the workspace.
+
+### API
+
+An API is a collection of API Keys. Each API Key belongs to exactly one API. An API can have multiple API Keys. An API can be used to group API Keys together. For example, you might have an API called `free` and another API called `paid`. You can then create API Keys for each of these APIs. This allows you to group your API Keys together and give them a name that makes sense to you
+
+This is also great for seperating your API Keys into different environments. For example, you might have an API called `api.production` and another API called `api.staging`. You can then create API Keys for each of these APIs.
+
+### API Key
+
+This is the key that your users will use to access your API. Each API Key belongs to exactly one API. An API Key can be used to identify a user, and also to validate that the user has access to your API.
+
+### Unkey API Key (Root Key)
+
+This is a special API Key that allows you full read and write access to all current and future resources. It's important to keep this API Key safe, as it allows you to create, revoke, validate and delete API Keys. This should be treated as a root user in your system.
