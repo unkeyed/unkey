@@ -19,7 +19,7 @@
     "@unkey/policies": "workspace:^",
     "@unkey/tinybird": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.26.5",
+    "drizzle-orm": "^0.27.0",
     "hono": "^3.2.5",
     "ioredis": "^5.3.2",
     "mysql2": "^3.3.5",
@@ -31,7 +31,7 @@
     "@types/node": "20.3.1",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.2.1",
-    "tsup": "^6.7.0",
+    "tsup": "^7.0.0",
     "tsx": "^3.12.7",
     "typescript": "^5.1.3"
   }
