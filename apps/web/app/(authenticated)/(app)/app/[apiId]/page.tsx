@@ -3,6 +3,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound, redirect } from "next/navigation";
 import { CreateKeyButton } from "./CreateKey";
+import { DeleteApiButton } from "./DeleteApi";
 import { Separator } from "@/components/ui/separator";
 
 import { ApiKeyTable } from "@/components/ApiKeyTable";
@@ -17,7 +18,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return notFound();
+    return redirect("/app");
   }
 
   return (
@@ -25,7 +26,10 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       <PageHeader
         title="Keys"
         description="All API keys belonging to this api"
-        actions={[<CreateKeyButton key="create-key" apiId={props.params.apiId} />]}
+        actions={[
+          <CreateKeyButton key="create-key" apiId={props.params.apiId} />,
+          <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,
+        ]}
       />
       <Separator className="my-6" />
 
