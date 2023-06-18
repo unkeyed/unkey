@@ -40,8 +40,7 @@ export default async function SettingsKeysPage() {
               <Row key={apiKey.id} apiKey={apiKey} />
             ))}
         </ul>
-      )
-      }
-    </div >
+      )}
+    </div>
   );
 }

@@ -103,7 +103,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
 
   return (
     <>
-      <Sheet 
+      <Sheet
         onOpenChange={(v) => {
           if (!v) {
             // Remove the key from memory when closing the modal
@@ -117,7 +117,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         </SheetTrigger>
 
         {key.data ? (
-          <SheetContent size="full" >
+          <SheetContent size="full">
             <SheetHeader>
               <SheetTitle>Your API Key</SheetTitle>
               <SheetDescription>
