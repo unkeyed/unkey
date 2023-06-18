@@ -7,39 +7,31 @@ import { newId } from "@unkey/id";
 import { eq } from "drizzle-orm";
 
 export const apiRouter = t.router({
-  // list: t.procedure.use(auth).query(async ({ ctx }) => {
-  //   return await db.channel.findMany({
-  //     where: {
-  //       workspaceId: ctx.workspace.id,
-  //     },
-  //   });
-  // }),
-  // delete: t.procedure
-  //   .use(auth)
-  //   .input(
-  //     z.object({
-  //       channelId: z.string(),
-  //     }),
-  //   )
-  //   .mutation(async ({ input, ctx }) => {
-  //     const channel = await db.channel.findFirst({
-  //       where: {
-  //         AND: {
-  //           id: input.channelId,
-  //           workspaceId: ctx.workspace.id,
-  //         },
-  //       },
-  //     });
-  //     if (!channel) {
-  //       throw new TRPCError({ code: "NOT_FOUND" });
-  //     }
+  delete: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        apiId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const api = await db.query.apis.findFirst({
+        where: eq(schema.apis.id, input.apiId),
+        with: {
+          workspace: true,
+        }
+      });
+      // Check if the API exists and if the user owns it
+      if (!api || api.workspace?.tenantId !== ctx.tenant.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
+      }
 
-  //     await db.channel.delete({
-  //       where: {
-  //         id: channel.id,
-  //       },
-  //     });
-  //   }),
+      // delete keys for the api
+      await db.delete(schema.keys).where(eq(schema.keys.apiId, input.apiId));
+      // delete api
+      await db.delete(schema.apis).where(eq(schema.apis.id, input.apiId));
+      return;
+    }),
   create: t.procedure
     .use(auth)
     .input(

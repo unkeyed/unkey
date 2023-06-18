@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { DeleteAPIButton } from "./DeleteAPI";
 
 type Props = {
   api: {
@@ -69,17 +70,16 @@ export const Row: React.FC<Props> = ({ api }) => {
                 </DropdownMenuItem>
               </Link>
 
-              {/* <DeleteKeyButton keyId={apiKey.id}>
+              <DeleteAPIButton apiId={api.id}>
                 <DropdownMenuItem
                   onSelect={(e) => {
-                    // This magically allows multiple dialogs in a dropdown menu, no idea why
                     e.preventDefault();
                   }}
                 >
                   <Trash className="w-4 h-4 mr-2" />
-                  <span>Revoke</span>
+                  <span>Delete API</span>
                 </DropdownMenuItem>
-              </DeleteKeyButton> */}
+              </DeleteAPIButton>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
