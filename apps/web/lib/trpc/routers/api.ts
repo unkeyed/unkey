@@ -19,7 +19,7 @@ export const apiRouter = t.router({
         where: eq(schema.apis.id, input.apiId),
         with: {
           workspace: true,
-        }
+        },
       });
       // Check if the API exists and if the user owns it
       if (!api || api.workspace?.tenantId !== ctx.tenant.id) {

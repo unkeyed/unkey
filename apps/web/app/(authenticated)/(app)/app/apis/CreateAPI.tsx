@@ -69,7 +69,7 @@ export const CreateApiButton: React.FC<Props> = () => {
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button>Create API</Button>
+          <Button>Create</Button>
         </DialogTrigger>
 
         <DialogContent>
