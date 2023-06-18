@@ -185,8 +185,8 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                           <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          This is the id of the user or tenant in your system, so you can identify
-                          users from an API key.
+                          This is the id of the user or workspace in your system, so you can
+                          identify users from an API key.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

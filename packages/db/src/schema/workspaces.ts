@@ -4,13 +4,13 @@ import { relations } from "drizzle-orm";
 import { keys } from "./keys";
 import { apis } from "./apis";
 
-export const tenants = mysqlTable("tenants", {
+export const workspaces = mysqlTable("workspaces", {
   id: varchar("id", { length: 256 }).primaryKey(),
   name: varchar("name", { length: 256 }).notNull(),
   slug: varchar("slug", { length: 256 }).notNull(),
 });
 
-export const tenantsRelations = relations(tenants, ({ many }) => ({
+export const workspacesRelations = relations(workspaces, ({ many }) => ({
   keys: many(keys),
   apis: many(apis),
 }));

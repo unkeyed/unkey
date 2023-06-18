@@ -4,17 +4,17 @@ import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";
 
 export default async function TenantOverviewPage() {
-  const tenantId = getTenantId();
-  let tenant = await db.query.tenants.findFirst({
-    where: eq(schema.tenants.id, tenantId),
+  const workspaceId = getTenantId();
+  let workspace = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.id, workspaceId),
   });
-  if (!tenant) {
+  if (!workspace) {
     redirect("/onboarding");
   }
 
   return (
     <div>
-      <PageHeader title={tenant?.name ?? "N/A"} description="Your team" />
+      <PageHeader title={workspace?.name ?? "N/A"} description="Your Workspace" />
     </div>
   );
 }

@@ -8,3 +8,5 @@ rm
 node_modules
 dist
 .next
+
+.tinyb

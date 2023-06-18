@@ -7,14 +7,14 @@ import { Separator } from "@/components/ui/separator";
 import { Row } from "./row";
 
 export default async function TenantOverviewPage() {
-  const tenantId = getTenantId();
-  const tenant = await db.query.tenants.findFirst({
-    where: eq(schema.tenants.id, tenantId),
+  const workspaceId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.id, workspaceId),
     with: {
       apis: true,
     },
   });
-  if (!tenant) {
+  if (!workspace) {
     return notFound();
   }
   return (
@@ -26,7 +26,7 @@ export default async function TenantOverviewPage() {
       />
       <Separator className="my-6" />
 
-      {tenant.apis.map((api) => (
+      {workspace.apis.map((api) => (
         <Row key={api.id} api={api} />
       ))}
     </div>

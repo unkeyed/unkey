@@ -12,12 +12,14 @@ import { Logger } from "./logger";
 import { webcrypto as crypto } from "node:crypto";
 import type { Cache } from "./cache";
 import { RatelimitResult, Ratelimiter } from "./ratelimit";
-import { Policy } from "@unkey/policies";
+
+import { publishKeyVerification } from "@unkey/tinybird";
 
 export type Bindings = {
   db: Database;
   logger: Logger;
   ratelimiter: Ratelimiter;
+  tinybird: { publishKeyVerification: ReturnType<typeof publishKeyVerification> };
   cache: {
     keys: Cache<Key>;
   };
@@ -28,15 +30,14 @@ export type Variables = {
   logger: Logger;
 };
 
-export function init({ db, logger, ratelimiter, cache }: Bindings) {
+export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
   const app = new Hono<{ Variables: Variables }>();
   app.onError((err, c) => {
+    const log = c.get("logger") ?? logger;
+    log.error("unhandled error", { error: err.message, stack: err.stack });
     if (err instanceof HTTPException) {
       return err.getResponse();
     }
-
-    const log = c.get("logger") ?? logger;
-    log.error("unhandled error", { error: err.message, stack: err.stack });
 
     return c.json({ error: "Internal Server Error", message: err.message }, { status: 500 });
   });
@@ -52,7 +53,11 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
   // add request id
   app.use("*", async (c, next) => {
-    const log = logger.with({ requestId: c.get("requestId"), path: c.req.path });
+    const log = logger.with({
+      requestId: c.get("requestId"),
+      path: c.req.path,
+      method: c.req.method,
+    });
     log.info("incoming request");
     c.set("logger", log);
 
@@ -124,7 +129,7 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
       const api = await db.query.apis.findFirst({
         where: eq(schema.apis.id, req.apiId),
-        columns: { tenantId: true },
+        columns: { workspaceId: true },
       });
       if (!api) {
         throw new NotFoundError("This api does not exist");
@@ -143,14 +148,20 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
       const keyId = newId("key");
 
-      log.info("Creating key", { key, keyId, apiId: req.apiId, tenantId: api.tenantId, hash });
+      log.info("Creating key", {
+        key,
+        keyId,
+        apiId: req.apiId,
+        workspaceId: api.workspaceId,
+        hash,
+      });
 
       await db
         .insert(schema.keys)
         .values({
           id: keyId,
           apiId: req.apiId,
-          tenantId: api.tenantId,
+          workspaceId: api.workspaceId,
           hash,
           ownerId: req.ownerId,
           meta: req.meta,
@@ -245,6 +256,7 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
 
       cache.keys.set(rawKey, key);
       const headers: Record<string, string> = {};
+      let ratelimited = false;
 
       if (key.ratelimitType) {
         const ratelimitRequest = {
@@ -268,20 +280,29 @@ export function init({ db, logger, ratelimiter, cache }: Bindings) {
         headers["Ratelimit-Reset"] = ratelimit.reset.toString();
 
         if (!ratelimit.pass) {
-          return c.json(
-            {
-              valid: false,
-              error: "Ratelimit exceeded",
-            },
-            429,
-            headers,
-          );
+          ratelimited = true;
         }
       }
 
+      // don't await this, we don't want to block the response
+      tinybird
+        .publishKeyVerification({
+          apiId: key.apiId ?? "",
+          workspaceId: key.workspaceId,
+          keyId: key.id,
+          ratelimited,
+          time: Date.now(),
+        })
+        .then(() => {
+          log.info("published to tinybird");
+        })
+        .catch((err) => {
+          log.error("unable to publish to tinybird", { error: err.message });
+        });
+
       return c.json(
         {
-          valid: true,
+          valid: !ratelimited,
           ownerId: key.ownerId ?? undefined,
           meta: key.meta ?? undefined,
         },

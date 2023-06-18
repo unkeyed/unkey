@@ -46,9 +46,9 @@ export class Ratelimiter {
   private store: Map<Identifier, Key>;
   private redis: Redis;
 
-  constructor(redisUrl: string) {
+  constructor(opts: { redis: Redis }) {
     this.store = new Map();
-    this.redis = new Redis(redisUrl, { family: 6 });
+    this.redis = opts.redis;
 
     setTimeout(() => {
       const now = Date.now();

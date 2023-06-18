@@ -8,7 +8,7 @@ export async function createContext({ req }: trpcFetch.FetchCreateContextFnOptio
   return {
     req,
     user: userId ? { id: userId } : null,
-    tenant:
+    workspace:
       orgId && orgSlug && orgRole
         ? {
             id: orgId,

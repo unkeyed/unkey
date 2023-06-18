@@ -7,16 +7,16 @@ import { CreateKeyButton } from "./CreateKey";
 import { Separator } from "@/components/ui/separator";
 
 export default async function SettingsKeysPage() {
-  const tenantId = getTenantId();
-  const tenant = await db.query.tenants.findFirst({
-    where: eq(schema.tenants.id, tenantId),
+  const workspaceId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.id, workspaceId),
     with: {
       keys: {
         where: eq(schema.keys.internal, true),
       },
     },
   });
-  if (!tenant) {
+  if (!workspace) {
     return notFound();
   }
   return (
@@ -27,12 +27,11 @@ export default async function SettingsKeysPage() {
         actions={[<CreateKeyButton key="create-key" />]}
       />
       <Separator className="my-6" />
-
       {tenant.keys.length === 0 ? (
         ""
       ) : (
         <ul role="list" className="mt-8 divide-y divide-white/10">
-          {tenant.keys
+          {workspace.keys
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
             .map((apiKey) => (
               <Row key={apiKey.id} apiKey={apiKey} />

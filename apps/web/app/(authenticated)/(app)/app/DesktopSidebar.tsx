@@ -3,12 +3,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart, Database, FileKey, Filter, FormInput, Home } from "lucide-react";
 import Link from "next/link";
 import { AppLink } from "./AppLink";
-import { TeamSwitcher } from "./TeamSwitcher";
+import { WorkspaceSwitcher } from "./TeamSwitcher";
 type Props = {
-  tenantSlug: string;
+  workspaceSlug: string;
 };
 
-export const DesktopSidebar: React.FC<Props> = ({ tenantSlug }) => {
+export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
   const apps: {
     name: string;
     slug: string;
@@ -60,7 +60,7 @@ export const DesktopSidebar: React.FC<Props> = ({ tenantSlug }) => {
         </div>
       </div>
       <div className="absolute inset-x-0  bottom-8 mx-6">
-        <TeamSwitcher />
+        <WorkspaceSwitcher />
       </div>
     </aside>
   );

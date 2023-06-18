@@ -12,7 +12,7 @@ export const auth = t.middleware(({ next, ctx }) => {
   return next({
     ctx: {
       user: ctx.user,
-      tenant: ctx.tenant ?? { id: ctx.user.id, slug: "home", role: "owner" },
+      workspace: ctx.workspace ?? { id: ctx.user.id, slug: "home", role: "owner" },
     },
   });
 });

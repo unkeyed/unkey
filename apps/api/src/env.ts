@@ -5,6 +5,7 @@ const schema = z.object({
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
   REDIS_URL: z.string(),
+  TINYBIRD_TOKEN: z.string(),
 });
 
 export const env = schema.parse(process.env);

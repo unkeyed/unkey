@@ -37,7 +37,7 @@ The default is `16 bytes`, or 2<sup>128</sup> possible combinations
   Your user's Id. This will provide a link between Unkey and your customer record.
 
   When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
-  
+
 </ParamField>
 
 <ParamField body="meta" type="object" >
@@ -57,7 +57,7 @@ Example:
 
   Once keys expire they will automatically be deleted and are no longer valid.
 
-  
+
 </ParamField>
 
 <ParamField body="ratelimit" type="Object" >
@@ -69,13 +69,13 @@ Example:
   <ParamField body="type" type="string" default="fast" required>
   Either `fast` or `consistent`.
 
-TODO: andreas - explain
+  Read more [here](/features/ratelimiting)
 
   </ParamField>
   <ParamField body="limit" type="int" required>
   The total amount of burstable requests.
 
-  
+
   </ParamField>
   <ParamField body="refillRate" type="int" required>
   How many tokens to refill during each `refillInterval`
@@ -99,7 +99,7 @@ The HTTP method to use when making requests to this endpoint.
 <ResponseField name="name" type="string" required>
 The name of the endpoint.
 </ResponseField>
-<ResponseField name="teamId" type="string" required>
+<ResponseField name="workspaceId" type="string" required>
 The ID of the team that owns this endpoint.
 </ResponseField>
 <ResponseField name="url" type="string" required>
@@ -167,7 +167,7 @@ The distribution of runs across regions. `ALL` will run in all regions at the sa
 
 
 
-```sh 
+```sh
 curl --request POST \
   --url https://api.unkey.dev/v1/keys \
   --header 'Authorization: Bearer <UNKEY>' \
@@ -187,7 +187,7 @@ curl --request POST \
 		"refillRate": 1,
 		"refillInterval": 1000
 	}
-	
+
 }'
 ```
 

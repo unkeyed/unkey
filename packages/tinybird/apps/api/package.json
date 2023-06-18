@@ -1,0 +1,5 @@
+{
+	"dependencies": {
+		"@unkey/tinybird": "workspace:^"
+	}
+}
