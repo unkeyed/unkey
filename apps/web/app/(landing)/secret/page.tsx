@@ -1,0 +1,250 @@
+import Link from "next/link";
+
+import { addToWaitlist } from "../../addToWaitlist";
+import { Toaster, toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import { Github } from "lucide-react";
+import { Waitlist } from "./waitlist";
+import { db, eq, schema, sql } from "@unkey/db";
+
+
+export const revalidate = 60
+
+export default async function LandingPage() {
+
+
+  const [workspaces, apis, keys] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(schema.workspaces).then(res=>res.length),
+    db.select({ count: sql<number>`count(*)` }).from(schema.apis).then(res=>res.length),
+    db.select({ count: sql<number>`count(*)` }).from(schema.keys).then(res=>res.length),
+
+  ])
+
+  return (
+    <>
+      <div className="overflow-x-hidden bg-gray-50">
+        <Toaster />
+
+        <section className="flex flex-col items-center justify-center min-h-screen pt-12 bg-gray-50 sm:pt-16">
+          <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="max-w-2xl mx-auto text-center">
+              <Link className="px-6 text-lg text-gray-600" href="https://github.com/chronark/unkey">Unkey is Open Source</Link>
+              <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight font-pj">
+                Accelerate your API Development
+              </h1>
+
+              <div className="relative mt-16">
+                <div className="absolute -inset-2">
+                  <div className="w-full h-full mx-auto opacity-30 blur-lg filter" />
+                </div>
+
+                <Waitlist />
+              </div>
+
+              <p className="mt-8 text-base text-gray-500 font-inter">Create, manage and revoke API keys in seconds</p>
+            </div>
+          </div>
+
+          <div className="relative pt-16 overflow-hidden">
+            <div className="px-6 mx-auto max-w-7xl lg:px-8">
+              <img
+                src="/images/landing/app.png"
+                alt="App screenshot"
+                className="mb-[-12%] rounded-lg shadow-2xl ring-1 ring-gray-900/10"
+                width={2432}
+                height={1442}
+              />
+              <div className="relative" aria-hidden="true">
+                <div className="absolute -inset-x-20 bottom-0 bg-gradient-to-t from-zinc-50 pt-[7%]" />
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="py-12 bg-gray-50 sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">How it works</h2>
+            <p className="max-w-md mx-auto mt-5 text-base font-normal text-gray-600 font-pj">Lorem ipsum</p>
+          </div>
+
+          <div className="flex flex-col items-center max-w-md mx-auto mt-8 lg:mt-20 lg:flex-row lg:max-w-none">
+            <div className="relative flex-1 w-full overflow-hidden bg-white border border-gray-200 rounded-2xl">
+              <div className="py-8 px-9">
+                <div className="inline-flex items-center justify-center w-10 h-10 text-base font-bold text-white bg-gray-900 rounded-lg font-pj">1</div>
+                <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Create an API in unkey.dev</p>
+              </div>
+            </div>
+
+            <div className="block -my-1 lg:hidden">
+              <svg className="w-4 h-auto text-gray-300" viewBox="0 0 16 32" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 21)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 14)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 7)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 0)" />
+              </svg>
+            </div>
+
+            <div className="hidden lg:block lg:-mx-2">
+              <svg className="w-auto h-4 text-gray-300" viewBox="0 0 81 16" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 11 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 46 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 81 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 18 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 53 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 25 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 60 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 32 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 67 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 39 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 74 1)" />
+              </svg>
+            </div>
+
+            <div className="relative flex-1 w-full">
+              <div className="absolute -inset-4">
+                <div className="w-full h-full mx-auto rotate-180 opacity-20 blur-lg filter" style={{ background: "linear-gradient(90deg, #44ff9a -0.55%, #44b0ff 22.86%, #8b44ff 48.36%, #ff6644 73.33%, #ebff70 99.34%)" }} />
+              </div>
+
+              <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl">
+                <div className="py-8 px-9">
+                  <div className="inline-flex items-center justify-center w-10 h-10 text-base font-bold text-white bg-gray-900 rounded-lg font-pj">2</div>
+                  <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Create keys on behalf of your users</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden lg:block lg:-mx-2">
+              <svg className="w-auto h-4 text-gray-300" viewBox="0 0 81 16" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 11 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 46 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 81 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 18 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 53 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 25 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 60 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 32 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 67 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 39 1)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(-0.5547 0.83205 0.83205 0.5547 74 1)" />
+              </svg>
+            </div>
+
+            <div className="block -my-1 lg:hidden">
+              <svg className="w-4 h-auto text-gray-300" viewBox="0 0 16 32" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 21)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 14)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 7)" />
+                <line y1="-0.5" x2="18.0278" y2="-0.5" transform="matrix(0.83205 0.5547 0.5547 -0.83205 1 0)" />
+              </svg>
+            </div>
+
+            <div className="relative flex-1 w-full overflow-hidden bg-white border border-gray-200 rounded-2xl">
+              <div className="py-8 px-9">
+                <div className="inline-flex items-center justify-center w-10 h-10 text-base font-bold text-white bg-gray-900 rounded-lg font-pj">3</div>
+                <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Verify the created keys as part of your authorization flow.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="py-12 bg-gray-50 sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:items-center gap-y-8 md:grid-cols-2 md:gap-x-16">
+            <div>
+              {/* <img className="w-full max-w-lg mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/3/illustration.png" alt="" /> */}
+            </div>
+
+            <div className="lg:pr-12">
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Global storage</h2>
+              <p className="mt-5 text-lg font-medium text-gray-900 sm:mt-8 font-pj">Proin faucibus nibh et sagittis a. Lacinia purus ac amet pellentesque aliquam enim.</p>
+              <p className="mt-4 text-lg text-gray-700 sm:mt-5 font-pj">Lorem ipsum dolor sit amet, consectetur adipis elit. Sit enim nec, proin faucibus nibh et sagittis a. Lacinia purus ac amet pellentesque aliquam enim.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="py-12 bg-white sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:items-center gap-y-8 md:grid-cols-2 md:gap-x-16">
+            <div className="text-center md:text-left lg:pr-16">
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Built in Ratelimiting</h2>
+              <p className="mt-4 text-base text-gray-700 sm:mt-8 font-pj">Per-key ratelimiting allows you to protect your API easily and ensure fair usage for all users.</p>
+
+              <div className="relative inline-flex mt-10 group">
+                <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200"></div>
+                <Link href="https://unkey.mintlify.app/features/ratelimiting" target="_blank" title="" className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" role="button">
+                  Learn more
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              {/* <img className="w-full mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/2/illustration.png" alt="" /> */}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="py-12 bg-gray-50 sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center xl:max-w-4xl">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Lots of trust</h2>
+          </div>
+
+          <div className="relative mt-12 lg:mt-20 lg:max-w-5xl lg:mx-auto">
+            <div className="absolute -inset-2">
+              <div className="w-full h-full mx-auto opacity-30 blur-lg filter" style={{ background: "linear-gradient(90deg, #44ff9a -0.55%, #44b0ff 22.86%, #8b44ff 48.36%, #ff6644 73.33%, #ebff70 99.34%)" }} />
+            </div>
+
+            <div className="relative grid grid-cols-1 px-16 py-12 overflow-hidden text-center bg-white sm:grid-cols-2 gap-y-12 lg:grid-cols-3 rounded-2xl gap-x-20">
+              <div className="flex flex-col items-center">
+                <p className="text-5xl font-bold text-gray-900 lg:mt-3 lg:order-2 font-pj">{workspaces}</p>
+                <h3 className="mt-5 text-sm font-bold tracking-widest text-gray-600 uppercase lg:mt-0 lg:order-1 font-pj">Workspaces</h3>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <p className="text-5xl font-bold text-gray-900 lg:mt-3 lg:order-2 font-pj">{apis}</p>
+                <h3 className="mt-5 text-sm font-bold tracking-widest text-gray-600 uppercase lg:mt-0 lg:order-1 font-pj">APIs</h3>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <p className="text-5xl font-bold text-gray-900 lg:mt-3 lg:order-2 font-pj">{keys}</p>
+                <h3 className="mt-5 text-sm font-bold tracking-widest text-gray-600 uppercase lg:mt-0 lg:order-1 font-pj">Keys</h3>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="py-12 bg-white sm:pt-16 lg:pt-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+
+
+          <hr className="mt-16 border-gray-200" />
+
+          <div className="mt-8 sm:flex sm:items-center sm:justify-between">
+            <ul className="flex items-center justify-start space-x-3 sm:order-2 sm:justify-end">
+
+
+              <li>
+                <Link
+                  href="https://github.com/chronark/unkey"
+                  target="_blank"
+                  title=""
+                  className="inline-flex items-center justify-center w-10 h-10 text-gray-900 transition-all duration-200 rounded-full hover:bg-gray-100 focus:outline-none focus:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
+                  rel="noopener"
+                >
+                  <Github className="w-6 h-6" />
+                </Link>
+              </li>
+            </ul>
+
+            <p className="mt-8 text-sm font-normal text-gray-600 font-pj sm:order-1 sm:mt-0">© Copyright {new Date().getUTCFullYear()}, All Rights Reserved</p>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}

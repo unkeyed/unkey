@@ -100,6 +100,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.1.1
         version: 3.1.1(react-hook-form@7.44.3)
+      '@next/font':
+        specifier: ^13.4.6
+        version: 13.4.6
       '@planetscale/database':
         specifier: ^1.7.0
         version: 1.7.0
@@ -1032,6 +1035,10 @@ packages:
 
   /@next/env@13.4.6:
     resolution: {integrity: sha512-nqUxEtvDqFhmV1/awSg0K2XHNwkftNaiUqCYO9e6+MYmqNObpKVl7OgMkGaQ2SZnFx5YqF0t60ZJTlyJIDAijg==}
+    dev: false
+
+  /@next/font@13.4.6:
+    resolution: {integrity: sha512-Pjm6B6f4KWr4kWe7yu2trLtwQPco/wLSOzWeD7bW17Sd209ibrhRwbSggvlAt1FJu8K4ag2xtVg8WfRFbON1mw==}
     dev: false
 
   /@next/swc-darwin-arm64@13.4.6:
