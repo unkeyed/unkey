@@ -35,12 +35,11 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
-  bytes: z.number().int().gte(1),
+  bytes: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
@@ -78,6 +77,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         title: "Key Created",
         description: "Your Key has been created",
       });
+      form.reset();
     },
     onError(err) {
       console.error(err);
