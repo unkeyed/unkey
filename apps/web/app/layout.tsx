@@ -1,8 +1,16 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Inter } from "@next/font/google";
+import localFont from "@next/font/local";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
+const pangea = localFont({
+  src: "../public/fonts/PangeaAfrikanTrial-Medium.woff2",
+  variable: "--font-pangea",
+});
 export const metadata = {
   title: "Open Source API Key Management",
   description: "Accelerate your API development",
@@ -34,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
       <head>
         <script
           src="https://beamanalytics.b-cdn.net/beam.min.js"
@@ -42,7 +50,7 @@ export default function RootLayout({
           async
         />
       </head>
-      <body className={`${inter.className}`}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
