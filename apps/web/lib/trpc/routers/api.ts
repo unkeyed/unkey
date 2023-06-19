@@ -1,10 +1,18 @@
-import { db, schema } from "@unkey/db";
+import { db, schema, type Key } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { t, auth } from "../trpc";
 import { newId } from "@unkey/id";
 import { eq } from "drizzle-orm";
+import { Kafka } from "@upstash/kafka";
+import { env } from "@/lib/env";
+
+const kafka = new Kafka({
+  url: env.UPSTASH_KAFKA_REST_URL,
+  username: env.UPSTASH_KAFKA_REST_USERNAME,
+  password: env.UPSTASH_KAFKA_REST_PASSWORD,
+});
 
 export const apiRouter = t.router({
   delete: t.procedure
@@ -26,8 +34,27 @@ export const apiRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
       }
 
+      const producer = kafka.producer();
+
       // delete keys for the api
-      await db.delete(schema.keys).where(eq(schema.keys.apiId, input.apiId));
+      let keys: Key[] = [];
+      do {
+        keys = await db.query.keys.findMany({
+          where: eq(schema.keys.apiId, input.apiId),
+        });
+        await Promise.all(
+          keys.map(async (key) => {
+            await db.delete(schema.keys).where(eq(schema.keys.id, key.id));
+            await producer.produce("key.deleted", {
+              key: {
+                id: key.id,
+                hash: key.hash,
+              },
+            });
+          }),
+        );
+      } while (keys.length > 0);
+
       // delete api
       await db.delete(schema.apis).where(eq(schema.apis.id, input.apiId));
       return;

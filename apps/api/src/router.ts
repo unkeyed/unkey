@@ -14,6 +14,7 @@ import type { Cache } from "./cache";
 import { RatelimitResult, Ratelimiter } from "./ratelimit";
 
 import { publishKeyVerification } from "@unkey/tinybird";
+import { env } from "./env";
 
 export type Bindings = {
   db: Database;
@@ -57,6 +58,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
       requestId: c.get("requestId"),
       path: c.req.path,
       method: c.req.method,
+      edge: c.req.headers.get("FLY_REGION"),
     });
     log.info("incoming request");
     c.set("logger", log);
@@ -211,19 +213,20 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
     ),
     async (c) => {
       const log = c.get("logger");
-      const rawKey = c.req.valid("json").key;
+
+      const hash = toBase64(
+        await crypto.subtle.digest("sha-256", new TextEncoder().encode(c.req.valid("json").key)),
+      );
 
       const beforeCache = performance.now();
-      let key: Key | undefined = cache.keys.get(rawKey);
+      let key: Key | undefined = cache.keys.get(hash);
       log.info("report.cache.key.get", {
         hit: Boolean(key),
         latency: performance.now() - beforeCache,
         key,
       });
       if (!key) {
-        const hash = toBase64(
-          await crypto.subtle.digest("sha-256", new TextEncoder().encode(rawKey)),
-        );
+        
 
         const beforeDb = performance.now();
         const found = await db
@@ -264,7 +267,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
         );
       }
 
-      cache.keys.set(rawKey, key);
+      cache.keys.set(hash, key);
       const headers: Record<string, string> = {};
       let ratelimited = false;
 

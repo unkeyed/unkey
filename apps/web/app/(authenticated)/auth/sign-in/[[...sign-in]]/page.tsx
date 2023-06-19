@@ -22,7 +22,6 @@ export default function AuthenticationPage() {
   }
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-6 md:px-0 sm:w-[500px]">
-
       {!verify && (
         <>
           <div className="flex flex-col space-y-2 text-center">
@@ -59,7 +58,6 @@ export default function AuthenticationPage() {
           <EmailCode />
         </div>
       )}
-
     </div>
   );
 }
