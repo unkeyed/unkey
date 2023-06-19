@@ -12,15 +12,20 @@ import { db, eq, schema, sql } from "@unkey/db";
 export const revalidate = 60
 
 export default async function LandingPage() {
-
-
-  const [workspaces, apis, keys] = await Promise.all([
+  const [workspaces, apis, keys, stars] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(schema.workspaces).then(res => res.length),
     db.select({ count: sql<number>`count(*)` }).from(schema.apis).then(res => res.length),
     db.select({ count: sql<number>`count(*)` }).from(schema.keys).then(res => res.length),
-
+    await fetch(
+      "https://api.github.com/repos/chronark/unkey",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      },
+    ).then((res) => res.json()),
   ])
-
   return (
     <>
       <div className="overflow-x-hidden bg-gray-50">
@@ -161,6 +166,12 @@ export default async function LandingPage() {
             <div className="lg:pr-12">
               <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Keys where your users are</h2>
               <p className="mt-4 text-lg text-gray-700 sm:mt-5 font-pj">Your users are everywhere and so is Unkey. Unkey stores keys globally, making each request as fast possible regardless of your location.</p>
+              <div className="relative inline-flex mt-10 group">
+                <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200"></div>
+                <Link href="https://unkey.dev/auth/sign-up" target="_blank" title="" className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" role="button">
+                  Start Building
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -180,6 +191,39 @@ export default async function LandingPage() {
               </div>
             </div>
 
+            <div>
+              {/* <img className="w-full max-w-lg mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/3/illustration.png" alt="" /> */}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="py-12 bg-gray-50 sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:items-center gap-y-8 md:grid-cols-2 md:gap-x-16">
+            <div>
+              {/* <img className="w-full max-w-lg mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/3/illustration.png" alt="" /> */}
+            </div>
+
+            <div className="lg:pr-12">
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Temporary keys</h2>
+              <p className="mt-4 text-lg text-gray-700 sm:mt-5 font-pj">Want to add a free trial to your API? Unkey allows you to issue temporary keys, once the key expires we delete it for you.</p>
+              <div className="relative inline-flex mt-10 group">
+                <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200"></div>
+                <Link href="https://unkey.mintlify.app/features/temp-keys" target="_blank" title="" className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900" role="button">
+                  Learn more
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section >
+      <section className="py-12 bg-white sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:items-center gap-y-8 md:grid-cols-2 md:gap-x-16">
+            <div className="text-center md:text-left lg:pr-16">
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Usage analytics (Coming Soon)</h2>
+              <p className="mt-4 text-base text-gray-700 sm:mt-8 font-pj">Need to charge a customer on their usage? Want to know who your biggest clients are? Unkey provides up to key analytics giving you insights on every user.</p>
+            </div>
             <div>
               {/* <img className="w-full max-w-lg mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/3/illustration.png" alt="" /> */}
             </div>
@@ -222,7 +266,6 @@ export default async function LandingPage() {
       <section className="py-12 bg-white sm:py-16 lg:py-20">
         <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 bg-white">
           <div className="max-w-3xl mx-auto text-center">
-            {/*<Link className="px-6 text-lg text-gray-600 font-bold" href="https://github.com/chronark/unkey">Unkey</Link>*/}
             <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight font-inter">
               Proudly Open Source
             </h1>
@@ -238,7 +281,8 @@ export default async function LandingPage() {
                 <div className="flex items-center">
                   <div className="flex h-10 items-center space-x-2 rounded-md border border-gray-600 bg-gray-800 p-4">
                     <Github className="h-5 w-5 text-white" />
-                    <p className="font-medium text-white">Unkey</p>
+                    <p className="font-medium text-white">{Intl.NumberFormat().format(stars.stargazers_count || 0)} stars</p>
+                    <p></p>
                   </div>
                 </div>
               </a>
