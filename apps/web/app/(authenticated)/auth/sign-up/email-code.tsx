@@ -27,10 +27,11 @@ export function EmailCode() {
       .attemptEmailAddressVerification({
         code: emailCode,
       })
-      .then(async (result) => {
+      .then((result) => {
         if (result.status === "complete" && result.createdSessionId) {
-          await setActive({ session: result.createdSessionId });
-          router.push("/onboarding");
+          setActive({ session: result.createdSessionId }).then(() => {
+            router.push("/onboarding");
+          });
         }
       })
       .catch((err) => {

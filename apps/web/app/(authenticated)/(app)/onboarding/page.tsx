@@ -7,7 +7,7 @@ export default async function OnboardingPage() {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
-  console.log("workspace", workspace);
+
   if (workspace) {
     return redirect("/app");
   }
