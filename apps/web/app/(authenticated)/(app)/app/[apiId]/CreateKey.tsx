@@ -2,7 +2,6 @@
 
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-
 import {
   Form,
   FormControl,
@@ -23,7 +22,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-
+import { Switch } from "@/components/ui/switch";
 import {
   Accordion,
   AccordionContent,
@@ -31,6 +30,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
+
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -39,26 +39,27 @@ import { CopyButton } from "@/components/CopyButton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
-  bytes: z.preprocess(
-    (a) => parseInt(a as string),
-    z.number().positive()
-  ),
+  bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
+  expiresEnabled: z.boolean().default(false),
   expires: z
     .string()
     .transform((s) => new Date(s).getTime())
     .optional(),
+  rateLimitEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
-      refillInterval: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
-      refillRate: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
-      limit: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
+      refillInterval: z.coerce.number().positive(),
+      refillRate: z.coerce.number().positive(),
+      limit: z.coerce.number().positive(),
     })
-    .optional(),
-});
+    .optional()
+
+})
+
 type Props = {
   apiId: string;
 };
@@ -72,6 +73,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
       prefix: "api",
       bytes: 16,
     },
+
   });
   const router = useRouter();
   const key = trpc.key.create.useMutation({
@@ -86,8 +88,17 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
       console.error(err);
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
+
+
   });
+
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+
+    if (!values.rateLimitEnabled) {
+      delete values.ratelimit
+    }
+
     await key.mutateAsync({
       apiId,
       ...values,
@@ -195,83 +206,130 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <Accordion type="multiple" className="w-full">
-                    <AccordionItem value="item-1">
-                      <AccordionTrigger>Add Expiry</AccordionTrigger>
-                      <AccordionContent className="flex flex-col space-y-8">
+                  <div className="flex justify-around my-4 space-x-4">
+                    <FormField control={form.control} name="expiresEnabled" render={({ field }) => {
+                      return (
+                        <FormItem >
+                          <FormControl>
+                            <div className="flex items-center space-x-4">
+                              <Switch
+                                checked={field.value}
+                                defaultValue={"false"}
+                                onCheckedChange={(value) => {
+                                  if (value === false) {
+                                    form.resetField("expires")
+                                    form.clearErrors("expires")
+                                  }
+                                  field.onChange(value)
+                                }}
+                              />
+                              <FormLabel>Enable Expiration</FormLabel>
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )
+                    }}
+                    />
+
+                    <FormField control={form.control} name="rateLimitEnabled" render={({ field }) => {
+                      return (
+                        <FormItem>
+                          <FormControl>
+                            <div className="flex items-center space-x-4">
+                              <Switch
+                                checked={field.value}
+                                defaultValue={"false"}
+                                onCheckedChange={(value) => {
+                                  if (value === false) {
+                                    form.resetField("ratelimit")
+                                    form.clearErrors("ratelimit")
+                                  }
+                                  field.onChange(value)
+                                }}
+                              />
+                              <FormLabel>Enable Ratelimiting</FormLabel>
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )
+                    }}
+                    />
+                  </div>
+                  {form.watch("expiresEnabled") && (
+                    <FormField
+
+                      control={form.control}
+                      name="expires"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Expiry Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            This api key will automatically be revoked after the given date.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  {form.watch("rateLimitEnabled") && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="ratelimit.limit"
+                        render={({ field }) => (
+                          <FormItem className="w-full">
+                            <FormLabel>Limit</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              The maximum number of requests possible during a burst.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex items-center gap-4 mt-8">
                         <FormField
                           control={form.control}
-                          name="expires"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Expiry Date</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                This api key will automatically be revoked after the given date.
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="ratelimiting">
-                      <AccordionTrigger>Add Ratelimiting</AccordionTrigger>
-                      <AccordionContent>
-                        <FormField
-                          control={form.control}
-                          name="ratelimit.limit"
+                          name="ratelimit.refillRate"
                           render={({ field }) => (
                             <FormItem className="w-full">
-                              <FormLabel>Limit</FormLabel>
+                              <FormLabel>Refill Rate</FormLabel>
                               <FormControl>
                                 <Input type="number" {...field} />
                               </FormControl>
-                              <FormDescription>
-                                The maximum number of requests possible during a burst.
-                              </FormDescription>
+
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        <FormField
+                          control={form.control}
+                          name="ratelimit.refillInterval"
+                          render={({ field }) => (
+                            <FormItem className="w-full">
+                              <FormLabel>Refill Interval (milliseconds)</FormLabel>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
 
-                        <div className="flex items-center gap-4 mt-8">
-                          <FormField
-                            control={form.control}
-                            name="ratelimit.refillRate"
-                            render={({ field }) => (
-                              <FormItem className="w-full">
-                                <FormLabel>Refill Rate</FormLabel>
-                                <FormControl>
-                                  <Input type="number" {...field} />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="ratelimit.refillInterval"
-                            render={({ field }) => (
-                              <FormItem className="w-full">
-                                <FormLabel>Refill Interval (milliseconds)</FormLabel>
-                                <FormControl>
-                                  <Input type="number" {...field} />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <FormDescription>
-                          How many requests may be performed in a given interval
-                        </FormDescription>
-                      </AccordionContent>
-                    </AccordionItem>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormDescription>
+                        How many requests may be performed in a given interval
+                      </FormDescription>
+                    </>
+                  )
+                  }
+                  <Accordion type="multiple" className="w-full">
                     <AccordionItem disabled value="item-3">
                       <AccordionTrigger dir="">Add Policies (soon)</AccordionTrigger>
                       <AccordionContent>TODO: andreas</AccordionContent>
@@ -280,13 +338,13 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                   <ScrollBar />
                 </ScrollArea>
                 <SheetFooter className="justify-end mt-8">
-                  <Button type="submit">{key.isLoading ? <Loading /> : "Create"}</Button>
+                  <Button disabled={!form.formState.isValid} type="submit">{key.isLoading ? <Loading /> : "Create"}</Button>
                 </SheetFooter>
               </form>
             </Form>
-          </SheetContent>
+          </SheetContent >
         )}
-      </Sheet>
+      </Sheet >
     </>
   );
 };
