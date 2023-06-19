@@ -15,9 +15,9 @@ export default async function LandingPage() {
 
 
   const [workspaces, apis, keys] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(schema.workspaces).then(res=>res.length),
-    db.select({ count: sql<number>`count(*)` }).from(schema.apis).then(res=>res.length),
-    db.select({ count: sql<number>`count(*)` }).from(schema.keys).then(res=>res.length),
+    db.select({ count: sql<number>`count(*)` }).from(schema.workspaces).then(res => res.length),
+    db.select({ count: sql<number>`count(*)` }).from(schema.apis).then(res => res.length),
+    db.select({ count: sql<number>`count(*)` }).from(schema.keys).then(res => res.length),
 
   ])
 
@@ -29,7 +29,7 @@ export default async function LandingPage() {
         <section className="flex flex-col items-center justify-center min-h-screen pt-12 bg-gray-50 sm:pt-16">
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center">
-              <Link className="px-6 text-lg text-gray-600" href="https://github.com/chronark/unkey">Unkey is Open Source</Link>
+              {/*<Link className="px-6 text-lg text-gray-600 font-bold" href="https://github.com/chronark/unkey">Unkey</Link>*/}
               <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight font-pj">
                 Accelerate your API Development
               </h1>
@@ -42,7 +42,8 @@ export default async function LandingPage() {
                 <Waitlist />
               </div>
 
-              <p className="mt-8 text-base text-gray-500 font-inter">Create, manage and revoke API keys in seconds</p>
+              <p className="mt-8 text-base text-gray-700 font-inter font-medium	">Unkey is an open source API Key management solution. It allows you to create, manage and validate API Keys for your users. It’s built with security and speed in mind.
+              </p>
             </div>
           </div>
 
@@ -67,14 +68,14 @@ export default async function LandingPage() {
         <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">How it works</h2>
-            <p className="max-w-md mx-auto mt-5 text-base font-normal text-gray-600 font-pj">Lorem ipsum</p>
+            <p className="max-w-md mx-auto mt-5 text-base font-normal text-gray-600 font-pj">Get started in under five minutes</p>
           </div>
 
           <div className="flex flex-col items-center max-w-md mx-auto mt-8 lg:mt-20 lg:flex-row lg:max-w-none">
             <div className="relative flex-1 w-full overflow-hidden bg-white border border-gray-200 rounded-2xl">
               <div className="py-8 px-9">
                 <div className="inline-flex items-center justify-center w-10 h-10 text-base font-bold text-white bg-gray-900 rounded-lg font-pj">1</div>
-                <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Create an API in unkey.dev</p>
+                <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Sign up for your free Unkey account.</p>
               </div>
             </div>
 
@@ -111,7 +112,7 @@ export default async function LandingPage() {
               <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl">
                 <div className="py-8 px-9">
                   <div className="inline-flex items-center justify-center w-10 h-10 text-base font-bold text-white bg-gray-900 rounded-lg font-pj">2</div>
-                  <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Create keys on behalf of your users</p>
+                  <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Create keys in the dashboard, or using the Unkey API</p>
                 </div>
               </div>
             </div>
@@ -144,7 +145,7 @@ export default async function LandingPage() {
             <div className="relative flex-1 w-full overflow-hidden bg-white border border-gray-200 rounded-2xl">
               <div className="py-8 px-9">
                 <div className="inline-flex items-center justify-center w-10 h-10 text-base font-bold text-white bg-gray-900 rounded-lg font-pj">3</div>
-                <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Verify the created keys as part of your authorization flow.</p>
+                <p className="mt-5 text-lg font-medium text-gray-900 font-pj">Verify your user as part of your API authorization</p>
               </div>
             </div>
           </div>
@@ -158,9 +159,8 @@ export default async function LandingPage() {
             </div>
 
             <div className="lg:pr-12">
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Global storage</h2>
-              <p className="mt-5 text-lg font-medium text-gray-900 sm:mt-8 font-pj">Proin faucibus nibh et sagittis a. Lacinia purus ac amet pellentesque aliquam enim.</p>
-              <p className="mt-4 text-lg text-gray-700 sm:mt-5 font-pj">Lorem ipsum dolor sit amet, consectetur adipis elit. Sit enim nec, proin faucibus nibh et sagittis a. Lacinia purus ac amet pellentesque aliquam enim.</p>
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Keys where your users are</h2>
+              <p className="mt-4 text-lg text-gray-700 sm:mt-5 font-pj">Your users are everywhere and so is Unkey. Unkey stores keys globally, making each request as fast possible regardless of your location.</p>
             </div>
           </div>
         </div>
@@ -169,8 +169,8 @@ export default async function LandingPage() {
         <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:items-center gap-y-8 md:grid-cols-2 md:gap-x-16">
             <div className="text-center md:text-left lg:pr-16">
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Built in Ratelimiting</h2>
-              <p className="mt-4 text-base text-gray-700 sm:mt-8 font-pj">Per-key ratelimiting allows you to protect your API easily and ensure fair usage for all users.</p>
+              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Per-key rate limiting</h2>
+              <p className="mt-4 text-base text-gray-700 sm:mt-8 font-pj">We understand that each user is different, so Unkey gives you the ability to decide the rate limits as you issue each key. Giving you complete control while protecting your application.</p>
 
               <div className="relative inline-flex mt-10 group">
                 <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200"></div>
@@ -181,7 +181,7 @@ export default async function LandingPage() {
             </div>
 
             <div>
-              {/* <img className="w-full mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/2/illustration.png" alt="" /> */}
+              {/* <img className="w-full max-w-lg mx-auto" src="https://cdn.rareblocks.xyz/collection/clarity/images/features/3/illustration.png" alt="" /> */}
             </div>
           </div>
         </div>
@@ -189,7 +189,7 @@ export default async function LandingPage() {
       <section className="py-12 bg-gray-50 sm:py-16 lg:py-20">
         <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center xl:max-w-4xl">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Lots of trust</h2>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">Trusted by many</h2>
           </div>
 
           <div className="relative mt-12 lg:mt-20 lg:max-w-5xl lg:mx-auto">
@@ -215,10 +215,38 @@ export default async function LandingPage() {
 
             </div>
           </div>
+
+        </div>
+
+      </section>
+      <section className="py-12 bg-white sm:py-16 lg:py-20">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-3xl mx-auto text-center">
+            {/*<Link className="px-6 text-lg text-gray-600 font-bold" href="https://github.com/chronark/unkey">Unkey</Link>*/}
+            <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight font-inter">
+              Proudly Open Source
+            </h1>
+
+            <p className="mt-8 text-base text-gray-700 font-inter font-medium	">Our source code is available on GitHub - feel free to review, contribute and share with your friends.
+            </p>
+            <div className="flex items-center justify-center py-10">
+              <a
+                href="https://github.com/chronark/unkey"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <div className="flex items-center">
+                  <div className="flex h-10 items-center space-x-2 rounded-md border border-gray-600 bg-gray-800 p-4">
+                    <Github className="h-5 w-5 text-white" />
+                    <p className="font-medium text-white">Unkey</p>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
-
-      <footer className="py-12 bg-white sm:pt-16 lg:pt-20">
+      <footer className=" bg-white ">
         <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
 
 
