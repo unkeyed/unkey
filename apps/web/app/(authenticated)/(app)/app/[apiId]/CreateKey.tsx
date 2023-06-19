@@ -39,7 +39,10 @@ import { CopyButton } from "@/components/CopyButton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
-  bytes: z.string().transform((s) => z.number().int().positive().parse(parseInt(s))),
+  bytes: z.preprocess(
+    (a) => parseInt(a as string),
+    z.number().positive()
+  ),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
@@ -107,6 +110,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
           if (!v) {
             // Remove the key from memory when closing the modal
             key.reset();
+            form.reset();
             router.refresh();
           }
         }}
@@ -161,6 +165,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                   <FormField
                     control={form.control}
                     name="bytes"
+                    rules={{ required: true }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Bytes</FormLabel>
