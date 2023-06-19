@@ -9,36 +9,36 @@ const testimonials: {
     title: string;
   };
 }[] = [
-  {
-    quote: <p>“I build stuff before asking if anyone wants it“</p>,
-    author: {
-      image: "https://pbs.twimg.com/profile_images/1437670380957835264/gu8S0olw_400x400.jpg",
-      name: "Andreas Thomas",
-      title: "Random Dude at Upstash",
+    {
+      quote: <p>“I build stuff before asking if anyone wants it“</p>,
+      author: {
+        image: "https://pbs.twimg.com/profile_images/1437670380957835264/gu8S0olw_400x400.jpg",
+        name: "Andreas Thomas",
+        title: "Random Dude at Upstash",
+      },
     },
-  },
-  {
-    quote: (
-      <p>
-        “When using a 3rd party authentication system, it is most important to replicate a user
-        table in your own database!“
-      </p>
-    ),
-    author: {
-      image: "https://pbs.twimg.com/profile_images/1613589907133403161/zGtDomUL_400x400.jpg",
-      name: "James R Perkins",
-      title: "Random Dude at Clerk",
+    {
+      quote: (
+        <p>
+          “When using a 3rd party authentication system, it is most important to replicate a user
+          table in your own database!“
+        </p>
+      ),
+      author: {
+        image: "https://pbs.twimg.com/profile_images/1613589907133403161/zGtDomUL_400x400.jpg",
+        name: "James R Perkins",
+        title: "Random Dude at Clerk",
+      },
     },
-  },
-  {
-    quote: <p>“I've been passionate about API Keys from a young age actually.“</p>,
-    author: {
-      image: "https://pbs.twimg.com/profile_images/1629470718630002692/Dax4prIG_400x400.jpg",
-      name: "Dom Eccleston",
-      title: "Random Dude at Vercel",
+    {
+      quote: <p>“I've been passionate about API Keys from a young age actually.“</p>,
+      author: {
+        image: "https://pbs.twimg.com/profile_images/1629470718630002692/Dax4prIG_400x400.jpg",
+        name: "Dom Eccleston",
+        title: "Random Dude at Vercel",
+      },
     },
-  },
-];
+  ];
 
 export default function AuthLayout(props: { children: React.ReactNode }) {
   const _testimonial = testimonials.at(Math.floor(Math.random() * testimonials.length));
@@ -46,7 +46,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
   return (
     <>
       <div className="relative grid min-h-screen grid-cols-1 overflow-hidden md:grid-cols-3 lg:grid-cols-2">
-        <div className="relative flex items-center justify-center bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20">
+        <div className="relative flex items-center justify-center bg-white md:bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20 ">
           <Particles
             className="absolute inset-0"
             vy={-1}
@@ -54,7 +54,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
             staticity={200}
             color="#7c3aed"
           />
-          <div className="lg:pr-4 lg:pt-4">
+          <div className="lg:pr-4 lg:pt-4 sm:visibility: hidden">
             <div className="lg:max-w-lg">
               <h2 className="text-base font-semibold leading-7 text-violet-500">
                 Powerful API Key Management without the hassle
