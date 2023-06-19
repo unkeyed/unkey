@@ -35,12 +35,14 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
-  bytes: z.number().int().gte(1),
+  bytes: z.preprocess(
+    (a) => parseInt(a as string),
+    z.number().positive()
+  ),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
@@ -78,6 +80,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         title: "Key Created",
         description: "Your Key has been created",
       });
+      form.reset();
     },
     onError(err) {
       console.error(err);
@@ -107,6 +110,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
           if (!v) {
             // Remove the key from memory when closing the modal
             key.reset();
+            form.reset();
             router.refresh();
           }
         }}
@@ -161,6 +165,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                   <FormField
                     control={form.control}
                     name="bytes"
+                    rules={{ required: true }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Bytes</FormLabel>

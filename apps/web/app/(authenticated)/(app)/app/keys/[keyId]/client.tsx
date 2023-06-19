@@ -31,7 +31,7 @@ export const Client: React.FC<Props> = ({ apiKey }) => {
         description={`created at ${apiKey.createdAt.toUTCString()}`}
         actions={[
           <Badge key="key">{apiKey.start}...</Badge>,
-          <DeleteKeyButton key="delte" keyId={apiKey.id}>
+          <DeleteKeyButton key="delete" keyId={apiKey.id}>
             <Button variant="secondary">
               <Trash className="w-4 h-4 mr-2" />
               <span>Revoke</span>

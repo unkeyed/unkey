@@ -1,24 +1,18 @@
 "use client";
 import * as React from "react";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
 import { EmailCode } from "../email-code";
 export const runtime = "edge";
 
 export default function AuthenticationPage() {
-  const router = useRouter();
-
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isLoaded } = useAuth();
 
   if (!isLoaded) {
     return null;
   }
-  if (isSignedIn) {
-    router.push("/app");
-    return null;
-  }
+
   const [verify, setVerify] = React.useState(false);
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
