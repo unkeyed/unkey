@@ -15,7 +15,7 @@ export default function AuthenticationPage() {
 
   const [verify, setVerify] = React.useState(false);
   return (
-    <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+    <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-2 md:px-0 sm:w-[500px]">
       {!verify && (
         <>
           <div className="flex flex-col space-y-2 text-center">
@@ -30,13 +30,13 @@ export default function AuthenticationPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                <span className="px-2 bg-background text-muted-foreground">Or continue with</span>
               </div>
             </div>
             <OAuthSignUp />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
+            <span className="px-2 bg-background text-muted-foreground">
               Already been here before? Just{" "}
               <a className="text-black" href="/auth/sign-in">
                 Sign In
