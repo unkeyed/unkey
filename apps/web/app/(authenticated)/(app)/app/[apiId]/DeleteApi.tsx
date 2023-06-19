@@ -46,7 +46,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="destructive">Delete API</Button>
+        <Button variant="outline" className="border-red-600	hover:bg-red-600 hover:text-white hover:border-white">Delete API</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

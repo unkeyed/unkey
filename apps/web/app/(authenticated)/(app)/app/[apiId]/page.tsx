@@ -25,12 +25,15 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     <div>
       <PageHeader
         title="Keys"
-        description="All API keys belonging to this api"
+        description={"Here is a list of your current API keys"}
         actions={[
           <CreateKeyButton key="create-key" apiId={props.params.apiId} />,
           <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,
         ]}
       />
+      <p>
+        <strong>API ID:</strong> {api.id}
+      </p>
       <Separator className="my-6" />
 
       <ApiKeyTable data={api.keys} />
