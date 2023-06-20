@@ -15,15 +15,15 @@ export default async function LandingPage() {
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.workspaces)
-      .then((res) => res.length),
+      .then((res) => res.at(0)?.count ?? 0),
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.apis)
-      .then((res) => res.length),
+      .then((res) => res.at(0)?.count ?? 0),
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.keys)
-      .then((res) => res.length),
+      .then((res) => res.at(0)?.count ?? 0),
     await fetch("https://api.github.com/repos/chronark/unkey", {
       headers: {
         Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
