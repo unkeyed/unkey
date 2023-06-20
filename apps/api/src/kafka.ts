@@ -30,11 +30,10 @@ export class Kafka {
             break;
           case logLevel.DEBUG:
             this.logger.debug("kafkajs.log", { logEntry });
-                
+
           default:
             break;
         }
-       
       },
       brokers: [env.KAFKA_BROKER],
       sasl: {
@@ -44,6 +43,16 @@ export class Kafka {
       },
       ssl: true,
     });
+
+    const admin = this.kafka.admin();
+    admin
+      .connect()
+      .then(async () => {
+        this.logger.info("kafka.topics", { topics: await admin.listTopics() });
+      })
+      .finally(() => {
+        admin.disconnect();
+      });
   }
 
   public async onKeyDeleted(callback: (message: z.infer<typeof schema>) => void) {
@@ -56,6 +65,13 @@ export class Kafka {
     const topic = "key.deleted";
     await consumer.subscribe({ topic: "key.deleted" });
     this.logger.info("Kafka consumer subscribed", { consumerGroupId, topic });
+
+    const signalTraps = ["SIGTERM", "SIGINT", "SIGUSR2"];
+    signalTraps.forEach((type) => {
+      process.once(type, async () => {
+        await consumer.disconnect();
+      });
+    });
 
     await consumer.run({
       eachMessage: async ({ topic, message }) => {

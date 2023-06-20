@@ -13,13 +13,13 @@ async function main() {
   const logger = new Logger({ region: env.FLY_REGION, allocationID: env.FLY_ALLOC_ID });
   logger.info("Starting app");
 
-  const keyCache = new Cache<Key>({ ttlSeconds: 60 });
+  const keyCache = new Cache<Key>({ ttlSeconds: 10 });
 
   const kafka = new Kafka({ logger });
-  kafka.onKeyDeleted( ({key}) => {
+  kafka.onKeyDeleted(({ key }) => {
     logger.info("deleting key from cache", key);
     keyCache.delete(key.hash);
-  })
+  });
 
   const redis = new Redis(env.REDIS_URL, { family: 6 });
   // await redis.ping().catch((err) => {
