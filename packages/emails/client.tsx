@@ -9,13 +9,11 @@ export class Email {
     this.client = new Resend(opts.apiKey);
   }
 
-  public async sendEarlyAccessInvitation(opts:{
-    to: string
-    inviteLink: string
+  public async sendEarlyAccessInvitation(opts: {
+    to: string;
+    inviteLink: string;
   }) {
-    const html = render(
-      <EarlyAccessInvitation inviteLink={opts.inviteLink}/>,
-    );
+    const html = render(<EarlyAccessInvitation inviteLink={opts.inviteLink} />);
     return await this.client.sendEmail({
       from: "hello@unkey.dev",
       to: opts.to,
