@@ -27,7 +27,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   return (
     <div>
       <PageHeader
-        title="Keys"
+        title={api.name}
         description={"Here is a list of your current API keys"}
         actions={[
           <Badge key="apiId" variant="outline" className="font-mono font-medium">
