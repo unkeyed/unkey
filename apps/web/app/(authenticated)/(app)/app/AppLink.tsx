@@ -7,12 +7,12 @@ import { Code, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  id: string
+  id: string;
   href: string;
-  name: string ;
+  name: string;
 };
 
-export const ApiLink: React.FC<Props> = ({ href, name,id }) => {
+export const ApiLink: React.FC<Props> = ({ href, name, id }) => {
   const isActive = id === useSelectedLayoutSegments().at(1);
   return (
     <Link href={href}>

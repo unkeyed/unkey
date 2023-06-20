@@ -1,0 +1,40 @@
+{
+  "name": "@unkey/emails",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "preview": "email dev"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.2.3",
+    "@types/react": "18.2.13",
+    "@unkey/tsconfig": "workspace:*",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@react-email/body": "^0.0.2",
+    "@react-email/button": "^0.0.9",
+    "@react-email/column": "^0.0.7",
+    "@react-email/container": "0.0.8",
+    "@react-email/head": "^0.0.5",
+    "@react-email/heading": "^0.0.8",
+    "@react-email/hr": "^0.0.5",
+    "@react-email/html": "^0.0.4",
+    "@react-email/img": "^0.0.5",
+    "@react-email/link": "^0.0.5",
+    "@react-email/preview": "^0.0.6",
+    "@react-email/render": "^0.0.7",
+    "@react-email/row": "^0.0.5",
+    "@react-email/section": "0.0.9",
+    "@react-email/tailwind": "^0.0.8",
+    "@react-email/text": "^0.0.5",
+    "react": "^18.2.0",
+    "react-email": "^1.9.4",
+    "resend": "^0.15.3"
+  }
+}

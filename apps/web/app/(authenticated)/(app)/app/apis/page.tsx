@@ -37,7 +37,7 @@ export default async function TenantOverviewPage() {
         .where(eq(schema.keys.apiId, api.id)),
     })),
   );
-  console.log(JSON.stringify({apis}))
+  console.log(JSON.stringify({ apis }));
 
   return (
     <div>
@@ -69,7 +69,7 @@ export default async function TenantOverviewPage() {
                   <div className="flex justify-between py-3 gap-x-4">
                     <dt className="text-gray-500">API Keys</dt>
                     <dd className="flex items-start gap-x-2">
-                      <div className="font-medium text-gray-900">{api.keys.at(0)?.count??0}</div>
+                      <div className="font-medium text-gray-900">{api.keys.at(0)?.count ?? 0}</div>
                     </dd>
                   </div>
                 </dl>

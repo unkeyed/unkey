@@ -17,14 +17,12 @@ import { ApiLink } from "./AppLink";
 import { WorkspaceSwitcher } from "./TeamSwitcher";
 type Props = {
   apis: {
-    id: string
-    name:string
-  }[]
+    id: string;
+    name: string;
+  }[];
 };
 
 export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
- 
-
   return (
     <aside className="relative min-h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
       <Link
@@ -72,7 +70,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
               {apis
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((api) => (
-                  <ApiLink key={api.id} name={api.name}  href={`/app/${api.id}`} id={api.id} />
+                  <ApiLink key={api.id} name={api.name} href={`/app/${api.id}`} id={api.id} />
                 ))}
             </div>
           </ScrollArea>
