@@ -3,6 +3,10 @@ import { Particles } from "@/components/particles";
 import { addToWaitlist } from "./addToWaitlist";
 import { Toaster, toast } from "sonner";
 
+
+export const runtime = "edge"
+export const revalidate = 60
+
 export default function Home() {
   return (
     <main className="relative flex flex-col items-center justify-between min-h-screen px-4 py-24 bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20">
