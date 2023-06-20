@@ -1,11 +1,6 @@
 import Link from "next/link";
 
-import { addToWaitlist } from "../addToWaitlist";
-import { Toaster, toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import Image from "next/image";
 import { Github } from "lucide-react";
-import { Waitlist } from "./waitlist";
 import { db, eq, schema, sql } from "@unkey/db";
 
 export const revalidate = 60;
@@ -34,8 +29,6 @@ export default async function LandingPage() {
   return (
     <>
       <div className="overflow-x-hidden bg-gray-50">
-        <Toaster />
-
         <section className="flex flex-col items-center justify-center min-h-screen pt-12 bg-gray-50 sm:pt-16">
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center">
@@ -44,15 +37,22 @@ export default async function LandingPage() {
                 Accelerate your API Development
               </h1>
 
-              <div className="relative mt-16">
+              <div className="relative mt-8">
                 <div className="absolute -inset-2">
                   <div className="w-full h-full mx-auto opacity-30 blur-lg filter" />
                 </div>
-
-                <Waitlist />
+                <div className="relative inline-flex mt-10 group">
+                  <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200" />
+                  <Link
+                    href="https://unkey.dev/auth/sign-up"
+                    className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+                  >
+                    Start Building
+                  </Link>
+                </div>
               </div>
 
-              <p className="mt-8 text-base font-medium text-gray-700 font-inter ">
+              <p className="mt-16 text-base font-medium text-gray-700 ">
                 Unkey is an open source API Key management solution. It allows you to create, manage
                 and validate API Keys for your users. It’s built with security and speed in mind.
               </p>
@@ -464,7 +464,6 @@ export default async function LandingPage() {
               <p className="mt-4 text-base text-gray-700 sm:mt-8 font-pj">
                 Need to charge a customer on their usage? Want to know who your biggest clients are?
                 Unkey provides real time key analytics giving you insights on every user
-
               </p>
             </div>
             <div>
@@ -526,7 +525,7 @@ export default async function LandingPage() {
       <section className="py-12 bg-white sm:py-16 lg:py-20">
         <div className="px-4 mx-auto bg-white max-w-7xl sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight font-inter">
+            <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight">
               Proudly Open Source
             </h1>
 

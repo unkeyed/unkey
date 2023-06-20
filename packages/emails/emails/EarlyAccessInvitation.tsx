@@ -16,10 +16,10 @@ import { Text } from "@react-email/text";
 import React from "react";
 
 export type Props = {
-  inviteLink: string
+  inviteLink: string;
 };
 
-export function EarlyAccessInvitation({inviteLink}: Props) {
+export function EarlyAccessInvitation({ inviteLink }: Props) {
   return (
     <Tailwind>
       <Html className="font-sans text-zinc-800">
@@ -36,7 +36,7 @@ export function EarlyAccessInvitation({inviteLink}: Props) {
               />
             </Section> */}
             <Heading className="font-sans text-2xl text-center text-semibold">
-               Join the <strong>Early Access</strong> on <strong>unkey.dev</strong> 
+              Join the <strong>Early Access</strong> on <strong>unkey.dev</strong>
             </Heading>
 
             <Section
@@ -48,7 +48,7 @@ export function EarlyAccessInvitation({inviteLink}: Props) {
             >
               <Button
                 className="px-8 py-4 font-medium text-white rounded bg-zinc-900"
-                 href={inviteLink}
+                href={inviteLink}
               >
                 Sign Up
               </Button>
@@ -65,11 +65,10 @@ export function EarlyAccessInvitation({inviteLink}: Props) {
               </Link>
             </Text>
 
-
             <Text>
-            Unkey is the open source API Key management solution. Allowing you to create, manage and validate API Keys for your users and comes withwith security and speed in mind.
-
-</Text>
+              Unkey is the open source API Key management solution. Allowing you to create, manage
+              and validate API Keys for your users and comes withwith security and speed in mind.
+            </Text>
           </Container>
         </Body>
       </Html>
