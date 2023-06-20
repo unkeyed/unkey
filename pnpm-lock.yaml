@@ -506,49 +506,6 @@ importers:
         specifier: ^0.0.0
         version: 0.0.0
 
-  tools/tmp:
-    dependencies:
-      '@planetscale/database':
-        specifier: ^1.7.0
-        version: 1.7.0
-      '@unkey/db':
-        specifier: workspace:^
-        version: link:../../packages/db
-      '@unkey/id':
-        specifier: workspace:^
-        version: link:../../packages/id
-      '@upstash/redis':
-        specifier: ^1.21.0
-        version: 1.21.0
-      base-x:
-        specifier: ^4.0.0
-        version: 4.0.0
-      drizzle-orm:
-        specifier: ^0.27.0
-        version: 0.27.0(@planetscale/database@1.7.0)(mysql2@3.4.0)
-      zod:
-        specifier: ^3.21.4
-        version: 3.21.4
-    devDependencies:
-      '@types/node':
-        specifier: 20.3.1
-        version: 20.3.1
-      '@unkey/tsconfig':
-        specifier: workspace:^
-        version: link:../../packages/tsconfig
-      dotenv-cli:
-        specifier: ^7.2.1
-        version: 7.2.1
-      tsup:
-        specifier: ^7.0.0
-        version: 7.0.0(typescript@5.1.3)
-      tsx:
-        specifier: ^3.12.7
-        version: 3.12.7
-      typescript:
-        specifier: ^5.1.3
-        version: 5.1.3
-
 packages:
 
   /@alloc/quick-lru@5.2.0:
