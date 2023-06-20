@@ -10,43 +10,43 @@ const testimonials: {
     title: string;
   };
 }[] = [
-    {
-      quote: <p>“I build stuff before asking if anyone wants it“</p>,
-      author: {
-        image: "https://pbs.twimg.com/profile_images/1437670380957835264/gu8S0olw_400x400.jpg",
-        name: "Andreas Thomas",
-        title: "Random Dude at Upstash",
-      },
+  {
+    quote: <p>“I build stuff before asking if anyone wants it“</p>,
+    author: {
+      image: "https://pbs.twimg.com/profile_images/1437670380957835264/gu8S0olw_400x400.jpg",
+      name: "Andreas Thomas",
+      title: "Random Dude at Upstash",
     },
-    {
-      quote: (
-        <p>
-          “When using a 3rd party authentication system, it is most important to replicate a user
-          table in your own database!“
-        </p>
-      ),
-      author: {
-        image: "https://pbs.twimg.com/profile_images/1613589907133403161/zGtDomUL_400x400.jpg",
-        name: "James R Perkins",
-        title: "Random Dude at Clerk",
-      },
+  },
+  {
+    quote: (
+      <p>
+        “When using a 3rd party authentication system, it is most important to replicate a user
+        table in your own database!“
+      </p>
+    ),
+    author: {
+      image: "https://pbs.twimg.com/profile_images/1613589907133403161/zGtDomUL_400x400.jpg",
+      name: "James R Perkins",
+      title: "Random Dude at Clerk",
     },
-    {
-      quote: <p>“I've been passionate about API Keys from a young age actually.“</p>,
-      author: {
-        image: "https://pbs.twimg.com/profile_images/1629470718630002692/Dax4prIG_400x400.jpg",
-        name: "Dom Eccleston",
-        title: "Random Dude at Vercel",
-      },
+  },
+  {
+    quote: <p>“I've been passionate about API Keys from a young age actually.“</p>,
+    author: {
+      image: "https://pbs.twimg.com/profile_images/1629470718630002692/Dax4prIG_400x400.jpg",
+      name: "Dom Eccleston",
+      title: "Random Dude at Vercel",
     },
-  ];
+  },
+];
 
 export default function AuthLayout(props: { children: React.ReactNode }) {
   const _testimonial = testimonials.at(Math.floor(Math.random() * testimonials.length));
   const { userId } = auth();
 
   if (userId) {
-    redirect("/app")
+    redirect("/app");
   }
   return (
     <>
