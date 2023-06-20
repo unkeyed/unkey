@@ -20,6 +20,6 @@
   "dependencies": {
     "@planetscale/database": "^1.7.0",
     "drizzle-orm": "^0.27.0",
-    "mysql2": "^3.3.5"
+    "mysql2": "^3.4.0"
   }
 }

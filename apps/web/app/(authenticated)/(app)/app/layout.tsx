@@ -20,17 +20,17 @@ export default async function Layout({ params, children }: LayoutProps) {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
-      apis: true
-    }
-  })
-  if (!workspace){
-    return redirect("/app")
+      apis: true,
+    },
+  });
+  if (!workspace) {
+    return redirect("/app");
   }
 
   return (
     <>
       <div className="flex bg-gradient-to-tl from-stone-200 to-stone-100">
-        <DesktopSidebar  apis={workspace.apis} />
+        <DesktopSidebar apis={workspace.apis} />
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 

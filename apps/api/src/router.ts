@@ -210,7 +210,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
    */
   app.delete("/v1/keys/:keyId", async (c) => {
     const log = c.get("logger");
-    const keyId = c.req.query("keyId");
+    const keyId = c.req.param("keyId");
     if (!keyId) {
       throw new BadRequestError("Missing keyId");
     }
