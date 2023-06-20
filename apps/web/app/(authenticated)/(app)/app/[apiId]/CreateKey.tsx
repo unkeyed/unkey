@@ -56,9 +56,8 @@ const formSchema = z.object({
       refillRate: z.coerce.number().positive(),
       limit: z.coerce.number().positive(),
     })
-    .optional()
-
-})
+    .optional(),
+});
 
 type Props = {
   apiId: string;
@@ -70,10 +69,9 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      prefix: "api",
+      prefix: "key",
       bytes: 16,
     },
-
   });
   const router = useRouter();
   const key = trpc.key.create.useMutation({
@@ -88,15 +86,11 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
       console.error(err);
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
-
-
   });
 
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-
     if (!values.rateLimitEnabled) {
-      delete values.ratelimit
+      values.ratelimit = undefined;
     }
 
     await key.mutateAsync({
@@ -207,57 +201,62 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                   />
 
                   <div className="flex justify-around my-4 space-x-4">
-                    <FormField control={form.control} name="expiresEnabled" render={({ field }) => {
-                      return (
-                        <FormItem >
-                          <FormControl>
-                            <div className="flex items-center space-x-4">
-                              <Switch
-                                checked={field.value}
-                                defaultValue={"false"}
-                                onCheckedChange={(value) => {
-                                  if (value === false) {
-                                    form.resetField("expires")
-                                    form.clearErrors("expires")
-                                  }
-                                  field.onChange(value)
-                                }}
-                              />
-                              <FormLabel>Enable Expiration</FormLabel>
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )
-                    }}
+                    <FormField
+                      control={form.control}
+                      name="expiresEnabled"
+                      render={({ field }) => {
+                        return (
+                          <FormItem>
+                            <FormControl>
+                              <div className="flex items-center space-x-4">
+                                <Switch
+                                  checked={field.value}
+                                  defaultValue={"false"}
+                                  onCheckedChange={(value) => {
+                                    if (value === false) {
+                                      form.resetField("expires");
+                                      form.clearErrors("expires");
+                                    }
+                                    field.onChange(value);
+                                  }}
+                                />
+                                <FormLabel>Enable Expiration</FormLabel>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        );
+                      }}
                     />
 
-                    <FormField control={form.control} name="rateLimitEnabled" render={({ field }) => {
-                      return (
-                        <FormItem>
-                          <FormControl>
-                            <div className="flex items-center space-x-4">
-                              <Switch
-                                checked={field.value}
-                                defaultValue={"false"}
-                                onCheckedChange={(value) => {
-                                  if (value === false) {
-                                    form.resetField("ratelimit")
-                                    form.clearErrors("ratelimit")
-                                  }
-                                  field.onChange(value)
-                                }}
-                              />
-                              <FormLabel>Enable Ratelimiting</FormLabel>
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )
-                    }}
+                    <FormField
+                      control={form.control}
+                      name="rateLimitEnabled"
+                      render={({ field }) => {
+                        return (
+                          <FormItem>
+                            <FormControl>
+                              <div className="flex items-center space-x-4">
+                                <Switch
+                                  checked={field.value}
+                                  defaultValue={"false"}
+                                  onCheckedChange={(value) => {
+                                    if (value === false) {
+                                      form.resetField("ratelimit");
+                                      form.clearErrors("ratelimit");
+                                    }
+                                    field.onChange(value);
+                                  }}
+                                />
+                                <FormLabel>Enable Ratelimiting</FormLabel>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        );
+                      }}
                     />
                   </div>
                   {form.watch("expiresEnabled") && (
                     <FormField
-
                       control={form.control}
                       name="expires"
                       render={({ field }) => (
@@ -327,8 +326,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                         How many requests may be performed in a given interval
                       </FormDescription>
                     </>
-                  )
-                  }
+                  )}
                   <Accordion type="multiple" className="w-full">
                     <AccordionItem disabled value="item-3">
                       <AccordionTrigger dir="">Add Policies (soon)</AccordionTrigger>
@@ -338,13 +336,15 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                   <ScrollBar />
                 </ScrollArea>
                 <SheetFooter className="justify-end mt-8">
-                  <Button disabled={!form.formState.isValid} type="submit">{key.isLoading ? <Loading /> : "Create"}</Button>
+                  <Button disabled={!form.formState.isValid} type="submit">
+                    {key.isLoading ? <Loading /> : "Create"}
+                  </Button>
                 </SheetFooter>
               </form>
             </Form>
-          </SheetContent >
+          </SheetContent>
         )}
-      </Sheet >
+      </Sheet>
     </>
   );
 };

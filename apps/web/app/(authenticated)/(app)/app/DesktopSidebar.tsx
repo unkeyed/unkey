@@ -13,20 +13,20 @@ import {
   KeyRound,
 } from "lucide-react";
 import Link from "next/link";
-import { AppLink } from "./AppLink";
+import { ApiLink } from "./AppLink";
 import { WorkspaceSwitcher } from "./TeamSwitcher";
 type Props = {
-  workspaceSlug: string;
+  apis: {
+    id: string
+    name:string
+  }[]
 };
 
-export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
-  const apps: {
-    name: string;
-    slug: string;
-  }[] = [];
+export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
+ 
 
   return (
-    <aside className="fixed relative min-h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
+    <aside className="relative min-h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
       <Link
         href="/overview"
         className="flex items-center gap-2 px-8 py-6 text-2xl font-semibold tracking-tight duration-200 stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
@@ -69,10 +69,10 @@ export const DesktopSidebar: React.FC<Props> = ({ workspaceSlug }) => {
           <h2 className="relative px-8 text-lg font-semibold tracking-tight">Apis</h2>
           <ScrollArea className="h-[230px] px-4">
             <div className="p-2 space-y-1">
-              {apps
+              {apis
                 .sort((a, b) => a.name.localeCompare(b.name))
-                .map((app) => (
-                  <AppLink key={app.name} href={`/apps/${app.name}`} slug={app.slug} />
+                .map((api) => (
+                  <ApiLink key={api.id} name={api.name}  href={`/app/${api.id}`} id={api.id} />
                 ))}
             </div>
           </ScrollArea>

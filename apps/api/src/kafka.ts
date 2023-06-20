@@ -1,4 +1,4 @@
-import { Kafka as KafkaJs, logLevel } from "kafkajs";
+import { Kafka as KafkaJs, logLevel, type Producer } from "kafkajs";
 import { env } from "./env";
 import { z } from "zod";
 import { Logger } from "./logger";
@@ -12,6 +12,8 @@ const schema = z.object({
 export class Kafka {
   private readonly kafka: KafkaJs;
   private readonly logger: Logger;
+
+  private producer: Producer | null = null;
 
   constructor(opts: { logger: Logger }) {
     this.logger = opts.logger;
@@ -53,6 +55,17 @@ export class Kafka {
       .finally(() => {
         admin.disconnect();
       });
+  }
+
+  public async publishKeyDeleted(message: z.infer<typeof schema>) {
+    if (!this.producer) {
+      this.producer = this.kafka.producer();
+      await this.producer.connect();
+    }
+    await this.producer.send({
+      topic: "key.deleted",
+      messages: [{ value: JSON.stringify(message) }],
+    });
   }
 
   public async onKeyDeleted(callback: (message: z.infer<typeof schema>) => void) {

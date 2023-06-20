@@ -59,7 +59,8 @@
                     "group": "Keys",
                     "pages": [
                         "api-reference/keys/create",
-                        "api-reference/keys/verify"
+                        "api-reference/keys/verify",
+                        "api-reference/keys/revoke"
                     ]
                 }
             ]
