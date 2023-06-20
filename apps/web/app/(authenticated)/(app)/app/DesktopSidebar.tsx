@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   BarChart,
+  BookOpen,
   Code,
   Database,
   FileJson,
@@ -58,6 +59,12 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <KeyRound className="w-4 h-4 mr-2" />
                 Keys
+              </Button>
+            </Link>
+            <Link href="https://docs.unkey.dev">
+              <Button variant="ghost" size="sm" className="justify-start w-full">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Docs
               </Button>
             </Link>
           </div>

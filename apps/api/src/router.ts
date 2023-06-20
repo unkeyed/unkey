@@ -382,9 +382,21 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           log.error("unable to publish to tinybird", { error: err.message });
         });
 
+      if (ratelimited) {
+        return c.json(
+          {
+            valid: false,
+            error: "ratelimited",
+          },
+          {
+            status: 429,
+            headers,
+          },
+        );
+      }
       return c.json(
         {
-          valid: !ratelimited,
+          valid: true,
           ownerId: key.ownerId ?? undefined,
           meta: key.meta ?? undefined,
         },

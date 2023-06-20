@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { addToWaitlist } from "../../addToWaitlist";
+import { addToWaitlist } from "../addToWaitlist";
 import { Toaster, toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
@@ -406,7 +406,7 @@ export default async function LandingPage() {
               <div className="relative inline-flex mt-10 group">
                 <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200" />
                 <Link
-                  href="https://unkey.mintlify.app/features/ratelimiting"
+                  href="https://docs.unkey.dev/features/ratelimiting"
                   target="_blank"
                   title=""
                   className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
@@ -441,7 +441,7 @@ export default async function LandingPage() {
               <div className="relative inline-flex mt-10 group">
                 <div className="absolute transitiona-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] rounded-lg blur-lg filter group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200" />
                 <Link
-                  href="https://unkey.mintlify.app/features/temp-keys"
+                  href="https://docs.unkey.dev/features/temp-keys"
                   target="_blank"
                   title=""
                   className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
@@ -463,7 +463,8 @@ export default async function LandingPage() {
               </h2>
               <p className="mt-4 text-base text-gray-700 sm:mt-8 font-pj">
                 Need to charge a customer on their usage? Want to know who your biggest clients are?
-                Unkey provides up to key analytics giving you insights on every user.
+                Unkey provides real time key analytics giving you insights on every user
+
               </p>
             </div>
             <div>
@@ -476,7 +477,7 @@ export default async function LandingPage() {
         <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center xl:max-w-4xl">
             <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl xl:text-5xl font-pj">
-              Trusted by many
+              We go BRRRRRR
             </h2>
           </div>
 
