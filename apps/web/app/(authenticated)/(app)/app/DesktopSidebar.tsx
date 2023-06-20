@@ -61,7 +61,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
                 Keys
               </Button>
             </Link>
-            <Link href="https://docs.unkey.dev">
+            <Link href="https://docs.unkey.dev" target="_blank">
               <Button variant="ghost" size="sm" className="justify-start w-full">
                 <BookOpen className="w-4 h-4 mr-2" />
                 Docs

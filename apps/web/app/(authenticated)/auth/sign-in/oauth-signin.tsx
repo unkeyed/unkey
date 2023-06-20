@@ -47,7 +47,7 @@ export function OAuthSignIn() {
         )}
         Github
       </Button>
-      {/* <Button
+      <Button
         variant="outline"
         className="bg-background"
         onClick={() => oauthSignIn("oauth_google")}
@@ -58,7 +58,7 @@ export function OAuthSignIn() {
           <Icons.google className="w-4 h-4 mr-2" />
         )}
         Google
-      </Button> */}
+      </Button>
     </div>
   );
 }
