@@ -12,6 +12,7 @@ import {
   Home,
   Key,
   KeyRound,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { ApiLink } from "./AppLink";
@@ -57,8 +58,8 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
 
             <Link href="/app/keys">
               <Button variant="ghost" size="sm" className="justify-start w-full">
-                <KeyRound className="w-4 h-4 mr-2" />
-                Keys
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
               </Button>
             </Link>
             <Link href="https://docs.unkey.dev" target="_blank">
