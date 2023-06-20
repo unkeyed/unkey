@@ -226,8 +226,6 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
         key,
       });
       if (!key) {
-        
-
         const beforeDb = performance.now();
         const found = await db
           .select()

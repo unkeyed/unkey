@@ -39,10 +39,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
-  bytes: z.preprocess(
-    (a) => parseInt(a as string),
-    z.number().positive()
-  ),
+  bytes: z.preprocess((a) => parseInt(a as string), z.number().positive()),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
