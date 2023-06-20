@@ -36,6 +36,7 @@ async function main() {
     cache: { keys: keyCache },
     ratelimiter,
     tinybird: { publishKeyVerification: publishKeyVerification(tinybird) },
+    kafka,
   });
   const port = parseInt(process.env.PORT ?? "8080");
   logger.info("Starting router", { port });
