@@ -1,12 +1,19 @@
 import { db, schema, eq, Key } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { env } from "@/lib/env";
 import { t, auth } from "../trpc";
 import { newId } from "@unkey/id";
 import { toBase58 } from "@/lib/api/base58";
 import { toBase64 } from "@/lib/api/base64";
 import { Policy, type GRID } from "@unkey/policies";
+import { Kafka } from "@upstash/kafka";
+import { env } from "@/lib/env";
+
+const kafka = new Kafka({
+  url: env.UPSTASH_KAFKA_REST_URL,
+  username: env.UPSTASH_KAFKA_REST_USERNAME,
+  password: env.UPSTASH_KAFKA_REST_PASSWORD,
+});
 
 export const keyRouter = t.router({
   create: t.procedure
@@ -206,6 +213,12 @@ export const keyRouter = t.router({
           }
 
           await db.delete(schema.keys).where(where);
+          await kafka.producer().produce("key.deleted", {
+            key: {
+              id: key.id,
+              hash: key.hash,
+            },
+          });
         }),
       );
       return;

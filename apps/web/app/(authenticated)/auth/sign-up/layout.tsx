@@ -51,7 +51,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
   return (
     <>
       <div className="relative grid min-h-screen grid-cols-1 overflow-hidden md:grid-cols-3 lg:grid-cols-2">
-        <div className="relative flex items-center justify-center bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20">
+        <div className="relative flex items-center justify-center bg-white md:bg-black bg-gradient-to-t from-violet-400/0 to-violet-400/20 ">
           <Particles
             className="absolute inset-0"
             vy={-1}
@@ -59,7 +59,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
             staticity={200}
             color="#7c3aed"
           />
-          <div className="lg:pr-4 lg:pt-4">
+          <div className="lg:pr-4 lg:pt-4 sm:visibility: hidden">
             <div className="lg:max-w-lg">
               <h2 className="text-base font-semibold leading-7 text-violet-500">
                 Powerful API Key Management without the hassle
