@@ -41,24 +41,24 @@ export function OAuthSignIn() {
         onClick={() => oauthSignIn("oauth_github")}
       >
         {isLoading === "oauth_github" ? (
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />
         ) : (
-          <Icons.gitHub className="mr-2 h-4 w-4" />
+          <Icons.gitHub className="w-4 h-4 mr-2" />
         )}
         Github
       </Button>
-      <Button
+      {/* <Button
         variant="outline"
         className="bg-background"
         onClick={() => oauthSignIn("oauth_google")}
       >
         {isLoading === "oauth_google" ? (
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />
         ) : (
-          <Icons.google className="mr-2 h-4 w-4" />
+          <Icons.google className="w-4 h-4 mr-2" />
         )}
         Google
-      </Button>
+      </Button> */}
     </div>
   );
 }

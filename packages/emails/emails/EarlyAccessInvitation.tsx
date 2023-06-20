@@ -69,6 +69,16 @@ export function EarlyAccessInvitation({ inviteLink }: Props) {
               Unkey is the open source API Key management solution. Allowing you to create, manage
               and validate API Keys for your users and comes withwith security and speed in mind.
             </Text>
+
+            <Text>We also just launched a discord server, come say hi:</Text>
+            <Link
+              target="_blank"
+              className="text-blue-600 decoration-none"
+              rel="noreferrer"
+              href="https://discord.gg/qzTNdg3EVs"
+            >
+              https://discord.gg/qzTNdg3EVs
+            </Link>
           </Container>
         </Body>
       </Html>

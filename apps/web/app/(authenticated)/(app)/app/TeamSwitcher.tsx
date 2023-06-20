@@ -82,7 +82,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
               <span>Onboarding</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="/docs" target="_blank">
+          <Link href="https://docs.unkey.dev" target="_blank">
             <DropdownMenuItem>
               <Book className="w-4 h-4 mr-2" />
               <span>Docs</span>
