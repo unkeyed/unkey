@@ -45,7 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "../ui/use-toast";
@@ -63,7 +62,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   const router = useRouter();
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess: (_data, variables) => {
-      setRowSelection({})
+      setRowSelection({});
       toast({
         title:
           variables.keyIds.length > 1
@@ -79,7 +78,6 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
         description: err.message,
         variant: "default",
       });
-
     },
   });
   const table = useReactTable({

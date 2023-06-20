@@ -11,7 +11,6 @@ const schema = z.object({
   KAFKA_USERNAME: z.string(),
   KAFKA_PASSWORD: z.string(),
 
-  
   FLY_REGION: z.string(),
   FLY_ALLOC_ID: z.string(),
 });
