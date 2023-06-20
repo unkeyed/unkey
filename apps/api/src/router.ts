@@ -15,12 +15,14 @@ import { RatelimitResult, Ratelimiter } from "./ratelimit";
 
 import { publishKeyVerification } from "@unkey/tinybird";
 import { env } from "./env";
+import { Kafka } from "./kafka";
 
 export type Bindings = {
   db: Database;
   logger: Logger;
   ratelimiter: Ratelimiter;
   tinybird: { publishKeyVerification: ReturnType<typeof publishKeyVerification> };
+  kafka: Kafka;
   cache: {
     keys: Cache<Key>;
   };
@@ -31,7 +33,7 @@ export type Variables = {
   logger: Logger;
 };
 
-export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
+export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindings) {
   const app = new Hono<{ Variables: Variables }>();
   app.onError((err, c) => {
     const log = c.get("logger") ?? logger;
@@ -201,6 +203,75 @@ export function init({ db, logger, ratelimiter, cache, tinybird }: Bindings) {
       );
     },
   );
+
+  /**
+   * Delete an API key
+   *
+   */
+  app.delete("/v1/keys/:keyId", async (c) => {
+    const log = c.get("logger");
+    const keyId = c.req.query("keyId");
+    if (!keyId) {
+      throw new BadRequestError("Missing keyId");
+    }
+
+    const _now = Date.now();
+
+    const authorization = c.req.headers.get("authorization");
+    if (!authorization) {
+      throw new AuthorizationError("Missing Authorization header");
+    }
+    const token = authorization.replace("Bearer ", "");
+    log.info("Got token", { token });
+    const unkeyKey = await db.query.keys.findFirst({
+      where: eq(
+        schema.keys.hash,
+        toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(token))),
+      ),
+    });
+    log.info("Found key", unkeyKey);
+    if (!unkeyKey) {
+      throw new AuthorizationError("Unauthorized");
+    }
+    log.info("Found key", unkeyKey);
+    //  for (const policy of unkeyKey) {
+    //    const p = Policy.fromJSON(policy.policy);
+    //  }
+
+    if (!unkeyKey.forWorkspaceId) {
+      throw new AuthorizationError("Wrong key type");
+    }
+    log.info("This key belongs to", { workspaceId: unkeyKey.forWorkspaceId });
+
+    const toBeDeletedKey = await db.query.keys.findFirst({
+      where: eq(schema.keys.id, keyId),
+    });
+    if (!toBeDeletedKey) {
+      throw new NotFoundError("Key not found");
+    }
+
+    if (toBeDeletedKey.workspaceId !== unkeyKey.forWorkspaceId) {
+      throw new AuthorizationError("Unauthorized");
+    }
+
+    log.info("Deleting key", {
+      keyId,
+      workspaceId: unkeyKey.forWorkspaceId,
+    });
+
+    await db.delete(schema.keys).where(eq(schema.keys.id, keyId)).execute();
+
+    await kafka.publishKeyDeleted({
+      key: {
+        id: toBeDeletedKey.id,
+        hash: toBeDeletedKey.hash,
+      },
+    });
+
+    return c.text("OK", {
+      status: 202,
+    });
+  });
 
   app.post(
     "/v1/keys/verify",

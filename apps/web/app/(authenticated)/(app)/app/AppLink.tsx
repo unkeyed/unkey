@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { Hash } from "lucide-react";
+import { Code, Hash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 type Props = {
+  id: string
   href: string;
-  slug: string | null;
+  name: string ;
 };
 
-export const AppLink: React.FC<Props> = ({ href, slug }) => {
-  const isActive = slug === useSelectedLayoutSegments().at(1);
+export const ApiLink: React.FC<Props> = ({ href, name,id }) => {
+  const isActive = id === useSelectedLayoutSegments().at(1);
   return (
     <Link href={href}>
       <Button
@@ -20,8 +21,8 @@ export const AppLink: React.FC<Props> = ({ href, slug }) => {
         size="sm"
         className="justify-start w-full font-normal"
       >
-        <Hash className="w-4 h-4 mr-2" />
-        {slug}
+        <Code className="w-4 h-4 mr-2" />
+        {name}
       </Button>
     </Link>
   );
