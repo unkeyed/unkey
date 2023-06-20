@@ -161,7 +161,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                           <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          Using a prefix can make it easier for your users to distinguis between api
+                          Using a prefix can make it easier for your users to distinguish between apis
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
