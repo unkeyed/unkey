@@ -1,0 +1,43 @@
+---
+title: "Overview"
+description: "Typescript client for unkey"
+---
+
+
+If you prefer a typed experience over calling http endpoints directly, you can use our sdk `@unkey/api`.
+
+
+## Install
+
+<Tabs>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @unkey/api
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @unkey/api
+    ```
+  </Tab>
+  <Tab title="npm">
+    ```bash
+    npm install @unkey/api
+    ```
+  </Tab>
+</Tabs>
+
+
+
+## Bearer Token
+
+When requesting resources, you will need your access token — you can create a new one in the [settings](https://unkey.dev/app/keys).
+Afterwards you need to provide it to the client:
+
+```ts 
+import { Unkey } from "@unkey/api"
+
+const unkey = new Unkey({token: "<UNKEY_TOKEN>" })
+```
+
+Always keep your token safe and reset it if you suspect it has been compromised.
