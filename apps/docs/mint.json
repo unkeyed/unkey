@@ -64,6 +64,21 @@
                     ]
                 }
             ]
+        },
+        {
+            "group": "@unkey/api SDK",
+            "icon": "code",
+            "pages": [
+                "sdk/get-started",
+                {
+                    "group": "Keys",
+                    "pages": [
+                        "sdk/keys/create",
+                        "sdk/keys/verify",
+                        "sdk/keys/revoke"
+                    ]
+                }
+            ]
         }
     ],
     "footerSocials": {

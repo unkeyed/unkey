@@ -1,0 +1,27 @@
+---
+title: "Revoke"
+description: "Delete an api key for your users"
+---
+
+## Request
+
+<ParamField path="keyId" type="string" required>
+The ID of the key you want to revoke.
+</ParamField>
+
+
+## Response
+
+No response, but if it didn't throw an error, you're good.
+
+<RequestExample>
+
+
+
+```ts
+await unkey.keys.revoke({keyId: "key_123"})
+```
+
+
+
+</RequestExample>
