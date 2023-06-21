@@ -1,5 +1,5 @@
 {
-  "name": "@unkey/api",
+  "name": "@unkey/api-server",
   "version": "1.0.0",
   "scripts": {
     "build": "tsup",
