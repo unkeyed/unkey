@@ -15,6 +15,9 @@ export const workspaces = mysqlTable(
     slug: varchar("slug", { length: 256 }).notNull(),
     // Internal workspaces are used to manage the unkey app itself
     internal: boolean("internal").notNull().default(false),
+
+    // idk, some kind of feature flag was useful
+    enableBetaFeatures: boolean("enable_beta_features"),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

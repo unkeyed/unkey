@@ -13,7 +13,7 @@
   "devDependencies": {
     "@types/node": "^20.3.1",
     "@unkey/tsconfig": "workspace:^",
-    "drizzle-kit": "^0.19.1",
+    "drizzle-kit": "^0.19.2",
     "tsup": "^7.0.0",
     "typescript": "^5.1.3"
   },
