@@ -20,7 +20,7 @@ export function OAuthSignIn() {
       await signIn.authenticateWithRedirect({
         strategy: provider,
         redirectUrl: "/auth/sso-callback",
-        redirectUrlComplete: "/app",
+        redirectUrlComplete: "/app/apis",
       });
     } catch (cause) {
       console.error(cause);
