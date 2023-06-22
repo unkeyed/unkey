@@ -21,7 +21,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/app");
+    return redirect("/onboarding");
   }
 
   return (

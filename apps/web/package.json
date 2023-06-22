@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/plots": "^1.2.5",
     "@clerk/nextjs": "^4.21.8",
     "@clerk/types": "^3.46.0",
     "@hono/zod-validator": "^0.1.3",
@@ -49,6 +50,7 @@
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/policies": "workspace:^",
+    "@unkey/tinybird": "workspace:^",
     "@upstash/kafka": "^1.3.3",
     "@upstash/ratelimit": "^0.4.3",
     "@upstash/redis": "^1.21.0",

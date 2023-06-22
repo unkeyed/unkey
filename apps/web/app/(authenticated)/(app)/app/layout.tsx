@@ -24,7 +24,7 @@ export default async function Layout({ params, children }: LayoutProps) {
     },
   });
   if (!workspace) {
-    return redirect("/app");
+    return redirect("/app/apis");
   }
 
   return (

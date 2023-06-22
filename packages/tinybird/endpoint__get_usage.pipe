@@ -6,9 +6,11 @@ SQL >
 
     %
     SELECT time, countMerge(count) as usage
-    FROM mv_daily_usage
+    FROM mv_daily_usage__v1
     where
         workspaceId ={{ String("workspaceId", required) }}
+        {% if defined(apiId) %}
         and apiId ={{ String("apiId", required) }}
-        and time > now() - INTERVAL 30 day
+        {%end if %}
+        and time > now() - INTERVAL  day
     GROUP BY time
