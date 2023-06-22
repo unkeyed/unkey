@@ -90,7 +90,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!values.rateLimitEnabled) {
-      values.ratelimit = undefined;
+      delete values.ratelimit;
     }
 
     await key.mutateAsync({
