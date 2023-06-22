@@ -1,22 +1,15 @@
 "use client";
-import { useClerk } from "@clerk/nextjs";
-import { useEffect } from "react";
-import type { HandleOAuthCallbackParams } from "@clerk/types";
+import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
+
 import { Icons } from "@/components/ui/icons";
 
 export const runtime = "edge";
 
-export default function SSOCallback(props: {
-  searchParams: HandleOAuthCallbackParams;
-}) {
-  const { handleRedirectCallback } = useClerk();
-
-  useEffect(() => {
-    void handleRedirectCallback(props.searchParams);
-  }, [props.searchParams, handleRedirectCallback]);
+export default function SSOCallback() {
   return (
     <div className="h-screen flex items-center justify-center ">
       <Icons.spinner className="mr-2 h-16 w-16 animate-spin" />
+      <AuthenticateWithRedirectCallback afterSignInUrl="/app/apis" afterSignUpUrl="/onboarding" />
     </div>
   );
 }
