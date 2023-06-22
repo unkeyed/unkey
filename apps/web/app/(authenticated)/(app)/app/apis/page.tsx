@@ -24,7 +24,7 @@ export default async function TenantOverviewPage() {
     },
   });
   if (!workspace) {
-    redirect("/onboarding")
+    return redirect("/onboarding")
   }
 
   const apis = await Promise.all(
