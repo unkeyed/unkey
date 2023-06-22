@@ -15,10 +15,10 @@ export const publishKeyVerification = (tb: Tinybird) =>
 
 export const getApiUsage = (tb: Tinybird) =>
   tb.buildPipe({
-    pipe: "endpoint__api_usage__v1",
+    pipe: "endpoint__get_usage__v1",
     parameters: z.object({
       workspaceId: z.string(),
-      apiId: z.string(),
+      apiId: z.string().optional(),
     }),
     data: z.object({
       time: z.string().transform((t) => new Date(t).getTime()),

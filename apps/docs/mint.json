@@ -62,6 +62,13 @@
                         "api-reference/keys/verify",
                         "api-reference/keys/revoke"
                     ]
+                },
+                {
+                    "group": "APIs",
+                    "pages": [
+                        "api-reference/apis/get",
+                        "api-reference/apis/list-keys"
+                    ]
                 }
             ]
         },
