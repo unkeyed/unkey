@@ -23,6 +23,7 @@ export default async function TenantOverviewPage() {
       apis: true,
     },
   });
+
   if (!workspace) {
     return redirect("/onboarding")
   }
@@ -37,7 +38,6 @@ export default async function TenantOverviewPage() {
         .where(eq(schema.keys.apiId, api.id)),
     })),
   );
-  console.log(JSON.stringify({ apis }));
 
   return (
     <div>
