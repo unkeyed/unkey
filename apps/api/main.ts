@@ -13,7 +13,7 @@ async function main() {
   const logger = new Logger({ region: env.FLY_REGION, allocationID: env.FLY_ALLOC_ID });
   logger.info("Starting app");
 
-  const keyCache = new Cache<Key>({ ttlSeconds: 10 });
+  const keyCache = new Cache<Key>({ ttlSeconds: 60 });
 
   const kafka = new Kafka({ logger });
   kafka.onKeyDeleted(({ key }) => {
