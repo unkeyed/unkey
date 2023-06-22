@@ -1,9 +1,12 @@
-const defaultTheme = require("tailwindcss/defaultTheme");
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   theme: {
     container: {
       center: true,
@@ -13,11 +16,6 @@ module.exports = {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
-        display: ["var(--font-pangea)"],
-      },
-
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
