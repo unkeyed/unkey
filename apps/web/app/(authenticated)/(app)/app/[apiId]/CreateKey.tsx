@@ -134,7 +134,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               </SheetDescription>
 
               <div className="flex items-center justify-between gap-4 px-2 py-1 mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-                <pre className="font-mono">{key.data.key}</pre>
+                <pre className="font-mono">{"*".repeat(16)}</pre>
                 <CopyButton value={key.data.key} />
               </div>
             </SheetHeader>
