@@ -125,7 +125,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         </SheetTrigger>
 
         {key.data ? (
-          <SheetContent size="full">
+          <SheetContent className="w-screen">
             <SheetHeader>
               <SheetTitle>Your API Key</SheetTitle>
               <SheetDescription>
@@ -146,7 +146,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
             </div>
           </SheetContent>
         ) : (
-          <SheetContent size="full">
+          <SheetContent className="w-screen">
             <SheetTitle>Create a new Key</SheetTitle>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
