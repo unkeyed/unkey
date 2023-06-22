@@ -13,6 +13,8 @@ const schema = z.object({
   UPSTASH_KAFKA_REST_URL: z.string(),
   UPSTASH_KAFKA_REST_USERNAME: z.string(),
   UPSTASH_KAFKA_REST_PASSWORD: z.string(),
+
+  TINYBIRD_TOKEN: z.string(),
 });
 
 export const env = schema.parse(process.env);
