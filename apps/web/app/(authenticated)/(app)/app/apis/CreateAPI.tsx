@@ -67,7 +67,7 @@ export const CreateApiButton: React.FC<Props> = () => {
 
   return (
     <>
-      <Dialog >
+      <Dialog>
         <DialogTrigger asChild>
           <Button>Create</Button>
         </DialogTrigger>
@@ -95,7 +95,9 @@ export const CreateApiButton: React.FC<Props> = () => {
               />
 
               <DialogFooter className="p-4 justify-end">
-                <Button className="mt-4 w-1/4" type="submit">{create.isLoading ? <Loading /> : "Create"}</Button>
+                <Button className="mt-4 w-1/4" type="submit">
+                  {create.isLoading ? <Loading /> : "Create"}
+                </Button>
               </DialogFooter>
             </form>
           </Form>
