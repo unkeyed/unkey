@@ -76,7 +76,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
       )}
       <DropdownMenuContent className="w-full lg:w-56" align="end" forceMount>
         <DropdownMenuGroup>
-          <Link href="/onboarding" >
+          <Link href="/onboarding">
             <DropdownMenuItem className="cursor-pointer">
               <Rocket className="w-4 h-4 mr-2" />
               <span>Onboarding</span>
@@ -119,7 +119,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup className="cursor-not-allowed">
-          <DropdownMenuItem disabled >
+          <DropdownMenuItem disabled>
             <Plus className="w-4 h-4 mr-2" />
             <span>Create Workspace</span>
           </DropdownMenuItem>
@@ -128,7 +128,11 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
         <DropdownMenuGroup>
           <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
             <DropdownMenuItem asChild className="cursor-pointer">
-              <span> <LogOut className="w-4 h-4 mr-2" />Sign out</span>
+              <span>
+                {" "}
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign out
+              </span>
             </DropdownMenuItem>
           </SignOutButton>
         </DropdownMenuGroup>

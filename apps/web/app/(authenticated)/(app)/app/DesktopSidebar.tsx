@@ -1,11 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  BarChart,
-  BookOpen,
-  FileJson,
-  Settings,
-} from "lucide-react";
+import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
 import { ApiLink } from "./AppLink";
 import { WorkspaceSwitcher } from "./TeamSwitcher";

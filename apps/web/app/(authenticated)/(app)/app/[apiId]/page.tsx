@@ -33,7 +33,9 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
-          <Link href={`/app/${api.id}/keys/new`} ><Button>Create Key</Button></Link>,
+          <Link href={`/app/${api.id}/keys/new`}>
+            <Button>Create Key</Button>
+          </Link>,
           <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,
         ]}
       />
