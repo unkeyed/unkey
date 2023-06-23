@@ -67,12 +67,12 @@ export const CreateApiButton: React.FC<Props> = () => {
 
   return (
     <>
-      <Dialog>
+      <Dialog >
         <DialogTrigger asChild>
           <Button>Create</Button>
         </DialogTrigger>
 
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogTitle>Create a new API</DialogTitle>
 
           <Form {...form}>
@@ -94,8 +94,8 @@ export const CreateApiButton: React.FC<Props> = () => {
                 )}
               />
 
-              <DialogFooter className="justify-end">
-                <Button type="submit">{create.isLoading ? <Loading /> : "Create"}</Button>
+              <DialogFooter className="p-4 justify-end">
+                <Button className="mt-4 w-1/4" type="submit">{create.isLoading ? <Loading /> : "Create"}</Button>
               </DialogFooter>
             </form>
           </Form>

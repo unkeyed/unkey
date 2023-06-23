@@ -19,7 +19,7 @@ export const ApiLink: React.FC<Props> = ({ href, name, id }) => {
       <Button
         variant={isActive ? "default" : "ghost"}
         size="sm"
-        className="justify-start w-full font-normal"
+        className="justify-start w-full font-normal truncate elipsis p-2"
       >
         <Code className="w-4 h-4 mr-2" />
         {name}
