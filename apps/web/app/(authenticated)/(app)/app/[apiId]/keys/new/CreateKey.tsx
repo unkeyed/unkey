@@ -27,6 +27,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
 import { VisibleButton } from "@/components/VisibleButton";
+import Link from "next/link";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { Code } from "@/components/ui/code";
+import { Card, CardContent } from "@/components/ui/card";
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
@@ -55,7 +60,7 @@ type Props = {
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
-  const router = useRouter();
+  const _router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -108,10 +113,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key}"
-  }'
-  `;
+  }'`;
 
-  const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
+  const split = key.data?.key.split("_") ?? [];
+  const maskedKey =
+    split.length >= 2
+      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
+      : "*".repeat(split.at(0)?.length ?? 0);
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   return (
@@ -120,63 +128,36 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         <div className="w-full">
           <div>
             <p className="mb-4 text-xl font-bold">Your API Key</p>
-            <div
-              className="flex justify-center max-w-3xl p-4 mx-auto mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300 dark:border-yellow-800"
-              role="alert"
-            >
-              <svg
-                aria-hidden="true"
-                className="flex-shrink-0 inline w-5 h-5 mr-3"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              <span className="sr-only">Info</span>
-              <div>
-                <span className="font-medium">Warning!</span> This key is only shown once and can
-                not be recovered. Please store it somewhere safe.
-              </div>
-            </div>
+            <Alert>
+              <AlertCircle className="w-4 h-4" />
+              <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
+              <AlertDescription>
+                Please pass it on to your user or store it somewhere safe.
+              </AlertDescription>
+            </Alert>
 
-            <div className="flex items-center justify-between max-w-6xl gap-4 px-2 py-1 mx-auto mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-              <pre className="font-mono">{showKey ? key.data.key : maskedKey}</pre>
+            <Code className="flex items-center justify-between w-full gap-4 my-8 ">
+              <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
               </div>
-            </div>
+            </Code>
           </div>
 
-          <p className="mt-2 mb-2 text-lg font-medium text-center text-zinc-700 ">
-            Try verifying it:
-          </p>
-          <div className="flex items-start justify-between max-w-6xl gap-4 px-2 py-1 mx-auto border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-            <pre className="font-mono">
-              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-            </pre>
+          <p className="my-2 font-medium text-center text-zinc-700 ">Try verifying it:</p>
+          <Code className="flex items-start justify-between w-full gap-4 my-8 ">
+            {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
             <div className="flex items-start justify-between gap-4">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
-          </div>
-          <div className="flex justify-around my-4 space-x-4">
-            <Button className="w-1/4" onClick={() => key.reset()}>
-              Create another key
-            </Button>
-            <Button
-              variant="outline"
-              className="w-1/4 border-zinc-700"
-              onClick={() => router.push(`/app/${apiId}`)}
-            >
-              {" "}
-              Done{" "}
-            </Button>
+          </Code>
+          <div className="flex justify-end my-4 space-x-4">
+            <Link href={`/app/${apiId}`}>
+              <Button variant="outline">Back</Button>
+            </Link>
+            <Button onClick={() => key.reset()}>Create another key</Button>
           </div>
         </div>
       ) : (
@@ -368,7 +349,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       <AccordionContent>TODO: andreas</AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                  <div className="justify-end mt-8">
+                  <div className="flex justify-end mt-8">
                     <Button disabled={!form.formState.isValid} type="submit">
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>

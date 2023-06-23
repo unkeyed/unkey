@@ -20,6 +20,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { VisibleButton } from "@/components/VisibleButton";
+import { Code } from "@/components/ui/code";
 
 type Props = {
   apiId?: string;
@@ -90,27 +91,25 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                 </Alert>
               </div>
 
-              <div className="flex items-center justify-between gap-4 px-2 py-1 mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-                <pre className="font-mono">{showKey ? key.data.key : maskedKey}</pre>
+              <Code className="flex items-center justify-between w-full gap-4 my-8 ">
+                {showKey ? key.data.key : maskedKey}
                 <div className="flex items-start justify-between gap-4">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                   <CopyButton value={key.data.key} />
                 </div>
-              </div>
+              </Code>
             </DialogHeader>
 
             <p className="mt-2 text-sm font-medium text-center text-zinc-700 ">
               Try creating a new api key for your users:
             </p>
-            <div className="flex items-start justify-between gap-4 px-2 py-1 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-              <pre className="font-mono">
-                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-              </pre>
+            <Code className="flex items-start justify-between w-full gap-4 my-8 ">
+              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
               <div className="flex items-start justify-between gap-4">
                 <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
                 <CopyButton value={snippet} />
               </div>
-            </div>
+            </Code>
           </DialogContent>
         ) : (
           <DialogContent>
