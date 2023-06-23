@@ -24,4 +24,7 @@ export const getApiUsage = (tb: Tinybird) =>
       time: z.string().transform((t) => new Date(t).getTime()),
       usage: z.number(),
     }),
+    opts: {
+      cache: "no-store",
+    },
   });
