@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { VisibleButton } from "@/components/VisibleButton";
 
 type Props = {
   apiId?: string;
@@ -48,6 +49,10 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
     "apiId": "${apiId ?? "<API_ID>"}"
   }'
   `;
+
+  const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
+  const [showKey, setShowKey] = useState(false);
+  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   return (
     <>
       <Dialog
@@ -64,7 +69,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         </DialogTrigger>
 
         {key.data ? (
-          <DialogContent className="max-w-fit	">
+          <DialogContent className="max-w-fit ">
             <DialogHeader>
               <DialogTitle>Your API Key</DialogTitle>
               <DialogDescription>
@@ -86,8 +91,11 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               </div>
 
               <div className="flex items-center justify-between gap-4 px-2 py-1 mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-                <pre className="font-mono">{key.data.key}</pre>
-                <CopyButton value={key.data.key} />
+                <pre className="font-mono">{showKey ? key.data.key : maskedKey}</pre>
+                <div className="flex items-start justify-between gap-4">
+                  <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
+                  <CopyButton value={key.data.key} />
+                </div>
               </div>
             </DialogHeader>
 
@@ -95,8 +103,13 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               Try creating a new api key for your users:
             </p>
             <div className="flex items-start justify-between gap-4 px-2 py-1 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-              <pre className="font-mono">{snippet}</pre>
-              <CopyButton value={snippet} />
+              <pre className="font-mono">
+                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+              </pre>
+              <div className="flex items-start justify-between gap-4">
+                <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+                <CopyButton value={snippet} />
+              </div>
             </div>
           </DialogContent>
         ) : (
