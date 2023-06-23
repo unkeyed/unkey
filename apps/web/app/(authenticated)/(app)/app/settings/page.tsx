@@ -26,10 +26,8 @@ export default async function SettingsPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-
-  console.log({ workspace });
   const usage = await getApiUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
-    workspaceId: "ws_NJVEUYj68VzFQQMiGdDjyM",
+    workspaceId: workspace.id
   });
 
   const now = new Date();
