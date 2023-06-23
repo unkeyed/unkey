@@ -337,7 +337,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
     const keyId = c.req.param("keyId");
 
     const unkeyKey = await db.query.keys.findFirst({
-      where: eq(schema.keys.hash, getKeyHash(c.req.headers.get("authorization"))),
+      where: eq(schema.keys.hash, await getKeyHash(c.req.headers.get("authorization"))),
     });
     if (!unkeyKey) {
       throw new AuthorizationError("Unauthorized");
