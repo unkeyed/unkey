@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { CreateApiButton } from "./CreateAPI";
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, sql } from "@unkey/db";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import {
@@ -23,8 +23,9 @@ export default async function TenantOverviewPage() {
       apis: true,
     },
   });
+
   if (!workspace) {
-    return notFound();
+    return redirect("/onboarding");
   }
 
   const apis = await Promise.all(
@@ -37,7 +38,6 @@ export default async function TenantOverviewPage() {
         .where(eq(schema.keys.apiId, api.id)),
     })),
   );
-  console.log(JSON.stringify({ apis }));
 
   return (
     <div>

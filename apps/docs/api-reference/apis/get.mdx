@@ -1,0 +1,62 @@
+---
+title: "Get API"
+description: "Retrieve information about an api"
+api: "GET /v1/apis/:apiId"
+authMethod: "bearer"
+
+---
+
+## Request
+
+<ParamField path="apiId" type="string" required>
+The ID of the api you want to retrieve.
+</ParamField>
+
+
+## Response
+
+
+<ResponseField name="id" type="string" required>
+The id of the api.
+</ResponseField>
+
+
+
+<ResponseField name="name" type="string" required>
+The human readable name you gave this api.
+</ResponseField>
+
+
+
+<ResponseField name="workspace" type="string" required>
+The id of the workspace in which this api is.
+</ResponseField>
+
+
+<RequestExample>
+
+
+
+```sh
+curl \
+  --url https://api.unkey.dev/v1/apis/api_123 \
+  --header 'Authorization: Bearer <UNKEY>'
+```
+
+
+
+
+
+</RequestExample>
+
+<ResponseExample>
+```json OK
+{
+  "id": "api_123",
+  "name":"my api",
+  "workspaceId":"ws_123"
+}
+```
+
+
+</ResponseExample>

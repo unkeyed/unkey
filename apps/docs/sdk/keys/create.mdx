@@ -1,0 +1,132 @@
+---
+title: "Create"
+description: "Create an api key for your users"
+---
+
+## Request
+
+<ParamField body="apiId" type="string" required>
+Choose an `API` where this key should be created.
+</ParamField>
+
+
+<ParamField body="prefix" type="string" >
+To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
+
+For example Stripe famously prefixes their customer ids with `cus_` or their api keys with `sk_live_`.
+
+The underscore is automtically added if you are defining a prefix, for example: `"prefix": "abc"` will result in a key like `abc_xxxxxxxxx`
+
+</ParamField>
+
+
+<ParamField body="byteLength" type="int" default={16} >
+The bytelength used to generate your key determines its entropy as well as its length.
+Higher is better, but keys become longer and more annoying to handle.
+
+The default is `16 bytes`, or 2<sup>128</sup> possible combinations
+ </ParamField>
+
+
+ <ParamField body="ownerId" type="string" >
+  Your user's Id. This will provide a link between Unkey and your customer record.
+
+  When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+
+</ParamField>
+
+<ParamField body="meta" type="object" >
+This is a place for dynamic meta data, anything that feels useful for you should go here
+
+Example:
+```json
+{
+  "billingTier":"PRO",
+  "trialEnds": "2023-06-16T17:16:37.161Z"
+}
+```
+
+</ParamField>
+<ParamField body="expires" type="int" >
+  You can auto expire keys by providing a unix timestamp in milliseconds.
+
+  Once keys expire they will automatically be deleted and are no longer valid.
+
+
+</ParamField>
+
+<ParamField body="ratelimit" type="Object" >
+
+ Unkey comes with per-key ratelimiting out of the box.
+
+  <Expandable title="properties">
+
+  <ParamField body="type" type="string" default="fast" required>
+  Either `fast` or `consistent`.
+
+  Read more [here](/features/ratelimiting)
+
+  </ParamField>
+  <ParamField body="limit" type="int" required>
+  The total amount of burstable requests.
+
+
+  </ParamField>
+  <ParamField body="refillRate" type="int" required>
+  How many tokens to refill during each `refillInterval`
+  </ParamField>
+  <ParamField body="refillInterval" type="int" required>
+  Determines the speed at which tokens are refilled.
+
+  In milliseconds
+  </ParamField>
+ </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="key" type="string" required>
+  The newly created api key
+</ResponseField>
+
+<RequestExample>
+
+
+
+```ts
+const created = await unkey.keys.create({
+	apiId:"api_7oKUUscTZy22jmVf9THxDA",
+	prefix:"xyz",
+	byteLength:16,
+	ownerId:"chronark",
+	meta:{
+		hello: "world"
+	},
+	expires: 1686941966471,
+	ratelimit:{
+		type:"fast",
+		limit:10,
+		refillRate: 1,
+		refillInterval: 1000
+	}
+})
+
+console.log(created.key)
+
+```
+
+
+
+
+
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+	"key": "xyz_AS5HDkXXPot2MMoPHD8jnL"
+}
+```
+
+
+</ResponseExample>

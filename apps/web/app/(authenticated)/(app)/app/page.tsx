@@ -9,7 +9,7 @@ export default async function TenantOverviewPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    redirect("/onboarding");
+    return redirect("/onboarding");
   }
 
   return redirect("/app/apis");

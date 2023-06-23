@@ -1,0 +1,30 @@
+{
+  "name": "@unkey/api",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "MIT",
+  "private": false,
+  "keywords": [
+    "unkey",
+    "client",
+    "api"
+  ],
+  "bugs": {
+    "url": "https://github.com/chronark/unkey/issues"
+  },
+  "homepage": "https://github.com/chronark/unkey#readme",
+  "files": [
+    "./dist/**"
+  ],
+  "author": "Andreas Thomas <andreas@chronark.com>",
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@types/node": "^20.2.1",
+    "tsup": "^7.0.0",
+    "tsx": "^3.12.7",
+    "typescript": "^5.0.4"
+  }
+}

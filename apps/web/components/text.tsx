@@ -1,50 +1,52 @@
-import { PropsWithChildren } from "react";
+import { VariantProps, cva } from "class-variance-authority";
+import * as React from "react";
 
-type Props =
-  | {
-      h1: true;
-      h2?: never;
-      h3?: never;
-      h4?: never;
-    }
-  | {
-      h1?: never;
-      h2: true;
-      h3?: never;
-      h4?: never;
-    }
-  | {
-      h1?: never;
-      h2?: never;
-      h3: true;
-      h4?: never;
-    }
-  | {
-      h1?: never;
-      h2?: never;
-      h3?: never;
-      h4: true;
-    };
+import { cn } from "@/lib/utils";
 
-export const Heading: React.FC<PropsWithChildren<Props>> = ({ children, h1, h2, h3, h4 }) => {
-  if (h1) {
-    return (
-      <h1 className="text-4xl font-extrabold tracking-tight scroll-m-20 lg:text-5xl">{children}</h1>
-    );
-  }
-  if (h2) {
-    return (
-      <h2 className="pb-2 mt-10 text-3xl font-semibold tracking-tight border-b transition-colors scroll-m-20 border-b-zinc-200 first:mt-0 dark:border-b-zinc-700">
-        {children}{" "}
-      </h2>
-    );
-  }
-  if (h3) {
-    return <h3 className="mt-8 text-2xl font-semibold tracking-tight scroll-m-20">{children}</h3>;
-  }
-  if (h4) {
-    return <h4 className="mt-8 text-xl font-semibold tracking-tight scroll-m-20">{children} </h4>;
-  }
+const textVariants = cva("", {
+  variants: {
+    variant: {
+      default: "leading-7 text-zinc-900",
+      code: "relative rounded bg-zinc-100 py-[0.2rem] px-[0.3rem] font-mono text-sm font-semibold text-zinc-900",
+      lead: "text-zinc-700",
 
-  return null;
-};
+      subtle: "text-zinc-500",
+    },
+    size: {
+      xs: "text-xs leading-none",
+      sm: "text-sm leading-none",
+      lg: "text-lg font-semibold",
+      xl: "text-xl font-semibold",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
+
+export interface TextProps
+  extends React.HTMLAttributes<HTMLElement>,
+    VariantProps<typeof textVariants> {}
+
+const Text = React.forwardRef<HTMLElement, TextProps>(
+  ({ variant, size, children, ...props }, ref) => {
+    switch (variant) {
+      case "code":
+        return (
+          <code className={cn(textVariants({ variant, size }))} ref={ref} {...props}>
+            {children}
+          </code>
+        );
+
+      default:
+        return (
+          <p className={cn(textVariants({ variant, size }))} {...props}>
+            {children}
+          </p>
+        );
+    }
+  },
+);
+Text.displayName = "Text";
+
+export { Text, textVariants };

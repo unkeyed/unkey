@@ -5,7 +5,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
   const { userId } = auth();
 
   if (userId) {
-    redirect("/app");
+    return redirect("/app/apis");
   }
   return (
     <>

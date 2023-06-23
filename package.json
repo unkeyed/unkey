@@ -19,7 +19,7 @@
   "license": "ISC",
   "devDependencies": {
     "rome": "^11.0.0",
-    "turbo": "^1.10.3",
+    "turbo": "^1.10.4",
     "typescript": "^5.1.3"
   }
 }

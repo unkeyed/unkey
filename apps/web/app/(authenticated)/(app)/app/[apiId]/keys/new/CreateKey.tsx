@@ -1,7 +1,6 @@
 "use client";
-
-import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Form,
   FormControl,
@@ -13,15 +12,6 @@ import {
 } from "@/components/Form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import {
   Accordion,
@@ -30,13 +20,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-
+import { CopyButton } from "@/components/CopyButton";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { CopyButton } from "@/components/CopyButton";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { VisibleButton } from "@/components/VisibleButton";
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
@@ -63,9 +53,9 @@ type Props = {
   apiId: string;
 };
 
-export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
+export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
-
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,7 +63,6 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
       bytes: 16,
     },
   });
-  const router = useRouter();
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast({
@@ -83,13 +72,27 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
       form.reset();
     },
     onError(err) {
-      console.error(err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      const errors = JSON.parse(err.message);
+      if (err.data?.code === "BAD_REQUEST" && errors[0].path[0] === "ratelimit") {
+        toast({
+          title: "Error",
+          description: "You need to include all ratelimit fields",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "An error occured, please try again",
+        variant: "destructive",
+      });
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!values.rateLimitEnabled) {
+    if (!values.rateLimitEnabled || values.ratelimit === undefined) {
+      // delete the value to stop the server from validating it
+      // as it's not required
       values.ratelimit = undefined;
     }
 
@@ -108,49 +111,81 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
   }'
   `;
 
+  const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
+  const [showKey, setShowKey] = useState(false);
+  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   return (
     <>
-      <Sheet
-        onOpenChange={(v) => {
-          if (!v) {
-            // Remove the key from memory when closing the modal
-            key.reset();
-            form.reset();
-            router.refresh();
-          }
-        }}
-      >
-        <SheetTrigger asChild>
-          <Button>Create Key</Button>
-        </SheetTrigger>
+      {key.data ? (
+        <div className="w-full">
+          <div>
+            <p className="mb-4 text-xl font-bold">Your API Key</p>
+            <div
+              className="flex justify-center max-w-3xl p-4 mx-auto mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300 dark:border-yellow-800"
+              role="alert"
+            >
+              <svg
+                aria-hidden="true"
+                className="flex-shrink-0 inline w-5 h-5 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span className="sr-only">Info</span>
+              <div>
+                <span className="font-medium">Warning!</span> This key is only shown once and can
+                not be recovered. Please store it somewhere safe.
+              </div>
+            </div>
 
-        {key.data ? (
-          <SheetContent size="full">
-            <SheetHeader>
-              <SheetTitle>Your API Key</SheetTitle>
-              <SheetDescription>
-                This key is only shown once and can not be recovered. Please store it somewhere
-                safe.
-              </SheetDescription>
-
-              <div className="flex items-center justify-between gap-4 px-2 py-1 mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-                <pre className="font-mono">{key.data.key}</pre>
+            <div className="flex items-center justify-between max-w-6xl gap-4 px-2 py-1 mx-auto mt-4 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
+              <pre className="font-mono">{showKey ? key.data.key : maskedKey}</pre>
+              <div className="flex items-start justify-between gap-4">
+                <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
               </div>
-            </SheetHeader>
+            </div>
+          </div>
 
-            <p className="mt-2 text-sm font-medium text-center text-zinc-700 ">Try verifying it:</p>
-            <div className="flex items-start justify-between gap-4 px-2 py-1 border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
-              <pre className="font-mono">{snippet}</pre>
+          <p className="mt-2 mb-2 text-lg font-medium text-center text-zinc-700 ">
+            Try verifying it:
+          </p>
+          <div className="flex items-start justify-between max-w-6xl gap-4 px-2 py-1 mx-auto border rounded lg:p-4 border-white/10 bg-zinc-100 dark:bg-zinc-900">
+            <pre className="font-mono">
+              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+            </pre>
+            <div className="flex items-start justify-between gap-4">
+              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
-          </SheetContent>
-        ) : (
-          <SheetContent size="full">
-            <SheetTitle>Create a new Key</SheetTitle>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <ScrollArea className="flex flex-col max-h-[80vh] space-y-4 pr-4">
+          </div>
+          <div className="flex justify-around my-4 space-x-4">
+            <Button className="w-1/4" onClick={() => key.reset()}>
+              Create another key
+            </Button>
+            <Button
+              variant="outline"
+              className="w-1/4 border-zinc-700"
+              onClick={() => router.push(`/app/${apiId}`)}
+            >
+              {" "}
+              Done{" "}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div>
+            <div className="w-full overflow-scroll">
+              <h2 className="mb-2 text-2xl text-center">Create a new Key</h2>
+              <Form {...form}>
+                <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
                   <FormField
                     control={form.control}
                     name="prefix"
@@ -161,7 +196,8 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                           <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          Using a prefix can make it easier for your users to distinguish between apis
+                          Using a prefix can make it easier for your users to distinguish between
+                          apis
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -242,7 +278,6 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                                   onCheckedChange={(value) => {
                                     if (value === false) {
                                       form.resetField("ratelimit");
-                                      form.clearErrors("ratelimit");
                                     }
                                     field.onChange(value);
                                   }}
@@ -282,7 +317,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                           <FormItem className="w-full">
                             <FormLabel>Limit</FormLabel>
                             <FormControl>
-                              <Input type="number" {...field} />
+                              <Input autoFocus={true} type="number" {...field} />
                             </FormControl>
                             <FormDescription>
                               The maximum number of requests possible during a burst.
@@ -333,18 +368,17 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                       <AccordionContent>TODO: andreas</AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                  <ScrollBar />
-                </ScrollArea>
-                <SheetFooter className="justify-end mt-8">
-                  <Button disabled={!form.formState.isValid} type="submit">
-                    {key.isLoading ? <Loading /> : "Create"}
-                  </Button>
-                </SheetFooter>
-              </form>
-            </Form>
-          </SheetContent>
-        )}
-      </Sheet>
+                  <div className="justify-end mt-8">
+                    <Button disabled={!form.formState.isValid} type="submit">
+                      {key.isLoading ? <Loading /> : "Create"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 };

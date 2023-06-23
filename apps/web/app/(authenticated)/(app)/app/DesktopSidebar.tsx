@@ -1,19 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  BarChart,
-  BookOpen,
-  Code,
-  Database,
-  FileJson,
-  FileKey,
-  Filter,
-  FormInput,
-  Home,
-  Key,
-  KeyRound,
-  Settings,
-} from "lucide-react";
+import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
 import { ApiLink } from "./AppLink";
 import { WorkspaceSwitcher } from "./TeamSwitcher";
@@ -29,7 +16,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
     <aside className="relative min-h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
       <Link
         href="/app"
-        className="flex items-center gap-2 px-8 py-6 text-2xl font-semibold tracking-tight duration-200 stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
+        className="flex items-center gap-2 px-8 py-6 text-2xl font-semibold tracking-tight duration-200 stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white cursor-default"
       >
         {/* <Logo className="w-8 h-8 duration-200 " /> */}
         Unkey.dev
@@ -45,7 +32,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
               </Button>
             </Link> */}
             <Link href="/app/apis">
-              <Button variant="ghost" size="sm" className="justify-start w-full">
+              <Button variant="ghost" size="sm" className="justify-start w-full ">
                 <FileJson className="w-4 h-4 mr-2" />
                 APIs
               </Button>
@@ -57,7 +44,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
             </Button>
 
             <Link href="/app/keys">
-              <Button variant="ghost" size="sm" className="justify-start w-full">
+              <Button variant="ghost" size="sm" className="justify-start w-full ">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
@@ -74,7 +61,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
         <div className="py-2">
           <h2 className="relative px-8 text-lg font-semibold tracking-tight">Apis</h2>
           <ScrollArea className="h-[230px] px-4">
-            <div className="p-2 space-y-1">
+            <div className="p-2 space-y-1 ">
               {apis
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((api) => (

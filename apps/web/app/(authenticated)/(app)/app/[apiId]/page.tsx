@@ -2,14 +2,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound, redirect } from "next/navigation";
-import { CreateKeyButton } from "./CreateKey";
 import { DeleteApiButton } from "./DeleteApi";
 import { Separator } from "@/components/ui/separator";
-
+import Link from "next/link";
 import { ApiKeyTable } from "@/components/ApiKeyTable";
-import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
+import { Button } from "@/components/ui/button";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
@@ -21,7 +20,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/app");
+    return redirect("/onboarding");
   }
 
   return (
@@ -34,7 +33,9 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
-          <CreateKeyButton key="create-key" apiId={props.params.apiId} />,
+          <Link href={`/app/${api.id}/keys/new`}>
+            <Button>Create Key</Button>
+          </Link>,
           <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,
         ]}
       />

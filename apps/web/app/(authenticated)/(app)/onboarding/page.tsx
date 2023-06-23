@@ -9,7 +9,7 @@ export default async function OnboardingPage() {
   });
 
   if (workspace) {
-    return redirect("/app");
+    return redirect("/app/apis");
   }
 
   return <Onboarding tenantId={tenantId} />;
