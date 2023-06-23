@@ -64,7 +64,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         </DialogTrigger>
 
         {key.data ? (
-          <DialogContent>
+          <DialogContent className="max-w-fit	">
             <DialogHeader>
               <DialogTitle>Your API Key</DialogTitle>
               <DialogDescription>
