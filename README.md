@@ -11,28 +11,12 @@
 
 
 
-## Development
+## Contributing
 
+See [here](./.github/CONTRIBUTING) for more information on how to contribute to Unkey.
 
-1. Create `/apps/web/.env`
-
-
-2. Run
-
-```bash
-pnpm install
-pnpm build
-pnpm turbo run dev --filter=web
-```
-3. Open localhost:3000
-
-
-## Docs Development
-
-```bash
-pnpm turbo run dev --filter=docs
-```
 ## Authors
 
-- [@chronark_](https://twitter.com/chronark_)
-- [@james_r_perkins](https://twitter.com/james_r_perkins)
+<a href="https://github.com/chronark/unkey/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=chronark/unkey" />
+</a>
