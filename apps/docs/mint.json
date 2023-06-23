@@ -32,6 +32,11 @@
             "name": "GitHub",
             "icon": "github",
             "url": "https://github.com/chronark/unkey"
+        },
+        {
+            "name": "Contributing",
+            "icon": "code-pull-request",
+            "url": "https://github.com/chronark/unkey/blob/main/.github/CONTRIBUTING.md"
         }
     ],
     "navigation": [
