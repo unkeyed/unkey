@@ -36,7 +36,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
   const { user } = useUser();
-
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function changeOrg(orgId: string | null) {
@@ -126,14 +126,11 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <SignOutButton>
-              <button className="w-full">
-                <LogOut className="w-4 h-4 mr-2" />
-                <span>Sign out</span>
-              </button>
-            </SignOutButton>
-          </DropdownMenuItem>
+          <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
+            <DropdownMenuItem asChild>
+              <span> <LogOut className="w-4 h-4 mr-2" />Sign out</span>
+            </DropdownMenuItem>
+          </SignOutButton>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
