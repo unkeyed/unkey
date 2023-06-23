@@ -76,14 +76,14 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
       )}
       <DropdownMenuContent className="w-full lg:w-56" align="end" forceMount>
         <DropdownMenuGroup>
-          <Link href="/onboarding">
-            <DropdownMenuItem>
+          <Link href="/onboarding" >
+            <DropdownMenuItem className="cursor-pointer">
               <Rocket className="w-4 h-4 mr-2" />
               <span>Onboarding</span>
             </DropdownMenuItem>
           </Link>
           <Link href="https://docs.unkey.dev" target="_blank">
-            <DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
               <Book className="w-4 h-4 mr-2" />
               <span>Docs</span>
             </DropdownMenuItem>
@@ -97,7 +97,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
           <DropdownMenuItem
             onClick={() => changeOrg(null)}
             className={cn("flex items-center justify-between", {
-              "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100": currentOrg === null,
+              "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100 cursor-pointer": currentOrg === null,
             })}
           >
             <span>Personal</span>
@@ -108,7 +108,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
             <DropdownMenuItem
               onClick={() => changeOrg(org.organization.id)}
               className={cn("flex items-center justify-between", {
-                "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100":
+                "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100 cursor-pointer":
                   currentOrg?.slug === org.organization.slug,
               })}
             >
@@ -118,8 +118,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem disabled>
+        <DropdownMenuGroup className="cursor-not-allowed">
+          <DropdownMenuItem disabled >
             <Plus className="w-4 h-4 mr-2" />
             <span>Create Workspace</span>
           </DropdownMenuItem>
@@ -127,7 +127,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="cursor-pointer">
               <span> <LogOut className="w-4 h-4 mr-2" />Sign out</span>
             </DropdownMenuItem>
           </SignOutButton>
