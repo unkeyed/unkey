@@ -38,8 +38,10 @@ import { Loading } from "@/components/loading";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import ms from "ms";
+import Link from "next/link";
 type Column = {
   id: string;
+  apiId: string;
   start: string;
   createdAt: Date;
   expires: Date | null;
@@ -165,6 +167,13 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  <Link href={`/app/${row.original.apiId}/keys/${row.original.id}`}>Details</Link>
+                </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem
                     onSelect={(e) => {

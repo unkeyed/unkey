@@ -1,7 +1,60 @@
-import { db, eq, schema } from "@unkey/db";
+import { getTenantId } from "@/lib/auth";
+import { db, schema, eq } from "@unkey/db";
+import { notFound } from "next/navigation";
+import { getUsage, Tinybird } from "@unkey/tinybird";
+import { env } from "@/lib/env";
+import { fillRange } from "@/lib/utils";
+import { ColumnChart } from "@/components/charts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+export default async function ApiPage(props: { params: { keyId: string } }) {
+  const tenantId = getTenantId();
 
-export default async function Page(props: { params: { keyId: string } }) {
-  const key = await db.query.keys.findFirst({ where: eq(schema.keys.id, props.params.keyId) });
+  const key = await db.query.keys.findFirst({
+    where: eq(schema.keys.id, props.params.keyId),
+    with: {
+      workspace: true,
+    },
+  });
+  if (!key || key.workspace.tenantId !== tenantId) {
+    return notFound();
+  }
 
-  return <pre>{JSON.stringify(key, null, 2)}</pre>;
+  console.log({ key });
+
+  const usage = await getUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
+    workspaceId: key.workspaceId,
+    apiId: key.apiId!,
+    keyId: key.id,
+  });
+
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const start = new Date(year, month, 0, 0, 0, 0, 0);
+  const end = new Date(start.getTime());
+  end.setUTCMonth(end.getUTCMonth() + 1);
+
+  const usageOverTime = fillRange(
+    usage.data.map(({ time, usage }) => ({ value: usage, time })),
+    start.getTime(),
+    end.getTime(),
+    "1d",
+  ).map(({ value, time }) => ({
+    x: new Date(time).toUTCString(),
+    y: value,
+  }));
+
+  return (
+    <div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Usage in the last 30 days</CardTitle>
+          <CardDescription>See when this key was verified</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ColumnChart data={usageOverTime} />
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

@@ -3,7 +3,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound, redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import { getApiUsage, Tinybird } from "@unkey/tinybird";
+import { getUsage, Tinybird } from "@unkey/tinybird";
 import { env } from "@/lib/env";
 import { ColumnChart } from "@/components/charts";
 import { fillRange } from "@/lib/utils";
@@ -26,7 +26,7 @@ export default async function SettingsPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-  const usage = await getApiUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
+  const usage = await getUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
     workspaceId: workspace.id,
   });
 

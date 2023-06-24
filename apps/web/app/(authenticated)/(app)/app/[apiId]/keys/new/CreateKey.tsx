@@ -164,7 +164,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         <>
           <div>
             <div className="w-full overflow-scroll">
-              <h2 className="mb-2 text-2xl text-center">Create a new Key</h2>
+              <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
                   <FormField
