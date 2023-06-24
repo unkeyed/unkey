@@ -1,10 +1,10 @@
 "use client";
-import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Icons } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/use-toast";
 import { useSignUp } from "@clerk/nextjs";
 import type { OAuthStrategy } from "@clerk/types";
-import { Icons } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import * as React from "react";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);

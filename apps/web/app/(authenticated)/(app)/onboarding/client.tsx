@@ -1,12 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { trpc } from "@/lib/trpc/client";
-import { CardHeader, CardTitle, Card, CardContent } from "@/components/ui/card";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loading } from "@/components/loading";
 import {
   Form,
   FormControl,
@@ -16,8 +8,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/Form";
-import { useForm } from "react-hook-form";
+import { Loading } from "@/components/loading";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 const formSchema = z.object({
   name: z.string().min(3).max(50),
   slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),

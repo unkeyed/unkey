@@ -1,11 +1,11 @@
 import { PageHeader } from "@/components/PageHeader";
-import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
-import { notFound, redirect } from "next/navigation";
-import { CreateKeyButton } from "./CreateKey";
 import { Separator } from "@/components/ui/separator";
-
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema } from "@unkey/db";
+import { redirect } from "next/navigation";
+import { CreateKeyButton } from "./CreateKey";
 import { ApiKeyTable } from "@/components/ApiKeyTable";
+
 export default async function SettingsKeysPage() {
   const tenantId = getTenantId();
 

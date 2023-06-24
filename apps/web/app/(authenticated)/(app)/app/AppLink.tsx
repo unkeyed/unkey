@@ -1,8 +1,8 @@
 "use client";
 
+import { Code } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { Code, Hash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 

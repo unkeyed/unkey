@@ -1,5 +1,5 @@
-import { notFound, redirect } from "next/navigation";
-import { db, schema, eq, and } from "@unkey/db";
+import { db, eq, schema } from "@unkey/db";
+import { notFound } from "next/navigation";
 
 import { getTenantId } from "@/lib/auth";
 import { Client } from "./client";
@@ -16,7 +16,6 @@ export default async function Page(props: { params: { keyId: string } }) {
       },
     },
   });
-  console.log({ apiKey });
   if (!apiKey) {
     return notFound();
   }
