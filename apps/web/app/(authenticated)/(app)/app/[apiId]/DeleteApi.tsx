@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Code } from "@/components/ui/code";
 
 type Props = {
   apiId: string;
@@ -56,11 +57,8 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
             Do you really want to delete this API and all its keys?
           </DialogDescription>
         </DialogHeader>
-
-        <Alert title="This is irreversible">
-          If you want to continue, please type in the name of the api below:{" "}
-          <pre className="mt-2 text-center bg-gray-100 rounded ">{apiName}</pre>
-        </Alert>
+        If you want to continue, please type in the name of the api below:{" "}
+        <Code className="mt-2 text-center bg-gray-100 rounded ">{apiName}</Code>
 
         <Input
           value={typedName}
