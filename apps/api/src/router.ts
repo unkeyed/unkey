@@ -244,10 +244,10 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
     let offset = 0;
     try {
       limit = parseInt(c.req.query("limit") ?? "100");
-    } catch {}
+    } catch { }
     try {
       offset = parseInt(c.req.query("offset") ?? "0");
-    } catch {}
+    } catch { }
 
     if (limit > 100) {
       throw new BadRequestError("limit must be less than or equal to 100");
@@ -313,11 +313,11 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           expires: k.expires?.getTime(),
           ratelimit: k.ratelimitType
             ? {
-                type: k.ratelimitType,
-                limit: k.ratelimitLimit,
-                refillRate: k.ratelimitRefillRate,
-                refillInterval: k.ratelimitRefillInterval,
-              }
+              type: k.ratelimitType,
+              limit: k.ratelimitLimit,
+              refillRate: k.ratelimitRefillRate,
+              refillInterval: k.ratelimitRefillInterval,
+            }
             : undefined,
         })),
 
@@ -395,9 +395,10 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
       );
 
       const beforeCache = performance.now();
-      let key: Key | undefined = cache.keys.get(hash);
+      let key = cache.keys.get(hash) ?? undefined
+      const cacheHit = Boolean(key)
       log.info("report.cache.key.get", {
-        hit: Boolean(key),
+        hit: cacheHit,
         latency: performance.now() - beforeCache,
         key,
       });
@@ -440,11 +441,22 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           },
         );
       }
+      if (!cacheHit) {
+        cache.keys.set(hash, key);
+      }
 
-      cache.keys.set(hash, key);
       const headers: Record<string, string> = {};
-      let ratelimited = false;
 
+
+
+
+      log.info("report.key.verifying", {
+        keyId: key.id,
+        apiId: key.apiId,
+        workspaceId: key.workspaceId
+      })
+
+      let ratelimited = false;
       if (key.ratelimitType) {
         const ratelimitRequest = {
           limit: key.ratelimitLimit!,
