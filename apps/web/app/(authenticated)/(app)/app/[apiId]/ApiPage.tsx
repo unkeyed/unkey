@@ -1,14 +1,14 @@
-import { ColumnChart } from "@/components/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
+import { db, schema, eq } from "@unkey/db";
+import { redirect } from "next/navigation";
+import { getActiveCount, getUsage, Tinybird } from "@unkey/tinybird";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
-import { db, eq, schema } from "@unkey/db";
-import { Tinybird, getActiveCount, getUsage } from "@unkey/tinybird";
+import { ColumnChart } from "@/components/charts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sql } from "drizzle-orm";
-import { redirect } from "next/navigation";
 
-export default async function ApiPage(props: { params: { apiId: string } }) {
+export default async function ApiPage(props: { params: { apiId: string; }; }) {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
@@ -22,7 +22,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   }
 
   const keysP = db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: sql<number> `count(*)` })
     .from(schema.keys)
     .where(eq(schema.keys.apiId, api.id))
     .execute()
@@ -51,7 +51,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
     start.getTime(),
     end.getTime(),
-    "1d",
+    "1d"
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,

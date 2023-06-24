@@ -1,22 +1,20 @@
 import { PageHeader } from "@/components/PageHeader";
-import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
-import { notFound, redirect } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
-import { getUsage, Tinybird } from "@unkey/tinybird";
-import { env } from "@/lib/env";
 import { ColumnChart } from "@/components/charts";
-import { fillRange } from "@/lib/utils";
+import { Text } from "@/components/text";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Text } from "@/components/text";
-import { BarChart } from "lucide-react";
+import { getTenantId } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { fillRange } from "@/lib/utils";
+import { db, eq, schema } from "@unkey/db";
+import { Tinybird, getUsage } from "@unkey/tinybird";
+import { redirect } from "next/navigation";
+
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 

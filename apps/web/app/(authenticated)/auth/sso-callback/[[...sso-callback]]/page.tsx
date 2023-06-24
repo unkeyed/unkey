@@ -1,6 +1,6 @@
 "use client";
-import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
+import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 import { Icons } from "@/components/ui/icons";
 
 export const runtime = "edge";
