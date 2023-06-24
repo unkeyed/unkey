@@ -17,6 +17,6 @@ jobs:
         run: curl -L https://fly.io/install.sh | sh
             
 
-      - run: /home/runner/.fly/bin/flyctl --config=./apps/api/fly.toml deploy 
+      - run: /home/runner/.fly/bin/flyctl --config=./apps/api/fly.toml deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
