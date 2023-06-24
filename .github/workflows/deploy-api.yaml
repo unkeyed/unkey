@@ -4,7 +4,9 @@ on:
     branches:
       - main
 jobs:
+
   deploy:
+    concurrency: deploy.prod
     name: Deploy API
     runs-on: ubuntu-latest
     steps:
