@@ -1,14 +1,14 @@
-import { PageHeader } from "@/components/PageHeader";
-import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
-import { redirect } from "next/navigation";
-import { DeleteApiButton } from "./DeleteApi";
-import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
+import { PageHeader } from "@/components/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema } from "@unkey/db";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
+import { DeleteApiButton } from "./DeleteApi";
 import { NavLink } from "./navbar";
 
 type Props = PropsWithChildren<{

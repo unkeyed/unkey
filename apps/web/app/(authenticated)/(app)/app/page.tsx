@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/PageHeader";
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";

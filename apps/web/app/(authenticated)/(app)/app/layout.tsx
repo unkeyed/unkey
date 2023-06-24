@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 // import { Logo } from "@/components/logo";
 import { DesktopSidebar } from "./DesktopSidebar";
 // import { MobileNav } from "@/components/mobile-nav";

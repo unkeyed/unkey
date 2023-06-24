@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { Github } from "lucide-react";
 import { db, schema, sql } from "@unkey/db";
+import { Github } from "lucide-react";
 
 export const revalidate = 60;
 
