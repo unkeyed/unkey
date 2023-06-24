@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { type Database, type Key } from "./db";
-import { asc, eq, schema, sql } from "@unkey/db";
+import { and, asc, eq, schema, sql } from "@unkey/db";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -240,6 +240,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
     const log = c.get("logger");
 
     const apiId = c.req.param("apiId");
+
     let limit = 100;
     let offset = 0;
     try {
@@ -284,9 +285,15 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
       throw new AuthorizationError("Unauthorized");
     }
 
+    const where = [eq(schema.keys.apiId, apiId)];
+    const ownerId = c.req.query("ownerId");
+    if (ownerId) {
+      where.push(eq(schema.keys.ownerId, ownerId));
+    }
+
     const [keys, count] = await Promise.all([
       db.query.keys.findMany({
-        where: eq(schema.keys.apiId, apiId),
+        where: where.length === 1 ? where.at(0) : and(...where),
         limit,
         offset,
         orderBy: [asc(schema.keys.createdAt)],

@@ -8,7 +8,7 @@ import { ColumnChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sql } from "drizzle-orm";
 
-export default async function ApiPage(props: { params: { apiId: string; }; }) {
+export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
@@ -22,7 +22,7 @@ export default async function ApiPage(props: { params: { apiId: string; }; }) {
   }
 
   const keysP = db
-    .select({ count: sql<number> `count(*)` })
+    .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
     .where(eq(schema.keys.apiId, api.id))
     .execute()
@@ -51,7 +51,7 @@ export default async function ApiPage(props: { params: { apiId: string; }; }) {
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
     start.getTime(),
     end.getTime(),
-    "1d"
+    "1d",
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,

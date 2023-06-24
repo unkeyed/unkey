@@ -2,6 +2,7 @@
   "name": "@unkey/api-server",
   "version": "1.0.0",
   "scripts": {
+    "test":"checkly test",
     "build": "tsup",
     "build-docker": "docker build ../.. -f ./Dockerfile",
     "dev": "dotenv -e .env npx tsx ./main.ts"
@@ -31,9 +32,11 @@
     "@types/ms": "^0.7.31",
     "@types/node": "20.3.1",
     "@unkey/tsconfig": "workspace:^",
+    "checkly": "^4.0.9",
     "dotenv-cli": "^7.2.1",
+    "ts-node": "latest",
     "tsup": "^7.0.0",
     "tsx": "^3.12.7",
-    "typescript": "^5.1.3"
+    "typescript": "latest"
   }
 }
