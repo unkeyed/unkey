@@ -29,3 +29,18 @@ export const getUsage = (tb: Tinybird) =>
       cache: "no-store",
     },
   });
+
+export const getActiveCount = (tb: Tinybird) =>
+  tb.buildPipe({
+    pipe: "endpoint__get_active_keys__v1",
+    parameters: z.object({
+      workspaceId: z.string(),
+      apiId: z.string().optional(),
+    }),
+    data: z.object({
+      active: z.number(),
+    }),
+    opts: {
+      cache: "no-store",
+    },
+  });

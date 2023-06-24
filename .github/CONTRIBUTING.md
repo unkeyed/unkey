@@ -35,7 +35,7 @@ Download the Tinybird CLI from [here](https://www.tinybird.co/docs/cli.html) and
 
 ```sh-session
 cd packages/tinybird
-tb push datasources/
+tb push ./*.datasource
 tb push
 ```
 

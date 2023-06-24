@@ -7,6 +7,7 @@ import { DesktopSidebar } from "./DesktopSidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@unkey/db";
 import { redirect } from "next/navigation";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
@@ -29,12 +30,17 @@ export default async function Layout({ params, children }: LayoutProps) {
 
   return (
     <>
-      <div className="flex bg-gradient-to-tl from-stone-200 to-stone-100">
+      <div className="flex min-h-screen bg-gradient-to-tl from-stone-200 to-stone-100">
         <DesktopSidebar apis={workspace.apis} />
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 
-        <div className="w-full p-8 m-2 bg-white shadow rounded-xl">{children}</div>
+        <div className="w-full m-2 bg-white shadow ml-72 rounded-xl">
+          <ScrollArea className="max-h-screen p-4 m-4 overflow-y-auto ">
+            {children}
+            <ScrollBar />
+          </ScrollArea>
+        </div>
       </div>
     </>
   );
