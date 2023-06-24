@@ -12,6 +12,7 @@ export type UnkeyOptions = {
 
 type ApiRequest = {
   path: string[];
+  params?: (string | number)[];
   method: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
 };
@@ -173,5 +174,121 @@ export class Unkey {
         });
       },
     };
+  }
+  public get apis() {
+    return {
+      get: async (req: { apiId: string }): Promise<{
+        /**
+        * The id of the api
+        */
+        id: string;
+        /**
+        * The name of the api
+        */
+        name: string;
+        /**
+        * The workspace id the api belongs to
+        */
+        workspaceId: string;
+      }> => {
+        return await this.fetch<{
+          id: string;
+          name: string;
+          workspaceId: string;
+        }>({
+          path: ["v1", "apis", req.apiId],
+          method: "GET",
+        });
+      },
+      listKeys: async (req: { apiId: string, limit?: number, offset?: number }): Promise<{
+        /**
+        * The keys for this api id as an array
+        */
+        keys: {
+          /**
+          * The id of the key
+          */
+          id: string;
+          /**
+          * The api id the key belongs to
+          */
+          apiId: string;
+          /**
+          * The workspace id the key belongs to
+          */
+          workspaceId: string;
+          /**
+          * the first few characters of the key
+          */
+          start: string;
+          /**
+          * owner id of the key
+          */
+          ownerId?: string;
+          /**
+          * meta data of the key
+          */
+          meta?: unknown;
+          /**
+          created timestamp of the key
+          */
+          createdAt: number;
+          /**
+          * expires timestamp of the key
+          */
+          expires?: number;
+          /**
+          * ratelimit of the key
+          */
+          ratelimit?: {
+            /**
+            * The type of ratelimit
+            */
+            type: "fast" | "consistent";
+            /**
+            * The total amount of burstable requests.
+            */
+            limit: number;
+            /**
+            * How many tokens to refill during each refillInterval
+            */
+            refillRate: number;
+            /**
+            * Determines the speed at which tokens are refilled.
+            * In milliseconds.
+            */
+            refillInterval: number;
+          }
+        }[];
+        /**
+        total keys returned by this query
+        */
+        total: number;
+      }> => {
+        return await this.fetch<{
+          keys: {
+            id: string;
+            apiId: string;
+            workspaceId: string;
+            start: string;
+            ownerId?: string;
+            meta?: unknown;
+            createdAt: number;
+            expires?: number;
+            ratelimit?: {
+              type: "fast" | "consistent";
+              limit: number;
+              refillRate: number;
+              refillInterval: number;
+            }
+          }[]
+          total: number;
+        }>({
+          path: ["v1", "apis", req.apiId, "keys", "limit"],
+          params: ["?limit=", req.limit || 100, "&offset=", req.offset || 0],
+          method: "GET",
+        });
+      }
+    }
   }
 }
