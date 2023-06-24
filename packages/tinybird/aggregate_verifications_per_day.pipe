@@ -1,20 +1,22 @@
-VERSION 1
 NODE aggregate_daily
 SQL >
 
     SELECT
-        apiId,
         workspaceId,
+        apiId,
+        keyId,
         countState() AS count,
         toStartOfDay(fromUnixTimestamp64Milli(time)) AS time
     FROM key_verifications
     GROUP BY
         workspaceId,
         apiId,
+        keyId,
         time
 
 TYPE materialized
-DATASOURCE mv_daily_usage
+DATASOURCE daily_usage
 ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(time)"
-ENGINE_SORTING_KEY "workspaceId, apiId, time"
+ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"
+
