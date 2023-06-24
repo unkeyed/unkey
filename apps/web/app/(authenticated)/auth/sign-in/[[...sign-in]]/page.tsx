@@ -1,11 +1,12 @@
 "use client";
-import * as React from "react";
 import { useAuth } from "@clerk/nextjs";
+import * as React from "react";
+import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
-import { EmailCode } from "../email-code";
+
 export const runtime = "edge";
-import { Particles } from "@/components/particles";
+
 export default function AuthenticationPage() {
   const [verify, setVerify] = React.useState(false);
   const { isLoaded } = useAuth();

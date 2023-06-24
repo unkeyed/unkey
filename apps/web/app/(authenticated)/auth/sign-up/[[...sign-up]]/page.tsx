@@ -1,9 +1,10 @@
 "use client";
-import * as React from "react";
 import { useAuth } from "@clerk/nextjs";
+import * as React from "react";
+import { EmailCode } from "../email-code";
 import { EmailSignUp } from "../email-signup";
 import { OAuthSignUp } from "../oauth-signup";
-import { EmailCode } from "../email-code";
+
 export const runtime = "edge";
 
 export default function AuthenticationPage() {

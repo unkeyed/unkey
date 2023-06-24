@@ -1,12 +1,13 @@
 "use client";
 
-import * as React from "react";
 import { useSignUp } from "@clerk/nextjs";
+import * as React from "react";
 
+import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loading } from "@/components/loading";
 import { useToast } from "@/components/ui/use-toast";
+
 export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
   const { toast } = useToast();

@@ -1,10 +1,9 @@
 "use client";
 
-import React, { PropsWithChildren, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import React, { PropsWithChildren } from "react";
 
-import { trpc } from "@/lib/trpc/client";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { trpc } from "@/lib/trpc/client";
 
 type Props = {
   keyId: string;
