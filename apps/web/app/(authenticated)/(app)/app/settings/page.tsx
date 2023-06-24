@@ -1,13 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { ColumnChart } from "@/components/charts";
 import { Text } from "@/components/text";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
