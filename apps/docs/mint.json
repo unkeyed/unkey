@@ -6,6 +6,10 @@
         "light": "#c2c4c4",
         "dark": "#252737"
     },
+    "feedback": {
+        "raiseIssue": true,
+        "suggestEdit": true
+    },
     "topbarLinks": [
         {
             "name": "GitHub",
@@ -20,6 +24,10 @@
         {
             "name": "API Reference",
             "url": "api-reference"
+        },
+        {
+            "name": "Changelog",
+            "url": "changelog"
         }
     ],
     "anchors": [
@@ -90,6 +98,13 @@
                         "sdk/keys/revoke"
                     ]
                 }
+            ]
+        },
+        {
+            "group": "Changelog",
+            "icon": "feather",
+            "pages": [
+                "changelog/2023-06-25"
             ]
         }
     ],
