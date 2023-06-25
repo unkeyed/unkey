@@ -37,6 +37,33 @@ Example:
 
 </ResponseField>
 
+<ResponseField name="remaining" type="int">
+  How many more times this key can be verified. This only exists if have set a limit during key creation.
+</ResponseField>
+
+
+<ResponseField name="ratelimit" type="Object">
+  The current ratelimit state.
+
+  <Expandable title="properties">
+
+  <ResponseField name="limit" type="int"  required>
+  Current limit after this verification.
+
+  </ResponseField>
+  <ResponseField name="remaining" type="int" required>
+  Remaining limit inside this burst window.
+
+
+  </ResponseField>
+  
+ </Expandable>
+
+
+
+</ResponseField>
+
+
 <RequestExample>
 
 
