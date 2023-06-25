@@ -10,11 +10,18 @@ import { toBase58, toBase64 } from "./encoding";
 import { Logger } from "./logger";
 import { webcrypto as crypto } from "node:crypto";
 import type { Cache } from "./cache";
-import { Ratelimiter } from "./ratelimit";
+import { RatelimitResult, Ratelimiter } from "./ratelimit";
 
 import { publishKeyVerification } from "@unkey/tinybird";
 import { Kafka } from "./kafka";
 import { getKeyHash } from "./authorize";
+
+enum UnkeyErrorCode {
+  RATELIMITED = "RATELIMITED",
+  NOT_FOUND = "NOT_FOUND",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  KEY_LIMIT_REACHED = "KEY_LIMIT_REACHED",
+}
 
 export type Bindings = {
   db: Database;
@@ -81,6 +88,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         ownerId: z.string().optional(),
         meta: z.record(z.unknown()).optional(),
         expires: z.number().int().optional(), // unix timestamp in milliseconds
+        limit: z.number().int().positive().optional(),
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),
@@ -103,31 +111,16 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         );
       }
 
-      const authorization = c.req.headers.get("authorization");
-      if (!authorization) {
-        throw new AuthorizationError("Missing Authorization header");
-      }
-      const token = authorization.replace("Bearer ", "");
-      log.info("Got token", { token });
       const unkeyKey = await db.query.keys.findFirst({
-        where: eq(
-          schema.keys.hash,
-          toBase64(await crypto.subtle.digest("sha-256", new TextEncoder().encode(token))),
-        ),
+        where: eq(schema.keys.hash, await getKeyHash(c.req.headers.get("authorization"))),
       });
-      log.info("Found key", unkeyKey);
       if (!unkeyKey) {
         throw new AuthorizationError("Unauthorized");
       }
-      log.info("Found key", unkeyKey);
-      //  for (const policy of unkeyKey) {
-      //    const p = Policy.fromJSON(policy.policy);
-      //  }
 
       if (!unkeyKey.forWorkspaceId) {
         throw new AuthorizationError("Wrong key type");
       }
-      log.info("This key belongs to", { workspaceId: unkeyKey.forWorkspaceId });
 
       const api = await db.query.apis.findFirst({
         where: eq(schema.apis.id, req.apiId),
@@ -171,6 +164,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           start: key.substring(0, (req.prefix?.length ?? 0) + 4),
           createdAt: new Date(),
           expires: req.expires ? new Date(req.expires) : undefined,
+          remainingVerifications: req.limit,
           ratelimitType: req.ratelimit?.type,
           ratelimitLimit: req.ratelimit?.limit,
           ratelimitRefillRate: req.ratelimit?.refillRate,
@@ -258,8 +252,6 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
       throw new BadRequestError("offset must be greater than or equal to 0");
     }
 
-    const _pageSize = 100;
-
     const keyHash = await getKeyHash(c.req.headers.get("authorization"));
 
     const unkeyKey = await db.query.keys.findFirst({
@@ -318,6 +310,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           meta: k.meta,
           createdAt: k.createdAt.getTime(),
           expires: k.expires?.getTime(),
+          remaining: k.remainingVerifications ?? undefined,
           ratelimit: k.ratelimitType
             ? {
                 type: k.ratelimitType,
@@ -397,8 +390,10 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
     async (c) => {
       const log = c.get("logger");
 
+      const apiKey = c.req.valid("json").key;
+
       const hash = toBase64(
-        await crypto.subtle.digest("sha-256", new TextEncoder().encode(c.req.valid("json").key)),
+        await crypto.subtle.digest("sha-256", new TextEncoder().encode(apiKey)),
       );
 
       const beforeCache = performance.now();
@@ -428,7 +423,8 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         return c.json(
           {
             valid: false,
-            error: "Key not found",
+            error: `key ${apiKey} not found`,
+            code: UnkeyErrorCode.NOT_FOUND,
           },
           {
             status: 404,
@@ -442,17 +438,29 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           {
             valid: false,
             error: "Key not found",
+            code: UnkeyErrorCode.NOT_FOUND,
           },
           {
             status: 404,
           },
         );
       }
-      if (!cacheHit) {
-        cache.keys.set(hash, key);
-      }
 
-      const headers: Record<string, string> = {};
+      if (key.remainingVerifications !== null && key.remainingVerifications <= 0) {
+        // Cache this so we don't need to go to the db in case they come back
+        cache.keys.set(hash, key);
+
+        return c.json(
+          {
+            valid: false,
+            error: "key has reached the verification limit",
+            code: UnkeyErrorCode.KEY_LIMIT_REACHED,
+          },
+          {
+            status: 200,
+          },
+        );
+      }
 
       log.info("report.key.verifying", {
         keyId: key.id,
@@ -460,7 +468,12 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         workspaceId: key.workspaceId,
       });
 
-      let ratelimited = false;
+      let ratelimit: RatelimitResult = {
+        pass: true,
+        limit: 0,
+        remaining: 0,
+        reset: 0,
+      };
       if (key.ratelimitType) {
         const ratelimitRequest = {
           limit: key.ratelimitLimit!,
@@ -469,7 +482,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         };
 
         const beforeRatelimit = performance.now();
-        const ratelimit =
+        ratelimit =
           key.ratelimitType === "fast"
             ? ratelimiter.limitLocal(key.id, ratelimitRequest)
             : await ratelimiter.limitGlobal(key.id, ratelimitRequest);
@@ -478,13 +491,24 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           pass: ratelimit.pass,
           latency: performance.now() - beforeRatelimit,
         });
-        headers["Ratelimit-Limit"] = ratelimit.limit.toString();
-        headers["Ratelimit-Remaining"] = ratelimit.remaining.toString();
-        headers["Ratelimit-Reset"] = ratelimit.reset.toString();
+      }
 
-        if (!ratelimit.pass) {
-          ratelimited = true;
-        }
+      // If remaining is defined, we update it both in the db and in memory
+      if (key.remainingVerifications !== null && ratelimit.pass) {
+        await db
+          .update(schema.keys)
+          .set({
+            remainingVerifications: sql`${schema.keys.remainingVerifications} - 1`,
+          })
+          .where(eq(schema.keys.id, key.id));
+
+        key.remainingVerifications -= 1;
+      }
+
+      // We only cache when remainingVerifications is not defined, as those need to coordinate
+      // in the db or when no verifications are left, because then we also don't need to coordinate
+      if (key.remainingVerifications === null || key.remainingVerifications <= 0) {
+        cache.keys.set(hash, key);
       }
 
       // don't await this, we don't want to block the response
@@ -493,7 +517,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           apiId: key.apiId ?? "",
           workspaceId: key.workspaceId,
           keyId: key.id,
-          ratelimited,
+          ratelimited: ratelimit.pass,
           time: Date.now(),
         })
         .then(() => {
@@ -503,15 +527,15 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           log.error("unable to publish to tinybird", { error: err.message });
         });
 
-      if (ratelimited) {
+      if (!ratelimit.pass) {
         return c.json(
           {
             valid: false,
-            error: "ratelimited",
+            error: "key exceedd ratelimit",
+            code: UnkeyErrorCode.RATELIMITED,
           },
           {
-            status: 429,
-            headers,
+            status: 200,
           },
         );
       }
@@ -520,9 +544,15 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           valid: true,
           ownerId: key.ownerId ?? undefined,
           meta: key.meta ?? undefined,
+          remaining: key.remainingVerifications ?? undefined,
+          ratelimit: key.ratelimitType
+            ? {
+                limit: ratelimit.limit,
+                remaining: ratelimit.remaining,
+              }
+            : undefined,
         },
         200,
-        headers,
       );
     },
   );
