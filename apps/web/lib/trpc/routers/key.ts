@@ -26,6 +26,7 @@ export const keyRouter = t.router({
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
+
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),
@@ -64,6 +65,7 @@ export const keyRouter = t.router({
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
         expires: input.expires ? new Date(input.expires) : null,
+        remainingRequests: null,
         ratelimitType: null,
         ratelimitRefillInterval: null,
         ratelimitRefillRate: null,
