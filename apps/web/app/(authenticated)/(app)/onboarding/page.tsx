@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { Onboarding } from "./client";
 

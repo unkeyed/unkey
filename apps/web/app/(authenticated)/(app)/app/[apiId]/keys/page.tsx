@@ -1,14 +1,8 @@
-import { PageHeader } from "@/components/PageHeader";
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
-import { notFound, redirect } from "next/navigation";
-import { DeleteApiButton } from "../DeleteApi";
-import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
+import { db, schema, eq } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { ApiKeyTable } from "@/components/ApiKeyTable";
-import { Badge } from "@/components/ui/badge";
-import { CopyButton } from "@/components/CopyButton";
-import { Button } from "@/components/ui/button";
+
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 

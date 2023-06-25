@@ -2,7 +2,8 @@
   "name": "@unkey/policies",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.mjs",
+  "main": "dist/index.ms",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup"
@@ -16,7 +17,7 @@
   "devDependencies": {
     "@types/node": "^20.3.1",
     "@unkey/tsconfig": "workspace:*",
-    "tsup": "^7.0.0",
+    "tsup": "^7.1.0",
     "typescript": "^5.0.4"
   }
 }

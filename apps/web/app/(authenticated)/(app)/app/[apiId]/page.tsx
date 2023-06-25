@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getTenantId } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { Tinybird, getActiveCount, getUsage } from "@unkey/tinybird";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";

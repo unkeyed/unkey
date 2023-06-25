@@ -44,7 +44,8 @@ export const keys = mysqlTable(
     /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
-    remainingRequests: int("remaining_requests"),
+    // remainingRequests: int("remaining_requests"),
+    // remaining: int("remaining"),
 
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket

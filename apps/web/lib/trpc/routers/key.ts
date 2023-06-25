@@ -1,4 +1,4 @@
-import { db, schema, eq, Key } from "@unkey/db";
+import { db, schema, eq, Key } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, auth } from "../trpc";
@@ -26,7 +26,7 @@ export const keyRouter = t.router({
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
-
+        limit: z.number().int().positive().nullish(),
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),
@@ -34,7 +34,7 @@ export const keyRouter = t.router({
             refillRate: z.number().int().positive(),
             limit: z.number().int().positive(),
           })
-          .optional(),
+          .nullish(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -65,7 +65,8 @@ export const keyRouter = t.router({
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
         expires: input.expires ? new Date(input.expires) : null,
-        remainingRequests: null,
+        // remaining: input.limit ?? null,
+        // remainingRequests: input.limit ?? null,
         ratelimitType: null,
         ratelimitRefillInterval: null,
         ratelimitRefillRate: null,

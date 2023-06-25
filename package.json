@@ -18,10 +18,10 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "rome": "^11.0.0",
-    "turbo": "^1.10.4",
-    "typescript": "latest",
     "checkly": "latest",
-    "ts-node": "latest"
+    "rome": "^11.0.0",
+    "ts-node": "latest",
+    "turbo": "^1.10.6",
+    "typescript": "latest"
   }
 }

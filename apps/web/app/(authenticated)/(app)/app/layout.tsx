@@ -3,7 +3,7 @@ import { DesktopSidebar } from "./DesktopSidebar";
 // import { MobileNav } from "@/components/mobile-nav";
 // import { MobileSidebar } from "./MobileSidebar";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 interface LayoutProps {

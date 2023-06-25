@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { getActiveCount, getUsage, Tinybird } from "@unkey/tinybird";
 import { env } from "@/lib/env";

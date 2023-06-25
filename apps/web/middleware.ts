@@ -1,7 +1,7 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 const DEBUG_ON = process.env.CLERK_DEBUG === "true";
 
 const checktenancy = async ({ tenantId }: { tenantId: string }) => {

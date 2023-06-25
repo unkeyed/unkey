@@ -104,6 +104,7 @@
             "group": "Changelog",
             "icon": "feather",
             "pages": [
+                "changelog/2023-06-26",
                 "changelog/2023-06-25"
             ]
         }

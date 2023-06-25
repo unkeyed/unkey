@@ -31,13 +31,14 @@ import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Code } from "@/components/ui/code";
-import { Card, CardContent } from "@/components/ui/card";
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
+  limitEnabled: z.boolean().default(false),
+  limit: z.coerce.number().positive().optional(),
   expiresEnabled: z.boolean().default(false),
   expires: z
     .string()
@@ -60,7 +61,6 @@ type Props = {
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
-  const _router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -98,7 +98,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.rateLimitEnabled || values.ratelimit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
-      delete values.ratelimit
+      values.ratelimit = undefined;
     }
 
     await key.mutateAsync({
@@ -109,7 +109,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     });
   }
 
-  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/keys/verify' \\
+  const url =
+    process.env.NODE_ENV === "production" ? "https://api.unkey.dev" : "http://localhost:8080";
+  const snippet = `curl -XPOST '${url}/v1/keys/verify' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key}"
@@ -244,6 +246,32 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         );
                       }}
                     />
+                    <FormField
+                      control={form.control}
+                      name="limitEnabled"
+                      render={({ field }) => {
+                        return (
+                          <FormItem>
+                            <FormControl>
+                              <div className="flex items-center space-x-4">
+                                <Switch
+                                  checked={field.value}
+                                  defaultValue={"false"}
+                                  onCheckedChange={(value) => {
+                                    if (value === false) {
+                                      form.resetField("limit");
+                                      form.clearErrors("limit");
+                                    }
+                                    field.onChange(value);
+                                  }}
+                                />
+                                <FormLabel>Enable Usage Limit</FormLabel>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        );
+                      }}
+                    />
 
                     <FormField
                       control={form.control}
@@ -283,6 +311,24 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           </FormControl>
                           <FormDescription>
                             This api key will automatically be revoked after the given date.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  {form.watch("limitEnabled") && (
+                    <FormField
+                      control={form.control}
+                      name="limit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Usage Limit</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            How many times this key can be used before it is deactivated.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

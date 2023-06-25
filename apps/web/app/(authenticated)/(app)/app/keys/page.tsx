@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateKeyButton } from "./CreateKey";
 import { ApiKeyTable } from "@/components/ApiKeyTable";

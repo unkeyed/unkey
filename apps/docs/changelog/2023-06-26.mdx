@@ -1,0 +1,49 @@
+---
+title: "Usage Based Limits"
+description: "26th June 2023"
+---
+
+Yesterday Davi asked us on twitter about his requirement to limit access to his api.
+<Card>
+
+  The id of the user
+Hey [@james_r_perkins](https://twitter.com/james_r_perkins) are we going to have single use keys on unkey?
+
+The idea is for other companies using my api's. If they want some data from me, they need a new key before every request
+
+What do you think of it?
+</Card>
+
+https://twitter.com/dudousxd/status/1672725205586673672
+
+
+## - Added the `ownerId` filter
+
+
+ If provided, this will only return keys where the `ownerId` matches.
+
+
+```sh
+curl \
+  --url https://api.unkey.dev/v1/apis/api_123/keys?ownerId=chronark \
+  --header 'Authorization: Bearer <UNKEY>'
+```
+
+
+
+<RequestExample>
+
+```bash Request
+  curl --request POST \
+    --url https://dog-api.kinduff.com/api/facts
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json Response
+{ "status": "success" }
+```
+
+</ResponseExample>

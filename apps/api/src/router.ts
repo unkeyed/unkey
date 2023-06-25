@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { type Database, type Key } from "./db";
-import { and, asc, eq, schema, sql } from "@unkey/db";
+import { type Database, type Key, and, asc, eq, schema, sql } from "./db";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -164,7 +163,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           start: key.substring(0, (req.prefix?.length ?? 0) + 4),
           createdAt: new Date(),
           expires: req.expires ? new Date(req.expires) : undefined,
-          remainingVerifications: req.limit,
+          // remaining: req.limit,
           ratelimitType: req.ratelimit?.type,
           ratelimitLimit: req.ratelimit?.limit,
           ratelimitRefillRate: req.ratelimit?.refillRate,
@@ -310,7 +309,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           meta: k.meta,
           createdAt: k.createdAt.getTime(),
           expires: k.expires?.getTime(),
-          remaining: k.remainingVerifications ?? undefined,
+          // remaining: k.remaining ?? undefined,
           ratelimit: k.ratelimitType
             ? {
                 type: k.ratelimitType,
@@ -446,21 +445,21 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         );
       }
 
-      if (key.remainingVerifications !== null && key.remainingVerifications <= 0) {
-        // Cache this so we don't need to go to the db in case they come back
-        cache.keys.set(hash, key);
+      // if (key.remainingVerifications !== null && key.remainingVerifications <= 0) {
+      //   // Cache this so we don't need to go to the db in case they come back
+      //   cache.keys.set(hash, key);
 
-        return c.json(
-          {
-            valid: false,
-            error: "key has reached the verification limit",
-            code: UnkeyErrorCode.KEY_LIMIT_REACHED,
-          },
-          {
-            status: 200,
-          },
-        );
-      }
+      //   return c.json(
+      //     {
+      //       valid: false,
+      //       error: "key has reached the verification limit",
+      //       code: UnkeyErrorCode.KEY_LIMIT_REACHED,
+      //     },
+      //     {
+      //       status: 200,
+      //     },
+      //   );
+      // }
 
       log.info("report.key.verifying", {
         keyId: key.id,
@@ -493,23 +492,23 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         });
       }
 
-      // If remaining is defined, we update it both in the db and in memory
-      if (key.remainingVerifications !== null && ratelimit.pass) {
-        await db
-          .update(schema.keys)
-          .set({
-            remainingVerifications: sql`${schema.keys.remainingVerifications} - 1`,
-          })
-          .where(eq(schema.keys.id, key.id));
+      // // If remaining is defined, we update it both in the db and in memory
+      // if (key.remainingVerifications !== null && ratelimit.pass) {
+      //   await db
+      //     .update(schema.keys)
+      //     .set({
+      //       remainingVerifications: sql`${schema.keys.remainingVerifications} - 1`,
+      //     })
+      //     .where(eq(schema.keys.id, key.id));
 
-        key.remainingVerifications -= 1;
-      }
+      //   key.remainingVerifications -= 1;
+      // }
 
       // We only cache when remainingVerifications is not defined, as those need to coordinate
       // in the db or when no verifications are left, because then we also don't need to coordinate
-      if (key.remainingVerifications === null || key.remainingVerifications <= 0) {
+      // if (key.remainingVerifications === null || key.remainingVerifications <= 0) {
         cache.keys.set(hash, key);
-      }
+      // }
 
       // don't await this, we don't want to block the response
       tinybird
@@ -531,7 +530,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         return c.json(
           {
             valid: false,
-            error: "key exceedd ratelimit",
+            error: "key exceeded ratelimit",
             code: UnkeyErrorCode.RATELIMITED,
           },
           {
@@ -544,7 +543,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           valid: true,
           ownerId: key.ownerId ?? undefined,
           meta: key.meta ?? undefined,
-          remaining: key.remainingVerifications ?? undefined,
+          // remaining: key.remainingVerifications ?? undefined,
           ratelimit: key.ratelimitType
             ? {
                 limit: ratelimit.limit,

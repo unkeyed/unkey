@@ -1,11 +1,14 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getUsage, Tinybird } from "@unkey/tinybird";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { ColumnChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CopyButton } from "@/components/CopyButton";
+import { DeleteKeyButton } from "./DeleteKey";
 export default async function ApiPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
@@ -46,7 +49,23 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
 
   return (
     <div>
-      <Card>
+      <div className="flex items-center justify-between gap-4">
+        {/* {key.remainingRequests !== null ? (
+          <Badge className="font-mono font-medium">
+            {key.remainingRequests} verifications remaining
+          </Badge>
+        ) : null} */}
+
+        <div className="flex items-center justify-between gap-4">
+          <Badge variant="outline" className="font-mono font-medium">
+            {key.id}
+            <CopyButton value={key.id} className="ml-2" />
+          </Badge>
+          <DeleteKeyButton keyId={key.id} keyStart={key.start} />
+        </div>
+      </div>
+
+      <Card className="mt-4">
         <CardHeader>
           <CardTitle>Usage in the last 30 days</CardTitle>
           <CardDescription>See when this key was verified</CardDescription>
