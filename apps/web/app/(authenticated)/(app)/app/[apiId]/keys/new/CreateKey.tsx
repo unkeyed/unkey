@@ -98,7 +98,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.rateLimitEnabled || values.ratelimit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
-      values.ratelimit = undefined;
+      delete values.ratelimit
     }
 
     await key.mutateAsync({
