@@ -42,6 +42,7 @@ export const CreateApiButton: React.FC<Props> = () => {
         title: "API created",
         description: "Your API has been created",
       });
+      router.refresh();
       router.push(`/app/${res.id}`);
     },
     onError(err) {
