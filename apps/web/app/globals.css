@@ -76,3 +76,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@-moz-document url-prefix() {
+ #root-key-alert-title{
+  padding-left: 1.25rem;
+ }
+}
