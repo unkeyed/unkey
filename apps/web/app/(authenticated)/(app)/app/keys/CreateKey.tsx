@@ -127,7 +127,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               </AlertDescription>
             </Alert>
             <DialogFooter className="flex items-center justify-between gap-2 ">
-              <Button onClick={() => key.mutate()}>
+              <Button disabled={key.isLoading} onClick={() => key.mutate()}>
                 {key.isLoading ? <Loading /> : "Create Root Key"}
               </Button>
             </DialogFooter>

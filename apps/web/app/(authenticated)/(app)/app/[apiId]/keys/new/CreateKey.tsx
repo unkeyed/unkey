@@ -350,7 +350,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     </AccordionItem>
                   </Accordion>
                   <div className="flex justify-end mt-8">
-                    <Button disabled={!form.formState.isValid} type="submit">
+                    <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>
                   </div>
