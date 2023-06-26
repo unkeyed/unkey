@@ -93,7 +93,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
               />
 
               <div className="mt-8">
-                <Button type="submit" className="w-full">
+                <Button disabled={create.isLoading || !form.formState.isValid} type="submit" className="w-full">
                   {create.isLoading ? <Loading /> : "Create"}
                 </Button>
               </div>
