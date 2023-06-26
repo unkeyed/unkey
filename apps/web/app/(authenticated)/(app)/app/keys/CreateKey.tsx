@@ -118,7 +118,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
 
             <Alert>
               <AlertTriangle className="w-4 h-4" />
-              <AlertTitle>Root keys can be dangerous</AlertTitle>
+              <AlertTitle className="pl-6">Root keys can be dangerous</AlertTitle>
               <AlertDescription>
                 The root key will provide full read and write access to all current and future
                 resources.
