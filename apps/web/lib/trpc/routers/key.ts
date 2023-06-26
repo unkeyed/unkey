@@ -65,7 +65,6 @@ export const keyRouter = t.router({
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
         expires: input.expires ? new Date(input.expires) : null,
-        remainingRequests: null,
         ratelimitType: null,
         ratelimitRefillInterval: null,
         ratelimitRefillRate: null,
