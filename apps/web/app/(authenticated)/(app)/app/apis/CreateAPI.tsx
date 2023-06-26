@@ -85,7 +85,7 @@ export const CreateApiButton: React.FC<Props> = () => {
               />
 
               <DialogFooter className="p-4 justify-end">
-                <Button className="mt-4 w-1/4" type="submit">
+                <Button disabled={create.isLoading || !form.formState.isValid} className="mt-4 w-1/4" type="submit">
                   {create.isLoading ? <Loading /> : "Create"}
                 </Button>
               </DialogFooter>
