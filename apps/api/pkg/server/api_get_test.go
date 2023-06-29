@@ -69,9 +69,9 @@ func TestGetApi_NotFound(t *testing.T) {
 		Database: db,
 	})
 
-	fakeApiId:=uid.Api()
+	fakeApiId := uid.Api()
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s",fakeApiId), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", fakeApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
 
 	res, err := srv.app.Test(req)

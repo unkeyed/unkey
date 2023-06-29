@@ -20,7 +20,7 @@ const (
 // New Returns a new random base58 encoded uuid.
 func New(byteLength int, prefix string) string {
 	buf := make([]byte, byteLength)
-	rand.Read(buf)
+	_, _ = rand.Read(buf)
 	r := base58.CheckEncode(buf, encodingVersion)
 
 	if prefix != "" {

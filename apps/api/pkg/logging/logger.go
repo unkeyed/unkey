@@ -1,27 +1,48 @@
 package logging
 
 import (
-	"log"
-
 	adapter "github.com/axiomhq/axiom-go/adapters/zap"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"log"
+	"os"
+	"time"
 )
 
 type Logger = *zap.Logger
 
-func New(pretty ...bool) Logger {
+func New() Logger {
 
-	core, err := adapter.New(adapter.SetDataset("api-go"))
+	axiomCore, err := adapter.New(adapter.SetDataset("api"))
 	if err != nil {
-
 		logger, zapErr := zap.NewDevelopment()
 		if zapErr != nil {
 			log.Fatalf("can't initialize logger: %s", err.Error())
 		}
+		logger.Info("new development logger created")
 		return logger
 	}
-	logger := zap.New(core)
+	go func() {
+		for range time.NewTicker(time.Second * 5).C {
+
+			err = axiomCore.Sync()
+			if err != nil {
+				log.Printf("can't sync to axiom: %s\n", err.Error())
+			}
+		}
+
+	}()
+
+	consoleCore := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+		os.Stdout,
+		zapcore.InfoLevel,
+	)
+
+	logger := zap.New(zapcore.NewTee(consoleCore, axiomCore))
+
 	logger.Info("logging set up with axiom")
+
 	return logger
 
 }

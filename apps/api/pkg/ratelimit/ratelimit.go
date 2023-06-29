@@ -106,7 +106,7 @@ func New() *Ratelimiter {
 			for id, b := range r.state {
 				b.Lock()
 				currentTick := (now - b.startTime) / b.refillInterval
-				requiredTicksToRefill := (b.max - b.max) / b.refillRate
+				requiredTicksToRefill := (b.max - b.remaining) / b.refillRate
 
 				if requiredTicksToRefill > currentTick-b.lastTick {
 					delete(r.state, id)

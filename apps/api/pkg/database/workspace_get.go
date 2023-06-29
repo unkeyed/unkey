@@ -10,15 +10,15 @@ import (
 
 func (db *Database) GetWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, error) {
 
-	wprkspace, err := models.WorkspaceByID(ctx, db.read(), workspaceId)
+	workspace, err := models.WorkspaceByID(ctx, db.read(), workspaceId)
 	if err != nil {
-		return entities.Workspace{}, fmt.Errorf("unable to load wprkspace %s from db: %w", workspaceId, err)
+		return entities.Workspace{}, fmt.Errorf("unable to load workspace %s from db: %w", workspaceId, err)
 	}
-	if wprkspace == nil {
-		return entities.Workspace{}, fmt.Errorf("unable to find wprkspace %s in db", workspaceId)
+	if workspace == nil {
+		return entities.Workspace{}, fmt.Errorf("unable to find workspace %s in db", workspaceId)
 	}
 	return entities.Workspace{
-		Id:   wprkspace.ID,
-		Name: wprkspace.Name,
+		Id:   workspace.ID,
+		Name: workspace.Name,
 	}, nil
 }

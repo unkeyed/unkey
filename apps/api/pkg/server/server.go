@@ -52,8 +52,10 @@ func New(config Config) *Server {
 	app.Use(func(c *fiber.Ctx) error {
 		start := time.Now()
 		err := c.Next()
-
 		latency := time.Since(start)
+
+		// This header is a three letter region code which represents the region that the connection was accepted in and routed from.
+		edgeRegion := c.Get("Fly-Region")
 
 		log := config.Logger.With(
 			zap.String("method", c.Route().Method),
@@ -61,6 +63,7 @@ func New(config Config) *Server {
 			zap.String("path", c.Path()),
 			zap.Error(err),
 			zap.Duration("ms", latency),
+			zap.String("edgeRegion", edgeRegion),
 		)
 
 		if err != nil {
@@ -87,6 +90,7 @@ func New(config Config) *Server {
 	s.app.Post("/v1/keys/verify", s.verifyKey)
 
 	s.app.Get("/v1/apis/:apiId", s.getApi)
+	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)
 
 	return s
 }

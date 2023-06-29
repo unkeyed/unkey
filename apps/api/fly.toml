@@ -23,7 +23,7 @@ primary_region = "iad"
 
 
 [deploy]
-  strategy= "bluegreen"
+  strategy= "canary"
 
 [checks]
   [checks.name_of_your_http_check]
