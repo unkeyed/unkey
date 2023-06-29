@@ -50,7 +50,6 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	t.Logf("body: %v", string(body))
 
 	require.Equal(t, res.StatusCode, 200)
 
@@ -106,7 +105,6 @@ func TestCreateKey_WithCustom(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	t.Logf("body: %v", string(body))
 
 	require.Equal(t, 200, res.StatusCode)
 

@@ -81,9 +81,12 @@ func New(config Config) *Server {
 	}
 
 	s.app.Get("/v1/liveness", s.liveness)
+
 	s.app.Post("/v1/keys", s.createKey)
 	s.app.Delete("/v1/keys/:keyId", s.deleteKey)
 	s.app.Post("/v1/keys/verify", s.verifyKey)
+
+	s.app.Get("/v1/apis/:apiId", s.getApi)
 
 	return s
 }

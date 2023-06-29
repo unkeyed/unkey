@@ -1,8 +1,11 @@
 package server
 
 import (
+	"errors"
+	"net/http"
 	"time"
 
+	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/gofiber/fiber/v2"
 )
@@ -78,11 +81,21 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 
 	key, err := s.db.GetKeyByHash(ctx, authHash)
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return c.Status(http.StatusNotFound).JSON(VerifyKeyErrorResponse{
+				Valid: false,
+				ErrorResponse: ErrorResponse{
+					Code:  NOT_FOUND,
+					Error: "key not found",
+				},
+			})
+		}
+
 		return c.Status(500).JSON(VerifyKeyErrorResponse{
 			Valid: false,
 			ErrorResponse: ErrorResponse{
 				Code:  INTERNAL_SERVER_ERROR,
-				Error: "key not found",
+				Error: err.Error(),
 			},
 		})
 	}

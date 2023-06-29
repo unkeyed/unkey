@@ -2,8 +2,9 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
-
 	"github.com/chronark/unkey/apps/api/pkg/database/models"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 )
@@ -12,10 +13,13 @@ func (db *Database) GetApi(ctx context.Context, apiId string) (entities.Api, err
 
 	api, err := models.APIByID(ctx, db.read(), apiId)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return entities.Api{}, ErrNotFound
+		}
 		return entities.Api{}, fmt.Errorf("unable to load api %s from db: %w", apiId, err)
 	}
 	if api == nil {
-		return entities.Api{}, fmt.Errorf("unable to find api %s in db", apiId)
+		return entities.Api{}, ErrNotFound
 	}
 	return entities.Api{
 		Id:          api.ID,

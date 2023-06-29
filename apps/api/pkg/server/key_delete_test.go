@@ -52,9 +52,8 @@ func TestDeleteKey(t *testing.T) {
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	require.NoError(t, err)
-	t.Logf("body: %v", string(body))
 
 	require.Equal(t, 200, res.StatusCode)
 

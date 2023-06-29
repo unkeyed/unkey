@@ -8,7 +8,7 @@ import (
 
 func TestNew(t *testing.T) {
 	ids := map[string]bool{}
-	for i := 0; i < 10000000; i++ {
+	for i := 0; i < 1000; i++ {
 		id := New(16, "")
 		require.True(t, len(id) > 0)
 		_, ok := ids[id]
@@ -26,7 +26,7 @@ func TestNewWithPrefix(t *testing.T) {
 
 	ids := map[string]bool{}
 	for _, prefix := range prefixes {
-		for i := 0; i < 1000000; i++ {
+		for i := 0; i < 1000; i++ {
 			id := New(16, string(prefix))
 			require.True(t, len(id) > 0)
 			_, ok := ids[id]

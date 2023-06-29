@@ -5,8 +5,7 @@ vars:
   VERSION:
     sh: git describe --tags --always
   IMAGE: unkey-api
-  BUILDTIME:
-    sh: date -u '+%Y%m%d'
+
 
 
 dotenv: [".env"]
@@ -22,7 +21,7 @@ tasks:
       - install
     cmds:
       - go run  -ldflags "-X 'main.version={{.VERSION}}' -X 'main.build={{.BUILDTIME}}'" ./cmd/api
-  
+
   fmt:
     cmds:
       - go fmt ./...
@@ -35,13 +34,13 @@ tasks:
       - install
 
     cmds:
-      - go build -o unkey -ldflags "-X 'main.version={{.VERSION}}' -X 'main.build={{.BUILDTIME}}'" ./cmd/api
+      - go build -o unkey -ldflags "-X 'main.version={{.VERSION}}'" ./cmd/api
   build-docker:
     cmds:
       - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
 
   test:
-    - go test -json -v -shuffle=on ./... | gotestfmt
+    - go test -json -v -shuffle=on --race ./... | gotestfmt
 
   introspect:
     # https://github.com/xo/xo
