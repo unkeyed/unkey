@@ -9,6 +9,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,7 @@ func SetupResources(t *testing.T) resources {
 	ctx := context.Background()
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 

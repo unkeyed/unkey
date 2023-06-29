@@ -18,6 +18,8 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/go-playground/validator/v10"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Config struct {
@@ -25,6 +27,7 @@ type Config struct {
 	Cache     cache.Cache[entities.Key]
 	Database  *database.Database
 	Ratelimit *ratelimit.Ratelimiter
+	Tracer    trace.Tracer
 }
 
 type Server struct {
@@ -34,6 +37,7 @@ type Server struct {
 	db        *database.Database
 	cache     cache.Cache[entities.Key]
 	ratelimit *ratelimit.Ratelimiter
+	tracer    trace.Tracer
 }
 
 func New(config Config) *Server {
@@ -42,20 +46,38 @@ func New(config Config) *Server {
 		Immutable:             true,
 	}
 
-	app := fiber.New(appConfig)
-	app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
+	s := &Server{
+		app:       fiber.New(appConfig),
+		logger:    config.Logger,
+		validator: validator.New(),
+		db:        config.Database,
+		cache:     config.Cache,
+		ratelimit: config.Ratelimit,
+		tracer:    config.Tracer,
+	}
+
+	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
 		buf := make([]byte, 2048)
 		buf = buf[:runtime.Stack(buf, false)]
 		config.Logger.Error("recovered from panic", zap.Any("err", err), zap.ByteString("stacktrace", buf))
 	}}))
 	// logger
-	app.Use(func(c *fiber.Ctx) error {
+	s.app.Use(func(c *fiber.Ctx) error {
+		edgeRegion := c.Get("Fly-Region")
+
+		ctx, span := s.tracer.Start(c.UserContext(), "request", trace.WithAttributes(
+			attribute.String("method", c.Route().Method),
+			attribute.String("path", c.Path()),
+			attribute.String("edgeRegion", edgeRegion),
+		))
+		defer span.End()
+		c.SetUserContext(ctx)
+		c.Set("Unkey-Trace-Id", span.SpanContext().TraceID().String())
 		start := time.Now()
 		err := c.Next()
 		latency := time.Since(start)
 
 		// This header is a three letter region code which represents the region that the connection was accepted in and routed from.
-		edgeRegion := c.Get("Fly-Region")
 
 		log := config.Logger.With(
 			zap.String("method", c.Route().Method),
@@ -68,20 +90,12 @@ func New(config Config) *Server {
 
 		if err != nil {
 			log.Error("request failed")
+			span.RecordError(err)
 		} else {
 			log.Info("request completed")
 		}
 		return err
 	})
-
-	s := &Server{
-		app:       app,
-		logger:    config.Logger,
-		validator: validator.New(),
-		db:        config.Database,
-		cache:     config.Cache,
-		ratelimit: config.Ratelimit,
-	}
 
 	s.app.Get("/v1/liveness", s.liveness)
 

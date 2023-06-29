@@ -11,7 +11,8 @@ import (
 )
 
 func (db *Database) GetKeyByHash(ctx context.Context, hash string) (entities.Key, error) {
-
+	ctx, span := db.tracer.Start(ctx, "db.getKeyByHash")
+	defer span.End()
 	found, err := models.KeyByHash(ctx, db.read(), hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

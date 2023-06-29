@@ -1,4 +1,4 @@
-FROM golang:1.19 AS builder
+FROM golang:1.20 AS builder
 
 WORKDIR /go/src/github.com/chronark/unkey/apps/api
 
@@ -13,7 +13,7 @@ ARG VERSION
 
 RUN go build -o unkey -ldflags "-X 'main.version=${VERSION}'" ./cmd/api
 
-FROM golang:1.19
+FROM golang:1.20
 
 COPY --from=builder /go/src/github.com/chronark/unkey/apps/api/unkey /usr/local/bin/unkey
 

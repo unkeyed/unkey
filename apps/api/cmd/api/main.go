@@ -1,12 +1,8 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
 	"github.com/chronark/unkey/apps/api/pkg/cache"
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
@@ -14,7 +10,12 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/chronark/unkey/apps/api/pkg/server"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"go.uber.org/zap"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 // Set when we build the docker image
@@ -38,6 +39,34 @@ func main() {
 	region := e.String("FLY_REGION")
 	logger = logger.With(zap.String("region", region))
 
+	axiomOrgId := e.String("AXIOM_ORG_ID", "")
+	axiomToken := e.String("AXIOM_TOKEN", "")
+
+	var tracer tracing.Tracer
+	if axiomOrgId != "" && axiomToken != "" {
+
+		t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
+			Dataset:    "tracing",
+			Service:    "api",
+			Version:    version,
+			AxiomOrgId: e.String("AXIOM_ORG_ID"),
+			AxiomToken: e.String("AXIOM_TOKEN"),
+		})
+		if err != nil {
+			logger.Fatal("unable to start tracer", zap.Error(err))
+		}
+		defer func() {
+			err := closeTracer()
+			if err != nil {
+				logger.Fatal("unable to close tracer", zap.Error(err))
+			}
+		}()
+		tracer = t
+		logger.Info("Axiom tracing enabled")
+	} else {
+		tracer = tracing.NewNoop()
+	}
+
 	r := ratelimit.New()
 
 	db, err := database.New(database.Config{
@@ -45,6 +74,7 @@ func main() {
 		ReplicaEu:   e.String("DATABASE_DSN_EU", ""),
 		ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
 		FlyRegion:   region,
+		Tracer:      tracer,
 	})
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
@@ -53,10 +83,14 @@ func main() {
 	port := e.String("PORT", "8080")
 
 	srv := server.New(server.Config{
-		Logger:    logger,
-		Cache:     cache.NewInMemoryCache[entities.Key](time.Minute),
+		Logger: logger,
+		Cache: cache.NewInMemoryCache[entities.Key](cache.Config{
+			Ttl:    time.Minute,
+			Tracer: tracer,
+		}),
 		Database:  db,
 		Ratelimit: r,
+		Tracer:    tracer,
 	})
 
 	err = srv.Start(fmt.Sprintf("0.0.0.0:%s", port))

@@ -8,7 +8,9 @@ import (
 )
 
 func (db *Database) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int) ([]entities.Key, error) {
-	fmt.Println("ListKeysByApiId", "limit", limit, "offset", offset)
+	ctx, span := db.tracer.Start(ctx, "db.listKeysByApiId")
+	defer span.End()
+
 	const query = `SELECT ` +
 		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id ` +
 		`FROM unkey.keys ` +

@@ -20,7 +20,8 @@ type GetApiResponse struct {
 }
 
 func (s *Server) getApi(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, span := s.tracer.Start(c.UserContext(), "server.getApi")
+	defer span.End()
 
 	req := GetApiRequest{
 		ApiId: c.Params("apiId"),

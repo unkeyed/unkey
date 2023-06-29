@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/chronark/unkey/apps/api/pkg/logging"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
@@ -13,6 +14,7 @@ type Database struct {
 	primary     *sql.DB
 	readReplica *sql.DB
 	logger      logging.Logger
+	tracer      tracing.Tracer
 }
 
 type Config struct {
@@ -21,6 +23,7 @@ type Config struct {
 	ReplicaAsia string
 	FlyRegion   string
 	Logger      logging.Logger
+	Tracer      tracing.Tracer
 }
 
 func New(config Config) (*Database, error) {
@@ -63,6 +66,7 @@ func New(config Config) (*Database, error) {
 		primary:     primary,
 		readReplica: readReplica,
 		logger:      config.Logger,
+		tracer:      config.Tracer,
 	}, nil
 
 }

@@ -14,6 +14,8 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/cache"
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
+
 	"github.com/chronark/unkey/apps/api/pkg/hash"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/testutil"
@@ -28,6 +30,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -43,8 +46,9 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -77,6 +81,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -93,8 +98,9 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{

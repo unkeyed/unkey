@@ -11,7 +11,8 @@ import (
 )
 
 func (db *Database) GetKeyById(ctx context.Context, keyId string) (entities.Key, error) {
-
+	ctx, span := db.tracer.Start(ctx, "db.getKeyById")
+	defer span.End()
 	found, err := models.KeyByID(ctx, db.read(), keyId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

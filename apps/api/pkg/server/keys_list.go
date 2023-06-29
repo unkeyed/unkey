@@ -22,8 +22,8 @@ type ListKeysResponse struct {
 }
 
 func (s *Server) listKeys(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-
+	ctx, span := s.tracer.Start(c.UserContext(), "server.listKeys")
+	defer span.End()
 	req := ListKeysRequest{
 		ApiId: c.Params("apiId"),
 	}
