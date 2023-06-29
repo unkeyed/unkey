@@ -1,7 +1,7 @@
 import { Logger } from "./src/logger";
 import { init } from "./src/router";
 import { Ratelimiter } from "./src/ratelimit";
-import { db, type Key } from "./src/db";
+import { initDB, type Key } from "./src/db";
 
 import { serve } from "@hono/node-server";
 import { Cache } from "./src/cache";
@@ -21,6 +21,7 @@ async function main() {
     keyCache.delete(key.hash);
   });
 
+  const db = await initDB();
   const redis = new Redis(env.REDIS_URL, { family: 6 });
   // await redis.ping().catch((err) => {
   //   logger.error("redis ping failed", { error: err.message });

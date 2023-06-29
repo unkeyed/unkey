@@ -8,7 +8,6 @@ import { toBase64 } from "@/lib/api/base64";
 import { Policy, type GRID } from "@unkey/policies";
 import { Kafka } from "@upstash/kafka";
 import { env } from "@/lib/env";
-
 const kafka = new Kafka({
   url: env.UPSTASH_KAFKA_REST_URL,
   username: env.UPSTASH_KAFKA_REST_USERNAME,
@@ -61,11 +60,11 @@ export const keyRouter = t.router({
         apiId: input.apiId,
         hash,
         ownerId: input.ownerId ?? null,
-        meta: input.meta,
+        meta: input.meta ? JSON.stringify(input.meta) : null,
         start: key.substring(0, key.indexOf("_") + 4),
         createdAt: new Date(),
         expires: input.expires ? new Date(input.expires) : null,
-        remainingRequests: null,
+        // remainingRequests: null,
         ratelimitType: null,
         ratelimitRefillInterval: null,
         ratelimitRefillRate: null,
@@ -165,6 +164,8 @@ export const keyRouter = t.router({
     if (!workspace) {
       throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
     }
+    console.log({ workspace, key });
+
     await db
       .insert(schema.keys)
       .values({

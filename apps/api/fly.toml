@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "unkey-api"
+app = "unkey-global-api"
 primary_region = "iad"
 
 [build]
@@ -23,7 +23,7 @@ primary_region = "iad"
 
 
 [deploy]
-  strategy= "canary"
+  strategy= "bluegreen"
 
 [checks]
   [checks.name_of_your_http_check]

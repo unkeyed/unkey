@@ -493,23 +493,23 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
         });
       }
 
-      // If remaining is defined, we update it both in the db and in memory
-      if (key.remainingVerifications !== null && ratelimit.pass) {
-        await db
-          .update(schema.keys)
-          .set({
-            remainingVerifications: sql`${schema.keys.remainingVerifications} - 1`,
-          })
-          .where(eq(schema.keys.id, key.id));
+      // // If remaining is defined, we update it both in the db and in memory
+      // if (key.remainingVerifications !== null && ratelimit.pass) {
+      //   await db
+      //     .update(schema.keys)
+      //     .set({
+      //       remainingVerifications: sql`${schema.keys.remainingVerifications} - 1`,
+      //     })
+      //     .where(eq(schema.keys.id, key.id));
 
-        key.remainingVerifications -= 1;
-      }
+      //   key.remainingVerifications -= 1;
+      // }
 
-      // We only cache when remainingVerifications is not defined, as those need to coordinate
-      // in the db or when no verifications are left, because then we also don't need to coordinate
-      if (key.remainingVerifications === null || key.remainingVerifications <= 0) {
-        cache.keys.set(hash, key);
-      }
+      // // We only cache when remainingVerifications is not defined, as those need to coordinate
+      // // in the db or when no verifications are left, because then we also don't need to coordinate
+      // if (key.remainingVerifications === null || key.remainingVerifications <= 0) {
+      //   cache.keys.set(hash, key);
+      // }
 
       // don't await this, we don't want to block the response
       tinybird
@@ -544,7 +544,7 @@ export function init({ db, logger, ratelimiter, cache, tinybird, kafka }: Bindin
           valid: true,
           ownerId: key.ownerId ?? undefined,
           meta: key.meta ?? undefined,
-          remaining: key.remainingVerifications ?? undefined,
+          // remaining: key.remainingVerifications ?? undefined,
           ratelimit: key.ratelimitType
             ? {
                 limit: ratelimit.limit,

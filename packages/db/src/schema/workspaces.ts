@@ -10,14 +10,14 @@ export const workspaces = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
-    tenantId: varchar("tenant_id", { length: 256 }),
+    tenantId: varchar("tenant_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
     // Internal workspaces are used to manage the unkey app itself
     internal: boolean("internal").notNull().default(false),
 
     // idk, some kind of feature flag was useful
-    enableBetaFeatures: boolean("enable_beta_features"),
+    enableBetaFeatures: boolean("enable_beta_features").notNull().default(false),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

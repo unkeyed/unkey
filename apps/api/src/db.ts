@@ -1,15 +1,12 @@
 import { schema } from "@unkey/db";
 import { env } from "./env";
-import { drizzle } from "drizzle-orm/planetscale-serverless";
-import { connect } from "@planetscale/database";
+import { drizzle } from "drizzle-orm/mysql2";
+import { createConnection } from "mysql2/promise";
 
-// create the connection
-const connection = connect({
-  host: env.DATABASE_HOST,
-  username: env.DATABASE_USERNAME,
-  password: env.DATABASE_PASSWORD,
-});
+export async function initDB() {
+  const connection = await createConnection(env.DATABASE_URL);
 
-export const db = drizzle(connection, { schema });
-export type Database = typeof db;
+  return drizzle(connection, { schema });
+}
+export type Database = Awaited<ReturnType<typeof initDB>>;
 export type { Key, Api, Workspace } from "@unkey/db";

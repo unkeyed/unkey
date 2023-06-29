@@ -2,7 +2,7 @@
   "name": "@unkey/api-server",
   "version": "1.0.0",
   "scripts": {
-    "test":"checkly test",
+    "test": "checkly test",
     "build": "tsup",
     "build-docker": "docker build ../.. -f ./Dockerfile",
     "dev": "dotenv -e .env npx tsx ./main.ts"
@@ -38,5 +38,7 @@
     "tsup": "^7.0.0",
     "tsx": "^3.12.7",
     "typescript": "latest"
-  }
+  },
+  "main": "tsup.config.js",
+  "description": ""
 }

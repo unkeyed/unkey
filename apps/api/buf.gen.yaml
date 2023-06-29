@@ -1,0 +1,11 @@
+version: v1
+plugins:
+  # - remote: buf.build/stephenh/plugins/ts-proto
+  #   out: ./gen
+  - name: go
+    out: .
+    opt: paths=source_relative
+  - name: connect-go
+    out: .
+    opt: paths=source_relative
+ 
