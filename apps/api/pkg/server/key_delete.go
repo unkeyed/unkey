@@ -16,8 +16,8 @@ type DeleteKeyResponse struct {
 }
 
 func (s *Server) deleteKey(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-
+	ctx, span := s.tracer.Start(c.UserContext(), "server.deleteKey")
+	defer span.End()
 	req := DeleteKeyRequest{}
 	err := c.ParamsParser(&req)
 	if err != nil {

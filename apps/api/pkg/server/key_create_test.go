@@ -17,6 +17,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/testutil"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,13 +28,15 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.New(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -72,13 +75,15 @@ func TestCreateKey_WithCustom(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{

@@ -6,7 +6,8 @@ import (
 )
 
 func (db *Database) DeleteKey(ctx context.Context, keyId string) error {
-
+	ctx, span := db.tracer.Start(ctx, "db.deleteKey")
+	defer span.End()
 	query := `DELETE FROM unkey.keys ` +
 		`WHERE id = ?`
 

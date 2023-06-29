@@ -35,8 +35,8 @@ type VerifyKeyErrorResponse struct {
 }
 
 func (s *Server) verifyKey(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-
+	ctx, span := s.tracer.Start(c.UserContext(), "server.verifyKey")
+	defer span.End()
 	req := VerifyKeyRequest{}
 	err := c.BodyParser(&req)
 	if err != nil {
@@ -65,10 +65,10 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		return err
 	}
 
-	cached, isCached := s.cache.Get(authHash)
+	cached, isCached := s.cache.Get(ctx, authHash)
 	if isCached {
 		if !cached.Expires.IsZero() && cached.Expires.Before(time.Now()) {
-			s.cache.Remove(authHash)
+			s.cache.Remove(ctx, authHash)
 		} else {
 			return c.JSON(VerifyKeyResponse{
 				Valid:   true,

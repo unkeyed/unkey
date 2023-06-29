@@ -33,7 +33,8 @@ type CreateKeyResponse struct {
 }
 
 func (s *Server) createKey(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+	ctx, span := s.tracer.Start(c.UserContext(), "server.createKey")
+	defer span.End()
 
 	req := CreateKeyRequest{
 		// These act as default

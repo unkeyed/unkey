@@ -132,16 +132,16 @@ func (r *Ratelimiter) Take(req RatelimitRequest) RatelimitResponse {
 	}
 
 	r.stateLock.Lock()
-	defer r.stateLock.Unlock()
 	// Check again since we are in a new lock and another goroutine could have created it now
 	b, ok = r.state[req.Identifier]
-	r.stateLock.RUnlock()
 	if ok {
+		r.stateLock.Unlock()
 		return b.take()
 	}
 
 	b = newBucket(req.RefillRate, req.RefillInterval, req.Max)
 	r.state[req.Identifier] = b
+	r.stateLock.Unlock()
 
 	return b.take()
 

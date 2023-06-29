@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"context"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"sync"
 	"time"
 )
@@ -8,13 +10,13 @@ import (
 type Cache[T any] interface {
 	// Get returns the value for the given key.
 	// If the key is not found, found will be false.
-	Get(key string) (value T, found bool)
+	Get(ctx context.Context, key string) (value T, found bool)
 	// Sets the value for the given key.
-	Set(key string, value T)
+	Set(ctx context.Context, key string, value T)
 	// Removes the key from the cache.
-	Remove(key string)
+	Remove(ctx context.Context, key string)
 	// Returns true if the key is found.
-	Contains(key string) bool
+	Contains(ctx context.Context, key string) bool
 	// Returns the number of items in the cache.
 	Size() int
 	// Removes all items from the cache.
@@ -38,17 +40,24 @@ func (e *entry[T]) expired() bool {
 
 type inMemoryCache[T any] struct {
 	sync.RWMutex
-	items map[string]entry[T]
-	ttl   time.Duration
+	items  map[string]entry[T]
+	ttl    time.Duration
+	tracer tracing.Tracer
 }
 
-func NewInMemoryCache[T any](ttl time.Duration) Cache[T] {
+type Config struct {
+	Ttl    time.Duration
+	Tracer tracing.Tracer
+}
+
+func NewInMemoryCache[T any](config Config) Cache[T] {
 	c := &inMemoryCache[T]{
-		items: make(map[string]entry[T]),
-		ttl:   ttl,
+		items:  make(map[string]entry[T]),
+		ttl:    config.Ttl,
+		tracer: config.Tracer,
 	}
 
-	if ttl > 0 {
+	if c.ttl > 0 {
 		go func() {
 
 			for range time.NewTicker(c.ttl).C {
@@ -76,7 +85,9 @@ func (c *inMemoryCache[T]) DeleteExpired() {
 		}
 	}
 }
-func (c *inMemoryCache[T]) Get(key string) (T, bool) {
+func (c *inMemoryCache[T]) Get(ctx context.Context, key string) (T, bool) {
+	ctx, span := c.tracer.Start(ctx, "cache.get")
+	defer span.End()
 	c.RLock()
 	entry, ok := c.items[key]
 	c.RUnlock()
@@ -98,7 +109,9 @@ func (c *inMemoryCache[T]) Get(key string) (T, bool) {
 	return entry.value, true
 }
 
-func (c *inMemoryCache[T]) Set(key string, value T) {
+func (c *inMemoryCache[T]) Set(ctx context.Context, key string, value T) {
+	ctx, span := c.tracer.Start(ctx, "cache.set")
+	defer span.End()
 	c.Lock()
 	defer c.Unlock()
 
@@ -109,7 +122,9 @@ func (c *inMemoryCache[T]) Set(key string, value T) {
 
 }
 
-func (c *inMemoryCache[T]) Remove(key string) {
+func (c *inMemoryCache[T]) Remove(ctx context.Context, key string) {
+	ctx, span := c.tracer.Start(ctx, "cache.remove")
+	defer span.End()
 	c.Lock()
 	defer c.Unlock()
 
@@ -117,7 +132,9 @@ func (c *inMemoryCache[T]) Remove(key string) {
 
 }
 
-func (c *inMemoryCache[T]) Contains(key string) bool {
+func (c *inMemoryCache[T]) Contains(ctx context.Context, key string) bool {
+	ctx, span := c.tracer.Start(ctx, "cache.contains")
+	defer span.End()
 	c.RLock()
 
 	entry, ok := c.items[key]

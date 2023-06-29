@@ -16,6 +16,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/hash"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/testutil"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/stretchr/testify/require"
 )
@@ -26,13 +27,15 @@ func TestListKeys_Simple(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)
@@ -78,13 +81,15 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)
@@ -128,13 +133,15 @@ func TestListKeys_WithOffset(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.New(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)

@@ -10,7 +10,8 @@ import (
 )
 
 func (db *Database) GetApi(ctx context.Context, apiId string) (entities.Api, error) {
-
+	ctx, span := db.tracer.Start(ctx, "db.getApi")
+	defer span.End()
 	api, err := models.APIByID(ctx, db.read(), apiId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

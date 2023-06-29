@@ -8,7 +8,8 @@ import (
 )
 
 func (db *Database) CreateApi(ctx context.Context, newApi entities.Api) error {
-
+	ctx, span := db.tracer.Start(ctx, "db.createApi")
+	defer span.End()
 	api := apiEntityToModel(newApi)
 
 	err := api.Insert(ctx, db.write())

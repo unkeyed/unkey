@@ -14,6 +14,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/testutil"
+	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/stretchr/testify/require"
 )
@@ -24,13 +25,15 @@ func TestGetApi_Exists(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", resources.UserApi.Id), nil)
@@ -42,6 +45,7 @@ func TestGetApi_Exists(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
+	t.Log("body", string(body))
 	require.Equal(t, 200, res.StatusCode)
 
 	successResponse := GetApiResponse{}
@@ -60,13 +64,15 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](time.Minute),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
 		Database: db,
+		Tracer:   tracing.NewNoop(),
 	})
 
 	fakeApiId := uid.Api()
