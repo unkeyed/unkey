@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/chronark/unkey/apps/api/pkg/cache"
+	cacheMiddleware "github.com/chronark/unkey/apps/api/pkg/cache/middleware"
 	"github.com/chronark/unkey/apps/api/pkg/database"
+	databaseMiddleware "github.com/chronark/unkey/apps/api/pkg/database/middleware"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/env"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
@@ -15,7 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	)
+)
 
 // Set when we build the docker image
 var (
@@ -29,13 +31,15 @@ func main() {
 	if !debug {
 		logger = logger.With(zap.String("version", version))
 	}
-	defer logger.Sync()
+	defer func() {
+		_ = logger.Sync()
+	}()
 	logger.Info("Starting Unkey API Server")
 
 	e := env.Env{
 		ErrorHandler: func(err error) { logger.Fatal("unable to load environment variable", zap.Error(err)) },
 	}
-	region := e.String("FLY_REGION")
+	region := e.String("FLY_REGION", "local")
 	logger = logger.With(zap.String("region", region))
 
 	axiomOrgId := e.String("AXIOM_ORG_ID", "")
@@ -73,19 +77,20 @@ func main() {
 		ReplicaEu:   e.String("DATABASE_DSN_EU", ""),
 		ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
 		FlyRegion:   region,
-		Tracer:      tracer,
 	})
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
+	db = databaseMiddleware.WithTracing(db, tracer)
 
 	port := e.String("PORT", "8080")
 
+	c := cache.NewInMemoryCache[entities.Key]()
+	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
+
 	srv := server.New(server.Config{
-		Logger: logger,
-		Cache: cache.NewInMemoryCache[entities.Key](cache.Config{
-			Tracer: tracer,
-		}),
+		Logger:    logger,
+		Cache:     c,
 		Database:  db,
 		Ratelimit: r,
 		Tracer:    tracer,

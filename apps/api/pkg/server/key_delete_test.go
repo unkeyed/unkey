@@ -28,7 +28,6 @@ func TestDeleteKey(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -44,7 +43,7 @@ func TestDeleteKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{ Tracer: tracing.NewNoop()}),
+		Cache:    cache.NewInMemoryCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})

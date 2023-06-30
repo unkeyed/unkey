@@ -25,7 +25,7 @@ import (
 type Config struct {
 	Logger    logging.Logger
 	Cache     cache.Cache[entities.Key]
-	Database  *database.Database
+	Database  database.Database
 	Ratelimit *ratelimit.Ratelimiter
 	Tracer    trace.Tracer
 }
@@ -34,7 +34,7 @@ type Server struct {
 	app       *fiber.App
 	logger    logging.Logger
 	validator *validator.Validate
-	db        *database.Database
+	db        database.Database
 	cache     cache.Cache[entities.Key]
 	ratelimit *ratelimit.Ratelimiter
 	tracer    trace.Tracer
@@ -61,8 +61,9 @@ func New(config Config) *Server {
 		buf = buf[:runtime.Stack(buf, false)]
 		config.Logger.Error("recovered from panic", zap.Any("err", err), zap.ByteString("stacktrace", buf))
 	}}))
-	// logger
+
 	s.app.Use(func(c *fiber.Ctx) error {
+		// This header is a three letter region code which represents the region that the connection was accepted in and routed from.
 		edgeRegion := c.Get("Fly-Region")
 
 		ctx, span := s.tracer.Start(c.UserContext(), "request", trace.WithAttributes(
@@ -76,8 +77,6 @@ func New(config Config) *Server {
 		start := time.Now()
 		err := c.Next()
 		latency := time.Since(start)
-
-		// This header is a three letter region code which represents the region that the connection was accepted in and routed from.
 
 		log := config.Logger.With(
 			zap.String("method", c.Route().Method),
@@ -94,6 +93,7 @@ func New(config Config) *Server {
 		} else {
 			log.Info("request completed")
 		}
+
 		return err
 	})
 

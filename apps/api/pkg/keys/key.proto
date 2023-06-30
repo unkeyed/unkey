@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package keys;
+
+option go_package = "github.com/chronark/unkey/apps/api/pkg/keys;keys";
+
+
+message Key {
+  // version of the key, we start with 1 byte, which allows us to have 256 versions
+  bytes version = 1;
+
+  // random part of the key, the length is determined by the user
+  bytes random = 2;
+
+
+}

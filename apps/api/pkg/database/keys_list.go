@@ -7,9 +7,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 )
 
-func (db *Database) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error) {
-	ctx, span := db.tracer.Start(ctx, "db.listKeysByApiId")
-	defer span.End()
+func (db *database) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error) {
 
 	query := `SELECT ` +
 		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id ` +

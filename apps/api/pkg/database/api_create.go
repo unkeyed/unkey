@@ -7,9 +7,8 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 )
 
-func (db *Database) CreateApi(ctx context.Context, newApi entities.Api) error {
-	ctx, span := db.tracer.Start(ctx, "db.createApi")
-	defer span.End()
+func (db *database) CreateApi(ctx context.Context, newApi entities.Api) error {
+
 	api := apiEntityToModel(newApi)
 
 	err := api.Insert(ctx, db.write())

@@ -31,7 +31,6 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -47,7 +46,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Tracer: tracing.NewNoop()}),
+		Cache:    cache.NewInMemoryCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -82,7 +81,6 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -99,7 +97,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{ Tracer: tracing.NewNoop()}),
+		Cache:    cache.NewInMemoryCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -151,7 +149,6 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -173,7 +170,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	srv := New(Config{
 		Logger:    logging.NewNoopLogger(),
-		Cache:     cache.NewInMemoryCache[entities.Key](cache.Config{ Tracer: tracing.NewNoop()}),
+		Cache:     cache.NewInMemoryCache[entities.Key](),
 		Database:  db,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.New(),

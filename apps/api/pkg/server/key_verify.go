@@ -2,13 +2,12 @@ package server
 
 import (
 	"errors"
-	"net/http"
-	"time"
-
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
+	"net/http"
+	"time"
 )
 
 type VerifyKeyRequest struct {
@@ -114,6 +113,11 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			},
 		})
 	}
+	s.logger.Info("report.key.verifying",
+		zap.String("keyId", key.Id),
+		zap.String("apiId", key.ApiId),
+		zap.String("workspaceId", key.WorkspaceId),
+	)
 
 	res := VerifyKeyResponse{
 		Valid:   true,

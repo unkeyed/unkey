@@ -5,16 +5,14 @@ import (
 	"fmt"
 
 	"github.com/chronark/unkey/apps/api/pkg/logging"
-	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
 
-type Database struct {
+type database struct {
 	primary     *sql.DB
 	readReplica *sql.DB
 	logger      logging.Logger
-	tracer      tracing.Tracer
 }
 
 type Config struct {
@@ -23,10 +21,9 @@ type Config struct {
 	ReplicaAsia string
 	FlyRegion   string
 	Logger      logging.Logger
-	Tracer      tracing.Tracer
 }
 
-func New(config Config) (*Database, error) {
+func New(config Config) (Database, error) {
 	primary, err := sql.Open("mysql", fmt.Sprintf("%s&parseTime=true", config.PrimaryUs))
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
@@ -62,22 +59,21 @@ func New(config Config) (*Database, error) {
 		}
 	}
 
-	return &Database{
+	return &database{
 		primary:     primary,
 		readReplica: readReplica,
 		logger:      config.Logger,
-		tracer:      config.Tracer,
 	}, nil
 
 }
 
 // read returns the primary writable db
-func (d *Database) write() *sql.DB {
+func (d *database) write() *sql.DB {
 	return d.primary
 }
 
 // read returns the closests read replica
-func (d *Database) read() *sql.DB {
+func (d *database) read() *sql.DB {
 	if d.readReplica != nil {
 		return d.readReplica
 	}

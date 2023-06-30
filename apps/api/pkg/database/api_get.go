@@ -9,9 +9,8 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 )
 
-func (db *Database) GetApi(ctx context.Context, apiId string) (entities.Api, error) {
-	ctx, span := db.tracer.Start(ctx, "db.getApi")
-	defer span.End()
+func (db *database) GetApi(ctx context.Context, apiId string) (entities.Api, error) {
+
 	api, err := models.APIByID(ctx, db.read(), apiId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

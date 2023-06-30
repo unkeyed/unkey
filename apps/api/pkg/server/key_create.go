@@ -8,6 +8,7 @@ import (
 
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
+	"github.com/chronark/unkey/apps/api/pkg/keys"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/gofiber/fiber/v2"
 )
@@ -98,7 +99,13 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 		})
 	}
 
-	keyValue := uid.New(req.ByteLength, req.Prefix)
+	keyValue, err := keys.NewKey(req.Prefix, req.ByteLength)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
+			Error: err.Error(),
+		})
+	}
 	split := strings.Split(keyValue, "_")
 	keyHash := hash.Sha256(keyValue)
 

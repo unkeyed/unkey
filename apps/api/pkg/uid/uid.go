@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-const encodingVersion = 0x01
-
 type Prefix string
 
 const (
@@ -21,16 +19,14 @@ const (
 func New(byteLength int, prefix string) string {
 	buf := make([]byte, byteLength)
 	_, _ = rand.Read(buf)
-	r := base58.CheckEncode(buf, encodingVersion)
+	r := base58.Encode(buf)
 
 	if prefix != "" {
 		return strings.Join([]string{string(prefix), r}, "_")
 	} else {
 		return r
 	}
-
 }
-
 func Workspace() string {
 	return New(16, string(WorkspacePrefix))
 }

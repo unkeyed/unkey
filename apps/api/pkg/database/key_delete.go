@@ -5,9 +5,7 @@ import (
 	"fmt"
 )
 
-func (db *Database) DeleteKey(ctx context.Context, keyId string) error {
-	ctx, span := db.tracer.Start(ctx, "db.deleteKey")
-	defer span.End()
+func (db *database) DeleteKey(ctx context.Context, keyId string) error {
 	query := `DELETE FROM unkey.keys ` +
 		`WHERE id = ?`
 

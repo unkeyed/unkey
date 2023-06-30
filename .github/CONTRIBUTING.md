@@ -72,6 +72,20 @@ This sets up the workspace and gets everything ready to run the app.
 pnpm build
 ```
 
+## Run API
+
+Add a `.env` file in `/apps/api/.env` and populate the values from the services above.:
+```sh-session
+cp apps/api/.env.example apps/api/.env
+```
+
+Then run the api via docker compose:
+
+```sh-session
+cd apps/api
+docker compose up
+```
+
 ## Run app
 
 ```sh-session

@@ -10,9 +10,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 )
 
-func (db *Database) GetKeyByHash(ctx context.Context, hash string) (entities.Key, error) {
-	ctx, span := db.tracer.Start(ctx, "db.getKeyByHash")
-	defer span.End()
+func (db *database) GetKeyByHash(ctx context.Context, hash string) (entities.Key, error) {
 	found, err := models.KeyByHash(ctx, db.read(), hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

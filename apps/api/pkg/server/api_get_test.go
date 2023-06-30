@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	
+
 	"github.com/chronark/unkey/apps/api/pkg/cache"
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
@@ -24,13 +24,12 @@ func TestGetApi_Exists(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{ Tracer: tracing.NewNoop()}),
+		Cache:    cache.NewInMemoryCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -62,13 +61,12 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Tracer:    tracing.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{ Tracer: tracing.NewNoop()}),
+		Cache:    cache.NewInMemoryCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
