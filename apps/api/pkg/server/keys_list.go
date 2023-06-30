@@ -27,7 +27,7 @@ type keyResponse struct {
 	ApiId          string           `json:"apiId"`
 	WorkspaceId    string           `json:"workspaceId"`
 	Start          string           `json:"start"`
-	OwnerId        string           `json:"ownereId,omitempty"`
+	OwnerId        string           `json:"ownerId,omitempty"`
 	Meta           map[string]any   `json:"meta,omitempty"`
 	CreatedAt      int64            `json:"createdAt,omitempty"`
 	Expires        int64            `json:"expires,omitempty"`

@@ -28,7 +28,7 @@ type VerifyKeyResponse struct {
 	Expires   int64              `json:"expires,omitempty"`
 	Remaining int64              `json:"remaining,omitempty"`
 	Ratelimit *ratelimitResponse `json:"ratelimit,omitempty"`
-	Code      string             `json:"code"`
+	Code      string             `json:"code,omitempty"`
 }
 
 type VerifyKeyErrorResponse struct {
@@ -122,6 +122,8 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			},
 		})
 	}
+
+	s.cache.Set(ctx, key.Hash, key)
 
 	res := VerifyKeyResponse{
 		Valid:   true,
