@@ -89,7 +89,13 @@ Example:
 ## Response
 
 <ResponseField name="key" type="string" required>
-  The newly created api key
+  The newly created api key, do not store this on your own system but pass it along to your user.
+
+  Use this to authorize a user, for details see [here](/api-reference/keys/verify)
+</ResponseField>
+
+<ResponseField name="keyId" type="string" required>
+  A unique id to reference this key for updating or revoking. This id can not be used to verify the key.
 </ResponseField>
 
 <RequestExample>

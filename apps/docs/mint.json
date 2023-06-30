@@ -12,6 +12,10 @@
   },
   "topbarLinks": [
     {
+      "name": "Discord",
+      "url": "https://unkey.dev/discord"
+    },
+    {
       "name": "GitHub",
       "url": "https://github.com/chronark/unkey"
     }
@@ -24,6 +28,10 @@
     {
       "name": "API Reference",
       "url": "api-reference"
+    },
+    {
+      "name": "Libraries",
+      "url": "libraries"
     },
     {
       "name": "Changelog",
@@ -86,18 +94,32 @@
       ]
     },
     {
-      "group": "@unkey/api SDK",
+      "group": "Typescript",
       "icon": "code",
       "pages": [
-        "sdk/get-started",
+        "libraries/js/overview",
         {
           "group": "Keys",
           "pages": [
-            "sdk/keys/create",
-            "sdk/keys/verify",
-            "sdk/keys/revoke"
+            "libraries/js/keys/create",
+            "libraries/js/keys/verify",
+            "libraries/js/keys/revoke"
           ]
         }
+      ]
+    },
+    {
+      "group": "Python",
+      "icon": "code",
+      "pages": [
+        "libraries/py/overview"
+      ]
+    },
+    {
+      "group": "Elixir",
+      "icon": "code",
+      "pages": [
+        "libraries/ex/overview"
       ]
     },
     {
