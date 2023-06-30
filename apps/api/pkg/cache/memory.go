@@ -10,9 +10,10 @@ import (
 type Cache[T any] interface {
 	// Get returns the value for the given key.
 	// If the key is not found, found will be false.
-	Get(ctx context.Context, key string) (value T, found bool)
+	Get(ctx context.Context, key string, refresh bool) (value T, found bool)
+
 	// Sets the value for the given key.
-	Set(ctx context.Context, key string, value T)
+	Set(ctx context.Context, key string, value T, ttl time.Time)
 	// Removes the key from the cache.
 	Remove(ctx context.Context, key string)
 	// Returns true if the key is found.
@@ -41,37 +42,32 @@ func (e *entry[T]) expired() bool {
 type inMemoryCache[T any] struct {
 	sync.RWMutex
 	items  map[string]entry[T]
-	ttl    time.Duration
 	tracer tracing.Tracer
 }
 
 type Config struct {
-	Ttl    time.Duration
 	Tracer tracing.Tracer
 }
 
 func NewInMemoryCache[T any](config Config) Cache[T] {
 	c := &inMemoryCache[T]{
 		items:  make(map[string]entry[T]),
-		ttl:    config.Ttl,
 		tracer: config.Tracer,
 	}
 
-	if c.ttl > 0 {
-		go func() {
+	go func() {
 
-			for range time.NewTicker(c.ttl).C {
-				c.Lock()
-				for key, val := range c.items {
-					if val.expired() {
-						delete(c.items, key)
-					}
+		for range time.NewTicker(time.Minute).C {
+			c.Lock()
+			for key, val := range c.items {
+				if val.expired() {
+					delete(c.items, key)
 				}
-				c.Unlock()
 			}
+			c.Unlock()
+		}
 
-		}()
-	}
+	}()
 
 	return c
 }
@@ -85,11 +81,11 @@ func (c *inMemoryCache[T]) DeleteExpired() {
 		}
 	}
 }
-func (c *inMemoryCache[T]) Get(ctx context.Context, key string) (T, bool) {
+func (c *inMemoryCache[T]) Get(ctx context.Context, key string, refresh bool) (T, bool) {
 	ctx, span := c.tracer.Start(ctx, "cache.get")
 	defer span.End()
 	c.RLock()
-	entry, ok := c.items[key]
+	e, ok := c.items[key]
 	c.RUnlock()
 
 	if !ok {
@@ -97,19 +93,20 @@ func (c *inMemoryCache[T]) Get(ctx context.Context, key string) (T, bool) {
 		var t T
 		return t, false
 	}
-	if entry.expired() {
+
+	if e.expired() {
 		c.Lock()
+		defer c.Unlock()
 		delete(c.items, key)
-		c.Unlock()
 		// This hack is necessary because you can not return nil as T
 		var t T
 		return t, false
 	}
 
-	return entry.value, true
+	return e.value, true
 }
 
-func (c *inMemoryCache[T]) Set(ctx context.Context, key string, value T) {
+func (c *inMemoryCache[T]) Set(ctx context.Context, key string, value T, exp time.Time) {
 	ctx, span := c.tracer.Start(ctx, "cache.set")
 	defer span.End()
 	c.Lock()
@@ -117,7 +114,7 @@ func (c *inMemoryCache[T]) Set(ctx context.Context, key string, value T) {
 
 	c.items[key] = entry[T]{
 		value: value,
-		exp:   time.Now().Add(c.ttl),
+		exp:   exp,
 	}
 
 }

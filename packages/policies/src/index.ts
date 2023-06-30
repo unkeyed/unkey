@@ -31,8 +31,9 @@ type ResourceId = string; // a specific apiId or keyId for example
  */
 export type GRID =
   | `${TenantId}::${keyof Resources}::${ResourceId | "*"}` // standard
-  | `${TenantId}::api::${ResourceId}::${Exclude<keyof Resources, "api"> | "*"}::${| ResourceId
-  | "*"}`; // api specific nesting
+  | `${TenantId}::api::${ResourceId}::${Exclude<keyof Resources, "api"> | "*"}::${
+      | ResourceId
+      | "*"}`; // api specific nesting
 
 export class Policy extends GenericPolicy<Resources, GRID> {
   toJSON() {

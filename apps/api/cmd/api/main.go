@@ -15,8 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-)
+	)
 
 // Set when we build the docker image
 var (
@@ -85,7 +84,6 @@ func main() {
 	srv := server.New(server.Config{
 		Logger: logger,
 		Cache: cache.NewInMemoryCache[entities.Key](cache.Config{
-			Ttl:    time.Minute,
 			Tracer: tracer,
 		}),
 		Database:  db,

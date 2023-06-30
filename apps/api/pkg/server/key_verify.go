@@ -8,6 +8,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 type VerifyKeyRequest struct {
@@ -63,47 +64,39 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		})
 	}
 
-	authHash, err := getKeyHash(req.Key)
+	hash, err := getKeyHash(req.Key)
 	if err != nil {
 		return err
 	}
 
-	cached, isCached := s.cache.Get(ctx, authHash)
-	if isCached {
-		if !cached.Expires.IsZero() && cached.Expires.Before(time.Now()) {
-			s.cache.Remove(ctx, authHash)
-		} else {
-			return c.JSON(VerifyKeyResponse{
-				Valid:   true,
-				OwnerId: cached.OwnerId,
-				Meta:    cached.Meta,
-			})
-		}
+	key, isCached := s.cache.Get(ctx, hash, false)
+	s.logger.Debug("cache.get", zap.Any("cached", key))
 
-	}
+	if !isCached {
+		key, err = s.db.GetKeyByHash(ctx, hash)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return c.Status(http.StatusNotFound).JSON(VerifyKeyErrorResponse{
+					Valid: false,
+					ErrorResponse: ErrorResponse{
+						Code:  NOT_FOUND,
+						Error: "key not found",
+					},
+				})
+			}
 
-	key, err := s.db.GetKeyByHash(ctx, authHash)
-	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusNotFound).JSON(VerifyKeyErrorResponse{
+			return c.Status(500).JSON(VerifyKeyErrorResponse{
 				Valid: false,
 				ErrorResponse: ErrorResponse{
-					Code:  NOT_FOUND,
-					Error: "key not found",
+					Code:  INTERNAL_SERVER_ERROR,
+					Error: err.Error(),
 				},
 			})
 		}
-
-		return c.Status(500).JSON(VerifyKeyErrorResponse{
-			Valid: false,
-			ErrorResponse: ErrorResponse{
-				Code:  INTERNAL_SERVER_ERROR,
-				Error: err.Error(),
-			},
-		})
+		s.cache.Set(ctx, hash, key, time.Now().Add(time.Minute))
 	}
-
 	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
+		s.cache.Remove(ctx, hash)
 		err := s.db.DeleteKey(ctx, key.Id)
 		if err != nil {
 			return c.Status(500).JSON(VerifyKeyErrorResponse{
@@ -122,8 +115,6 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			},
 		})
 	}
-
-	s.cache.Set(ctx, key.Hash, key)
 
 	res := VerifyKeyResponse{
 		Valid:   true,

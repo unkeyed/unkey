@@ -15,7 +15,10 @@ func New() Logger {
 
 	axiomCore, err := adapter.New(adapter.SetDataset("api"))
 	if err != nil {
-		logger, zapErr := zap.NewDevelopment()
+
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		logger, zapErr := config.Build()
 		if zapErr != nil {
 			log.Fatalf("can't initialize logger: %s", err.Error())
 		}
@@ -36,7 +39,7 @@ func New() Logger {
 	consoleCore := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
 		os.Stdout,
-		zapcore.InfoLevel,
+		zapcore.DebugLevel,
 	)
 
 	logger := zap.New(zapcore.NewTee(consoleCore, axiomCore))

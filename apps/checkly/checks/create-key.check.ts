@@ -17,7 +17,7 @@ new ApiCheck("create-key", {
     headers: [
       {
         key: "Content-Type",
-        value: "application/json"
+        value: "application/json",
       },
       {
         key: "Authorization",

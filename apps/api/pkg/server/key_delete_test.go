@@ -44,7 +44,7 @@ func TestDeleteKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{ Tracer: tracing.NewNoop()}),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})

@@ -64,6 +64,9 @@ func (b *bucket) take() RatelimitResponse {
 
 	if b.lastTick < tick {
 		b.remaining += (tick - b.lastTick) * b.refillRate
+		if b.remaining > b.max {
+			b.remaining = b.max
+		}
 		b.lastTick = tick
 	}
 
