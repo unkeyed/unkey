@@ -110,7 +110,7 @@ func New(config Config) *Server {
 }
 
 func (s *Server) Start(addr string) error {
-	s.logger.Info("starting API server", zap.String("addr", addr))
+	s.logger.Info("listening", zap.String("addr", addr))
 	err := s.app.Listen(addr)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("api server error: %s", err.Error())

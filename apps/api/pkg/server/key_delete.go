@@ -1,11 +1,12 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"github.com/chronark/unkey/apps/api/pkg/database"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
 )
 
 type DeleteKeyRequest struct {
@@ -42,6 +43,12 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 
 	authKey, err := s.db.GetKeyByHash(ctx, authHash)
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
+				Code:  UNAUTHORIZED,
+				Error: "unauthorized",
+			})
+		}
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,
 			Error: err.Error(),
@@ -57,13 +64,18 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 
 	key, err := s.db.GetKeyById(ctx, req.KeyId)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+		if errors.Is(err, database.ErrNotFound) {
+			return c.Status(http.StatusNotFound).JSON(ErrorResponse{
+				Code:  NOT_FOUND,
+				Error: fmt.Sprintf("key %s does not exist", req.KeyId),
+			})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,
 			Error: err.Error(),
 		})
 	}
 
-	s.logger.Info("debug", zap.Any("key", key), zap.Any("authkey", authKey))
 	if key.WorkspaceId != authKey.ForWorkspaceId {
 		return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
 			Code:  UNAUTHORIZED,

@@ -25,7 +25,10 @@ type VerifyKeyResponse struct {
 	Valid     bool               `json:"valid"`
 	OwnerId   string             `json:"ownerId,omitempty"`
 	Meta      map[string]any     `json:"meta,omitempty"`
+	Expires   int64              `json:"expires,omitempty"`
+	Remaining int64              `json:"remaining,omitempty"`
 	Ratelimit *ratelimitResponse `json:"ratelimit,omitempty"`
+	Code      string             `json:"code"`
 }
 
 type VerifyKeyErrorResponse struct {
@@ -125,6 +128,9 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		OwnerId: key.OwnerId,
 		Meta:    key.Meta,
 	}
+	if !key.Expires.IsZero() {
+		res.Expires = key.Expires.UnixMilli()
+	}
 
 	if key.Ratelimit != nil {
 		r := s.ratelimit.Take(ratelimit.RatelimitRequest{
@@ -139,6 +145,9 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			Reset:     r.Reset,
 		}
 		res.Valid = r.Pass
+		if !r.Pass {
+			res.Code = RATELIMITED
+		}
 	}
 
 	return c.JSON(res)

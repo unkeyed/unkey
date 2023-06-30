@@ -45,7 +45,6 @@ func TestGetApi_Exists(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	t.Log("body", string(body))
 	require.Equal(t, 200, res.StatusCode)
 
 	successResponse := GetApiResponse{}

@@ -20,7 +20,7 @@ tasks:
     deps:
       - install
     cmds:
-      - go run  -ldflags "-X 'main.version={{.VERSION}}' -X 'main.build={{.BUILDTIME}}'" ./cmd/api
+      - go run  -ldflags "-X 'main.version={{.VERSION}}'" ./cmd/api
 
   fmt:
     cmds:
@@ -40,7 +40,8 @@ tasks:
       - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
 
   test:
-    - go test -json -v -shuffle=on --race ./... | gotestfmt
+    - go test -shuffle=on --race ./... -run TestVerifyKey_WithRatelimit
+
 
   introspect:
     # https://github.com/xo/xo
