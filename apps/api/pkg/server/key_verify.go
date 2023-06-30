@@ -70,7 +70,6 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	}
 
 	key, isCached := s.cache.Get(ctx, hash, false)
-	s.logger.Debug("cache.get", zap.Any("cached", key))
 
 	if !isCached {
 		key, err = s.db.GetKeyByHash(ctx, hash)
