@@ -17,6 +17,7 @@ func keyModelToEntity(model *models.Key) (entities.Key, error) {
 	key.WorkspaceId = model.WorkspaceID
 	key.Hash = model.Hash
 	key.Start = model.Start
+
 	key.CreatedAt = model.CreatedAt
 
 	if model.OwnerID.Valid {
@@ -30,6 +31,7 @@ func keyModelToEntity(model *models.Key) (entities.Key, error) {
 	if model.ForWorkspaceID.Valid {
 		key.ForWorkspaceId = model.ForWorkspaceID.String
 	}
+
 	if model.Meta.Valid {
 		err := json.Unmarshal([]byte(model.Meta.String), &key.Meta)
 		if err != nil {

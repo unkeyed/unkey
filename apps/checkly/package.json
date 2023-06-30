@@ -2,7 +2,8 @@
   "name": "@unkey/checkly",
   "version": "1.0.0",
   "scripts": {
-    "test": "dotenv checkly test"
+    "test": "dotenv checkly test",
+    "deploy": "dotenv checkly deploy"
   },
   "keywords": [],
   "author": "Andreas Thomas",

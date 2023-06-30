@@ -194,7 +194,6 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	body1, err := io.ReadAll(res1.Body)
 	require.NoError(t, err)
-	t.Log("body1", string(body1))
 	require.Equal(t, 200, res1.StatusCode)
 
 	verifyRes1 := VerifyKeyResponse{}

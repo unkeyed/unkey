@@ -7,18 +7,31 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 )
 
-func (db *Database) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int) ([]entities.Key, error) {
+func (db *Database) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error) {
 	ctx, span := db.tracer.Start(ctx, "db.listKeysByApiId")
 	defer span.End()
 
-	const query = `SELECT ` +
+	query := `SELECT ` +
 		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id ` +
 		`FROM unkey.keys ` +
-		`WHERE api_id = ? ORDER BY created_at ASC LIMIT ? OFFSET ?`
+		`WHERE api_id = ?`
+	if ownerId != "" {
+		query += " AND owner_id = ?"
+	}
 
-	rows, err := db.read().Query(query, apiId, limit, offset)
+	query += ` ORDER BY created_at ASC LIMIT ? OFFSET ?`
+
+	args := make([]any, 0)
+	args = append(args, apiId)
+
+	if ownerId != "" {
+		args = append(args, ownerId)
+	}
+	args = append(args, limit, offset)
+
+	rows, err := db.read().Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("unable to count keys from db: %w", err)
+		return nil, fmt.Errorf("unable to list keys from db: %w", err)
 	}
 	defer rows.Close()
 
@@ -31,11 +44,12 @@ func (db *Database) ListKeysByApiId(ctx context.Context, apiId string, limit int
 			return nil, fmt.Errorf("unable to scan row: %w", err)
 		}
 
-		key, err := keyModelToEntity(k)
+		e, err := keyModelToEntity(k)
 		if err != nil {
 			return nil, fmt.Errorf("unable to convert key: %w", err)
 		}
-		keys = append(keys, key)
+
+		keys = append(keys, e)
 	}
 
 	return keys, nil

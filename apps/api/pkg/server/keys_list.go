@@ -4,21 +4,40 @@ import (
 	"errors"
 	"fmt"
 	"github.com/chronark/unkey/apps/api/pkg/database"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/gofiber/fiber/v2"
-	"log"
 	"net/http"
 )
 
 type ListKeysRequest struct {
-	ApiId  string `validate:"required"`
-	Limit  int
-	Offset int
+	ApiId   string `validate:"required"`
+	Limit   int
+	Offset  int
+	OwnerId string
+}
+
+type ratelimitSettng struct {
+	Type           string `json:"type"`
+	Limit          int64  `json:"limit"`
+	RefillRate     int64  `json:"refillRate"`
+	RefillInterval int64  `json:"refillInterval"`
+}
+
+type keyResponse struct {
+	Id             string           `json:"id"`
+	ApiId          string           `json:"apiId"`
+	WorkspaceId    string           `json:"workspaceId"`
+	Start          string           `json:"start"`
+	OwnerId        string           `json:"ownereId,omitempty"`
+	Meta           map[string]any   `json:"meta,omitempty"`
+	CreatedAt      int64            `json:"createdAt,omitempty"`
+	Expires        int64            `json:"expires,omitempty"`
+	Ratelimit      *ratelimitSettng `json:"ratelimit,omitempty"`
+	ForWorkspaceId string           `json:"forWorkspaceId,omitempty"`
 }
 
 type ListKeysResponse struct {
-	Keys  []entities.Key `json:"keys"`
-	Total int            `json:"total"`
+	Keys  []keyResponse `json:"keys"`
+	Total int           `json:"total"`
 }
 
 func (s *Server) listKeys(c *fiber.Ctx) error {
@@ -30,8 +49,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 	var err error
 	req.Limit = c.QueryInt("limit", 100)
 	req.Offset = c.QueryInt("offset", 0)
-
-	log.Printf("req %s  %+v %+v\n", c.OriginalURL(), req, c.Queries())
+	req.OwnerId = c.Query("ownerId")
 
 	err = s.validator.Struct(req)
 	if err != nil {
@@ -81,7 +99,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		})
 	}
 
-	keys, err := s.db.ListKeysByApiId(ctx, api.Id, req.Limit, req.Offset)
+	keys, err := s.db.ListKeysByApiId(ctx, api.Id, req.Limit, req.Offset, req.OwnerId)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,
@@ -96,8 +114,35 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 			Error: err.Error(),
 		})
 	}
-	return c.JSON(ListKeysResponse{
-		Keys:  keys,
+
+	res := ListKeysResponse{
+		Keys:  make([]keyResponse, len(keys)),
 		Total: total,
-	})
+	}
+
+	for i, k := range keys {
+		res.Keys[i] = keyResponse{
+			Id:             k.Id,
+			ApiId:          k.ApiId,
+			WorkspaceId:    k.WorkspaceId,
+			Start:          k.Start,
+			OwnerId:        k.OwnerId,
+			Meta:           k.Meta,
+			CreatedAt:      k.CreatedAt.UnixMilli(),
+			ForWorkspaceId: k.ForWorkspaceId,
+		}
+		if !k.Expires.IsZero() {
+			res.Keys[i].Expires = k.Expires.UnixMilli()
+		}
+		if k.Ratelimit != nil {
+			res.Keys[i].Ratelimit = &ratelimitSettng{
+				Type:           k.Ratelimit.Type,
+				Limit:          k.Ratelimit.Limit,
+				RefillRate:     k.Ratelimit.RefillRate,
+				RefillInterval: k.Ratelimit.RefillInterval,
+			}
+		}
+	}
+
+	return c.JSON(res)
 }

@@ -40,7 +40,10 @@ tasks:
       - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
 
   test:
-    - go test -shuffle=on --race ./... -run TestVerifyKey_WithRatelimit
+    - go test -v -json -shuffle=on --race ./... | gotestfmt
+
+  debug:
+    - go test -shuffle=on --race ./... -run TestListKeys_FilterOwnerId
 
 
   introspect:

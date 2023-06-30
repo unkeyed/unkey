@@ -75,6 +75,68 @@ func TestListKeys_Simple(t *testing.T) {
 
 }
 
+func TestListKeys_FilterOwnerId(t *testing.T) {
+	ctx := context.Background()
+	resources := testutil.SetupResources(t)
+
+	db, err := database.New(database.Config{
+		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Tracer:    tracing.NewNoop(),
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:   logging.NewNoopLogger(),
+		Cache:    cache.NewInMemoryCache[entities.Key](cache.Config{Ttl: time.Minute, Tracer: tracing.NewNoop()}),
+		Database: db,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	createdKeyIds := make([]string, 10)
+	for i := range createdKeyIds {
+		key := entities.Key{
+			Id:          uid.Key(),
+			ApiId:       resources.UserApi.Id,
+			WorkspaceId: resources.UserWorkspace.Id,
+			Hash:        hash.Sha256(uid.New(16, "test")),
+			CreatedAt:   time.Now(),
+		}
+		// just add an ownerId to half of them
+		if i%2 == 0 {
+			key.OwnerId = "chronark"
+		}
+		err := db.CreateKey(ctx, key)
+		require.NoError(t, err)
+		createdKeyIds[i] = key.Id
+
+	}
+
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.Id), nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, 200, res.StatusCode)
+
+	successResponse := ListKeysResponse{}
+	err = json.Unmarshal(body, &successResponse)
+	require.NoError(t, err)
+
+	require.GreaterOrEqual(t, successResponse.Total, len(createdKeyIds))
+	require.Equal(t, 5, len(successResponse.Keys))
+	require.LessOrEqual(t, len(successResponse.Keys), 100) //  default page size
+
+	for _, key := range successResponse.Keys {
+		require.Equal(t, "chronark", key.OwnerId)
+	}
+
+}
+
 func TestListKeys_WithLimit(t *testing.T) {
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)

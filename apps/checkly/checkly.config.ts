@@ -19,7 +19,7 @@ const config = defineConfig({
     /* Checkly data centers to run your Checks as monitors */
     locations: ["us-east-1"],
     /* An optional array of tags to organize your Checks */
-    tags: ["mac"],
+    tags: [],
     /** The Checkly Runtime identifier, determining npm packages and the Node.js version available at runtime.
      * See https://www.checklyhq.com/docs/cli/npm-packages/
      */
