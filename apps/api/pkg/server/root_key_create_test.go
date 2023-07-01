@@ -7,13 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/chronark/unkey/apps/api/pkg/cache"
-	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/testutil"
@@ -26,15 +24,10 @@ func TestRootCreateKey_Simple(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	srv := New(Config{
 		Logger:            logging.New(),
 		Cache:             cache.NewInMemoryCache[entities.Key](),
-		Database:          db,
+		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
 		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
 		UnkeyApiId:        resources.UnkeyApi.Id,
@@ -66,7 +59,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 	require.NotEmpty(t, createRootKeyResponse.Key)
 	require.NotEmpty(t, createRootKeyResponse.KeyId)
 
-	found, err := db.GetKeyById(ctx, createRootKeyResponse.KeyId)
+	found, err := resources.Database.GetKeyById(ctx, createRootKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, createRootKeyResponse.KeyId, found.Id)
 }
@@ -75,8 +68,6 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
@@ -114,7 +105,7 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 	require.NotEmpty(t, createRootKeyResponse.Key)
 	require.NotEmpty(t, createRootKeyResponse.KeyId)
 
-	found, err := db.GetKeyById(ctx, createRootKeyResponse.KeyId)
+	found, err := resources.Database.GetKeyById(ctx, createRootKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, createRootKeyResponse.KeyId, found.Id)
 	require.GreaterOrEqual(t, len(createRootKeyResponse.Key), 30)

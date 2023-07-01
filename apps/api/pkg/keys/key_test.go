@@ -8,14 +8,16 @@ import (
 func TestEncodeDecode(t *testing.T) {
 	for i := 0; i < 100; i++ {
 
-		key, err := NewKey("prefix", i)
+		key, err := NewV1Key("prefix", i)
 		require.NoError(t, err)
 
-		prefix, version, rest, err := DecodeKey(key)
+		decodedKey := keyV1{}
+		err = decodedKey.Unmarshal(key)
 		require.NoError(t, err)
-		require.Equal(t, "prefix", prefix)
-		require.Equal(t, uint8(0), version)
-		require.GreaterOrEqual(t, len(rest), i)
+
+		require.NoError(t, err)
+		require.Equal(t, "prefix", decodedKey.prefix)
+		require.GreaterOrEqual(t, len(decodedKey.random), i)
 
 	}
 }

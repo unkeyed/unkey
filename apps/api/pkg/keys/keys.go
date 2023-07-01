@@ -1,66 +1,80 @@
 package keys
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil/base58"
-	"google.golang.org/protobuf/proto"
 )
 
 const separator = "_"
 
-func NewKey(prefix string, byteLength int) (string, error) {
-	random := make([]byte, byteLength)
-	_, err := rand.Read(random)
-	if err != nil {
-		return "", fmt.Errorf("unable to get random bytes: %w", err)
+// Version 1 keys are constructed of 3 parts
+// 1. 1 byte for the version
+// 2. 1 byte to let us know the byteLength of the random part
+// 3. X bytes of random data
+// [VERSION, LEN, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X]
+type keyV1 struct {
+	prefix string
+	random []byte
+}
+
+func (k keyV1) Marshal() (string, error) {
+	if len(k.random) > 255 {
+		return "", fmt.Errorf("v1 keys can only handle 255 bytes of randomness")
 	}
+	buf := bytes.NewBuffer(nil)
+	buf.WriteByte(1)
+	buf.WriteByte(byte(len(k.random)))
+	buf.Write(k.random)
 
-	key := &Key{
-		Version: versionToBytes(0),
-		Random:  random,
-	}
+	s := base58.Encode(buf.Bytes())
 
-	buf, err := proto.Marshal(key)
-	if err != nil {
-		return "", fmt.Errorf("unable to marshal key: %w", err)
-	}
-
-	suffix := base58.Encode(buf)
-
-	if prefix != "" {
-		return strings.Join([]string{string(prefix), suffix}, separator), nil
+	if k.prefix != "" {
+		return strings.Join([]string{string(k.prefix), s}, separator), nil
 	} else {
-		return suffix, nil
+		return s, nil
 	}
 }
 
-func DecodeKey(s string) (prefix string, version uint8, rest []byte, err error) {
-	split := strings.Split(s, separator)
-
-	if len(split) >= 2 {
-		prefix = split[0]
+func (k *keyV1) Unmarshal(key string) error {
+	split := strings.Split(key, separator)
+	if len(split) == 2 {
+		k.prefix = split[0]
 	}
 
-	decoded := base58.Decode(split[len(split)-1])
-	key := &Key{}
-	err = proto.Unmarshal(decoded, key)
+	rest := split[len(split)-1]
+
+	buf := base58.Decode(rest)
+	if buf[0] != 1 {
+		return fmt.Errorf("key has wrong version, expected 1, got %d", buf[0])
+	}
+	byteLength := buf[1]
+
+	k.random = buf[2 : 2+byteLength]
+	return nil
+
+}
+
+func NewV1Key(prefix string, byteLength int) (string, error) {
+	if byteLength > 255 {
+		return "", fmt.Errorf("v1 keys can only handle 255 bytes of randomness")
+	}
+	random := make([]byte, byteLength)
+	read, err := rand.Read(random)
 	if err != nil {
-		return "", 0, nil, fmt.Errorf("unable to unmarshal key")
+		return "", fmt.Errorf("unable to read random data")
 	}
-	version = versionFrombytes(key.Version)
+	if read != byteLength {
+		return "", fmt.Errorf("unable to read enough random data")
+	}
+	key := keyV1{
+		prefix: prefix,
+		random: random,
+	}
 
-	return prefix, version, key.Random, nil
-}
+	return key.Marshal()
 
-func versionToBytes(i uint8) []byte {
-	b := make([]byte, 1)
-	b[0] = byte(i)
-	return b
-}
-
-func versionFrombytes(b []byte) uint8 {
-	return uint8(b[0])
 }

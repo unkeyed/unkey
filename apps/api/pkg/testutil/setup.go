@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/chronark/unkey/apps/api/pkg/database"
-	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
+	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ type resources struct {
 	UnkeyKey       string
 	UserWorkspace  entities.Workspace
 	UserApi        entities.Api
-	Database database.Database
+	Database       database.Database
 }
 
 func SetupResources(t *testing.T) resources {
@@ -34,7 +34,7 @@ func SetupResources(t *testing.T) resources {
 	require.NoError(t, err)
 
 	r := resources{
-		Database:db,
+		Database: db,
 	}
 
 	r.UnkeyWorkspace = entities.Workspace{

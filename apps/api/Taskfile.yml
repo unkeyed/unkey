@@ -44,10 +44,6 @@ tasks:
 
   debug:
     - go test -shuffle=on --race ./... -run TestListKeys_FilterOwnerId
-
-  generate:
-    - buf generate
-
   introspect:
     # https://github.com/xo/xo
     - xo schema $XO_DSN -o ./pkg/database/models --go-pkg=models

@@ -103,7 +103,7 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 		})
 	}
 
-	keyValue, err := keys.NewKey(req.Prefix, req.ByteLength)
+	keyValue, err := keys.NewV1Key(req.Prefix, req.ByteLength)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,

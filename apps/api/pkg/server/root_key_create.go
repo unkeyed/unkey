@@ -66,7 +66,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 			})
 	}
 
-	keyValue, err := keys.NewKey("unkey", 16)
+	keyValue, err := keys.NewV1Key("unkey", 16)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,

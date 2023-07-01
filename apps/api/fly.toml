@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "unkey-global-api"
+app = "unkey-api-production"
 primary_region = "iad"
 
 [build]
