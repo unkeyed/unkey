@@ -24,6 +24,10 @@ func keyModelToEntity(model *models.Key) (entities.Key, error) {
 		key.OwnerId = model.OwnerID.String
 	}
 
+	if model.Name.Valid {
+		key.Name = model.Name.String
+	}
+
 	if model.Expires.Valid {
 		key.Expires = model.Expires.Time
 	}
@@ -65,6 +69,10 @@ func keyEntityToModel(e entities.Key) (*models.Key, error) {
 		OwnerID: sql.NullString{
 			String: e.OwnerId,
 			Valid:  e.OwnerId != "",
+		},
+		Name: sql.NullString{
+			String: e.Name,
+			Valid:  e.Name != "",
 		},
 		Meta:      sql.NullString{String: string(metaBuf), Valid: len(metaBuf) > 0},
 		CreatedAt: e.CreatedAt,

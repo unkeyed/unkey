@@ -109,7 +109,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     });
   }
 
-  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/keys/verify' \\
+  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys/verify' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key}"

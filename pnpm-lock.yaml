@@ -159,6 +159,9 @@ importers:
       '@trpc/server':
         specifier: ^10.31.0
         version: 10.31.0
+      '@unkey/api':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@unkey/db':
         specifier: workspace:*
         version: link:../../packages/db

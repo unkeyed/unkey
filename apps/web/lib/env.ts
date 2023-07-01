@@ -16,7 +16,8 @@ const schema = z.object({
 
   TINYBIRD_TOKEN: z.string(),
 
-  UNKEY_APP_AUTH_TOKEN: z.string()
+  UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
+  UNKEY_APP_AUTH_TOKEN: z.string(),
 });
 
 export const env = schema.parse(process.env);

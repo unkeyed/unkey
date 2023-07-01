@@ -35,12 +35,11 @@ export const keys = mysqlTable(
      * This field is not used for user keys, only for the internal keys that are used to manage the unkey app itself.
      */
     forWorkspaceId: varchar("for_workspace_id", { length: 256 }),
-
+    name: varchar("name", { length: 256 }),
     ownerId: varchar("owner_id", { length: 256 }),
     meta: text("meta"),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
-    expires: datetime("expires", { fsp: 3 }), // unix
-
+    expires: datetime("expires", { fsp: 3 }), // unix,
     /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */

@@ -6,6 +6,7 @@ type Key struct {
 	Id             string
 	ApiId          string
 	WorkspaceId    string
+	Name           string
 	Hash           string
 	Start          string
 	OwnerId        string

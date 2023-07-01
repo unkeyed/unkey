@@ -124,6 +124,9 @@ func New(config Config) *Server {
 
 	s.app.Get("/v1/liveness", s.liveness)
 
+	// Used internally only, not covered by versioning
+	s.app.Post("/v1/internal/rootkeys", s.createRootKey)
+
 	s.app.Post("/v1/keys", s.createKey)
 	s.app.Delete("/v1/keys/:keyId", s.deleteKey)
 	s.app.Post("/v1/keys/verify", s.verifyKey)

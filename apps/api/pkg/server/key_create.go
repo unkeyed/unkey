@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,8 +14,9 @@ import (
 )
 
 type CreateKeyRequest struct {
-	ApiId      string         `json:"apiId"`
+	ApiId      string         `json:"apiId" validate:"required"`
 	Prefix     string         `json:"prefix"`
+	Name       string         `json:"name"`
 	ByteLength int            `json:"byteLength"`
 	OwnerId    string         `json:"ownerId"`
 	Meta       map[string]any `json:"meta"`
@@ -69,71 +69,38 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 			})
 	}
 
-	var (
-		workspaceId string
-		apiId       string
-	)
-	// If ForWorkspaceId is defined, we need to check for the `UNKEY_APP_AUTH_TOKEN` instead of doing key verification.
-	if req.ForWorkspaceId != "" {
-		appToken := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
-		if subtle.ConstantTimeCompare([]byte(s.unkeyAppAuthToken), []byte(appToken)) == 0 {
-			return c.Status(http.StatusUnauthorized).JSON(
-				ErrorResponse{
-					Code:  UNAUTHORIZED,
-					Error: "unauthorized",
-				})
-		}
+	authHash, err := getKeyHash(c.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 
-		workspaceId = s.unkeyWorkspaceId
-		apiId = s.unkeyApiId
+	authKey, err := s.db.GetKeyByHash(ctx, authHash)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
+			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
+		})
+	}
 
-	} else {
+	if authKey.ForWorkspaceId == "" {
+		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+			Code:  BAD_REQUEST,
+			Error: "wrong key type",
+		})
+	}
 
-		if req.ApiId == "" {
-			return c.Status(http.StatusBadRequest).JSON(
-				ErrorResponse{
-					Code:  BAD_REQUEST,
-					Error: "'apiId' must be defined",
-				})
-		}
-		apiId = req.ApiId
-
-		authHash, err := getKeyHash(c.Get("Authorization"))
-		if err != nil {
-			return err
-		}
-
-		authKey, err := s.db.GetKeyByHash(ctx, authHash)
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-				Code:  INTERNAL_SERVER_ERROR,
-				Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-			})
-		}
-
-		if authKey.ForWorkspaceId == "" {
-			return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-				Code:  BAD_REQUEST,
-				Error: "wrong key type",
-			})
-		}
-
-		workspaceId = authKey.WorkspaceId
-		apiId = authKey.ApiId
-
-		api, err := s.db.GetApi(ctx, req.ApiId)
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-				Code:  INTERNAL_SERVER_ERROR,
-				Error: fmt.Sprintf("unable to find api: %s", err.Error()),
-			})
-		}
-		if api.WorkspaceId != authKey.ForWorkspaceId {
-			return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-				Code:  UNAUTHORIZED,
-				Error: "access to workspace denied",
-			})
-		}
+	api, err := s.db.GetApi(ctx, req.ApiId)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
+			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
+		})
+	}
+	if api.WorkspaceId != authKey.ForWorkspaceId {
+		return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
+			Code:  UNAUTHORIZED,
+			Error: "access to workspace denied",
+		})
 	}
 
 	keyValue, err := keys.NewKey(req.Prefix, req.ByteLength)
@@ -148,8 +115,9 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 
 	newKey := entities.Key{
 		Id:          uid.Key(),
-		ApiId:       apiId,
-		WorkspaceId: workspaceId,
+		ApiId:       req.ApiId,
+		WorkspaceId: authKey.ForWorkspaceId,
+		Name:        req.Name,
 		Hash:        keyHash,
 		Start:       split[len(split)-1][:4],
 		OwnerId:     req.OwnerId,
