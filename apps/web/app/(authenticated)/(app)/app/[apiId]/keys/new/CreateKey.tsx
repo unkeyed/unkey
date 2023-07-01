@@ -32,11 +32,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Code } from "@/components/ui/code";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
+  metaEnabled: z.boolean().default(false),
   meta: z.record(z.unknown()).optional(),
   expiresEnabled: z.boolean().default(false),
   expires: z
@@ -78,6 +80,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     },
     onError(err) {
       const errors = JSON.parse(err.message);
+
       if (err.data?.code === "BAD_REQUEST" && errors[0].path[0] === "ratelimit") {
         toast({
           title: "Error",
@@ -95,12 +98,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("meta:",values.meta)
     if (!values.rateLimitEnabled || values.ratelimit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
       delete values.ratelimit
     }
-
+    if(!values.metaEnabled || !values.meta) {
+      delete values.meta
+    }
+    
     await key.mutateAsync({
       apiId,
       ...values,
@@ -270,6 +277,32 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         );
                       }}
                     />
+                    <FormField
+                      control={form.control}
+                      name="metaEnabled"
+                      render={({ field }) => {
+                        return (
+                          <FormItem>
+                            <FormControl>
+                              <div className="flex items-center space-x-4">
+                                <Switch
+                                  checked={field.value}
+                                  defaultValue={"false"}
+                                  onCheckedChange={(value) => {
+                                    if (value === false) {
+                                      form.resetField("meta");
+                                      form.clearErrors("meta");
+                                    }
+                                    field.onChange(value);
+                                  }}
+                                />
+                                <FormLabel>Enable Custom Metadata</FormLabel>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        );
+                      }}
+                    />
                   </div>
                   {form.watch("expiresEnabled") && (
                     <FormField
@@ -283,6 +316,46 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           </FormControl>
                           <FormDescription>
                             This api key will automatically be revoked after the given date.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  {form.watch("metaEnabled") && (
+                    <FormField
+                      control={form.control}
+                      name="meta"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custom Metadata</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder={
+                            `{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`} onBlur={
+                              (e) => {
+                                try{
+                                field.onChange(JSON.parse(e.target.value))
+                                form.clearErrors("meta")
+                                } catch (_e) {
+                                  
+                                }
+                              }
+                            } onChange={
+                              (e) => {
+                                try{
+                                field.onChange(JSON.parse(e.target.value))
+                                form.clearErrors("meta")
+                                } catch (_e) {
+                                  form.setError("meta", {
+                                    type: "manual",
+                                    message: "Invalid JSON"
+                                  })
+                                }
+                              }
+                            } />
+                          </FormControl>
+                          <FormDescription>
+                            Enter custom metadata as a JSON object.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
