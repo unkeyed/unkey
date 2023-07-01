@@ -52,6 +52,10 @@ export class Unkey {
     return {
       create: async (req: {
         /**
+         * Provide a name to this key if you want for later reference
+         */
+        name?: string;
+        /**
          * Choose an API where this key should be created.
          */
         apiId: string;
@@ -119,8 +123,8 @@ export class Unkey {
            */
           refillInterval: number;
         };
-      }): Promise<{ key: string }> => {
-        return await this.fetch<{ key: string; value: string }>({
+      }): Promise<{ key: string; keyId: string }> => {
+        return await this.fetch<{ key: string; keyId: string }>({
           path: ["v1", "keys"],
           method: "POST",
           body: req,
@@ -170,6 +174,35 @@ export class Unkey {
         }>({
           path: ["v1", "keys", req.keyId],
           method: "DELETE",
+        });
+      },
+    };
+  }
+  /**
+   * Must be authenticated via app token
+   */
+  public get _internal() {
+    return {
+      createRootKey: async (req: {
+        /**
+         * Provide a name to this key if you want for later reference
+         */
+        name?: string;
+
+        /**
+         * You can auto expire keys by providing a unix timestamp in milliseconds.
+         *
+         * Once keys expire they will automatically be deleted and are no longer valid.
+         */
+        expires?: number;
+
+        // Used to create root keys from the frontend, please ignore
+        forWorkspaceId: string;
+      }): Promise<{ key: string; keyId: string }> => {
+        return await this.fetch<{ key: string; keyId: string }>({
+          path: ["v1", "internal", "rootkeys"],
+          method: "POST",
+          body: req,
         });
       },
     };

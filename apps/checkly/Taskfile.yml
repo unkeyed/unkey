@@ -1,0 +1,47 @@
+version: '3'
+
+
+vars:
+  VERSION:
+    sh: git describe --tags --always
+  IMAGE: unkey-api
+
+
+
+dotenv: [".env"]
+
+tasks:
+  install:
+    cmds:
+      - go mod download
+
+
+  dev:
+    deps:
+      - install
+    cmds:
+      - go run  -ldflags "-X 'main.version={{.VERSION}}' -X 'main.build={{.BUILDTIME}}'" ./cmd/api
+
+  fmt:
+    cmds:
+      - go fmt ./...
+      - go vet ./...
+      - golangci-lint run ./...
+      - buf format -w
+
+  build:
+    deps:
+      - install
+
+    cmds:
+      - go build -o unkey -ldflags "-X 'main.version={{.VERSION}}'" ./cmd/api
+  build-docker:
+    cmds:
+      - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
+
+  test:
+    - go test -json -v -shuffle=on --race ./... | gotestfmt
+
+  introspect:
+    # https://github.com/xo/xo
+    - xo schema $XO_DSN -o ./pkg/database/models --go-pkg=models

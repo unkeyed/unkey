@@ -1,0 +1,19 @@
+{
+  "name": "@unkey/checkly",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "dotenv checkly test",
+    "deploy": "dotenv checkly deploy"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "20.3.1",
+    "@unkey/tsconfig": "workspace:^",
+    "checkly": "^4.0.9",
+    "dotenv-cli": "^7.2.1",
+    "typescript": "latest",
+    "zod": "^3.21.4"
+  }
+}
