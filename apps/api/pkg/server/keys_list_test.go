@@ -26,6 +26,8 @@ func TestListKeys_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -79,6 +81,8 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -140,6 +144,8 @@ func TestListKeys_WithLimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -191,6 +197,8 @@ func TestListKeys_WithOffset(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)

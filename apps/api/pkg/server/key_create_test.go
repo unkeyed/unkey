@@ -28,6 +28,7 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	db, err := database.New(database.Config{
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		Logger:    logging.NewNoopLogger(),
 	})
 	require.NoError(t, err)
 
@@ -72,7 +73,8 @@ func TestCreateKey_WithCustom(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
+	db, err := database.New(database.Config{Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)

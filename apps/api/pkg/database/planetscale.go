@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/chronark/unkey/apps/api/pkg/logging"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
@@ -12,21 +11,30 @@ import (
 type database struct {
 	primary     *sql.DB
 	readReplica *sql.DB
-	logger      logging.Logger
+	logger      *zap.Logger
 }
 
 type Config struct {
-	PrimaryUs   string
-	ReplicaEu   string
-	ReplicaAsia string
-	FlyRegion   string
-	Logger      logging.Logger
+	PrimaryUs        string
+	ReplicaEu        string
+	ReplicaAsia      string
+	FlyRegion        string
+	Logger           *zap.Logger
+	PlanetscaleBoost bool
 }
 
 func New(config Config) (Database, error) {
+	logger := config.Logger.With(zap.String("pkg", "database"))
 	primary, err := sql.Open("mysql", fmt.Sprintf("%s&parseTime=true", config.PrimaryUs))
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
+	}
+	if config.PlanetscaleBoost {
+		logger.Info("enabling planetscale boost for primary")
+		_, err = primary.Exec("SET @@boost_cached_queries = true")
+		if err != nil {
+			return nil, fmt.Errorf("cannot enable bloost: %w", err)
+		}
 	}
 
 	err = primary.Ping()
@@ -37,14 +45,14 @@ func New(config Config) (Database, error) {
 	var readReplica *sql.DB = nil
 	c := getClosestContinent(config.FlyRegion)
 	if c == continentEu && config.ReplicaEu != "" {
-		config.Logger.Info("Adding database read replica", zap.String("continent", "europe"))
+		logger.Info("Adding database read replica", zap.String("continent", "europe"))
 
 		readReplica, err = sql.Open("mysql", fmt.Sprintf("%s&parseTime=true", config.ReplicaEu))
 		if err != nil {
 			return nil, fmt.Errorf("error opening database: %w", err)
 		}
 	} else if c == continentAsia && config.ReplicaAsia != "" {
-		config.Logger.Info("Adding database read replica", zap.String("continent", "asia"))
+		logger.Info("Adding database read replica", zap.String("continent", "asia"))
 
 		readReplica, err = sql.Open("mysql", fmt.Sprintf("%s&parseTime=true", config.ReplicaAsia))
 		if err != nil {
@@ -57,12 +65,20 @@ func New(config Config) (Database, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to ping read replica")
 		}
+		if config.PlanetscaleBoost {
+			logger.Info("enabling planetscale boost for replica")
+
+			_, err = readReplica.Exec("SET @@boost_cached_queries = true")
+			if err != nil {
+				return nil, fmt.Errorf("cannot enable bloost on replica: %w", err)
+			}
+		}
 	}
 
 	return &database{
 		primary:     primary,
 		readReplica: readReplica,
-		logger:      config.Logger,
+		logger:      logger,
 	}, nil
 
 }

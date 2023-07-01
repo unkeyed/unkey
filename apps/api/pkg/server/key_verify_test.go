@@ -30,6 +30,8 @@ func TestVerifyKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -80,6 +82,8 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -148,6 +152,8 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger: logging.NewNoopLogger(),
+
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)

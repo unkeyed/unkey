@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chronark/unkey/apps/api/pkg/database"
+	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
@@ -20,17 +21,21 @@ type resources struct {
 	UnkeyKey       string
 	UserWorkspace  entities.Workspace
 	UserApi        entities.Api
+	Database database.Database
 }
 
 func SetupResources(t *testing.T) resources {
 	t.Helper()
 	ctx := context.Background()
 	db, err := database.New(database.Config{
+		Logger:    logging.NewNoopLogger(),
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
 
-	r := resources{}
+	r := resources{
+		Database:db,
+	}
 
 	r.UnkeyWorkspace = entities.Workspace{
 		Id:       uid.Workspace(),

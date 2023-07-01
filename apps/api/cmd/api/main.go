@@ -82,10 +82,12 @@ func main() {
 	r := ratelimit.New()
 
 	db, err := database.New(database.Config{
-		PrimaryUs:   e.String("DATABASE_DSN"),
-		ReplicaEu:   e.String("DATABASE_DSN_EU", ""),
-		ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
-		FlyRegion:   region,
+		Logger:           logger,
+		PrimaryUs:        e.String("DATABASE_DSN"),
+		ReplicaEu:        e.String("DATABASE_DSN_EU", ""),
+		ReplicaAsia:      e.String("DATABASE_DSN_ASIA", ""),
+		FlyRegion:        region,
+		PlanetscaleBoost: e.Bool("PLANETSCALE_BOOST", false),
 	})
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))

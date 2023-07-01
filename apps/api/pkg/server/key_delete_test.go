@@ -27,6 +27,7 @@ func TestDeleteKey(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
+		Logger:    logging.NewNoopLogger(),
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)

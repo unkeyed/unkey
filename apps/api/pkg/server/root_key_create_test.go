@@ -76,15 +76,12 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
+
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
 		Cache:             cache.NewInMemoryCache[entities.Key](),
-		Database:          db,
+		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
 		UnkeyAppAuthToken: "supersecret",
 		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
