@@ -98,16 +98,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("meta:",values.meta)
+    console.log("meta:", values.meta);
     if (!values.rateLimitEnabled || values.ratelimit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
       delete values.ratelimit;
     }
-    if(!values.metaEnabled || !values.meta) {
-      delete values.meta
+    if (!(values.metaEnabled && values.meta)) {
+      delete values.meta;
     }
-    
+
     await key.mutateAsync({
       apiId,
       ...values,
@@ -330,33 +330,28 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         <FormItem>
                           <FormLabel>Custom Metadata</FormLabel>
                           <FormControl>
-                            <Textarea placeholder={
-                            `{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`} onBlur={
-                              (e) => {
-                                try{
-                                field.onChange(JSON.parse(e.target.value))
-                                form.clearErrors("meta")
-                                } catch (_e) {
-                                  
-                                }
-                              }
-                            } onChange={
-                              (e) => {
-                                try{
-                                field.onChange(JSON.parse(e.target.value))
-                                form.clearErrors("meta")
+                            <Textarea
+                              placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
+                              onBlur={(e) => {
+                                try {
+                                  field.onChange(JSON.parse(e.target.value));
+                                  form.clearErrors("meta");
+                                } catch (_e) {}
+                              }}
+                              onChange={(e) => {
+                                try {
+                                  field.onChange(JSON.parse(e.target.value));
+                                  form.clearErrors("meta");
                                 } catch (_e) {
                                   form.setError("meta", {
                                     type: "manual",
-                                    message: "Invalid JSON"
-                                  })
+                                    message: "Invalid JSON",
+                                  });
                                 }
-                              }
-                            } />
+                              }}
+                            />
                           </FormControl>
-                          <FormDescription>
-                            Enter custom metadata as a JSON object.
-                          </FormDescription>
+                          <FormDescription>Enter custom metadata as a JSON object.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
