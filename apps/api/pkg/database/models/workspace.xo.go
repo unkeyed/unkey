@@ -4,16 +4,17 @@ package models
 
 import (
 	"context"
+	"database/sql"
 )
 
 // Workspace represents a row from 'unkey.workspaces'.
 type Workspace struct {
-	ID                 string `json:"id"`                   // id
-	Name               string `json:"name"`                 // name
-	Slug               string `json:"slug"`                 // slug
-	TenantID           string `json:"tenant_id"`            // tenant_id
-	Internal           bool   `json:"internal"`             // internal
-	EnableBetaFeatures bool   `json:"enable_beta_features"` // enable_beta_features
+	ID                 string       `json:"id"`                   // id
+	Name               string       `json:"name"`                 // name
+	Slug               string       `json:"slug"`                 // slug
+	TenantID           string       `json:"tenant_id"`            // tenant_id
+	Internal           bool         `json:"internal"`             // internal
+	EnableBetaFeatures sql.NullBool `json:"enable_beta_features"` // enable_beta_features
 	// xo fields
 	_exists, _deleted bool
 }
