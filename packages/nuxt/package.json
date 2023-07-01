@@ -28,7 +28,7 @@
     "dist"
   ],
   "scripts": {
-    "prepack": "nuxt-module-build",
+    "build": "nuxt-module-build",
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
     "dev:prepare": "nuxt-module-build --stub && nuxi prepare playground"
@@ -42,6 +42,7 @@
     "@nuxt/devtools": "latest",
     "@nuxt/module-builder": "^0.4.0",
     "@nuxt/schema": "^3.6.1",
+    "@types/node": "^20.3.2",
     "@unkey/nuxt": "link:.",
     "@vue/reactivity": "^3.3.4",
     "@vue/runtime-core": "^3.3.4",
