@@ -15,6 +15,8 @@ const schema = z.object({
   UPSTASH_KAFKA_REST_PASSWORD: z.string(),
 
   TINYBIRD_TOKEN: z.string(),
+
+  UNKEY_APP_AUTH_TOKEN: z.string()
 });
 
 export const env = schema.parse(process.env);

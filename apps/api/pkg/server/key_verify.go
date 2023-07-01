@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
+	"github.com/chronark/unkey/apps/api/pkg/tinybird"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 	"net/http"
@@ -143,6 +144,16 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		res.Valid = r.Pass
 		if !r.Pass {
 			res.Code = RATELIMITED
+		}
+	}
+
+	if s.tinybird != nil {
+		s.verificationsC <- tinybird.KeyVerificationEvent{
+			WorkspaceId: key.WorkspaceId,
+			ApiId:       key.ApiId,
+			KeyId:       key.Id,
+			Ratelimited: res.Code == RATELIMITED,
+			Time:        time.Now().UnixMilli(),
 		}
 	}
 

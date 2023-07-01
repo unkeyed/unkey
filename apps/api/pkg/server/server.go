@@ -17,6 +17,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
+	"github.com/chronark/unkey/apps/api/pkg/tinybird"
 	"github.com/go-playground/validator/v10"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -28,6 +29,12 @@ type Config struct {
 	Database  database.Database
 	Ratelimit *ratelimit.Ratelimiter
 	Tracer    trace.Tracer
+	// Potentially the user does not have tinybird set up or does not want to use it
+	// simply pass in nil in that case
+	Tinybird          *tinybird.Tinybird
+	UnkeyAppAuthToken string
+	UnkeyWorkspaceId  string
+	UnkeyApiId        string
 }
 
 type Server struct {
@@ -38,6 +45,14 @@ type Server struct {
 	cache     cache.Cache[entities.Key]
 	ratelimit *ratelimit.Ratelimiter
 	tracer    trace.Tracer
+	// potentially nil, always do a check first
+	tinybird       *tinybird.Tinybird
+	verificationsC chan tinybird.KeyVerificationEvent
+	closeC         chan struct{}
+	// Used to authenticate our frontend when creating new unkey keys.
+	unkeyAppAuthToken string
+	unkeyWorkspaceId  string
+	unkeyApiId        string
 }
 
 func New(config Config) *Server {
@@ -47,13 +62,23 @@ func New(config Config) *Server {
 	}
 
 	s := &Server{
-		app:       fiber.New(appConfig),
-		logger:    config.Logger,
-		validator: validator.New(),
-		db:        config.Database,
-		cache:     config.Cache,
-		ratelimit: config.Ratelimit,
-		tracer:    config.Tracer,
+		app:               fiber.New(appConfig),
+		logger:            config.Logger,
+		validator:         validator.New(),
+		db:                config.Database,
+		cache:             config.Cache,
+		ratelimit:         config.Ratelimit,
+		tracer:            config.Tracer,
+		tinybird:          config.Tinybird,
+		verificationsC:    make(chan tinybird.KeyVerificationEvent),
+		closeC:            make(chan struct{}),
+		unkeyAppAuthToken: config.UnkeyAppAuthToken,
+		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
+		unkeyApiId:        config.UnkeyApiId,
+	}
+
+	if config.Tinybird != nil {
+		go s.SyncTinybird()
 	}
 
 	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
@@ -119,5 +144,26 @@ func (s *Server) Start(addr string) error {
 }
 
 func (s *Server) Close() error {
+	s.closeC <- struct{}{}
 	return s.app.Server().Shutdown()
+}
+
+// Call this in a goroutine
+func (s *Server) SyncTinybird() {
+	for {
+		select {
+		case <-s.closeC:
+			return
+		case e := <-s.verificationsC:
+			err := s.tinybird.PublishKeyVerificationEvent("key_verifications__v1", e)
+			if err != nil {
+				s.logger.Error("unable to publish event to tinybird",
+					zap.String("workspaceId", e.WorkspaceId),
+					zap.String("apiId", e.ApiId),
+					zap.String("keyId", e.KeyId),
+				)
+			}
+			return
+		}
+	}
 }

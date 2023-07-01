@@ -9,6 +9,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const separator = "_"
+
 func NewKey(prefix string, byteLength int) (string, error) {
 	random := make([]byte, byteLength)
 	_, err := rand.Read(random)
@@ -29,10 +31,28 @@ func NewKey(prefix string, byteLength int) (string, error) {
 	suffix := base58.Encode(buf)
 
 	if prefix != "" {
-		return strings.Join([]string{string(prefix), suffix}, "_"), nil
+		return strings.Join([]string{string(prefix), suffix}, separator), nil
 	} else {
 		return suffix, nil
 	}
+}
+
+func DecodeKey(s string) (prefix string, version uint8, rest []byte, err error) {
+	split := strings.Split(s, separator)
+
+	if len(split) >= 2 {
+		prefix = split[0]
+	}
+
+	decoded := base58.Decode(split[len(split)-1])
+	key := &Key{}
+	err = proto.Unmarshal(decoded, key)
+	if err != nil {
+		return "", 0, nil, fmt.Errorf("unable to unmarshal key")
+	}
+	version = versionFrombytes(key.Version)
+
+	return prefix, version, key.Random, nil
 }
 
 func versionToBytes(i uint8) []byte {
@@ -41,6 +61,6 @@ func versionToBytes(i uint8) []byte {
 	return b
 }
 
-// func versionFrombytes(b []byte) uint8 {
-// 	return uint8(b[0])
-// }
+func versionFrombytes(b []byte) uint8 {
+	return uint8(b[0])
+}

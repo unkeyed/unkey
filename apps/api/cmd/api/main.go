@@ -12,6 +12,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/chronark/unkey/apps/api/pkg/server"
+	"github.com/chronark/unkey/apps/api/pkg/tinybird"
 	"github.com/chronark/unkey/apps/api/pkg/tracing"
 	"go.uber.org/zap"
 	"os"
@@ -44,6 +45,14 @@ func main() {
 
 	axiomOrgId := e.String("AXIOM_ORG_ID", "")
 	axiomToken := e.String("AXIOM_TOKEN", "")
+
+	var tb *tinybird.Tinybird
+	tinybirdToken := e.String("TINYBIRD_TOKEN", "")
+	if tinybirdToken != "" {
+		tb = tinybird.New(tinybird.Config{
+			Token: tinybirdToken,
+		})
+	}
 
 	var tracer tracing.Tracer
 	if axiomOrgId != "" && axiomToken != "" {
@@ -89,11 +98,15 @@ func main() {
 	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
 
 	srv := server.New(server.Config{
-		Logger:    logger,
-		Cache:     c,
-		Database:  db,
-		Ratelimit: r,
-		Tracer:    tracer,
+		Logger:            logger,
+		Cache:             c,
+		Database:          db,
+		Ratelimit:         r,
+		Tracer:            tracer,
+		Tinybird:          tb,
+		UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),
+		UnkeyWorkspaceId:  e.String("UNKEY_WORKSPACE_ID"),
+		UnkeyApiId:        e.String("UNKEY_API_ID"),
 	})
 
 	err = srv.Start(fmt.Sprintf("0.0.0.0:%s", port))
