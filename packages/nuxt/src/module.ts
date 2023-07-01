@@ -66,7 +66,12 @@ export default defineNuxtModule<ModuleOptions>({
             imports: ['useUnkey']
           })
         }
+        config.typescript ||= {}
+        config.typescript.tsConfig = defu(config.typescript.tsConfig, {
+          include: [resolver.resolve('./runtime/server/types.d.ts')]
+        })
       })
+      
       nuxt.hook('prepare:types', ({ references }) => {
         references.push({
           path: resolver.resolve('./runtime/server/types.d.ts')
