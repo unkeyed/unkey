@@ -1,19 +1,21 @@
+FROM golang:1.20 AS builder
 
-FROM node:20-alpine
+WORKDIR /go/src/github.com/chronark/unkey/apps/api
 
+COPY go.mod .
+COPY go.sum .
 
-RUN npm i -g pnpm
-RUN npm i -g turbo
-
-
-WORKDIR /unkey
+RUN go mod download
 
 COPY . .
 
+ARG VERSION
 
-RUN pnpm install -r
-RUN pnpm turbo run build --filter=api
+RUN go build -o unkey -ldflags "-X 'main.version=${VERSION}'" ./cmd/api
 
-ENV NODE_ENV production
+FROM golang:1.20
 
-CMD ["node", "apps/api/dist/main.mjs"]
+COPY --from=builder /go/src/github.com/chronark/unkey/apps/api/unkey /usr/local/bin/unkey
+
+
+CMD ["/usr/local/bin/unkey"]

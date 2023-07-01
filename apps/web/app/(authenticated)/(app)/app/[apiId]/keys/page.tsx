@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq, type Key } from "@unkey/db";
 import { notFound, redirect } from "next/navigation";
 import { DeleteApiButton } from "../DeleteApi";
 import { Separator } from "@/components/ui/separator";
@@ -23,9 +23,23 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     return redirect("/onboarding");
   }
 
+  const keys: Key[] = [];
+  const expired: Key[] = [];
+
+  for (const k of api.keys) {
+    if (k.expires && k.expires.getTime() < Date.now()) {
+      expired.push(k);
+    } else {
+      keys.push(k);
+    }
+  }
+  if (expired.length > 0) {
+    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
+  }
+
   return (
     <div>
-      <ApiKeyTable data={api.keys} />
+      <ApiKeyTable data={keys} />
     </div>
   );
 }

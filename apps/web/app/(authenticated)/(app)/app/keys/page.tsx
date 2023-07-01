@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
 import { CreateKeyButton } from "./CreateKey";
 import { ApiKeyTable } from "@/components/ApiKeyTable";
@@ -21,9 +21,24 @@ export default async function SettingsKeysPage() {
     return redirect("/onboarding");
   }
 
-  const keys = await db.query.keys.findMany({
+  const found = await db.query.keys.findMany({
     where: eq(schema.keys.forWorkspaceId, workspace.id),
+    limit: 100,
   });
+
+  const keys: Key[] = [];
+  const expired: Key[] = [];
+
+  for (const k of found) {
+    if (k.expires && k.expires.getTime() < Date.now()) {
+      expired.push(k);
+    } else {
+      keys.push(k);
+    }
+  }
+  if (expired.length > 0) {
+    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
+  }
 
   return (
     <div>

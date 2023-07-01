@@ -6,7 +6,7 @@ const DEBUG_ON = process.env.CLERK_DEBUG === "true";
 
 const checktenancy = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId)
+    where: eq(schema.workspaces.tenantId, tenantId),
   });
   return workspace;
 };
