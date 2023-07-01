@@ -8,7 +8,7 @@ export const useUnkey = (event?: H3Event) => {
   if (unkey) return unkey
 
   const config = useRuntimeConfig(event)
-  unkey = new Unkey({ token: config.unkey.key })
+  unkey = new Unkey({ token: config.unkey.token })
 
   return unkey
 }
