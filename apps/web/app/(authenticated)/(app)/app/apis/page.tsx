@@ -14,6 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+export const revalidate = 3;
+
 export default async function TenantOverviewPage() {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({

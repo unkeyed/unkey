@@ -116,9 +116,9 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
             <DialogTitle>Create a new API key</DialogTitle>
             <DialogDescription />
 
-            <Alert>
+            <Alert id="root-key-alert">
               <AlertTriangle className="w-4 h-4" />
-              <AlertTitle>Root keys can be dangerous</AlertTitle>
+              <AlertTitle id="root-key-alert-title">Root keys can be dangerous</AlertTitle>
               <AlertDescription>
                 The root key will provide full read and write access to all current and future
                 resources.
@@ -127,7 +127,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               </AlertDescription>
             </Alert>
             <DialogFooter className="flex items-center justify-between gap-2 ">
-              <Button onClick={() => key.mutate()}>
+              <Button disabled={key.isLoading} onClick={() => key.mutate()}>
                 {key.isLoading ? <Loading /> : "Create Root Key"}
               </Button>
             </DialogFooter>

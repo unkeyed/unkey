@@ -42,6 +42,7 @@ export const CreateApiButton: React.FC<Props> = () => {
         title: "API created",
         description: "Your API has been created",
       });
+      router.refresh();
       router.push(`/app/${res.id}`);
     },
     onError(err) {
@@ -84,7 +85,7 @@ export const CreateApiButton: React.FC<Props> = () => {
               />
 
               <DialogFooter className="p-4 justify-end">
-                <Button className="mt-4 w-1/4" type="submit">
+                <Button disabled={create.isLoading || !form.formState.isValid} className="mt-4 w-1/4" type="submit">
                   {create.isLoading ? <Loading /> : "Create"}
                 </Button>
               </DialogFooter>

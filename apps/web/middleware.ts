@@ -12,7 +12,7 @@ const checktenancy = async ({ tenantId }: { tenantId: string }) => {
 };
 
 export default authMiddleware({
-  publicRoutes: ["/", "/auth(.*)"],
+  publicRoutes: ["/", "/auth(.*)", "/discord"],
   signInUrl: "/auth/sign-in",
   debug: DEBUG_ON,
   async afterAuth(auth, req) {
