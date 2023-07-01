@@ -17,7 +17,7 @@ export const workspaces = mysqlTable(
     internal: boolean("internal").notNull().default(false),
 
     // idk, some kind of feature flag was useful
-    enableBetaFeatures: boolean("enable_beta_features").notNull().default(false),
+    // enableBetaFeatures: boolean("enable_beta_features").default(false),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

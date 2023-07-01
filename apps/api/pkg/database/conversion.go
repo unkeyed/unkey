@@ -102,7 +102,6 @@ func workspaceEntityToModel(w entities.Workspace) *models.Workspace {
 		Slug:               w.Slug,
 		TenantID:           w.TenantId,
 		Internal:           w.Internal,
-		EnableBetaFeatures: w.EnableBetaFeatures,
 	}
 
 }
@@ -114,7 +113,6 @@ func workspaceModelToEntity(model *models.Workspace) entities.Workspace {
 		Slug:               model.Slug,
 		TenantId:           model.TenantID,
 		Internal:           model.Internal,
-		EnableBetaFeatures: model.EnableBetaFeatures,
 	}
 
 }
