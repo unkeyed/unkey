@@ -73,6 +73,6 @@ jobs:
 
 
       - name: Deploy
-        run: /home/runner/.fly/bin/flyctl deploy --docker-image=${{ env.TAG }}
+        run: /home/runner/.fly/bin/flyctl deploy --image=${{ env.TAG }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
