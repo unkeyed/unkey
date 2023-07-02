@@ -42,8 +42,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ env.TAG }}
-        env:
-          VERSION: ${{env.VERSION}}
+          args: VERSION=${{env.VERSION}}
+
 
   deploy:
     name: Deploy API
