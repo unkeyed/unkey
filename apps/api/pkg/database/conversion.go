@@ -97,22 +97,22 @@ func keyEntityToModel(e entities.Key) (*models.Key, error) {
 func workspaceEntityToModel(w entities.Workspace) *models.Workspace {
 
 	return &models.Workspace{
-		ID:                 w.Id,
-		Name:               w.Name,
-		Slug:               w.Slug,
-		TenantID:           w.TenantId,
-		Internal:           w.Internal,
+		ID:       w.Id,
+		Name:     w.Name,
+		Slug:     w.Slug,
+		TenantID: w.TenantId,
+		Internal: w.Internal,
 	}
 
 }
 
 func workspaceModelToEntity(model *models.Workspace) entities.Workspace {
 	return entities.Workspace{
-		Id:                 model.ID,
-		Name:               model.Name,
-		Slug:               model.Slug,
-		TenantId:           model.TenantID,
-		Internal:           model.Internal,
+		Id:       model.ID,
+		Name:     model.Name,
+		Slug:     model.Slug,
+		TenantId: model.TenantID,
+		Internal: model.Internal,
 	}
 
 }

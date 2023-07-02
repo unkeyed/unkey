@@ -90,7 +90,7 @@ export const keyRouter = t.router({
           message: `unable to create root key: ${err.message}`,
         });
       });
-    console.log({ newRootKey });
+
     return newRootKey;
   }),
   delete: t.procedure
@@ -125,12 +125,13 @@ export const keyRouter = t.router({
           }
 
           await db.delete(schema.keys).where(where);
-          await kafka.producer().produce("key.deleted", {
+          const res = await kafka.producer().produce("key.deleted", {
             key: {
               id: key.id,
               hash: key.hash,
             },
           });
+          console.log("kafka", res);
         }),
       );
       return;

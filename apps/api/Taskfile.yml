@@ -42,6 +42,12 @@ tasks:
   test:
     - go test -v -json -shuffle=on --race ./... | gotestfmt
 
+
+  deploy:
+    cmds:
+      - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
+      - docker push ghcr.io/chronark/{{.IMAGE}}:{{.VERSION}}
+
   debug:
     - go test -shuffle=on --race ./... -run TestListKeys_FilterOwnerId
   introspect:
