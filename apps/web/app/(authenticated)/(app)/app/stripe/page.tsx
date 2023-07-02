@@ -17,6 +17,7 @@ export default async function StripeRedirect() {
   if (!ws) {
     return redirect("/onboarding");
   }
+  console.log({ ws });
   if (!stripeEnv) {
     return <div>Stripe is not enabled</div>;
   }
@@ -42,6 +43,17 @@ export default async function StripeRedirect() {
       name: ws.name,
     });
     ws.stripeCustomerId = customer.id;
+    console.log("updating workspace");
+
+    console.log(
+      "query",
+      db
+        .update(schema.workspaces)
+        .set({ stripeCustomerId: customer.id })
+        .where(eq(schema.workspaces.id, ws.id))
+        .toSQL(),
+    );
+
     await db
       .update(schema.workspaces)
       .set({ stripeCustomerId: customer.id })

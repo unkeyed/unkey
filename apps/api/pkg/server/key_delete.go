@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 type DeleteKeyRequest struct {
@@ -89,6 +90,13 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 			Code:  INTERNAL_SERVER_ERROR,
 			Error: fmt.Sprintf("unable to delete key %s", err.Error()),
 		})
+	}
+	if s.kafka != nil {
+
+		err := s.kafka.ProduceKeyDeletedEvent(ctx, key.Id, key.Hash)
+		if err != nil {
+			s.logger.Error("unable to emit keyDeletedEvent", zap.Error(err))
+		}
 	}
 	return c.JSON(DeleteKeyResponse{})
 }

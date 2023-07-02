@@ -9,6 +9,7 @@ import (
 	databaseMiddleware "github.com/chronark/unkey/apps/api/pkg/database/middleware"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/env"
+	"github.com/chronark/unkey/apps/api/pkg/kafka"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/chronark/unkey/apps/api/pkg/server"
@@ -81,6 +82,28 @@ func main() {
 
 	r := ratelimit.New()
 
+	c := cache.NewInMemoryCache[entities.Key]()
+	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
+
+	k, err := kafka.New(kafka.Config{
+		Logger:   logger,
+		GroupId:  e.String("FLY_ALLOC_ID", "local"),
+		Broker:   e.String("KAFKA_BROKER"),
+		Username: e.String("KAFKA_USERNAME"),
+		Password: e.String("KAFKA_PASSWORD"),
+	})
+	if err != nil {
+		logger.Fatal("unable to start kafka", zap.Error(err))
+	}
+	go k.Start()
+
+	k.RegisterOnKeyDeleted(func(e kafka.KeyDeletedEvent) error {
+		logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
+		c.Remove(context.Background(), e.Key.Hash)
+
+		return nil
+	})
+
 	db, err := database.New(database.Config{
 		Logger:           logger,
 		PrimaryUs:        e.String("DATABASE_DSN"),
@@ -96,9 +119,6 @@ func main() {
 
 	port := e.String("PORT", "8080")
 
-	c := cache.NewInMemoryCache[entities.Key]()
-	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
-
 	srv := server.New(server.Config{
 		Logger:            logger,
 		Cache:             c,
@@ -109,6 +129,8 @@ func main() {
 		UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),
 		UnkeyWorkspaceId:  e.String("UNKEY_WORKSPACE_ID"),
 		UnkeyApiId:        e.String("UNKEY_API_ID"),
+		Region:            region,
+		Kafka:             k,
 	})
 
 	err = srv.Start(fmt.Sprintf("0.0.0.0:%s", port))

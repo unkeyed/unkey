@@ -15,6 +15,7 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/cache"
 	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/chronark/unkey/apps/api/pkg/kafka"
 	"github.com/chronark/unkey/apps/api/pkg/logging"
 	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
 	"github.com/chronark/unkey/apps/api/pkg/tinybird"
@@ -35,6 +36,8 @@ type Config struct {
 	UnkeyAppAuthToken string
 	UnkeyWorkspaceId  string
 	UnkeyApiId        string
+	Region            string
+	Kafka             *kafka.Kafka
 }
 
 type Server struct {
@@ -53,6 +56,8 @@ type Server struct {
 	unkeyAppAuthToken string
 	unkeyWorkspaceId  string
 	unkeyApiId        string
+	region            string
+	kafka             *kafka.Kafka
 }
 
 func New(config Config) *Server {
@@ -63,6 +68,7 @@ func New(config Config) *Server {
 
 	s := &Server{
 		app:               fiber.New(appConfig),
+		kafka:             config.Kafka,
 		logger:            config.Logger,
 		validator:         validator.New(),
 		db:                config.Database,
@@ -75,6 +81,7 @@ func New(config Config) *Server {
 		unkeyAppAuthToken: config.UnkeyAppAuthToken,
 		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
 		unkeyApiId:        config.UnkeyApiId,
+		region:            config.Region,
 	}
 
 	if config.Tinybird != nil {
@@ -88,6 +95,7 @@ func New(config Config) *Server {
 	}}))
 
 	s.app.Use(func(c *fiber.Ctx) error {
+
 		// This header is a three letter region code which represents the region that the connection was accepted in and routed from.
 		edgeRegion := c.Get("Fly-Region")
 
@@ -98,7 +106,8 @@ func New(config Config) *Server {
 		))
 		defer span.End()
 		c.SetUserContext(ctx)
-		c.Set("Unkey-Trace-Id", span.SpanContext().TraceID().String())
+
+		c.Set("Unkey-Trace-Id", fmt.Sprintf("%s:%s::%s", s.region, edgeRegion, span.SpanContext().TraceID().String()))
 		start := time.Now()
 		err := c.Next()
 		latency := time.Since(start)
