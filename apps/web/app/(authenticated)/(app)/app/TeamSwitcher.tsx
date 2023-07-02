@@ -17,22 +17,31 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown, Plus, Key, Book, LogOut, Rocket, Settings } from "lucide-react";
+import {
+  Check,
+  Zap,
+  ChevronsUpDown,
+  Plus,
+  Key,
+  Book,
+  LogOut,
+  Rocket,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loading } from "@/components/loading";
 
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import type { Workspace } from "@unkey/db";
+type Props = {
+  workspace: Workspace;
+};
 
-type Props = {};
-
-export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
+export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
   const { user } = useUser();
@@ -68,9 +77,14 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
                 {(currentOrg?.slug ?? user?.username ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
-            <span>{currentOrg?.name ?? "Personal"}</span>
+            <div className="flex flex-col items-start gap-1 ">
+              <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
+                {currentOrg?.name ?? "Personal"}
+              </span>
+
+              <PlanBadge plan="pro" />
+            </div>
           </div>
-          {/* <PlanBadge plan={currentTeam?.plan ?? "DISABLED"} /> */}
           <ChevronsUpDown className="w-4 h-4" />
         </DropdownMenuTrigger>
       )}
@@ -86,6 +100,12 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
             <DropdownMenuItem className="cursor-pointer">
               <Book className="w-4 h-4 mr-2" />
               <span>Docs</span>
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/app/stripe">
+            <DropdownMenuItem className="cursor-pointer">
+              <Zap className="w-4 h-4 mr-2" />
+              <span>Plans & Billing</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
@@ -138,5 +158,20 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+};
+
+const PlanBadge: React.FC<{ plan: Workspace["plan"] }> = ({ plan }) => {
+  return (
+    <span
+      className={cn(" inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md", {
+        "text-zinc-800": plan === "free",
+        "text-primary-foreground  bg-primary px-2 border border-primary-500": plan === "pro",
+        "text-white bg-black px-2 border border-black": plan === "enterprise",
+        "text-red-600 bg-red-100 px-2 border border-red-500": !plan,
+      })}
+    >
+      {(plan ?? "N/A").toUpperCase()}
+    </span>
   );
 };
