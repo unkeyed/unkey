@@ -31,12 +31,12 @@ const tiers = {
         "Priority Support",
         "Data retention for 90 days"
       ],
-      footnotes: [" * Additonal active keys are billed at $0.10", " * Additonal verifications at $0.0002"],
+      footnotes: [" * Additonal active keys are billed at $0.10", " * Additonal verifications are charged at $1 per 5000"],
     },
     custom: {
       name: "Enterprise Tier",
       id: "enterprise",
-      href: "#",
+      href: "https://cal.com/james-perkins/unkey-enterprise",
       price: "Let's talk",
       description:
         "We offer custom pricing for those with high volume needs.",
@@ -90,13 +90,13 @@ export default async function PricingPage() {
                   <p className="mt-4 min-h-[3rem] text-sm leading-6 text-gray-600">
                     {tiers[tier].description}
                   </p>
-                  <p className="mt-6 flex items-baseline gap-x-1">
+                  <p className="mt-6 flex items-center mx-auto  gap-x-1">
                     {typeof tiers[tier].price === "number" ? (
                       <>
-                        <span className="text-4xl font-bold tracking-tight text-gray-900">
+                        <span className="text-center text-4xl font-bold tracking-tight text-gray-900">
                           {`$${tiers[tier].price}`}
                         </span>
-                        <span className="text-sm font-semibold leading-6 text-gray-600">
+                        <span className=" mx-autotext-center text-sm font-semibold leading-6 text-gray-600">
                           {"/month"}
                         </span>
                       </>
