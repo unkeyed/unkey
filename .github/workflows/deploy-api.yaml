@@ -12,9 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+
+      - name: Get Version
+        id: version
+        run: echo "VERSION=$(git rev-parse --short "$GITHUB_SHA")" > $GITHUB_ENV
+
       - name: Get tag
         id: repository
-        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git rev-parse --short "$GITHUB_SHA")" > $GITHUB_ENV
+        run: echo "TAG=ghcr.io/${{ github.repository }}:${{env.VERSION}}" > $GITHUB_ENV
 
       - name: Install flyctl
         run: curl -L https://fly.io/install.sh | sh
@@ -37,9 +42,13 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.TAG }}
-
-
-      - run: /home/runner/.fly/bin/flyctl deploy --docker-image=${{ env.TAG }}
-        working-directory: ./apps/api
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          VERSION: ${{env.VERSION}}
+
+
+
+
+      # - run: /home/runner/.fly/bin/flyctl deploy --docker-image=${{ env.TAG }}
+      #   working-directory: ./apps/api
+      #   env:
+      #     FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
