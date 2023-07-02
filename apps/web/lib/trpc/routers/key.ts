@@ -90,6 +90,7 @@ export const keyRouter = t.router({
           message: `unable to create root key: ${err.message}`,
         });
       });
+
     return newRootKey;
   }),
   delete: t.procedure
