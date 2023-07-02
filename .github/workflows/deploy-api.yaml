@@ -71,6 +71,8 @@ jobs:
       - name: Install flyctl
         run: curl -L https://fly.io/install.sh | sh
 
+      - name: Download image
+        run: docker pull ${{env.TAG}}
 
       - name: Deploy
         run: /home/runner/.fly/bin/flyctl deploy --image=${{ env.TAG }}
