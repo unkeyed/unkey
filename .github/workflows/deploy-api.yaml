@@ -14,7 +14,7 @@ jobs:
 
       - name: Get tag
         id: repository
-        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git describe --tags HEAD)" > $GITHUB_ENV
+        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git rev-parse --short "$GITHUB_SHA")" > $GITHUB_ENV
 
       - name: Install flyctl
         run: curl -L https://fly.io/install.sh | sh
