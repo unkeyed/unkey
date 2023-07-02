@@ -25,7 +25,7 @@ const tiers = {
       description: "For those with teams and more demanding needs",
       buttonText: "Upgrade now",
       features: [
-        "250 Monthly Active keys included ",
+        "250 Monthly Active keys included *",
         "10,000 Verifications included *",
         "Workspaces with team members",
         "Priority Support",
