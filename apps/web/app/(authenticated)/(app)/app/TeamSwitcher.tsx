@@ -82,7 +82,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                 {currentOrg?.name ?? "Personal"}
               </span>
 
-              <PlanBadge plan="pro" />
+              <PlanBadge plan={workspace.plan} />
             </div>
           </div>
           <ChevronsUpDown className="w-4 h-4" />
