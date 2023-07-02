@@ -4,15 +4,19 @@ package models
 
 import (
 	"context"
+	"database/sql"
 )
 
 // Workspace represents a row from 'unkey.workspaces'.
 type Workspace struct {
-	ID       string `json:"id"`        // id
-	Name     string `json:"name"`      // name
-	Slug     string `json:"slug"`      // slug
-	TenantID string `json:"tenant_id"` // tenant_id
-	Internal bool   `json:"internal"`  // internal
+	ID                   string         `json:"id"`                     // id
+	Name                 string         `json:"name"`                   // name
+	Slug                 string         `json:"slug"`                   // slug
+	TenantID             string         `json:"tenant_id"`              // tenant_id
+	Internal             bool           `json:"internal"`               // internal
+	StripeCustomerID     sql.NullString `json:"stripe_customer_id"`     // stripe_customer_id
+	StripeSubscriptionID sql.NullString `json:"stripe_subscription_id"` // stripe_subscription_id
+	Plan                 NullPlan       `json:"plan"`                   // plan
 	// xo fields
 	_exists, _deleted bool
 }
@@ -38,13 +42,13 @@ func (w *Workspace) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO unkey.workspaces (` +
-		`id, name, slug, tenant_id, internal` +
+		`id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan` +
 		`) VALUES (` +
-		`?, ?, ?, ?, ?` +
+		`?, ?, ?, ?, ?, ?, ?, ?` +
 		`)`
 	// run
-	logf(sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal)
-	if _, err := db.ExecContext(ctx, sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal); err != nil {
+	logf(sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal, w.StripeCustomerID, w.StripeSubscriptionID, w.Plan)
+	if _, err := db.ExecContext(ctx, sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal, w.StripeCustomerID, w.StripeSubscriptionID, w.Plan); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -62,11 +66,11 @@ func (w *Workspace) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE unkey.workspaces SET ` +
-		`name = ?, slug = ?, tenant_id = ?, internal = ? ` +
+		`name = ?, slug = ?, tenant_id = ?, internal = ?, stripe_customer_id = ?, stripe_subscription_id = ?, plan = ? ` +
 		`WHERE id = ?`
 	// run
-	logf(sqlstr, w.Name, w.Slug, w.TenantID, w.Internal, w.ID)
-	if _, err := db.ExecContext(ctx, sqlstr, w.Name, w.Slug, w.TenantID, w.Internal, w.ID); err != nil {
+	logf(sqlstr, w.Name, w.Slug, w.TenantID, w.Internal, w.StripeCustomerID, w.StripeSubscriptionID, w.Plan, w.ID)
+	if _, err := db.ExecContext(ctx, sqlstr, w.Name, w.Slug, w.TenantID, w.Internal, w.StripeCustomerID, w.StripeSubscriptionID, w.Plan, w.ID); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -88,15 +92,15 @@ func (w *Workspace) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO unkey.workspaces (` +
-		`id, name, slug, tenant_id, internal` +
+		`id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan` +
 		`) VALUES (` +
-		`?, ?, ?, ?, ?` +
+		`?, ?, ?, ?, ?, ?, ?, ?` +
 		`)` +
 		` ON DUPLICATE KEY UPDATE ` +
-		`id = VALUES(id), name = VALUES(name), slug = VALUES(slug), tenant_id = VALUES(tenant_id), internal = VALUES(internal)`
+		`id = VALUES(id), name = VALUES(name), slug = VALUES(slug), tenant_id = VALUES(tenant_id), internal = VALUES(internal), stripe_customer_id = VALUES(stripe_customer_id), stripe_subscription_id = VALUES(stripe_subscription_id), plan = VALUES(plan)`
 	// run
-	logf(sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal)
-	if _, err := db.ExecContext(ctx, sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal); err != nil {
+	logf(sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal, w.StripeCustomerID, w.StripeSubscriptionID, w.Plan)
+	if _, err := db.ExecContext(ctx, sqlstr, w.ID, w.Name, w.Slug, w.TenantID, w.Internal, w.StripeCustomerID, w.StripeSubscriptionID, w.Plan); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -131,7 +135,7 @@ func (w *Workspace) Delete(ctx context.Context, db DB) error {
 func WorkspaceBySlug(ctx context.Context, db DB, slug string) (*Workspace, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, name, slug, tenant_id, internal ` +
+		`id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan ` +
 		`FROM unkey.workspaces ` +
 		`WHERE slug = ?`
 	// run
@@ -139,7 +143,7 @@ func WorkspaceBySlug(ctx context.Context, db DB, slug string) (*Workspace, error
 	w := Workspace{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, slug).Scan(&w.ID, &w.Name, &w.Slug, &w.TenantID, &w.Internal); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, slug).Scan(&w.ID, &w.Name, &w.Slug, &w.TenantID, &w.Internal, &w.StripeCustomerID, &w.StripeSubscriptionID, &w.Plan); err != nil {
 		return nil, logerror(err)
 	}
 	return &w, nil
@@ -151,7 +155,7 @@ func WorkspaceBySlug(ctx context.Context, db DB, slug string) (*Workspace, error
 func WorkspaceByTenantID(ctx context.Context, db DB, tenantID string) (*Workspace, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, name, slug, tenant_id, internal ` +
+		`id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan ` +
 		`FROM unkey.workspaces ` +
 		`WHERE tenant_id = ?`
 	// run
@@ -159,7 +163,7 @@ func WorkspaceByTenantID(ctx context.Context, db DB, tenantID string) (*Workspac
 	w := Workspace{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, tenantID).Scan(&w.ID, &w.Name, &w.Slug, &w.TenantID, &w.Internal); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, tenantID).Scan(&w.ID, &w.Name, &w.Slug, &w.TenantID, &w.Internal, &w.StripeCustomerID, &w.StripeSubscriptionID, &w.Plan); err != nil {
 		return nil, logerror(err)
 	}
 	return &w, nil
@@ -171,7 +175,7 @@ func WorkspaceByTenantID(ctx context.Context, db DB, tenantID string) (*Workspac
 func WorkspaceByID(ctx context.Context, db DB, id string) (*Workspace, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, name, slug, tenant_id, internal ` +
+		`id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan ` +
 		`FROM unkey.workspaces ` +
 		`WHERE id = ?`
 	// run
@@ -179,7 +183,7 @@ func WorkspaceByID(ctx context.Context, db DB, id string) (*Workspace, error) {
 	w := Workspace{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&w.ID, &w.Name, &w.Slug, &w.TenantID, &w.Internal); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&w.ID, &w.Name, &w.Slug, &w.TenantID, &w.Internal, &w.StripeCustomerID, &w.StripeSubscriptionID, &w.Plan); err != nil {
 		return nil, logerror(err)
 	}
 	return &w, nil

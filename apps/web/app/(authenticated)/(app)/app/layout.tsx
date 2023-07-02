@@ -29,7 +29,7 @@ export default async function Layout({ params, children }: LayoutProps) {
   return (
     <>
       <div className="flex min-h-screen bg-gradient-to-tl from-stone-200 to-stone-100">
-        <DesktopSidebar apis={workspace.apis} />
+        <DesktopSidebar workspace={workspace} />
 
         {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
 

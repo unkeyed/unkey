@@ -1,4 +1,4 @@
-import { db, schema, eq} from "@unkey/db";
+import { db, schema, eq } from "@unkey/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, auth } from "../trpc";
@@ -66,7 +66,7 @@ export const keyRouter = t.router({
       },
     });
     if (!unkeyApi) {
-      console.error(`api ${env.UNKEY_API_ID} not found` )
+      console.error(`api ${env.UNKEY_API_ID} not found`);
       throw new TRPCError({ code: "NOT_FOUND", message: `api ${env.UNKEY_API_ID} not found` });
     }
 
@@ -74,19 +74,24 @@ export const keyRouter = t.router({
       where: eq(schema.workspaces.tenantId, ctx.tenant.id),
     });
     if (!workspace) {
-      console.error(`workspace for tenant ${ctx.tenant.id} not found` )
+      console.error(`workspace for tenant ${ctx.tenant.id} not found`);
       throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
     }
     console.log({ workspace });
 
-    const newRootKey= await unkeyRoot._internal.createRootKey({
-      forWorkspaceId: workspace.id,
-    }).catch(err=>{
-      console.error(err)
-      throw new TRPCError({code: "INTERNAL_SERVER_ERROR", message: `unable to create root key: ${err.message}`})
-    })
-    console.log({newRootKey})
-    return newRootKey
+    const newRootKey = await unkeyRoot._internal
+      .createRootKey({
+        forWorkspaceId: workspace.id,
+      })
+      .catch((err) => {
+        console.error(err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `unable to create root key: ${err.message}`,
+        });
+      });
+    console.log({ newRootKey });
+    return newRootKey;
   }),
   delete: t.procedure
     .use(auth)

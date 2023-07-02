@@ -1,5 +1,5 @@
 // db.ts
-import { boolean, int, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlTable, uniqueIndex, varchar, mysqlEnum } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { apis } from "./apis";
 import { keys } from "./keys";
@@ -18,6 +18,11 @@ export const workspaces = mysqlTable(
 
     // idk, some kind of feature flag was useful
     // enableBetaFeatures: boolean("enable_beta_features").default(false),
+
+    // different plans, this should only be used for visualisations in the ui
+    plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
