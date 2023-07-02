@@ -17,6 +17,7 @@ export default async function StripeRedirect() {
   if (!ws) {
     return redirect("/onboarding");
   }
+
   if (!stripeEnv) {
     return <div>Stripe is not enabled</div>;
   }
@@ -42,6 +43,7 @@ export default async function StripeRedirect() {
       name: ws.name,
     });
     ws.stripeCustomerId = customer.id;
+
     await db
       .update(schema.workspaces)
       .set({ stripeCustomerId: customer.id })

@@ -12,12 +12,34 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Get tag
+        id: repository
+        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git describe --tags HEAD)" > $GITHUB_ENV
 
       - name: Install flyctl
         run: curl -L https://fly.io/install.sh | sh
-            
 
-      - run: /home/runner/.fly/bin/flyctl deploy --remote-only
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to image repository
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: apps/api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.TAG }}
+
+
+      - run: /home/runner/.fly/bin/flyctl deploy --docker-image=${{ env.TAG }}
         working-directory: ./apps/api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
