@@ -4,14 +4,17 @@ import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
 import { ApiLink } from "./AppLink";
 import { WorkspaceSwitcher } from "./TeamSwitcher";
+import type { Workspace } from "@unkey/db";
 type Props = {
-  apis: {
-    id: string;
-    name: string;
-  }[];
+  workspace: Workspace & {
+    apis: {
+      id: string;
+      name: string;
+    }[];
+  };
 };
 
-export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
+export const DesktopSidebar: React.FC<Props> = ({ workspace }) => {
   return (
     <aside className="fixed h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
       <Link
@@ -62,7 +65,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
           <h2 className="relative px-8 text-lg font-semibold tracking-tight">Apis</h2>
           <ScrollArea className="h-[230px] px-4">
             <div className="p-2 space-y-1 ">
-              {apis
+              {workspace.apis
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((api) => (
                   <ApiLink key={api.id} name={api.name} href={`/app/${api.id}`} id={api.id} />
@@ -72,7 +75,7 @@ export const DesktopSidebar: React.FC<Props> = ({ apis }) => {
         </div>
       </div>
       <div className="absolute inset-x-0 mx-6 bottom-8">
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher workspace={workspace} />
       </div>
     </aside>
   );

@@ -71,6 +71,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.45.0",
     "sonner": "^0.5.0",
+    "stripe": "^12.11.0",
     "superjson": "^1.12.3",
     "tailwind-merge": "^1.13.2",
     "tailwindcss-animate": "^1.0.6",
