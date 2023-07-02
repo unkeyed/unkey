@@ -109,7 +109,7 @@ export default async function PricingPage() {
                   {tier === "custom" ? (
                     <div className="flex justify-center mt-10 group">
                     <Link
-                      href="https://unkey.dev/auth/sign-up"
+                      href="/auth/sign-up"
                       target="_blank"
                       title=""
                       className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
@@ -122,7 +122,7 @@ export default async function PricingPage() {
                     <>
                         <div className="flex justify-center mt-10 group">
                         <Link
-                          href="https://unkey.dev/auth/sign-up"
+                          href="/auth/sign-up"
                           target="_blank"
                           title=""
                           className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gray-900 rounded-lg font-pj focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
