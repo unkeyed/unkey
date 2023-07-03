@@ -61,7 +61,6 @@
     "clsx": "^1.2.1",
     "cmdk": "^0.2.0",
     "contentlayer": "^0.3.4",
-    "date-fns": "^2.30.0",
     "drizzle-orm": "^0.27.0",
     "hono": "^3.2.5",
     "js-base64": "^3.7.5",

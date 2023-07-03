@@ -6,9 +6,9 @@ export default function LandingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <NavigationBar/>
-        {children}
-    </>
+    <div className="bg-gray-50">
+      <NavigationBar />
+      {children}
+    </div>
   );
 }
