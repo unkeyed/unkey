@@ -26,7 +26,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:            logging.New(),
-		Cache:             cache.NewInMemoryCache[entities.Key](),
+		Cache:             cache.NewNoopCache[entities.Key](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
 		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
@@ -71,7 +71,7 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
-		Cache:             cache.NewInMemoryCache[entities.Key](),
+		Cache:             cache.NewNoopCache[entities.Key](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
 		UnkeyAppAuthToken: "supersecret",

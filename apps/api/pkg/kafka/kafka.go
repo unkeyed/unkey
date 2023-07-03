@@ -125,7 +125,6 @@ func (k *Kafka) Start() {
 			k.logger.Error("unable to fetch message", zap.Error(err))
 			continue
 		}
-		k.logger.Debug("consuming message", zap.String("topic", m.Topic), zap.Int64("offset", m.Offset))
 
 		if len(m.Value) == 0 {
 			k.logger.Warn("message is empty", zap.String("topic", m.Topic))

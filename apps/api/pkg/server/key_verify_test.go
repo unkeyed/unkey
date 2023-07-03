@@ -48,7 +48,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](),
+		Cache:    cache.NewNoopCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -101,7 +101,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](),
+		Cache:    cache.NewNoopCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -176,7 +176,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	srv := New(Config{
 		Logger:    logging.NewNoopLogger(),
-		Cache:     cache.NewInMemoryCache[entities.Key](),
+		Cache:     cache.NewNoopCache[entities.Key](),
 		Database:  db,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.New(),
