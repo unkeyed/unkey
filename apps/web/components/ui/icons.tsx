@@ -6,7 +6,7 @@ export type Icon = LucideIcon;
 export const Icons = {
   logo: Command,
   close: X,
-  twitter:Twitter,
+  twitter: Twitter,
   email: Mail,
   spinner: Loader2,
   gitHub: (props: LucideProps) => (

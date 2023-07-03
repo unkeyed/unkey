@@ -1,0 +1,10 @@
+---
+title: Cache all the things
+---
+Today I focused on rewriting our cache to use stale-while-revalidate mechanics and prewarming when creating new keys.
+
+As a result we get:
+
+- More cache hits
+- Instant cache hits after key creation
+- No stampeding cache misses when a cache expires

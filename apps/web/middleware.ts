@@ -12,7 +12,16 @@ const checktenancy = async ({ tenantId }: { tenantId: string }) => {
 };
 
 export default authMiddleware({
-  publicRoutes: ["/", "/auth(.*)", "/discord", "/pricing", "/docs", "/about", "/blog(.*)", "/api/v1/stripe/webhooks"],
+  publicRoutes: [
+    "/",
+    "/auth(.*)",
+    "/discord",
+    "/pricing",
+    "/blog(.*)",
+    "/changelog(.*)",
+    "/docs(.*)",
+    "/api/v1/stripe/webhooks",
+  ],
   signInUrl: "/auth/sign-in",
   debug: DEBUG_ON,
   async afterAuth(auth, req) {
