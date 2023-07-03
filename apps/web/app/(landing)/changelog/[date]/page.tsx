@@ -26,7 +26,7 @@ export default function ChangelogPage({ params }: { params: { date: string } }) 
   const Content = getMDXComponent(changelog.body.code);
 
   return (
-    <article className="prose lg:prose-xl w-full max-w-4xl mx-auto p-4">
+    <article className="prose lg:prose-lg w-full max-w-4xl mx-auto p-4">
       <div className="mb-8 py-8 mx-auto max-w-2xl ">
         <h1 className="text-center">{changelog.title}</h1>
         <span className="flex justify-center text-sm text-gray-600">
