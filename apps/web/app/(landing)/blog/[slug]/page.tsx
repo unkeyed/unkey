@@ -21,7 +21,7 @@ const PostLayout = ({ params }: { params: { slug: string } }) => {
   const Content = getMDXComponent(post.body.code);
 
   return (
-    <article className="w-full max-w-4xl p-4 mx-auto prose lg:prose-xl">
+    <article className="w-full max-w-4xl p-4 mx-auto prose lg:prose-lg">
       <div className="max-w-2xl py-8 mx-auto mb-8 ">
         <h1 className="text-center">{post.title}</h1>
         <span className="flex justify-center text-sm text-gray-600">
