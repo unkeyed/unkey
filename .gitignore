@@ -10,3 +10,8 @@ dist
 .next
 
 .tinyb
+
+# contentlayer
+.contentlayer
+
+.DS_Store
