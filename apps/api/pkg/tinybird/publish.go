@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -11,19 +12,51 @@ type Tinybird struct {
 	token string
 
 	client *http.Client
+
+	keyVerificationsC chan KeyVerificationEvent
+	closeC            chan struct{}
+
+	logger *zap.Logger
 }
 
 type Config struct {
 	// Token is the Tinybird token
 	Token string
+
+	Logger *zap.Logger
 }
 
 func New(config Config) *Tinybird {
 
-	return &Tinybird{
-		token:  config.Token,
-		client: http.DefaultClient,
+	t := &Tinybird{
+		token:             config.Token,
+		client:            http.DefaultClient,
+		keyVerificationsC: make(chan KeyVerificationEvent),
+		closeC:            make(chan struct{}),
+		logger:            config.Logger,
 	}
+
+	go t.consume()
+	return t
+}
+
+func (t *Tinybird) consume() {
+	for {
+		select {
+		case <-t.closeC:
+			return
+		case e := <-t.keyVerificationsC:
+			err := t.publishEvent("key_verifications__v1", e)
+			if err != nil {
+				t.logger.Error("unable to publish event to tinybird", zap.Error(err))
+			}
+		}
+	}
+}
+
+func (t *Tinybird) Close() {
+	t.closeC <- struct{}{}
+
 }
 
 type KeyVerificationEvent struct {
@@ -34,8 +67,8 @@ type KeyVerificationEvent struct {
 	Time        int64  `json:"time"`
 }
 
-func (t *Tinybird) PublishKeyVerificationEvent(datasource string, event KeyVerificationEvent) error {
-	return t.publishEvent(datasource, event)
+func (t *Tinybird) PublishKeyVerificationEventChannel() chan<- KeyVerificationEvent {
+	return t.keyVerificationsC
 }
 
 func (t *Tinybird) publishEvent(datasource string, event interface{}) error {

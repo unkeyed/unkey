@@ -49,7 +49,7 @@ tasks:
       - docker push ghcr.io/chronark/{{.IMAGE}}:{{.VERSION}}
 
   debug:
-    - go test -shuffle=on --race ./... -run TestListKeys_FilterOwnerId
+    - go test -v -json -shuffle=on --race ./... -run TestRefresh | gotestfmt
   introspect:
     # https://github.com/xo/xo
     - xo schema $XO_DSN -o ./pkg/database/models --go-pkg=models
