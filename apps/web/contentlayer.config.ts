@@ -40,6 +40,7 @@ const Changelog = defineDocumentType(() => ({
   filePathPattern: "changelog/*.mdx",
   contentType: "mdx",
   type: "Changelog",
+
   fields: {
     title: {
       type: "string",

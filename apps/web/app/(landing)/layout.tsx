@@ -6,7 +6,7 @@ export default function LandingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <NavigationBar />
       {children}
     </div>
