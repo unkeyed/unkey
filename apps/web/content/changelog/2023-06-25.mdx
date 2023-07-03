@@ -1,0 +1,12 @@
+---
+title: First Changelog
+---
+
+- Added this very changelog
+- Added the `ownerId` filter
+If provided, this will only return keys where the ownerId matches.
+```bash
+curl \
+  --url https://api.unkey.dev/v1/apis/api_123/keys?ownerId=chronark \
+  --header 'Authorization: Bearer <UNKEY>'
+```
