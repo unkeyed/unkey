@@ -6,9 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
 	"github.com/chronark/unkey/apps/api/pkg/keys"
+	"github.com/chronark/unkey/apps/api/pkg/kafka"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/gofiber/fiber/v2"
 )
@@ -143,6 +145,12 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 			Error: fmt.Sprintf("unable to store key: %s", err.Error()),
 		})
 	}
+	go func(){
+		err := s.kafka.ProduceKeyEvent(ctx, kafka.KeyCreated, newKey.Id, newKey.Hash)
+		if err != nil {
+			s.logger.Error("unable to emit new key event to kafka", zap.Error(err))
+		}
+	}()
 
 	return c.JSON(CreateKeyResponse{
 		Key:   keyValue,
