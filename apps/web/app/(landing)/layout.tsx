@@ -7,8 +7,8 @@ export default function LandingLayout({
 }) {
   return (
     <>
-      <NavigationBar/>
-        {children}
+      <NavigationBar />
+      {children}
     </>
   );
 }
