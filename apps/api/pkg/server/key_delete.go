@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/chronark/unkey/apps/api/pkg/database"
+	"github.com/chronark/unkey/apps/api/pkg/kafka"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -93,7 +94,7 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 	}
 	if s.kafka != nil {
 
-		err := s.kafka.ProduceKeyDeletedEvent(ctx, key.Id, key.Hash)
+		err := s.kafka.ProduceKeyEvent(ctx, kafka.KeyDeleted, key.Id, key.Hash)
 		if err != nil {
 			s.logger.Error("unable to emit keyDeletedEvent", zap.Error(err))
 		}
