@@ -25,7 +25,7 @@ const PostLayout = ({ params }: { params: { slug: string } }) => {
           <time dateTime={post.date} className="mx-2 ">
             Published on {format(parseISO(post.date), "LLLL d, yyyy")}
           </time>
-          by: {post.author}
+          by {post.author}
         </span>
       </div>
       <Content />
