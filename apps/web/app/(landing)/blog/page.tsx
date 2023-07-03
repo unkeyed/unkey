@@ -34,7 +34,6 @@ export default function Blog() {
                     {post.excerpt}
                   </p>
                 </div>
-               
               </article>
             ))}
           </div>

@@ -8,7 +8,7 @@ export default function ChangelogPage() {
   );
 
   return (
-    <div className="relative -mt-[5.75rem] overflow-hidden pt-[5.75rem]">
+    <div className="relative">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="relative mx-auto max-w-[37.5rem] pt-20 text-center pb-20">
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">

@@ -40,7 +40,6 @@ const Changelog = defineDocumentType(() => ({
   filePathPattern: "changelog/*.mdx",
   contentType: "mdx",
   type: "Changelog",
-
   fields: {
     title: {
       type: "string",
@@ -62,5 +61,5 @@ const Changelog = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: "content",
-  documentTypes: [Post, Changelog],
+  documentTypes: [Changelog, Post],
 });
