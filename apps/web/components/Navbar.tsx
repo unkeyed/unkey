@@ -57,7 +57,7 @@ export const NavigationBar = () => {
                 Home
               </Link>
             </li>
-            <li className="border-t-2 border-gray-100">
+            <li>
               <Link
                 href="/pricing"
                 className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 text-center"
@@ -65,13 +65,16 @@ export const NavigationBar = () => {
                 Pricing
               </Link>
             </li>
-            <li className="border-t-2 border-gray-100">
+            <li>
               <Link href="/about" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 text-center">About</Link>
             </li>
-            <li className="border-t-2 border-gray-100">
+            <li>
               <Link href="/blog" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 text-center" >Blog</Link>
             </li>
-            <li className="border-t-2 border-gray-100">
+            <li>
+              <Link href="/changelog" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 text-center" >Changelog</Link>
+            </li>
+            <li>
               <Link href="/discord" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 text-center">Discord</Link>
             </li>
           </ul>
