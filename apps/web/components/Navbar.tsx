@@ -49,7 +49,7 @@ export const NavigationBar = () => {
           id="navbar-cta"
         >
           <ul className="flex flex-col p-4 mt-4 font-medium border border-gray-100 rounded-lg md:p-0 bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-gray-50 dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-            <li className="border-gray-100 border-top">
+            <li>
               <Link
                 href="/"
                 className="block py-2 pl-3 pr-4 text-center text-whiterounded md:bg-transparent md:text-gray-800 md:p-0 md:dark:text-gray-500"

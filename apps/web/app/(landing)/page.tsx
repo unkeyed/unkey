@@ -27,7 +27,7 @@ export default async function LandingPage() {
   ]);
   return (
     <>
-      <div className="overflow-x-hidden bg-gray-50">
+      <div className="overflow-x-hidden">
         <section className="flex flex-col items-center justify-center min-h-screen pt-12 bg-gray-50 sm:pt-16">
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center">

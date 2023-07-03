@@ -34,7 +34,7 @@ func TestListKeys_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](),
+		Cache:    cache.NewNoopCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -89,7 +89,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](),
+		Cache:    cache.NewNoopCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -152,7 +152,7 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewInMemoryCache[entities.Key](),
+		Cache:    cache.NewNoopCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -205,7 +205,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.New(),
-		Cache:    cache.NewInMemoryCache[entities.Key](),
+		Cache:    cache.NewNoopCache[entities.Key](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})

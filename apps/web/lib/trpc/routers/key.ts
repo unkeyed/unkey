@@ -125,13 +125,13 @@ export const keyRouter = t.router({
           }
 
           await db.delete(schema.keys).where(where);
-          const res = await kafka.producer().produce("key.deleted", {
+          await kafka.producer().produce("key.changed", {
+            type: "deleted",
             key: {
               id: key.id,
               hash: key.hash,
             },
           });
-          console.log("kafka", res);
         }),
       );
       return;

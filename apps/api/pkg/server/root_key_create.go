@@ -3,12 +3,14 @@ package server
 import (
 	"crypto/subtle"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
+	"github.com/chronark/unkey/apps/api/pkg/kafka"
 	"github.com/chronark/unkey/apps/api/pkg/keys"
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/gofiber/fiber/v2"
@@ -103,7 +105,15 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 			Error: fmt.Sprintf("unable to store key: %s", err.Error()),
 		})
 	}
+	if s.kafka != nil {
 
+		go func() {
+			err := s.kafka.ProduceKeyEvent(ctx, kafka.KeyCreated, newKey.Id, newKey.Hash)
+			if err != nil {
+				s.logger.Error("unable to emit new key event to kafka", zap.Error(err))
+			}
+		}()
+	}
 	return c.JSON(CreateRootKeyResponse{
 		Key:   keyValue,
 		KeyId: newKey.Id,
