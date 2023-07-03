@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 // Set when we build the docker image
@@ -95,14 +96,9 @@ func main() {
 	if err != nil {
 		logger.Fatal("unable to start kafka", zap.Error(err))
 	}
+
 	go k.Start()
-
-	k.RegisterOnKeyDeleted(func(e kafka.KeyDeletedEvent) error {
-		logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
-		c.Remove(context.Background(), e.Key.Hash)
-
-		return nil
-	})
+	defer k.Close()
 
 	db, err := database.New(database.Config{
 		Logger:           logger,
@@ -116,6 +112,22 @@ func main() {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	db = databaseMiddleware.WithTracing(db, tracer)
+
+	k.RegisterOnKeyEvent(func(ctx context.Context, e kafka.KeyEvent) error {
+		logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
+		c.Remove(context.Background(), e.Key.Hash)
+
+		if e.Type == kafka.KeyCreated || e.Type == kafka.KeyUpdated {
+			logger.Info("fetching key from origin", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
+			key, err := db.GetKeyById(ctx, e.Key.Id)
+			if err != nil {
+				return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
+			}
+			c.Set(ctx, key.Hash, key, time.Now().Add(time.Minute))
+		}
+
+		return nil
+	})
 
 	port := e.String("PORT", "8080")
 
@@ -133,16 +145,13 @@ func main() {
 		Kafka:             k,
 	})
 
-	err = srv.Start(fmt.Sprintf("0.0.0.0:%s", port))
-	defer func() {
-		closeErr := srv.Close()
-		if closeErr != nil {
-			logger.Fatal("Failed to close server", zap.Error(closeErr))
+	go func() {
+		err = srv.Start(fmt.Sprintf("0.0.0.0:%s", port))
+		if err != nil {
+			logger.Fatal("Failed to run service", zap.Error(err))
 		}
 	}()
-	if err != nil {
-		logger.Fatal("Failed to run service", zap.Error(err))
-	}
+	defer srv.Close()
 
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
