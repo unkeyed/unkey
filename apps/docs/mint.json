@@ -32,10 +32,6 @@
     {
       "name": "Libraries",
       "url": "libraries"
-    },
-    {
-      "name": "Changelog",
-      "url": "changelog"
     }
   ],
   "anchors": [
@@ -121,13 +117,6 @@
       "icon": "code",
       "pages": [
         "libraries/ex/overview"
-      ]
-    },
-    {
-      "group": "Changelog",
-      "icon": "feather",
-      "pages": [
-        "changelog/2023-06-25"
       ]
     }
   ],
