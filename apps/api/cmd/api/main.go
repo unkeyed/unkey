@@ -52,8 +52,10 @@ func main() {
 	tinybirdToken := e.String("TINYBIRD_TOKEN", "")
 	if tinybirdToken != "" {
 		tb = tinybird.New(tinybird.Config{
-			Token: tinybirdToken,
+			Token:  tinybirdToken,
+			Logger: logger,
 		})
+		defer tb.Close()
 	}
 
 	var tracer tracing.Tracer
@@ -83,9 +85,6 @@ func main() {
 
 	r := ratelimit.New()
 
-	c := cache.NewInMemoryCache[entities.Key]()
-	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
-
 	k, err := kafka.New(kafka.Config{
 		Logger:   logger,
 		GroupId:  e.String("FLY_ALLOC_ID", "local"),
@@ -113,6 +112,15 @@ func main() {
 	}
 	db = databaseMiddleware.WithTracing(db, tracer)
 
+	c := cache.New[entities.Key](cache.Config[entities.Key]{
+		Fresh:             time.Minute,
+		Stale:             time.Minute * 15,
+		RefreshFromOrigin: db.GetKeyByHash,
+		Logger:            logger,
+	})
+	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
+	c = cacheMiddleware.WithLogging[entities.Key](c, logger)
+
 	k.RegisterOnKeyEvent(func(ctx context.Context, e kafka.KeyEvent) error {
 		logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
 		c.Remove(context.Background(), e.Key.Hash)
@@ -123,7 +131,7 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
 			}
-			c.Set(ctx, key.Hash, key, time.Now().Add(time.Minute))
+			c.Set(ctx, key.Hash, key)
 		}
 
 		return nil

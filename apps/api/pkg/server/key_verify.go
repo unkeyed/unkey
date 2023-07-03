@@ -69,7 +69,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		return err
 	}
 
-	key, isCached := s.cache.Get(ctx, hash, false)
+	key, isCached := s.cache.Get(ctx, hash)
 
 	if !isCached {
 		key, err = s.db.GetKeyByHash(ctx, hash)
@@ -92,7 +92,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 				},
 			})
 		}
-		s.cache.Set(ctx, hash, key, time.Now().Add(time.Minute))
+		s.cache.Set(ctx, hash, key)
 	}
 	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
 		s.cache.Remove(ctx, hash)
@@ -148,7 +148,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	}
 
 	if s.tinybird != nil {
-		s.verificationsC <- tinybird.KeyVerificationEvent{
+		s.tinybird.PublishKeyVerificationEventChannel() <- tinybird.KeyVerificationEvent{
 			WorkspaceId: key.WorkspaceId,
 			ApiId:       key.ApiId,
 			KeyId:       key.Id,

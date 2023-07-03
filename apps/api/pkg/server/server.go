@@ -76,16 +76,11 @@ func New(config Config) *Server {
 		ratelimit:         config.Ratelimit,
 		tracer:            config.Tracer,
 		tinybird:          config.Tinybird,
-		verificationsC:    make(chan tinybird.KeyVerificationEvent),
 		closeC:            make(chan struct{}),
 		unkeyAppAuthToken: config.UnkeyAppAuthToken,
 		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
 		unkeyApiId:        config.UnkeyApiId,
 		region:            config.Region,
-	}
-
-	if config.Tinybird != nil {
-		go s.SyncTinybird()
 	}
 
 	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
@@ -158,24 +153,4 @@ func (s *Server) Start(addr string) error {
 func (s *Server) Close() error {
 	s.closeC <- struct{}{}
 	return s.app.Server().Shutdown()
-}
-
-// Call this in a goroutine
-func (s *Server) SyncTinybird() {
-	for {
-		select {
-		case <-s.closeC:
-			return
-		case e := <-s.verificationsC:
-			err := s.tinybird.PublishKeyVerificationEvent("key_verifications__v1", e)
-			if err != nil {
-				s.logger.Error("unable to publish event to tinybird",
-					zap.String("workspaceId", e.WorkspaceId),
-					zap.String("apiId", e.ApiId),
-					zap.String("keyId", e.KeyId),
-				)
-			}
-			return
-		}
-	}
 }
