@@ -4,7 +4,7 @@ date: 2023-07-04
 author: James Perkins
 excerpt: This post is about why we built Unkey, and what features we have.
 ---
-  
+
 
 ## What is Unkey?
 Unkey provides a way for you to create, manage and revoke API Keys that belong to your API. It's a simple concept, but one that we think is important. We built Unkey to layer it into your API so that you can issue keys, manage them and revoke them as needed. This means we need a simple and great DX and fast response times.
@@ -59,15 +59,10 @@ Once you have the key with the limits, with each request we return the amount th
 We wanted to give you the ability to attach metadata to your keys so you can easily make business decisions based on the data instead of having to look up the key in your database. You can include anything that you want to read on the server, for example:
 
 ```json
-
 {
-
-"billingTier":"PRO",
-
-"trialEnds": "2023-06-16T17:16:37.161Z"
-
+  "billingTier":"PRO",
+  "trialEnds": "2023-06-16T17:16:37.161Z"
 }
-
 ```
 
 This allows you to pull less data from other systems in your infrastructure to make business decisions faster.
