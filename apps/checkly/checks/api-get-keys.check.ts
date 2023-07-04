@@ -56,9 +56,6 @@ new ApiCheck("api-get-keys-with-limit", {
   },
 });
 
-
-
-
 new ApiCheck("api-get-keys-with-filter-ownerId", {
   name: "Get Keys from an api with ownerId filter",
   alertChannels: [],

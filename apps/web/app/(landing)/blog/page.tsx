@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { allPosts } from "contentlayer/generated";
 
-
 export const metadata = {
   title: "Blog | Unkey",
   description: "Blog for Unkey",
@@ -33,9 +32,9 @@ export const metadata = {
       index: true,
       follow: false,
       noimageindex: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
 };
