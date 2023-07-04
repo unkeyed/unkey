@@ -12,7 +12,7 @@ export const metadata = {
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og.png",
+        url: "image: `https://unkey.dev/og?title=blog`,",
         width: 1200,
         height: 675,
       },
@@ -24,6 +24,19 @@ export const metadata = {
   },
   icons: {
     shortcut: "/og.png",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: true,
+      follow: false,
+      noimageindex: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 

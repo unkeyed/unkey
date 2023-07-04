@@ -21,6 +21,7 @@ export default authMiddleware({
     "/blog(.*)",
     "/changelog(.*)",
     "/docs(.*)",
+    "/og(.*)",
     "/api/v1/stripe/webhooks",
   ],
   signInUrl: "/auth/sign-in",
