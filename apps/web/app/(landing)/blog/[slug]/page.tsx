@@ -10,7 +10,7 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
   if (!post) {
     return notFound();
   }
-  return { title: post.title };
+  return { title: post.title, description: post.excerpt, openGraph: { title: post.title, description: post.excerpt } };
 };
 
 const PostLayout = ({ params }: { params: { slug: string } }) => {

@@ -1,23 +1,38 @@
 import { allChangelogs } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
+import { date } from "zod";
 
 export const generateStaticParams = async () =>
-  allChangelogs.map((c) => ({ date: new Date(c.date).toISOString().split("T")[0] }));
+  allChangelogs.map((c) => ({
+    date: new Date(c.date).toISOString().split("T")[0],
+  }));
 
 export const generateMetadata = ({ params }: { params: { date: string } }) => {
   const changelog = allChangelogs.find(
-    (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
+    (c) => new Date(c.date).toISOString().split("T")[0] === params.date
   );
   if (!changelog) {
     return notFound();
   }
-  return { title: changelog.title };
+  return {
+    title: changelog.title,
+    description: `changelog for ${date}`,
+    openGraph: {
+      title: changelog.title,
+      description: `changelog for ${date}`,
+      type: "article",
+    },
+  };
 };
 
-export default function ChangelogPage({ params }: { params: { date: string } }) {
+export default function ChangelogPage({
+  params,
+}: {
+  params: { date: string };
+}) {
   const changelog = allChangelogs.find(
-    (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
+    (c) => new Date(c.date).toISOString().split("T")[0] === params.date
   );
   if (!changelog) {
     return notFound();
