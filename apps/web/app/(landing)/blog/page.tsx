@@ -1,6 +1,32 @@
 import Link from "next/link";
 import { allPosts } from "contentlayer/generated";
 
+
+export const metadata = {
+  title: "Blog | Unkey",
+  description: "Blog for Unkey",
+  openGraph: {
+    title: "Blog | Unkey",
+    description: "Blog for Unkey",
+    url: "https://unkey.dev/blog",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/og.png",
+  },
+};
+
 export default function Blog() {
   const posts = allPosts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

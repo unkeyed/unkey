@@ -52,6 +52,31 @@ const tiers = {
   },
 };
 
+export const metadata = {
+  title: "Pricing | Unkey",
+  description: "Pricing for Unkey",
+  openGraph: {
+    title: "Pricing | Unkey",
+    description: "Pricing for Unkey",
+    url: "https://unkey.dev/pricing",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/og.png",
+  },
+};
+
 export default async function PricingPage() {
   return (
     <div className="flex items-center justify-center overflow-auto bg-gray-50">

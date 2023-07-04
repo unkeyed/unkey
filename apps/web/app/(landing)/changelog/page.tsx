@@ -2,6 +2,32 @@ import { allChangelogs, type Changelog } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 
+
+export const metadata = {
+  title: "Changelog | Unkey",
+  description: "Changelog for Unkey",
+  openGraph: {
+    title: "Changelog | Unkey",
+    description: "Changelog for Unkey",
+    url: "https://unkey.dev/changelog",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/og.png",
+  },
+};
+
 export default function ChangelogPage() {
   const changelogs = allChangelogs.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
