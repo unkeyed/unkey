@@ -1,17 +1,9 @@
----
-title: Why we built Unkey
-date: 2023-07-03
-author: James Perkins
-excerpt: This post is about why we built Unkey, and what features we have.
----
 
 ## What is Unkey?
-
-Unkey provides a way for you to create, manage and revoke API Keys that belong to your API. It's a simple concept, but one that we think is important.  We built Unkey to layer it into your API so that you can issue keys, manage them and revoke them as needed. We've built it to be as simple as possible to integrate into your API. We've also built an easy to use dashboard so that if you want to manually issue keys you can do so.
+Unkey provides a way for you to create, manage and revoke API Keys that belong to your API. It's a simple concept, but one that we think is important. We built Unkey to layer it into your API so that you can issue keys, manage them and revoke them as needed. This means we need a simple and great DX and fast response times. 
 
 ## Why did we build it?
-
-We built Unkey because we were tired of copy and pasting the same API management into a new codebase. We also wanted to create a way to handle short term keys, rate limited keys and ways to add metadata to them for easy autorization. We also wanted a way for our customers to see usage stats, and invite other users to their account.
+We built Unkey because we were tired of copy and pasting the same API management into a new codebase. Similar to authentication, you can do it yourself, but having a dedicated company who are working on improvements, worrying about security and latency means you can focus on the business and core features.
 
 ## What are the current features?
 
@@ -26,23 +18,41 @@ Unkey provides the following features out of the box:
 ## Deep dive into the features
 
 ### Admin dashboard
-
 Our admin dashboard gives you access to a number of features in a simple to use interface. You can create new APIs, issue keys, revoke keys and see usage stats. You can also invite other users to your account so that they can manage your APIs.
-
 ![Admin dashboard](/images/blog-images/admin-dashboard.png)
 
 ### Simple API with SDKs
 
-We wanted the DX for Unkey to be as simple as possible. We've built a simple API that you can use to create, manage and revoke keys. We've also built SDKs for typescript so that you can easily integrate Unkey into your API. Our community SDKs included Python and Elixir.
+We wanted the DX for Unkey to be as simple as possible. We've built a simple API that you can use to create, manage and revoke keys. We wanted to make sure the API was easy to integrate and didn't take engineering time away. 
+No API is great without SDKs so we built a typescript one and our community also built an Elixir and Python SDK>
+
+  
 
 ### Short lived keys
 
-When we started Unkey we wanted the ability to issue a short lived key but we didn't want to restrict the time period. We wanted to give you the ability to issue a key for 1 hour, 1 day, 1 week or 5 years.
+When we started Unkey we wanted the ability to issue a short lived key but we didn't want to restrict the time period. We understand that each use case is different so you can pass us an expiration or select it in the UI. 
+Once the key expires, we revoke the key and the user can no longer access your content. This is great for audit teams, trials, or payment systems that give you access for a period of time.
+
+  
 
 ### Rate limited keys
 
-Rate limiting is essential to all businesses that have an API. Unkey gives you the ability to set each key to a different rate limit. This means if you have a large customer you can give them a higher rate limit than your free tier customers.
+  
+Rate limiting is essential to all businesses that have an API. Unkey gives you the ability to set each key to a different rate limit. We handle the rate limiting for you, it's as simple as telling us the total amount of burstable requests, the refill rate and how quickly they should be refilled. 
 
-### Metadata attached to keys
+Once you have the key with the limits, we will return `json
+"valid": true` if the rate limit has been hit, so you know that this user shouldn't be able to access your endpoints. 
 
-We wanted to give you the ability to attach metadata to your keys so you can easily make business decsions based on the data instead of having to look up the key in your database.
+### Metadata attached to keys  
+
+We wanted to give you the ability to attach metadata to your keys so you can easily make business decisions based on the data instead of having to look up the key in your database. You can include anything that you want to read on the server, for example:
+```json
+{
+  "billingTier":"PRO",
+  "trialEnds": "2023-06-16T17:16:37.161Z"
+}
+```
+
+This allows you to pull less data from other systems in your infrastructure to make business decisions faster. 
+
+Ready to get started? Head over to [Unkey])(https://unkey.dev/app) and get started for free today. 
