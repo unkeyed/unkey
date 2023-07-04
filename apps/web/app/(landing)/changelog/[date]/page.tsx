@@ -17,10 +17,10 @@ export const generateMetadata = ({ params }: { params: { date: string } }) => {
   }
   return {
     title: changelog.title,
-    description: `changelog for ${date}`,
+    description: `changelog for ${changelog.date}`,
     openGraph: {
       title: changelog.title,
-      description: `changelog for ${date}`,
+      description: `changelog for ${changelog.date}`,
       type: "article",
     },
   };
