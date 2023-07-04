@@ -3,8 +3,51 @@ title: "Overview"
 description: "Elixir client for unkey"
 ---
 
-<Info>
-Coming Soon..
+[Elixir SDK](https://github.com/glamboyosa/unkey-elixir-sdk) for interacting with the platform programatically.
 
-[#48](https://github.com/chronark/unkey/issues/48)
-</Info>
+## Installation
+
+The package can be installed from Hex PM by adding `unkey_elixir_sdk` to your list of dependencies in `mix.exs`:
+
+> Note: This project uses Elixir version `1.13`.
+
+```elixir
+def deps do
+  [
+    {:unkey_elixir_sdk, "~> 0.1.0"}
+  ]
+end
+```
+
+## Start the GenServer
+
+In order to start this package we can either start it under a supervision tree (most common).
+
+The GenServer takes a map with two properties.
+
+- token: Your [Unkey](https://unkey.dev) Access token used to make requests. You can create one [here](https://unkey.dev/app/keys) **required**
+- base_url: The base URL endpoint you will be hitting i.e. `https://api.unkey.dev/v1/keys` (optional).
+
+```elixir
+children = [
+
+  %{
+    id: UnkeyElixirSdk,
+    start: {UnkeyElixirSdk, :start_link, [%{token: "yourunkeyapitoken"}]}
+  }
+]
+
+
+# Now we start the supervisor with the children and a strategy
+{:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
+
+# After started, we can query the supervisor for information
+Supervisor.count_children(pid)
+#=> %{active: 1, specs: 1, supervisors: 0, workers: 1}
+```
+
+You can also call the `start_link` function instead.
+
+```elixir
+{:ok, _pid} = UnkeyElixirSdk.start_link(%{token: "yourunkeyapitoken", base_url: "https://api.unkey.dev/v1/keys"})
+```
