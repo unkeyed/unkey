@@ -83,6 +83,14 @@ export const NavigationBar = () => {
             </li>
             <li>
               <Link
+                href="/about"
+                className="block py-2 pl-3 pr-4 text-center text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
+              >
+                About
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/discord"
                 className="block py-2 pl-3 pr-4 text-center text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-gray-500 md:p-0 md:dark:hover:text-gray-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
               >
