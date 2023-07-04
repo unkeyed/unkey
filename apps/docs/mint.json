@@ -54,19 +54,12 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": [
-        "introduction",
-        "quickstart",
-        "security"
-      ]
+      "pages": ["introduction", "quickstart", "security"]
     },
     {
       "group": "Features",
       "icon": "bolt",
-      "pages": [
-        "features/ratelimiting",
-        "features/temp-keys"
-      ]
+      "pages": ["features/ratelimiting", "features/temp-keys"]
     },
     {
       "group": "API Documentation",
@@ -83,10 +76,7 @@
         },
         {
           "group": "APIs",
-          "pages": [
-            "api-reference/apis/get",
-            "api-reference/apis/list-keys"
-          ]
+          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
         }
       ]
     },
@@ -108,15 +98,21 @@
     {
       "group": "Python",
       "icon": "code",
-      "pages": [
-        "libraries/py/overview"
-      ]
+      "pages": ["libraries/py/overview"]
     },
     {
       "group": "Elixir",
       "icon": "code",
       "pages": [
-        "libraries/ex/overview"
+        "libraries/ex/overview",
+        {
+          "group": "Functions",
+          "pages": [
+            "libraries/ex/functions/create_key",
+            "libraries/ex/functions/verify_key",
+            "libraries/ex/functions/revoke_key"
+          ]
+        }
       ]
     }
   ],
