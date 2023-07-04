@@ -17,6 +17,7 @@ export default authMiddleware({
     "/auth(.*)",
     "/discord",
     "/pricing",
+    "/about",
     "/blog(.*)",
     "/changelog(.*)",
     "/docs(.*)",
