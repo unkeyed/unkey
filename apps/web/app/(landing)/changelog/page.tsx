@@ -2,7 +2,6 @@ import { allChangelogs, type Changelog } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 
-
 export const metadata = {
   title: "Changelog | Unkey",
   description: "Changelog for Unkey",
@@ -34,9 +33,9 @@ export const metadata = {
       index: true,
       follow: false,
       noimageindex: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
 };
@@ -78,7 +77,7 @@ const ChangelogSection: React.FC<ChangelogSectionProps> = ({ changelog }) => {
       <div className="relative pt-2 pb-16 pl-7 md:w-3/4 md:pl-12 md:pt-0">
         <div className="absolute bottom-0 left-0 w-px bg-slate-200 -top-3 md:top-2.5" />
         <div className="absolute -left-1 -top-[1.0625rem] h-[0.5625rem] w-[0.5625rem] rounded-full border-2 border-slate-300 bg-white md:top-[0.4375rem]" />
-        <div className="prose-sm prose max-w-none prose-h3:mb-4 prose-h3:text-base prose-h3:leading-6 prose-slate prose-a:font-semibold prose-a:text-sky-500 hover:prose-a:text-sky-600">
+        <div className="prose-sm prose max-w-none prose-h3:mb-4 prose-h3:text-base prose-h3:leading-6 ">
           <h2>{changelog.title}</h2>
 
           <Content />

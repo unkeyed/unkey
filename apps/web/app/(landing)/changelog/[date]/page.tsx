@@ -9,7 +9,7 @@ export const generateStaticParams = async () =>
 
 export const generateMetadata = ({ params }: { params: { date: string } }) => {
   const changelog = allChangelogs.find(
-    (c) => new Date(c.date).toISOString().split("T")[0] === params.date
+    (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
   if (!changelog) {
     return notFound();
@@ -32,9 +32,9 @@ export const generateMetadata = ({ params }: { params: { date: string } }) => {
         index: true,
         follow: false,
         noimageindex: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
       },
     },
   };
@@ -46,7 +46,7 @@ export default function ChangelogPage({
   params: { date: string };
 }) {
   const changelog = allChangelogs.find(
-    (c) => new Date(c.date).toISOString().split("T")[0] === params.date
+    (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
   if (!changelog) {
     return notFound();
@@ -55,7 +55,7 @@ export default function ChangelogPage({
   const Content = getMDXComponent(changelog.body.code);
 
   return (
-    <article className="prose lg:prose-lg w-full max-w-4xl mx-auto p-4">
+    <article className="prose w-full max-w-3xl mx-auto p-4">
       <div className="mb-8 py-8 mx-auto max-w-2xl ">
         <h1 className="text-center">{changelog.title}</h1>
         <span className="flex justify-center text-sm text-gray-600">
