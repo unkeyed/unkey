@@ -17,8 +17,22 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
       title: post.title,
       description: post.excerpt,
       type: "article",
+      image: `https://unkey.dev/og?title=${encodeURIComponent(post.title)}`,
     },
-  };
+      robots: {
+        index: true,
+        follow: true,
+        nocache: true,
+        googleBot: {
+          index: true,
+          follow: false,
+          noimageindex: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
+      },
+    }
 };
 
 const PostLayout = ({ params }: { params: { slug: string } }) => {

@@ -1,7 +1,6 @@
 import { allChangelogs } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
-import { date } from "zod";
 
 export const generateStaticParams = async () =>
   allChangelogs.map((c) => ({
@@ -18,10 +17,25 @@ export const generateMetadata = ({ params }: { params: { date: string } }) => {
   return {
     title: changelog.title,
     description: `changelog for ${changelog.date}`,
+    image: `https://unkey.dev/og?title=${encodeURIComponent(changelog.title)}`,
     openGraph: {
       title: changelog.title,
       description: `changelog for ${changelog.date}`,
       type: "article",
+      image: `https://unkey.dev/og?title=${encodeURIComponent(changelog.title)}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      nocache: true,
+      googleBot: {
+        index: true,
+        follow: false,
+        noimageindex: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
   };
 };
