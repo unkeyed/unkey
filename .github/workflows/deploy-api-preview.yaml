@@ -1,10 +1,9 @@
-name: Deploy API
+name: Deploy API Preview
 on:
-  push:
-    branches:
-      - main
+  release:
+    type: [prereleased, released]
 
-concurrency: deploy.prod
+concurrency: deploy.preview
 
 jobs:
 
@@ -55,7 +54,7 @@ jobs:
 
       - name: Get Version
         id: version
-        run: echo "VERSION=$(git rev-parse --short "$GITHUB_SHA")" > $GITHUB_ENV
+        run: echo "VERSION=$(git describe --tags --always)" > $GITHUB_ENV
 
       - name: Get tag
         id: repository
@@ -75,7 +74,7 @@ jobs:
         run: docker pull ${{env.TAG}}
 
       - name: Deploy
-        run: /home/runner/.fly/bin/flyctl deploy --image=${{ env.TAG }}
+        run: /home/runner/.fly/bin/flyctl --app="unkey-api-preview" deploy --image=${{ env.TAG }}
         working-directory: apps/api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

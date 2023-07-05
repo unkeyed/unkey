@@ -175,11 +175,11 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:    logging.NewNoopLogger(),
+		Logger:    logging.New(),
 		Cache:     cache.NewNoopCache[entities.Key](),
 		Database:  db,
 		Tracer:    tracing.NewNoop(),
-		Ratelimit: ratelimit.New(),
+		Ratelimit: ratelimit.NewInMemory(),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
