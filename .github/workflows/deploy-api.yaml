@@ -1,11 +1,11 @@
-name: Deploy API Preview
+name: Deploy API
+
 on:
-  push:
-    branches: ['main']
-    tags: ['^v\d+\.\d+\.\d+-canary\.\d+$']
+  release:
+    types:
+      - published
 
-
-concurrency: deploy.preview
+concurrency: deploy
 
 jobs:
 
@@ -75,8 +75,15 @@ jobs:
       - name: Download image
         run: docker pull ${{env.TAG}}
 
-      - name: Deploy
+      - name: Deploy preview
         run: /home/runner/.fly/bin/flyctl --app="unkey-api-preview" deploy --image=${{ env.TAG }}
+        working-directory: apps/api
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy prod
+        if: "!github.event.release.prerelease"
+        run: /home/runner/.fly/bin/flyctl --app="unkey-api-production" deploy --image=${{ env.TAG }}
         working-directory: apps/api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
