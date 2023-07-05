@@ -1,7 +1,8 @@
 name: Deploy API Prod
 on:
-  release:
-    type: [released]
+  push:
+    branches: ['main']
+    tags: ['^v\d+\.\d+\.\d+$']
 
 concurrency: deploy.prod
 
