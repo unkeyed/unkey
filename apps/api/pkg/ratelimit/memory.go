@@ -5,20 +5,6 @@ import (
 	"time"
 )
 
-type RatelimitRequest struct {
-	Identifier     string
-	Max            int64
-	RefillRate     int64
-	RefillInterval int64
-}
-
-type RatelimitResponse struct {
-	Pass      bool
-	Limit     int64
-	Remaining int64
-	Reset     int64
-}
-
 type bucket struct {
 	sync.RWMutex
 
@@ -89,14 +75,14 @@ func (b *bucket) take() RatelimitResponse {
 
 }
 
-type Ratelimiter struct {
+type inMemory struct {
 	stateLock sync.RWMutex
 	state     map[string]*bucket
 }
 
-func New() *Ratelimiter {
+func NewInMemory() *inMemory {
 
-	r := &Ratelimiter{
+	r := &inMemory{
 		stateLock: sync.RWMutex{},
 		state:     make(map[string]*bucket),
 	}
@@ -125,7 +111,7 @@ func New() *Ratelimiter {
 
 }
 
-func (r *Ratelimiter) Take(req RatelimitRequest) RatelimitResponse {
+func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
 	r.stateLock.RLock()
 
 	b, ok := r.state[req.Identifier]

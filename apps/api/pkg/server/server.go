@@ -25,11 +25,12 @@ import (
 )
 
 type Config struct {
-	Logger    logging.Logger
-	Cache     cache.Cache[entities.Key]
-	Database  database.Database
-	Ratelimit *ratelimit.Ratelimiter
-	Tracer    trace.Tracer
+	Logger          logging.Logger
+	Cache           cache.Cache[entities.Key]
+	Database        database.Database
+	Ratelimit       ratelimit.Ratelimiter
+	GlobalRatelimit ratelimit.Ratelimiter
+	Tracer          trace.Tracer
 	// Potentially the user does not have tinybird set up or does not want to use it
 	// simply pass in nil in that case
 	Tinybird          *tinybird.Tinybird
@@ -41,13 +42,14 @@ type Config struct {
 }
 
 type Server struct {
-	app       *fiber.App
-	logger    logging.Logger
-	validator *validator.Validate
-	db        database.Database
-	cache     cache.Cache[entities.Key]
-	ratelimit *ratelimit.Ratelimiter
-	tracer    trace.Tracer
+	app             *fiber.App
+	logger          logging.Logger
+	validator       *validator.Validate
+	db              database.Database
+	cache           cache.Cache[entities.Key]
+	ratelimit       ratelimit.Ratelimiter
+	globalRatelimit ratelimit.Ratelimiter
+	tracer          trace.Tracer
 	// potentially nil, always do a check first
 	tinybird       *tinybird.Tinybird
 	verificationsC chan tinybird.KeyVerificationEvent

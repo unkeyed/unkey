@@ -83,8 +83,6 @@ func main() {
 		tracer = tracing.NewNoop()
 	}
 
-	r := ratelimit.New()
-
 	k, err := kafka.New(kafka.Config{
 		Logger:   logger,
 		GroupId:  e.String("FLY_ALLOC_ID", "local"),
@@ -98,6 +96,18 @@ func main() {
 
 	go k.Start()
 	defer k.Close()
+
+	fastRatelimit := ratelimit.NewInMemory()
+	var consistentRatelimit ratelimit.Ratelimiter
+	redisUrl := e.String("REDIS_URL", "")
+	if redisUrl != "" {
+		consistentRatelimit, err = ratelimit.NewRedis(ratelimit.RedisConfig{
+			RedisUrl: redisUrl,
+		})
+		if err != nil {
+			logger.Fatal("unable to start redis ratelimiting", zap.Error(err))
+		}
+	}
 
 	db, err := database.New(database.Config{
 		Logger:           logger,
@@ -143,7 +153,8 @@ func main() {
 		Logger:            logger,
 		Cache:             c,
 		Database:          db,
-		Ratelimit:         r,
+		Ratelimit:         fastRatelimit,
+		GlobalRatelimit:   consistentRatelimit,
 		Tracer:            tracer,
 		Tinybird:          tb,
 		UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),
