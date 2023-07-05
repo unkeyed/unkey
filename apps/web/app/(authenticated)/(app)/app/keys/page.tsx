@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { CreateKeyButton } from "./CreateKey";
 import { ApiKeyTable } from "@/components/ApiKeyTable";
 
+export const revalidate = 0;
+
 export default async function SettingsKeysPage() {
   const tenantId = getTenantId();
 

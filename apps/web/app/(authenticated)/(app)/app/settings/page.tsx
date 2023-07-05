@@ -9,6 +9,8 @@ import { db, eq, schema } from "@unkey/db";
 import { Tinybird, getUsage } from "@unkey/tinybird";
 import { redirect } from "next/navigation";
 
+export const revalidate = 0;
+
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 
