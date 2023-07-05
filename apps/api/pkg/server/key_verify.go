@@ -130,20 +130,31 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	}
 
 	if key.Ratelimit != nil {
-		r := s.ratelimit.Take(ratelimit.RatelimitRequest{
-			Identifier:     key.Hash,
-			Max:            key.Ratelimit.Limit,
-			RefillRate:     key.Ratelimit.RefillRate,
-			RefillInterval: key.Ratelimit.RefillInterval,
-		})
-		res.Ratelimit = &ratelimitResponse{
-			Limit:     r.Limit,
-			Remaining: r.Remaining,
-			Reset:     r.Reset,
+		var limiter ratelimit.Ratelimiter
+		switch key.Ratelimit.Type {
+		case "fast":
+			limiter = s.ratelimit
+			break
+		case "consistent":
+			limiter = s.globalRatelimit
+			break
 		}
-		res.Valid = r.Pass
-		if !r.Pass {
-			res.Code = RATELIMITED
+		if limiter != nil {
+			r := limiter.Take(ratelimit.RatelimitRequest{
+				Identifier:     key.Hash,
+				Max:            key.Ratelimit.Limit,
+				RefillRate:     key.Ratelimit.RefillRate,
+				RefillInterval: key.Ratelimit.RefillInterval,
+			})
+			res.Ratelimit = &ratelimitResponse{
+				Limit:     r.Limit,
+				Remaining: r.Remaining,
+				Reset:     r.Reset,
+			}
+			res.Valid = r.Pass
+			if !r.Pass {
+				res.Code = RATELIMITED
+			}
 		}
 	}
 
