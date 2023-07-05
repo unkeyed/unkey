@@ -1,7 +1,9 @@
 name: Deploy API Preview
 on:
-  release:
-    type: [prereleased, released]
+  push:
+    branches: ['main']
+    tags: ['^v\d+\.\d+\.\d+-canary\.\d+$']
+
 
 concurrency: deploy.preview
 
