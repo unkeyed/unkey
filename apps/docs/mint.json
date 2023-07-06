@@ -120,6 +120,13 @@
           ]
         }
       ]
+    },
+    {
+      "group": "Nuxt",
+      "icon": "code",
+      "pages": [
+        "libraries/nuxt/overview"
+      ]
     }
   ],
   "footerSocials": {
