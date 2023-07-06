@@ -28,6 +28,7 @@
     },
     "@unkey/nuxt#test": {
       "dependsOn": [
+        "@unkey/api#build",
         "@unkey/nuxt#dev:prepare"
       ],
       "outputs": []
