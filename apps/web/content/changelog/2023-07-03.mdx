@@ -1,0 +1,12 @@
+---
+title: Cache all the things
+---
+Today Andreas focused on rewriting our cache to use stale-while-revalidate mechanics and prewarming when creating new keys.
+
+As a result we now get:
+
+- More cache hits
+- Instant cache hits after key creation
+- No stampeding cache misses when a cache expires
+
+This means more performance for unkey without any extra work for you.

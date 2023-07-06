@@ -6,13 +6,24 @@ const DEBUG_ON = process.env.CLERK_DEBUG === "true";
 
 const checktenancy = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId)
+    where: eq(schema.workspaces.tenantId, tenantId),
   });
   return workspace;
 };
 
 export default authMiddleware({
-  publicRoutes: ["/", "/auth(.*)", "/discord"],
+  publicRoutes: [
+    "/",
+    "/auth(.*)",
+    "/discord",
+    "/pricing",
+    "/about",
+    "/blog(.*)",
+    "/changelog(.*)",
+    "/docs(.*)",
+    "/og(.*)",
+    "/api/v1/stripe/webhooks",
+  ],
   signInUrl: "/auth/sign-in",
   debug: DEBUG_ON,
   async afterAuth(auth, req) {

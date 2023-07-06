@@ -1,4 +1,4 @@
-import { Command, Loader2, X } from "lucide-react";
+import { Command, Loader2, X, Twitter, Mail } from "lucide-react";
 import type { Icon as LucideIcon, LucideProps } from "lucide-react";
 
 export type Icon = LucideIcon;
@@ -6,6 +6,8 @@ export type Icon = LucideIcon;
 export const Icons = {
   logo: Command,
   close: X,
+  twitter: Twitter,
+  email: Mail,
   spinner: Loader2,
   gitHub: (props: LucideProps) => (
     <svg viewBox="0 0 438.549 438.549" {...props}>

@@ -1,0 +1,55 @@
+version: '3'
+
+
+vars:
+  VERSION:
+    sh: git describe --tags --always
+  IMAGE: unkey-api
+
+
+
+dotenv: [".env"]
+
+tasks:
+  install:
+    cmds:
+      - go mod download
+
+
+  dev:
+    deps:
+      - install
+    cmds:
+      - go run  -ldflags "-X 'main.version={{.VERSION}}'" ./cmd/api
+
+  fmt:
+    cmds:
+      - go fmt ./...
+      - go vet ./...
+      - golangci-lint run ./...
+      - buf format -w
+
+  build:
+    deps:
+      - install
+
+    cmds:
+      - go build -o unkey -ldflags "-X 'main.version={{.VERSION}}'" ./cmd/api
+  build-docker:
+    cmds:
+      - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
+
+  test:
+    - go test -v -json -shuffle=on --race ./... | gotestfmt
+
+
+  deploy:
+    cmds:
+      - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
+      - docker push ghcr.io/chronark/{{.IMAGE}}:{{.VERSION}}
+
+  debug:
+    - go test -v -json -shuffle=on --race ./... -run TestRefresh | gotestfmt
+  introspect:
+    # https://github.com/xo/xo
+    - xo schema $XO_DSN -o ./pkg/database/models --go-pkg=models

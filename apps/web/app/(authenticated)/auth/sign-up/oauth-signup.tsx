@@ -45,7 +45,7 @@ export function OAuthSignUp() {
         ) : (
           <Icons.gitHub className="w-4 h-4 mr-2" />
         )}
-        Github
+        GitHub
       </Button>
       <Button
         variant="outline"

@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  unkey_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VERSION=dev
+    ports:
+      - 8080:8080
+
+    environment:
+      DATABASE_DSN: "${DATABASE_DSN}"
+      UNKEY_WORKSPACE_ID: "${UNKEY_WORKSPACE_ID}"
+      UNKEY_API_ID: "${UNKEY_API_ID}"
+      UNKEY_APP_AUTH_TOKEN: "${UNKEY_APP_AUTH_TOKEN}"
+      TINYBIRD_TOKEN: "${TINYBIRD_TOKEN}"
+      KAFKA_BROKER: "${KAFKA_BROKER}"
+      KAFKA_USERNAME: "${KAFKA_USERNAME}"
+      KAFKA_PASSWORD: "${KAFKA_PASSWORD}"

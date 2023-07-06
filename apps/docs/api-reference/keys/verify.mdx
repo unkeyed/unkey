@@ -38,7 +38,7 @@ Example:
 </ResponseField>
 
 <ResponseField name="remaining" type="int">
-  How many more times this key can be verified. This only exists if have set a limit during key creation.
+  How many more times this key can be verified. This only exists if you have set a limit during key creation.
 </ResponseField>
 
 
@@ -56,7 +56,12 @@ Example:
 
 
   </ResponseField>
-  
+
+
+    <ResponseField name="reset" type="int" required>
+    A unix timestamp in millisecond when the ratelimit gets refilled the next time.
+    </ResponseField>
+
  </Expandable>
 
 

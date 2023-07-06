@@ -1,116 +1,129 @@
 {
-    "$schema": "https://mintlify.com/schema.json",
-    "name": "Unkey Docs",
-    "colors": {
-        "primary": "#6030B3",
-        "light": "#c2c4c4",
-        "dark": "#252737"
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Unkey Docs",
+  "colors": {
+    "primary": "#6030B3",
+    "light": "#c2c4c4",
+    "dark": "#252737"
+  },
+  "feedback": {
+    "raiseIssue": true,
+    "suggestEdit": true
+  },
+  "topbarLinks": [
+    {
+      "name": "Discord",
+      "url": "https://unkey.dev/discord"
     },
-    "feedback": {
-        "raiseIssue": true,
-        "suggestEdit": true
-    },
-    "topbarLinks": [
-        {
-            "name": "GitHub",
-            "url": "https://github.com/chronark/unkey"
-        }
-    ],
-    "topbarCtaButton": {
-        "name": "Dashboard",
-        "url": "https://unkey.dev/app"
-    },
-    "tabs": [
-        {
-            "name": "API Reference",
-            "url": "api-reference"
-        },
-        {
-            "name": "Changelog",
-            "url": "changelog"
-        }
-    ],
-    "anchors": [
-        {
-            "name": "Issues",
-            "icon": "envelope",
-            "url": "https://github.com/chronark/unkey/issues/new"
-        },
-        {
-            "name": "GitHub",
-            "icon": "github",
-            "url": "https://github.com/chronark/unkey"
-        },
-        {
-            "name": "Contributing",
-            "icon": "code-pull-request",
-            "url": "https://github.com/chronark/unkey/blob/main/.github/CONTRIBUTING.md"
-        }
-    ],
-    "navigation": [
-        {
-            "group": "Get Started",
-            "pages": [
-                "introduction",
-                "quickstart",
-                "security"
-            ]
-        },
-        {
-            "group": "Features",
-            "icon": "bolt",
-            "pages": [
-                "features/ratelimiting",
-                "features/temp-keys"
-            ]
-        },
-        {
-            "group": "API Documentation",
-            "icon": "code",
-            "pages": [
-                "api-reference/authentication",
-                {
-                    "group": "Keys",
-                    "pages": [
-                        "api-reference/keys/create",
-                        "api-reference/keys/verify",
-                        "api-reference/keys/revoke"
-                    ]
-                },
-                {
-                    "group": "APIs",
-                    "pages": [
-                        "api-reference/apis/get",
-                        "api-reference/apis/list-keys"
-                    ]
-                }
-            ]
-        },
-        {
-            "group": "@unkey/api SDK",
-            "icon": "code",
-            "pages": [
-                "sdk/get-started",
-                {
-                    "group": "Keys",
-                    "pages": [
-                        "sdk/keys/create",
-                        "sdk/keys/verify",
-                        "sdk/keys/revoke"
-                    ]
-                }
-            ]
-        },
-        {
-            "group": "Changelog",
-            "icon": "feather",
-            "pages": [
-                "changelog/2023-06-25"
-            ]
-        }
-    ],
-    "footerSocials": {
-        "twitter": "https://twitter.com/james_r_perkins",
-        "github": "https://github.com/chronark/unkey"
+    {
+      "name": "GitHub",
+      "url": "https://github.com/chronark/unkey"
     }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://unkey.dev/app"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Libraries",
+      "url": "libraries"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Issues",
+      "icon": "envelope",
+      "url": "https://github.com/chronark/unkey/issues/new"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/chronark/unkey"
+    },
+    {
+      "name": "Contributing",
+      "icon": "code-pull-request",
+      "url": "https://github.com/chronark/unkey/blob/main/.github/CONTRIBUTING.md"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": ["introduction", "quickstart", "security"]
+    },
+    {
+      "group": "Features",
+      "icon": "bolt",
+      "pages": ["features/ratelimiting", "features/temp-keys"]
+    },
+    {
+      "group": "API Documentation",
+      "icon": "code",
+      "pages": [
+        "api-reference/authentication",
+        {
+          "group": "Keys",
+          "pages": [
+            "api-reference/keys/create",
+            "api-reference/keys/verify",
+            "api-reference/keys/revoke"
+          ]
+        },
+        {
+          "group": "APIs",
+          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
+        }
+      ]
+    },
+    {
+      "group": "Typescript",
+      "icon": "code",
+      "pages": [
+        "libraries/js/overview",
+        {
+          "group": "Keys",
+          "pages": [
+            "libraries/js/keys/create",
+            "libraries/js/keys/verify",
+            "libraries/js/keys/revoke"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Python",
+      "icon": "code",
+      "pages": [
+        "libraries/py/overview",
+        {
+          "group": "Services",
+          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+        }
+      ]
+    },
+    {
+      "group": "Elixir",
+      "icon": "code",
+      "pages": [
+        "libraries/ex/overview",
+        {
+          "group": "Functions",
+          "pages": [
+            "libraries/ex/functions/create_key",
+            "libraries/ex/functions/verify_key",
+            "libraries/ex/functions/revoke_key"
+          ]
+        }
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/james_r_perkins",
+    "github": "https://github.com/chronark/unkey"
+  }
 }

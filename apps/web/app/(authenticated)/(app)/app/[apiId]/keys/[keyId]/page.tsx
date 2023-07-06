@@ -19,8 +19,6 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  console.log({ key });
-
   const usage = await getUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
     workspaceId: key.workspaceId,
     apiId: key.apiId!,
