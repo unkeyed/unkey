@@ -9,6 +9,8 @@ import { ApiKeyTable } from "@/components/ApiKeyTable";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
+
+export const revalidate = 0;
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 

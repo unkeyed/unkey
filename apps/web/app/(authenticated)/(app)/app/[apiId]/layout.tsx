@@ -16,7 +16,7 @@ type Props = PropsWithChildren<{
     apiId: string;
   };
 }>;
-
+export const revalidate = 0;
 export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
