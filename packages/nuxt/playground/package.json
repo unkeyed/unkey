@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@unkey/nuxt": "latest",
+    "@nuxt/devtools": "latest",
     "nuxt": "latest"
   }
 }
