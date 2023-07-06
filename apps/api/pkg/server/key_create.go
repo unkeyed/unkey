@@ -1,11 +1,9 @@
 package server
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
-	"time"
 	"errors"
+	"fmt"
+	"github.com/chronark/unkey/apps/api/pkg/database"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
 	"github.com/chronark/unkey/apps/api/pkg/kafka"
@@ -13,6 +11,9 @@ import (
 	"github.com/chronark/unkey/apps/api/pkg/uid"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type CreateKeyRequest struct {
@@ -85,8 +86,8 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 			})
 		}
 
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
 			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
 		})
 	}
@@ -101,13 +102,13 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 	api, err := s.db.GetApi(ctx, req.ApiId)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-				Code:  UNAUTHORIZED,
-				Error: "unauthorized",
+			return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+				Code:  BAD_REQUEST,
+				Error: "wrong apiId",
 			})
 		}
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
 			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
 		})
 	}
