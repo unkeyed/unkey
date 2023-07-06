@@ -98,7 +98,13 @@
     {
       "group": "Python",
       "icon": "code",
-      "pages": ["libraries/py/overview"]
+      "pages": [
+        "libraries/py/overview",
+        {
+          "group": "Services",
+          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+        }
+      ]
     },
     {
       "group": "Elixir",
