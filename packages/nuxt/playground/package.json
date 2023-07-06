@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "unkey-playground",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxi dev",
+    "build": "nuxi build",
+    "generate": "nuxi generate"
+  },
+  "devDependencies": {
+    "@unkey/nuxt": "latest",
+    "nuxt": "latest"
+  }
+}

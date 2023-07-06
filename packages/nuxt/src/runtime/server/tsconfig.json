@@ -1,0 +1,6 @@
+{
+  "extends": "../../../playground/.nuxt/tsconfig.server.json",
+  "include": [
+    "**/*.ts",
+  ]
+}
