@@ -10,7 +10,8 @@ export const useUnkey = (event?: H3Event) => {
   }
 
   const config = useRuntimeConfig(event);
-  unkey = new Unkey({ token: config.unkey.token });
+  // TODO: allow empty tokens when registering a verification-only Unkey
+  unkey = new Unkey({ token: config.unkey.token || "invalid_token" });
 
   return unkey;
 };
