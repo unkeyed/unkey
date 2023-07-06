@@ -1,0 +1,32 @@
+---
+title: "ApiService"
+description: "The service used to make api related requests."
+---
+
+Available via the `apis` property of the `Client`.
+
+See the [full docs](https://jonxslays.github.io/unkey.py/stable/reference/services/#unkey.services.ApiService)
+on the `KeyService`.
+
+## Get api
+
+Gets an api with the given ID.
+
+```py
+result = await client.apis.get_api("api_123")
+```
+
+## List keys
+
+Retrieve a paginated list of api keys for a given api ID.
+
+```py
+# retrieve the first 100 api keys for this api
+result = await client.apis.list_keys("api_123")
+
+# retrieve the second 100 keys for this api
+result = await client.apis.list_keys("api_123", offset=100)
+
+# retrieve the second 10 api keys
+result = await client.apis.list_keys("api_123", offset=10, limit=10)
+```
