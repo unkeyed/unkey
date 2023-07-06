@@ -1,0 +1,35 @@
+{
+  "name": "limited-keys-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^4.21.14",
+    "@t3-oss/env-nextjs": "^0.6.0",
+    "@types/node": "20.4.0",
+    "@types/react": "18.2.14",
+    "@types/react-dom": "18.2.6",
+    "ai": "^2.1.15",
+    "autoprefixer": "10.4.14",
+    "class-variance-authority": "^0.6.1",
+    "clsx": "^1.2.1",
+    "eslint": "8.44.0",
+    "eslint-config-next": "13.4.8",
+    "lucide-react": "^0.258.0",
+    "next": "13.4.8",
+    "postcss": "8.4.25",
+    "prisma": "^4.16.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "tailwind-merge": "^1.13.2",
+    "tailwindcss": "3.3.2",
+    "tailwindcss-animate": "^1.0.6",
+    "typescript": "5.1.6",
+    "zod": "^3.21.4"
+  }
+}
