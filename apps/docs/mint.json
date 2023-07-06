@@ -10,6 +10,7 @@
     "raiseIssue": true,
     "suggestEdit": true
   },
+  "favicon": "/unkey.png",
   "topbarLinks": [
     {
       "name": "Discord",
