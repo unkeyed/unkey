@@ -1,0 +1,35 @@
+---
+title: "KeyService"
+description: "The service used to make key related requests."
+---
+
+Available via the `keys` property of the `Client`.
+
+See the [full docs](https://jonxslays.github.io/unkey.py/stable/reference/services/#unkey.services.KeyService)
+on the `KeyService`.
+
+## Create key
+
+Creates a new API key for the api with the given ID.
+
+```py
+result = await client.keys.create_key(
+    "api_123", owner_id="jonxslays", prefix="test"
+)
+```
+
+## Verify key
+
+Verifies that a key is valid, and within ratelimit.
+
+```py
+result = await client.keys.verify_key("test_123DEF")
+```
+
+## Revoke key
+
+Revokes access and removes the key with the given ID.
+
+```py
+result = await client.keys.revoke_key("key_456GHI")
+```

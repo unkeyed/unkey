@@ -3,7 +3,71 @@ title: "Overview"
 description: "Python client for unkey"
 ---
 
-<Info>
-Coming Soon..
+# unkey.py
 
-</Info>
+An asynchronous Python SDK for accessing the Unkey API.
+
+## Installation
+
+**Python version 3.8 or greater is required to use unkey.py.**
+
+### Stable
+
+```sh
+pip install -U unkey.py
+```
+
+### Development
+
+```sh
+pip install -U git+https://github.com/Jonxslays/unkey.py
+```
+
+For more information on using `pip`, check out the [pip documentation](https://pip.pypa.io/en/stable/).
+
+## Example
+
+Verifying an api key:
+
+```py
+import asyncio
+import os
+
+import unkey
+
+
+async def main() -> None:
+    client = unkey.Client(api_key=os.environ["API_KEY"])
+    await client.start()
+
+    result = await client.keys.verify_key("prefix_123ABC")
+
+    if result.is_ok:
+        data = result.unwrap()
+        print(data.valid)
+        print(data.owner_id)
+        print(data.meta)
+        print(data.error)
+    else:
+        print(result.unwrap_err())
+
+    await client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+```
+
+## Guides
+
+- [Installation](https://jonxslays.github.io/unkey.py/stable/getting-started/installation/)
+- [Using the Client](https://jonxslays.github.io/unkey.py/stable/getting-started/client/)
+- [The Result type](https://jonxslays.github.io/unkey.py/stable/getting-started/result/)
+- [Contributing](https://jonxslays.github.io/unkey.py/stable/contributing/)
+
+## Other Links
+
+- [Stable Release Docs](https://jonxslays.github.io/unkey.py/)
+- [Development Branch Docs](https://jonxslays.github.io/unkey.py/dev/)
+- [Repository](https://github.com/Jonxslays/unkey.py)
