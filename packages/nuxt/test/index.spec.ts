@@ -1,6 +1,11 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { setup, $fetch, fetch } from '@nuxt/test-utils'
+import { config } from 'dotenv'
+
+config({
+  path: fileURLToPath(new URL('../.env', import.meta.url)),
+})
 
 await setup({
   rootDir: fileURLToPath(new URL('../playground', import.meta.url)),
@@ -33,7 +38,7 @@ describe('basic behaviour', () => {
   it('should set `unkey` on context with (valid) authenticated request', async () => {
     const data = await $fetch('/api/context', {
       headers: {
-        Authorization: 'Bearer nuxt_3ZJPhts4RCdt1GysUyyoxbfv',
+        Authorization: `Bearer ${process.env.NUXT_TEST_KEY}`,
       }
     })
     expect(data).toMatchInlineSnapshot(`
