@@ -15,7 +15,26 @@
       ],
       "outputs": [
         "dist/**",
+        ".output/**",
+        ".nuxt/**",
         ".next/**"
+      ]
+    },
+    "@unkey/nuxt#dev:prepare": {
+      "outputs": [
+        "dist/**",
+        "playground/.nuxt/**"
+      ]
+    },
+    "@unkey/nuxt#test": {
+      "dependsOn": [
+        "@unkey/nuxt#dev:prepare"
+      ],
+      "outputs": []
+    },
+    "@unkey/nuxt#build": {
+      "dependsOn": [
+        "@unkey/nuxt#dev:prepare"
       ]
     },
     "fmt": {
