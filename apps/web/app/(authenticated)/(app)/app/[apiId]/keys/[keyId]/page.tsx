@@ -6,6 +6,9 @@ import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { ColumnChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const revalidate = 0;
+
 export default async function ApiPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
