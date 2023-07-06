@@ -25,3 +25,5 @@ jobs:
 
       - name: 🧪 Test project
         run: pnpm turbo test --filter=@unkey/nuxt
+        env:
+          NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
