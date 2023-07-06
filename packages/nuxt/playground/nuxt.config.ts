@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  modules: ['@unkey/nuxt'],
+  modules: ["@unkey/nuxt"],
   unkey: {},
-  devtools: { enabled: true }
-})
+  devtools: { enabled: true },
+});

@@ -1,14 +1,16 @@
-import { Unkey } from '@unkey/api'
-import type { H3Event } from 'h3'
-import { useRuntimeConfig } from '#imports'
+import { Unkey } from "@unkey/api";
+import type { H3Event } from "h3";
+import { useRuntimeConfig } from "#imports";
 
-let unkey: Unkey
+let unkey: Unkey;
 
 export const useUnkey = (event?: H3Event) => {
-  if (unkey) return unkey
+  if (unkey) {
+    return unkey;
+  }
 
-  const config = useRuntimeConfig(event)
-  unkey = new Unkey({ token: config.unkey.token })
+  const config = useRuntimeConfig(event);
+  unkey = new Unkey({ token: config.unkey.token });
 
-  return unkey
-}
+  return unkey;
+};
