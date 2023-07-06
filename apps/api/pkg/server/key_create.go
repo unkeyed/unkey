@@ -78,8 +78,8 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 
 	authKey, err := s.db.GetKeyByHash(ctx, authHash)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
+		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+			Code:  BAD_REQUEST,
 			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
 		})
 	}
@@ -93,8 +93,8 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 
 	api, err := s.db.GetApi(ctx, req.ApiId)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
+		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+			Code:  BAD_REQUEST,
 			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
 		})
 	}
