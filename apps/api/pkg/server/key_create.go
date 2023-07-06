@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
+	"errors"
 	"github.com/chronark/unkey/apps/api/pkg/entities"
 	"github.com/chronark/unkey/apps/api/pkg/hash"
 	"github.com/chronark/unkey/apps/api/pkg/kafka"
@@ -78,6 +78,13 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 
 	authKey, err := s.db.GetKeyByHash(ctx, authHash)
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
+				Code:  UNAUTHORIZED,
+				Error: "unauthorized",
+			})
+		}
+
 		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
 			Code:  BAD_REQUEST,
 			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
@@ -93,6 +100,12 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 
 	api, err := s.db.GetApi(ctx, req.ApiId)
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
+				Code:  UNAUTHORIZED,
+				Error: "unauthorized",
+			})
+		}
 		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
 			Code:  BAD_REQUEST,
 			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
