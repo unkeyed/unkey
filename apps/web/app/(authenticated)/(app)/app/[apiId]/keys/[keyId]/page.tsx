@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound } from "next/navigation";
-import { getUsage, Tinybird } from "@unkey/tinybird";
+import { getUsage } from "@/lib/tinybird";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { ColumnChart } from "@/components/charts";
@@ -22,9 +22,9 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  const usage = await getUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
+  const usage = await getUsage({
     workspaceId: key.workspaceId,
-    apiId: key.apiId!,
+    apiId: key.apiId,
     keyId: key.id,
   });
 
