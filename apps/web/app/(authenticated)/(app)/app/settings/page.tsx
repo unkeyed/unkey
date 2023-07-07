@@ -6,7 +6,7 @@ import { getTenantId } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@unkey/db";
-import { Tinybird, getUsage } from "@unkey/tinybird";
+import { getUsage } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
 
 export const revalidate = 0;
@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-  const usage = await getUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
+  const usage = await getUsage({
     workspaceId: workspace.id,
   });
 
