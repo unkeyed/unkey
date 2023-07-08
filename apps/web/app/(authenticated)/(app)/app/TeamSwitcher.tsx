@@ -138,11 +138,13 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup className="cursor-not-allowed">
-          <DropdownMenuItem disabled>
-            <Plus className="w-4 h-4 mr-2" />
-            <span>Create Workspace</span>
+        <DropdownMenuGroup >
+        <Link href="/app/team">
+          <DropdownMenuItem >
+            <Plus className="w-4 h-4 mr-2 " />
+            <span className="cursor-pointer">Create Workspace</span>
           </DropdownMenuItem>
+          </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
