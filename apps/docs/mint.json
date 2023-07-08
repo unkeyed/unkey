@@ -2,9 +2,9 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Unkey Docs",
   "colors": {
-    "primary": "#6030B3",
-    "light": "#c2c4c4",
-    "dark": "#252737"
+    "primary": "#09090b",
+    "light": "#f4f4f5",
+    "dark": "#18181b"
   },
   "feedback": {
     "raiseIssue": true,
