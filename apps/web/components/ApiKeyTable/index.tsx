@@ -172,7 +172,12 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/${row.original.apiId}/keys/${row.original.id}`}>Details</Link>
+                  <Link
+                    href={`/app/${row.original.apiId}/keys/${row.original.id}`}
+                    className="w-full"
+                  >
+                    Details
+                  </Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem

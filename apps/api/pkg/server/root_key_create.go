@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/unkeyed/unkey/apps/api/pkg/kafka"
 	"github.com/unkeyed/unkey/apps/api/pkg/keys"
 	"github.com/unkeyed/unkey/apps/api/pkg/uid"
-	"github.com/gofiber/fiber/v2"
 )
 
 type CreateRootKeyRequest struct {

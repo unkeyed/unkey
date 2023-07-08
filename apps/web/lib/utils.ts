@@ -8,45 +8,31 @@ export function fillRange(
   data: { value: number; time: number }[],
   start: number,
   end: number,
-  step: "1m" | "1h" | "1d",
 ): { value: number; time: number }[] {
   const t = new Date(start);
   const series: { value: number; time: number }[] = [];
+
+  function toDay(unixmilli: number): string {
+    const d = new Date(unixmilli);
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toUTCString();
+  }
+
+  const lookup = data.reduce((acc, d) => {
+    acc[toDay(d.time)] = d.value;
+    return acc;
+  }, {} as Record<string, number>);
+
   while (t.getTime() <= end) {
-    const d = data.find((u) => {
-      switch (step) {
-        case "1m":
-          return new Date(u.time).setUTCSeconds(0, 0) === new Date(t).setUTCSeconds(0, 0);
-
-        case "1h":
-          return new Date(u.time).setUTCMinutes(0, 0, 0) === new Date(t).setUTCMinutes(0, 0, 0);
-        case "1d":
-          return new Date(u.time).setUTCHours(0, 0, 0, 0) === new Date(t).setUTCHours(0, 0, 0, 0);
-
-        default:
-          throw new Error(`Unhandled step: ${step}`);
-      }
-    });
+    const d = lookup[toDay(t.getTime())];
+    console.log({ t, d });
     series.push({
       time: t.getTime(),
-      value: d?.value ?? 0,
+      value: d ?? 0,
     });
 
     // Now increment the time
-    switch (step) {
-      case "1m":
-        t.setUTCMinutes(t.getUTCMinutes() + 1);
-        break;
-      case "1h":
-        t.setUTCHours(t.getUTCHours() + 1);
-        break;
-      case "1d":
-        t.setUTCDate(t.getUTCDate() + 1);
-        break;
-
-      default:
-        throw new Error(`Unhandled step: ${step}`);
-    }
+    t.setUTCDate(t.getUTCDate() + 1);
   }
   return series;
 }

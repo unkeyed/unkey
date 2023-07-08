@@ -6,6 +6,7 @@ import { db, eq, schema } from "@unkey/db";
 import { getActiveCount, getUsage } from "@/lib/tinybird";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { formatNumber } from "@/lib/fmt";
 
 export const revalidate = 0;
 
@@ -38,21 +39,15 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     workspaceId: api.workspaceId,
     apiId: api.id,
   });
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const start = new Date(year, month, 0, 0, 0, 0, 0);
-  const end = new Date(start.getTime());
-  end.setUTCMonth(end.getUTCMonth() + 1);
-
+  const end = new Date().setUTCHours(0, 0, 0, 0);
+  const start = end - 30 * 24 * 60 * 60 * 1000;
   const keys = await keysP;
   const active = await activeP;
 
   const usageOverTime = fillRange(
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
-    start.getTime(),
-    end.getTime(),
-    "1d",
+    start,
+    end,
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,
@@ -62,19 +57,19 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     <div className="grid grid-cols-3 gap-4">
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>{keys}</CardTitle>
+          <CardTitle>{formatNumber(keys)}</CardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>{active.data.at(0)?.active ?? 0}</CardTitle>
+          <CardTitle>{formatNumber(active.data.at(0)?.active ?? 0)}</CardTitle>
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>{usage.data.reduce((sum, day) => sum + day.usage, 0)}</CardTitle>
+          <CardTitle>{formatNumber(usage.data.reduce((sum, day) => sum + day.usage, 0))}</CardTitle>
           <CardDescription>Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>
