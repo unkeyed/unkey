@@ -22,6 +22,8 @@ export default authMiddleware({
     "/blog/(.*)",
     "/changelog",
     "/changelog(.*)",
+    "/policies",
+    "/policies/(.*)",
     "/docs",
     "/docs(.*)",
     "/og",
