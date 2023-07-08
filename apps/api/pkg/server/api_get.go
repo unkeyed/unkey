@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/api/pkg/database"
 )
 
 type GetApiRequest struct {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/unkeyed/unkey/apps/api/pkg/cache"
 	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
@@ -19,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/apps/api/pkg/logging"
 	"github.com/unkeyed/unkey/apps/api/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/api/pkg/tinybird"
-	"github.com/go-playground/validator/v10"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

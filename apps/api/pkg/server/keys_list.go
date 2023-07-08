@@ -3,8 +3,8 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"net/http"
 )
 
