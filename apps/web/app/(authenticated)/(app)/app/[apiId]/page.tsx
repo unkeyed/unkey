@@ -1,12 +1,13 @@
 import { ColumnChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@unkey/db";
-import { Tinybird, getActiveCount, getUsage } from "@unkey/tinybird";
+import { getActiveCount, getUsage } from "@/lib/tinybird";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+
+export const revalidate = 0;
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
@@ -28,12 +29,12 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     .execute()
     .then((res) => res.at(0)?.count ?? 0);
 
-  const activeP = getActiveCount(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
+  const activeP = getActiveCount({
     workspaceId: api.workspaceId,
     apiId: api.id,
   });
 
-  const usage = await getUsage(new Tinybird({ token: env.TINYBIRD_TOKEN }))({
+  const usage = await getUsage({
     workspaceId: api.workspaceId,
     apiId: api.id,
   });
