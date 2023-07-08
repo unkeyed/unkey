@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/api/pkg/cache"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 	"github.com/unkeyed/unkey/apps/api/pkg/logging"
 	"github.com/unkeyed/unkey/apps/api/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRootCreateKey_Simple(t *testing.T) {

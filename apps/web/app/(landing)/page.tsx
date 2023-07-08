@@ -493,7 +493,7 @@ export default async function LandingPage() {
             <div className="relative grid grid-cols-1 px-16 py-12 overflow-hidden text-center bg-white sm:grid-cols-2 gap-y-12 lg:grid-cols-3 rounded-2xl gap-x-20">
               <div className="flex flex-col items-center">
                 <p className="text-5xl font-bold text-gray-900 lg:mt-3 lg:order-2 font-pj">
-                  {workspaces}
+                  {Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
                 </p>
                 <h3 className="mt-5 text-sm font-bold tracking-widest text-gray-600 uppercase lg:mt-0 lg:order-1 font-pj">
                   Workspaces
@@ -502,7 +502,7 @@ export default async function LandingPage() {
 
               <div className="flex flex-col items-center">
                 <p className="text-5xl font-bold text-gray-900 lg:mt-3 lg:order-2 font-pj">
-                  {apis}
+                  {Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
                 </p>
                 <h3 className="mt-5 text-sm font-bold tracking-widest text-gray-600 uppercase lg:mt-0 lg:order-1 font-pj">
                   APIs
@@ -511,7 +511,7 @@ export default async function LandingPage() {
 
               <div className="flex flex-col items-center">
                 <p className="text-5xl font-bold text-gray-900 lg:mt-3 lg:order-2 font-pj">
-                  {keys}
+                  {Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
                 </p>
                 <h3 className="mt-5 text-sm font-bold tracking-widest text-gray-600 uppercase lg:mt-0 lg:order-1 font-pj">
                   Keys

@@ -3,8 +3,8 @@ package server
 import (
 	"strings"
 
-	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 )
 
 // Return the hash of the key used for authentication

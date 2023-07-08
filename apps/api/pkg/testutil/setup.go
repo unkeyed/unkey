@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/unkeyed/unkey/apps/api/pkg/logging"
 	"github.com/unkeyed/unkey/apps/api/pkg/uid"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
 )
 
 type resources struct {

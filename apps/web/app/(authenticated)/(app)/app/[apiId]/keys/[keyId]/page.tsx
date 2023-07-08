@@ -28,18 +28,13 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
     keyId: key.id,
   });
 
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const start = new Date(year, month, 0, 0, 0, 0, 0);
-  const end = new Date(start.getTime());
-  end.setUTCMonth(end.getUTCMonth() + 1);
+  const end = new Date().setUTCHours(0, 0, 0, 0);
+  const start = end - 30 * 24 * 60 * 60 * 1000;
 
   const usageOverTime = fillRange(
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
-    start.getTime(),
-    end.getTime(),
-    "1d",
+    start,
+    end,
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,

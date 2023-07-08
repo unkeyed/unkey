@@ -17,11 +17,11 @@ import (
 	"github.com/unkeyed/unkey/apps/api/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/unkeyed/unkey/apps/api/pkg/logging"
 	"github.com/unkeyed/unkey/apps/api/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/api/pkg/uid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyKey_Simple(t *testing.T) {
