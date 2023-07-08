@@ -59,7 +59,27 @@ const Changelog = defineDocumentType(() => ({
   },
 }));
 
+const Policies = defineDocumentType(() => ({
+  name: "Policies",
+  filePathPattern: "policies/*.mdx",
+  contentType: "mdx",
+  type: "Policies",
+  fields: {
+    title: {
+      type: "string",
+      description: "The title of the policies",
+      required: true,
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/${doc._raw.flattenedPath}`,
+    },
+  },
+}));
+
 export default makeSource({
   contentDirPath: "content",
-  documentTypes: [Changelog, Post],
+  documentTypes: [Changelog,Policies, Post],
 });
