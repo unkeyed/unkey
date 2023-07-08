@@ -48,7 +48,8 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -101,7 +102,8 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -176,7 +178,8 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	srv := New(Config{
 		Logger:    logging.New(),
-		Cache:     cache.NewNoopCache[entities.Key](),
+		KeyCache:  cache.NewNoopCache[entities.Key](),
+		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  db,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
@@ -269,5 +272,130 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.Equal(t, int64(0), verifyRes4.Ratelimit.Remaining)
 	require.GreaterOrEqual(t, verifyRes4.Ratelimit.Reset, int64(time.Now().UnixMilli()))
 	require.LessOrEqual(t, verifyRes4.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
+
+}
+
+func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	db, err := database.New(database.Config{
+		Logger:    logging.New(),
+		PrimaryUs: os.Getenv("DATABASE_DSN"),
+	})
+	require.NoError(t, err)
+
+	api := entities.Api{
+		Id:          uid.Api(),
+		Name:        "test",
+		WorkspaceId: resources.UserWorkspace.Id,
+		IpWhitelist: []string{"100.100.100.100"},
+	}
+	err = db.CreateApi(ctx, api)
+	require.NoError(t, err)
+
+	key := uid.New(16, "test")
+	err = db.CreateKey(ctx, entities.Key{
+		Id:          uid.Key(),
+		ApiId:       api.Id,
+		WorkspaceId: api.WorkspaceId,
+		Hash:        hash.Sha256(key),
+		CreatedAt:   time.Now(),
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:   logging.New(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
+		Database: db,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"key":"%s"
+		}`, key))
+
+	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Fly-Client-IP", "100.100.100.100")
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, 200, res.StatusCode)
+
+	successResponse := VerifyKeyResponse{}
+	err = json.Unmarshal(body, &successResponse)
+	require.NoError(t, err)
+
+	require.True(t, successResponse.Valid)
+
+}
+
+func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	db, err := database.New(database.Config{
+		Logger: logging.New(),
+
+		PrimaryUs: os.Getenv("DATABASE_DSN"),
+	})
+	require.NoError(t, err)
+
+	api := entities.Api{
+		Id:          uid.Api(),
+		Name:        "test",
+		WorkspaceId: resources.UserWorkspace.Id,
+		IpWhitelist: []string{"100.100.100.100"},
+	}
+	err = db.CreateApi(ctx, api)
+	require.NoError(t, err)
+
+	key := uid.New(16, "test")
+	err = db.CreateKey(ctx, entities.Key{
+		Id:          uid.Key(),
+		ApiId:       api.Id,
+		WorkspaceId: api.WorkspaceId,
+		Hash:        hash.Sha256(key),
+		CreatedAt:   time.Now(),
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:   logging.New(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
+		Database: db,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"key":"%s"
+		}`, key))
+
+	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Fly-Client-IP", "1.2.3.4")
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, 403, res.StatusCode)
+
+	errResponse := ErrorResponse{}
+	err = json.Unmarshal(body, &errResponse)
+	require.NoError(t, err)
+
+	require.Equal(t, FORBIDDEN, errResponse.Code)
 
 }

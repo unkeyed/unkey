@@ -5,13 +5,15 @@ package models
 
 import (
 	"context"
+	"database/sql"
 )
 
 // API represents a row from 'unkey.apis'.
 type API struct {
-	ID          string `json:"id"`           // id
-	Name        string `json:"name"`         // name
-	WorkspaceID string `json:"workspace_id"` // workspace_id
+	ID          string         `json:"id"`           // id
+	Name        string         `json:"name"`         // name
+	WorkspaceID string         `json:"workspace_id"` // workspace_id
+	IPWhitelist sql.NullString `json:"ip_whitelist"` // ip_whitelist
 	// xo fields
 	_exists, _deleted bool
 }
@@ -37,13 +39,13 @@ func (a *API) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO unkey.apis (` +
-		`id, name, workspace_id` +
+		`id, name, workspace_id, ip_whitelist` +
 		`) VALUES (` +
-		`?, ?, ?` +
+		`?, ?, ?, ?` +
 		`)`
 	// run
-	logf(sqlstr, a.ID, a.Name, a.WorkspaceID)
-	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID); err != nil {
+	logf(sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist)
+	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -61,11 +63,11 @@ func (a *API) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE unkey.apis SET ` +
-		`name = ?, workspace_id = ? ` +
+		`name = ?, workspace_id = ?, ip_whitelist = ? ` +
 		`WHERE id = ?`
 	// run
-	logf(sqlstr, a.Name, a.WorkspaceID, a.ID)
-	if _, err := db.ExecContext(ctx, sqlstr, a.Name, a.WorkspaceID, a.ID); err != nil {
+	logf(sqlstr, a.Name, a.WorkspaceID, a.IPWhitelist, a.ID)
+	if _, err := db.ExecContext(ctx, sqlstr, a.Name, a.WorkspaceID, a.IPWhitelist, a.ID); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -87,15 +89,15 @@ func (a *API) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO unkey.apis (` +
-		`id, name, workspace_id` +
+		`id, name, workspace_id, ip_whitelist` +
 		`) VALUES (` +
-		`?, ?, ?` +
+		`?, ?, ?, ?` +
 		`)` +
 		` ON DUPLICATE KEY UPDATE ` +
-		`id = VALUES(id), name = VALUES(name), workspace_id = VALUES(workspace_id)`
+		`id = VALUES(id), name = VALUES(name), workspace_id = VALUES(workspace_id), ip_whitelist = VALUES(ip_whitelist)`
 	// run
-	logf(sqlstr, a.ID, a.Name, a.WorkspaceID)
-	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID); err != nil {
+	logf(sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist)
+	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -130,7 +132,7 @@ func (a *API) Delete(ctx context.Context, db DB) error {
 func APIByID(ctx context.Context, db DB, id string) (*API, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, name, workspace_id ` +
+		`id, name, workspace_id, ip_whitelist ` +
 		`FROM unkey.apis ` +
 		`WHERE id = ?`
 	// run
@@ -138,7 +140,7 @@ func APIByID(ctx context.Context, db DB, id string) (*API, error) {
 	a := API{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&a.ID, &a.Name, &a.WorkspaceID); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&a.ID, &a.Name, &a.WorkspaceID, &a.IPWhitelist); err != nil {
 		return nil, logerror(err)
 	}
 	return &a, nil
