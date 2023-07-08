@@ -1,0 +1,15 @@
+VERSION 1
+TOKEN "endpoint__billing_get_usage_endpoint_read_8152" READ
+
+NODE get_usage
+SQL >
+
+    %
+    SELECT countMerge(count) as usage
+    FROM mv_billing_hourly_verifications
+    where
+        workspaceId = {{ String(workspaceId, required=True) }}
+        and time >= toStartOfHour(fromUnixTimestamp64Milli({{ Int64(start, required=True) }}))
+        and time < toStartOfHour(fromUnixTimestamp64Milli({{ Int64(end, required=True) }}))
+
+

@@ -1,5 +1,3 @@
-VERSION 1
-
 # Data Source created from Pipe 'aggregate_verifications_per_day'
 DESCRIPTION >
     Daily usage aggregated by workspaceId, apiId and keyId

@@ -29,9 +29,18 @@ const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
   STRIPE_WEBHOOK_SECRET: z.string(),
   STRIPE_PRO_PLAN_PRICE_ID: z.string(),
+  STRIPE_ACTIVE_KEYS_PRODUCT_ID: z.string(),
   STRIPE_ACTIVE_KEYS_PRICE_ID: z.string(),
+  STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: z.string(),
   STRIPE_KEY_VERIFICATIONS_PRICE_ID: z.string(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);
 export const stripeEnv = stripeParsed.success ? stripeParsed.data : null;
+
+const cronSchema = z.object({
+  CRON_STRIPE_AUTH_KEY: z.string(),
+});
+
+const cronParsed = cronSchema.safeParse(process.env);
+export const cronEnv = cronParsed.success ? cronParsed.data : null;

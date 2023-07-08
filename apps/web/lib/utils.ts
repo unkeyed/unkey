@@ -25,7 +25,6 @@ export function fillRange(
 
   while (t.getTime() <= end) {
     const d = lookup[toDay(t.getTime())];
-    console.log({ t, d });
     series.push({
       time: t.getTime(),
       value: d ?? 0,
