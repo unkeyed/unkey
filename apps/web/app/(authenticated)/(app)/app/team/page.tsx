@@ -35,6 +35,19 @@ export default function TeamCreation() {
   
   const { toast } = useToast();
   const router = useRouter();
+  const createWorkspace =
+  trpc.workspace.create.useMutation({
+    onSuccess() {
+      router.push("/app/stripe");
+    },
+    onError(err) {
+      console.error(err);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+  if(!isLoaded) return null;
+
+
   const createClerkOrg = async({values} : {values:{name: string, slug: string}}) => {
     await createOrganization({
         ...values
@@ -46,17 +59,7 @@ export default function TeamCreation() {
         toast({ title: "Error", description: err.message, variant: "destructive" });
     });
   }
-  const createWorkspace =
-  trpc.workspace.create.useMutation({
-    onSuccess() {
-      router.push("/app/stripe");
-    },
-    onError(err) {
-      console.error(err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
-  if(!isLoaded) return null
+ 
   return (
     <div className="flex items-center justify-center w-full min-h-screen">
       <Card>
