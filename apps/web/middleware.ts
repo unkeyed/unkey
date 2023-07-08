@@ -20,6 +20,7 @@ export default authMiddleware({
     "/about",
     "/blog(.*)",
     "/changelog(.*)",
+    "/policies(.*)",
     "/docs(.*)",
     "/og(.*)",
     "/api/v1/stripe/webhooks",
