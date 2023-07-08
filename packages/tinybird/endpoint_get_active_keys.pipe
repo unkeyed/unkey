@@ -1,0 +1,20 @@
+VERSION 2
+
+TOKEN "endpoint__get_active_keys_endpoint_read_5834" READ
+
+NODE get_usage
+SQL >
+
+    %
+        SELECT count(DISTINCT keyId) as active
+        FROM daily_usage
+        where
+            workspaceId = {{ String(workspaceId, required=True )}}
+            {% if defined(apiId) %}
+            and apiId ={{ String(apiId) }}
+            {%end if %}
+        
+            and time > now() - INTERVAL 30 day
+   
+
+
