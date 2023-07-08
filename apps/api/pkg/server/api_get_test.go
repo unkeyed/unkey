@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,7 +32,8 @@ func TestGetApi_Exists(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -63,7 +65,8 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -88,5 +91,55 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	require.Equal(t, NOT_FOUND, errorResponse.Code)
 	require.Equal(t, fmt.Sprintf("unable to find api: %s", fakeApiId), errorResponse.Error)
+
+}
+
+func TestGetApi_WithIpWhitelist(t *testing.T) {
+	ctx := context.Background()
+	resources := testutil.SetupResources(t)
+
+	db, err := database.New(database.Config{
+		Logger:    logging.NewNoopLogger(),
+		PrimaryUs: os.Getenv("DATABASE_DSN"),
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:   logging.NewNoopLogger(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
+		Database: db,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	api := entities.Api{
+		Id:          uid.Api(),
+		Name:        "test",
+		WorkspaceId: resources.UserWorkspace.Id,
+		IpWhitelist: []string{"127.0.0.1", "1.1.1.1"},
+	}
+
+	err = db.CreateApi(ctx, api)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", api.Id), nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, 200, res.StatusCode)
+
+	successResponse := GetApiResponse{}
+	err = json.Unmarshal(body, &successResponse)
+	require.NoError(t, err)
+
+	require.Equal(t, api.Id, successResponse.Id)
+	require.Equal(t, api.Name, successResponse.Name)
+	require.Equal(t, api.WorkspaceId, successResponse.WorkspaceId)
+	require.Equal(t, api.IpWhitelist, successResponse.IpWhitelist)
 
 }

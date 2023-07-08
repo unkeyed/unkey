@@ -34,7 +34,8 @@ func TestListKeys_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -89,7 +90,8 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -152,7 +154,8 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -204,8 +207,9 @@ func TestListKeys_WithOffset(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.New(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		Logger:   logging.NewNoopLogger(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})
