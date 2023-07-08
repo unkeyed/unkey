@@ -17,8 +17,8 @@ import (
 	"github.com/unkeyed/unkey/apps/api/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
 
-	"github.com/unkeyed/unkey/apps/api/pkg/uid"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/apps/api/pkg/uid"
 )
 
 func TestDeleteKey(t *testing.T) {

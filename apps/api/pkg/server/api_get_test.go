@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/api/pkg/cache"
 	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
@@ -15,7 +16,6 @@ import (
 	"github.com/unkeyed/unkey/apps/api/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/api/pkg/uid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGetApi_Exists(t *testing.T) {

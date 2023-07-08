@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/api/pkg/env"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/apps/api/pkg/env"
 )
 
 func TestString_WhenSet(t *testing.T) {

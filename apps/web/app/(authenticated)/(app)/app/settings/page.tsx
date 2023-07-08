@@ -35,7 +35,6 @@ export default async function SettingsPage() {
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
     start.getTime(),
     end.getTime(),
-    "1d",
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,
