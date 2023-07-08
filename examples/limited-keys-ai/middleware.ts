@@ -5,6 +5,7 @@ import { redirectToSignIn } from "@clerk/nextjs";
 import { Unkey } from "@unkey/api";
 import { env } from "@/env.mjs";
 import { RequestCookie } from "next/dist/compiled/@edge-runtime/cookies";
+import { prismaClient } from "./lib/prisma";
 const unkey = new Unkey({ token: env.UNKEY_TOKEN });
 export default authMiddleware({
   async beforeAuth(req, _evt) {
@@ -33,9 +34,24 @@ export default authMiddleware({
       return redirectToSignIn({ returnBackUrl: "/" });
     }
     if (auth.userId && !auth.orgId) {
+      // save user
+      const existingUser = await prismaClient.user.findFirst({
+        where: {
+          email: auth.user!.emailAddresses[0].emailAddress,
+        },
+      });
+      if (!existingUser) {
+        await prismaClient.user.create({
+          data: {
+            email: auth.user!.emailAddresses[0].emailAddress,
+            firstName: auth.user?.firstName,
+            lastName: auth.user?.lastName,
+          },
+        });
+      }
+      // Create a new expiry date by adding 7 days to the current date
       const currentDate = new Date();
 
-      // Create a new date by adding 7 days to the current date
       const expiry = new Date();
       expiry.setDate(currentDate.getDate() + 7);
 
