@@ -31,13 +31,13 @@ const tiers = {
     ],
     footnotes: [
       " * Additonal active keys are billed at $0.10",
-      " * Additonal verifications are charged at $1 per 5000",
+      " * Additonal verifications are billed at $1 per 5000",
     ],
   },
   custom: {
     name: "Enterprise Tier",
     id: "enterprise",
-    href: "https://cal.com/james-perkins/unkey-enterprise",
+    href: "https://cal.com/james-unkey/enterprise",
     price: "Let's talk",
     description: "We offer custom pricing for those with high volume needs.",
     buttonText: "Schedule a call",
@@ -47,6 +47,7 @@ const tiers = {
       "Pricing based on your needs",
       "Custom data retention",
       "Dedicated support contract",
+      "Whitelist IP per API"
     ],
     footnotes: [],
   },
@@ -79,8 +80,9 @@ export const metadata = {
 
 export default async function PricingPage() {
   return (
+    <div>
     <div className="flex items-center justify-center overflow-auto bg-gray-50">
-      <div className="relative isolate w-full max-w-6xl px-6 py-14 lg:px-8">
+      <div className="relative isolate w-full max-w-6xl px-6 py-10 lg:px-8">
         <div>
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
@@ -196,6 +198,18 @@ export default async function PricingPage() {
           </div>
         </div>
       </div>
+    </div>
+    <div className="flex items-center justify-center overflow-auto bg-gray-50">
+      <div className="relative isolate w-full max-w-6xl px-6 pb-4 lg:px-8">
+        <div>
+          <div className="text-center">
+            <p className="text-md text-gray-900 sm:text-lg">
+            Volume pricing is available on request, <a className="underline text-gray-600" href="mailto:james@unkey.dev">contact us</a> for more information.
+            </p>
+          </div>
+          </div>
+          </div>
+    </div>
     </div>
   );
 }
