@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chronark/unkey/apps/api/pkg/database"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
-	"github.com/chronark/unkey/apps/api/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/api/pkg/database"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

@@ -3,8 +3,8 @@ package middleware
 import (
 	"context"
 
-	"github.com/chronark/unkey/apps/api/pkg/cache"
-	"github.com/chronark/unkey/apps/api/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/api/pkg/cache"
+	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chronark/unkey/apps/api/pkg/entities"
-	"github.com/chronark/unkey/apps/api/pkg/hash"
-	"github.com/chronark/unkey/apps/api/pkg/kafka"
-	"github.com/chronark/unkey/apps/api/pkg/keys"
-	"github.com/chronark/unkey/apps/api/pkg/uid"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/hash"
+	"github.com/unkeyed/unkey/apps/api/pkg/kafka"
+	"github.com/unkeyed/unkey/apps/api/pkg/keys"
+	"github.com/unkeyed/unkey/apps/api/pkg/uid"
 	"github.com/gofiber/fiber/v2"
 )
 

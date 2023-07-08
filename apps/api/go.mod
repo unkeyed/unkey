@@ -1,4 +1,4 @@
-module github.com/chronark/unkey/apps/api
+module github.com/unkeyed/unkey/apps/api
 
 go 1.20
 

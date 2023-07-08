@@ -11,7 +11,7 @@ const config = defineConfig({
    */
   logicalId: "unkey-api",
   /* An optional URL to your Git repo */
-  repoUrl: "https://github.com/chronark/unkey",
+  repoUrl: "https://github.com/unkeyed/unkey",
   /* Sets default values for Checks */
   checks: {
     /* A default for how often your Check should run in minutes */

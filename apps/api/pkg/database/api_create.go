@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 )
 
 func (db *database) CreateApi(ctx context.Context, newApi entities.Api) error {

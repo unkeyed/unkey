@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 
-	"github.com/chronark/unkey/apps/api/pkg/cache"
+	"github.com/unkeyed/unkey/apps/api/pkg/cache"
 	"go.uber.org/zap"
 )
 
