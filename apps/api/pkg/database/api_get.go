@@ -21,9 +21,5 @@ func (db *database) GetApi(ctx context.Context, apiId string) (entities.Api, err
 	if api == nil {
 		return entities.Api{}, ErrNotFound
 	}
-	return entities.Api{
-		Id:          api.ID,
-		Name:        api.Name,
-		WorkspaceId: api.WorkspaceID,
-	}, nil
+	return apiModelToEntity(api), nil
 }

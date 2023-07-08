@@ -44,7 +44,8 @@ func TestDeleteKey(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		Cache:    cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
 		Tracer:   tracing.NewNoop(),
 	})

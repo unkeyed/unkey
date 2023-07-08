@@ -2,13 +2,15 @@ package server
 
 import (
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/api/pkg/tinybird"
+	"github.com/unkeyed/unkey/apps/api/pkg/whitelist"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 type VerifyKeyRequest struct {
@@ -64,12 +66,15 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		})
 	}
 
+	// ---------------------------------------------------------------------------------------------
+	// Get the key from either cache or db
+	// ---------------------------------------------------------------------------------------------
 	hash, err := getKeyHash(req.Key)
 	if err != nil {
 		return err
 	}
 
-	key, isCached := s.cache.Get(ctx, hash)
+	key, isCached := s.keyCache.Get(ctx, hash)
 
 	if !isCached {
 		key, err = s.db.GetKeyByHash(ctx, hash)
@@ -92,10 +97,10 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 				},
 			})
 		}
-		s.cache.Set(ctx, hash, key)
+		s.keyCache.Set(ctx, hash, key)
 	}
 	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
-		s.cache.Remove(ctx, hash)
+		s.keyCache.Remove(ctx, hash)
 		err := s.db.DeleteKey(ctx, key.Id)
 		if err != nil {
 			return c.Status(500).JSON(VerifyKeyErrorResponse{
@@ -114,6 +119,57 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			},
 		})
 	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Get the api from either cache or db
+	// ---------------------------------------------------------------------------------------------
+
+	api, isCached := s.apiCache.Get(ctx, key.ApiId)
+
+	if !isCached {
+		api, err = s.db.GetApi(ctx, key.ApiId)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return c.Status(http.StatusNotFound).JSON(VerifyKeyErrorResponse{
+					Valid: false,
+					ErrorResponse: ErrorResponse{
+						Code:  NOT_FOUND,
+						Error: "api not found",
+					},
+				})
+			}
+
+			return c.Status(500).JSON(VerifyKeyErrorResponse{
+				Valid: false,
+				ErrorResponse: ErrorResponse{
+					Code:  INTERNAL_SERVER_ERROR,
+					Error: err.Error(),
+				},
+			})
+		}
+		s.apiCache.Set(ctx, key.ApiId, api)
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Preflight checks
+	// ---------------------------------------------------------------------------------------------
+
+	if len(api.IpWhitelist) > 0 {
+		sourceIp := c.Get("Fly-Client-IP")
+		s.logger.Info("checking ip whitelist", zap.String("sourceIp", sourceIp), zap.Strings("whitelist", api.IpWhitelist))
+
+		if !whitelist.Ip(sourceIp, api.IpWhitelist) {
+			s.logger.Info("ip denied", zap.String("workspaceId", api.WorkspaceId), zap.String("apiId", api.Id), zap.String("keyId", key.Id), zap.String("sourceIp", sourceIp), zap.Strings("whitelist", api.IpWhitelist))
+			return c.Status(http.StatusForbidden).JSON(ErrorResponse{
+				Code: FORBIDDEN,
+			})
+		}
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Start validation
+	// ---------------------------------------------------------------------------------------------
+
 	s.logger.Info("report.key.verifying",
 		zap.String("keyId", key.Id),
 		zap.String("apiId", key.ApiId),

@@ -14,9 +14,10 @@ type GetApiRequest struct {
 }
 
 type GetApiResponse struct {
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	WorkspaceId string `json:"workspaceId"`
+	Id          string   `json:"id"`
+	Name        string   `json:"name"`
+	WorkspaceId string   `json:"workspaceId"`
+	IpWhitelist []string `json:"ipWhitelist,omitempty"`
 }
 
 func (s *Server) getApi(c *fiber.Ctx) error {
@@ -79,5 +80,6 @@ func (s *Server) getApi(c *fiber.Ctx) error {
 		Id:          api.Id,
 		Name:        api.Name,
 		WorkspaceId: api.WorkspaceId,
+		IpWhitelist: api.IpWhitelist,
 	})
 }

@@ -8,9 +8,10 @@ const (
 	UNAUTHORIZED          ErrorCode = "UNAUTHORIZED"
 	INTERNAL_SERVER_ERROR ErrorCode = "INTERNAL_SERVER_ERROR"
 	RATELIMITED           ErrorCode = "RATELIMITED"
+	FORBIDDEN             ErrorCode = "FORBIDDEN"
 )
 
 type ErrorResponse struct {
-	Error string    `json:"error"`
+	Error string    `json:"error,omitempty"`
 	Code  ErrorCode `json:"code"`
 }
