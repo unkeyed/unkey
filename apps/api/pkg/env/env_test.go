@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chronark/unkey/apps/api/pkg/env"
+	"github.com/unkeyed/unkey/apps/api/pkg/env"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )

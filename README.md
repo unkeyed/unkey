@@ -17,6 +17,6 @@ See [here](./.github/CONTRIBUTING.md) for more information on how to contribute 
 
 ## Authors
 
-<a href="https://github.com/chronark/unkey/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=chronark/unkey" />
+<a href="https://github.com/unkeyed/unkey/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=unkeyed/unkey" />
 </a>

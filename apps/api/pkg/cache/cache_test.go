@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chronark/unkey/apps/api/pkg/cache"
-	"github.com/chronark/unkey/apps/api/pkg/logging"
+	"github.com/unkeyed/unkey/apps/api/pkg/cache"
+	"github.com/unkeyed/unkey/apps/api/pkg/logging"
 )
 
 func TestWriteRead(t *testing.T) {

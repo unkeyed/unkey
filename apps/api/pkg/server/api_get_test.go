@@ -8,13 +8,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/chronark/unkey/apps/api/pkg/cache"
-	"github.com/chronark/unkey/apps/api/pkg/database"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
-	"github.com/chronark/unkey/apps/api/pkg/logging"
-	"github.com/chronark/unkey/apps/api/pkg/testutil"
-	"github.com/chronark/unkey/apps/api/pkg/tracing"
-	"github.com/chronark/unkey/apps/api/pkg/uid"
+	"github.com/unkeyed/unkey/apps/api/pkg/cache"
+	"github.com/unkeyed/unkey/apps/api/pkg/database"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/logging"
+	"github.com/unkeyed/unkey/apps/api/pkg/testutil"
+	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/api/pkg/uid"
 	"github.com/stretchr/testify/require"
 )
 

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/chronark/unkey/apps/api/pkg/database/models"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/database/models"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 )
 
 func keyModelToEntity(model *models.Key) (entities.Key, error) {

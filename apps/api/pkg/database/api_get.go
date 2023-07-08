@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/chronark/unkey/apps/api/pkg/database/models"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/database/models"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 )
 
 func (db *database) GetApi(ctx context.Context, apiId string) (entities.Api, error) {

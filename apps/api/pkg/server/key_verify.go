@@ -2,9 +2,9 @@ package server
 
 import (
 	"errors"
-	"github.com/chronark/unkey/apps/api/pkg/database"
-	"github.com/chronark/unkey/apps/api/pkg/ratelimit"
-	"github.com/chronark/unkey/apps/api/pkg/tinybird"
+	"github.com/unkeyed/unkey/apps/api/pkg/database"
+	"github.com/unkeyed/unkey/apps/api/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/api/pkg/tinybird"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 	"net/http"
