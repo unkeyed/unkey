@@ -154,7 +154,6 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// Preflight checks
 	// ---------------------------------------------------------------------------------------------
 
-	s.logger.Info("api", zap.Any("api", api))
 	if len(api.IpWhitelist) > 0 {
 		sourceIp := c.Get("Fly-Client-IP")
 		s.logger.Info("checking ip whitelist", zap.String("sourceIp", sourceIp), zap.Strings("whitelist", api.IpWhitelist))

@@ -66,8 +66,8 @@ type Server struct {
 
 func New(config Config) *Server {
 	appConfig := fiber.Config{
-		DisableStartupMessage: true,
-		Immutable:             true,
+		DisableStartupMessage:   true,
+		Immutable:               true,
 	}
 
 	s := &Server{
