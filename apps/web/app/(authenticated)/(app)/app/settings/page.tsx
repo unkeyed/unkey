@@ -6,8 +6,10 @@ import { getTenantId } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@unkey/db";
-import { getUsage } from "@/lib/tinybird";
+import { getDailyUsage } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { CopyButton } from "@/components/CopyButton";
 
 export const revalidate = 0;
 
@@ -20,7 +22,7 @@ export default async function SettingsPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-  const usage = await getUsage({
+  const usage = await getDailyUsage({
     workspaceId: workspace.id,
   });
 
@@ -45,7 +47,16 @@ export default async function SettingsPage() {
   }, 0);
   return (
     <div>
-      <PageHeader title={workspace.name} description="Settings" actions={[]} />
+      <PageHeader
+        title={workspace.name}
+        description="Settings"
+        actions={[
+          <Badge key="workspaceId" variant="outline" className="font-mono font-medium">
+            {workspace.id}
+            <CopyButton value={workspace.id} className="ml-2" />
+          </Badge>,
+        ]}
+      />
 
       <Card>
         <CardHeader>
