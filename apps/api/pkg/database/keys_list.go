@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/chronark/unkey/apps/api/pkg/database/models"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/database/models"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 )
 
 func (db *database) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error) {

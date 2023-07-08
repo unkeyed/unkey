@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/chronark/unkey/apps/api/pkg/database/models"
-	"github.com/chronark/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/database/models"
+	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 )
 
 func (db *database) GetKeyById(ctx context.Context, keyId string) (entities.Key, error) {

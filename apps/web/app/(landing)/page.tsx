@@ -18,7 +18,7 @@ export default async function LandingPage() {
       .select({ count: sql<number>`count(*)` })
       .from(schema.keys)
       .then((res) => res.at(0)?.count ?? 0),
-    await fetch("https://api.github.com/repos/chronark/unkey", {
+    await fetch("https://api.github.com/repos/unkeyed/unkey", {
       headers: {
         Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
         "Content-Type": "application/json",
@@ -31,7 +31,7 @@ export default async function LandingPage() {
         <section className="flex flex-col items-center justify-center min-h-screen pt-12 bg-gray-50 sm:pt-16">
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center">
-              {/*<Link className="px-6 text-lg font-bold text-gray-600" href="https://github.com/chronark/unkey">Unkey</Link>*/}
+              {/*<Link className="px-6 text-lg font-bold text-gray-600" href="https://github.com/unkeyed/unkey">Unkey</Link>*/}
               <h1 className="mt-5 text-4xl font-bold leading-tight text-gray-900 font-display sm:leading-tight sm:text-5xl lg:text-6xl xl:text-7xl lg:leading-tight font-pj">
                 Accelerate your API Development
               </h1>
@@ -533,7 +533,7 @@ export default async function LandingPage() {
               with your friends.
             </p>
             <div className="flex items-center justify-center py-10">
-              <a href="https://github.com/chronark/unkey" target="_blank" rel="noreferrer">
+              <a href="https://github.com/unkeyed/unkey" target="_blank" rel="noreferrer">
                 <div className="flex items-center">
                   <div className="flex items-center h-10 p-4 space-x-2 bg-gray-800 border border-gray-600 rounded-md">
                     <Github className="w-5 h-5 text-white" />
@@ -556,7 +556,7 @@ export default async function LandingPage() {
             <ul className="flex items-center justify-start space-x-3 sm:order-2 sm:justify-end">
               <li>
                 <Link
-                  href="https://github.com/chronark/unkey"
+                  href="https://github.com/unkeyed/unkey"
                   target="_blank"
                   title=""
                   className="inline-flex items-center justify-center w-10 h-10 text-gray-900 transition-all duration-200 rounded-full hover:bg-gray-100 focus:outline-none focus:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
