@@ -28,6 +28,7 @@ type Api struct {
 	Id          string
 	Name        string
 	WorkspaceId string
+	IpWhitelist []string
 }
 
 type Workspace struct {

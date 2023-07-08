@@ -16,8 +16,5 @@ func (db *database) GetWorkspace(ctx context.Context, workspaceId string) (entit
 	if workspace == nil {
 		return entities.Workspace{}, fmt.Errorf("unable to find workspace %s in db", workspaceId)
 	}
-	return entities.Workspace{
-		Id:   workspace.ID,
-		Name: workspace.Name,
-	}, nil
+	return workspaceModelToEntity(workspace), nil
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/unkey/apps/api/pkg/database/models"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
@@ -123,15 +124,20 @@ func apiEntityToModel(a entities.Api) *models.API {
 		ID:          a.Id,
 		Name:        a.Name,
 		WorkspaceID: a.WorkspaceId,
+		IPWhitelist: sql.NullString{String: strings.Join(a.IpWhitelist, ","), Valid: len(a.IpWhitelist) > 0},
 	}
 
 }
 
 func apiModelToEntity(model *models.API) entities.Api {
-	return entities.Api{
+	a := entities.Api{
 		Id:          model.ID,
 		Name:        model.Name,
 		WorkspaceId: model.WorkspaceID,
 	}
+	if model.IPWhitelist.Valid {
+		a.IpWhitelist = strings.Split(model.IPWhitelist.String, ",")
+	}
+	return a
 
 }

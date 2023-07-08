@@ -122,18 +122,27 @@ func main() {
 	}
 	db = databaseMiddleware.WithTracing(db, tracer)
 
-	c := cache.New[entities.Key](cache.Config[entities.Key]{
+	keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
 		Fresh:             time.Minute,
 		Stale:             time.Minute * 15,
 		RefreshFromOrigin: db.GetKeyByHash,
 		Logger:            logger,
 	})
-	c = cacheMiddleware.WithTracing[entities.Key](c, tracer)
-	c = cacheMiddleware.WithLogging[entities.Key](c, logger)
+	keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
+	keyCache = cacheMiddleware.WithLogging[entities.Key](keyCache, logger)
+
+	apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
+		Fresh:             time.Minute,
+		Stale:             time.Minute * 15,
+		RefreshFromOrigin: db.GetApi,
+		Logger:            logger,
+	})
+	apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
+	apiCache = cacheMiddleware.WithLogging[entities.Api](apiCache, logger)
 
 	k.RegisterOnKeyEvent(func(ctx context.Context, e kafka.KeyEvent) error {
 		logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
-		c.Remove(context.Background(), e.Key.Hash)
+		keyCache.Remove(context.Background(), e.Key.Hash)
 
 		if e.Type == kafka.KeyCreated || e.Type == kafka.KeyUpdated {
 			logger.Info("fetching key from origin", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
@@ -141,7 +150,7 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
 			}
-			c.Set(ctx, key.Hash, key)
+			keyCache.Set(ctx, key.Hash, key)
 		}
 
 		return nil
@@ -151,7 +160,8 @@ func main() {
 
 	srv := server.New(server.Config{
 		Logger:            logger,
-		Cache:             c,
+		KeyCache:          keyCache,
+		ApiCache:          apiCache,
 		Database:          db,
 		Ratelimit:         fastRatelimit,
 		GlobalRatelimit:   consistentRatelimit,

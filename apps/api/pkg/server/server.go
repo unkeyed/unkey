@@ -26,7 +26,8 @@ import (
 
 type Config struct {
 	Logger          logging.Logger
-	Cache           cache.Cache[entities.Key]
+	KeyCache        cache.Cache[entities.Key]
+	ApiCache        cache.Cache[entities.Api]
 	Database        database.Database
 	Ratelimit       ratelimit.Ratelimiter
 	GlobalRatelimit ratelimit.Ratelimiter
@@ -46,7 +47,8 @@ type Server struct {
 	logger          logging.Logger
 	validator       *validator.Validate
 	db              database.Database
-	cache           cache.Cache[entities.Key]
+	keyCache        cache.Cache[entities.Key]
+	apiCache        cache.Cache[entities.Api]
 	ratelimit       ratelimit.Ratelimiter
 	globalRatelimit ratelimit.Ratelimiter
 	tracer          trace.Tracer
@@ -64,8 +66,8 @@ type Server struct {
 
 func New(config Config) *Server {
 	appConfig := fiber.Config{
-		DisableStartupMessage: true,
-		Immutable:             true,
+		DisableStartupMessage:   true,
+		Immutable:               true,
 	}
 
 	s := &Server{
@@ -74,7 +76,8 @@ func New(config Config) *Server {
 		logger:            config.Logger,
 		validator:         validator.New(),
 		db:                config.Database,
-		cache:             config.Cache,
+		keyCache:          config.KeyCache,
+		apiCache:          config.ApiCache,
 		ratelimit:         config.Ratelimit,
 		tracer:            config.Tracer,
 		tinybird:          config.Tinybird,
