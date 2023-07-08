@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getTenantId } from "@/lib/auth";
 import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@unkey/db";
-import { getActiveCount, getUsage } from "@/lib/tinybird";
+import { getTotalActiveKeys, getDailyUsage } from "@/lib/tinybird";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { formatNumber } from "@/lib/fmt";
@@ -30,19 +30,26 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     .execute()
     .then((res) => res.at(0)?.count ?? 0);
 
-  const activeP = getActiveCount({
+  const end = new Date().setUTCHours(0, 0, 0, 0);
+  // start of the day 30 days ago
+  const start = end - 30 * 24 * 60 * 60 * 1000;
+  const activeP = getTotalActiveKeys({
+    workspaceId: api.workspaceId,
+    apiId: api.id,
+    start,
+    end,
+  });
+
+  const usage = await getDailyUsage({
     workspaceId: api.workspaceId,
     apiId: api.id,
   });
 
-  const usage = await getUsage({
-    workspaceId: api.workspaceId,
-    apiId: api.id,
-  });
-  const end = new Date().setUTCHours(0, 0, 0, 0);
-  const start = end - 30 * 24 * 60 * 60 * 1000;
   const keys = await keysP;
   const active = await activeP;
+  console.log(
+    JSON.stringify({ workspaceId: api.workspace.id, apiId: api.id, start, end, active }, null, 2),
+  );
 
   const usageOverTime = fillRange(
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
@@ -63,7 +70,9 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       </Card>
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>{formatNumber(active.data.at(0)?.active ?? 0)}</CardTitle>
+          <CardTitle>
+            {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
+          </CardTitle>
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>

@@ -15,8 +15,8 @@ export const publishKeyVerification = tb.buildIngestEndpoint({
   }),
 });
 
-export const getUsage = tb.buildPipe({
-  pipe: "endpoint__get_usage__v2",
+export const getDailyUsage = tb.buildPipe({
+  pipe: "endpoint_get_usage__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string().optional(),
@@ -31,15 +31,41 @@ export const getUsage = tb.buildPipe({
   },
 });
 
-export const getActiveCount = tb.buildPipe({
-  pipe: "endpoint__get_active_keys__v1",
+export const getActiveCountPerApiPerDay = tb.buildPipe({
+  pipe: "endpoint_get_active_keys__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string().optional(),
+    start: z.number(),
+    end: z.number(),
   }),
   data: z.object({
     active: z.number(),
   }),
+});
+
+export const getTotalVerificationsForWorkspace = tb.buildPipe({
+  pipe: "endpoint_billing_get_verifications_usage__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+  }),
+  data: z.object({ usage: z.number() }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getTotalActiveKeys = tb.buildPipe({
+  pipe: "endpoint_billing_get_active_keys_usage__v2",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string().optional(),
+    start: z.number(),
+    end: z.number(),
+  }),
+  data: z.object({ usage: z.number() }),
   opts: {
     cache: "no-store",
   },

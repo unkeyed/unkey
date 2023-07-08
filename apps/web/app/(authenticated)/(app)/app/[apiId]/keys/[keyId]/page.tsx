@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound } from "next/navigation";
-import { getUsage } from "@/lib/tinybird";
+import { getDailyUsage } from "@/lib/tinybird";
 import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { ColumnChart } from "@/components/charts";
@@ -22,7 +22,7 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  const usage = await getUsage({
+  const usage = await getDailyUsage({
     workspaceId: key.workspaceId,
     apiId: key.apiId,
     keyId: key.id,
