@@ -18,7 +18,7 @@
     },
     {
       "name": "GitHub",
-      "url": "https://github.com/chronark/unkey"
+      "url": "https://github.com/unkeyed/unkey"
     }
   ],
   "topbarCtaButton": {
@@ -39,17 +39,17 @@
     {
       "name": "Issues",
       "icon": "envelope",
-      "url": "https://github.com/chronark/unkey/issues/new"
+      "url": "https://github.com/unkeyed/unkey/issues/new"
     },
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://github.com/chronark/unkey"
+      "url": "https://github.com/unkeyed/unkey"
     },
     {
       "name": "Contributing",
       "icon": "code-pull-request",
-      "url": "https://github.com/chronark/unkey/blob/main/.github/CONTRIBUTING.md"
+      "url": "https://github.com/unkeyed/unkey/blob/main/.github/CONTRIBUTING.md"
     }
   ],
   "navigation": [
@@ -132,6 +132,6 @@
   ],
   "footerSocials": {
     "twitter": "https://twitter.com/james_r_perkins",
-    "github": "https://github.com/chronark/unkey"
+    "github": "https://github.com/unkeyed/unkey"
   }
 }

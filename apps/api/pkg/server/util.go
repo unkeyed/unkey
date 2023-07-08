@@ -3,7 +3,7 @@ package server
 import (
 	"strings"
 
-	"github.com/chronark/unkey/apps/api/pkg/hash"
+	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/gofiber/fiber/v2"
 )
 

@@ -3,7 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/chronark/unkey/apps/api/pkg/database"
+	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/gofiber/fiber/v2"
 	"net/http"
 )

@@ -1,6 +1,6 @@
 FROM golang:1.20 AS builder
 
-WORKDIR /go/src/github.com/chronark/unkey/apps/api
+WORKDIR /go/src/github.com/unkeyed/unkey/apps/api
 
 COPY go.mod .
 COPY go.sum .
@@ -15,7 +15,7 @@ RUN go build -o unkey -ldflags "-X 'main.version=${VERSION}'" ./cmd/api
 
 FROM golang:1.20
 
-COPY --from=builder /go/src/github.com/chronark/unkey/apps/api/unkey /usr/local/bin/unkey
+COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/api/unkey /usr/local/bin/unkey
 
 
 CMD ["/usr/local/bin/unkey"]
