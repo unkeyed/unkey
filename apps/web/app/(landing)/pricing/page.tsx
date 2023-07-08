@@ -32,12 +32,13 @@ const tiers = {
     footnotes: [
       " * Additonal active keys are billed at $0.10",
       " * Additonal verifications are charged at $1 per 5000",
+      " * Volume Discounts are available" 
     ],
   },
   custom: {
     name: "Enterprise Tier",
     id: "enterprise",
-    href: "https://cal.com/james-perkins/unkey-enterprise",
+    href: "https://cal.com/james-unkey/enterprise",
     price: "Let's talk",
     description: "We offer custom pricing for those with high volume needs.",
     buttonText: "Schedule a call",
@@ -47,6 +48,7 @@ const tiers = {
       "Pricing based on your needs",
       "Custom data retention",
       "Dedicated support contract",
+      "Whitelist IP per API"
     ],
     footnotes: [],
   },
