@@ -18,7 +18,6 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const router = useRouter();
 
   React.useEffect(() => {
-
     const signUpOrgUser = async() => {
       if(!ticket) return;
       if(!signUpLoaded) return;
@@ -36,7 +35,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
         });
       }
       signUpOrgUser();
-  }, [ticket]);
+  }, [ticket,signUpLoaded]);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,7 +77,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
     }
   };
 
-  return (
+  return(
     <form className="grid gap-2" onSubmit={signUpWithCode}>
       <div className="grid gap-1">
         <Input

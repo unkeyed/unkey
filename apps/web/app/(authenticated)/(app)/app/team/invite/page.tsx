@@ -13,16 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useOrganization } from "@clerk/nextjs";
 import { RadioGroup,RadioGroupItem } from "@/components/ui/radio-group";
 import { MembershipRole } from "@clerk/types";
+import { useState } from "react";
 const formSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["basic_member", "admin"]).default("basic_member"),
+  role: z.enum(["admin", "basic_member"], {
+    required_error: "You need to select a role type.",
+  }),
 });
 
 export default function TeamCreation() {
@@ -40,10 +42,15 @@ export default function TeamCreation() {
         emailAddress: values.email,
         role: values.role
     }).then((_res) => {
-        toast({ title: "Invite Sent", description: "Please have the user check their email", variant: "default" });
+        toast({ title: "Invite Sent", description: "Please have the user check their email", variant: "default"});
+        setIsLoading(false);
+        form.reset({
+          email: "",
+          role: "basic_member"
+        });
     }).catch((err) => {
-        console.error(err);
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        setIsLoading(false);
+        toast({ title: "Error", description: "Error sending invite, please reach out to support", variant: "destructive" });
     });
   }
  
@@ -82,7 +89,7 @@ export default function TeamCreation() {
                     <FormLabel>Role</FormLabel>
                     <FormControl>
                 <RadioGroup
-                  onValueChange={field.onChange}
+                  onValueChange={field.onChange  as (value: string) => void}
                   defaultValue={field.value}
                   className="flex flex-row justify-around space-y-1"
 

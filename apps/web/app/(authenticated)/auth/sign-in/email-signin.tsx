@@ -34,7 +34,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
         });
       }
       signUpOrgUser();
-  }, [ticket]);
+  }, [ticket,signInLoaded]);
 
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,7 +80,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
       });
   };
 
-  return (
+  return(
     <form className="grid gap-2" onSubmit={signInWithCode}>
       <div className="grid gap-1">
         <Input
