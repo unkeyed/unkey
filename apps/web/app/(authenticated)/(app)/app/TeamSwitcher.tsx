@@ -4,18 +4,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuCheckboxItem,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
+
 } from "@/components/ui/dropdown-menu";
 import {
   Check,
@@ -29,8 +22,8 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Loading } from "@/components/loading";
 
 import { cn } from "@/lib/utils";
@@ -43,7 +36,7 @@ type Props = {
 
 export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
-  const { organization: currentOrg } = useOrganization();
+  const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -61,7 +54,6 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       setLoading(false);
     }
   }
-
   return (
     <DropdownMenu>
       {loading ? (
@@ -126,6 +118,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
 
           {organizationList?.map((org) => (
             <DropdownMenuItem
+              key={org.organization.id}
               onClick={() => changeOrg(org.organization.id)}
               className={cn("flex items-center justify-between", {
                 "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100 cursor-pointer":
@@ -139,12 +132,20 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup >
-        <Link href="/app/team">
+        <Link href="/app/team/create">
           <DropdownMenuItem >
             <Plus className="w-4 h-4 mr-2 " />
             <span className="cursor-pointer">Create Workspace</span>
           </DropdownMenuItem>
           </Link>
+          {membership?.role === "admin" ? (
+          <Link href="/app/team/invite" >
+          <DropdownMenuItem >
+            <Plus className="w-4 h-4 mr-2 " />
+            <span className="cursor-pointer">Invite Member</span>
+          </DropdownMenuItem>
+          </Link>
+          ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

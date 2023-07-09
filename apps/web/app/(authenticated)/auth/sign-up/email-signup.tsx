@@ -7,12 +7,37 @@ import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 export function EmailSignUp(props: { verification: (value: boolean) => void }) {
-  const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const { signUp, isLoaded: signUpLoaded,setActive } = useSignUp();
   const { toast } = useToast();
-
+  const param = '__clerk_ticket';
+  const ticket = new URL(window.location.href).searchParams.get(param);
   const [isLoading, setIsLoading] = React.useState(false);
+  const router = useRouter();
+
+  React.useEffect(() => {
+
+    const signUpOrgUser = async() => {
+      if(!ticket) return;
+      if(!signUpLoaded) return;
+      await signUp.create({
+        strategy: "ticket",
+        ticket}).then((result) => {
+          if (result.status === "complete" && result.createdSessionId) {
+            setActive({ session: result.createdSessionId }).then(() => {
+              router.push("/onboarding");
+            });
+          }
+        }).catch((err) => {
+          setIsLoading(false);
+          console.log(err)
+        });
+      }
+      signUpOrgUser();
+  }, [ticket]);
+
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const email = new FormData(e.currentTarget).get("email");

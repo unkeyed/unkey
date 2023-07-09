@@ -24,9 +24,6 @@ const formSchema = z.object({
   slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
 });
 
-type Props = {
-  tenantId: string;
-};
 export default function TeamCreation() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

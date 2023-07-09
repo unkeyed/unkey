@@ -7,12 +7,34 @@ import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 export function EmailSignIn(props: { verification: (value: boolean) => void }) {
-  const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const { signIn, isLoaded: signInLoaded,setActive } = useSignIn();
   const { toast } = useToast();
-
+  const param = '__clerk_ticket';
+  const ticket = new URL(window.location.href).searchParams.get(param);
   const [isLoading, setIsLoading] = React.useState(false);
+  const router = useRouter();
+  React.useEffect(() => {
+    const signUpOrgUser = async() => {
+      if(!ticket) return;
+      if(!signInLoaded) return;
+      await signIn.create({
+        strategy: "ticket",
+        ticket}).then((result) => {
+          if (result.status === "complete" && result.createdSessionId) {
+            setActive({ session: result.createdSessionId }).then(() => {
+              router.push("/app");
+            });
+          }
+        }).catch((err) => {
+          setIsLoading(false);
+          console.log(err)
+        });
+      }
+      signUpOrgUser();
+  }, [ticket]);
 
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
