@@ -8,13 +8,11 @@ on:
 concurrency: deploy
 
 jobs:
-
   build:
     name: Build API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
 
       - name: Get Version
         run: echo "VERSION=$(git describe --tags --always)" > $GITHUB_ENV
@@ -62,20 +60,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install flyctl
-        run: curl -L https://fly.io/install.sh | sh
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Download image
         run: docker pull ${{env.TAG}}
 
       - name: Deploy preview
-        run: /home/runner/.fly/bin/flyctl --app="unkey-api-preview" deploy --image=${{ env.TAG }}
+        run:  flyctl --app="unkey-api-preview" deploy --image=${{ env.TAG }} --strategy=immediate
         working-directory: apps/api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy prod
         if: "!github.event.release.prerelease"
-        run: /home/runner/.fly/bin/flyctl --app="unkey-api-production" deploy --image=${{ env.TAG }} --strategy=bluegreen
+        run: flyctl --app="unkey-api-production" deploy --image=${{ env.TAG }} --strategy=bluegreen
         working-directory: apps/api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
