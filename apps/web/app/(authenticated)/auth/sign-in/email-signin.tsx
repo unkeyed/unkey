@@ -10,31 +10,39 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 
 export function EmailSignIn(props: { verification: (value: boolean) => void }) {
-  const { signIn, isLoaded: signInLoaded,setActive } = useSignIn();
+  const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
   const { toast } = useToast();
-  const param = '__clerk_ticket';
+  const param = "__clerk_ticket";
   const ticket = new URL(window.location.href).searchParams.get(param);
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   React.useEffect(() => {
-    const signUpOrgUser = async() => {
-      if(!ticket) return;
-      if(!signInLoaded) return;
-      await signIn.create({
-        strategy: "ticket",
-        ticket}).then((result) => {
+    const signUpOrgUser = async () => {
+      if (!ticket) {
+        return;
+      }
+      if (!signInLoaded) {
+        return;
+      }
+      await signIn
+        .create({
+          strategy: "ticket",
+          ticket,
+        })
+        .then((result) => {
           if (result.status === "complete" && result.createdSessionId) {
             setActive({ session: result.createdSessionId }).then(() => {
               router.push("/app");
             });
           }
-        }).catch((err) => {
+        })
+        .catch((err) => {
           setIsLoading(false);
-          console.log(err)
+          console.log(err);
         });
-      }
-      signUpOrgUser();
-  }, [ticket,signInLoaded]);
+    };
+    signUpOrgUser();
+  }, [ticket, signInLoaded]);
 
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,7 +88,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
       });
   };
 
-  return(
+  return (
     <form className="grid gap-2" onSubmit={signInWithCode}>
       <div className="grid gap-1">
         <Input

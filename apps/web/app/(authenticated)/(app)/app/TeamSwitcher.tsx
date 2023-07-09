@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-
 } from "@/components/ui/dropdown-menu";
 import {
   Check,
@@ -131,20 +130,20 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup >
-        <Link href="/app/team/create">
-          <DropdownMenuItem >
-            <Plus className="w-4 h-4 mr-2 " />
-            <span className="cursor-pointer">Create Workspace</span>
-          </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <Link href="/app/team/create">
+            <DropdownMenuItem>
+              <Plus className="w-4 h-4 mr-2 " />
+              <span className="cursor-pointer">Create Workspace</span>
+            </DropdownMenuItem>
           </Link>
           {membership?.role === "admin" ? (
-          <Link href="/app/team/invite" >
-          <DropdownMenuItem >
-            <Plus className="w-4 h-4 mr-2 " />
-            <span className="cursor-pointer">Invite Member</span>
-          </DropdownMenuItem>
-          </Link>
+            <Link href="/app/team/invite">
+              <DropdownMenuItem>
+                <Plus className="w-4 h-4 mr-2 " />
+                <span className="cursor-pointer">Invite Member</span>
+              </DropdownMenuItem>
+            </Link>
           ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

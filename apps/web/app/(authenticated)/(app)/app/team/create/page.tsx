@@ -28,12 +28,11 @@ export default function TeamCreation() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const {createOrganization,isLoaded,setActive} = useOrganizationList();
-  
+  const { createOrganization, isLoaded, setActive } = useOrganizationList();
+
   const { toast } = useToast();
   const router = useRouter();
-  const createWorkspace =
-  trpc.workspace.create.useMutation({
+  const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess() {
       router.push("/app/stripe");
     },
@@ -42,21 +41,24 @@ export default function TeamCreation() {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
-  if(!isLoaded) return null;
+  if (!isLoaded) {
+    return null;
+  }
 
-
-  const createClerkOrg = async({values} : {values:{name: string, slug: string}}) => {
+  const createClerkOrg = async ({ values }: { values: { name: string; slug: string } }) => {
     await createOrganization({
-        ...values
-    }).then((res) => {
-        setActive({organization: res.id})
+      ...values,
+    })
+      .then((res) => {
+        setActive({ organization: res.id });
         createWorkspace.mutate({ ...values, tenantId: res.id });
-    }).catch((err) => {
+      })
+      .catch((err) => {
         console.error(err);
         toast({ title: "Error", description: err.message, variant: "destructive" });
-    });
-  }
- 
+      });
+  };
+
   return (
     <div className="flex items-center justify-center w-full min-h-screen">
       <Card>
@@ -66,7 +68,7 @@ export default function TeamCreation() {
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) => createClerkOrg({values}))}
+              onSubmit={form.handleSubmit((values) => createClerkOrg({ values }))}
               className="flex flex-col space-y-4"
             >
               <FormField
@@ -117,4 +119,4 @@ export default function TeamCreation() {
       </Card>
     </div>
   );
-};
+}

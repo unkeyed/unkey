@@ -95,11 +95,12 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         break;
     }
     res.send("OK");
-    return res.end();
   } catch (e) {
     const err = e as Error;
     console.error(err.message);
     res.status(500).send(err.message);
-    return res.end();
+    return;
+  } finally {
+    res.end();
   }
 }
