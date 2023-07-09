@@ -10,7 +10,7 @@ primary_region = "iad"
   dockerfile = "./Dockerfile"
 
 [deploy]
-  strategy = "canary"
+  strategy = "bluegreen"
 
 [http_service]
   internal_port = 8080
