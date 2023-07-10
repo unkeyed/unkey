@@ -55,7 +55,7 @@ export default function ChangelogPage({
   const Content = getMDXComponent(changelog.body.code);
 
   return (
-    <article className="prose w-full max-w-3xl mx-auto p-4">
+    <article className="prose w-full max-w-3xl mx-auto p-4 pb-12">
       <div className="mb-8 py-8 mx-auto max-w-2xl ">
         <h1 className="text-center">{changelog.title}</h1>
         <span className="flex justify-center text-sm text-gray-600">
