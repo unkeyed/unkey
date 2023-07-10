@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { CreateApiButton } from "./CreateAPI";
+
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, sql } from "@unkey/db";
 import { redirect } from "next/navigation";
@@ -38,9 +39,42 @@ export default async function TenantOverviewPage() {
         .from(schema.keys)
         .where(eq(schema.keys.apiId, api.id)),
     })),
-  );
+    );
+    const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+    console.log(unpaid)
+    return(
+      <div>
 
-  return (
+   {unpaid ? (
+      <div>
+      <PageHeader title="Applications" description="Manage your APIs" />
+
+      <Separator className="my-6" />
+
+      <div className="flex justify-center items-center">
+        <Card className="duration-500 hover:border-primary bg-muted w-3xl ">
+          <CardHeader>
+            <CardTitle>Please add billing to your account</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <p className="text-gray-500">
+             Team workspaces is a paid feature. Please add billing to your account to continue using it.
+            </p>
+          </CardContent>
+          <CardFooter>
+          <Link
+            href="/app/stripe"
+            target="_blank"
+            className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
+          >
+            Add billing
+          </Link>
+          </CardFooter>
+        </Card>
+        </div>
+    </div>
+    ) : (
     <div>
       <PageHeader title="Applications" description="Manage your APIs" />
 
@@ -54,7 +88,7 @@ export default async function TenantOverviewPage() {
 
           <CardContent />
           <CardFooter>
-            <CreateApiButton key="createApi" />
+            <CreateApiButton isDisabled={workspace.tenantId.startsWith("org_") && workspace.plan === "free"} key="createApi" />
           </CardFooter>
         </Card>
         {apis.map((api) => (
@@ -80,5 +114,7 @@ export default async function TenantOverviewPage() {
         ))}
       </ul>
     </div>
+  )}
+  </div>
   );
 }
