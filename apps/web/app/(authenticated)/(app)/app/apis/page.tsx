@@ -88,8 +88,8 @@ export default async function TenantOverviewPage() {
 
           <CardContent />
           <CardFooter>
-            <CreateApiButton isDisabled={workspace.tenantId.startsWith("org_") && workspace.plan === "free"} key="createApi" />
-          </CardFooter>
+            <CreateApiButton key="createApi" />
+          </CardFooter
         </Card>
         {apis.map((api) => (
           <Link key={api.id} href={`/app/${api.id}`}>
