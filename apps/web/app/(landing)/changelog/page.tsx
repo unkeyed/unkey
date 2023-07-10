@@ -67,22 +67,32 @@ type ChangelogSectionProps = {
   changelog: Changelog;
 };
 const ChangelogSection: React.FC<ChangelogSectionProps> = ({ changelog }) => {
-  const Content = getMDXComponent(changelog.body.code);
-
+  const h2Header = /(#{2} .*)\r?\n/g;
+  const headings = Array.from(changelog.body.raw.matchAll(h2Header), m => m[1]);
   return (
+    
     <section key={changelog.date} id={changelog.date} className="md:flex">
+      
       <h2 className="text-sm leading-6 pl-7 text-slate-500 md:w-1/4 md:pl-0 md:pr-12 md:text-right">
-        <Link href={`/changelog/${changelog.date}`}>{new Date(changelog.date).toDateString()}</Link>
+      <Link href={`/changelog/${changelog.date}`}>
+        {new Date(changelog.date).toDateString()}
+        </Link>
       </h2>
-      <div className="relative pt-2 pb-16 pl-7 md:w-3/4 md:pl-12 md:pt-0">
+
+      <div className="relative pt-2 pb-8 pl-7 md:w-3/4 md:pl-12 md:pt-0">
+      <Link href={`/changelog/${changelog.date}`}>
         <div className="absolute bottom-0 left-0 w-px bg-slate-200 -top-3 md:top-2.5" />
         <div className="absolute -left-1 -top-[1.0625rem] h-[0.5625rem] w-[0.5625rem] rounded-full border-2 border-slate-300 bg-white md:top-[0.4375rem]" />
         <div className="prose-sm prose max-w-none prose-h3:mb-4 prose-h3:text-base prose-h3:leading-6 ">
           <h2>{changelog.title}</h2>
-
-          <Content />
+          {headings.map((h) => (
+            <h3 className="text-gray-500 font-normal" key={h}>{h.replace("##", "-")}</h3>
+          ))}
         </div>
+        </Link>
       </div>
+      
     </section>
+    
   );
 };
