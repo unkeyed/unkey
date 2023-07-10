@@ -38,7 +38,7 @@ export default authMiddleware({
       return redirectToSignIn({ returnBackUrl: req.url });
     }
     // Stops users from accessing the application if they have not paid yet.
-    if (auth.orgId  && req.nextUrl.pathname !== "/app/stripe" && req.nextUrl.pathname!=="/app/apis" ) {
+    if (auth.orgId  && req.nextUrl.pathname !== "/app/stripe" && req.nextUrl.pathname!=="/app/apis" && req.nextUrl.pathname!=="/app" ) {
       const workspace = await checktenancy({ tenantId: auth.orgId });
       if (workspace?.plan === "free") {
         return NextResponse.redirect(new URL("/app/stripe", req.url));
