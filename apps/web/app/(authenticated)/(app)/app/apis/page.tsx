@@ -41,7 +41,6 @@ export default async function TenantOverviewPage() {
     })),
     );
     const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
-    console.log(unpaid)
     return(
       <div>
 
@@ -89,7 +88,7 @@ export default async function TenantOverviewPage() {
           <CardContent />
           <CardFooter>
             <CreateApiButton key="createApi" />
-          </CardFooter
+          </CardFooter>
         </Card>
         {apis.map((api) => (
           <Link key={api.id} href={`/app/${api.id}`}>
