@@ -15,6 +15,11 @@ type Key struct {
 	Expires        time.Time
 	Ratelimit      *Ratelimit
 	ForWorkspaceId string
+	Remaining      struct {
+		// Whether or not the value in `Remaining` makes any sense or is just a default
+		Enabled   bool
+		Remaining int64
+	}
 }
 
 type Ratelimit struct {

@@ -33,6 +33,7 @@ type keyResponse struct {
 	Expires        int64            `json:"expires,omitempty"`
 	Ratelimit      *ratelimitSettng `json:"ratelimit,omitempty"`
 	ForWorkspaceId string           `json:"forWorkspaceId,omitempty"`
+	Remaining      *int64           `json:"remaining"`
 }
 
 type ListKeysResponse struct {
@@ -141,6 +142,9 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 				RefillRate:     k.Ratelimit.RefillRate,
 				RefillInterval: k.Ratelimit.RefillInterval,
 			}
+		}
+		if k.Remaining.Enabled {
+			res.Keys[i].Remaining = &k.Remaining.Remaining
 		}
 	}
 

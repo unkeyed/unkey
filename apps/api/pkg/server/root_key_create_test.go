@@ -25,7 +25,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:            logging.New(),
+		Logger:            logging.NewNoopLogger(),
 		KeyCache:          cache.NewNoopCache[entities.Key](),
 		ApiCache:          cache.NewNoopCache[entities.Api](),
 		Database:          resources.Database,
