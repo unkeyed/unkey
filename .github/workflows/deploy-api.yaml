@@ -38,7 +38,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ env.TAG }}
-          args: VERSION=${{env.VERSION}}
+          build-args: VERSION=${{env.VERSION}}
 
 
   deploy:
@@ -73,7 +73,7 @@ jobs:
 
       - name: Deploy prod
         if: "!github.event.release.prerelease"
-        run: /home/runner/.fly/bin/flyctl --app="unkey-api-production" deploy --image=${{ env.TAG }} --strategy=bluegreen
+        run: flyctl --app="unkey-api-production" deploy --image=${{ env.TAG }} --strategy=canary
         working-directory: apps/api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

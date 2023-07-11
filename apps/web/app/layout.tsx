@@ -57,7 +57,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
       <head>
-         <script defer data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""} src="https://plausible.io/js/script.js"></script>
+        <script
+          defer
+          data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
+          src="https://plausible.io/js/script.js"
+        />
       </head>
       <body>{children}</body>
     </html>

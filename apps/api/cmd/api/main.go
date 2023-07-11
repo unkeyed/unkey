@@ -172,6 +172,7 @@ func main() {
 		UnkeyApiId:        e.String("UNKEY_API_ID"),
 		Region:            region,
 		Kafka:             k,
+		Version:           version,
 	})
 
 	go func() {
