@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/api/pkg/database/models"
@@ -79,4 +80,58 @@ func Test_apiModelToEntity_WithIpWithlist(t *testing.T) {
 	require.Equal(t, m.Name, e.Name)
 	require.Equal(t, m.WorkspaceID, e.WorkspaceId)
 	require.Equal(t, []string{"1.1.1.1", "2.2.2.2"}, e.IpWhitelist)
+}
+
+func Test_keyModelToEntity(t *testing.T) {
+
+	m := &models.Key{
+		ID:          uid.Key(),
+		APIID:       uid.Api(),
+		WorkspaceID: uid.Workspace(),
+		Hash:        "abc",
+		Start:       "abc",
+		CreatedAt:   time.Now(),
+	}
+
+	e, err := keyModelToEntity(m)
+	require.NoError(t, err)
+	require.Equal(t, m.ID, e.Id)
+	require.Equal(t, m.APIID, e.ApiId)
+	require.Equal(t, m.WorkspaceID, e.WorkspaceId)
+	require.Equal(t, m.Hash, e.Hash)
+	require.Equal(t, m.Start, e.Start)
+	require.Equal(t, m.CreatedAt, e.CreatedAt)
+	require.Nil(t, e.Ratelimit)
+}
+
+func Test_keyModelToEntity_WithNullFields(t *testing.T) {
+
+	m := &models.Key{
+		ID:                      uid.Key(),
+		APIID:                   uid.Api(),
+		WorkspaceID:             uid.Workspace(),
+		Hash:                    "abc",
+		Start:                   "abc",
+		CreatedAt:               time.Now(),
+		RemainingRequests:       sql.NullInt64{Int64: 99, Valid: true},
+		RatelimitType:           sql.NullString{String: "fast", Valid: true},
+		RatelimitLimit:          sql.NullInt64{Int64: 10, Valid: true},
+		RatelimitRefillRate:     sql.NullInt64{Int64: 1, Valid: true},
+		RatelimitRefillInterval: sql.NullInt64{Int64: 1000, Valid: true},
+	}
+
+	e, err := keyModelToEntity(m)
+	require.NoError(t, err)
+	require.Equal(t, m.ID, e.Id)
+	require.Equal(t, m.APIID, e.ApiId)
+	require.Equal(t, m.WorkspaceID, e.WorkspaceId)
+	require.Equal(t, m.Hash, e.Hash)
+	require.Equal(t, m.Start, e.Start)
+	require.Equal(t, m.CreatedAt, e.CreatedAt)
+	require.Equal(t, true, e.Remaining.Enabled)
+	require.Equal(t, int64(99), e.Remaining.Remaining)
+	require.Equal(t, "fast", e.Ratelimit.Type)
+	require.Equal(t, int64(10), e.Ratelimit.Limit)
+	require.Equal(t, int64(1), e.Ratelimit.RefillRate)
+	require.Equal(t, int64(1000), e.Ratelimit.RefillInterval)
 }

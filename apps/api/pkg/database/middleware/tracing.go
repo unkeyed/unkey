@@ -163,3 +163,16 @@ func (mw *tracingMiddleware) GetWorkspace(ctx context.Context, workspaceId strin
 	}
 	return keys, err
 }
+
+func (mw *tracingMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (int64, error) {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.decrementRemainingKeyUsage", mw.pkg), trace.WithAttributes(
+		attribute.String("keyId", keyId),
+	))
+	defer span.End()
+
+	remaining, err := mw.next.DecrementRemainingKeyUsage(ctx, keyId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return remaining, err
+}

@@ -177,7 +177,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:    logging.New(),
+		Logger:    logging.NewNoopLogger(),
 		KeyCache:  cache.NewNoopCache[entities.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  db,
@@ -281,7 +281,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
-		Logger:    logging.New(),
+		Logger:    logging.NewNoopLogger(),
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -306,7 +306,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.New(),
+		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
@@ -343,7 +343,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
-		Logger: logging.New(),
+		Logger: logging.NewNoopLogger(),
 
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
@@ -369,7 +369,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.New(),
+		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
@@ -397,5 +397,84 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, FORBIDDEN, errResponse.Code)
+
+}
+
+func TestVerifyKey_WithRemaining(t *testing.T) {
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	db, err := database.New(database.Config{
+		Logger:    logging.New(),
+		PrimaryUs: os.Getenv("DATABASE_DSN"),
+	})
+	require.NoError(t, err)
+
+	key := uid.New(16, "test")
+	err = db.CreateKey(ctx, entities.Key{
+		Id:          uid.Key(),
+		ApiId:       resources.UserApi.Id,
+		WorkspaceId: resources.UserWorkspace.Id,
+		Hash:        hash.Sha256(key),
+		CreatedAt:   time.Now(),
+		Remaining: struct {
+			Enabled   bool
+			Remaining int64
+		}{Enabled: true, Remaining: 10},
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:    logging.New(),
+		KeyCache:  cache.NewNoopCache[entities.Key](),
+		ApiCache:  cache.NewNoopCache[entities.Api](),
+		Database:  db,
+		Tracer:    tracing.NewNoop(),
+		Ratelimit: ratelimit.NewInMemory(),
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"key":"%s"
+		}`, key))
+
+	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Use up 10 requests
+	for i := 9; i >= 0; i-- {
+
+		res, err := srv.app.Test(req)
+		require.NoError(t, err)
+		defer res.Body.Close()
+
+		body1, err := io.ReadAll(res.Body)
+		require.NoError(t, err)
+		require.Equal(t, 200, res.StatusCode)
+
+		vr := VerifyKeyResponse{}
+		err = json.Unmarshal(body1, &vr)
+		require.NoError(t, err)
+
+		require.True(t, vr.Valid)
+		require.Equal(t, int64(i), *vr.Remaining)
+	}
+
+	// now it should be all used up and no longer valid
+
+	res2, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res2.Body.Close()
+
+	body2, err := io.ReadAll(res2.Body)
+	require.NoError(t, err)
+	require.Equal(t, 200, res2.StatusCode)
+
+	verifyRes2 := VerifyKeyResponse{}
+	err = json.Unmarshal(body2, &verifyRes2)
+	require.NoError(t, err)
+
+	require.False(t, verifyRes2.Valid)
+	require.Equal(t, int64(0), *verifyRes2.Remaining)
 
 }

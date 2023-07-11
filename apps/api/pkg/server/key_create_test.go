@@ -33,7 +33,7 @@ func TestCreateKey_Simple(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.New(),
+		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
@@ -134,5 +134,57 @@ func TestCreateKey_WithCustom(t *testing.T) {
 	require.Equal(t, int64(10), found.Ratelimit.Limit)
 	require.Equal(t, int64(10), found.Ratelimit.RefillRate)
 	require.Equal(t, int64(1000), found.Ratelimit.RefillInterval)
+
+}
+
+func TestCreateKey_WithRemanining(t *testing.T) {
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	db, err := database.New(database.Config{Logger: logging.NewNoopLogger(),
+
+		PrimaryUs: os.Getenv("DATABASE_DSN"),
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:   logging.NewNoopLogger(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
+		Database: db,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"apiId":"%s",
+		"remaining":4
+		}`, resources.UserApi.Id))
+
+	req := httptest.NewRequest("POST", "/v1/keys", buf)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, 200, res.StatusCode)
+
+	createKeyResponse := CreateKeyResponse{}
+	err = json.Unmarshal(body, &createKeyResponse)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, createKeyResponse.Key)
+	require.NotEmpty(t, createKeyResponse.KeyId)
+
+	found, err := db.GetKeyById(ctx, createKeyResponse.KeyId)
+	require.NoError(t, err)
+	require.Equal(t, createKeyResponse.KeyId, found.Id)
+	require.True(t, found.Remaining.Enabled)
+	require.Equal(t, int64(4), found.Remaining.Remaining)
 
 }

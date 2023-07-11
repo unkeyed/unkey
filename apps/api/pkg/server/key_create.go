@@ -33,6 +33,10 @@ type CreateKeyRequest struct {
 	// ForWorkspaceId is used internally when the frontend wants to create a new root key.
 	// Therefore we might not want to add this field to our docs.
 	ForWorkspaceId string `json:"forWorkspaceId"`
+
+	// How often this key may be used
+	// `undefined`, `0` or negative to disable
+	Remaining int64 `json:"remaining,omitempty"`
 }
 
 type CreateKeyResponse struct {
@@ -142,6 +146,10 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 	}
 	if req.Expires > 0 {
 		newKey.Expires = time.UnixMilli(req.Expires)
+	}
+	if req.Remaining > 0 {
+		newKey.Remaining.Enabled = true
+		newKey.Remaining.Remaining = req.Remaining
 	}
 	if req.Ratelimit != nil {
 		newKey.Ratelimit = &entities.Ratelimit{
