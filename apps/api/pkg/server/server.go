@@ -40,6 +40,7 @@ type Config struct {
 	UnkeyApiId        string
 	Region            string
 	Kafka             *kafka.Kafka
+	Version           string
 }
 
 type Server struct {
@@ -61,6 +62,7 @@ type Server struct {
 	unkeyApiId        string
 	region            string
 	kafka             *kafka.Kafka
+	version           string
 }
 
 func New(config Config) *Server {
@@ -85,6 +87,7 @@ func New(config Config) *Server {
 		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
 		unkeyApiId:        config.UnkeyApiId,
 		region:            config.Region,
+		version:           config.Version,
 	}
 
 	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
@@ -107,6 +110,7 @@ func New(config Config) *Server {
 		c.SetUserContext(ctx)
 
 		c.Set("Unkey-Trace-Id", fmt.Sprintf("%s:%s::%s", s.region, edgeRegion, span.SpanContext().TraceID().String()))
+		c.Set("Unkey-Version", s.version)
 		start := time.Now()
 		err := c.Next()
 		latency := time.Since(start)

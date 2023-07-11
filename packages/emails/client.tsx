@@ -13,7 +13,7 @@ export class Email {
   constructor(opts: { apiKey: string }) {
     this.client = new Resend(opts.apiKey);
   }
-  
+
   public async sendEarlyAccessInvitation(opts: {
     to: string;
     inviteLink: string;
@@ -49,7 +49,14 @@ export class Email {
     date: string;
     changelogUrl: string;
   }) {
-    const html = render(<Changelog preview={opts.preview} changelog={opts.changelog} date={opts.date} changelogUrl={opts.changelogUrl}  />);
+    const html = render(
+      <Changelog
+        preview={opts.preview}
+        changelog={opts.changelog}
+        date={opts.date}
+        changelogUrl={opts.changelogUrl}
+      />,
+    );
     return await this.client.sendEmail({
       from: "james@unkey.dev",
       to: opts.to,
