@@ -60,13 +60,14 @@
     {
       "group": "Features",
       "icon": "bolt",
-      "pages": ["features/ratelimiting", "features/temp-keys"]
+      "pages": ["features/ratelimiting", "features/temp-keys", "features/remaining"]
     },
     {
       "group": "API Documentation",
       "icon": "code",
       "pages": [
         "api-reference/authentication",
+        "api-reference/errors",
         {
           "group": "Keys",
           "pages": [

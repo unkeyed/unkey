@@ -9,6 +9,7 @@ const (
 	INTERNAL_SERVER_ERROR ErrorCode = "INTERNAL_SERVER_ERROR"
 	RATELIMITED           ErrorCode = "RATELIMITED"
 	FORBIDDEN             ErrorCode = "FORBIDDEN"
+	USAGE_EXCEEDED        ErrorCode = "USAGE_EXCEEDED"
 )
 
 type ErrorResponse struct {

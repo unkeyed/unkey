@@ -25,6 +25,7 @@ type Key struct {
 	WorkspaceID             string         `json:"workspace_id"`              // workspace_id
 	ForWorkspaceID          sql.NullString `json:"for_workspace_id"`          // for_workspace_id
 	Name                    sql.NullString `json:"name"`                      // name
+	RemainingRequests       sql.NullInt64  `json:"remaining_requests"`        // remaining_requests
 	// xo fields
 	_exists, _deleted bool
 }
@@ -50,13 +51,13 @@ func (k *Key) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO unkey.keys (` +
-		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name` +
+		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests` +
 		`) VALUES (` +
-		`?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?` +
+		`?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?` +
 		`)`
 	// run
-	logf(sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name)
-	if _, err := db.ExecContext(ctx, sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name); err != nil {
+	logf(sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.RemainingRequests)
+	if _, err := db.ExecContext(ctx, sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.RemainingRequests); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -74,11 +75,11 @@ func (k *Key) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE unkey.keys SET ` +
-		`api_id = ?, hash = ?, start = ?, owner_id = ?, meta = ?, created_at = ?, expires = ?, ratelimit_type = ?, ratelimit_limit = ?, ratelimit_refill_rate = ?, ratelimit_refill_interval = ?, workspace_id = ?, for_workspace_id = ?, name = ? ` +
+		`api_id = ?, hash = ?, start = ?, owner_id = ?, meta = ?, created_at = ?, expires = ?, ratelimit_type = ?, ratelimit_limit = ?, ratelimit_refill_rate = ?, ratelimit_refill_interval = ?, workspace_id = ?, for_workspace_id = ?, name = ?, remaining_requests = ? ` +
 		`WHERE id = ?`
 	// run
-	logf(sqlstr, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.ID)
-	if _, err := db.ExecContext(ctx, sqlstr, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.ID); err != nil {
+	logf(sqlstr, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.RemainingRequests, k.ID)
+	if _, err := db.ExecContext(ctx, sqlstr, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.RemainingRequests, k.ID); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -100,15 +101,15 @@ func (k *Key) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO unkey.keys (` +
-		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name` +
+		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests` +
 		`) VALUES (` +
-		`?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?` +
+		`?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?` +
 		`)` +
 		` ON DUPLICATE KEY UPDATE ` +
-		`id = VALUES(id), api_id = VALUES(api_id), hash = VALUES(hash), start = VALUES(start), owner_id = VALUES(owner_id), meta = VALUES(meta), created_at = VALUES(created_at), expires = VALUES(expires), ratelimit_type = VALUES(ratelimit_type), ratelimit_limit = VALUES(ratelimit_limit), ratelimit_refill_rate = VALUES(ratelimit_refill_rate), ratelimit_refill_interval = VALUES(ratelimit_refill_interval), workspace_id = VALUES(workspace_id), for_workspace_id = VALUES(for_workspace_id), name = VALUES(name)`
+		`id = VALUES(id), api_id = VALUES(api_id), hash = VALUES(hash), start = VALUES(start), owner_id = VALUES(owner_id), meta = VALUES(meta), created_at = VALUES(created_at), expires = VALUES(expires), ratelimit_type = VALUES(ratelimit_type), ratelimit_limit = VALUES(ratelimit_limit), ratelimit_refill_rate = VALUES(ratelimit_refill_rate), ratelimit_refill_interval = VALUES(ratelimit_refill_interval), workspace_id = VALUES(workspace_id), for_workspace_id = VALUES(for_workspace_id), name = VALUES(name), remaining_requests = VALUES(remaining_requests)`
 	// run
-	logf(sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name)
-	if _, err := db.ExecContext(ctx, sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name); err != nil {
+	logf(sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.RemainingRequests)
+	if _, err := db.ExecContext(ctx, sqlstr, k.ID, k.APIID, k.Hash, k.Start, k.OwnerID, k.Meta, k.CreatedAt, k.Expires, k.RatelimitType, k.RatelimitLimit, k.RatelimitRefillRate, k.RatelimitRefillInterval, k.WorkspaceID, k.ForWorkspaceID, k.Name, k.RemainingRequests); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -143,7 +144,7 @@ func (k *Key) Delete(ctx context.Context, db DB) error {
 func KeyByHash(ctx context.Context, db DB, hash string) (*Key, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name ` +
+		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests ` +
 		`FROM unkey.keys ` +
 		`WHERE hash = ?`
 	// run
@@ -151,7 +152,7 @@ func KeyByHash(ctx context.Context, db DB, hash string) (*Key, error) {
 	k := Key{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, hash).Scan(&k.ID, &k.APIID, &k.Hash, &k.Start, &k.OwnerID, &k.Meta, &k.CreatedAt, &k.Expires, &k.RatelimitType, &k.RatelimitLimit, &k.RatelimitRefillRate, &k.RatelimitRefillInterval, &k.WorkspaceID, &k.ForWorkspaceID, &k.Name); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, hash).Scan(&k.ID, &k.APIID, &k.Hash, &k.Start, &k.OwnerID, &k.Meta, &k.CreatedAt, &k.Expires, &k.RatelimitType, &k.RatelimitLimit, &k.RatelimitRefillRate, &k.RatelimitRefillInterval, &k.WorkspaceID, &k.ForWorkspaceID, &k.Name, &k.RemainingRequests); err != nil {
 		return nil, logerror(err)
 	}
 	return &k, nil
@@ -163,7 +164,7 @@ func KeyByHash(ctx context.Context, db DB, hash string) (*Key, error) {
 func KeyByID(ctx context.Context, db DB, id string) (*Key, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name ` +
+		`id, api_id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests ` +
 		`FROM unkey.keys ` +
 		`WHERE id = ?`
 	// run
@@ -171,7 +172,7 @@ func KeyByID(ctx context.Context, db DB, id string) (*Key, error) {
 	k := Key{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&k.ID, &k.APIID, &k.Hash, &k.Start, &k.OwnerID, &k.Meta, &k.CreatedAt, &k.Expires, &k.RatelimitType, &k.RatelimitLimit, &k.RatelimitRefillRate, &k.RatelimitRefillInterval, &k.WorkspaceID, &k.ForWorkspaceID, &k.Name); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&k.ID, &k.APIID, &k.Hash, &k.Start, &k.OwnerID, &k.Meta, &k.CreatedAt, &k.Expires, &k.RatelimitType, &k.RatelimitLimit, &k.RatelimitRefillRate, &k.RatelimitRefillInterval, &k.WorkspaceID, &k.ForWorkspaceID, &k.Name, &k.RemainingRequests); err != nil {
 		return nil, logerror(err)
 	}
 	return &k, nil

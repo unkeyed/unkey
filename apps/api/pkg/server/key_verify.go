@@ -29,7 +29,7 @@ type VerifyKeyResponse struct {
 	OwnerId   string             `json:"ownerId,omitempty"`
 	Meta      map[string]any     `json:"meta,omitempty"`
 	Expires   int64              `json:"expires,omitempty"`
-	Remaining int64              `json:"remaining,omitempty"`
+	Remaining *int64             `json:"remaining,omitempty"`
 	Ratelimit *ratelimitResponse `json:"ratelimit,omitempty"`
 	Code      string             `json:"code,omitempty"`
 }
@@ -43,6 +43,7 @@ type VerifyKeyErrorResponse struct {
 func (s *Server) verifyKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.verifyKey")
 	defer span.End()
+
 	req := VerifyKeyRequest{}
 	err := c.BodyParser(&req)
 	if err != nil {
@@ -169,20 +170,68 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	// Start validation
 	// ---------------------------------------------------------------------------------------------
-
-	s.logger.Info("report.key.verifying",
+	logger := s.logger.With(
 		zap.String("keyId", key.Id),
 		zap.String("apiId", key.ApiId),
 		zap.String("workspaceId", key.WorkspaceId),
 	)
+
+	logger.Info("report.key.verifying")
 
 	res := VerifyKeyResponse{
 		Valid:   true,
 		OwnerId: key.OwnerId,
 		Meta:    key.Meta,
 	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Send usage to tinybird
+	// ---------------------------------------------------------------------------------------------
+
+	if s.tinybird != nil {
+		defer func() {
+			s.tinybird.PublishKeyVerificationEventChannel() <- tinybird.KeyVerificationEvent{
+				WorkspaceId: key.WorkspaceId,
+				ApiId:       key.ApiId,
+				KeyId:       key.Id,
+				Ratelimited: res.Code == RATELIMITED,
+				Time:        time.Now().UnixMilli(),
+			}
+		}()
+	}
+
 	if !key.Expires.IsZero() {
 		res.Expires = key.Expires.UnixMilli()
+	}
+
+	if key.Remaining.Enabled {
+		if key.Remaining.Remaining <= 0 {
+			res.Valid = false
+			res.Code = USAGE_EXCEEDED
+			zero := int64(0)
+			res.Remaining = &zero
+			return c.JSON(res)
+		}
+
+		remainingAfter, err := s.db.DecrementRemainingKeyUsage(ctx, key.Id)
+		if err != nil {
+			return c.Status(500).JSON(VerifyKeyErrorResponse{
+				Valid: false,
+				ErrorResponse: ErrorResponse{
+					Code:  INTERNAL_SERVER_ERROR,
+					Error: err.Error(),
+				},
+			})
+		}
+		key.Remaining.Remaining = remainingAfter
+		res.Remaining = &remainingAfter
+		s.keyCache.Set(ctx, key.Hash, key)
+		if remainingAfter < 0 {
+			res.Valid = false
+			res.Code = USAGE_EXCEEDED
+			return c.JSON(res)
+		}
+
 	}
 
 	if key.Ratelimit != nil {
@@ -211,16 +260,6 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			if !r.Pass {
 				res.Code = RATELIMITED
 			}
-		}
-	}
-
-	if s.tinybird != nil {
-		s.tinybird.PublishKeyVerificationEventChannel() <- tinybird.KeyVerificationEvent{
-			WorkspaceId: key.WorkspaceId,
-			ApiId:       key.ApiId,
-			KeyId:       key.Id,
-			Ratelimited: res.Code == RATELIMITED,
-			Time:        time.Now().UnixMilli(),
 		}
 	}
 

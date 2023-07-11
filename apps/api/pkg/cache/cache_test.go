@@ -2,10 +2,11 @@ package cache_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/apps/api/pkg/cache"
 	"github.com/unkeyed/unkey/apps/api/pkg/logging"
@@ -18,7 +19,7 @@ func TestWriteRead(t *testing.T) {
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, error) {
 			return "hello", nil
 		},
-		Logger: logging.New(),
+		Logger: logging.NewNoopLogger(),
 	})
 	c.Set(context.Background(), "key", "value")
 	value, cacheHit := c.Get(context.Background(), "key")
@@ -57,7 +58,7 @@ func TestRefresh(t *testing.T) {
 			spy.counter.Add(1)
 			return "hello", nil
 		},
-		Logger: logging.New(),
+		Logger: logging.NewNoopLogger(),
 	})
 	c.Set(context.Background(), "key", "value")
 	time.Sleep(time.Second * 2)

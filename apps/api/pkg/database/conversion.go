@@ -52,6 +52,11 @@ func keyModelToEntity(model *models.Key) (entities.Key, error) {
 			RefillInterval: model.RatelimitRefillInterval.Int64,
 		}
 	}
+
+	if model.RemainingRequests.Valid {
+		key.Remaining.Enabled = true
+		key.Remaining.Remaining = model.RemainingRequests.Int64
+	}
 	return key, nil
 }
 
@@ -89,6 +94,10 @@ func keyEntityToModel(e entities.Key) (*models.Key, error) {
 		key.RatelimitLimit = sql.NullInt64{Int64: e.Ratelimit.Limit, Valid: e.Ratelimit.Limit > 0}
 		key.RatelimitRefillRate = sql.NullInt64{Int64: e.Ratelimit.RefillRate, Valid: e.Ratelimit.RefillRate > 0}
 		key.RatelimitRefillInterval = sql.NullInt64{Int64: e.Ratelimit.RefillInterval, Valid: e.Ratelimit.RefillRate > 0}
+	}
+
+	if e.Remaining.Enabled {
+		key.RemainingRequests = sql.NullInt64{Int64: e.Remaining.Remaining, Valid: true}
 	}
 
 	return key, nil

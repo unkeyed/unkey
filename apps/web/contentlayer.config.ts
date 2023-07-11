@@ -81,5 +81,5 @@ const Policies = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: "content",
-  documentTypes: [Changelog,Policies, Post],
+  documentTypes: [Changelog, Policies, Post],
 });
