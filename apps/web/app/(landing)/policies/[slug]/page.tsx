@@ -2,10 +2,12 @@ import { allPolicies } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
 export const generateStaticParams = async () =>
-allPolicies.map((policy) => ({ slug: policy._raw.flattenedPath }));
+  allPolicies.map((policy) => ({ slug: policy._raw.flattenedPath }));
 
 export const generateMetadata = ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find((policy) => policy._raw.flattenedPath === `policies/${params.slug}`);
+  const policy = allPolicies.find(
+    (policy) => policy._raw.flattenedPath === `policies/${params.slug}`,
+  );
   if (!policy) {
     return notFound();
   }
@@ -35,7 +37,9 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
 };
 
 const PolicyLayout = ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find((policy) => policy._raw.flattenedPath === `policies/${params.slug}`);
+  const policy = allPolicies.find(
+    (policy) => policy._raw.flattenedPath === `policies/${params.slug}`,
+  );
   if (!policy) {
     return notFound();
   }

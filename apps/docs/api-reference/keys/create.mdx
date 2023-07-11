@@ -58,6 +58,21 @@ Example:
 
 </ParamField>
 
+
+ <ParamField body="remaining" type="int" >
+  Optionally limit the number of times a key can be used. This is different from time-based expiration using `expires`.
+
+Example:
+```json
+"remaining": 10  
+```
+The created key can be verified successfully 10 times, afterwards it is invalidated automatically.
+
+  Read more [here](/features/remaining)
+
+
+</ParamField>
+
 <ParamField body="ratelimit" type="Object" >
 
  Unkey comes with per-key ratelimiting out of the box.
@@ -108,17 +123,18 @@ curl --request POST \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-    "apiId":"api_7oKUUscTZy22jmVf9THxDA",
-    "prefix":"xyz",
-    "byteLength":16,
+    "apiId": "api_7oKUUscTZy22jmVf9THxDA",
+    "prefix": "xyz",
+    "byteLength": 16,
     "ownerId":"chronark",
     "meta":{
       "hello": "world"
     },
     "expires": 1686941966471,
-    "ratelimit":{
-      "type":"fast",
-      "limit":10,
+    "remaining": 20,
+    "ratelimit": {
+      "type": "fast",
+      "limit": 10,
       "refillRate": 1,
       "refillInterval": 1000
     }

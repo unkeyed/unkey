@@ -20,4 +20,5 @@ type Database interface {
 	CreateWorkspace(ctx context.Context, newWorkspace entities.Workspace) error
 
 	GetWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, error)
+	DecrementRemainingKeyUsage(ctx context.Context, keyId string) (int64, error)
 }

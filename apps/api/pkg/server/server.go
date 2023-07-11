@@ -53,9 +53,8 @@ type Server struct {
 	globalRatelimit ratelimit.Ratelimiter
 	tracer          trace.Tracer
 	// potentially nil, always do a check first
-	tinybird       *tinybird.Tinybird
-	verificationsC chan tinybird.KeyVerificationEvent
-	closeC         chan struct{}
+	tinybird *tinybird.Tinybird
+	closeC   chan struct{}
 	// Used to authenticate our frontend when creating new unkey keys.
 	unkeyAppAuthToken string
 	unkeyWorkspaceId  string
@@ -66,8 +65,8 @@ type Server struct {
 
 func New(config Config) *Server {
 	appConfig := fiber.Config{
-		DisableStartupMessage:   true,
-		Immutable:               true,
+		DisableStartupMessage: true,
+		Immutable:             true,
 	}
 
 	s := &Server{
@@ -119,10 +118,11 @@ func New(config Config) *Server {
 			zap.Error(err),
 			zap.Duration("ms", latency),
 			zap.String("edgeRegion", edgeRegion),
+			zap.Int("status", c.Response().StatusCode()),
 		)
 
-		if err != nil {
-			log.Error("request failed")
+		if err != nil || c.Response().StatusCode() >= 500 {
+			log.Error("request failed", zap.String("body", string(c.Response().Body())))
 			span.RecordError(err)
 		} else {
 			log.Info("request completed")
