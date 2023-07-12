@@ -66,7 +66,6 @@ export default authMiddleware({
           hello: "human",
         },
         expires: expiry.getMilliseconds(),
-
         ratelimit: {
           type: "fast",
           limit: 10,
