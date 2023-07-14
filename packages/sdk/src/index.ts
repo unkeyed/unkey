@@ -128,7 +128,7 @@ export class Unkey {
          *
          * @see https://docs.unkey.dev/features/remaining
          */
-        remaining: number;
+        remaining?: number;
       }): Promise<{ key: string; keyId: string }> => {
         return await this.fetch<{ key: string; keyId: string }>({
           path: ["v1", "keys"],
