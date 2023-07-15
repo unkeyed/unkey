@@ -123,7 +123,8 @@ export class Unkey {
            */
           refillInterval: number;
         };
-         /**
+        
+        /**
          * Unkey allows you to set/update usage limits on individual keys
          *
          * @see https://docs.unkey.dev/features/remaining
