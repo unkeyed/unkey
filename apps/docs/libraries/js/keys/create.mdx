@@ -83,6 +83,11 @@ Example:
  </Expandable>
 </ParamField>
 
+<ParamField body="remaining" type="number" >
+ Add how many times a key can be used, for example 100. 
+ Read more [here](/features/remaining)
+</ParamField>
+
 ## Response
 
 <ResponseField name="key" type="string" required>
@@ -109,6 +114,7 @@ const created = await unkey.keys.create({
 		refillRate: 1,
 		refillInterval: 1000
 	}
+	remaining: 1000
 })
 
 console.log(created.key)
