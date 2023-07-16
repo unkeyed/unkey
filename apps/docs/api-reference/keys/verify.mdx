@@ -50,11 +50,12 @@ Example:
   <ResponseField name="limit" type="int"  required>
   Current limit after this verification.
 
-  
-    <ResponseField name="remaining" type="int">
-    Shows how many more times this key may be verified before being invalidated.
-    Only applies to keys where you have set a `remaining` count.
-    </ResponseField>
+  </ResponseField>
+  <ResponseField name="remaining" type="int" required>
+  Remaining limit inside this burst window.
+
+
+  </ResponseField>
 
 
     <ResponseField name="reset" type="int" required>
@@ -68,6 +69,10 @@ Example:
 </ResponseField>
 
 
+    <ResponseField name="remaining" type="int">
+    Shows how many more times this key may be verified before being invalidated.
+    Only applies to keys where you have set a `remaining` count.
+    </ResponseField>
 
 <RequestExample>
 
