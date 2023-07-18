@@ -6,6 +6,7 @@ import MessageContainer from "../Messages/container";
 import Message from "../Messages/message";
 import { useToast } from "../ui/use-toast";
 import { Toaster } from "../ui/toaster";
+import { useSearchParams } from "next/navigation";
 
 const Chat = () => {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat({
@@ -13,7 +14,10 @@ const Chat = () => {
   });
 
   const { toast } = useToast();
-  if (error) {
+  const searchParams = useSearchParams();
+
+  const isValid = searchParams.get("valid") as "false" | null;
+  if (isValid && isValid === "false") {
     toast({
       title: "Uh Oh! Limit exceeded",
       description: `You've used up all your available tokens, Please consider buying some more.`,

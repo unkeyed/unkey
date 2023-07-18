@@ -10,6 +10,7 @@ export default function Login() {
   async function loginHandler(data: FormData) {
     "use server";
     const email = data.getAll("email")[0] as string;
+    console.log("email is", email);
     const existingUser = await prismaClient.user.findFirst({
       where: {
         email,
@@ -44,14 +45,19 @@ export default function Login() {
       path: "/",
     });
 
-    return redirect("/");
+    redirect("/");
   }
   return (
-    <div className="flex min-h-screen flex-row justify-center items-center w-3/4  space-x-2">
-      <Input type="email" name="email" placeholder="Email" />
-      <Button formAction={loginHandler} type="submit">
-        Login
-      </Button>
+    <div className="flex min-h-screen justify-center items-center w-screen">
+      <form action={loginHandler} className="flex space-x-2">
+        <Input
+          type="email"
+          name="email"
+          placeholder="Email"
+          className="w-3/4"
+        />
+        <Button type="submit">Login</Button>
+      </form>
     </div>
   );
 }
