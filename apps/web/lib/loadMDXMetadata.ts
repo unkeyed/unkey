@@ -16,7 +16,7 @@ export async function loadMDXMetadata(directory : 'blog' | 'changelog') {
         return {
           id,
           href: `/${directory}/${id}`,
-          ...(await import(`app/(landing)/${directory}/${filename}`))[
+          ...(await import(`app/${directory}/${filename}`))[
             exportNames[directory]
           ],
         }
