@@ -1,9 +1,10 @@
 import Link from 'next/link'
-
+import { addEmail } from '@/app/actions/addEmail'
 import { Container } from '@/components/landingComponents/Container'
 import { FadeIn } from '@/components/landingComponents/FadeIn'
 import { socialMediaProfiles } from '@/components/landingComponents/SocialMedia'
-
+import { experimental_useFormStatus as useFormStatus } from 'react-dom'
+import { useToast } from '../ui/use-toast'
 const navigation = [
   {
     title: 'Open Company ',
@@ -67,17 +68,36 @@ function ArrowIcon(props : any) {
   )
 }
 
-const handleSubmit = async (event: any) => {
-  event.preventDefault()
-  const email = event.target.email.value;
-  if(email === '' || email === undefined) {
-    alert('Please enter a valid email address')
-  }    
-}
-
 function NewsletterForm() {
+  const { pending } = useFormStatus()
+  const {toast} = useToast()
   return (
-    <form className="max-w-sm" onSubmit={handleSubmit}>
+    <form className="max-w-sm" action={async (data: FormData) => {
+      const email = data.get("email")
+      if (!email) {
+        toast({
+          title: "Error",
+          description: "Please enter an email",
+          variant: "destructive"
+        })
+        return
+      }
+      const res = await addEmail(email as string);
+      if (res.success === true) {
+        toast({
+          title: "Success",
+          description: "Thanks for signing up!",
+          variant: "default"
+        })
+        return;
+      } else {
+        toast({
+          title: "Error",
+          description: "Something went wrong",
+          variant: "destructive"
+        })
+      }
+    }}>
       <h2 className="font-display text-sm font-semibold tracking-wider text-neutral-950">
         Sign up for our newsletter
       </h2>
@@ -98,6 +118,7 @@ function NewsletterForm() {
           <button
             type="submit"
             aria-label="Submit"
+            disabled={pending}
             className="flex aspect-square h-full items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-neutral-800"
           >
             <ArrowIcon className="w-4" />
@@ -115,7 +136,7 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-x-8 gap-y-16 lg:grid-cols-2">
           <Navigation />
           <div className="flex lg:justify-end">
-            {/* <NewsletterForm /> */}
+            <NewsletterForm />
           </div>
         </div>
         <div className="mb-20 mt-24 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-t border-neutral-950/10 pt-12">

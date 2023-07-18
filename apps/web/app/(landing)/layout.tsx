@@ -1,4 +1,5 @@
 import { RootLayout } from '@/components/landingComponents/RootLayout'
+import { Toaster } from '@/components/ui/toaster'
 
 import '@/styles/landing/styles/tailwind.css'
 
@@ -16,6 +17,7 @@ export default function Layout({ children } : {
     <html lang="en" className="h-full bg-neutral-950 text-base antialiased">
       <body className="flex min-h-full flex-col">
         <RootLayout>{children}</RootLayout>
+        <Toaster/>
       </body>
     </html>
   )
