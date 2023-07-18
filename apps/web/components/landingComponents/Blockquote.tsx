@@ -1,3 +1,4 @@
+//@ts-ignore
 import Image, { ImageProps } from 'next/image'
 import clsx from 'clsx'
 
