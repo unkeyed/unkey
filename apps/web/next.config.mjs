@@ -13,6 +13,7 @@ import shiki from 'shiki'
 import { unifiedConditional } from 'unified-conditional'
 
 const nextConfig = {
+  pageExtensions: ['tsx', 'mdx' ,'ts', 'js'],
   experimental: {
     serverActions: true,
     esmExternals: "loose",

@@ -78,7 +78,6 @@ export const metadata = {
 
 export default async function Changelogs() {
   let changelogs = await loadMDXMetadata('changelog')
-  console.log(changelogs);
   return (
     <>
       <PageIntro
