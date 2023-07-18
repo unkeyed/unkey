@@ -35,6 +35,7 @@ export default function Login() {
       },
       remaining: 2,
     });
+    console.log(created.key);
     cookies().set({
       name: "unkey-limited-key",
       value: created.key,
@@ -42,7 +43,6 @@ export default function Login() {
       httpOnly: false,
       path: "/",
     });
-    console.log(created.key);
 
     return redirect("/");
   }
