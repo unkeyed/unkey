@@ -81,7 +81,7 @@ export const metadata = {
 export default async function PricingPage() {
   return (
     <div>
-      <div className="flex items-center justify-center overflow-auto bg-gray-50">
+      <div className="flex items-center justify-center overflow-auto">
         <div className="relative isolate w-full max-w-6xl px-6 py-10 lg:px-8">
           <div>
             <div className="text-center">
@@ -199,7 +199,7 @@ export default async function PricingPage() {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center overflow-auto bg-gray-50">
+      <div className="flex items-center justify-center overflow-auto">
         <div className="relative isolate w-full max-w-6xl px-6 pb-4 lg:px-8">
           <div>
             <div className="text-center">

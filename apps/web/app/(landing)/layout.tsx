@@ -1,14 +1,22 @@
-import { NavigationBar } from "@/components/Navbar";
+import { RootLayout } from '@/components/landingComponents/RootLayout'
 
-export default function LandingLayout({
-  children,
-}: {
-  children: React.ReactNode;
+import '@/styles/landing/styles/tailwind.css'
+
+export const metadata = {
+  title: {
+    template: '%s - Unkey',
+    default: 'Unkey - API management made easy',
+  },
+}
+
+export default function Layout({ children } : {
+  children: React.ReactNode,
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavigationBar />
-      {children}
-    </div>
-  );
+    <html lang="en" className="h-full bg-neutral-950 text-base antialiased">
+      <body className="flex min-h-full flex-col">
+        <RootLayout>{children}</RootLayout>
+      </body>
+    </html>
+  )
 }

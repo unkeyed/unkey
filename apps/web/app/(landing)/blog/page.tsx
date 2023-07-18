@@ -1,82 +1,85 @@
-import Link from "next/link";
-import { allPosts } from "contentlayer/generated";
+import Image from 'next/image'
+import Link from 'next/link'
+
+import { Border } from '@/components/landingComponents/Border'
+import { Button } from '@/components/landingComponents/Button'
+import { ContactSection } from '@/components/landingComponents/ContactSection'
+import { Container } from '@/components/landingComponents/Container'
+import { FadeIn } from '@/components/landingComponents/FadeIn'
+import { PageIntro } from '@/components/landingComponents/PageIntro'
+import { formatDate } from '@/lib/formatDate'
+import { loadMDXMetadata } from '@/lib/loadMDXMetadata'
 
 export const metadata = {
-  title: "Blog | Unkey",
-  description: "Blog for Unkey",
-  openGraph: {
-    title: "Blog | Unkey",
-    description: "Blog for Unkey",
-    url: "https://unkey.dev/blog",
-    siteName: "unkey.dev",
-    images: [
-      {
-        url: "image: `https://unkey.dev/og?title=blog`,",
-        width: 1200,
-        height: 675,
-      },
-    ],
-  },
-  twitter: {
-    title: "Unkey",
-    card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/unkey.png",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: true,
-    googleBot: {
-      index: true,
-      follow: false,
-      noimageindex: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-};
+  title: 'Blog',
+  description:
+    'Stay up-to-date with the latest industry news as our marketing teams finds new ways to re-purpose old CSS tricks articles.',
+}
 
-export default function Blog() {
-  const posts = allPosts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+export default async function Blog() {
+  let articles = await loadMDXMetadata('blog')
 
   return (
-    <div className="py-24 sm:py-32">
-      <div className="px-6 mx-auto max-w-7xl lg:px-8">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Unkey Blog
-          </h2>
+    <>
+      <PageIntro eyebrow="Blog" title="The latest articles and news">
+        <p>
+          Stay up-to-date with the Unkey team as we share our latest news and articles in our industry.
+        </p>
+      </PageIntro>
 
-          <div className="pt-10 mt-10 space-y-16 border-t border-gray-200 sm:mt-16 sm:pt-16">
-            {posts.map((post) => (
-              <article
-                key={post._id}
-                className="flex flex-col items-start justify-between max-w-xl"
-              >
-                <div className="flex items-center text-xs gap-x-4">
-                  <time dateTime={post.date} className="text-gray-500">
-                    {new Date(post.date).toDateString()}
-                  </time>
-                </div>
-                <div className="relative group">
-                  <h3 className="mt-3 text-lg font-semibold leading-6 text-gray-900 group-hover:text-gray-600">
-                    <Link href={post.url}>
-                      <span className="absolute inset-0" />
-                      {post.title}
-                    </Link>
-                  </h3>
-                  <p className="mt-5 text-sm leading-6 text-gray-600 line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                </div>
+      <Container className="mt-24 sm:mt-32 lg:mt-40">
+        <div className="space-y-24 lg:space-y-32">
+          {articles.map((article) => (
+            <FadeIn key={article.href}>
+              <article>
+                <Border className="pt-16">
+                  <div className="relative lg:-mx-4 lg:flex lg:justify-end">
+                    <div className="pt-10 lg:w-2/3 lg:flex-none lg:px-4 lg:pt-0">
+                      <h2 className="font-display text-2xl font-semibold text-neutral-950">
+                        <Link href={article.href}>{article.title}</Link>
+                      </h2>
+                      <dl className="lg:absolute lg:left-0 lg:top-0 lg:w-1/3 lg:px-4">
+                        <dt className="sr-only">Published</dt>
+                        <dd className="absolute left-0 top-0 text-sm text-neutral-950 lg:static">
+                          <time dateTime={article.date}>
+                            {formatDate(article.date)}
+                          </time>
+                        </dd>
+                        <dt className="sr-only">Author</dt>
+                        <dd className="mt-6 flex gap-x-4">
+                          <div className="flex-none overflow-hidden rounded-xl bg-neutral-100">
+                            <Image
+                              alt=""
+                              {...article.author.image}
+                              className="h-12 w-12 object-cover grayscale"
+                            />
+                          </div>
+                          <div className="text-sm text-neutral-950">
+                            <div className="font-semibold">
+                              {article.author.name}
+                            </div>
+                            <div>{article.author.role}</div>
+                          </div>
+                        </dd>
+                      </dl>
+                      <p className="mt-6 max-w-2xl text-base text-neutral-600">
+                        {article.description}
+                      </p>
+                      <Button
+                        href={article.href}
+                        aria-label={`Read more: ${article.title}`}
+                        className="mt-8"
+                      >
+                        Read more
+                      </Button>
+                    </div>
+                  </div>
+                </Border>
               </article>
-            ))}
-          </div>
+            </FadeIn>
+          ))}
         </div>
-      </div>
-    </div>
-  );
+      </Container>
+    </>
+  )
 }
