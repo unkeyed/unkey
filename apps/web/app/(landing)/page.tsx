@@ -7,6 +7,31 @@ import { StylizedImage } from '@/components/landingComponents/StylizedImage'
 import laptopImage from "@/images/computer-user.jpg"
 import { Button } from '@/components/landingComponents/Button'
 import { StatList, StatListItem } from '@/components/landingComponents/StatList'
+import { db, schema, sql } from "@unkey/db";
+export const revalidate = 60;
+
+const [workspaces, apis, keys, stars] = await Promise.all([
+  db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.workspaces)
+    .then((res) => res.at(0)?.count ?? 0),
+  db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.apis)
+    .then((res) => res.at(0)?.count ?? 0),
+  db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.keys)
+    .then((res) => res.at(0)?.count ?? 0),
+  await fetch("https://api.github.com/repos/unkeyed/unkey", {
+    headers: {
+      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+  }).then((res) => res.json()),
+]);
+
+
 
 function NumbersServed() {
   return (
@@ -20,9 +45,9 @@ function NumbersServed() {
         </FadeIn>
         <FadeInStagger faster>
         <StatList>
-          <StatListItem value="668" label="Workspaces" />
-          <StatListItem value="500" label="APIS" />
-          <StatListItem value="3.4K" label="Keys" />
+          <StatListItem value={workspaces} label="Workspaces" />
+          <StatListItem value={apis} label="APIS" />
+          <StatListItem value={keys} label="Keys" />
         </StatList>
         </FadeInStagger>
       </Container>
