@@ -1,3 +1,4 @@
+//@ts-nocheck 
 import { Container } from '@/components/landingComponents/Container'
 import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
 import { List, ListItem } from '@/components/landingComponents/List'

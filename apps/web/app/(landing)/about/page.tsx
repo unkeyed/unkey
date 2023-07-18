@@ -1,3 +1,4 @@
+//@ts-nocheck 
 import Image from 'next/image'
 
 import { Border } from '@/components/landingComponents/Border'

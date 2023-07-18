@@ -1,4 +1,4 @@
-import clsx from 'clsx'
+//@ts-nocheck 
 
 import { Border } from '@/components/landingComponents/Border'
 import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'

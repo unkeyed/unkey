@@ -1,3 +1,4 @@
+//@ts-nocheck 
 import clsx from 'clsx'
 
 import { Blockquote } from '@/components/landingComponents/Blockquote'

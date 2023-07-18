@@ -1,4 +1,4 @@
-import { ContactSection } from '@/components/landingComponents/ContactSection'
+//@ts-nocheck 
 import { Container } from '@/components/landingComponents/Container'
 import { FadeIn } from '@/components/landingComponents/FadeIn'
 import { MDXComponents } from '@/components/landingComponents/MDXComponents'

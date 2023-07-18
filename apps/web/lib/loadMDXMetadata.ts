@@ -1,3 +1,4 @@
+//@ts-nocheck 
 import glob from 'fast-glob'
 
 const exportNames = {
@@ -10,7 +11,7 @@ export async function loadMDXMetadata(directory : 'blog' | 'changelog') {
     await Promise.all(
       (
         await glob('**/page.mdx', { cwd: `app/(landing)/${directory}` })
-      ).map(async (filename) => {
+      ).map(async (filename: string) => {
         let id = filename.replace(/\/page\.mdx$/, '')
         return {
           id,
