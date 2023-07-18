@@ -11,10 +11,12 @@
   "dependencies": {
     "@clerk/nextjs": "^4.21.15",
     "@prisma/client": "^4.16.2",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-toast": "^1.1.4",
     "@t3-oss/env-nextjs": "^0.6.0",
     "@types/react": "18.2.14",
     "@types/react-dom": "18.2.6",
-    "@unkey/api": "^0.0.1",
+    "@unkey/api": "^0.1.0",
     "ai": "^2.1.17",
     "autoprefixer": "10.4.14",
     "class-variance-authority": "^0.6.1",
