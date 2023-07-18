@@ -8,6 +8,8 @@ export async function middleware(request: NextRequest) {
   const cookie = request.cookies.get("unkey-limited-key");
   const { searchParams } = new URL(request.url);
   const isValid = searchParams.get("valid");
+  console.log("valid is", isValid);
+  console.log("valid null", isValid === null);
   console.log("cookie is", cookie);
   console.log(request.url);
   if (!cookie) {
@@ -17,8 +19,11 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   const { valid } = await unkey.keys.verify({ key });
-  if (!valid && !isValid) {
-    return NextResponse.redirect(new URL(`${request.url}?valid=false`));
+  if (!valid && isValid === null) {
+    console.log("should only redir once");
+    const url = new URL(request.url);
+
+    return NextResponse.redirect(`${url.origin}?valid=false`);
   }
 
   return response;

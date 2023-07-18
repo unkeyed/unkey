@@ -61,3 +61,4 @@ export default function Login() {
     </div>
   );
 }
+export const fetchCache = "default-no-store";
