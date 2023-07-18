@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "ai/react";
-import { UserButton, useUser } from "@clerk/nextjs";
+
 import MessageContainer from "../Messages/container";
 import Message from "../Messages/message";
 import { useToast } from "../ui/use-toast";
@@ -11,7 +11,7 @@ const Chat = () => {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat({
     api: "/api/completions",
   });
-  const { isSignedIn, isLoaded } = useUser();
+
   const { toast } = useToast();
   if (error) {
     toast({

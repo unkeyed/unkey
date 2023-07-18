@@ -1,6 +1,6 @@
 import { env } from "@/env.mjs";
 import { prismaClient } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs";
+
 import { Unkey } from "@unkey/api";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";

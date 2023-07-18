@@ -1,6 +1,5 @@
 import Chat from "@/components/chat/chat";
 import { Toaster } from "@/components/ui/toaster";
-import { UserButton } from "@clerk/nextjs";
 
 export default function Home() {
   return (
