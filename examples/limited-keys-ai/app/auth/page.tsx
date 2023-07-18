@@ -47,7 +47,7 @@ export default function Login() {
     return redirect("/");
   }
   return (
-    <div className="flex w-full max-w-sm items-center space-x-2">
+    <div className="flex min-h-screen flex-row justify-center items-center w-3/4  space-x-2">
       <Input type="email" name="email" placeholder="Email" />
       <Button formAction={loginHandler} type="submit">
         Login
