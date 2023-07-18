@@ -1,4 +1,4 @@
-import "./globals.css";
+import '@/styles/landing/styles/tailwind.css'
 import { Inter } from "@next/font/google";
 import localFont from "@next/font/local";
 
