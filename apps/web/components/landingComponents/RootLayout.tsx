@@ -218,7 +218,7 @@ function RootLayoutInner({ children } : {
           layout
           id={panelId}
           style={{ height: expanded ? 'auto' : '0.5rem' }}
-          className="relative z-50 overflow-hidden bg-neutral-950 pt-2"
+          className={expanded ? "relative z-50 overflow-hidden bg-neutral-950 pt-2" : "relative z-50 overflow-hidden pt-2"}
           aria-hidden={expanded ? undefined : 'true'}
           inert={expanded ? undefined : ''}
         >
