@@ -9,6 +9,5 @@ export async function addEmail(email: string) {
         body: JSON.stringify({email: email})
     })
     const json = await res.json();
-    console.log(json);
     return json;
   }
