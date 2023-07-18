@@ -10,9 +10,10 @@ const openai = new OpenAIApi(config);
 export const runtime = "edge";
 
 export async function POST(req: Request) {
+  console.log("geet");
   // Extract the `messages` from the body of the request
   const { messages } = await req.json();
-
+  console.log(messages);
   // Ask OpenAI for a streaming chat completion given the prompt
   const response = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",

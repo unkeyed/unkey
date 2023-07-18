@@ -27,16 +27,20 @@ const Chat = () => {
       });
     }
   }, []);
+  console.log(error);
+  console.log(messages);
   return (
     <MessageContainer>
       {messages && messages.length > 0 ? (
-        messages.map((message) => (
-          <Message
-            key={message.id}
-            role={message.role}
-            content={message.content}
-          />
-        ))
+        messages
+          .filter((message) => message.content.includes("DOCTYPe") === false)
+          .map((message) => (
+            <Message
+              key={message.id}
+              role={message.role}
+              content={message.content}
+            />
+          ))
       ) : (
         <p>No messages yet...</p>
       )}

@@ -7,18 +7,18 @@ const unkey = new Unkey({ token: env.UNKEY_TOKEN });
 export async function middleware(request: NextRequest) {
   const cookie = request.cookies.get("unkey-limited-key");
   const { searchParams } = new URL(request.url);
+  const url = new URL(request.url);
+
   const isValid = searchParams.get("valid");
   console.log("cookie is", cookie);
   if (!cookie) {
-    return NextResponse.redirect(`${request.url}auth`);
+    return NextResponse.redirect(`${url.origin}/auth`);
   }
   const key = cookie.value;
   const response = NextResponse.next();
 
   const { valid } = await unkey.keys.verify({ key });
   if (!valid && isValid === null) {
-    const url = new URL(request.url);
-
     return NextResponse.redirect(`${url.origin}?valid=false`);
   }
 
