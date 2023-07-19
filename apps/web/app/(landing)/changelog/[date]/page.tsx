@@ -1,7 +1,6 @@
 //@ts-nocheck 
 import { Container } from '@/components/landingComponents/Container'
 import { FadeIn } from '@/components/landingComponents/FadeIn'
-import { GrayscaleTransitionImage } from '@/components/landingComponents/GrayscaleTransitionImage'
 import { PageIntro } from '@/components/landingComponents/PageIntro'
 import { PageLinks } from '@/components/landingComponents/PageLinks'
 import { allChangelogs } from "contentlayer/generated";

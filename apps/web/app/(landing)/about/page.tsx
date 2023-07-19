@@ -1,16 +1,13 @@
 //@ts-nocheck 
 import Image from 'next/image'
-
 import { Border } from '@/components/landingComponents/Border'
-
 import { Container } from '@/components/landingComponents/Container'
 import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
 import { GridList, GridListItem } from '@/components/landingComponents/GridList'
 import { PageIntro } from '@/components/landingComponents/PageIntro'
 import { PageLinks } from '@/components/landingComponents/PageLinks'
 import { SectionIntro } from '@/components/landingComponents/SectionIntro'
-
-import { loadMDXMetadata } from '@/lib/loadMDXMetadata'
+import { allPosts } from '@/.contentlayer/generated'
 import imageJamesPerkins from '@/images/team/james.jpg'
 import imageAndreas from '@/images/team/andreas.jpeg'
 function AboutUnkey() {
@@ -113,8 +110,7 @@ export const metadata = {
 }
 
 export default async function About() {
-  let blogArticles = (await loadMDXMetadata('blog')).slice(0, 2)
-
+  const blogArticles = allPosts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0,2);
   return (
     <>
       <PageIntro eyebrow="" title="About us">
