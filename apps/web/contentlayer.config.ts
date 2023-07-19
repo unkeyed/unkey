@@ -17,11 +17,11 @@ const Post = defineDocumentType(() => ({
       required: true,
     },
     author: {
-      type: "string",
+      type: "json",
       description: "The author of the post",
       required: true,
     },
-    excerpt: {
+    description: {
       type: "string",
       description: "The excerpt of the post",
       required: true,
@@ -44,6 +44,30 @@ const Changelog = defineDocumentType(() => ({
     title: {
       type: "string",
       description: "The title of the changelog",
+      required: true,
+    },
+    date: {
+      type: "date",
+      description: "The date of the changelog",
+      required: true,
+    },
+    description: {
+      type: "string",
+      description: "The excerpt of the changelog",
+      required: true,
+    },
+    summary: {
+      type: 'list',
+      of: { type: 'string' },
+    },
+    changes: {
+      type: "number",
+      description: "The number of changes",
+      required: true,
+    },
+    features: {
+      type: "string",
+      description: "Yes or No",
       required: true,
     },
   },

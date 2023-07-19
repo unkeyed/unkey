@@ -7,18 +7,20 @@ import { experimental_useFormStatus as useFormStatus } from 'react-dom'
 import { useToast } from '../ui/use-toast'
 const navigation = [
   {
-    title: 'Open Company ',
-    links: [
-      { title: 'Analytics', href: 'https://plausible.io/unkey.dev' },
-      { title: 'Unkey', href: 'https://github.com/unkeyed/unkey' },
-    ],
-  },
-  {
     title: 'Company',
     links: [
       { title: 'About', href: '/about' },
       { title: 'Blog', href: '/blog' },
       { title: 'Changelog', href: '/changelog' },
+      { title: 'Analytics', href: 'https://plausible.io/unkey.dev' },
+      { title: 'Unkey', href: 'https://github.com/unkeyed/unkey' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { title: 'Privacy Policy', href: '/policies/privacy' },
+      { title: 'Terms', href: '/policies/terms' },
     ],
   },
   {
@@ -72,7 +74,7 @@ function NewsletterForm() {
   const { pending } = useFormStatus()
   const {toast} = useToast()
   return (
-    <form className="max-w-sm" action={async (data: FormData) => {
+    <form className="max-w-md" action={async (data: FormData) => {
       const email = data.get("email")
       if (!email) {
         toast({

@@ -10,7 +10,8 @@ import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
 import { PageIntro } from '@/components/landingComponents/PageIntro'
 import { formatDate } from '@/lib/formatDate'
 import { loadMDXMetadata } from '@/lib/loadMDXMetadata'
-
+import { allChangelogs, type Changelog } from "contentlayer/generated";
+import { getMDXComponent } from "next-contentlayer/hooks";
 
 
 function Changelog({ changelogs } = { changelogs: []}) {
@@ -45,7 +46,7 @@ function Changelog({ changelogs } = { changelogs: []}) {
                 </div>
                 <div className="col-span-full lg:col-span-2 lg:max-w-2xl">
                   <p className="font-display text-4xl font-medium text-neutral-950">
-                    <Link href={changelog.href}>{changelog.title}</Link>
+                    <Link href={changelog.url}>{changelog.title}</Link>
                   </p>
                   <div className="mt-6 space-y-6 text-base text-neutral-600">
                     {changelog.summary?.map((paragraph) => (
@@ -54,7 +55,7 @@ function Changelog({ changelogs } = { changelogs: []}) {
                   </div>
                   <div className="mt-8 flex">
                     <Button
-                      href={changelog.href}
+                      href={changelog.url}
                       aria-label={`Read this Changelog for ${changelog.title}`}
                     >
                       Read the Changelog
@@ -77,7 +78,10 @@ export const metadata = {
 }
 
 export default async function Changelogs() {
-  let changelogs = await loadMDXMetadata('changelog')
+  const changelogs = allChangelogs.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+
   return (
     <>
       <PageIntro
