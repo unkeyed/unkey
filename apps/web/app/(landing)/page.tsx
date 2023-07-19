@@ -120,7 +120,7 @@ export default async function Home() {
               API management made easy
           </h1>
           <p className={"mt-6 text-xl text-neutral-600"}>
-          Seriously fast, and easy to use, Unkey&apos;s API management platform helps developers secure, manage, and scale their APIs.
+          Seriously fast and easy to use. Unkey&apos;s API management platform helps developers secure, manage, and scale their APIs.
           </p>
         </FadeIn>
         <Button className="mt-4 px-8 py-3">Start for free</Button>
