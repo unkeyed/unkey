@@ -1,34 +1,53 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Unkey Limited (Remaining) API Key Demo
+
+This example shows off how one might use limited keys in a product. This Demo is a chat app built with [Vercel AI](https://sdk.vercel.ai), [Open AI](platform.openai.com). It shows off both methods of using Unkey. Programtically via the SDK and via HTTP request.
+
+It also uses [Shadcn/ui](https://ui.shadcn.com/) for the toast, [Prisma](https://prisma.io) for user creation and [T3 Env](https://env.t3.gg/).
 
 ## Getting Started
 
-First, run the development server:
+Copy the environment variables via:
+
+```bash
+cp .env.example .env.local
+```
+
+- Go to [unkey.dev](https://unkey.dev/app) and create a new API.
+- Copy your workspace token and `apiId` to `.env.local`
+- Go to the OpenAI dashboard and create a new token and copy to `.env.local`
+
+## Install Dependencies
+
+Install dependencies via:
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+## Run migrations
+
+To run migrations run:
+
+```bash
+npx prisma db push
+```
+
+This will create `prisma/dev.db`, a local SQLITE DB and generate the client.
+
+## Start the example
+
+You can start the example via:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **NOTE** If you attempt to run the dev server without specifying all necessary variables, it'll through a run-time error.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Troubleshooting
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+You might get a `429` error code when you attempt a chat completion, this comes from OpenAI and basically means your free trial is over and need to input billing details for a paid plan.
