@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { env } from "@/env.mjs";
 import { prismaClient } from "@/lib/prisma";
-import { Unkey } from "@unkey/api";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-const unkey = new Unkey({ token: env.UNKEY_TOKEN });
+
 export default function Login() {
   async function loginHandler(data: FormData) {
     "use server";
@@ -25,8 +24,7 @@ export default function Login() {
     }
 
     // create key
-
-    const created = await unkey.keys.create({
+    const body = JSON.stringify({
       apiId: env.UNKEY_API_ID,
       prefix: "glam",
       byteLength: 16,
@@ -36,6 +34,19 @@ export default function Login() {
       },
       remaining: 2,
     });
+    const response = await fetch("https://api.unkey.dev/v1/keys", {
+      method: "post",
+      cache: "no-cache",
+      body,
+      headers: {
+        Authorization: `Bearer ${env.UNKEY_TOKEN}`,
+      },
+    });
+    const created: {
+      key: string;
+      keyId: string;
+    } = await response.json();
+
     console.log(created.key);
     cookies().set({
       name: "unkey-limited-key",
@@ -61,4 +72,3 @@ export default function Login() {
     </div>
   );
 }
-export const fetchCache = "force-no-store";
