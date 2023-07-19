@@ -11,15 +11,19 @@ export async function middleware(request: NextRequest) {
 
   const isValid = searchParams.get("valid");
   console.log("cookie is", cookie);
-  if (!cookie) {
+  if (!cookie || cookie.value.length === 0) {
     return NextResponse.redirect(`${url.origin}/auth`);
   }
   const key = cookie.value;
   const response = NextResponse.next();
 
-  const { valid } = await unkey.keys.verify({ key });
-  if (!valid && isValid === null) {
-    return NextResponse.redirect(`${url.origin}?valid=false`);
+  try {
+    const { valid } = await unkey.keys.verify({ key });
+    if (!valid && isValid === null) {
+      return NextResponse.redirect(`${url.origin}?valid=false`);
+    }
+  } catch (error) {
+    return NextResponse.redirect(`${url.origin}/auth`);
   }
 
   return response;

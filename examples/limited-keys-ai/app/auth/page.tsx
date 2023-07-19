@@ -40,6 +40,7 @@ export default function Login() {
       body,
       headers: {
         Authorization: `Bearer ${env.UNKEY_TOKEN}`,
+        "Content-Type": "application/json",
       },
     });
     const created: {
