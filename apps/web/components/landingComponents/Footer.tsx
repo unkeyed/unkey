@@ -86,6 +86,7 @@ function NewsletterForm() {
       }
       const res = await addEmail(email as string);
       if (res.success === true) {
+        data.set("email", "") 
         toast({
           title: "Success",
           description: "Thanks for signing up!",
