@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     meta: {
       hello: "human",
     },
-    remaining: 2,
+    remaining: 10,
   });
 
   console.log(created.key);

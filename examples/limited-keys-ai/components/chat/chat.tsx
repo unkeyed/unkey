@@ -33,7 +33,7 @@ const Chat = () => {
     <MessageContainer>
       {messages && messages.length > 0 ? (
         messages
-          .filter((message) => message.content.includes("DOCTYPe") === false)
+          .filter((message) => message.content.includes("DOCTYPE") === false)
           .map((message) => (
             <Message
               key={message.id}
