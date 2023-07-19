@@ -8,6 +8,7 @@ import { useToast } from "../ui/use-toast";
 import { Toaster } from "../ui/toaster";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { useRouter } from "next/router";
 
 const Chat = () => {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat({
@@ -16,7 +17,7 @@ const Chat = () => {
 
   const { toast } = useToast();
   const searchParams = useSearchParams();
-
+  const router = useRouter();
   const isValid = searchParams.get("valid") as "false" | null;
 
   useEffect(() => {
@@ -25,6 +26,10 @@ const Chat = () => {
         title: "Uh Oh! Limit exceeded",
         description: `You've used up all your available tokens, Please consider buying some more.`,
       });
+
+      setTimeout(() => {
+        router.push("/auth");
+      }, 2000);
     }
   }, []);
   console.log(error);
