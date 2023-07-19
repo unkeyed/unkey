@@ -10,7 +10,7 @@ export async function loadMDXMetadata(directory : 'blog' | 'changelog') {
   return (
     await Promise.all(
       (
-        await glob('**/page.mdx', { cwd: `app/(landing)/${directory}` })
+        await glob('**/page.mdx', { cwd: `app/${directory}` })
       ).map(async (filename: string) => {
         let id = filename.replace(/\/page\.mdx$/, '')
         return {
