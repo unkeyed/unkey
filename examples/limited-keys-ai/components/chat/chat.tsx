@@ -8,7 +8,7 @@ import { useToast } from "../ui/use-toast";
 import { Toaster } from "../ui/toaster";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 const Chat = () => {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat({
