@@ -161,8 +161,8 @@ function Navigation() {
         <NavigationItem href="/changelog">Changelog</NavigationItem>
       </NavigationRow>
       <NavigationRow>
+        <NavigationItem href="/about">About</NavigationItem>
         <NavigationItem href="https://unkey.dev/discord">Discord</NavigationItem>
-        <NavigationItem href="https://unkey.dev/app">Dashboard</NavigationItem>
       </NavigationRow>
     </nav>
   )
