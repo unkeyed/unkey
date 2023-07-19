@@ -18,10 +18,12 @@ export default async function ChangeLogLayout({
 }: {
   params: { date: string };
 }) {
+
   const changelog = allChangelogs.find(
     (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
-  if (!changelog) {
+
+  if (!changelog || !changelog.body) {
     return notFound();
   }
 
