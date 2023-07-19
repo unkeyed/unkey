@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/formatDate'
 import { allPosts } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from 'next/link';
-
+import { notFound } from "next/navigation";
 export const generateStaticParams = async () =>
   allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
 

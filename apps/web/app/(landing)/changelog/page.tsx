@@ -1,17 +1,12 @@
 //@ts-nocheck 
-import Image from 'next/image'
 import Link from 'next/link'
-
 import { Border } from '@/components/landingComponents/Border'
 import { Button } from '@/components/landingComponents/Button'
-import { ContactSection } from '@/components/landingComponents/ContactSection'
 import { Container } from '@/components/landingComponents/Container'
 import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
 import { PageIntro } from '@/components/landingComponents/PageIntro'
-import { formatDate } from '@/lib/formatDate'
-import { loadMDXMetadata } from '@/lib/loadMDXMetadata'
 import { allChangelogs, type Changelog } from "contentlayer/generated";
-import { getMDXComponent } from "next-contentlayer/hooks";
+
 
 
 function Changelog({ changelogs } = { changelogs: []}) {
