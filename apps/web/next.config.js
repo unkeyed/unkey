@@ -12,10 +12,6 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  // temporary workaround while we see if this works from end to end
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 }
 
 module.exports = withContentlayer(nextConfig);
