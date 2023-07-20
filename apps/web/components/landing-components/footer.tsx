@@ -5,6 +5,8 @@ import { FadeIn } from '@/components/landing-components/fade-in'
 import { socialMediaProfiles } from '@/components/landing-components/social-media'
 import { experimental_useFormStatus as useFormStatus } from 'react-dom'
 import { useToast } from '../ui/use-toast'
+import { Icons } from '../ui/icons'
+        
 const navigation = [
   {
     title: 'Company',
@@ -71,7 +73,7 @@ function ArrowIcon(props : any) {
 }
 
 function NewsletterForm() {
-  const { pending } = useFormStatus()
+
   const {toast} = useToast()
   return (
     <form className="max-w-md" action={async (data: FormData) => {
@@ -85,7 +87,7 @@ function NewsletterForm() {
         return
       }
       const res = await addEmail(email as string);
-      if (res.success === true) {
+      if (res?.success === true) {
         document.getElementById("email")?.setAttribute("value", "")
         toast({
           title: "Success",
@@ -118,17 +120,22 @@ function NewsletterForm() {
           className="block w-full rounded-2xl border border-neutral-300 bg-transparent py-4 pl-6 pr-20 text-base/6 text-neutral-950 ring-4 ring-transparent transition placeholder:text-neutral-500 focus:border-neutral-950 focus:outline-none focus:ring-neutral-950/5"
         />
         <div className="absolute inset-y-1 right-1 flex justify-end">
-          <button
-            type="submit"
-            aria-label="Submit"
-            disabled={pending}
-            className="flex aspect-square h-full items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-neutral-800"
-          >
-            <ArrowIcon className="w-4" />
-          </button>
+          <SubmitButton/>
         </div>
       </div>
     </form>
+  )
+}
+
+const SubmitButton = () => {
+  const { pending } = useFormStatus();
+  return(
+  <button
+            disabled={pending}
+            className="flex aspect-square h-full items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-neutral-800"
+          >
+           {pending ?  <Icons.spinner className="w-4 h-4 animate-spin" /> : <ArrowIcon className="w-4" />}
+          </button>
   )
 }
 
