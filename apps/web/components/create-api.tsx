@@ -65,7 +65,7 @@ export const CreateApiButton = ({
         isOpen={modalOpen}
         setIsOpen={setModalOpen}
         trigger={() => (
-          <Button className=" gap-2 text-sm md:text-base" {...rest}>
+          <Button className=" gap-2 font-semibold" {...rest}>
             <Plus size={18} className=" w-4 h-4" />
             Create New API
           </Button>
