@@ -11,7 +11,7 @@ import (
 func (db *database) UpdateKey(ctx context.Context, key entities.Key) error {
 	m, err := keyEntityToModel(key)
 	if err != nil {
-		return fmt.Errorf("uanble to convert key")
+		return fmt.Errorf("unable to convert key")
 	}
 
 	db.logger.Info("db Update key", zap.Any("m", m))
