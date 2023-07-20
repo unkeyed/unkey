@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
+} from "@/components/ui/form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +22,7 @@ import { Modal } from "@/components/modal";
 import { useEffect, useState } from "react";
 const formSchema = z.object({
   name: z.string().min(3).max(50),
-  slug: z
-    .string()
-    .min(1)
-    .max(50)
-    .regex(/^[a-zA-Z0-9-_\.]+$/),
+  slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
 });
 
 export default function TeamCreationModal() {
@@ -94,11 +90,7 @@ export default function TeamCreationModal() {
   };
 
   return (
-    <Modal
-      isOpen={modalOpen}
-      setIsOpen={setModalOpen}
-      onRequestClose={() => router.back()}
-    >
+    <Modal isOpen={modalOpen} setIsOpen={setModalOpen} onRequestClose={() => router.back()}>
       <h1 className=" text-2xl font-semibold mb-4 leading-none tracking-tight">
         Create your Team workspace
       </h1>
@@ -116,9 +108,7 @@ export default function TeamCreationModal() {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormDescription>
-                  What should your team be called?
-                </FormDescription>
+                <FormDescription>What should your team be called?</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -134,8 +124,8 @@ export default function TeamCreationModal() {
                   <Input {...field} />
                 </FormControl>
                 <FormDescription>
-                  This will be used in urls etc. Only alphanumeric, dashes,
-                  underscores and periods are allowed
+                  This will be used in urls etc. Only alphanumeric, dashes, underscores and periods
+                  are allowed
                 </FormDescription>
                 <FormMessage />
               </FormItem>

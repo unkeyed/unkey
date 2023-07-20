@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/form";
+} from "@/components/ui/form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,7 @@ import { z } from "zod";
 import { useOrganizationList } from "@clerk/nextjs";
 const formSchema = z.object({
   name: z.string().min(3).max(50),
-  slug: z
-    .string()
-    .min(1)
-    .max(50)
-    .regex(/^[a-zA-Z0-9-_\.]+$/),
+  slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
 });
 
 export default function TeamCreation() {
@@ -93,9 +89,7 @@ export default function TeamCreation() {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormDescription>
-                  What should your team be called?
-                </FormDescription>
+                <FormDescription>What should your team be called?</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -111,8 +105,8 @@ export default function TeamCreation() {
                   <Input {...field} />
                 </FormControl>
                 <FormDescription>
-                  This will be used in urls etc. Only alphanumeric, dashes,
-                  underscores and periods are allowed
+                  This will be used in urls etc. Only alphanumeric, dashes, underscores and periods
+                  are allowed
                 </FormDescription>
                 <FormMessage />
               </FormItem>

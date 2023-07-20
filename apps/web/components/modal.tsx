@@ -9,13 +9,7 @@ interface ModalProps extends Props {
   setIsOpen: (isOpen: boolean) => void;
 }
 
-export const Modal = ({
-  trigger,
-  children,
-  setIsOpen,
-  isOpen,
-  ...rest
-}: ModalProps) => {
+export const Modal = ({ trigger, children, setIsOpen, isOpen, ...rest }: ModalProps) => {
   const modalVariants = {
     hidden: {
       opacity: 0,
@@ -51,6 +45,7 @@ export const Modal = ({
                 backdropFilter: "blur(5px)",
               },
             }}
+            shouldCloseOnOverlayClick
             isOpen={isOpen}
             {...rest}
           >

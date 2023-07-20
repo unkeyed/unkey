@@ -41,7 +41,11 @@ export default async function ApiPageLayout(props: Props) {
         title={api.name}
         description={"Here is a list of your current API keys"}
         actions={[
-          <Badge key="apiId" variant="outline" className="font-mono font-medium">
+          <Badge
+            key="apiId"
+            variant="outline"
+            className="font-mono font-medium w-full flex justify-between"
+          >
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,

@@ -1,12 +1,6 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/empty-placeholder";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, FileJson2, Search } from "lucide-react";
 import { CreateApiButton } from "../../../../../components/create-api";
 import { Button } from "@/components/ui/button";
@@ -37,7 +31,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             placeholder="Search.."
             onChange={(e) => {
               const filtered = apis.filter((a) =>
-                a.name.toLowerCase().includes(e.target.value.toLowerCase())
+                a.name.toLowerCase().includes(e.target.value.toLowerCase()),
               );
               setLocalData(filtered);
             }}
@@ -46,13 +40,17 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         <CreateApiButton key="createApi" />
       </section>
       {apis.length ? (
-        <ul
-          role="list"
-          className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8"
-        >
+        <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
           {localData.map((api) => (
             <Link key={api.id} href={`/app/${api.id}`}>
-              <Card className="duration-500 hover:border-primary/20 hover:drop-shadow-md bg-gradient-to-tl dark:via-zinc-900/50 dark:from-zinc-900 dark:to-zinc-950">
+              <Card className="duration-500 hover:border-primary/20 group hover:drop-shadow-md bg-gradient-to-tl dark:via-zinc-900/50 dark:from-zinc-900 dark:to-zinc-950 relative">
+                <div
+                  className="absolute right-0 top-0 h-px w-36 group-hover:w-[300px] transition-all duration-500"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0) 0%, rgba(232, 232, 232, 0.2) 33.02%, rgba(143, 143, 143, 0.67) 64.41%, rgba(236, 72, 153, 0) 98.93%);",
+                  }}
+                />
                 <CardHeader>
                   <div className=" flex items-center justify-between">
                     <CardTitle>{api.name}</CardTitle>
@@ -63,9 +61,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
                 <CardContent>
                   <dl className="text-sm leading-6 divide-y divide-gray-100 ">
                     <div className="flex justify-between py-3 gap-x-4">
-                      <dt className="text-gray-500 dark:text-gray-400">
-                        API Keys
-                      </dt>
+                      <dt className="text-gray-500 dark:text-gray-400">API Keys</dt>
                       <dd className="flex items-start gap-x-2">
                         <div className="font-medium text-gray-900 dark:text-gray-200">
                           {api.keys.at(0)?.count ?? 0}
@@ -88,10 +84,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
           <div className="gap-2 flex md:items-center flex-col md:flex-row">
             <CreateApiButton key="createApi" />
             <Link href="/docs" target="_blank">
-              <Button
-                variant="outline"
-                className=" gap-2 items-center text-sm md:text-base"
-              >
+              <Button variant="outline" className=" gap-2 items-center text-sm md:text-base">
                 <BookOpen size={18} className=" w-4 h-4 md:w-5 md:h-5" />
                 Read the docs
               </Button>

@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/form";
+} from "@/components/ui/form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,15 +21,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z
-    .string()
-    .min(3, "Name is required and should be at least 3 characters")
-    .max(50),
-  slug: z
-    .string()
-    .min(1, "Slug is required")
-    .max(50)
-    .regex(/^[a-zA-Z0-9-_\.]+$/),
+  name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
+  slug: z.string().min(1, "Slug is required").max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
 });
 
 type Props = {
@@ -75,9 +68,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) =>
-                create.mutate({ ...values, tenantId })
-              )}
+              onSubmit={form.handleSubmit((values) => create.mutate({ ...values, tenantId }))}
               className="flex flex-col space-y-4"
             >
               <FormField
@@ -90,9 +81,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>
-                      What should your workspace be called?
-                    </FormDescription>
+                    <FormDescription>What should your workspace be called?</FormDescription>
                   </FormItem>
                 )}
               />
@@ -108,8 +97,8 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      This will be used in urls etc. Only alphanumeric, dashes,
-                      underscores and periods are allowed
+                      This will be used in urls etc. Only alphanumeric, dashes, underscores and
+                      periods are allowed
                     </FormDescription>
                   </FormItem>
                 )}

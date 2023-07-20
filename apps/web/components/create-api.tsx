@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/form";
+} from "@/components/ui/form";
 import { Loading } from "@/components/loading";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,15 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
             />
 
             <DialogFooter className=" pt-4 justify-end">
+              <Button
+                disabled={create.isLoading}
+                className="mt-4 w-1/4 dark:text-gray-300"
+                type="button"
+                variant="outline"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancel
+              </Button>
               <Button
                 disabled={create.isLoading || !form.formState.isValid}
                 className="mt-4 w-1/4"

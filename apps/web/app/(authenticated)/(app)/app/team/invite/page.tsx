@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/form";
+} from "@/components/ui/form";
 import {
   Select,
   SelectItem,
@@ -81,9 +81,7 @@ export default function TeamCreation() {
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <h1 className=" text-4xl font-semibold leading-none tracking-tight">
-        Invite a new user
-      </h1>
+      <h1 className=" text-4xl font-semibold leading-none tracking-tight">Invite a new user</h1>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit((values) => inviteUser({ values }))}
@@ -126,9 +124,7 @@ export default function TeamCreation() {
                     </SelectContent>
                   </Select>
                 </FormControl>
-                <FormDescription>
-                  An admin can invite other users.{" "}
-                </FormDescription>
+                <FormDescription>An admin can invite other users. </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

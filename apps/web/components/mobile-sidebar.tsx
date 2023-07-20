@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
-import { WorkspaceSwitcher } from "./team-switcher";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 import { Workspace } from "@unkey/db";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -51,9 +51,7 @@ export const MobileSideBar = ({ workspace }: Props) => {
             className="fixed h-screen pb-12 border-r lg:inset-y-0 w-4/6 lg:flex-col bg-gradient-to-tr from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-950 border-white/10 z-50"
           >
             <div className="  flex flex-col w-full p-4">
-              <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">
-                Workspace
-              </h2>
+              <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
               <div className="space-y-1">
                 <Link href="/app/apis">
                   <Button variant="ghost" className="justify-start w-full">
@@ -62,29 +60,19 @@ export const MobileSideBar = ({ workspace }: Props) => {
                   </Button>
                 </Link>
 
-                <Button
-                  variant="ghost"
-                  disabled
-                  className="justify-start w-full border-t"
-                >
+                <Button variant="ghost" disabled className="justify-start w-full border-t">
                   <BarChart className="w-4 h-4 mr-2" />
                   Audit
                 </Button>
 
                 <Link href="/app/keys">
-                  <Button
-                    variant="ghost"
-                    className="justify-start w-full border-t"
-                  >
+                  <Button variant="ghost" className="justify-start w-full border-t">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </Button>
                 </Link>
                 <Link href="https://docs.unkey.dev" target="_blank">
-                  <Button
-                    variant="ghost"
-                    className="justify-start w-full border-t py-2"
-                  >
+                  <Button variant="ghost" className="justify-start w-full border-t py-2">
                     <BookOpen className="w-4 h-4 mr-2" />
                     Docs
                   </Button>

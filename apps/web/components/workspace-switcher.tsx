@@ -66,9 +66,9 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       {loading ? (
         <Loading />
       ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between md:w-full gap-4 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700">
-          <div className="flex items-center justify-start w-full gap-4 ">
-            <Avatar>
+        <DropdownMenuTrigger className="flex items-center justify-between outline-none md:w-full gap-4 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:drop-shadow-sm">
+          <div className="flex items-center justify-start w-full gap-4">
+            <Avatar className=" w-8 h-8 md:w-10 md:h-10">
               {user?.profileImageUrl ? (
                 <AvatarImage src={user.profileImageUrl} alt={user.username ?? "Profile picture"} />
               ) : null}
@@ -80,7 +80,6 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
               <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
                 {currentOrg?.name ?? "Personal"}
               </span>
-
               <PlanBadge plan={workspace.plan} />
             </div>
           </div>
