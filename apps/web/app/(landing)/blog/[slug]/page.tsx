@@ -1,7 +1,7 @@
-//@ts-nocheck 
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn } from '@/components/landingComponents/FadeIn'
-import { PageLinks } from '@/components/landingComponents/PageLinks'
+
+import { Container } from '@/components/landing-components/container'
+import { FadeIn } from '@/components/landing-components/fade-in'
+import { PageLinks } from '@/components/landing-components/page-links'
 import { formatDate } from '@/lib/formatDate'
 import { allPosts } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";

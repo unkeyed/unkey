@@ -1,8 +1,7 @@
-//@ts-nocheck 
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn } from '@/components/landingComponents/FadeIn'
-import { PageIntro } from '@/components/landingComponents/PageIntro'
-import { PageLinks } from '@/components/landingComponents/PageLinks'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn } from '@/components/landing-components/fade-in'
+import { PageIntro } from '@/components/landing-components/page-intro'
+import { PageLinks } from '@/components/landing-components/page-links'
 import { allChangelogs } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";

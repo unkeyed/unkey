@@ -1,12 +1,12 @@
-//@ts-nocheck 
+
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { Border } from '@/components/landingComponents/Border'
-import { Button } from '@/components/landingComponents/Button'
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn } from '@/components/landingComponents/FadeIn'
-import { PageIntro } from '@/components/landingComponents/PageIntro'
+import { Border } from '@/components/landing-components/border'
+import { Button } from '@/components/landing-components/button'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn } from '@/components/landing-components/fade-in'
+import { PageIntro } from '@/components/landing-components/page-intro'
 import { formatDate } from '@/lib/formatDate'
 import { allPosts } from "contentlayer/generated";
 
@@ -31,7 +31,7 @@ export default async function Blog() {
           {posts.map((post) => (
             <FadeIn key={post.url}>
               <article>
-                <Border className="pt-16">
+                <Border className={"pt-16"}>
                   <div className="relative lg:-mx-4 lg:flex lg:justify-end">
                     <div className="pt-10 lg:w-2/3 lg:flex-none lg:px-4 lg:pt-0">
                       <h2 className="font-display text-2xl font-semibold text-neutral-950">

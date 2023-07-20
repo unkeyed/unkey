@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn } from '@/components/landingComponents/FadeIn'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn } from '@/components/landing-components/fade-in'
 
 export function PageIntro({ eyebrow, title, children, centered = false } : {
   eyebrow: string,

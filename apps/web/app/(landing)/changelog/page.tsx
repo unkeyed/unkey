@@ -1,15 +1,14 @@
-//@ts-nocheck 
 import Link from 'next/link'
-import { Border } from '@/components/landingComponents/Border'
-import { Button } from '@/components/landingComponents/Button'
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
-import { PageIntro } from '@/components/landingComponents/PageIntro'
-import { allChangelogs, type Changelog } from "contentlayer/generated";
+import { Border } from '@/components/landing-components/border'
+import { Button } from '@/components/landing-components/button'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
+import { PageIntro } from '@/components/landing-components/page-intro'
+import { allChangelogs } from "contentlayer/generated";
 
 
 
-function Changelog({ changelogs } = { changelogs: []}) {
+function Changelog({ changelogs } = { changelogs: allChangelogs}) {
   return (
     <Container className="mt-40">
       <FadeIn>

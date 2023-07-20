@@ -1,23 +1,14 @@
-//@ts-ignore
 import Image, { ImageProps } from 'next/image'
 import clsx from 'clsx'
 
-import { Border } from '@/components/landingComponents/Border'
+import { Border } from '@/components/landing-components/border'
 
-
-interface BlockQuotePropsInterface {
-  author : {
-    name: string,
-    role: string,
-  },
-  image?: any,
-  children: string,
-  className?: string,
+interface Author {
+  name: string;
+  role: string;
 }
 
-
-
-function BlockquoteWithImage({ author, image, children, className } : BlockQuotePropsInterface) {
+function BlockquoteWithImage({ author, image, children, className }: { author: Author, image: ImageProps, children: React.ReactNode, className?: string }) {
   return (
     <figure
       className={clsx(
@@ -30,7 +21,6 @@ function BlockquoteWithImage({ author, image, children, className } : BlockQuote
       </blockquote>
       <div className="col-start-1 row-start-2 overflow-hidden rounded-xl bg-neutral-100 sm:col-span-5 sm:row-span-full sm:rounded-3xl">
         <Image
-          alt=""
           {...image}
           sizes="(min-width: 1024px) 17.625rem, (min-width: 768px) 16rem, (min-width: 640px) 40vw, 3rem"
           className="h-12 w-12 object-cover grayscale sm:aspect-[7/9] sm:h-auto sm:w-full"
@@ -46,7 +36,7 @@ function BlockquoteWithImage({ author, image, children, className } : BlockQuote
   )
 }
 
-function BlockquoteWithoutImage({ author, children, className } : BlockQuotePropsInterface) {
+function BlockquoteWithoutImage({ author, children, className }: { author: Author, children: React.ReactNode, className?: string }) {
   return (
     <Border position="left" className={clsx('pl-8', className)}>
       <figure className="text-sm">
@@ -61,7 +51,7 @@ function BlockquoteWithoutImage({ author, children, className } : BlockQuoteProp
   )
 }
 
-export function Blockquote(props : BlockQuotePropsInterface) {
+export function Blockquote(props: { author: Author, image: ImageProps, children: React.ReactNode, className?: string }) {
   if (props.image) {
     return <BlockquoteWithImage {...props} />
   }

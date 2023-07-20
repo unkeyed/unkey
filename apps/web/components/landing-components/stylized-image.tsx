@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import Image from 'next/image'
+import Image, { ImageProps, StaticImageData } from 'next/image'
 import clsx from 'clsx'
 
 const shapes = [
@@ -20,10 +20,10 @@ const shapes = [
   },
 ]
 
-export function StylizedImage({ shape = 0, className, ...props } : {
+export function StylizedImage({ shape = 0, className, src } : {
   shape?: number
   className?: string
-  [key: string]: any
+  src: StaticImageData | ImageProps
 }) {
   let id = useId()
   let { width, height, path } = shapes[shape]
@@ -43,7 +43,7 @@ export function StylizedImage({ shape = 0, className, ...props } : {
                 alt=""
                 className="w-full bg-neutral-100 object-cover"
                 style={{ aspectRatio: `${width} / ${height}` }}
-                {...props}
+                {...src}
               />
             </foreignObject>
           </g>

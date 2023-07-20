@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 
-import { Border } from '@/components/landingComponents/Border'
-import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
+import { Border } from '@/components/landing-components/border'
+import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
 
 export function GridList({ className, children } : {
   className?: string,

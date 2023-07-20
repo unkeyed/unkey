@@ -1,9 +1,7 @@
-//@ts-nocheck 
 'use client'
 
 import {
   createContext,
-  useContext,
   useEffect,
   useId,
   useRef,
@@ -14,10 +12,10 @@ import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import { motion, MotionConfig, useReducedMotion } from 'framer-motion'
 
-import { Button } from '@/components/landingComponents/Button'
-import { Container } from '@/components/landingComponents/Container'
-import { Footer } from '@/components/landingComponents/Footer'
-import { GridPattern } from '@/components/landingComponents/GridPattern'
+import { Button } from '@/components/landing-components/button'
+import { Container } from '@/components/landing-components/container'
+import { Footer } from '@/components/landing-components/footer'
+import { GridPattern } from '@/components/landing-components/grid-pattern'
 
 const RootLayoutContext = createContext({})
 
@@ -53,7 +51,6 @@ function Header({
   onToggle: any,
   toggleRef: any,
 }) {
-  let { logoHovered, setLogoHovered } = useContext(RootLayoutContext)
 
   return (
     <Container>
@@ -61,8 +58,6 @@ function Header({
         <Link
           href="/"
           aria-label="Home"
-          onMouseEnter={() => setLogoHovered(true)}
-          onMouseLeave={() => setLogoHovered(false)}
         >
           <svg width="75" height="75" viewBox="0 0 276 276" fill="none" xmlns="http://www.w3.org/2000/svg">
               <g filter="url(#filter0_d_101_3)">
@@ -95,6 +90,7 @@ function Header({
           <Button href="https://unkey.dev/app" invert={invert}>
             Dashboard
           </Button>
+          {/* @ts-expect-error */}
           <button
             ref={toggleRef}
             type="button"
@@ -174,13 +170,15 @@ function RootLayoutInner({ children } : {
   let panelId = useId()
   let [expanded, setExpanded] = useState(false)
   let openRef = useRef()
+
   let closeRef = useRef()
   let navRef = useRef()
   let shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
-    function onClick(event : MouseEvent) {
-      if (event.target.closest('a')?.href === window.location.href) {
+    function onClick(event: MouseEvent ) {
+      const target = (event.target as HTMLElement)
+      if (target.closest('a')?.href === window.location.href) {
         setExpanded(false)
       }
     }
@@ -198,7 +196,7 @@ function RootLayoutInner({ children } : {
         <div
           className="absolute left-0 right-0 top-2 z-40 pt-14"
           aria-hidden={expanded ? 'true' : undefined}
-          inert={expanded ? '' : undefined}
+          data-inert={expanded ? '' : undefined}
         >
           <Header
             panelId={panelId}
@@ -208,6 +206,7 @@ function RootLayoutInner({ children } : {
             onToggle={() => {
               setExpanded((expanded) => !expanded)
               window.setTimeout(() =>
+                // @ts-expect-error
                 closeRef.current?.focus({ preventScroll: true })
               )
             }}
@@ -220,9 +219,10 @@ function RootLayoutInner({ children } : {
           style={{ height: expanded ? 'auto' : '0.5rem' }}
           className={expanded ? "relative z-50 overflow-hidden bg-neutral-950 pt-2" : "relative z-50 overflow-hidden pt-2"}
           aria-hidden={expanded ? undefined : 'true'}
-          inert={expanded ? undefined : ''}
+          data-inert={expanded ? undefined : ''}
         >
           <motion.div layout className="bg-neutral-800">
+            {/* @ts-expect-error */}
             <div ref={navRef} className="bg-neutral-950 pb-16 pt-14">
               <Header
                 invert
@@ -233,6 +233,7 @@ function RootLayoutInner({ children } : {
                 onToggle={() => {
                   setExpanded((expanded) => !expanded)
                   window.setTimeout(() =>
+                     // @ts-expect-error
                     openRef.current?.focus({ preventScroll: true })
                   )
                 }}

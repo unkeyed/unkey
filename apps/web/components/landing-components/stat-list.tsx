@@ -1,11 +1,10 @@
-//@ts-nocheck 
-
-import { Border } from '@/components/landingComponents/Border'
-import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
+import { Border } from '@/components/landing-components/border'
+import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
+import React from 'react'
 
 export function StatList({ children, ...props } : {
-  children?: React.ReactNode | React.ReactNode[],
-  props : any}) {
+  children : any,
+  props? : any}) {
   return (
     <FadeInStagger {...props}>
       <dl className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none">

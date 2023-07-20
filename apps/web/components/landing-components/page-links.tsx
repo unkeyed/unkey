@@ -1,13 +1,22 @@
-//@ts-nocheck 
 import Link from 'next/link'
 import clsx from 'clsx'
 
-import { Border } from '@/components/landingComponents/Border'
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
-import { GridPattern } from '@/components/landingComponents/GridPattern'
-import { SectionIntro } from '@/components/landingComponents/SectionIntro'
+import { Border } from '@/components/landing-components/border'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
+import { GridPattern } from '@/components/landing-components/grid-pattern'
+import { SectionIntro } from '@/components/landing-components/section-intro'
 import { formatDate } from '@/lib/formatDate'
+
+
+
+interface Page {
+  title: string,
+  description: string,
+  date: string,
+  url: string,
+}
+
 
 function ArrowIcon(props : any) {
   return (
@@ -21,7 +30,7 @@ function ArrowIcon(props : any) {
   )
 }
 
-function PageLink({ page } : { page: any }) {
+function PageLink({ page } : { page: Page }) {
   return (
     <article key={page.url}>
       <Border
@@ -55,7 +64,7 @@ function PageLink({ page } : { page: any }) {
 export function PageLinks({ title, intro, pages, className } : {
   title: string,
   intro?: string,
-  pages: any,
+  pages: Page[]
   className?: string
 }) {
   return (

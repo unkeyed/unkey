@@ -7,10 +7,11 @@ export function Border({
   as: Component = 'div',
   ...props
 } : {
-  className?: any,
-  position?: any,
-  invert?: any,
+  className?: string,
+  position?: 'top' | 'left',
+  invert?: boolean,
   as?: any,
+  [key: string]: any
   }) {
   return (
     <Component

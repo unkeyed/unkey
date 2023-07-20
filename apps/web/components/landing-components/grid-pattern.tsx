@@ -14,12 +14,12 @@ function Block({ x, y, ...props } : any) {
 }
 
 export function GridPattern({ yOffset = 0, interactive = false, ...props }) {
-  let id = useId()
-  let ref = useRef()
-  let currentBlock = useRef()
-  let counter = useRef(0)
-  let [hoveredBlocks, setHoveredBlocks] = useState([])
-  let staticBlocks = [
+  const id = useId()
+  const ref = useRef<SVGSVGElement>(null);
+  const currentBlock = useRef(new Array())
+  const counter = useRef(0)
+  const [hoveredBlocks, setHoveredBlocks] = useState([])
+  const staticBlocks = [
     [1, 1],
     [2, 2],
     [4, 3],
@@ -33,14 +33,14 @@ export function GridPattern({ yOffset = 0, interactive = false, ...props }) {
       return
     }
 
-    function onMouseMove(event : any) {
+    function onMouseMove(event : MouseEvent) {
       if (!ref.current) {
         return
       }
 
       let rect = ref.current.getBoundingClientRect()
-      let x = event.clientX - rect.left
-      let y = event.clientY - rect.top
+      let x = event.clientX - rect.left;
+      let y = event.clientY - rect.top;
       if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
         return
       }
@@ -55,8 +55,9 @@ export function GridPattern({ yOffset = 0, interactive = false, ...props }) {
         return
       }
 
+      
       currentBlock.current = [x, y]
-
+      // @ts-expect-error
       setHoveredBlocks((blocks) => {
         let key = counter.current++
         return [...blocks, [x, y, key]].filter(
@@ -79,7 +80,7 @@ export function GridPattern({ yOffset = 0, interactive = false, ...props }) {
         {staticBlocks.map((block) => (
           <Block key={`${block}`} x={block[0]} y={block[1]} />
         ))}
-        {hoveredBlocks.map((block) => (
+        {hoveredBlocks.map((block : number[]) => (
           <Block
             key={block[2]}
             x={block[0]}

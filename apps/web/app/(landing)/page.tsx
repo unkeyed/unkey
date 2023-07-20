@@ -1,16 +1,15 @@
-//@ts-nocheck 
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn, FadeInStagger } from '@/components/landingComponents/FadeIn'
-import { List, ListItem } from '@/components/landingComponents/List'
-import { SectionIntro } from '@/components/landingComponents/SectionIntro'
-import { StylizedImage } from '@/components/landingComponents/StylizedImage'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
+import { List, ListItem } from '@/components/landing-components/list'
+import { SectionIntro } from '@/components/landing-components/section-intro'
+import { StylizedImage } from '@/components/landing-components/stylized-image'
 import laptopImage from "@/images/computer-user.jpg"
-import { Button } from '@/components/landingComponents/Button'
-import { StatList, StatListItem } from '@/components/landingComponents/StatList'
+import { Button } from '@/components/landing-components/button'
+import { StatList, StatListItem } from '@/components/landing-components/stat-list'
 import { db, schema, sql } from "@unkey/db";
 export const revalidate = 60;
 
-const [workspaces, apis, keys, stars] = await Promise.all([
+const [workspaces, apis, keys] = await Promise.all([
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.workspaces)
@@ -22,13 +21,7 @@ const [workspaces, apis, keys, stars] = await Promise.all([
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
-    .then((res) => res.at(0)?.count ?? 0),
-  await fetch("https://api.github.com/repos/unkeyed/unkey", {
-    headers: {
-      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-  }).then((res) => res.json()),
+    .then((res) => res.at(0)?.count ?? 0)
 ]);
 
 
@@ -45,9 +38,9 @@ function NumbersServed() {
         </FadeIn>
         <FadeInStagger faster>
         <StatList>
-          <StatListItem value={workspaces} label="Workspaces" />
-          <StatListItem value={apis} label="APIS" />
-          <StatListItem value={keys} label="Keys" />
+          <StatListItem value={workspaces.toString()} label="Workspaces" />
+          <StatListItem value={apis.toString()} label="APIS" />
+          <StatListItem value={keys.toString()} label="Keys" />
         </StatList>
         </FadeInStagger>
       </Container>

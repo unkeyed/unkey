@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { addEmail } from '@/app/actions/addEmail'
-import { Container } from '@/components/landingComponents/Container'
-import { FadeIn } from '@/components/landingComponents/FadeIn'
-import { socialMediaProfiles } from '@/components/landingComponents/SocialMedia'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn } from '@/components/landing-components/fade-in'
+import { socialMediaProfiles } from '@/components/landing-components/social-media'
 import { experimental_useFormStatus as useFormStatus } from 'react-dom'
 import { useToast } from '../ui/use-toast'
 const navigation = [
