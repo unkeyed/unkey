@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
+} from "@/components/form";
 import { Loading } from "@/components/loading";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,7 @@ const formSchema = z.object({
   name: z.string().min(2).max(50),
 });
 
-export const CreateApiButton = ({
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -83,8 +81,7 @@ export const CreateApiButton = ({
                     <Input placeholder="my-api" {...field} />
                   </FormControl>
                   <FormDescription>
-                    This is just a human readable name for you and not visible
-                    to anyone else
+                    This is just a human readable name for you and not visible to anyone else
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

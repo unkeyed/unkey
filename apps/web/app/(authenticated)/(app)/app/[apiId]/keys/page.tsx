@@ -1,6 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
+
 import { ApiKeyTable } from "@/components/api-key-table";
 
 export const revalidate = 0;
@@ -29,9 +30,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     }
   }
   if (expired.length > 0) {
-    await Promise.all(
-      expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id)))
-    );
+    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
   }
 
   return (

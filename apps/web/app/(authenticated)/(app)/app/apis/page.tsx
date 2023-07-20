@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/page-header";
-import { CreateApiButton } from "../../../../../components/create-api";
+import { CreateApiButton } from "@/components/create-api";
 
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, sql } from "@unkey/db";
@@ -32,10 +32,9 @@ export default async function TenantOverviewPage() {
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
         .where(eq(schema.keys.apiId, api.id)),
-    }))
+    })),
   );
-  const unpaid =
-    workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
   return (
     <div className=" ">
       {unpaid ? (
@@ -59,8 +58,8 @@ export default async function TenantOverviewPage() {
               Please add billing to your account
             </h3>
             <p className="text-gray-500">
-              Team workspaces is a paid feature. Please add billing to your
-              account to continue using it.
+              Team workspaces is a paid feature. Please add billing to your account to continue
+              using it.
             </p>
             <Link
               href="/app/stripe"

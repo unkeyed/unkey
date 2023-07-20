@@ -31,12 +31,7 @@ import { useState } from "react";
 import { Loading } from "@/components/loading";
 
 import { cn } from "@/lib/utils";
-import {
-  SignOutButton,
-  useOrganization,
-  useOrganizationList,
-  useUser,
-} from "@clerk/nextjs";
+import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { Workspace } from "@unkey/db";
 
@@ -46,9 +41,7 @@ type Props = {
   workspace: Workspace;
 };
 
-export const WorkspaceSwitcher: React.FC<Props> = ({
-  workspace,
-}): JSX.Element => {
+export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element => {
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
@@ -77,15 +70,10 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
           <div className="flex items-center justify-start w-full gap-4 ">
             <Avatar>
               {user?.profileImageUrl ? (
-                <AvatarImage
-                  src={user.profileImageUrl}
-                  alt={user.username ?? "Profile picture"}
-                />
+                <AvatarImage src={user.profileImageUrl} alt={user.username ?? "Profile picture"} />
               ) : null}
               <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden border rounded-md bg-zinc-100 border-zinc-500 text-zinc-700">
-                {(currentOrg?.slug ?? user?.username ?? "")
-                  .slice(0, 2)
-                  .toUpperCase() ?? "P"}
+                {(currentOrg?.slug ?? user?.username ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
             <div className="md:flex flex-col items-start gap-1 hidden">
@@ -164,8 +152,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
           <DropdownMenuItem
             onClick={() => changeOrg(null)}
             className={cn("flex items-center justify-between", {
-              "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100 cursor-pointer":
-                currentOrg === null,
+              "bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-100 cursor-pointer": currentOrg === null,
             })}
           >
             <span>Personal</span>
@@ -182,9 +169,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
               })}
             >
               <span>{org.organization.name}</span>
-              {currentOrg?.slug === org.organization.slug ? (
-                <Check className="w-4 h-4" />
-              ) : null}
+              {currentOrg?.slug === org.organization.slug ? <Check className="w-4 h-4" /> : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>
@@ -225,16 +210,12 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
 const PlanBadge: React.FC<{ plan: Workspace["plan"] }> = ({ plan }) => {
   return (
     <span
-      className={cn(
-        " inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md",
-        {
-          "text-zinc-800 dark:text-zinc-300": plan === "free",
-          "text-primary-foreground  bg-primary px-2 border border-primary-500":
-            plan === "pro",
-          "text-white bg-black px-2 border border-black": plan === "enterprise",
-          "text-red-600 bg-red-100 px-2 border border-red-500": !plan,
-        }
-      )}
+      className={cn(" inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md", {
+        "text-zinc-800 dark:text-zinc-300": plan === "free",
+        "text-primary-foreground  bg-primary px-2 border border-primary-500": plan === "pro",
+        "text-white bg-black px-2 border border-black": plan === "enterprise",
+        "text-red-600 bg-red-100 px-2 border border-red-500": !plan,
+      })}
     >
       {(plan ?? "N/A").toUpperCase()}
     </span>

@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
+} from "@/components/form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

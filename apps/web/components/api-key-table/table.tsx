@@ -49,10 +49,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export function DataTable<TData, TValue>({
-  data,
-  columns,
-}: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState({});
@@ -104,9 +101,7 @@ export function DataTable<TData, TValue>({
         <Input
           placeholder="Filter keys"
           value={(table.getColumn("start")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("start")?.setFilterValue(event.target.value)
-          }
+          onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
         <div className="flex items-center justify-between space-x-4">
@@ -117,12 +112,10 @@ export function DataTable<TData, TValue>({
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>
-                    Revoke {Object.keys(rowSelection).length} keys
-                  </DialogTitle>
+                  <DialogTitle>Revoke {Object.keys(rowSelection).length} keys</DialogTitle>
                   <DialogDescription className="text-destructive">
-                    This action can not be undone. Your users will no longer be
-                    able to authenticate with these keys
+                    This action can not be undone. Your users will no longer be able to authenticate
+                    with these keys
                   </DialogDescription>
                 </DialogHeader>
 
@@ -158,9 +151,7 @@ export function DataTable<TData, TValue>({
                       key={column.id}
                       className="capitalize"
                       checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
+                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
@@ -179,10 +170,7 @@ export function DataTable<TData, TValue>({
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 );
               })}
@@ -192,10 +180,7 @@ export function DataTable<TData, TValue>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-              >
+              <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

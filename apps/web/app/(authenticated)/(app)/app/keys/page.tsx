@@ -3,7 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
-import { CreateKeyButton } from "../../../../../components/create-key";
+import { CreateKeyButton } from "@/components/create-root-key";
 import { ApiKeyTable } from "@/components/api-key-table";
 
 export const revalidate = 0;
@@ -39,9 +39,7 @@ export default async function SettingsKeysPage() {
     }
   }
   if (expired.length > 0) {
-    await Promise.all(
-      expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id)))
-    );
+    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
   }
 
   return (
@@ -49,9 +47,7 @@ export default async function SettingsKeysPage() {
       <PageHeader
         title="Keys"
         description="These keys are used to interact with the unkey API"
-        actions={[
-          <CreateKeyButton key="create-key" apiId={workspace.apis.at(0)?.id} />,
-        ]}
+        actions={[<CreateKeyButton key="create-key" apiId={workspace.apis.at(0)?.id} />]}
       />
       <Separator className="my-6" />
 

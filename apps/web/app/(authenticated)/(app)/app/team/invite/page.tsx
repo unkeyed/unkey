@@ -7,7 +7,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
+} from "@/components/form";
 import {
   Select,
   SelectItem,

@@ -22,7 +22,7 @@ export default async function StripeRedirect() {
     return <div>Stripe is not enabled</div>;
   }
 
-  const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY!, {
+  const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
     apiVersion: "2022-11-15",
     typescript: true,
   });
@@ -77,5 +77,9 @@ export default async function StripeRedirect() {
     customer: ws.stripeCustomerId,
   });
 
-  return redirect(session.url!);
+  if (!session.url) {
+    return <div>Could not create checkout session</div>;
+  }
+
+  return redirect(session.url);
 }

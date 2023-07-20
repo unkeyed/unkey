@@ -1,4 +1,4 @@
-import { DesktopSidebar } from "../../../../components/desktop-sidebar";
+import { DesktopSidebar } from "@/components/desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@unkey/db";
 import { redirect } from "next/navigation";
