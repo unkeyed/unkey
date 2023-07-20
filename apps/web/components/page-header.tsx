@@ -13,6 +13,7 @@ export const PageHeader: React.FC<Props> = ({ title, description, actions }) => 
       </div>
       <ul className="flex items-center justify-between gap-4">
         {(actions ?? []).map((action, i) => (
+          // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
           <li key={i}>{action}</li>
         ))}
       </ul>

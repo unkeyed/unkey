@@ -10,12 +10,5 @@ export default async function TenantOverviewPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-
   return redirect("/app/apis");
-
-  // return (
-  //   <div>
-  //     <PageHeader title={workspace.name} description="Your Workspace" />
-  //   </div>
-  // );
 }

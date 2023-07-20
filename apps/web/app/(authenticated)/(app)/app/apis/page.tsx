@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/PageHeader";
-import { CreateApiButton } from "./CreateAPI";
+import { PageHeader } from "@/components/page-header";
+import { CreateApiButton } from "@/components/create-api";
 
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, sql } from "@unkey/db";

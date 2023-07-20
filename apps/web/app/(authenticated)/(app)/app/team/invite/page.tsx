@@ -7,16 +7,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
+} from "@/components/form";
 import {
   Select,
   SelectItem,
-  SelectGroup,
-  SelectLabel,
   SelectValue,
   SelectContent,
   SelectTrigger,
-  SelectSeparator,
 } from "@/components/ui/select";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
@@ -27,7 +24,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useOrganization } from "@clerk/nextjs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MembershipRole } from "@clerk/types";
 import { useState } from "react";
 const formSchema = z.object({
@@ -46,7 +42,11 @@ export default function TeamCreation() {
 
   const { toast } = useToast();
 
-  const inviteUser = async ({ values }: { values: { email: string; role: MembershipRole } }) => {
+  const inviteUser = async ({
+    values,
+  }: {
+    values: { email: string; role: MembershipRole };
+  }) => {
     setIsLoading(true);
     await organization
       ?.inviteMember({

@@ -1,10 +1,9 @@
 "use client";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { Trash } from "lucide-react";
-import { DeleteKeyButton } from "../DeleteKey";
+import { DeleteKeyButton } from "@/components/delete-key";
 
 const _allActions = ["create", "read", "update", "delete"];
 
@@ -16,10 +15,6 @@ type Props = {
   };
 };
 export const Client: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
-
-  // const policy = apiKey.policy ? Policy.parse(apiKey.policy) : null;
-
   return (
     <div className="px-4 mx-auto mt-8 max-w-7xl sm:px-6 lg:px-8">
       <PageHeader

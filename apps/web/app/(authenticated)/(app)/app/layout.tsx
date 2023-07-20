@@ -1,7 +1,4 @@
-// import { Logo } from "@/components/logo";
-import { DesktopSidebar } from "./DesktopSidebar";
-// import { MobileNav } from "@/components/mobile-nav";
-// import { MobileSidebar } from "./MobileSidebar";
+import { DesktopSidebar } from "@/components/desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@unkey/db";
 import { redirect } from "next/navigation";
@@ -13,7 +10,7 @@ interface LayoutProps {
   };
 }
 
-export default async function Layout({ params, children }: LayoutProps) {
+export default async function Layout({ children }: LayoutProps) {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -30,9 +27,6 @@ export default async function Layout({ params, children }: LayoutProps) {
     <>
       <div className="flex min-h-screen bg-gradient-to-tl from-stone-200 to-stone-100">
         <DesktopSidebar workspace={workspace} />
-
-        {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
-
         <div className="w-full m-2 bg-white shadow ml-72 rounded-xl">
           <ScrollArea className="max-h-screen p-4 m-4 overflow-y-auto ">
             {children}
