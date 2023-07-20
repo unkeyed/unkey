@@ -81,7 +81,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     onError(err) {
       const errors = JSON.parse(err.message);
 
-      if (err.data?.code === "BAD_REQUEST" && errors[0].path[0] === "ratelimit") {
+      if (
+        err.data?.code === "BAD_REQUEST" &&
+        errors[0].path[0] === "ratelimit"
+      ) {
         toast({
           title: "Error",
           description: "You need to include all ratelimit fields",
@@ -116,7 +119,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     });
   }
 
-  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys/verify' \\
+  const snippet = `curl -XPOST '${
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
+  }/v1/keys/verify' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key}"
@@ -137,7 +142,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             <p className="mb-4 text-xl font-bold">Your API Key</p>
             <Alert>
               <AlertCircle className="w-4 h-4" />
-              <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
+              <AlertTitle>
+                This key is only shown once and can not be recovered{" "}
+              </AlertTitle>
               <AlertDescription>
                 Please pass it on to your user or store it somewhere safe.
               </AlertDescription>
@@ -152,11 +159,18 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </Code>
           </div>
 
-          <p className="my-2 font-medium text-center text-zinc-700 ">Try verifying it:</p>
+          <p className="my-2 font-medium text-center text-zinc-700 ">
+            Try verifying it:
+          </p>
           <Code className="flex items-start justify-between w-full gap-4 my-8 ">
-            {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+            {showKeyInSnippet
+              ? snippet
+              : snippet.replace(key.data.key, maskedKey)}
             <div className="flex items-start justify-between gap-4">
-              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+              <VisibleButton
+                isVisible={showKeyInSnippet}
+                setIsVisible={setShowKeyInSnippet}
+              />
               <CopyButton value={snippet} />
             </div>
           </Code>
@@ -173,7 +187,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             <div className="w-full overflow-scroll">
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
-                <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
+                <form
+                  className="max-w-6xl"
+                  onSubmit={form.handleSubmit(onSubmit)}
+                >
                   <FormField
                     control={form.control}
                     name="prefix"
@@ -184,8 +201,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          Using a prefix can make it easier for your users to distinguish between
-                          apis
+                          Using a prefix can make it easier for your users to
+                          distinguish between apis
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -201,7 +218,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
-                        <FormDescription>How many bytes to use.</FormDescription>
+                        <FormDescription>
+                          How many bytes to use.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -216,8 +235,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          This is the id of the user or workspace in your system, so you can
-                          identify users from an API key.
+                          This is the id of the user or workspace in your
+                          system, so you can identify users from an API key.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -315,7 +334,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             <Input type="date" {...field} />
                           </FormControl>
                           <FormDescription>
-                            This api key will automatically be revoked after the given date.
+                            This api key will automatically be revoked after the
+                            given date.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -351,7 +371,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               }}
                             />
                           </FormControl>
-                          <FormDescription>Enter custom metadata as a JSON object.</FormDescription>
+                          <FormDescription>
+                            Enter custom metadata as a JSON object.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -366,10 +388,15 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <FormItem className="w-full">
                             <FormLabel>Limit</FormLabel>
                             <FormControl>
-                              <Input autoFocus={true} type="number" {...field} />
+                              <Input
+                                autoFocus={true}
+                                type="number"
+                                {...field}
+                              />
                             </FormControl>
                             <FormDescription>
-                              The maximum number of requests possible during a burst.
+                              The maximum number of requests possible during a
+                              burst.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -396,7 +423,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           name="ratelimit.refillInterval"
                           render={({ field }) => (
                             <FormItem className="w-full">
-                              <FormLabel>Refill Interval (milliseconds)</FormLabel>
+                              <FormLabel>
+                                Refill Interval (milliseconds)
+                              </FormLabel>
                               <FormControl>
                                 <Input type="number" {...field} />
                               </FormControl>
@@ -413,12 +442,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                   )}
                   <Accordion type="multiple" className="w-full">
                     <AccordionItem disabled value="item-3">
-                      <AccordionTrigger dir="">Add Policies (soon)</AccordionTrigger>
+                      <AccordionTrigger dir="">
+                        Add Policies (soon)
+                      </AccordionTrigger>
                       <AccordionContent>TODO: andreas</AccordionContent>
                     </AccordionItem>
                   </Accordion>
                   <div className="flex justify-end mt-8">
-                    <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
+                    <Button
+                      disabled={!form.formState.isValid || key.isLoading}
+                      type="submit"
+                    >
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>
                   </div>

@@ -15,13 +15,21 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(3).max(50),
-  slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
+  name: z
+    .string()
+    .min(3, "Name is required and should be at least 3 characters")
+    .max(50),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(50)
+    .regex(/^[a-zA-Z0-9-_\.]+$/),
 });
 
 type Props = {
@@ -43,20 +51,33 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
     },
     onError(err) {
       console.error(err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
   return (
-    <div className="flex items-center justify-center w-full min-h-screen">
-      <Card>
+    <div className="flex flex-col justify-center items-center w-full min-h-screen bg-gradient-to-tr from-gray-50 to-gray-100">
+      <Image
+        src="/images/landing/app.png"
+        className=" absolute top-0 left-0 right-0 bottom-0 z-0 w-full h-full brightness-75 blur-md"
+        width={1080}
+        height={1920}
+        alt=""
+      />
+      <Card className=" z-10 shadow-md mx-6 md:mx-0">
         <CardHeader>
           <CardTitle>Create your Workspace</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) => create.mutate({ ...values, tenantId }))}
+              onSubmit={form.handleSubmit((values) =>
+                create.mutate({ ...values, tenantId })
+              )}
               className="flex flex-col space-y-4"
             >
               <FormField
@@ -65,11 +86,13 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Name</FormLabel>
+                    <FormMessage className="text-xs" />
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>What should your workspace be called?</FormDescription>
-                    <FormMessage />
+                    <FormDescription>
+                      What should your workspace be called?
+                    </FormDescription>
                   </FormItem>
                 )}
               />
@@ -80,14 +103,14 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Slug</FormLabel>
+                    <FormMessage className="text-xs" />
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      This will be used in urls etc. Only alphanumeric, dashes, underscores and
-                      periods are allowed
+                      This will be used in urls etc. Only alphanumeric, dashes,
+                      underscores and periods are allowed
                     </FormDescription>
-                    <FormMessage />
                   </FormItem>
                 )}
               />

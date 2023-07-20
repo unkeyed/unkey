@@ -15,10 +15,14 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useOrganizationList } from "@clerk/nextjs";
+import { Modal } from "@/components/modal";
+import { useEffect, useState } from "react";
+import { useAtom } from "jotai";
+import { createWorkspaceModalAtom } from "@/store";
 const formSchema = z.object({
   name: z.string().min(3).max(50),
   slug: z
@@ -28,7 +32,10 @@ const formSchema = z.object({
     .regex(/^[a-zA-Z0-9-_\.]+$/),
 });
 
-export default function TeamCreation() {
+export default function TeamCreationModal() {
+  const [modalOpen, setModalOpen] = useAtom(createWorkspaceModalAtom);
+  const pathname = usePathname();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -49,6 +56,20 @@ export default function TeamCreation() {
       });
     },
   });
+
+  useEffect(() => {
+    if (pathname === "/app/team/create" && modalOpen) {
+      setModalOpen(false);
+    }
+  }, [pathname, modalOpen]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      form.reset();
+      form.clearErrors();
+    }
+  }, [modalOpen]);
+
   if (!isLoaded) {
     return null;
   }
@@ -76,8 +97,8 @@ export default function TeamCreation() {
   };
 
   return (
-    <div className="flex flex-col gap-4 pt-4">
-      <h1 className=" text-4xl font-semibold leading-none tracking-tight">
+    <Modal isOpen={modalOpen} setIsOpen={setModalOpen}>
+      <h1 className=" text-2xl font-semibold mb-4 leading-none tracking-tight">
         Create your Team workspace
       </h1>
       <Form {...form}>
@@ -120,7 +141,7 @@ export default function TeamCreation() {
             )}
           />
 
-          <div className="mt-8">
+          <div className="mt-8 space-y-2">
             <Button
               disabled={createWorkspace.isLoading || !form.formState.isValid}
               type="submit"
@@ -128,9 +149,17 @@ export default function TeamCreation() {
             >
               {createWorkspace.isLoading ? <Loading /> : "Create"}
             </Button>
+            <Button
+              variant="outline"
+              type="submit"
+              className="w-full"
+              onClick={() => setModalOpen(false)}
+            >
+              Cancel
+            </Button>
           </div>
         </form>
       </Form>
-    </div>
+    </Modal>
   );
 }

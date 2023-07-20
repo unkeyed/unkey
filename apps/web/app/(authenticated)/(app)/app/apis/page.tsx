@@ -9,11 +9,11 @@ import Link from "next/link";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ApiList } from "./client";
 
 export const revalidate = 3;
 
@@ -38,9 +38,10 @@ export default async function TenantOverviewPage() {
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
         .where(eq(schema.keys.apiId, api.id)),
-    })),
+    }))
   );
-  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+  const unpaid =
+    workspace.tenantId.startsWith("org_") && workspace.plan === "free";
   return (
     <div>
       {unpaid ? (
@@ -57,8 +58,8 @@ export default async function TenantOverviewPage() {
 
               <CardContent>
                 <p className="text-gray-500">
-                  Team workspaces is a paid feature. Please add billing to your account to continue
-                  using it.
+                  Team workspaces is a paid feature. Please add billing to your
+                  account to continue using it.
                 </p>
               </CardContent>
               <CardFooter>
@@ -75,45 +76,7 @@ export default async function TenantOverviewPage() {
         </div>
       ) : (
         <div>
-          <PageHeader title="Applications" description="Manage your APIs" />
-
-          <Separator className="my-6" />
-
-          <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
-            <Card className="duration-500 hover:border-primary bg-muted">
-              <CardHeader>
-                <CardTitle>Create New API</CardTitle>
-              </CardHeader>
-
-              <CardContent />
-              <CardFooter>
-                <CreateApiButton key="createApi" />
-              </CardFooter>
-            </Card>
-            {apis.map((api) => (
-              <Link key={api.id} href={`/app/${api.id}`}>
-                <Card className="duration-500 hover:border-primary">
-                  <CardHeader>
-                    <CardTitle>{api.name}</CardTitle>
-                    <CardDescription>{api.id}</CardDescription>
-                  </CardHeader>
-
-                  <CardContent>
-                    <dl className="text-sm leading-6 divide-y divide-gray-100 ">
-                      <div className="flex justify-between py-3 gap-x-4">
-                        <dt className="text-gray-500">API Keys</dt>
-                        <dd className="flex items-start gap-x-2">
-                          <div className="font-medium text-gray-900">
-                            {api.keys.at(0)?.count ?? 0}
-                          </div>
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </ul>
+          <ApiList apis={apis} />
         </div>
       )}
     </div>

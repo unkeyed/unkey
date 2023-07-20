@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { DeleteApiButton } from "../DeleteApi";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { ApiKeyTable } from "@/components/ApiKeyTable";
+import { ApiKeyTable } from "@/ApiKeyTable";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,9 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     }
   }
   if (expired.length > 0) {
-    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
+    await Promise.all(
+      expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id)))
+    );
   }
 
   return (

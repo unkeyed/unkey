@@ -19,7 +19,9 @@ function newId(prefix: "api" | "ws") {
   crypto.getRandomValues(buf);
   return [
     prefix,
-    baseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz").encode(buf),
+    baseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz").encode(
+      buf
+    ),
   ].join("_");
 }
 
