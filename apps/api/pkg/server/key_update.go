@@ -1,33 +1,45 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 	"github.com/unkeyed/unkey/apps/api/pkg/kafka"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
-type UpdateKeyRequest struct {
-	KeyId     string          `json:"keyId" validate:"required"`
-	Name      *string         `json:"name,omitempty"`
-	OwnerId   *string         `json:"ownerId,omitempty"`
-	Meta      *map[string]any `json:"meta,omitempty"`
-	Expires   *int64          `json:"expires,omitempty"`
-	Ratelimit *struct {
-		Type           string `json:"type"`
-		Limit          int64  `json:"limit"`
-		RefillRate     int64  `json:"refillRate"`
-		RefillInterval int64  `json:"refillInterval"`
-	} `json:"ratelimit,omitempty"`
+// Maybe is a wrapper to allow a value to be optional or null
+// It's optional if `Defined` is false. In that case you should not check `Value`
+// The idea is to represent the following typescript type `T | undefined | null`
+type nullish[T any] struct {
+	Defined bool
+	Value   *T
+}
 
-	// How often this key may be used
-	// `undefined`, `0` or negative to disable
-	Remaining *int64 `json:"remaining,omitempty"`
+func (m *nullish[T]) UnmarshalJSON(data []byte) error {
+	m.Defined = true
+	return json.Unmarshal(data, &m.Value)
+}
+
+type UpdateKeyRequest struct {
+	KeyId     string                  `json:"keyId" validate:"required"`
+	Name      nullish[string]         `json:"name"`
+	OwnerId   nullish[string]         `json:"ownerId"`
+	Meta      nullish[map[string]any] `json:"meta"`
+	Expires   nullish[int64]          `json:"expires"`
+	Ratelimit nullish[struct {
+		Type           string `json:"type" validate:"required"`
+		Limit          int64  `json:"limit" validate:"required"`
+		RefillRate     int64  `json:"refillRate" validate:"required"`
+		RefillInterval int64  `json:"refillInterval" validate:"required"`
+	}] `json:"ratelimit"`
+	Remaining nullish[int64] `json:"remaining"`
 }
 
 type UpdateKeyResponse struct{}
@@ -39,7 +51,18 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	req := UpdateKeyRequest{
 		KeyId: c.Params("keyId"),
 	}
+
 	err := c.BodyParser(&req)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+			Code:  BAD_REQUEST,
+			Error: fmt.Sprintf("unable to parse body: %s", err.Error()),
+		})
+	}
+
+	s.logger.Info("req", zap.Any("req", req))
+
+	err = c.BodyParser(&req)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
 			Code:  BAD_REQUEST,
@@ -56,7 +79,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	}
 
 	s.logger.Info("updating key", zap.Any("req", req))
-	if req.Expires != nil && *req.Expires > 0 && *req.Expires < time.Now().UnixMilli() {
+	if req.Expires.Defined && req.Expires.Value != nil && *req.Expires.Value > 0 && *req.Expires.Value < time.Now().UnixMilli() {
 		return c.Status(http.StatusBadRequest).JSON(
 			ErrorResponse{
 				Code:  BAD_REQUEST,
@@ -113,30 +136,55 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 
 	s.logger.Info("found key", zap.Any("key", key))
 
-	if req.Name != nil {
-		key.Name = *req.Name
-	}
-
-	if req.OwnerId != nil {
-		key.OwnerId = *req.OwnerId
-	}
-	if req.Meta != nil {
-		key.Meta = *req.Meta
-	}
-	if req.Expires != nil {
-		key.Expires = time.UnixMilli(*req.Expires)
-	}
-	if req.Ratelimit != nil {
-		key.Ratelimit = &entities.Ratelimit{
-			Type:           req.Ratelimit.Type,
-			Limit:          req.Ratelimit.Limit,
-			RefillRate:     req.Ratelimit.RefillRate,
-			RefillInterval: req.Ratelimit.RefillInterval,
+	if req.Name.Defined {
+		if req.Name.Value != nil {
+			key.Name = *req.Name.Value
+		} else {
+			key.Name = ""
 		}
 	}
-	if req.Remaining != nil {
-		key.Remaining.Enabled = true
-		key.Remaining.Remaining = *req.Remaining
+
+	if req.OwnerId.Defined {
+		if req.OwnerId.Value != nil {
+			key.OwnerId = *req.OwnerId.Value
+		} else {
+			key.OwnerId = ""
+		}
+	}
+	if req.Meta.Defined {
+		if req.Meta.Value != nil {
+			key.Meta = *req.Meta.Value
+		} else {
+			key.Meta = nil
+		}
+	}
+	if req.Expires.Defined {
+		if req.Expires.Value != nil {
+			key.Expires = time.UnixMilli(*req.Expires.Value)
+		} else {
+			key.Expires = time.Time{}
+		}
+	}
+	if req.Ratelimit.Defined {
+		if req.Ratelimit.Value != nil {
+			key.Ratelimit = &entities.Ratelimit{
+				Type:           req.Ratelimit.Value.Type,
+				Limit:          req.Ratelimit.Value.Limit,
+				RefillRate:     req.Ratelimit.Value.RefillRate,
+				RefillInterval: req.Ratelimit.Value.RefillInterval,
+			}
+		} else {
+			key.Ratelimit = nil
+		}
+	}
+	if req.Remaining.Defined {
+		if req.Remaining.Value != nil {
+			key.Remaining.Enabled = true
+			key.Remaining.Remaining = *req.Remaining.Value
+		} else {
+			key.Remaining.Enabled = false
+			key.Remaining.Remaining = 0
+		}
 	}
 
 	err = s.db.UpdateKey(ctx, key)
