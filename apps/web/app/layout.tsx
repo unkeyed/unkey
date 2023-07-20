@@ -1,4 +1,4 @@
-import "./globals.css";
+import '@/styles/landing/styles/tailwind.css'
 import { Inter } from "@next/font/google";
 import localFont from "@next/font/local";
 
@@ -19,20 +19,10 @@ export const metadata = {
     description: "Accelerate your API development",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
-    images: [
-      {
-        url: "https://unkey.dev/og.png",
-        width: 1200,
-        height: 675,
-      },
-    ],
   },
   twitter: {
     title: "Unkey",
     card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/og.png",
   },
   robots: {
     index: true,
@@ -62,6 +52,8 @@ export default function RootLayout({
           data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
           src="https://plausible.io/js/script.js"
         />
+        <meta property="og:image" content="https://unkey.dev/og.png" />
+        <meta name="twitter:image" content="https://unkey.dev/og.png" />
       </head>
       <body>{children}</body>
     </html>
