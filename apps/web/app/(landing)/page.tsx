@@ -38,9 +38,9 @@ function NumbersServed() {
         </FadeIn>
         <FadeInStagger faster>
         <StatList>
-          <StatListItem value={workspaces.toString()} label="Workspaces" />
-          <StatListItem value={apis.toString()} label="APIS" />
-          <StatListItem value={keys.toString()} label="Keys" />
+          <StatListItem value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)} label="Workspaces" />
+          <StatListItem value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)} label="APIS" />
+          <StatListItem value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)} label="Keys" />
         </StatList>
         </FadeInStagger>
       </Container>
@@ -116,7 +116,7 @@ export default async function Home() {
           Seriously fast and easy to use. Unkey&apos;s API management platform helps developers secure, manage, and scale their APIs.
           </p>
         </FadeIn>
-        <Button className="mt-4 px-8 py-3">Start for free</Button>
+        <Button href='https://unkey.dev/app' className="mt-4 px-8 py-3">Start for free</Button>
       </Container>
 
       <NumbersServed />
