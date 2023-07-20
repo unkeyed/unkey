@@ -28,10 +28,13 @@ export const Modal = ({
     },
   };
   const defaultTrigger = (text: string) => <Button>{text}</Button>;
-
+  function close() {
+    setIsOpen(false);
+  }
   return (
     <>
       {trigger ? (
+        // rome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
         <div onClick={() => setIsOpen(true)}>
           {typeof trigger === "function" ? trigger() : defaultTrigger(trigger)}
         </div>
@@ -40,7 +43,7 @@ export const Modal = ({
         {isOpen && (
           <ReactModal
             appElement={document.getElementById("root") as HTMLElement}
-            onRequestClose={() => setIsOpen(false)}
+            onRequestClose={rest.onRequestClose ?? close}
             className="font-jost flex h-full items-center justify-center border-none outline-none"
             style={{
               overlay: {
@@ -62,7 +65,7 @@ export const Modal = ({
                 ease: "easeInOut",
                 duration: 0.3,
               }}
-              className="relative flex flex-col justify-center rounded-md border bg-gradient-to-tr from-gray-50 to-gray-100 px-8  py-6 dark:from-black dark:to-slate-900/20 "
+              className="relative flex flex-col mx-4 md:mx-0 justify-center rounded-md border bg-gradient-to-tr from-gray-50 to-gray-100 px-8  py-6 dark:from-black dark:to-slate-900/20 "
             >
               {children}
             </motion.div>

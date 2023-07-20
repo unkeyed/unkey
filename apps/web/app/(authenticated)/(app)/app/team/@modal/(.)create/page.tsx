@@ -10,7 +10,6 @@ import {
 } from "@/components/Form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -21,8 +20,6 @@ import { z } from "zod";
 import { useOrganizationList } from "@clerk/nextjs";
 import { Modal } from "@/components/modal";
 import { useEffect, useState } from "react";
-import { useAtom } from "jotai";
-import { createWorkspaceModalAtom } from "@/store";
 const formSchema = z.object({
   name: z.string().min(3).max(50),
   slug: z
@@ -33,7 +30,7 @@ const formSchema = z.object({
 });
 
 export default function TeamCreationModal() {
-  const [modalOpen, setModalOpen] = useAtom(createWorkspaceModalAtom);
+  const [modalOpen, setModalOpen] = useState(true);
   const pathname = usePathname();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -97,7 +94,11 @@ export default function TeamCreationModal() {
   };
 
   return (
-    <Modal isOpen={modalOpen} setIsOpen={setModalOpen}>
+    <Modal
+      isOpen={modalOpen}
+      setIsOpen={setModalOpen}
+      onRequestClose={() => router.back()}
+    >
       <h1 className=" text-2xl font-semibold mb-4 leading-none tracking-tight">
         Create your Team workspace
       </h1>
@@ -151,9 +152,9 @@ export default function TeamCreationModal() {
             </Button>
             <Button
               variant="outline"
-              type="submit"
+              type="button"
               className="w-full"
-              onClick={() => setModalOpen(false)}
+              onClick={() => router.back()}
             >
               Cancel
             </Button>

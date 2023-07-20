@@ -25,7 +25,8 @@ import { z } from "zod";
 import { useOrganization } from "@clerk/nextjs";
 import { MembershipRole } from "@clerk/types";
 import { useState } from "react";
-import { redirect } from "next/navigation";
+import { Modal } from "@/components/modal";
+import { useRouter } from "next/navigation";
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"], {
@@ -41,6 +42,8 @@ export default function TeamCreation() {
   const { organization } = useOrganization();
 
   const { toast } = useToast();
+  const [modalOpen, setModalOpen] = useState(true);
+  const router = useRouter();
 
   const inviteUser = async ({
     values,
@@ -75,12 +78,13 @@ export default function TeamCreation() {
         });
       });
   };
-  if (!organization) {
-    return redirect("/app/team/create");
-  }
 
   return (
-    <div className="flex flex-col gap-4 pt-4">
+    <Modal
+      isOpen={modalOpen}
+      setIsOpen={setModalOpen}
+      onRequestClose={() => router.back()}
+    >
       <h1 className=" text-4xl font-semibold leading-none tracking-tight">
         Invite a new user
       </h1>
@@ -145,6 +149,6 @@ export default function TeamCreation() {
           </div>
         </form>
       </Form>
-    </div>
+    </Modal>
   );
 }

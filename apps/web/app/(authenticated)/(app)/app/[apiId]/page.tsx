@@ -1,5 +1,11 @@
 import { ColumnChart } from "@/components/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@unkey/db";
@@ -47,14 +53,11 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   const keys = await keysP;
   const active = await activeP;
-  console.log(
-    JSON.stringify({ workspaceId: api.workspace.id, apiId: api.id, start, end, active }, null, 2),
-  );
 
   const usageOverTime = fillRange(
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
     start,
-    end,
+    end
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,
@@ -78,14 +81,18 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       </Card>
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>{formatNumber(usage.data.reduce((sum, day) => sum + day.usage, 0))}</CardTitle>
+          <CardTitle>
+            {formatNumber(usage.data.reduce((sum, day) => sum + day.usage, 0))}
+          </CardTitle>
           <CardDescription>Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="col-span-3">
-        <CardHeader>
+      <Card className="col-span-3 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
+        <CardHeader className=" border-b dark:border-zinc-800">
           <CardTitle>Usage in the last 30 days</CardTitle>
-          <CardDescription>This includes all key verifications in this API</CardDescription>
+          <CardDescription>
+            This includes all key verifications in this API
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ColumnChart data={usageOverTime} />

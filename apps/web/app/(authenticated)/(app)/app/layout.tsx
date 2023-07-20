@@ -1,12 +1,9 @@
-// import { Logo } from "@/components/logo";
-import { DesktopSidebar } from "./DesktopSidebar";
-// import { MobileNav } from "@/components/mobile-nav";
-// import { MobileSidebar } from "./MobileSidebar";
+import { DesktopSidebar } from "../../../../components/desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@unkey/db";
 import { redirect } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import TeamCreationModal from "./team/create/modal";
+import { MobileSideBar } from "../../../../components/mobile-sidebar";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
@@ -14,7 +11,7 @@ interface LayoutProps {
   };
 }
 
-export default async function Layout({ params, children }: LayoutProps) {
+export default async function Layout({ children }: LayoutProps) {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -29,19 +26,15 @@ export default async function Layout({ params, children }: LayoutProps) {
 
   return (
     <>
-      <div className="flex min-h-screen bg-gradient-to-tl from-stone-200 via-gray-200/50 to-stone-100">
-        <DesktopSidebar workspace={workspace} />
-
-        {/* <MobileSidebar channels={channels.map((c) => ({ name: c.name }))} navigation={[]} /> */}
-
-        <div className="w-full m-2 bg-gradient-to-br from-white to-gray-100 shadow ml-72 rounded-xl">
+      <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-tl">
+        <DesktopSidebar workspace={workspace} className=" hidden md:block" />
+        <MobileSideBar workspace={workspace} />
+        <div className="w-full md:m-2 bg-gradient-to-br from-white to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 shadow md:ml-72 rounded-xl">
           <ScrollArea className="max-h-screen p-4 m-4 overflow-y-auto ">
             {children}
             <ScrollBar />
           </ScrollArea>
         </div>
-
-        <TeamCreationModal />
       </div>
     </>
   );

@@ -5,7 +5,7 @@ import Link from "next/link";
 export const NavigationBar = () => {
   const showNavMobile = () => {
     const navMobile = document.getElementById("navbar-cta");
-    navMobile!.classList.toggle("hidden");
+    navMobile?.classList.toggle("hidden");
   };
   return (
     <nav className="bg-gray-50 dark:bg-gray-900">
@@ -29,6 +29,7 @@ export const NavigationBar = () => {
             className="inline-flex items-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
           >
             <span className="sr-only">Open main menu</span>
+            {/* rome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
             <svg
               className="w-6 h-6"
               aria-hidden="true"

@@ -8,17 +8,22 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Check,
   Zap,
   ChevronsUpDown,
   Plus,
-  Key,
   Book,
   LogOut,
   Rocket,
-  Settings,
+  Moon,
+  Monitor,
+  Sun,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,8 +39,9 @@ import {
 } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { Workspace } from "@unkey/db";
-import { createWorkspaceModalAtom } from "@/store";
-import { useAtom } from "jotai";
+
+import { DropdownMenuSub } from "@radix-ui/react-dropdown-menu";
+import { useTheme } from "next-themes";
 type Props = {
   workspace: Workspace;
 };
@@ -48,7 +54,6 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
   const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [, setWorkspaceModal] = useAtom(createWorkspaceModalAtom);
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -62,12 +67,13 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
       setLoading(false);
     }
   }
+  const { setTheme, theme } = useTheme();
   return (
     <DropdownMenu>
       {loading ? (
         <Loading />
       ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between w-full gap-4 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700">
+        <DropdownMenuTrigger className="flex items-center justify-between md:w-full gap-4 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700">
           <div className="flex items-center justify-start w-full gap-4 ">
             <Avatar>
               {user?.profileImageUrl ? (
@@ -82,7 +88,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
                   .toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col items-start gap-1 ">
+            <div className="md:flex flex-col items-start gap-1 hidden">
               <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
                 {currentOrg?.name ?? "Personal"}
               </span>
@@ -90,7 +96,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
               <PlanBadge plan={workspace.plan} />
             </div>
           </div>
-          <ChevronsUpDown className="w-4 h-4" />
+          <ChevronsUpDown className="w-4 h-4 md:block hidden" />
         </DropdownMenuTrigger>
       )}
       <DropdownMenuContent className="w-full lg:w-56" align="end" forceMount>
@@ -114,7 +120,43 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
-
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Change Theme</DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                <DropdownMenuCheckboxItem
+                  checked={theme === "light"}
+                  onCheckedChange={() => setTheme("light")}
+                >
+                  <div className=" flex items-center gap-2">
+                    <Sun size={16} />
+                    Light
+                  </div>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={theme === "dark"}
+                  onCheckedChange={() => setTheme("dark")}
+                >
+                  <div className=" flex items-center gap-2">
+                    <Moon size={16} />
+                    Dark
+                  </div>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={theme === "system"}
+                  onCheckedChange={() => setTheme("system")}
+                >
+                  <div className=" flex items-center gap-2">
+                    <Monitor size={16} />
+                    System
+                  </div>
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
@@ -146,12 +188,15 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>
+
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => setWorkspaceModal(true)}>
-            <Plus className="w-4 h-4 mr-2 " />
-            <span className="cursor-pointer">Create Workspace</span>
-          </DropdownMenuItem>
+          <Link href="/app/team/create">
+            <DropdownMenuItem>
+              <Plus className="w-4 h-4 mr-2 " />
+              <span className="cursor-pointer">Create Workspace</span>
+            </DropdownMenuItem>
+          </Link>
           {membership?.role === "admin" ? (
             <Link href="/app/team/invite">
               <DropdownMenuItem>
@@ -166,7 +211,6 @@ export const WorkspaceSwitcher: React.FC<Props> = ({
           <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
             <DropdownMenuItem asChild className="cursor-pointer">
               <span>
-                {" "}
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign out
               </span>
@@ -184,7 +228,7 @@ const PlanBadge: React.FC<{ plan: Workspace["plan"] }> = ({ plan }) => {
       className={cn(
         " inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md",
         {
-          "text-zinc-800": plan === "free",
+          "text-zinc-800 dark:text-zinc-300": plan === "free",
           "text-primary-foreground  bg-primary px-2 border border-primary-500":
             plan === "pro",
           "text-white bg-black px-2 border border-black": plan === "enterprise",

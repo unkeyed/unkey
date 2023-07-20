@@ -11,29 +11,24 @@ import {
 import { Loading } from "@/components/loading";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
 });
-type Props = {};
 
-export const CreateApiButton = () => {
+export const CreateApiButton = ({
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,8 +65,8 @@ export const CreateApiButton = () => {
         isOpen={modalOpen}
         setIsOpen={setModalOpen}
         trigger={() => (
-          <Button className=" gap-2">
-            <Plus size={18} />
+          <Button className=" gap-2 text-sm md:text-base" {...rest}>
+            <Plus size={18} className=" w-4 h-4" />
             Create New API
           </Button>
         )}

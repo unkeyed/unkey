@@ -1,9 +1,14 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { ColumnChart } from "@/components/charts";
 import { Text } from "@/components/text";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@unkey/db";
 import { getDailyUsage } from "@/lib/tinybird";
@@ -36,7 +41,7 @@ export default async function SettingsPage() {
   const usageOverTime = fillRange(
     usage.data.map(({ time, usage }) => ({ value: usage, time })),
     start.getTime(),
-    end.getTime(),
+    end.getTime()
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,
@@ -51,7 +56,11 @@ export default async function SettingsPage() {
         title={workspace.name}
         description="Settings"
         actions={[
-          <Badge key="workspaceId" variant="outline" className="font-mono font-medium">
+          <Badge
+            key="workspaceId"
+            variant="outline"
+            className="font-mono font-medium"
+          >
             {workspace.id}
             <CopyButton value={workspace.id} className="ml-2" />
           </Badge>,
@@ -80,6 +89,7 @@ export default async function SettingsPage() {
               <Text size="xl">Current Usage</Text>
               <div className="flex items-center gap-2">
                 <Text size="lg">{totalUsage.toLocaleString()}</Text>/{" "}
+                {/* rome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
                 <svg
                   className="w-8 h-8"
                   fill="none"
@@ -103,12 +113,6 @@ export default async function SettingsPage() {
             </div>
           </div>
         </CardContent>
-        {/* <CardFooter className="flex items-center justify-end gap-2">
-                    <BillingButton teamId={team.id} />
-                    <Link key="plans" href={`/${team.slug}/settings/plans`}>
-                        <Button variant="primary">Change your plan</Button>
-                    </Link>
-                </CardFooter> */}
       </Card>
     </div>
   );

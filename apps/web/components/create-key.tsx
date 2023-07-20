@@ -31,7 +31,6 @@ import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Code } from "@/components/ui/code";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
@@ -184,8 +183,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       ) : (
         <>
           <div>
-            <div className="w-full overflow-scroll">
-              <h2 className="mb-2 text-2xl">Create a new Key</h2>
+            <div className="w-full">
+              <h2 className="mb-2 text-2xl font-semibold">Create a new Key</h2>
               <Form {...form}>
                 <form
                   className="max-w-6xl"
@@ -243,7 +242,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <div className="flex justify-around my-4 space-x-4">
+                  <div className="flex justify-between my-4 space-x-4">
                     <FormField
                       control={form.control}
                       name="expiresEnabled"
@@ -453,7 +452,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       disabled={!form.formState.isValid || key.isLoading}
                       type="submit"
                     >
-                      {key.isLoading ? <Loading /> : "Create"}
+                      {key.isLoading ? <Loading /> : "Create Key"}
                     </Button>
                   </div>
                 </form>

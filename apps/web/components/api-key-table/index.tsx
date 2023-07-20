@@ -4,19 +4,8 @@ import { DataTable } from "./table";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -83,7 +72,9 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
         <div className="flex items-center justify-center">
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
             aria-label="Select all"
           />
         </div>
@@ -103,7 +94,9 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
     {
       accessorKey: "start",
       header: "Key",
-      cell: ({ row }) => <Badge variant="secondary">{row.getValue("start")}...</Badge>,
+      cell: ({ row }) => (
+        <Badge variant="secondary">{row.getValue("start")}...</Badge>
+      ),
     },
     {
       accessorKey: "createdAt",
@@ -123,7 +116,9 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       header: "Expires",
       cell: ({ row }) =>
         row.original.expires ? (
-          <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+          <span>
+            in {ms(row.original.expires.getTime() - Date.now(), { long: true })}
+          </span>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),
@@ -193,12 +188,13 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                   <DialogHeader>
                     <DialogTitle>Revoke Api Key</DialogTitle>
                     <DialogDescription>
-                      Delete the key <Badge variant="outline">{row.original.start}...</Badge>{" "}
+                      Delete the key{" "}
+                      <Badge variant="outline">{row.original.start}...</Badge>{" "}
                       permanenty
                     </DialogDescription>
                     <Alert variant="destructive">
-                      This action can not be undone. Your users will no longer be able to
-                      authenticate using this key.
+                      This action can not be undone. Your users will no longer
+                      be able to authenticate using this key.
                     </Alert>
                   </DialogHeader>
 
@@ -206,7 +202,9 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                     <Button
                       variant="destructive"
                       disabled={deleteKey.isLoading}
-                      onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
+                      onClick={() =>
+                        deleteKey.mutate({ keyIds: [row.original.id] })
+                      }
                     >
                       {" "}
                       {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
