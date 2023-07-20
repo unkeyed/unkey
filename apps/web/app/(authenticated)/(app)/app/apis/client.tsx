@@ -43,14 +43,16 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
           {localData.map((api) => (
             <Link key={api.id} href={`/app/${api.id}`}>
-              <Card className="duration-500 hover:border-primary/20 group hover:drop-shadow-md bg-gradient-to-tl dark:via-zinc-900/50 dark:from-zinc-900 dark:to-zinc-950 relative">
+              <Card className="duration-500 hover:border-primary/10 group hover:drop-shadow-md bg-gradient-to-tl dark:via-zinc-900/50 dark:from-zinc-900 dark:to-zinc-950 relative">
                 <div
-                  className="absolute right-0 top-0 h-px w-36 group-hover:w-[300px] transition-all duration-500"
+                  className="absolute left-0 top-0 h-px w-36 group-hover:w-[300px] transition-all duration-500"
                   style={{
                     background:
                       "linear-gradient(90deg, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0) 0%, rgba(232, 232, 232, 0.2) 33.02%, rgba(143, 143, 143, 0.67) 64.41%, rgba(236, 72, 153, 0) 98.93%);",
                   }}
                 />
+                <div className=" absolute bottom-0 h-2 left-0 group-hover:w-80 transition-all duration-500 ease-in-out  w-20 blur-2xl opacity-30 bg-white" />
+                <div className=" absolute delay-100 bottom-0 h-1 right-0 group-hover:w-80 transition-all duration-500 ease-in-out  w-20 blur-2xl opacity-40 bg-white" />
                 <CardHeader>
                   <div className=" flex items-center justify-between">
                     <CardTitle>{api.name}</CardTitle>
