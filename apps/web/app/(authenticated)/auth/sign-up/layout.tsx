@@ -71,27 +71,6 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
                 Issue, manage, and revoke keys for any of your APIs in seconds. Comes with included
                 per-key ratelimiting and authorization rules.
               </p>
-
-              {/* {testimonial ? (
-                <figure className="grid items-center grid-cols-1 mt-16 gap-x-6 gap-y-8 ">
-                  <div className="relative col-span-2">
-                    <blockquote className="text-xl font-semibold leading-8 text-gray-100 sm:text-2xl sm:leading-9">
-                      {testimonial.quote}
-                    </blockquote>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <img
-                      className="w-12 h-12 rounded-xl bg-indigo-950 lg:rounded-3xl"
-                      src={testimonial.author.image}
-                      alt=""
-                    />
-                    <figcaption className="text-base lg:col-start-1 lg:row-start-3">
-                      <div className="font-semibold text-gray-100">{testimonial.author.name}</div>
-                      <div className="mt-1 text-gray-500">{testimonial.author.title}</div>
-                    </figcaption>
-                  </div>
-                </figure>
-              ) : null} */}
             </div>
           </div>
         </div>
