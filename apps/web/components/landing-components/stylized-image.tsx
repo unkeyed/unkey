@@ -20,9 +20,10 @@ const shapes = [
   },
 ]
 
-export function StylizedImage({ shape = 0, className, src } : {
+export function StylizedImage({ shape = 0, className, src, sizes} : {
   shape?: number
   className?: string
+  sizes?: string
   src: StaticImageData | ImageProps
 }) {
   let id = useId()
