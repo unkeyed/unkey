@@ -9,7 +9,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/form";
+} from "@/components/ui/form";
 import { Loading } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
