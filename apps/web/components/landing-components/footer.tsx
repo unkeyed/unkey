@@ -1,4 +1,3 @@
-"use client"
 import Link from 'next/link'
 import { addEmail } from '@/app/actions/addEmail'
 import { Container } from '@/components/landing-components/container'
@@ -6,9 +5,8 @@ import { FadeIn } from '@/components/landing-components/fade-in'
 import { socialMediaProfiles } from '@/components/landing-components/social-media'
 import { experimental_useFormStatus as useFormStatus } from 'react-dom'
 import { useToast } from '../ui/use-toast'
-import { useState } from 'react'
 import { Icons } from '../ui/icons'
-
+        
 const navigation = [
   {
     title: 'Company',
@@ -75,7 +73,7 @@ function ArrowIcon(props : any) {
 }
 
 function NewsletterForm() {
-  
+
   const {toast} = useToast()
   return (
     <form className="max-w-md" action={async (data: FormData) => {
