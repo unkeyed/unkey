@@ -3,7 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
-import { CreateKeyButton } from "./CreateKey";
+import { CreateKeyButton } from "../../../../../components/create-key";
 import { ApiKeyTable } from "@/components/api-key-table";
 
 export const revalidate = 0;

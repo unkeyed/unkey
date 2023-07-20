@@ -9,7 +9,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 import { DeleteApiButton } from "../../../../../components/delete-api";
-import { NavLink } from "./navbar";
+import { NavLink } from "../../../../../components/api-keys-tab";
 
 type Props = PropsWithChildren<{
   params: {
