@@ -132,7 +132,7 @@ const SubmitButton = () => {
   return(
   <button
             disabled={pending}
-            className="flex aspect-square h-full items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-neutral-800"
+            className="flex aspect-square h-full items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-neutral-800 disabled:bg-neutral-500"
           >
            {pending ?  <Icons.spinner className="w-4 h-4 animate-spin" /> : <ArrowIcon className="w-4" />}
           </button>
