@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CopyButton } from "@/components/CopyButton";
-import { VisibleButton } from "@/components/VisibleButton";
+import { VisibleButton } from "@/components/visible-button";
 import { Loading } from "@/components/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,9 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
     },
   });
 
-  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys' \\
+  const snippet = `curl -XPOST '${
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
+  }/v1/keys' \\
   -H 'Authorization: Bearer ${key.data?.key}' \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -51,7 +53,9 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
   }'
   `;
 
-  const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
+  const maskedKey = `unkey_${"*".repeat(
+    key.data?.key.split("_").at(1)?.length ?? 0
+  )}`;
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   return (
@@ -74,19 +78,19 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
             <DialogHeader>
               <DialogTitle>Your API Key</DialogTitle>
               <DialogDescription>
-                This key is only shown once and can not be recovered. Please store it somewhere
-                safe.
+                This key is only shown once and can not be recovered. Please
+                store it somewhere safe.
               </DialogDescription>
               <div>
                 <Alert variant="destructive" className="my-4">
                   <AlertTriangle className="w-4 h-4" />
                   <AlertTitle>Root Key Generated</AlertTitle>
                   <AlertDescription>
-                    The root key will provide full read and write access to all current and future
-                    resources.
+                    The root key will provide full read and write access to all
+                    current and future resources.
                     <br />
-                    For production use, we recommend creating a key with only the permissions you
-                    need.
+                    For production use, we recommend creating a key with only
+                    the permissions you need.
                   </AlertDescription>
                 </Alert>
               </div>
@@ -94,7 +98,10 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               <Code className="flex items-center justify-between w-full gap-4 my-8 ">
                 {showKey ? key.data.key : maskedKey}
                 <div className="flex items-start justify-between gap-4">
-                  <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
+                  <VisibleButton
+                    isVisible={showKey}
+                    setIsVisible={setShowKey}
+                  />
                   <CopyButton value={key.data.key} />
                 </div>
               </Code>
@@ -104,9 +111,14 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
               Try creating a new api key for your users:
             </p>
             <Code className="flex items-start justify-between w-full gap-4 my-8 ">
-              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+              {showKeyInSnippet
+                ? snippet
+                : snippet.replace(key.data.key, maskedKey)}
               <div className="flex items-start justify-between gap-4">
-                <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+                <VisibleButton
+                  isVisible={showKeyInSnippet}
+                  setIsVisible={setShowKeyInSnippet}
+                />
                 <CopyButton value={snippet} />
               </div>
             </Code>
@@ -118,12 +130,15 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
 
             <Alert id="root-key-alert">
               <AlertTriangle className="w-4 h-4" />
-              <AlertTitle id="root-key-alert-title">Root keys can be dangerous</AlertTitle>
+              <AlertTitle id="root-key-alert-title">
+                Root keys can be dangerous
+              </AlertTitle>
               <AlertDescription>
-                The root key will provide full read and write access to all current and future
-                resources.
+                The root key will provide full read and write access to all
+                current and future resources.
                 <br />
-                For production use, we recommend creating a key with only the permissions you need.
+                For production use, we recommend creating a key with only the
+                permissions you need.
               </AlertDescription>
             </Alert>
             <DialogFooter className="flex items-center justify-between gap-2 ">

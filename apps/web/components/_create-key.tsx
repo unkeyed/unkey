@@ -26,7 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
-import { VisibleButton } from "@/components/VisibleButton";
+import { VisibleButton } from "@/components/visible-button";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";

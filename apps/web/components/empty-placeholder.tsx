@@ -1,15 +1,13 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { Code2, FileJson } from "lucide-react";
-
-interface EmptyPlaceholderProps extends React.HTMLAttributes<HTMLDivElement> {}
+import { FileJson } from "lucide-react";
 
 export function EmptyPlaceholder({
   className,
   children,
   ...props
-}: EmptyPlaceholderProps) {
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
@@ -33,6 +31,7 @@ EmptyPlaceholder.Icon = function EmptyPlaceHolderIcon() {
   );
 };
 
+// rome-ignore lint/suspicious/noEmptyInterface: <explanation>
 interface EmptyPlaceholderTitleProps
   extends React.HTMLAttributes<HTMLHeadingElement> {}
 
@@ -45,6 +44,7 @@ EmptyPlaceholder.Title = function EmptyPlaceholderTitle({
   );
 };
 
+// rome-ignore lint/suspicious/noEmptyInterface: <explanation>
 interface EmptyPlaceholderDescriptionProps
   extends React.HTMLAttributes<HTMLParagraphElement> {}
 
