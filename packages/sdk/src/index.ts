@@ -139,6 +139,10 @@ export class Unkey {
       },
       update: async (req: {
         /**
+         * The id of the key to update.
+         */
+        keyId: string;
+        /**
          * Update the name
          */
         name?: string | null;
@@ -199,8 +203,8 @@ export class Unkey {
         remaining?: number | null;
       }): Promise<{ key: string; keyId: string }> => {
         return await this.fetch<{ key: string; keyId: string }>({
-          path: ["v1", "keys"],
-          method: "POST",
+          path: ["v1", "keys", req.keyId],
+          method: "PUT",
           body: req,
         });
       },

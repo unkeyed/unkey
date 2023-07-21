@@ -1,24 +1,19 @@
-'use client'
+"use client";
 
-import { useRef } from 'react'
-import Image from 'next/image'
-import {
-  motion,
-  useMotionTemplate,
-  useScroll,
-  useTransform,
-} from 'framer-motion'
+import { useRef } from "react";
+import Image from "next/image";
+import { motion, useMotionTemplate, useScroll, useTransform } from "framer-motion";
 
-const MotionImage = motion(Image)
+const MotionImage = motion(Image);
 
-export function GrayscaleTransitionImage(props : any) {
+export function GrayscaleTransitionImage(props: any) {
   let ref = useRef() as any;
   let { scrollYProgress } = useScroll({
     target: ref,
-    offset: ['start 65%', 'end 35%'],
-  })
-  let grayscale = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0, 1])
-  let filter = useMotionTemplate`grayscale(${grayscale})`
+    offset: ["start 65%", "end 35%"],
+  });
+  let grayscale = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0, 1]);
+  let filter = useMotionTemplate`grayscale(${grayscale})`;
 
   return (
     <div ref={ref} className="group relative">
@@ -30,5 +25,5 @@ export function GrayscaleTransitionImage(props : any) {
         <Image {...props} />
       </div>
     </div>
-  )
+  );
 }

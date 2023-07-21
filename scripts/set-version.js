@@ -1,7 +1,5 @@
-
 const fs = require("fs");
 const path = require("path");
-
 
 // usage
 // node set-version.js <path-to-project-root> <new-version>
