@@ -25,7 +25,7 @@ jobs:
         with:
           version: latest
           run_install: false
-          
+
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
@@ -46,7 +46,7 @@ jobs:
         run: pnpm install -r
 
       - name: Build package
-        run: pnpm build
+        run: pnpm turbo run build --filter=@unkey/api
 
       - name: Publish canary
         if: "github.event.release.prerelease"
