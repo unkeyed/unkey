@@ -2,7 +2,7 @@
 const { withContentlayer } = require("next-contentlayer");
 
 const nextConfig = {
-  pageExtensions: ['tsx', 'mdx' ,'ts', 'js'],
+  pageExtensions: ["tsx", "mdx", "ts", "js"],
   experimental: {
     serverActions: true,
     esmExternals: "loose",
@@ -12,6 +12,6 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-}
+};
 
 module.exports = withContentlayer(nextConfig);

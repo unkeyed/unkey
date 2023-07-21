@@ -57,8 +57,8 @@ const Changelog = defineDocumentType(() => ({
       required: true,
     },
     summary: {
-      type: 'list',
-      of: { type: 'string' },
+      type: "list",
+      of: { type: "string" },
     },
     changes: {
       type: "number",
