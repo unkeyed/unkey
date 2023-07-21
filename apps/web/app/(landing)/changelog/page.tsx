@@ -24,7 +24,7 @@ function Changelog({ changelogs } = { changelogs: allChangelogs }) {
                     </h3>
                   </div>
                   <div className="mt-1 flex gap-x-4 sm:mt-0 lg:block">
-                    <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 after:content-['/'] lg:mt-2 lg:after:hidden"></p>
+                    <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 after:content-['/'] lg:mt-2 lg:after:hidden" />
                     <p className="text-sm text-neutral-950 lg:mt-2">
                       <time dateTime={changelog.date}>{changelog.date}</time>
                     </p>

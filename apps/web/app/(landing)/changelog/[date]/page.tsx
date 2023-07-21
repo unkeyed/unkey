@@ -60,7 +60,7 @@ export default async function ChangeLogLayout({
           </div>
 
           <div className="border-y border-neutral-200 bg-neutral-100">
-            <div className="-my-px mx-auto max-w-[76rem] bg-neutral-200"></div>
+            <div className="-my-px mx-auto max-w-[76rem] bg-neutral-200" />
           </div>
         </header>
 

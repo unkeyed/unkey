@@ -12,7 +12,7 @@ import imageAndreas from "@/images/team/andreas.jpeg";
 function AboutUnkey() {
   return (
     <div className="mt-24 rounded-4xl bg-neutral-950 py-24 sm:mt-32 lg:mt-40 lg:py-32 ">
-      <SectionIntro eyebrow="" title="What is Unkey?" invert></SectionIntro>
+      <SectionIntro eyebrow="" title="What is Unkey?" invert />
       <Container className="mt-16">
         <GridList>
           <GridListItem title="Globally Founded, Globally Remote" invert>
