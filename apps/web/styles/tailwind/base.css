@@ -6,7 +6,7 @@
   font-display: block;
   font-style: normal;
   font-stretch: 75% 125%;
-  src: url('../../fonts/Mona-Sans.var.woff2') format('woff2');
+  src: url('../fonts/Mona-Sans.var.woff2') format('woff2');
 }
 
 @layer base {
