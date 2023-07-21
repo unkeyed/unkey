@@ -4,7 +4,7 @@ import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { Loading } from "@/components/loading";
+import { Loading } from "@/components/dashboard-components/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";

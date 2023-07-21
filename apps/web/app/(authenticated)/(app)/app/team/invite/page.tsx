@@ -15,7 +15,7 @@ import {
   SelectContent,
   SelectTrigger,
 } from "@/components/ui/select";
-import { Loading } from "@/components/loading";
+import { Loading } from "@/components/dashboard-components/loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

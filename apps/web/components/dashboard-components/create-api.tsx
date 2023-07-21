@@ -8,7 +8,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/loading";
+import { Loading } from "./loading";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

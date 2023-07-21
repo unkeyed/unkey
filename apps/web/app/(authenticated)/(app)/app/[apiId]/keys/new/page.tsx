@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";
-import { CreateKey } from "@/components/create-key";
+import { CreateKey } from "@/components/dashboard-components/create-key";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();

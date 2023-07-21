@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc/client";
-import { Loading } from "@/components/loading";
+import { Loading } from "../loading";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import ms from "ms";

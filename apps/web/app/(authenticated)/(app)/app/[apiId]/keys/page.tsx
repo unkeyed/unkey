@@ -2,7 +2,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
 
-import { ApiKeyTable } from "@/components/api-key-table";
+import { ApiKeyTable } from "@/components/dashboard-components/api-key-table";
 
 export const revalidate = 0;
 export default async function ApiPage(props: { params: { apiId: string } }) {

@@ -1,10 +1,10 @@
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/dashboard-components/page-header";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
-import { CreateKeyButton } from "@/components/create-root-key";
-import { ApiKeyTable } from "@/components/api-key-table";
+import { CreateKeyButton } from "@/components/dashboard-components/create-root-key";
+import { ApiKeyTable } from "@/components/dashboard-components/api-key-table";
 
 export const revalidate = 0;
 
