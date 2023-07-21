@@ -1,4 +1,4 @@
-import '@/styles/tailwind/tailwind.css'
+import "@/styles/tailwind/tailwind.css";
 import { Inter } from "@next/font/google";
 import localFont from "@next/font/local";
 

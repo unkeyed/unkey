@@ -1,4 +1,4 @@
-import { RootLayout } from "@/components/landing-components/root-layout";
+import { RootLayout } from "@/components/landing/root-layout";
 import { Toaster } from "@/components/ui/toaster";
 
 import "@/styles/tailwind/tailwind.css";

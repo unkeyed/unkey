@@ -13,7 +13,7 @@ import { Check, Zap, ChevronsUpDown, Plus, Book, LogOut, Rocket } from "lucide-r
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loading } from "./loading";
+import { Loading } from "@/components/dashboard/loading";
 
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";

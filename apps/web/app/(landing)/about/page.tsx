@@ -1,57 +1,58 @@
-import Image from 'next/image'
-import { Border } from '@/components/landing-components/border'
-import { Container } from '@/components/landing-components/container'
-import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
-import { GridList, GridListItem } from '@/components/landing-components/grid-list'
-import { PageIntro } from '@/components/landing-components/page-intro'
-import { PageLinks } from '@/components/landing-components/page-links'
-import { SectionIntro } from '@/components/landing-components/section-intro'
-import { allPosts } from '@/.contentlayer/generated'
-import imageJamesPerkins from '@/images/team/james.jpg'
-import imageAndreas from '@/images/team/andreas.jpeg'
+import Image from "next/image";
+import { Border } from "@/components/landing/border";
+import { Container } from "@/components/landing/container";
+import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
+import { GridList, GridListItem } from "@/components/landing/grid-list";
+import { PageIntro } from "@/components/landing/page-intro";
+import { PageLinks } from "@/components/landing/page-links";
+import { SectionIntro } from "@/components/landing/section-intro";
+import { allPosts } from "@/.contentlayer/generated";
+import imageJamesPerkins from "@/images/team/james.jpg";
+import imageAndreas from "@/images/team/andreas.jpeg";
 function AboutUnkey() {
   return (
     <div className="mt-24 rounded-4xl bg-neutral-950 py-24 sm:mt-32 lg:mt-40 lg:py-32 ">
-      <SectionIntro
-        eyebrow=""
-        title="What is Unkey?"
-        invert
-      >
-      </SectionIntro>
+      <SectionIntro eyebrow="" title="What is Unkey?" invert />
       <Container className="mt-16">
         <GridList>
           <GridListItem title="Globally Founded, Globally Remote" invert>
-          We are globally remote and were founded that way too. We believe that the best talent is not always in the same place and that we can build a better product by hiring the best talent, no matter where they are.
+            We are globally remote and were founded that way too. We believe that the best talent is
+            not always in the same place and that we can build a better product by hiring the best
+            talent, no matter where they are.
           </GridListItem>
           <GridListItem title="Builders, Innovators" invert>
-          We are serial builders who love to innovate. We are always looking for new ways to improve our product and our community. If we aren&apos;t working on Unkey, we are probably learning about something new.
+            We are serial builders who love to innovate. We are always looking for new ways to
+            improve our product and our community. If we aren&apos;t working on Unkey, we are
+            probably learning about something new.
           </GridListItem>
           <GridListItem title="Open Source" invert>
-          Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.
+            Unkey is a fully open source project, we believe that open source leads to better
+            products and better communities. We are committed to building a great open source
+            community around Unkey and providing the ability to self host for those who want it.
           </GridListItem>
         </GridList>
       </Container>
     </div>
-  )
+  );
 }
 
 const team = [
   {
-    title: 'Team',
+    title: "Team",
     people: [
       {
-        name: 'James Perkins',
-        role: 'Co-Founder / CEO',
+        name: "James Perkins",
+        role: "Co-Founder / CEO",
         image: { src: imageJamesPerkins },
       },
       {
-        name: 'Andreas Thomas',
-        role: 'Co-Founder / CTO',
+        name: "Andreas Thomas",
+        role: "Co-Founder / CTO",
         image: { src: imageAndreas },
       },
     ],
   },
-]
+];
 
 function Team() {
   return (
@@ -84,9 +85,7 @@ function Team() {
                             <p className="font-display text-base/6 font-semibold tracking-wide text-white">
                               {person.name}
                             </p>
-                            <p className="mt-2 text-sm text-white">
-                              {person.role}
-                            </p>
+                            <p className="mt-2 text-sm text-white">{person.role}</p>
                           </div>
                         </div>
                       </FadeIn>
@@ -99,30 +98,36 @@ function Team() {
         ))}
       </div>
     </Container>
-  )
+  );
 }
 
 export const metadata = {
-  title: 'About Us',
+  title: "About Us",
   description:
-    'Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.',
-}
+    "Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.",
+};
 
 export default async function About() {
-  const blogArticles = allPosts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0,2);
+  const blogArticles = allPosts
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 2);
   return (
     <>
       <PageIntro eyebrow="" title="About us">
         <p>
-          Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.
+          Unkey is a fully open source project, we believe that open source leads to better products
+          and better communities. We are committed to building a great open source community around
+          Unkey and providing the ability to self host for those who want it.
         </p>
         <div className="mt-10 max-w-2xl space-y-6 text-base">
           <p>
-            Unkey was started by James Perkins and Andreas Thomas in 2023. We are a small team of serial builders who love to innovate. We are always looking for new ways to improve our product and our community. If we aren&apos;t working on Unkey, we are probably learning about something new.
+            Unkey was started by James Perkins and Andreas Thomas in 2023. We are a small team of
+            serial builders who love to innovate. We are always looking for new ways to improve our
+            product and our community. If we aren&apos;t working on Unkey, we are probably learning
+            about something new.
           </p>
         </div>
       </PageIntro>
-
 
       <AboutUnkey />
 
@@ -135,5 +140,5 @@ export default async function About() {
         pages={blogArticles}
       />
     </>
-  )
+  );
 }

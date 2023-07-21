@@ -4,9 +4,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { CopyButton } from "./copy-button";
-import { VisibleButton } from "./visible-button";
-import { Loading } from "./loading";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { VisibleButton } from "@/components/dashboard/visible-button";
+import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
@@ -26,7 +26,7 @@ type Props = {
   apiId?: string;
 };
 
-export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
+export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
 
   const router = useRouter();

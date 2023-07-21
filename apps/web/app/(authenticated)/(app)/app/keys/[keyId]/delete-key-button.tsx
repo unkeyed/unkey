@@ -4,7 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import React, { PropsWithChildren } from "react";
 
-import { Loading } from "./loading";
+import { Loading } from "../../../../../../components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

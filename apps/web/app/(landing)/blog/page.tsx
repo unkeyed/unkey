@@ -1,20 +1,18 @@
+import Image from "next/image";
+import Link from "next/link";
 
-import Image from 'next/image'
-import Link from 'next/link'
-
-import { Border } from '@/components/landing-components/border'
-import { Button } from '@/components/landing-components/button'
-import { Container } from '@/components/landing-components/container'
-import { FadeIn } from '@/components/landing-components/fade-in'
-import { PageIntro } from '@/components/landing-components/page-intro'
-import { formatDate } from '@/lib/formatDate'
+import { Border } from "@/components/landing/border";
+import { Button } from "@/components/landing/button";
+import { Container } from "@/components/landing/container";
+import { FadeIn } from "@/components/landing/fade-in";
+import { PageIntro } from "@/components/landing/page-intro";
+import { formatDate } from "@/lib/formatDate";
 import { allPosts } from "contentlayer/generated";
 
 export const metadata = {
-  title: 'Blog',
-  description:
-    'Stay up-to-date with the latest news and articles from the Unkey team.',
-}
+  title: "Blog",
+  description: "Stay up-to-date with the latest news and articles from the Unkey team.",
+};
 
 export default async function Blog() {
   const posts = allPosts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -22,7 +20,8 @@ export default async function Blog() {
     <>
       <PageIntro eyebrow="Blog" title="The latest articles and news">
         <p>
-          Stay up-to-date with the Unkey team as we share our latest news and articles in our industry.
+          Stay up-to-date with the Unkey team as we share our latest news and articles in our
+          industry.
         </p>
       </PageIntro>
 
@@ -56,9 +55,7 @@ export default async function Blog() {
                             />
                           </div>
                           <div className="text-sm text-neutral-950">
-                            <div className="font-semibold">
-                              {post.author.name}
-                            </div>
+                            <div className="font-semibold">{post.author.name}</div>
                             <div>{post.author.role}</div>
                           </div>
                         </dd>
@@ -82,5 +79,5 @@ export default async function Blog() {
         </div>
       </Container>
     </>
-  )
+  );
 }

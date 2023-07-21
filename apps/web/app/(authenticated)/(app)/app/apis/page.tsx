@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { CreateApiButton } from "@/components/dashboard/create-api";
+import { CreateApiButton } from "./create-api-button";
 
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq, sql } from "@unkey/db";
@@ -49,7 +49,7 @@ export default async function TenantOverviewPage() {
 
           <Separator className="my-6" />
 
-          <div className="flex justify-center items-center">
+          <div className="flex items-center justify-center">
             <Card className="duration-500 hover:border-primary bg-muted w-3xl ">
               <CardHeader>
                 <CardTitle>Please add billing to your account</CardTitle>

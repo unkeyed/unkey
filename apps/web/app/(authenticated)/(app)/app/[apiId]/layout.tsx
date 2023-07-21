@@ -8,8 +8,8 @@ import { db, eq, schema } from "@unkey/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { DeleteApiButton } from "@/components/dashboard/delete-api";
-import { NavLink } from "@/components/dashboard/api-navbar";
+import { DeleteApiButton } from "./delete-api-button";
+import { NavLink } from "./api-navbar";
 
 type Props = PropsWithChildren<{
   params: {

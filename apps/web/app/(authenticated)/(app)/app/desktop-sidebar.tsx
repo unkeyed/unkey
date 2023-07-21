@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
-import { ApiLink } from "./app-link";
+import { ApiLink } from "./api-link";
 import { WorkspaceSwitcher } from "./team-switcher";
 import type { Workspace } from "@unkey/db";
 type Props = {

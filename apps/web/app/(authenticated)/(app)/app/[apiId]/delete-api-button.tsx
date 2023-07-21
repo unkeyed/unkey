@@ -3,7 +3,7 @@
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 
-import { Loading } from "./loading";
+import { Loading } from "../../../../../components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc/client";
