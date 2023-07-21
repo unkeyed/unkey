@@ -18,7 +18,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { date, z } from "zod";
+import { useTheme } from "next-themes";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
@@ -51,11 +52,12 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
       });
     },
   });
-
+  const { theme } = useTheme();
+  const date = new Date();
   return (
-    <div className="flex flex-col justify-center items-center w-full min-h-screen bg-gradient-to-tr from-gray-50 to-gray-100">
+    <div className="flex flex-col justify-center items-center w-full min-h-screen">
       <Image
-        src="/images/landing/app.png"
+        src={theme === "light" ? "/images/landing/app.png" : "/images/landing/app-dark.png"}
         className=" absolute top-0 left-0 right-0 bottom-0 z-0 w-full h-full brightness-75 blur-md"
         width={1080}
         height={1920}
@@ -63,7 +65,11 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
       />
       <Card className=" z-10 shadow-md mx-6 md:mx-0">
         <CardHeader>
-          <CardTitle>Create your Workspace</CardTitle>
+          <CardTitle className=" bg-gradient-to-tr py-2 border-zinc-400  from-zinc-200 to-zinc-100 via-slate-400 text-transparent bg-clip-text">
+            {" "}
+            <p className=" text-sm">Let's get started</p>
+            Create your first Workspace
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
