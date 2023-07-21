@@ -13,7 +13,7 @@ const navigation = [
       { title: "Blog", href: "/blog" },
       { title: "Changelog", href: "/changelog" },
       { title: "Analytics", href: "https://plausible.io/unkey.dev" },
-      { title: "Unkey", href: "https://github.com/unkeyed/unkey" },
+      { title: "Source Code", href: "https://github.com/unkeyed/unkey" },
     ],
   },
   {
