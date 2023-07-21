@@ -9,21 +9,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Check,
-  Zap,
-  ChevronsUpDown,
-  Plus,
-  Key,
-  Book,
-  LogOut,
-  Rocket,
-  Settings,
-} from "lucide-react";
+import { Check, Zap, ChevronsUpDown, Plus, Book, LogOut, Rocket } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loading } from "@/components/loading";
+import { Loading } from "@/components/dashboard/loading";
 
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";

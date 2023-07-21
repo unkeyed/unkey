@@ -9,8 +9,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
-import { Loading } from "@/components/loading";
+} from "@/components/ui/form";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -20,18 +20,17 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-import { CopyButton } from "@/components/CopyButton";
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
-import { VisibleButton } from "@/components/VisibleButton";
+import { VisibleButton } from "@/components/dashboard/visible-button";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Code } from "@/components/ui/code";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({

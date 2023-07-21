@@ -7,8 +7,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
-import { Loading } from "@/components/loading";
+} from "@/components/ui/form";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,7 +47,11 @@ export const CreateApiButton: React.FC<Props> = () => {
     },
     onError(err) {
       console.error(err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -84,10 +88,10 @@ export const CreateApiButton: React.FC<Props> = () => {
                 )}
               />
 
-              <DialogFooter className="p-4 justify-end">
+              <DialogFooter className="justify-end p-4">
                 <Button
                   disabled={create.isLoading || !form.formState.isValid}
-                  className="mt-4 w-1/4"
+                  className="w-1/4 mt-4"
                   type="submit"
                 >
                   {create.isLoading ? <Loading /> : "Create"}

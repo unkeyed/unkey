@@ -7,8 +7,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/Form";
-import { Loading } from "@/components/loading";
+} from "@/components/ui/form";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,14 +38,22 @@ export default function TeamCreation() {
     },
     onError(err) {
       console.error(err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
   if (!isLoaded) {
     return null;
   }
 
-  const createClerkOrg = async ({ values }: { values: { name: string; slug: string } }) => {
+  const createClerkOrg = async ({
+    values,
+  }: {
+    values: { name: string; slug: string };
+  }) => {
     await createOrganization({
       ...values,
     })
@@ -55,7 +63,11 @@ export default function TeamCreation() {
       })
       .catch((err) => {
         console.error(err);
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive",
+        });
       });
   };
 

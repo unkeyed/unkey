@@ -1,7 +1,7 @@
 import clsx from "clsx";
 
-import { Border } from "@/components/landing-components/border";
-import { FadeIn, FadeInStagger } from "@/components/landing-components/fade-in";
+import { Border } from "@/components/landing/border";
+import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
 
 export function List({
   className,

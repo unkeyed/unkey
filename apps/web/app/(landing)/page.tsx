@@ -1,11 +1,11 @@
-import { Container } from "@/components/landing-components/container";
-import { FadeIn, FadeInStagger } from "@/components/landing-components/fade-in";
-import { List, ListItem } from "@/components/landing-components/list";
-import { SectionIntro } from "@/components/landing-components/section-intro";
-import { StylizedImage } from "@/components/landing-components/stylized-image";
+import { Container } from "@/components/landing/container";
+import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
+import { List, ListItem } from "@/components/landing/list";
+import { SectionIntro } from "@/components/landing/section-intro";
+import { StylizedImage } from "@/components/landing/stylized-image";
 import laptopImage from "@/images/computer-user.jpg";
-import { Button } from "@/components/landing-components/button";
-import { StatList, StatListItem } from "@/components/landing-components/stat-list";
+import { Button } from "@/components/landing/button";
+import { StatList, StatListItem } from "@/components/landing/stat-list";
 import { db, schema, sql } from "@unkey/db";
 export const revalidate = 60;
 
@@ -26,13 +26,13 @@ const [workspaces, apis, keys] = await Promise.all([
 
 function NumbersServed() {
   return (
-    <div className="mt-24 rounded-4xl py-20 sm:mt-32 sm:py-32 lg:mt-32">
+    <div className="py-20 mt-24 rounded-4xl sm:mt-32 sm:py-32 lg:mt-32">
       <Container className="">
         <FadeIn className="flex items-center gap-x-8">
-          <h2 className="text-center font-display text-2xl mb-8 font-semibold tracking-wider text-black sm:text-left">
-            We&apos;ve served
+          <h2 className="mb-8 text-2xl font-semibold tracking-wider text-center text-black font-display sm:text-left">
+            We serve
           </h2>
-          <div className="h-px flex-auto" />
+          <div className="flex-auto h-px" />
         </FadeIn>
         <FadeInStagger faster>
           <StatList>
@@ -121,7 +121,7 @@ export default async function Home() {
             secure, manage, and scale their APIs.
           </p>
         </FadeIn>
-        <Button href='https://unkey.dev/app' className="mt-4 px-8 py-3">
+        <Button href='/app' className="px-8 py-3 mt-4">
           Start for free
         </Button>
       </Container>

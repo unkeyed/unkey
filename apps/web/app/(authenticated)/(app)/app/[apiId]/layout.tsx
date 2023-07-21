@@ -1,5 +1,5 @@
-import { CopyButton } from "@/components/CopyButton";
-import { PageHeader } from "@/components/PageHeader";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -8,8 +8,8 @@ import { db, eq, schema } from "@unkey/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { DeleteApiButton } from "./DeleteApi";
-import { NavLink } from "./navbar";
+import { DeleteApiButton } from "./delete-api-button";
+import { NavLink } from "./api-navbar";
 
 type Props = PropsWithChildren<{
   params: {

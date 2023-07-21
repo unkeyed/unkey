@@ -1,17 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { DropdownMenuTriggerProps } from "@radix-ui/react-dropdown-menu";
-
-// import { NpmCommands } from "types/unist"
 
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Check, Copy } from "lucide-react";
 
 interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
