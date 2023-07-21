@@ -1,6 +1,6 @@
-import { PageHeader } from "@/components/dashboard-components/page-header";
-import { ColumnChart } from "@/components/dashboard-components/charts";
-import { Text } from "@/components/dashboard-components/text";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { ColumnChart } from "@/components/dashboard/charts";
+import { Text } from "@/components/dashboard/text";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { fillRange } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { db, eq, schema } from "@unkey/db";
 import { getDailyUsage } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { CopyButton } from "@/components/dashboard-components/copy-button";
+import { CopyButton } from "@/components/dashboard/copy-button";
 
 export const revalidate = 0;
 

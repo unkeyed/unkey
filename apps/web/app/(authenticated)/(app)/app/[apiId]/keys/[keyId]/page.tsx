@@ -3,7 +3,7 @@ import { db, schema, eq } from "@unkey/db";
 import { notFound } from "next/navigation";
 import { getDailyUsage } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
-import { ColumnChart } from "@/components/dashboard-components/charts";
+import { ColumnChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const revalidate = 0;

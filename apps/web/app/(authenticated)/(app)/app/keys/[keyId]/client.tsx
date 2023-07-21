@@ -1,9 +1,9 @@
 "use client";
-import { PageHeader } from "@/components/dashboard-components/page-header";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
-import { DeleteKeyButton } from "@/components/dashboard-components/delete-key";
+import { DeleteKeyButton } from "@/components/dashboard/delete-key";
 
 const _allActions = ["create", "read", "update", "delete"];
 
