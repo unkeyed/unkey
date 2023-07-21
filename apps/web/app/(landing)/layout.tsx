@@ -1,7 +1,7 @@
 import { RootLayout } from '@/components/landing-components/root-layout'
 import { Toaster } from '@/components/ui/toaster'
 
-import '@/styles/landing/styles/tailwind.css'
+import '@/styles/tailwind/tailwind.css'
 
 export const metadata = {
   title: {
