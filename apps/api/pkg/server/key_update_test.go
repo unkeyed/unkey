@@ -70,8 +70,6 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-
-
 	require.Equal(t, res.StatusCode, 200)
 
 	found, err := db.GetKeyById(ctx, key.Id)
@@ -133,8 +131,6 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-
-
 	require.Equal(t, res.StatusCode, 200)
 
 	found, err := db.GetKeyById(ctx, key.Id)
@@ -192,8 +188,6 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-
-
 	require.Equal(t, res.StatusCode, 200)
 
 	found, err := db.GetKeyById(ctx, key.Id)
@@ -247,8 +241,6 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
-
-
 
 	require.Equal(t, res.StatusCode, 200)
 
@@ -304,8 +296,6 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
-
-
 
 	require.Equal(t, res.StatusCode, 200)
 
