@@ -2,7 +2,7 @@ import ReactModal from "react-modal";
 import { Props } from "react-modal";
 import { AnimatePresence, motion } from "framer-motion";
 import { ReactNode } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 interface ModalProps extends Props {
   trigger?: () => ReactNode | string;

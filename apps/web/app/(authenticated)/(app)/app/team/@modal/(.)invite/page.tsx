@@ -15,7 +15,7 @@ import {
   SelectContent,
   SelectTrigger,
 } from "@/components/ui/select";
-import { Loading } from "@/components/loading";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,7 +25,7 @@ import { z } from "zod";
 import { useOrganization } from "@clerk/nextjs";
 import { MembershipRole } from "@clerk/types";
 import { useState } from "react";
-import { Modal } from "@/components/modal";
+import { Modal } from "@/components/dashboard/modal";
 import { useRouter } from "next/navigation";
 const formSchema = z.object({
   email: z.string().email(),

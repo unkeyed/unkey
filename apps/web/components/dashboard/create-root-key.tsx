@@ -4,9 +4,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { CopyButton } from "@/components/copy-button";
-import { VisibleButton } from "@/components/visible-button";
-import { Loading } from "@/components/loading";
+import { CopyButton } from "./copy-button";
+import { VisibleButton } from "./visible-button";
+import { Loading } from "./loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";

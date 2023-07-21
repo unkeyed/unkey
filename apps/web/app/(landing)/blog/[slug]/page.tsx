@@ -1,61 +1,52 @@
+
+import { Container } from '@/components/landing-components/container'
+import { FadeIn } from '@/components/landing-components/fade-in'
+import { PageLinks } from '@/components/landing-components/page-links'
+import { formatDate } from '@/lib/formatDate'
 import { allPosts } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
+import Link from 'next/link';
 import { notFound } from "next/navigation";
-import Link from "next/link";
 export const generateStaticParams = async () =>
   allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
 
-export const generateMetadata = ({ params }: { params: { slug: string } }) => {
-  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
-  if (!post) {
-    return notFound();
-  }
-  return {
-    title: post.title,
-    description: post.excerpt,
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      type: "article",
-      image: `https://unkey.dev/og?title=${encodeURIComponent(post.title)}`,
-    },
-    robots: {
-      index: true,
-      follow: true,
-      nocache: true,
-      googleBot: {
-        index: true,
-        follow: false,
-        noimageindex: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
-    },
-  };
-};
+const BlogArticleWrapper  = ({ params }: { params: { slug: string } }) => {
+    const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
+    if (!post) {
+      return notFound();
+    }
+    
+    const Content = getMDXComponent(post.body.code);
 
-const PostLayout = ({ params }: { params: { slug: string } }) => {
-  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
-  if (!post) {
-    return notFound();
-  }
-  const Content = getMDXComponent(post.body.code);
-
+    // Find other articles to recommend at the bottom of the page that aren't the current article
+    const moreArticles = allPosts.filter((p) => p._raw.flattenedPath !== post._raw.flattenedPath).slice(0,2);
   return (
     <>
-      <article className="w-full max-w-3xl p-4 mx-auto prose lg:prose-md">
-        <div className="max-w-2xl py-8 mx-auto mb-8 ">
-          <h1 className="text-center">{post.title}</h1>
-          <span className="flex justify-center text-sm text-gray-600">
-            <time dateTime={post.date} className="mx-2 ">
-              Published on {new Date(post.date).toDateString()}
+      <Container as="article" className="mt-24 sm:mt-32 lg:mt-40 ">
+        <FadeIn>
+          <header className="mx-auto flex max-w-5xl flex-col text-center">
+            <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-neutral-950 [text-wrap:balance] sm:text-6xl">
+              {post.title}
+            </h1>
+            <time
+              dateTime={new Date(post.date).toDateString()}
+              className="order-first text-sm text-neutral-950"
+            >
+              {formatDate(new Date(post.date).toString())}
             </time>
-            by {post.author}
-          </span>
-        </div>
-        <Content />
-      </article>
+            <p className="mt-6 text-sm font-semibold text-neutral-950">
+              by {post.author.name}, {post.author.role}
+            </p>
+          </header>
+        </FadeIn>
+
+        <FadeIn>
+            <div className='mx-auto prose lg:prose-md max-w-5xl'>
+          <Content/>
+          </div>
+        </FadeIn>
+      </Container>
+      <FadeIn>
       <div className="mx-auto max-w-7xl py-24 sm:px-6 sm:py-32 lg:px-8">
         <div className="relative isolate overflow-hidden bg-gray-900 px-6 pt-16 shadow-2xl sm:rounded-xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
           <svg
@@ -105,8 +96,18 @@ const PostLayout = ({ params }: { params: { slug: string } }) => {
           </div>
         </div>
       </div>
-    </>
-  );
-};
+      </FadeIn>
 
-export default PostLayout;
+      {moreArticles.length > 0 && (
+        <PageLinks
+          className="mt-24 sm:mt-32 lg:mt-40"
+          title="More articles"
+          intro=""
+          pages={moreArticles}
+        />
+      )}
+    </>
+  )
+}
+
+export default BlogArticleWrapper;

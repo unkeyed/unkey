@@ -8,8 +8,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/loading";
-import { Modal } from "@/components/modal";
+import { Loading } from "./loading";
+import { Modal } from "./modal";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";

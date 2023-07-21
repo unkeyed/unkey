@@ -8,7 +8,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/loading";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -18,7 +18,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useOrganizationList } from "@clerk/nextjs";
-import { Modal } from "@/components/modal";
+import { Modal } from "@/components/dashboard/modal";
 import { useEffect, useState } from "react";
 const formSchema = z.object({
   name: z.string().min(3).max(50),

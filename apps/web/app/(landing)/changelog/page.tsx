@@ -1,94 +1,93 @@
-import { allChangelogs, type Changelog } from "contentlayer/generated";
-import { getMDXComponent } from "next-contentlayer/hooks";
-import Link from "next/link";
+import Link from 'next/link'
+import { Border } from '@/components/landing-components/border'
+import { Button } from '@/components/landing-components/button'
+import { Container } from '@/components/landing-components/container'
+import { FadeIn, FadeInStagger } from '@/components/landing-components/fade-in'
+import { PageIntro } from '@/components/landing-components/page-intro'
+import { allChangelogs } from "contentlayer/generated";
+
+
+
+function Changelog({ changelogs } = { changelogs: allChangelogs}) {
+  return (
+    <Container className="mt-40">
+      <FadeIn>
+        <h2 className="font-display text-2xl font-semibold text-neutral-950">
+          Changelogs
+        </h2>
+      </FadeIn>
+      <div className="mt-10 space-y-20 sm:space-y-24 lg:space-y-32">
+        {changelogs.map((changelog) => (
+          <FadeIn key={changelog.title}>
+            <article>
+              <Border className="grid grid-cols-3 gap-x-8 gap-y-8 pt-16">
+                <div className="col-span-full sm:flex sm:items-center sm:justify-between sm:gap-x-8 lg:col-span-1 lg:block">
+                  <div className="sm:flex sm:items-center sm:gap-x-6 lg:block">
+                    <h3 className="mt-6 text-sm font-semibold text-neutral-950 sm:mt-0 lg:mt-8">
+                      {changelog.title}
+                    </h3>
+                  </div>
+                  <div className="mt-1 flex gap-x-4 sm:mt-0 lg:block">
+                    <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 after:content-['/'] lg:mt-2 lg:after:hidden">
+                     
+                    </p>
+                    <p className="text-sm text-neutral-950 lg:mt-2">
+                      <time dateTime={changelog.date}>
+                        {changelog.date}
+                      </time>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-full lg:col-span-2 lg:max-w-2xl">
+                  <p className="font-display text-4xl font-medium text-neutral-950">
+                    <Link href={changelog.url}>{changelog.title}</Link>
+                  </p>
+                  <div className="mt-6 space-y-6 text-base text-neutral-600">
+                    {changelog.summary?.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                  </div>
+                  <div className="mt-8 flex">
+                    <Button
+                      href={changelog.url}
+                      aria-label={`Read this Changelog for ${changelog.title}`}
+                    >
+                      Read the Changelog
+                    </Button>
+                  </div>
+                </div>
+              </Border>
+            </article>
+          </FadeIn>
+        ))}
+      </div>
+    </Container>
+  )
+}
 
 export const metadata = {
-  title: "Changelog | Unkey",
-  description: "Changelog for Unkey",
-  openGraph: {
-    title: "Changelog | Unkey",
-    description: "Changelog for Unkey",
-    url: "https://unkey.dev/changelog",
-    siteName: "unkey.dev",
-    images: [
-      {
-        url: "https://unkey.dev/og?title=Changelog%20%7C%20Unkey",
-        width: 1200,
-        height: 675,
-      },
-    ],
-  },
-  twitter: {
-    title: "Unkey",
-    card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/unkey.png",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: true,
-    googleBot: {
-      index: true,
-      follow: false,
-      noimageindex: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-};
+  title: 'Changelog | Unkey',
+  description:
+    'Stay up-to-date with the latest updates and changes to Unkey',
+}
 
-export default function ChangelogPage() {
+export default async function Changelogs() {
   const changelogs = allChangelogs.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 
   return (
-    <div className="relative">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="relative mx-auto max-w-[37.5rem] pt-20 text-center pb-20">
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Changelog
-          </h1>
-        </div>
-      </div>
-      <div className="relative max-w-5xl px-4 mx-auto sm:px-6 lg:px-8">
-        {changelogs.map((c) => (
-          <ChangelogSection key={c.date} changelog={c} />
-        ))}
-      </div>
-    </div>
-  );
+    <>
+      <PageIntro
+        eyebrow=""
+        title="Unkey Changelog"
+      >
+        <p>
+          We are constantly improving our product, fixing bugs and introducing features. Here you can find the latest updates and changes to Unkey.
+        </p>
+      </PageIntro>
+
+      <Changelog changelogs={changelogs} />
+    </>
+  )
 }
-
-type ChangelogSectionProps = {
-  changelog: Changelog;
-};
-const ChangelogSection: React.FC<ChangelogSectionProps> = ({ changelog }) => {
-  const h2Header = /(#{2} .*)\r?\n/g;
-  const headings = Array.from(changelog.body.raw.matchAll(h2Header), (m) => m[1]);
-  return (
-    <section key={changelog.date} id={changelog.date} className="md:flex">
-      <h2 className="text-sm leading-6 pl-7 text-slate-500 md:w-1/4 md:pl-0 md:pr-12 md:text-right">
-        <Link href={`/changelog/${changelog.date}`}>{new Date(changelog.date).toDateString()}</Link>
-      </h2>
-
-      <div className="relative pt-2 pb-8 pl-7 md:w-3/4 md:pl-12 md:pt-0">
-        <Link href={`/changelog/${changelog.date}`}>
-          <div className="absolute bottom-0 left-0 w-px bg-slate-200 -top-3 md:top-2.5" />
-          <div className="absolute -left-1 -top-[1.0625rem] h-[0.5625rem] w-[0.5625rem] rounded-full border-2 border-slate-300 bg-white md:top-[0.4375rem]" />
-          <div className="prose-sm prose max-w-none prose-h3:mb-4 prose-h3:text-base prose-h3:leading-6 ">
-            <h2>{changelog.title}</h2>
-            {headings.map((h) => (
-              <h3 className="text-gray-500 font-normal" key={h}>
-                {h.replace("##", "-")}
-              </h3>
-            ))}
-          </div>
-        </Link>
-      </div>
-    </section>
-  );
-};

@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
-import { ReactQueryProvider } from "@/components/react-query-provider";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ReactQueryProvider } from "@/components/dashboard/react-query-provider";
+import { ThemeProvider } from "@/components/dashboard/theme-provider";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

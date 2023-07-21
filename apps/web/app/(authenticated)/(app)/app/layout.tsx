@@ -1,9 +1,9 @@
-import { DesktopSidebar } from "@/components/desktop-sidebar";
+import { DesktopSidebar } from "@/components/dashboard/desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@unkey/db";
 import { redirect } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { MobileSideBar } from "@/components/mobile-sidebar";
+import { MobileSideBar } from "@/components/dashboard/mobile-sidebar";
 interface LayoutProps {
   children: React.ReactNode;
   params: {

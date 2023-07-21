@@ -1,10 +1,10 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/empty-placeholder";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, FileJson2, Search } from "lucide-react";
-import { CreateApiButton } from "../../../../../components/create-api";
+import { CreateApiButton } from "@/components/dashboard/create-api";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import Link from "next/link";

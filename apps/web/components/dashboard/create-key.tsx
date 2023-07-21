@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/loading";
+import { Loading } from "./loading";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -20,13 +20,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-import { CopyButton } from "@/components/copy-button";
+import { CopyButton } from "./copy-button";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
-import { VisibleButton } from "@/components/visible-button";
+import { VisibleButton } from "./visible-button";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -169,10 +169,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       ) : (
         <>
           <div>
-            <div className="w-full">
-              <h2 className="mb-2 text-2xl font-semibold">Create a new Key</h2>
+            <div className="w-full overflow-scroll">
+              <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
-                <form className="" onSubmit={form.handleSubmit(onSubmit)}>
+                <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
                   <FormField
                     control={form.control}
                     name="prefix"
@@ -223,7 +223,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <div className="grid md:grid-cols-3 grid-cols-1 gap-4 mt-4">
+                  <div className="flex justify-around my-4 space-x-4">
                     <FormField
                       control={form.control}
                       name="expiresEnabled"
