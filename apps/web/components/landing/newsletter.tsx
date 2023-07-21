@@ -33,7 +33,6 @@ const SubmitButton = () => {
 export function NewsletterForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
-  console.log(formRef);
   return (
     <form
       ref={formRef}
