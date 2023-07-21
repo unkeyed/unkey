@@ -39,11 +39,8 @@ interface ParticlesProps {
   vy?: number;
 }
 function hexToRgb(hex: string): number[] {
-  // Remove the "#" character from the beginning of the hex color code
-  hex = hex.replace("#", "");
-
   // Convert the hex color code to an integer
-  const hexInt = parseInt(hex, 16);
+  const hexInt = parseInt(hex.replace("#", ""), 16);
 
   // Extract the red, green, and blue components from the hex color code
   const red = (hexInt >> 16) & 255;
@@ -67,7 +64,7 @@ export const Particles: React.FC<ParticlesProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const context = useRef<CanvasRenderingContext2D | null>(null);
-  const circles = useRef<any[]>([]);
+  const circles = useRef<Circle[]>([]);
   const mousePosition = useMousePosition();
   const mouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const canvasSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 });

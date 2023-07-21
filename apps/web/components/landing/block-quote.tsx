@@ -1,7 +1,7 @@
 import Image, { ImageProps } from "next/image";
 import clsx from "clsx";
 
-import { Border } from "@/components/landing-components/border";
+import { Border } from "@/components/landing/border";
 
 interface Author {
   name: string;

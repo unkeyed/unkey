@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { Container } from "@/components/landing-components/container";
-import { FadeIn } from "@/components/landing-components/fade-in";
-import { socialMediaProfiles } from "@/components/landing-components/social-media";
-import { NewsletterForm } from "@/components/landing-components/newsletter";
+import { Container } from "@/components/landing/container";
+import { FadeIn } from "@/components/landing/fade-in";
+import { socialMediaProfiles } from "@/components/landing/social-media";
+import { NewsletterForm } from "@/components/landing/newsletter";
 
 const navigation = [
   {

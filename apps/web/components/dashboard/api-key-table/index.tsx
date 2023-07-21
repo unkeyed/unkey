@@ -4,19 +4,8 @@ import { DataTable } from "./table";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc/client";
-import { Loading } from "@/components/loading";
+import { Loading } from "../loading";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import ms from "ms";
