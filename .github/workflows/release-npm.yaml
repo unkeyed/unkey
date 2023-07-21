@@ -41,6 +41,8 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
 
+      - name: Set package version
+        run: node ./scripts/set-version.js ./packages/sdk ${{ env.VERSION }}
 
       - name: Install
         run: pnpm install -r
@@ -48,18 +50,17 @@ jobs:
       - name: Build package
         run: pnpm turbo run build --filter=@unkey/api
 
+      - name: Authenticate Registry
+        run: npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
+        
       - name: Publish canary
         if: "github.event.release.prerelease"
         working-directory: ./packages/sdk
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
-          npm publish --access public --tag=canary
+        run: pnpm publish --access public --tag=canary --no-git-checks 
 
       - name: Publish
         if: "!github.event.release.prerelease"
         working-directory: ./packages/sdk
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
-          npm publish --access public
+        run: pnpm publish --access public --no-git-checks 
 
   
