@@ -2,7 +2,6 @@ import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { notFound } from "next/navigation";
 import { getDailyUsage } from "@/lib/tinybird";
-import { env } from "@/lib/env";
 import { fillRange } from "@/lib/utils";
 import { ColumnChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

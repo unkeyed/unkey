@@ -5,7 +5,7 @@ import Link from "next/link";
 export const NavigationBar = () => {
   const showNavMobile = () => {
     const navMobile = document.getElementById("navbar-cta");
-    navMobile!.classList.toggle("hidden");
+    navMobile?.classList.toggle("hidden");
   };
   return (
     <nav className="bg-gray-50 dark:bg-gray-900">
@@ -36,6 +36,7 @@ export const NavigationBar = () => {
               viewBox="0 0 20 20"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <title>menu</title>
               <path
                 fillRule="evenodd"
                 d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
