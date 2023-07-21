@@ -68,7 +68,7 @@ function Changelog({ changelogs } = { changelogs: allChangelogs}) {
 export const metadata = {
   title: 'Changelog | Unkey',
   description:
-    'We believe in efficiency and maximizing our resources to provide the best value to our clients.',
+    'Stay up-to-date with the latest updates and changes to Unkey',
 }
 
 export default async function Changelogs() {
