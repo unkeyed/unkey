@@ -7,9 +7,10 @@ import { Button } from "../ui/button";
 interface ModalProps extends Props {
   trigger?: () => ReactNode | string;
   setIsOpen: (isOpen: boolean) => void;
+  disabled?: boolean;
 }
 
-export const Modal = ({ trigger, children, setIsOpen, isOpen, ...rest }: ModalProps) => {
+export const Modal = ({ trigger, children, setIsOpen, disabled, isOpen, ...rest }: ModalProps) => {
   const modalVariants = {
     hidden: {
       opacity: 0,
@@ -29,7 +30,7 @@ export const Modal = ({ trigger, children, setIsOpen, isOpen, ...rest }: ModalPr
     <>
       {trigger ? (
         // rome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-        <div onClick={() => setIsOpen(true)}>
+        <div onClick={() => !disabled && setIsOpen(true)}>
           {typeof trigger === "function" ? trigger() : defaultTrigger(trigger)}
         </div>
       ) : null}

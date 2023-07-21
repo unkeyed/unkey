@@ -79,7 +79,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           <CardDescription>Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="col-span-3 bg-gradient-to-br from-zinc-50 to-zinc-100 hover:drop-shadow-md dark:from-zinc-950 dark:to-zinc-900 relative">
+      <Card className="col-span-3 overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100 hover:drop-shadow-md dark:from-zinc-950 dark:to-zinc-900 relative">
         <div
           className="absolute right-0 top-0 h-px w-[300px]"
           style={{

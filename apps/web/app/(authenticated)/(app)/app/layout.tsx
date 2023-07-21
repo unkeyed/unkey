@@ -29,11 +29,8 @@ export default async function Layout({ children }: LayoutProps) {
       <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-tl">
         <DesktopSidebar workspace={workspace} className=" hidden md:block" />
         <MobileSideBar workspace={workspace} />
-        <div className="w-full md:m-2 bg-gradient-to-br from-white to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 shadow md:ml-72 rounded-xl">
-          <ScrollArea className="max-h-screen p-4 m-4 overflow-y-auto ">
-            {children}
-            <ScrollBar />
-          </ScrollArea>
+        <div className="w-full px-4 md:px-8 md:m-2 bg-gradient-to-br from-white to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 shadow md:ml-72 rounded-xl">
+          {children}
         </div>
       </div>
     </>

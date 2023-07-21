@@ -62,9 +62,10 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
       <Modal
         isOpen={modalOpen}
         setIsOpen={setModalOpen}
+        disabled={rest.disabled}
         trigger={() => (
-          <Button className=" gap-2 font-semibold" {...rest}>
-            <Plus size={18} className=" w-4 h-4" />
+          <Button className=" gap-2 font-semibold items-center flex-row" {...rest}>
+            <Plus size={18} className=" w-4 h-4 md:w-5 md:h-5" />
             Create New API
           </Button>
         )}

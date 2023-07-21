@@ -1,13 +1,13 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileJson2, Search } from "lucide-react";
 import { CreateApiButton } from "@/components/dashboard/create-api";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import Link from "next/link";
+import { Icons } from "@/components/ui/icons";
 
 type ApiWithKeys = {
   id: string;
@@ -25,7 +25,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
       <Separator className="my-6" />
       <section className=" my-4 flex md:items-center gap-4 flex-col md:flex-row">
         <div className="flex h-10 flex-grow items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-within:border-primary/40">
-          <Search size={18} />
+          <Icons.search size={18} />
           <input
             className="disabled:cursor-not-allowed bg-transparent flex-grow disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none  "
             placeholder="Search.."
@@ -56,7 +56,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
                 <CardHeader>
                   <div className=" flex items-center justify-between">
                     <CardTitle>{api.name}</CardTitle>
-                    <FileJson2 size={18} />
+                    <Icons.api size={18} />
                   </div>
                   <CardDescription>{api.id}</CardDescription>
                 </CardHeader>
@@ -83,11 +83,11 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
           <EmptyPlaceholder.Description>
             You haven&apos;t created any API yet. Create one to get started.
           </EmptyPlaceholder.Description>
-          <div className="gap-2 flex md:items-center flex-col md:flex-row">
-            <CreateApiButton key="createApi" />
+          <div className="gap-2 flex items-center justify-center flex-col md:flex-row">
+            <CreateApiButton key="createApi" className="" />
             <Link href="/docs" target="_blank">
-              <Button variant="outline" className=" gap-2 items-center text-sm md:text-base">
-                <BookOpen size={18} className=" w-4 h-4 md:w-5 md:h-5" />
+              <Button variant="outline" className=" gap-2 items-center w-full">
+                <Icons.docs size={18} className=" w-4 h-4 md:w-5 md:h-5" />
                 Read the docs
               </Button>
             </Link>

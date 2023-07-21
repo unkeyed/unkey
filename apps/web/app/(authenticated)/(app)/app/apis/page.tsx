@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { ApiList } from "./client";
-import { CreditCard, Search } from "lucide-react";
+import { Icons } from "@/components/ui/icons";
 
 export const revalidate = 3;
 
@@ -43,7 +43,7 @@ export default async function TenantOverviewPage() {
           <Separator className="my-6" />
           <section className=" my-4 flex md:items-center gap-4 flex-col md:flex-row">
             <div className="flex h-10 flex-grow items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-within:border-primary/40">
-              <Search size={18} />
+              <Icons.search size={18} />
               <input
                 disabled
                 className="disabled:cursor-not-allowed bg-transparent flex-grow disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none  "
@@ -52,12 +52,12 @@ export default async function TenantOverviewPage() {
             </div>
             <CreateApiButton disabled />
           </section>
-          <div className="flex flex-col justify-center items-center  mt-24 px-4 space-y-6 border border-dashed rounded-lg min-h-[400px]">
-            <CreditCard size={80} />
-            <h3 className="text-2xl font-semibold text-center leading-none tracking-tight">
+          <div className="flex flex-col justify-center items-center mt-10  md:mt-24 px-4 space-y-6 border border-dashed rounded-lg min-h-[400px]">
+            <Icons.payment size={80} />
+            <h3 className="md:text-2xl tet-xl font-semibold text-center leading-none tracking-tight">
               Please add billing to your account
             </h3>
-            <p className="text-gray-500 text-center">
+            <p className="text-gray-500 text-center text-sm md:text-base">
               Team workspaces is a paid feature. Please add billing to your account to continue
               using it.
             </p>

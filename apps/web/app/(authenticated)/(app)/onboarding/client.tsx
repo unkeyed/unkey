@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { date, z } from "zod";
+import { z } from "zod";
 import { useTheme } from "next-themes";
 
 const formSchema = z.object({
@@ -53,7 +53,6 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
     },
   });
   const { theme } = useTheme();
-  const date = new Date();
   return (
     <div className="flex flex-col justify-center items-center w-full min-h-screen">
       <Image

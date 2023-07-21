@@ -3,6 +3,7 @@ import { db, schema, eq, type Key } from "@unkey/db";
 import { redirect } from "next/navigation";
 
 import { ApiKeyTable } from "@/components/dashboard/api-key-table";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const revalidate = 0;
 export default async function ApiPage(props: { params: { apiId: string } }) {
@@ -34,8 +35,10 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   }
 
   return (
-    <div>
-      <ApiKeyTable data={keys} />
-    </div>
+    <Card className=" py-4">
+      <CardContent>
+        <ApiKeyTable data={keys} />
+      </CardContent>
+    </Card>
   );
 }

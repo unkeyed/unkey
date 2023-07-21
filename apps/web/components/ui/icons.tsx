@@ -1,3 +1,4 @@
+import { BookOpen, CreditCard, FileJson2, Search } from "lucide-react";
 import { Command, Loader2, X, Twitter, Mail } from "lucide-react";
 import type { Icon as LucideIcon, LucideProps } from "lucide-react";
 
@@ -9,6 +10,10 @@ export const Icons = {
   twitter: Twitter,
   email: Mail,
   spinner: Loader2,
+  docs: BookOpen,
+  api: FileJson2,
+  search: Search,
+  payment: CreditCard,
   gitHub: (props: LucideProps) => (
     <svg viewBox="0 0 438.549 438.549" {...props}>
       <path
