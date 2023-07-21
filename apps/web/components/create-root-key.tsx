@@ -70,7 +70,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
         </DialogTrigger>
 
         {key.data ? (
-          <DialogContent className="max-w-fit ">
+          <DialogContent className="max-w-fit">
             <DialogHeader>
               <DialogTitle>Your API Key</DialogTitle>
               <DialogDescription>
@@ -112,7 +112,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
             </Code>
           </DialogContent>
         ) : (
-          <DialogContent>
+          <DialogContent className="">
             <DialogTitle>Create a new API key</DialogTitle>
             <DialogDescription />
 
@@ -126,7 +126,7 @@ export const CreateKeyButton: React.FC<Props> = ({ apiId }) => {
                 For production use, we recommend creating a key with only the permissions you need.
               </AlertDescription>
             </Alert>
-            <DialogFooter className="flex items-center justify-between gap-2 ">
+            <DialogFooter className="flex gap-2">
               <Button disabled={key.isLoading} onClick={() => key.mutate()}>
                 {key.isLoading ? <Loading /> : "Create Root Key"}
               </Button>

@@ -78,7 +78,11 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="my-api" {...field} />
+                    <Input
+                      placeholder="my-api"
+                      {...field}
+                      className=" dark:focus:border-zinc-700"
+                    />
                   </FormControl>
                   <FormDescription>
                     This is just a human readable name for you and not visible to anyone else
@@ -88,10 +92,10 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
               )}
             />
 
-            <DialogFooter className=" pt-4 justify-end">
+            <DialogFooter className=" pt-4 justify-end flex-row gap-2">
               <Button
                 disabled={create.isLoading}
-                className="mt-4 w-1/4 dark:text-gray-300"
+                className="mt-4  dark:text-gray-300"
                 type="button"
                 variant="outline"
                 onClick={() => setModalOpen(false)}
@@ -100,7 +104,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
               </Button>
               <Button
                 disabled={create.isLoading || !form.formState.isValid}
-                className="mt-4 w-1/4"
+                className="mt-4 "
                 type="submit"
               >
                 {create.isLoading ? <Loading /> : "Create"}

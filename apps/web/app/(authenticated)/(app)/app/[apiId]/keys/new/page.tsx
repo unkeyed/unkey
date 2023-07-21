@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";
-import { CreateKeyButton } from "@/components/create-key";
+import { CreateKey } from "@/components/create-key";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
@@ -19,7 +19,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   return (
     <div className="h-full">
-      <CreateKeyButton apiId={api.id} />
+      <CreateKey apiId={api.id} />
     </div>
   );
 }

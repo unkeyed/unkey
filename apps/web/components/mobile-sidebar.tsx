@@ -4,15 +4,20 @@ import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { Workspace } from "@unkey/db";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 type Props = {
   workspace: Workspace;
 };
 
 export const MobileSideBar = ({ workspace }: Props) => {
+  const pathname = usePathname();
   const [hideNav, setHideNav] = useState(true);
+  useEffect(() => {
+    setHideNav(true);
+  }, [pathname]);
   return (
     <div className=" ">
       <div className=" md:hidden p-4 flex items-center justify-between dark:bg-zinc-900 bg-zinc-100">
