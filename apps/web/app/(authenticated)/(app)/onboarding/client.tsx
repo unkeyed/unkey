@@ -64,8 +64,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
       />
       <Card className=" z-10 shadow-md mx-6 md:mx-0">
         <CardHeader>
-          <CardTitle className=" bg-gradient-to-tr py-2 border-zinc-400  from-zinc-200 to-zinc-100 via-slate-400 text-transparent bg-clip-text">
-            {" "}
+          <CardTitle className=" bg-gradient-to-tr py-2 border-zinc-400">
             <p className=" text-sm">Let's get started</p>
             Create your first Workspace
           </CardTitle>

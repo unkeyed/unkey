@@ -1,6 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema } from "@unkey/db";
-import { eq } from "drizzle-orm";
+import { db, schema, eq } from "@unkey/db";
 import { redirect } from "next/navigation";
 
 export default async function TenantOverviewPage() {

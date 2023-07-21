@@ -165,6 +165,7 @@ export default async function PricingPage() {
                     >
                       {tiers[tier].features.map((feature) => (
                         <li key={feature} className="flex gap-x-3">
+                          {/* rome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"

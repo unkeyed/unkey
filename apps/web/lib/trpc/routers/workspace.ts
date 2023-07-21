@@ -19,7 +19,6 @@ export const workspaceRouter = t.router({
       })
     )
     .mutation(async ({ input }) => {
-      console.log(input);
       const id = newId("workspace");
       await db.insert(schema.workspaces).values({
         id,

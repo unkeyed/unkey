@@ -406,7 +406,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
-		Logger:    logging.New(),
+		Logger:    logging.NewNoopLogger(),
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
 	require.NoError(t, err)
@@ -426,7 +426,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:    logging.New(),
+		Logger:    logging.NewNoopLogger(),
 		KeyCache:  cache.NewNoopCache[entities.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  db,

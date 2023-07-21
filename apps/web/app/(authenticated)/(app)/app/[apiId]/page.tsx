@@ -59,13 +59,13 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      <Card className="">
+      <Card>
         <CardHeader>
           <CardTitle>{formatNumber(keys)}</CardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="">
+      <Card>
         <CardHeader>
           <CardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
@@ -79,14 +79,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           <CardDescription>Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="col-span-3 overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100 hover:drop-shadow-md dark:from-zinc-950 dark:to-zinc-900 relative">
-        <div
-          className="absolute right-0 top-0 h-px w-[300px]"
-          style={{
-            background:
-              "linear-gradient(90deg, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0) 0%, rgba(232, 232, 232, 0.2) 33.02%, rgba(143, 143, 143, 0.67) 64.41%, rgba(236, 72, 153, 0) 98.93%);",
-          }}
-        />
+      <Card className="col-span-3 overflow-hidden hover:drop-shadow-md relative">
         <div className=" absolute bottom-0 h-4  w-[200px] blur-2xl bg-white opacity-25" />
         <CardHeader className=" border-b dark:border-zinc-800">
           <CardTitle>Usage in the last 30 days</CardTitle>

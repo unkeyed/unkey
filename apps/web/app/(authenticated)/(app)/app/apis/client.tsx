@@ -1,7 +1,7 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreateApiButton } from "@/components/dashboard/create-api";
+import { CreateApiButton } from "./create-api-button";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
@@ -43,7 +43,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
           {localData.map((api) => (
             <Link key={api.id} href={`/app/${api.id}`}>
-              <Card className="duration-500 hover:border-primary/10 group hover:drop-shadow-md bg-gradient-to-tl dark:via-zinc-900/50 dark:from-zinc-900 dark:to-zinc-950 relative">
+              <Card className="duration-500 overflow-hidden hover:border-primary/10 group hover:drop-shadow-md bg-gradient-to-tl dark:via-zinc-900/50 dark:from-zinc-900 dark:to-zinc-950 relative">
                 <div
                   className="absolute left-0 top-0 h-px w-36 group-hover:w-[300px] transition-all duration-500"
                   style={{

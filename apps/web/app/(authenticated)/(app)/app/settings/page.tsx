@@ -79,7 +79,6 @@ export default async function SettingsPage() {
               <Text size="xl">Current Usage</Text>
               <div className="flex items-center gap-2">
                 <Text size="lg">{totalUsage.toLocaleString()}</Text>/{" "}
-                {/* rome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
                 <svg
                   className="w-8 h-8"
                   fill="none"

@@ -1,7 +1,7 @@
-import { Container } from '@/components/landing-components/container'
-import { FadeIn } from '@/components/landing-components/fade-in'
-import { PageIntro } from '@/components/landing-components/page-intro'
-import { PageLinks } from '@/components/landing-components/page-links'
+import { Container } from "@/components/landing/container";
+import { FadeIn } from "@/components/landing/fade-in";
+import { PageIntro } from "@/components/landing/page-intro";
+import { PageLinks } from "@/components/landing/page-links";
 import { allChangelogs } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
@@ -11,18 +11,16 @@ export const generateStaticParams = async () =>
     date: new Date(c.date).toISOString().split("T")[0],
   }));
 
-
 export default async function ChangeLogLayout({
   params,
 }: {
   params: { date: string };
 }) {
-
   const changelog = allChangelogs.find(
     (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
 
-  if (!changelog || !changelog.body) {
+  if (!changelog?.body) {
     return notFound();
   }
 
@@ -40,21 +38,19 @@ export default async function ChangeLogLayout({
 
           <div className="mt-24 border-t border-neutral-200 bg-white/50 sm:mt-32 lg:mt-40">
             <Container>
-              <div className="mx-auto max-w-5xl">
-                <dl className="-mx-6 grid grid-cols-1 text-sm text-neutral-950 sm:mx-0 sm:grid-cols-3">
-                  <div className="border-t border-neutral-200 px-6 py-4 first:border-t-0 sm:border-l sm:border-t-0">
+              <div className="max-w-5xl mx-auto">
+                <dl className="grid grid-cols-1 -mx-6 text-sm text-neutral-950 sm:mx-0 sm:grid-cols-3">
+                  <div className="px-6 py-4 border-t border-neutral-200 first:border-t-0 sm:border-l sm:border-t-0">
                     <dt className="font-semibold">Number of changes</dt>
                     <dd>{changelog.changes}</dd>
                   </div>
-                  <div className="border-t border-neutral-200 px-6 py-4 first:border-t-0 sm:border-l sm:border-t-0">
+                  <div className="px-6 py-4 border-t border-neutral-200 first:border-t-0 sm:border-l sm:border-t-0">
                     <dt className="font-semibold">Date</dt>
                     <dd>
-                      <time dateTime={changelog.date}>
-                        {changelog.date}
-                      </time>
+                      <time dateTime={changelog.date}>{changelog.date}</time>
                     </dd>
                   </div>
-                  <div className="border-t border-neutral-200 px-6 py-4 first:border-t-0 sm:border-l sm:border-t-0">
+                  <div className="px-6 py-4 border-t border-neutral-200 first:border-t-0 sm:border-l sm:border-t-0">
                     <dt className="font-semibold">New Features</dt>
                     <dd>{changelog.features}</dd>
                   </div>
@@ -64,14 +60,13 @@ export default async function ChangeLogLayout({
           </div>
 
           <div className="border-y border-neutral-200 bg-neutral-100">
-            <div className="-my-px mx-auto max-w-[76rem] bg-neutral-200">
-            </div>
+            <div className="-my-px mx-auto max-w-[76rem] bg-neutral-200" />
           </div>
         </header>
 
         <Container className="mt-24 sm:mt-32 lg:mt-40">
           <FadeIn>
-            <div className='mx-auto prose lg:prose-md max-w-5xl'>
+            <div className='max-w-5xl mx-auto prose lg:prose-md'>
               <Content />
             </div>
           </FadeIn>
@@ -86,5 +81,5 @@ export default async function ChangeLogLayout({
         />
       )}
     </>
-  )
+  );
 }

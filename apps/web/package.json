@@ -76,7 +76,6 @@
     "focus-visible": "^5.2.0",
     "framer-motion": "^10.12.16",
     "hono": "^3.2.5",
-    "jotai": "^2.2.2",
     "js-base64": "^3.7.5",
     "lucide-react": "^0.248.0",
     "ms": "^2.1.3",

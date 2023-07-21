@@ -176,3 +176,16 @@ func (mw *tracingMiddleware) DecrementRemainingKeyUsage(ctx context.Context, key
 	}
 	return remaining, err
 }
+
+func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) error {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.updateKey", mw.pkg), trace.WithAttributes(
+		attribute.String("keyId", key.Id),
+	))
+	defer span.End()
+
+	err := mw.next.UpdateKey(ctx, key)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return err
+}
