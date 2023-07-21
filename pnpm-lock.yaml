@@ -250,9 +250,6 @@ importers:
       hono:
         specifier: ^3.2.5
         version: 3.2.5
-      jotai:
-        specifier: ^2.2.2
-        version: 2.2.2(react@18.2.0)
       js-base64:
         specifier: ^3.7.5
         version: 3.7.5
@@ -11100,18 +11097,6 @@ packages:
       '@sideway/pinpoint': 2.0.0
     dev: true
 
-  /jotai@2.2.2(react@18.2.0):
-    resolution: {integrity: sha512-Cn8hnBg1sc5ppFwEgVGTfMR5WSM0hbAasd/bdAwIwTaum0j3OUPqBSC4tyk3jtB95vicML+RRWgKFOn6gtfN0A==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      react: '>=17.0.0'
-    peerDependenciesMeta:
-      react:
-        optional: true
-    dependencies:
-      react: 18.2.0
-    dev: false
-
   /joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
@@ -11519,7 +11504,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.5.3
+      tslib: 2.6.0
     dev: false
 
   /lru-cache@10.0.0:
