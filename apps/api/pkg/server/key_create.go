@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/apps/api/pkg/uid"
 	"go.uber.org/zap"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -130,7 +129,8 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 			Error: err.Error(),
 		})
 	}
-	split := strings.Split(keyValue, "_")
+	// how many chars to store, this includes the prefix, delimiter and the first 4 characters of the key
+	startLength := len(req.Prefix) + 5
 	keyHash := hash.Sha256(keyValue)
 
 	newKey := entities.Key{
@@ -139,7 +139,7 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 		WorkspaceId: authKey.ForWorkspaceId,
 		Name:        req.Name,
 		Hash:        keyHash,
-		Start:       split[len(split)-1][:4],
+		Start:       keyValue[:startLength],
 		OwnerId:     req.OwnerId,
 		Meta:        req.Meta,
 		CreatedAt:   time.Now(),

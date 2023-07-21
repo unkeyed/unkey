@@ -34,11 +34,11 @@ function PageLink({ page }: { page: Page }) {
         <p className="mt-2.5 text-base text-neutral-600">{page.description}</p>
         <Link
           href={page.url}
-          className="mt-6 flex gap-x-3 text-base font-semibold text-neutral-950 transition hover:text-neutral-700"
+          className="flex mt-6 text-base font-semibold transition gap-x-3 text-neutral-950 hover:text-neutral-700"
           aria-label={`Read more: ${page.title}`}
         >
           Read more
-          <ArrowIcon className="w-6 flex-none fill-current" />
+          <ArrowIcon className="flex-none w-6 fill-current" />
           <span className="absolute inset-0" />
         </Link>
       </Border>

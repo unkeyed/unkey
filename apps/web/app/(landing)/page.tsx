@@ -30,7 +30,7 @@ function NumbersServed() {
       <Container className="">
         <FadeIn className="flex items-center gap-x-8">
           <h2 className="mb-8 text-2xl font-semibold tracking-wider text-center text-black font-display sm:text-left">
-            We&apos;ve served
+            We serve
           </h2>
           <div className="flex-auto h-px" />
         </FadeIn>

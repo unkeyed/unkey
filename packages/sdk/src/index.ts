@@ -137,6 +137,77 @@ export class Unkey {
           body: req,
         });
       },
+      update: async (req: {
+        /**
+         * The id of the key to update.
+         */
+        keyId: string;
+        /**
+         * Update the name
+         */
+        name?: string | null;
+
+        /**
+         * Update the owner id
+         */
+        ownerId?: string | null;
+        /**
+         * This is a place for dynamic meta data, anything that feels useful for you should go here
+         *
+         * Example:
+         *
+         * ```json
+         * {
+         *   "billingTier":"PRO",
+         *   "trialEnds": "2023-06-16T17:16:37.161Z"
+         * }
+         * ```
+         */
+        meta?: unknown | null;
+        /**
+         * Update the expiration time, Unix timstamp in milliseconds
+         *
+         *
+         */
+        expires?: number | null;
+
+        /**
+         * Update the ratelimit
+         *
+         * @see https://docs.unkey.dev/features/ratelimiting
+         */
+        ratelimit?: {
+          type: "fast" | "consistent";
+          /**
+           * The total amount of burstable requests.
+           */
+          limit: number;
+
+          /**
+           * How many tokens to refill during each refillInterval
+           */
+          refillRate: number;
+
+          /**
+           * Determines the speed at which tokens are refilled.
+           * In milliseconds.
+           */
+          refillInterval: number;
+        } | null;
+
+        /**
+         * Update the remaining verifications.
+         *
+         * @see https://docs.unkey.dev/features/remaining
+         */
+        remaining?: number | null;
+      }): Promise<{ key: string; keyId: string }> => {
+        return await this.fetch<{ key: string; keyId: string }>({
+          path: ["v1", "keys", req.keyId],
+          method: "PUT",
+          body: req,
+        });
+      },
       verify: async (req: { key: string }): Promise<{
         /**
          * Whether or not this key is valid and has passed the ratelimit. If false you should not grant access to whatever the user is requesting
