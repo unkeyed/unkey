@@ -1,0 +1,44 @@
+name: Release Typescript SDK
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  release-ts-sdk:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Set env
+        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Publish canary
+        if: "github.event.release.prerelease"
+        working-directory: ./packages/sdk
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
+          npm publish --access public --tag=canary
+
+      - name: Publish
+        if: "!github.event.release.prerelease"
+        working-directory: ./packages/sdk
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
+          npm publish --access public
+
+  
