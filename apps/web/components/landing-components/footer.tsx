@@ -1,11 +1,9 @@
 import Link from 'next/link'
-import { addEmail } from '@/app/actions/addEmail'
+
 import { Container } from '@/components/landing-components/container'
 import { FadeIn } from '@/components/landing-components/fade-in'
 import { socialMediaProfiles } from '@/components/landing-components/social-media'
-import { experimental_useFormStatus as useFormStatus } from 'react-dom'
-import { useToast } from '../ui/use-toast'
-import { Icons } from '../ui/icons'
+import { NewsletterForm } from '@/components/landing-components/newsletter'
         
 const navigation = [
   {
@@ -59,85 +57,6 @@ function Navigation() {
   )
 }
 
-function ArrowIcon(props : any) {
-  return (
-    <svg viewBox="0 0 16 6" aria-hidden="true" {...props}>
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M16 3 10 .5v2H0v1h10v2L16 3Z"
-      />
-    </svg>
-  )
-}
-
-function NewsletterForm() {
-
-  const {toast} = useToast()
-  return (
-    <form className="max-w-md" action={async (data: FormData) => {
-      const email = data.get("email")
-      if (!email) {
-        toast({
-          title: "Error",
-          description: "Please enter an email",
-          variant: "destructive"
-        })
-        return
-      }
-      const res = await addEmail(email as string);
-      if (res?.success === true) {
-        document.getElementById("email")?.setAttribute("value", "")
-        toast({
-          title: "Success",
-          description: "Thanks for signing up!",
-          variant: "default"
-        })
-        return;
-      } else {
-        toast({
-          title: "Error",
-          description: "Something went wrong",
-          variant: "destructive"
-        })
-      }
-    }}>
-      <h2 className="font-display text-sm font-semibold tracking-wider text-neutral-950">
-        Sign up for our newsletter
-      </h2>
-      <p className="mt-4 text-sm text-neutral-700">
-        Subscribe to get the latest Unkey news
-      </p>
-      <div className="relative mt-6">
-        <input
-          type="email"
-          name="email"
-          id='email'
-          placeholder="Email address"
-          autoComplete="email"
-          aria-label="Email address"
-          className="block w-full rounded-2xl border border-neutral-300 bg-transparent py-4 pl-6 pr-20 text-base/6 text-neutral-950 ring-4 ring-transparent transition placeholder:text-neutral-500 focus:border-neutral-950 focus:outline-none focus:ring-neutral-950/5"
-        />
-        <div className="absolute inset-y-1 right-1 flex justify-end">
-          <SubmitButton/>
-        </div>
-      </div>
-    </form>
-  )
-}
-
-const SubmitButton = () => {
-  const { pending } = useFormStatus();
-  return(
-  <button
-            disabled={pending}
-            className="flex aspect-square h-full items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-neutral-800 disabled:bg-neutral-500"
-          >
-           {pending ?  <Icons.spinner className="w-4 h-4 animate-spin" /> : <ArrowIcon className="w-4" />}
-          </button>
-  )
-}
 
 export function Footer() {
   return (
