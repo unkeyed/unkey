@@ -11,6 +11,7 @@ type Database interface {
 	GetApi(ctx context.Context, apiId string) (entities.Api, error)
 
 	CreateKey(ctx context.Context, newKey entities.Key) error
+	UpdateKey(ctx context.Context, key entities.Key) error
 
 	DeleteKey(ctx context.Context, keyId string) error
 	GetKeyByHash(ctx context.Context, hash string) (entities.Key, error)
