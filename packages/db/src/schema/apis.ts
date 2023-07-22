@@ -1,4 +1,4 @@
-import { mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { workspaces } from "./workspaces";
 import { keys } from "./keys";
@@ -9,6 +9,9 @@ export const apis = mysqlTable("apis", {
   workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   // comma separated ips or cidr blocks
   ipWhitelist: varchar("ip_whitelist", { length: 512 }),
+
+  authType: mysqlEnum("auth_type", ["key", "jwt"]),
+  keyAuthId: varchar("key_auth_id", { length: 256 }),
 });
 
 export const apisRelations = relations(apis, ({ one, many }) => ({
