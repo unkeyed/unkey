@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTheme } from "next-themes";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
@@ -52,16 +53,8 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
       });
     },
   });
-  const { theme } = useTheme();
   return (
     <div className="flex flex-col justify-center items-center w-full min-h-screen">
-      <Image
-        src={theme === "light" ? "/images/landing/app.png" : "/images/landing/app-dark.png"}
-        className=" absolute top-0 left-0 right-0 bottom-0 z-0 w-full h-full brightness-75 blur-md"
-        width={1080}
-        height={1920}
-        alt=""
-      />
       <Card className=" z-10 shadow-md mx-6 md:mx-0">
         <CardHeader>
           <CardTitle className=" bg-gradient-to-tr py-2 border-zinc-400">

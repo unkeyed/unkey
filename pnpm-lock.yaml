@@ -341,9 +341,6 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.6
         version: 18.2.6
-      '@types/react-modal':
-        specifier: ^3.16.0
-        version: 3.16.0
 
   examples/nextjs:
     dependencies:
@@ -6105,12 +6102,6 @@ packages:
     resolution: {integrity: sha512-2et4PDvg6PVCyS7fuTc4gPoksV58bW0RwSxWKcPRcHZf0PRUGq03TKcD/rUHe3azfV6/5/biUBJw+HhCQjaP0A==}
     dependencies:
       '@types/react': 18.2.13
-
-  /@types/react-modal@3.16.0:
-    resolution: {integrity: sha512-iphdqXAyUfByLbxJn5j6d+yh93dbMgshqGP0IuBeaKbZXx0aO+OXsvEkt6QctRdxjeM9/bR+Gp3h9F9djVWTQQ==}
-    dependencies:
-      '@types/react': 18.2.13
-    dev: true
 
   /@types/react@18.2.13:
     resolution: {integrity: sha512-vJ+zElvi/Zn9cVXB5slX2xL8PZodPCwPRDpittQdw43JR2AJ5k3vKdgJJyneV/cYgIbLQUwXa9JVDvUZXGba+Q==}
