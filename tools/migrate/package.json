@@ -1,0 +1,26 @@
+{
+  "name": "@unkey/migrate",
+  "version": "1.0.0",
+  "scripts": {
+    "migrate": "dotenv -e .env npx tsx ./main.ts"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "dependencies": {
+    "@planetscale/database": "^1.7.0",
+    "@unkey/db": "workspace:^",
+    "@unkey/id": "workspace:^",
+    "base-x": "^4.0.0",
+    "drizzle-orm": "^0.27.0",
+    "zod": "^3.21.4"
+  },
+  "devDependencies": {
+    "@types/node": "20.3.1",
+    "@unkey/tsconfig": "workspace:^",
+    "dotenv-cli": "^7.2.1",
+    "tsup": "^7.0.0",
+    "tsx": "^3.12.7",
+    "typescript": "^5.1.3"
+  }
+}
