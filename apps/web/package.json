@@ -88,7 +88,6 @@
     "react-day-picker": "^8.8.0",
     "react-dom": "18.2.0",
     "react-hook-form": "^7.45.0",
-    "react-modal": "^3.16.1",
     "recma-import-images": "0.0.3",
     "remark-gfm": "^3.0.1",
     "remark-rehype-wrap": "0.0.3",
