@@ -51,7 +51,7 @@ export default function RootLayout({
           defer
           data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
           src="https://plausible.io/js/script.exclusions.js" 
-          data-exclude="/app/api*"
+          data-exclude="/app/api*, /app/api*/*"
         />
         <meta property="og:image" content="https://unkey.dev/og.png" />
         <meta name="twitter:image" content="https://unkey.dev/og.png" />
