@@ -30,6 +30,7 @@ export default authMiddleware({
     "/og/(.*)",
     "/api/v1/stripe/webhooks",
     "/api/v1/cron/(.*)",
+    "/api/v1/clerk/webhooks",
   ],
   signInUrl: "/auth/sign-in",
   debug: DEBUG_ON,
