@@ -37,7 +37,7 @@ export default async function TenantOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        .where(eq(schema.keys.apiId, api.id)),
+        .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";

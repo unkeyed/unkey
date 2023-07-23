@@ -16,7 +16,6 @@ export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    apiId: varchar("api_id", { length: 256 }),
     keyAuthId: varchar("key_auth_id", { length: 256 }),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
@@ -57,10 +56,6 @@ export const keys = mysqlTable(
 );
 
 export const keysRelations = relations(keys, ({ one }) => ({
-  api: one(apis, {
-    fields: [keys.apiId],
-    references: [apis.id],
-  }),
   keyAuth: one(keyAuth, {
     fields: [keys.keyAuthId],
     references: [keyAuth.id],

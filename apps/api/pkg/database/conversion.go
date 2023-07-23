@@ -14,11 +14,8 @@ func keyModelToEntity(model *models.Key) (entities.Key, error) {
 
 	key := entities.Key{}
 	key.Id = model.ID
-	if model.APIID.Valid {
-		key.ApiId = model.APIID.String
-	}
-	if model.KeyAuthID.Valid {
 
+	if model.KeyAuthID.Valid {
 		key.KeyAuthId = model.KeyAuthID.String
 	}
 	key.WorkspaceId = model.WorkspaceID
@@ -74,7 +71,6 @@ func keyEntityToModel(e entities.Key) (*models.Key, error) {
 
 	key := &models.Key{
 		ID:          e.Id,
-		APIID:       sql.NullString{String: e.ApiId, Valid: e.ApiId != ""},
 		KeyAuthID:   sql.NullString{String: e.KeyAuthId, Valid: e.KeyAuthId != ""},
 		Start:       e.Start,
 		WorkspaceID: e.WorkspaceId,

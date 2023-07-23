@@ -4,7 +4,6 @@ import "time"
 
 type Key struct {
 	Id             string
-	ApiId          string
 	KeyAuthId      string
 	WorkspaceId    string
 	Name           string

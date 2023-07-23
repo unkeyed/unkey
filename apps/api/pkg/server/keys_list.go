@@ -132,7 +132,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 	for i, k := range keys {
 		res.Keys[i] = keyResponse{
 			Id:             k.Id,
-			ApiId:          k.ApiId,
+			ApiId:          api.Id,
 			WorkspaceId:    k.WorkspaceId,
 			Start:          k.Start,
 			OwnerId:        k.OwnerId,

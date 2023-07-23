@@ -39,6 +39,7 @@ type Config struct {
 	UnkeyAppAuthToken string
 	UnkeyWorkspaceId  string
 	UnkeyApiId        string
+	UnkeyKeyAuthId    string
 	Region            string
 	Kafka             *kafka.Kafka
 	Version           string
@@ -61,12 +62,14 @@ type Server struct {
 	unkeyAppAuthToken string
 	unkeyWorkspaceId  string
 	unkeyApiId        string
+	unkeyKeyAuthId    string
 	region            string
 	kafka             *kafka.Kafka
 	version           string
 }
 
 func New(config Config) *Server {
+
 	appConfig := fiber.Config{
 		DisableStartupMessage: true,
 		Immutable:             true,
@@ -87,6 +90,7 @@ func New(config Config) *Server {
 		unkeyAppAuthToken: config.UnkeyAppAuthToken,
 		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
 		unkeyApiId:        config.UnkeyApiId,
+		unkeyKeyAuthId:    config.UnkeyKeyAuthId,
 		region:            config.Region,
 		version:           config.Version,
 	}

@@ -34,7 +34,7 @@ func TestDeleteKey(t *testing.T) {
 
 	key := entities.Key{
 		Id:          uid.Key(),
-		ApiId:       resources.UserApi.Id,
+		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now(),
