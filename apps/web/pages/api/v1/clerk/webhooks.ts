@@ -21,6 +21,7 @@ export default async function handler(
         evt = wh.verify(payload, headers) as WebhookEvent;
 
     } catch (_) {
+        // Don't log an error, just return a 400 because the webhook signature was invalid
         return res.status(400).json({});
     }
     const { id } = evt.data;
@@ -30,9 +31,10 @@ export default async function handler(
         // we only care about the first email address, so we can just grab the first one
         const email = evt.data.email_addresses[0].email_address;
         if (!email) {
-            return res.status(400).json({});
+            return res.status(400).json({"Error": "No email address found"});
         }
         if (!loopsAPIKey) {
+            // Don't log an error, just return a 400
             return res.status(400).json({});
         }
         try {
@@ -45,7 +47,10 @@ export default async function handler(
                 body: JSON.stringify({ email: email }),
             });
             const json = await loopsResponse.json();
-            res.status(201).json({json})
+            if (json.status !== "success") {
+                return res.status(400).json({"Error": "Loops API Error ", "jsonResponse": json});
+            }
+            return res.status(201).json({})
 
         } catch (_) {
             return res.status(400).json({});
