@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateKey } from "../../create-key";
 
@@ -10,7 +10,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,
-      keys: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {

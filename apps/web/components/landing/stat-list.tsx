@@ -6,7 +6,8 @@ export function StatList({
   children,
   ...props
 }: {
-  children: any;
+  children: React.ReactNode;
+  // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   props?: any;
 }) {
   return (

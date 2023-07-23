@@ -1,7 +1,7 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 const DEBUG_ON = process.env.CLERK_DEBUG === "true";
 
 const checktenancy = async ({ tenantId }: { tenantId: string }) => {
@@ -30,6 +30,7 @@ export default authMiddleware({
     "/og/(.*)",
     "/api/v1/stripe/webhooks",
     "/api/v1/cron/(.*)",
+    "/api/v1/clerk/webhooks",
   ],
   signInUrl: "/auth/sign-in",
   debug: DEBUG_ON,

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
@@ -24,7 +24,6 @@ export default async function ApiPageLayout(props: Props) {
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,
-      keys: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {

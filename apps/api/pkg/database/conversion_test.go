@@ -16,6 +16,7 @@ func Test_apiEntityToModel(t *testing.T) {
 		Id:          uid.Api(),
 		Name:        "test",
 		WorkspaceId: uid.Workspace(),
+		KeyAuthId:   "key_auth_123",
 	}
 
 	m := apiEntityToModel(e)
@@ -24,7 +25,9 @@ func Test_apiEntityToModel(t *testing.T) {
 	require.Equal(t, e.Name, m.Name)
 	require.Equal(t, e.WorkspaceId, m.WorkspaceID)
 	require.Equal(t, false, m.IPWhitelist.Valid)
-	require.Equal(t, "", m.IPWhitelist.String)
+	require.False(t, m.IPWhitelist.Valid)
+	require.True(t, m.KeyAuthID.Valid)
+	require.Equal(t, "key_auth_123", m.KeyAuthID.String)
 
 }
 
@@ -34,6 +37,7 @@ func Test_apiModelToEntity(t *testing.T) {
 		ID:          uid.Api(),
 		Name:        "test",
 		WorkspaceID: uid.Workspace(),
+		KeyAuthID:   sql.NullString{String: "key_auth_123", Valid: true},
 	}
 
 	e := apiModelToEntity(m)
@@ -42,6 +46,7 @@ func Test_apiModelToEntity(t *testing.T) {
 	require.Equal(t, m.Name, e.Name)
 	require.Equal(t, m.WorkspaceID, e.WorkspaceId)
 	require.Equal(t, 0, len(e.IpWhitelist))
+	require.Equal(t, "key_auth_123", e.KeyAuthId)
 }
 
 func Test_apiEntityToModel_WithIpWithlist(t *testing.T) {
@@ -86,7 +91,7 @@ func Test_keyModelToEntity(t *testing.T) {
 
 	m := &models.Key{
 		ID:          uid.Key(),
-		APIID:       uid.Api(),
+		KeyAuthID:   sql.NullString{String: uid.KeyAuth(), Valid: true},
 		WorkspaceID: uid.Workspace(),
 		Hash:        "abc",
 		Start:       "abc",
@@ -96,7 +101,7 @@ func Test_keyModelToEntity(t *testing.T) {
 	e, err := keyModelToEntity(m)
 	require.NoError(t, err)
 	require.Equal(t, m.ID, e.Id)
-	require.Equal(t, m.APIID, e.ApiId)
+	require.Equal(t, m.KeyAuthID.String, e.KeyAuthId)
 	require.Equal(t, m.WorkspaceID, e.WorkspaceId)
 	require.Equal(t, m.Hash, e.Hash)
 	require.Equal(t, m.Start, e.Start)
@@ -108,7 +113,7 @@ func Test_keyModelToEntity_WithNullFields(t *testing.T) {
 
 	m := &models.Key{
 		ID:                      uid.Key(),
-		APIID:                   uid.Api(),
+		KeyAuthID:               sql.NullString{String: uid.KeyAuth(), Valid: true},
 		WorkspaceID:             uid.Workspace(),
 		Hash:                    "abc",
 		Start:                   "abc",
@@ -123,7 +128,7 @@ func Test_keyModelToEntity_WithNullFields(t *testing.T) {
 	e, err := keyModelToEntity(m)
 	require.NoError(t, err)
 	require.Equal(t, m.ID, e.Id)
-	require.Equal(t, m.APIID, e.ApiId)
+	require.Equal(t, m.KeyAuthID.String, e.KeyAuthId)
 	require.Equal(t, m.WorkspaceID, e.WorkspaceId)
 	require.Equal(t, m.Hash, e.Hash)
 	require.Equal(t, m.Start, e.Start)

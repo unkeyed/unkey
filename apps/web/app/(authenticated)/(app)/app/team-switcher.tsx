@@ -33,10 +33,11 @@ import { Loading } from "@/components/dashboard/loading";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import type { Workspace } from "@unkey/db";
 
 import { DropdownMenuSub } from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "next-themes";
+import type { Workspace } from "@/lib/db";
+
 type Props = {
   workspace: Workspace;
 };
@@ -66,9 +67,9 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       {loading ? (
         <Loading />
       ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between outline-none md:w-full gap-4 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:drop-shadow-sm">
+        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded outline-none md:w-full hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:drop-shadow-sm">
           <div className="flex items-center justify-start w-full gap-4">
-            <Avatar className=" w-8 h-8 md:w-10 md:h-10">
+            <Avatar className="w-8 h-8 md:w-10 md:h-10">
               {user?.profileImageUrl ? (
                 <AvatarImage src={user.profileImageUrl} alt={user.username ?? "Profile picture"} />
               ) : null}
@@ -76,14 +77,14 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                 {(currentOrg?.slug ?? user?.username ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
-            <div className="md:flex flex-col items-start gap-1 hidden">
+            <div className="flex-col items-start hidden gap-1 md:flex">
               <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
                 {currentOrg?.name ?? "Personal"}
               </span>
               <PlanBadge plan={workspace.plan} />
             </div>
           </div>
-          <ChevronsUpDown className="w-4 h-4 md:block hidden" />
+          <ChevronsUpDown className="hidden w-4 h-4 md:block" />
         </DropdownMenuTrigger>
       )}
       <DropdownMenuContent className="w-full lg:w-56" align="end" forceMount>
@@ -117,7 +118,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                   checked={theme === "light"}
                   onCheckedChange={() => setTheme("light")}
                 >
-                  <div className=" flex items-center gap-2">
+                  <div className="flex items-center gap-2 ">
                     <Sun size={16} />
                     Light
                   </div>
@@ -126,7 +127,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                   checked={theme === "dark"}
                   onCheckedChange={() => setTheme("dark")}
                 >
-                  <div className=" flex items-center gap-2">
+                  <div className="flex items-center gap-2 ">
                     <Moon size={16} />
                     Dark
                   </div>
@@ -135,7 +136,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                   checked={theme === "system"}
                   onCheckedChange={() => setTheme("system")}
                 >
-                  <div className=" flex items-center gap-2">
+                  <div className="flex items-center gap-2 ">
                     <Monitor size={16} />
                     System
                   </div>

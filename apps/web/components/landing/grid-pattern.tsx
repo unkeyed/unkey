@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
+// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function Block({ x, y, ...props }: any) {
   return (
     <motion.path
@@ -38,7 +39,7 @@ export function GridPattern({ yOffset = 0, interactive = false, ...props }) {
         return;
       }
 
-      let rect = ref.current.getBoundingClientRect();
+      const rect = ref.current.getBoundingClientRect();
       let x = event.clientX - rect.left;
       let y = event.clientY - rect.top;
       if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
@@ -58,7 +59,7 @@ export function GridPattern({ yOffset = 0, interactive = false, ...props }) {
       currentBlock.current = [x, y];
       // @ts-expect-error
       setHoveredBlocks((blocks) => {
-        let key = counter.current++;
+        const key = counter.current++;
         return [...blocks, [x, y, key]].filter(
           (block) => !(block[0] === x && block[1] === y && block[2] !== key),
         );

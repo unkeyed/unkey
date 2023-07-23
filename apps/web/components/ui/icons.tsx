@@ -1,8 +1,6 @@
 import { BookOpen, CreditCard, FileJson2, Search } from "lucide-react";
 import { Command, Loader2, X, Twitter, Mail } from "lucide-react";
-import type { Icon as LucideIcon, LucideProps } from "lucide-react";
-
-export type Icon = LucideIcon;
+import type { LucideProps } from "lucide-react";
 
 export const Icons = {
   logo: Command,

@@ -39,7 +39,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 	key := uid.New(16, "test")
 	err = db.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
-		ApiId:       resources.UserApi.Id,
+		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now(),
@@ -92,7 +92,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	key := uid.New(16, "test")
 	err = db.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
-		ApiId:       resources.UserApi.Id,
+		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now(),
@@ -163,7 +163,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	key := uid.New(16, "test")
 	err = db.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
-		ApiId:       resources.UserApi.Id,
+		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now(),
@@ -298,7 +298,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	key := uid.New(16, "test")
 	err = db.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
-		ApiId:       api.Id,
+		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now(),
@@ -349,8 +349,16 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	keyAuth := entities.KeyAuth{
+		Id:          uid.KeyAuth(),
+		WorkspaceId: resources.UserWorkspace.Id,
+	}
+	err = db.CreateKeyAuth(ctx, keyAuth)
+	require.NoError(t, err)
+
 	api := entities.Api{
 		Id:          uid.Api(),
+		KeyAuthId:   keyAuth.Id,
 		Name:        "test",
 		WorkspaceId: resources.UserWorkspace.Id,
 		IpWhitelist: []string{"100.100.100.100"},
@@ -361,7 +369,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	key := uid.New(16, "test")
 	err = db.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
-		ApiId:       api.Id,
+		KeyAuthId:   keyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now(),
@@ -414,7 +422,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	key := uid.New(16, "test")
 	err = db.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
-		ApiId:       resources.UserApi.Id,
+		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now(),

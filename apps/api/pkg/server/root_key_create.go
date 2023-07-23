@@ -80,7 +80,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 
 	newKey := entities.Key{
 		Id:          uid.Key(),
-		ApiId:       s.unkeyApiId,
+		KeyAuthId:   s.unkeyKeyAuthId,
 		WorkspaceId: s.unkeyWorkspaceId,
 		Name:        req.Name,
 		Hash:        keyHash,

@@ -6,8 +6,8 @@ import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
 import { ApiLink } from "@/components/dashboard/app-link";
 import { WorkspaceSwitcher } from "./team-switcher";
-import type { Workspace } from "@unkey/db";
 import { cn } from "@/lib/utils";
+import type { Workspace } from "@/lib/db";
 type Props = {
   workspace: Workspace & {
     apis: {
@@ -25,9 +25,9 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     >
       <Link
         href="/app"
-        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white cursor-pointer hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
+        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
       >
-        <span className=" bg-gradient-to-tr from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+        <span className="text-transparent bg-gradient-to-tr from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 bg-clip-text">
           U
         </span>
         <span>nkey</span>

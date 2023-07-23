@@ -13,15 +13,17 @@ import { GridPattern } from "@/components/landing/grid-pattern";
 
 const RootLayoutContext = createContext({});
 
+// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function XIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
       <path d="m5.636 4.223 14.142 14.142-1.414 1.414L4.222 5.637z" />
-      <path d="M4.222 18.363 18.364 4.22l1.414 1.414L5.636 19.777z" />
+      <path d="M4.222 18.363 18.364 4.22l1.414 1.p414L5.636 19.777z" />
     </svg>
   );
 }
 
+// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function MenuIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -40,9 +42,12 @@ function Header({
 }: {
   panelId: string;
   invert?: boolean;
+  // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   icon: any;
   expanded: boolean;
+  // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   onToggle: any;
+  // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   toggleRef: any;
 }) {
   return (
@@ -210,13 +215,13 @@ function RootLayoutInner({
 }: {
   children: React.ReactNode;
 }) {
-  let panelId = useId();
-  let [expanded, setExpanded] = useState(false);
-  let openRef = useRef();
+  const panelId = useId();
+  const [expanded, setExpanded] = useState(false);
+  const openRef = useRef();
 
-  let closeRef = useRef();
-  let navRef = useRef();
-  let shouldReduceMotion = useReducedMotion();
+  const closeRef = useRef();
+  const navRef = useRef();
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     function onClick(event: MouseEvent) {
@@ -317,8 +322,8 @@ export function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let pathname = usePathname();
-  let [logoHovered, setLogoHovered] = useState(false);
+  const pathname = usePathname();
+  const [logoHovered, setLogoHovered] = useState(false);
 
   return (
     <RootLayoutContext.Provider value={{ logoHovered, setLogoHovered }}>

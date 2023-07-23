@@ -4,7 +4,7 @@ import { Text } from "@/components/dashboard/text";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { fillRange } from "@/lib/utils";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { getDailyUsage } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";

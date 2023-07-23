@@ -11,7 +11,7 @@ COPY . .
 
 ARG VERSION
 
-RUN go build -o unkey -ldflags "-X 'main.version=${VERSION}'" ./cmd/api
+RUN go build -o unkey -ldflags "-X 'github.com/unkeyed/unkey/apps/api/pkg/version.Version=${VERSION}'" ./cmd/api
 
 FROM golang:1.20
 

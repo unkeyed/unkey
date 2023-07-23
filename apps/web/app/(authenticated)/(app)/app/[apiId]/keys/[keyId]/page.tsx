@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getDailyUsage } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export const revalidate = 0;
 
-export default async function ApiPage(props: { params: { keyId: string } }) {
+export default async function ApiPage(props: { params: { apiId: string; keyId: string } }) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
@@ -23,7 +23,7 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
 
   const usage = await getDailyUsage({
     workspaceId: key.workspaceId,
-    apiId: key.apiId,
+    apiId: props.params.apiId,
     keyId: key.id,
   });
 

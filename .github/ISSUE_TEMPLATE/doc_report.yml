@@ -1,0 +1,18 @@
+name: Documentation request
+description: Change regarding improving the docs to be more accessible
+title: '[docs]'
+labels: ['documentation']
+body:
+  - type: textarea
+    attributes:
+      label: Category of documentation update
+      description: |
+        What category does this change fall under.For example Typo error, New category addition, Rephrasing the sentences, fixing broken links etc 
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe the change you think might work
+      description: Please describe the change & need of change in atmost detail possible.
+    validations:
+      required: false

@@ -25,8 +25,9 @@ import (
 )
 
 type Config struct {
-	Logger          logging.Logger
-	KeyCache        cache.Cache[entities.Key]
+	Logger   logging.Logger
+	KeyCache cache.Cache[entities.Key]
+	// The ApiCache uses the KeyAuthId as cache key, not an apiId
 	ApiCache        cache.Cache[entities.Api]
 	Database        database.Database
 	Ratelimit       ratelimit.Ratelimiter
@@ -38,6 +39,7 @@ type Config struct {
 	UnkeyAppAuthToken string
 	UnkeyWorkspaceId  string
 	UnkeyApiId        string
+	UnkeyKeyAuthId    string
 	Region            string
 	Kafka             *kafka.Kafka
 	Version           string
@@ -60,12 +62,14 @@ type Server struct {
 	unkeyAppAuthToken string
 	unkeyWorkspaceId  string
 	unkeyApiId        string
+	unkeyKeyAuthId    string
 	region            string
 	kafka             *kafka.Kafka
 	version           string
 }
 
 func New(config Config) *Server {
+
 	appConfig := fiber.Config{
 		DisableStartupMessage: true,
 		Immutable:             true,
@@ -86,6 +90,7 @@ func New(config Config) *Server {
 		unkeyAppAuthToken: config.UnkeyAppAuthToken,
 		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
 		unkeyApiId:        config.UnkeyApiId,
+		unkeyKeyAuthId:    config.UnkeyKeyAuthId,
 		region:            config.Region,
 		version:           config.Version,
 	}

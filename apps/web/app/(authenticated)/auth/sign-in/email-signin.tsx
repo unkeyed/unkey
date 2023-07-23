@@ -38,7 +38,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
         })
         .catch((err) => {
           setIsLoading(false);
-          console.log(err);
+          console.error(err);
         });
     };
     signUpOrgUser();
@@ -102,7 +102,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
         />
       </div>
       <Button disabled={isLoading}>
-        {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
         Sign In with Email
       </Button>
     </form>

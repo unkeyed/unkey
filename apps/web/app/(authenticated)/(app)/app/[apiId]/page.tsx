@@ -2,7 +2,7 @@ import { ColumnChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { fillRange } from "@/lib/utils";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { getTotalActiveKeys, getDailyUsage } from "@/lib/tinybird";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -26,7 +26,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const keysP = db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
-    .where(eq(schema.keys.apiId, api.id))
+    .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
     .execute()
     .then((res) => res.at(0)?.count ?? 0);
 

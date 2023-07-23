@@ -30,7 +30,6 @@ import ms from "ms";
 import Link from "next/link";
 type Column = {
   id: string;
-  apiId: string;
   start: string;
   createdAt: Date;
   expires: Date | null;
@@ -42,10 +41,11 @@ type Column = {
 };
 
 type Props = {
+  apiId: string;
   data: Column[];
 };
 
-export const ApiKeyTable: React.FC<Props> = ({ data }) => {
+export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
   const router = useRouter();
   const { toast } = useToast();
   const deleteKey = trpc.key.delete.useMutation({
@@ -161,10 +161,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link
-                    href={`/app/${row.original.apiId}/keys/${row.original.id}`}
-                    className="w-full"
-                  >
+                  <Link href={`/app/${apiId}/keys/${row.original.id}`} className="w-full">
                     Details
                   </Link>
                 </DropdownMenuItem>

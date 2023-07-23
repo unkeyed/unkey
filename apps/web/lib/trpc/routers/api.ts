@@ -1,4 +1,4 @@
-import { db, schema, type Key } from "@unkey/db";
+import { db, schema, type Key } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -13,6 +13,7 @@ const kafka = new Kafka({
   username: env.UPSTASH_KAFKA_REST_USERNAME,
   password: env.UPSTASH_KAFKA_REST_PASSWORD,
 });
+const producer = kafka.producer();
 
 export const apiRouter = t.router({
   delete: t.procedure
@@ -34,13 +35,11 @@ export const apiRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
       }
 
-      const producer = kafka.producer();
-
       // delete keys for the api
       let keys: Key[] = [];
       do {
         keys = await db.query.keys.findMany({
-          where: eq(schema.keys.apiId, input.apiId),
+          where: eq(schema.keys.keyAuthId, api.keyAuthId!),
         });
         await Promise.all(
           keys.map(async (key) => {
@@ -75,10 +74,18 @@ export const apiRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
       }
 
+      const keyAuth = {
+        id: newId("keyAuth"),
+        workspaceId: workspace.id,
+      };
+      await db.insert(schema.keyAuth).values(keyAuth);
+
       await db.insert(schema.apis).values({
         id,
         workspaceId: workspace.id,
         name: input.name,
+        authType: "key",
+        keyAuthId: keyAuth.id,
       });
 
       return {

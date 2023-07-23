@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/api/pkg/cache"
 	"github.com/unkeyed/unkey/apps/api/pkg/database"
+	databaseMiddleware "github.com/unkeyed/unkey/apps/api/pkg/database/middleware"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
 	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/unkeyed/unkey/apps/api/pkg/logging"
@@ -26,14 +27,15 @@ func TestListKeys_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
+		Logger: logging.New(),
 
 		PrimaryUs: os.Getenv("DATABASE_DSN"),
 	})
+	db = databaseMiddleware.WithLogging(db, logging.New())
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
+		Logger:   logging.New(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: db,
@@ -44,7 +46,7 @@ func TestListKeys_Simple(t *testing.T) {
 	for i := range createdKeyIds {
 		key := entities.Key{
 			Id:          uid.Key(),
-			ApiId:       resources.UserApi.Id,
+			KeyAuthId:   resources.UserKeyAuth.Id,
 			WorkspaceId: resources.UserWorkspace.Id,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
@@ -100,7 +102,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 	for i := range createdKeyIds {
 		key := entities.Key{
 			Id:          uid.Key(),
-			ApiId:       resources.UserApi.Id,
+			KeyAuthId:   resources.UserKeyAuth.Id,
 			WorkspaceId: resources.UserWorkspace.Id,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
@@ -164,7 +166,7 @@ func TestListKeys_WithLimit(t *testing.T) {
 	for i := range createdKeyIds {
 		key := entities.Key{
 			Id:          uid.Key(),
-			ApiId:       resources.UserApi.Id,
+			KeyAuthId:   resources.UserKeyAuth.Id,
 			WorkspaceId: resources.UserWorkspace.Id,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
@@ -218,7 +220,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 	for i := range createdKeyIds {
 		key := entities.Key{
 			Id:          uid.Key(),
-			ApiId:       resources.UserApi.Id,
+			KeyAuthId:   resources.UserKeyAuth.Id,
 			WorkspaceId: resources.UserWorkspace.Id,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),

@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/apps/api/pkg/server"
 	"github.com/unkeyed/unkey/apps/api/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/api/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/api/pkg/version"
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
@@ -22,18 +23,10 @@ import (
 	"time"
 )
 
-// Set when we build the docker image
-var (
-	version string
-)
-
 func main() {
 
-	debug := os.Getenv("DEBUG") != ""
-	logger := logging.New()
-	if !debug {
-		logger = logger.With(zap.String("version", version))
-	}
+	logger := logging.New().With(zap.String("version", version.Version))
+
 	defer func() {
 		_ = logger.Sync()
 	}()
@@ -64,7 +57,7 @@ func main() {
 		t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
 			Dataset:    "tracing",
 			Service:    "api",
-			Version:    version,
+			Version:    version.Version,
 			AxiomOrgId: e.String("AXIOM_ORG_ID"),
 			AxiomToken: e.String("AXIOM_TOKEN"),
 		})
@@ -121,6 +114,7 @@ func main() {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	db = databaseMiddleware.WithTracing(db, tracer)
+	db = databaseMiddleware.WithLogging(db, logger)
 
 	keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
 		Fresh:             time.Minute,
@@ -170,9 +164,10 @@ func main() {
 		UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),
 		UnkeyWorkspaceId:  e.String("UNKEY_WORKSPACE_ID"),
 		UnkeyApiId:        e.String("UNKEY_API_ID"),
+		UnkeyKeyAuthId:    e.String("UNKEY_KEY_AUTH_ID"),
 		Region:            region,
 		Kafka:             k,
-		Version:           version,
+		Version:           version.Version,
 	})
 
 	go func() {

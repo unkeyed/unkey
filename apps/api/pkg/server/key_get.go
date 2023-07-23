@@ -69,9 +69,17 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 		})
 	}
 
+	api, err := s.db.GetApiByKeyAuthId(ctx, key.KeyAuthId)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
+			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
+		})
+	}
+
 	res := GetKeyResponse{
 		Id:             key.Id,
-		ApiId:          key.ApiId,
+		ApiId:          api.Id,
 		WorkspaceId:    key.WorkspaceId,
 		Start:          key.Start,
 		OwnerId:        key.OwnerId,

@@ -1,6 +1,6 @@
 import { DesktopSidebar } from "./desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { MobileSideBar } from "./mobile-sidebar";
 interface LayoutProps {

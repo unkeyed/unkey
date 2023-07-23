@@ -1,4 +1,4 @@
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, auth } from "../trpc";
@@ -77,7 +77,6 @@ export const keyRouter = t.router({
       console.error(`workspace for tenant ${ctx.tenant.id} not found`);
       throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
     }
-    console.log({ workspace });
 
     const newRootKey = await unkeyRoot._internal
       .createRootKey({
@@ -108,7 +107,6 @@ export const keyRouter = t.router({
           const key = await db.query.keys.findFirst({
             where,
           });
-          console.log({ keyId, key }, ctx.tenant);
 
           if (!key) {
             throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });

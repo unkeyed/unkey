@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
   event.context.unkey = (await $fetch("https://api.unkey.dev/v1/keys/verify", {
     method: "POST",
     body: { key },
+    // rome-ignore lint/suspicious/noExplicitAny: TODO:
   }).catch((e) => e.data)) as any;
   // When `useUnkey` can taken an undefined token we can safely use the belowa
   // event.context.unkey = await useUnkey().keys.verify({ key })

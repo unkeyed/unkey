@@ -1,14 +1,14 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema, type Key } from "@unkey/db";
+import { db, eq, schema, type Key } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
 
-export default async function SettingsKeysPage() {
+export default async function SettingsKeysPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -51,7 +51,7 @@ export default async function SettingsKeysPage() {
       />
       <Separator className="my-6" />
 
-      <ApiKeyTable data={keys} />
+      <ApiKeyTable data={keys} apiId={props.params.apiId} />
     </div>
   );
 }

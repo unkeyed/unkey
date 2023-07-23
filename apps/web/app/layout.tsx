@@ -1,6 +1,6 @@
 import "@/styles/tailwind/tailwind.css";
-import { Inter } from "@next/font/google";
-import localFont from "@next/font/local";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -50,7 +50,8 @@ export default function RootLayout({
         <script
           defer
           data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
-          src="https://plausible.io/js/script.js"
+          src="https://plausible.io/js/script.exclusions.js"
+          data-exclude="/app/api*, /app/api*/*"
         />
         <meta property="og:image" content="https://unkey.dev/og.png" />
         <meta name="twitter:image" content="https://unkey.dev/og.png" />

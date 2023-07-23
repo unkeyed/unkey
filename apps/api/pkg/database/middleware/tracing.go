@@ -51,7 +51,7 @@ func (mw *tracingMiddleware) GetApi(ctx context.Context, apiId string) (entities
 func (mw *tracingMiddleware) CreateKey(ctx context.Context, newKey entities.Key) error {
 	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.createKey", mw.pkg), trace.WithAttributes(
 		attribute.String("workspaceId", newKey.WorkspaceId),
-		attribute.String("apiId", newKey.ApiId),
+		attribute.String("keyAuthId", newKey.KeyAuthId),
 		attribute.String("keyId", newKey.Id),
 	))
 	defer span.End()
@@ -86,7 +86,7 @@ func (mw *tracingMiddleware) GetKeyByHash(ctx context.Context, hash string) (ent
 	} else {
 		span.SetAttributes(
 			attribute.String("workspaceId", key.WorkspaceId),
-			attribute.String("apiId", key.ApiId),
+			attribute.String("keyAuthId", key.KeyAuthId),
 			attribute.String("keyId", key.Id),
 		)
 	}
@@ -104,7 +104,7 @@ func (mw *tracingMiddleware) GetKeyById(ctx context.Context, keyId string) (enti
 	} else {
 		span.SetAttributes(
 			attribute.String("workspaceId", key.WorkspaceId),
-			attribute.String("apiId", key.ApiId),
+			attribute.String("keyAuthId", key.KeyAuthId),
 			attribute.String("keyId", key.Id),
 		)
 	}
@@ -124,16 +124,16 @@ func (mw *tracingMiddleware) CountKeys(ctx context.Context, apiId string) (int, 
 	}
 	return count, err
 }
-func (mw *tracingMiddleware) ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error) {
-	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.listKeysByApiId", mw.pkg), trace.WithAttributes(
-		attribute.String("apiId", apiId),
+func (mw *tracingMiddleware) ListKeysByKeyAuthId(ctx context.Context, keyAuthId string, limit int, offset int, ownerId string) ([]entities.Key, error) {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.listKeysByKeyAuthId", mw.pkg), trace.WithAttributes(
+		attribute.String("keyAuthId", keyAuthId),
 		attribute.Int("limit", limit),
 		attribute.Int("offset", offset),
 		attribute.String("ownerId", ownerId),
 	))
 	defer span.End()
 
-	keys, err := mw.next.ListKeysByApiId(ctx, apiId, limit, offset, ownerId)
+	keys, err := mw.next.ListKeysByKeyAuthId(ctx, keyAuthId, limit, offset, ownerId)
 	if err != nil {
 		span.RecordError(err)
 	}
@@ -188,4 +188,43 @@ func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) er
 		span.RecordError(err)
 	}
 	return err
+}
+
+func (mw *tracingMiddleware) CreateKeyAuth(ctx context.Context, keyAuth entities.KeyAuth) error {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.createKeyAuth", mw.pkg), trace.WithAttributes(
+		attribute.String("keyAuthId", keyAuth.Id),
+	))
+	defer span.End()
+
+	err := mw.next.CreateKeyAuth(ctx, keyAuth)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return err
+}
+
+func (mw *tracingMiddleware) GetKeyAuth(ctx context.Context, keyAuthId string) (entities.KeyAuth, error) {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.getKeyAuth", mw.pkg), trace.WithAttributes(
+		attribute.String("keyAuthId", keyAuthId),
+	))
+	defer span.End()
+
+	keyAuth, err := mw.next.GetKeyAuth(ctx, keyAuthId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return keyAuth, err
+}
+
+func (mw *tracingMiddleware) GetApiByKeyAuthId(ctx context.Context, keyAuthId string) (entities.Api, error) {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.getApiByKeyAuthId", mw.pkg), trace.WithAttributes(
+		attribute.String("keyAuthId", keyAuthId),
+	))
+	defer span.End()
+
+	api, err := mw.next.GetApiByKeyAuthId(ctx, keyAuthId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return api, err
 }

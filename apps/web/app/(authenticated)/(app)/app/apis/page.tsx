@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { CreateApiButton } from "./create-api-button";
 
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq, sql } from "@unkey/db";
+import { db, schema, eq, sql } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
@@ -31,7 +31,7 @@ export default async function TenantOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        .where(eq(schema.keys.apiId, api.id)),
+        .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
