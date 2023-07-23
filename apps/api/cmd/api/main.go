@@ -121,6 +121,7 @@ func main() {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	db = databaseMiddleware.WithTracing(db, tracer)
+	db = databaseMiddleware.WithLogging(db, logger)
 
 	keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
 		Fresh:             time.Minute,

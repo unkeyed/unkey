@@ -13,6 +13,7 @@ const (
 	KeyPrefix       Prefix = "key"
 	ApiPrefix       Prefix = "api"
 	UnkeyPrefix     Prefix = "unkey"
+	KeyAuthPrefix   Prefix = "key_auth"
 )
 
 // New Returns a new random base58 encoded uuid.
@@ -37,4 +38,8 @@ func Key() string {
 
 func Api() string {
 	return New(16, string(ApiPrefix))
+}
+
+func KeyAuth() string {
+	return New(16, string(KeyAuthPrefix))
 }

@@ -23,7 +23,7 @@ export default async function ApiPage(props: { params: { keyId: string } }) {
 
   const usage = await getDailyUsage({
     workspaceId: key.workspaceId,
-    apiId: key.apiId,
+    apiId: key.apiId!,
     keyId: key.id,
   });
 

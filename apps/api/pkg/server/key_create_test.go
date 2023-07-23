@@ -69,7 +69,6 @@ func TestCreateKey_Simple(t *testing.T) {
 	require.Equal(t, createKeyResponse.KeyId, found.Id)
 }
 
-
 func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 	ctx := context.Background()
 

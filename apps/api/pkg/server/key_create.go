@@ -122,6 +122,13 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 		})
 	}
 
+	if api.AuthType != entities.AuthTypeKey || api.KeyAuthId == "" {
+		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
+			Code:  BAD_REQUEST,
+			Error: fmt.Sprintf("api is not set up to handle key auth: %+v", api),
+		})
+	}
+
 	keyValue, err := keys.NewV1Key(req.Prefix, req.ByteLength)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
@@ -135,7 +142,7 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 
 	newKey := entities.Key{
 		Id:          uid.Key(),
-		ApiId:       req.ApiId,
+		KeyAuthId:   api.KeyAuthId,
 		WorkspaceId: authKey.ForWorkspaceId,
 		Name:        req.Name,
 		Hash:        keyHash,

@@ -30,7 +30,7 @@ import ms from "ms";
 import Link from "next/link";
 type Column = {
   id: string;
-  apiId: string;
+  apiId: string | null;
   start: string;
   createdAt: Date;
   expires: Date | null;
