@@ -42,6 +42,7 @@ export default defineNuxtModule<ModuleOptions>({
     const resolver = createResolver(import.meta.url);
 
     // Pass unkey options to runtime handlers
+    // rome-ignore lint/suspicious/noExplicitAny: TODO
     nuxt.options.runtimeConfig.unkey = defu(nuxt.options.runtimeConfig.unkey as any, {
       authPrefix: options.authPrefix,
       token: options.token,

@@ -33,7 +33,6 @@ export class Unkey {
 
   private async fetch<TResult>(req: ApiRequest): Promise<TResult> {
     const url = `${this.baseUrl}/${req.path.join("/")}`;
-    console.log("fetching", url);
     const res = await fetch(url, {
       method: req.method,
       headers: {

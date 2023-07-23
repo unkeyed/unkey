@@ -12,17 +12,19 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,
-      keys: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
     return redirect("/onboarding");
   }
+  const allKeys = await db.query.keys.findMany({
+    where: eq(schema.keys.keyAuthId, api.keyAuthId!),
+  });
 
   const keys: Key[] = [];
   const expired: Key[] = [];
 
-  for (const k of api.keys) {
+  for (const k of allKeys) {
     if (k.expires && k.expires.getTime() < Date.now()) {
       expired.push(k);
     } else {
@@ -35,7 +37,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   return (
     <div>
-      <ApiKeyTable data={keys} />
+      <ApiKeyTable data={keys} apiId={props.params.apiId} />
     </div>
   );
 }

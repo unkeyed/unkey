@@ -26,7 +26,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const keysP = db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
-    .where(eq(schema.keys.apiId, api.id))
+    .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
     .execute()
     .then((res) => res.at(0)?.count ?? 0);
 
@@ -47,9 +47,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   const keys = await keysP;
   const active = await activeP;
-  console.log(
-    JSON.stringify({ workspaceId: api.workspace.id, apiId: api.id, start, end, active }, null, 2),
-  );
 
   const usageOverTime = fillRange(
     usage.data.map(({ time, usage }) => ({ value: usage, time })),

@@ -14,7 +14,7 @@ const envSchema = z.object({
   TENANT_ID: z.string(),
 });
 
-function newId(prefix: "api" | "ws") {
+function newId(prefix: "api" | "ws" | "key_auth") {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
   return [
@@ -38,27 +38,24 @@ async function main() {
   await db.insert(schema.workspaces).values(workspace);
   console.log(`Created workspace: ${workspace.name} with id: ${workspace.id}`);
 
-  /**
-   * Set up an api for development
-   */
-  const devApi = {
-    id: newId("api"),
-    name: "unkey-dev",
-    workspaceId,
+  const keyAuth = {
+    id: newId("key_auth"),
+    workspaceId: workspace.id,
   };
-  await db.insert(schema.apis).values(devApi);
-  console.log(`Created API: ${devApi.name} with id: ${devApi.id}`);
+  await db.insert(schema.keyAuth).values(keyAuth);
 
   /**
    * Set up an api for production
    */
-  const prodApi = {
-    id: newId("api"),
-    name: "api.unkey.app",
+  const apiId = newId("api");
+  await db.insert(schema.apis).values({
+    id: apiId,
+    name: "preview",
     workspaceId,
-  };
-  await db.insert(schema.apis).values(prodApi);
-  console.log(`Created API: ${prodApi.name} with id: ${prodApi.id}`);
+    authType: "key",
+    keyAuthId: keyAuth.id,
+  });
+  console.log(`Created API: ${apiId}`);
 }
 
 main();

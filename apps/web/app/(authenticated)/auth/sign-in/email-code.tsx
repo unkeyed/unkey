@@ -77,7 +77,7 @@ export function EmailCode() {
       }, 1000);
     } catch (error) {
       setIsLoading(false);
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -97,7 +97,7 @@ export function EmailCode() {
           />
         </div>
         <Button disabled={isLoading}>
-          {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
           Verify Code
         </Button>
         <Button disabled={isLoading || timeLeft > 0} variant="ghost" onClick={resendCode}>

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Unkey } from "@unkey/api";
 
-const unkey = new Unkey({ token: process.env.UNKEY_TOKEN! });
-
 export async function GET(req: NextRequest) {
+  const unkey = new Unkey({ token: process.env.UNKEY_TOKEN! });
   // This part is a bit ugly, but we just use it here to make it easy to access this example
   // in real world code, you usually have the token in a header, where it's much easier to access
   const key = new URL(req.url).searchParams.get("key");

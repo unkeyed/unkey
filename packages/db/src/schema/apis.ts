@@ -1,7 +1,6 @@
 import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { workspaces } from "./workspaces";
-import { keys } from "./keys";
 
 export const apis = mysqlTable(
   "apis",
@@ -20,10 +19,9 @@ export const apis = mysqlTable(
   }),
 );
 
-export const apisRelations = relations(apis, ({ one, many }) => ({
+export const apisRelations = relations(apis, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [apis.workspaceId],
     references: [workspaces.id],
   }),
-  keys: many(keys),
 }));
