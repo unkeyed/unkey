@@ -46,4 +46,6 @@ jobs:
       
       - name: Build
         run: pnpm build
+        env:
+          UNKEY_TOKEN: "not-empty"
        
