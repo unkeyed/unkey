@@ -31,7 +31,7 @@ export default async function handler(
         // we only care about the first email address, so we can just grab the first one
         const email = evt.data.email_addresses[0].email_address;
         if (!email) {
-            return res.status(400).json({"Error": "No email address found"});
+            return res.status(400).json({ "Error": "No email address found" });
         }
         if (!loopsAPIKey) {
             // Don't log an error, just return a 400
@@ -44,11 +44,11 @@ export default async function handler(
                     "Authorization": `Bearer ${loopsAPIKey}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ email: email }),
+                body: JSON.stringify({ email: email, source: "clerk-signup" }),
             });
             const json = await loopsResponse.json();
             if (json.status !== "success") {
-                return res.status(400).json({"Error": "Loops API Error ", "jsonResponse": json});
+                return res.status(400).json({ "Error": "Loops API Error ", "jsonResponse": json });
             }
             return res.status(201).json({})
 
