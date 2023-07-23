@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Unkey } from "@unkey/api";
 
-const unkey = new Unkey({ token: process.env.UNKEY_TOKEN! });
 
 export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
+  const unkey = new Unkey({ token: process.env.UNKEY_TOKEN! });
   const url = new URL(req.url);
   const created = await unkey.keys.create({
     apiId: process.env.UNKEY_API_ID!,
