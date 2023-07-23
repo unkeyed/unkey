@@ -222,7 +222,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <div className="flex justify-around my-4 space-x-4">
+                  <div className="grid md:grid-cols-3 grid-cols-1 gap-4 my-4">
                     <FormField
                       control={form.control}
                       name="expiresEnabled"

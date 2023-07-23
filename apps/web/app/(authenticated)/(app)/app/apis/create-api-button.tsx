@@ -10,27 +10,22 @@ import {
 } from "@/components/ui/form";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
 });
-type Props = {};
 
-export const CreateApiButton: React.FC<Props> = () => {
+export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,12 +58,12 @@ export const CreateApiButton: React.FC<Props> = () => {
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button>Create</Button>
+          <Button className=" gap-2 font-semibold items-center flex-row" {...rest}>
+            <Plus size={18} className=" w-4 h-4 md:w-5 md:h-5" />
+            Create New API
+          </Button>
         </DialogTrigger>
-
-        <DialogContent className="max-w-2xl">
-          <DialogTitle>Create a new API</DialogTitle>
-
+        <DialogContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <FormField
@@ -78,7 +73,11 @@ export const CreateApiButton: React.FC<Props> = () => {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="my-api" {...field} />
+                      <Input
+                        placeholder="my-api"
+                        {...field}
+                        className=" dark:focus:border-zinc-700"
+                      />
                     </FormControl>
                     <FormDescription>
                       This is just a human readable name for you and not visible to anyone else
@@ -88,10 +87,10 @@ export const CreateApiButton: React.FC<Props> = () => {
                 )}
               />
 
-              <DialogFooter className="justify-end p-4">
+              <DialogFooter className=" pt-4 justify-end flex-row gap-2">
                 <Button
                   disabled={create.isLoading || !form.formState.isValid}
-                  className="w-1/4 mt-4"
+                  className="mt-4 "
                   type="submit"
                 >
                   {create.isLoading ? <Loading /> : "Create"}

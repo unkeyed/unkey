@@ -1,8 +1,8 @@
-import { DesktopSidebar } from "@/app/(authenticated)/(app)/app/desktop-sidebar";
+import { DesktopSidebar } from "./desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { MobileSideBar } from "./mobile-sidebar";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
@@ -25,13 +25,11 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <>
-      <div className="flex min-h-screen bg-gradient-to-tl from-stone-200 to-stone-100">
-        <DesktopSidebar workspace={workspace} />
-        <div className="w-full m-2 bg-white shadow ml-72 rounded-xl">
-          <ScrollArea className="max-h-screen p-4 m-4 overflow-y-auto ">
-            {children}
-            <ScrollBar />
-          </ScrollArea>
+      <div className="flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-stone-200 to-stone-100 dark:from-stone-900 dark:to-stone-900">
+        <DesktopSidebar workspace={workspace} className="hidden lg:block" />
+        <MobileSideBar workspace={workspace} className="lg:hidden" />
+        <div className="p-4 m-2 bg-white shadow lg:w-full lg:p-6 dark:bg-stone-950 lg:ml-72 rounded-xl">
+          {children}
         </div>
       </div>
     </>

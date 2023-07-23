@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/select";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +25,7 @@ import { z } from "zod";
 import { useOrganization } from "@clerk/nextjs";
 import { MembershipRole } from "@clerk/types";
 import { useState } from "react";
+import { redirect } from "next/navigation";
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"], {
@@ -75,75 +75,72 @@ export default function TeamCreation() {
         });
       });
   };
+  if (!organization) {
+    return redirect("/app/team/create");
+  }
 
   return (
-    <div className="flex items-center justify-center w-full min-h-screen">
-      <Card className="w-1/2">
-        <CardHeader>
-          <CardTitle>Add a member to your team</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) => inviteUser({ values }))}
-              className="flex flex-col space-y-4"
+    <div className="flex flex-col gap-4 pt-4">
+      <h1 className=" text-4xl font-semibold leading-none tracking-tight">Invite a new user</h1>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit((values) => inviteUser({ values }))}
+          className="flex flex-col space-y-4 max-w-2xl"
+        >
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormDescription>
+                  The user will be invited to accept the team invite by email.{" "}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Role</FormLabel>
+                <FormControl>
+                  <Select
+                    onValueChange={field.onChange as (value: string) => void}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="gh">Member</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormDescription>An admin can invite other users. </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="mt-8">
+            <Button
+              disabled={isLoading || !form.formState.isValid}
+              type="submit"
+              className="w-full"
             >
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      The user will be invited to accept the team invite by email.{" "}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={field.onChange as (value: string) => void}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Member" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="gh">Member</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormDescription>An admin can invite other users. </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="mt-8">
-                <Button
-                  disabled={isLoading || !form.formState.isValid}
-                  type="submit"
-                  className="w-full"
-                >
-                  {isLoading ? <Loading /> : "Invite"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+              {isLoading ? <Loading /> : "Invite"}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

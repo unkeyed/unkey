@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/form";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -72,63 +71,59 @@ export default function TeamCreation() {
   };
 
   return (
-    <div className="flex items-center justify-center w-full min-h-screen">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create your Team workspace</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) => createClerkOrg({ values }))}
-              className="flex flex-col space-y-4"
+    <div className="flex flex-col gap-4 pt-4">
+      <h1 className=" text-4xl font-semibold leading-none tracking-tight">
+        Create your Team workspace
+      </h1>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit((values) => createClerkOrg({ values }))}
+          className="flex flex-col space-y-4 max-w-2xl"
+        >
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormDescription>What should your team be called?</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="slug"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Slug</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormDescription>
+                  This will be used in urls etc. Only alphanumeric, dashes, underscores and periods
+                  are allowed
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="mt-8">
+            <Button
+              disabled={createWorkspace.isLoading || !form.formState.isValid}
+              type="submit"
+              className="w-full"
             >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>What should your team be called?</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="slug"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      This will be used in urls etc. Only alphanumeric, dashes, underscores and
-                      periods are allowed
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="mt-8">
-                <Button
-                  disabled={createWorkspace.isLoading || !form.formState.isValid}
-                  type="submit"
-                  className="w-full"
-                >
-                  {createWorkspace.isLoading ? <Loading /> : "Create"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+              {createWorkspace.isLoading ? <Loading /> : "Create"}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
