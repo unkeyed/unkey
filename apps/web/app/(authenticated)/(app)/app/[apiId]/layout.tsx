@@ -24,7 +24,6 @@ export default async function ApiPageLayout(props: Props) {
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,
-      keys: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {

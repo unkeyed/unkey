@@ -10,7 +10,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,
-      keys: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {

@@ -171,6 +171,7 @@ func main() {
 		UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),
 		UnkeyWorkspaceId:  e.String("UNKEY_WORKSPACE_ID"),
 		UnkeyApiId:        e.String("UNKEY_API_ID"),
+		UnkeyKeyAuthId:    e.String("UNKEY_KEY_AUTH_ID"),
 		Region:            region,
 		Kafka:             k,
 		Version:           version,

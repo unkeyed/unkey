@@ -8,7 +8,7 @@ import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
 
-export default async function SettingsKeysPage() {
+export default async function SettingsKeysPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -51,7 +51,7 @@ export default async function SettingsKeysPage() {
       />
       <Separator className="my-6" />
 
-      <ApiKeyTable data={keys} />
+      <ApiKeyTable data={keys} apiId={props.params.apiId} />
     </div>
   );
 }

@@ -97,7 +97,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("meta:", values.meta);
     if (!values.rateLimitEnabled || values.ratelimit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required

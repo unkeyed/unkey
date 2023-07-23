@@ -39,7 +39,7 @@ export const apiRouter = t.router({
       let keys: Key[] = [];
       do {
         keys = await db.query.keys.findMany({
-          where: eq(schema.keys.apiId, input.apiId),
+          where: eq(schema.keys.keyAuthId, api.keyAuthId!),
         });
         await Promise.all(
           keys.map(async (key) => {

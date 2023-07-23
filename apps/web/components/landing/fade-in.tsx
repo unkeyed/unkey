@@ -7,9 +7,10 @@ const FadeInStaggerContext = createContext(false);
 
 const viewport = { once: true, margin: "0px 0px -200px" };
 
+// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 export function FadeIn(props: any) {
-  let shouldReduceMotion = useReducedMotion();
-  let isInStaggerGroup = useContext(FadeInStaggerContext);
+  const shouldReduceMotion = useReducedMotion();
+  const isInStaggerGroup = useContext(FadeInStaggerContext);
 
   return (
     <motion.div

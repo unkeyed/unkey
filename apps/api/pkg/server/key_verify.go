@@ -156,7 +156,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 					Valid: false,
 					ErrorResponse: ErrorResponse{
 						Code:  NOT_FOUND,
-						Error: fmt.Sprintf("api not found: %s", key.ApiId),
+						Error: fmt.Sprintf("api not found: %s", keyAuth.Id),
 					},
 				})
 			}
@@ -193,7 +193,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	logger := s.logger.With(
 		zap.String("keyId", key.Id),
-		zap.String("apiId", key.ApiId),
+		zap.String("keyAuthId", key.KeyAuthId),
 		zap.String("workspaceId", key.WorkspaceId),
 	)
 
@@ -213,7 +213,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		defer func() {
 			s.tinybird.PublishKeyVerificationEventChannel() <- tinybird.KeyVerificationEvent{
 				WorkspaceId: key.WorkspaceId,
-				ApiId:       key.ApiId,
+				ApiId:       api.Id,
 				KeyId:       key.Id,
 				Ratelimited: res.Code == RATELIMITED,
 				Time:        time.Now().UnixMilli(),

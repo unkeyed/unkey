@@ -51,7 +51,7 @@ func (mw *tracingMiddleware) GetApi(ctx context.Context, apiId string) (entities
 func (mw *tracingMiddleware) CreateKey(ctx context.Context, newKey entities.Key) error {
 	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.createKey", mw.pkg), trace.WithAttributes(
 		attribute.String("workspaceId", newKey.WorkspaceId),
-		attribute.String("apiId", newKey.ApiId),
+		attribute.String("keyAuthId", newKey.KeyAuthId),
 		attribute.String("keyId", newKey.Id),
 	))
 	defer span.End()
@@ -86,7 +86,7 @@ func (mw *tracingMiddleware) GetKeyByHash(ctx context.Context, hash string) (ent
 	} else {
 		span.SetAttributes(
 			attribute.String("workspaceId", key.WorkspaceId),
-			attribute.String("apiId", key.ApiId),
+			attribute.String("keyAuthId", key.KeyAuthId),
 			attribute.String("keyId", key.Id),
 		)
 	}
@@ -104,7 +104,7 @@ func (mw *tracingMiddleware) GetKeyById(ctx context.Context, keyId string) (enti
 	} else {
 		span.SetAttributes(
 			attribute.String("workspaceId", key.WorkspaceId),
-			attribute.String("apiId", key.ApiId),
+			attribute.String("keyAuthId", key.KeyAuthId),
 			attribute.String("keyId", key.Id),
 		)
 	}
