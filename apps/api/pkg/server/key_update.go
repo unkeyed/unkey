@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Maybe is a wrapper to allow a value to be optional or null
+// nullish is a wrapper to allow a value to be optional or null
 // It's optional if `Defined` is false. In that case you should not check `Value`
 // The idea is to represent the following typescript type `T | undefined | null`
 type nullish[T any] struct {
