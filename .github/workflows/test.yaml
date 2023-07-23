@@ -48,4 +48,14 @@ jobs:
         run: pnpm build
         env:
           UNKEY_TOKEN: "not-empty"
+          DATABASE_HOST: "not-empty"
+          DATABASE_USERNAME: "not-empty"
+          DATABASE_PASSWORD: "not-empty"
+          UNKEY_WORKSPACE_ID: "not-empty"
+          UNKEY_API_ID: "not-empty"
+          UNKEY_APP_AUTH_TOKEN: "not-empty"
+          UPSTASH_KAFKA_REST_URL: "not-empty"
+          UPSTASH_KAFKA_REST_USERNAME: "not-empty"
+          UPSTASH_KAFKA_REST_PASSWORD: "not-empty"
+          TINYBIRD_TOKEN: "not-empty"
        
