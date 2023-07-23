@@ -5,7 +5,7 @@ import type { WebhookEvent } from "@clerk/nextjs/server"
 import { Webhook } from "svix";
 
 
-const webhookSecret: string | undefined = process.env.WEBHOOK_SECRET;
+const webhookSecret: string | undefined = process.env.CLERK_WEBHOOK_SECRET;
 const loopsAPIKey: string | undefined = process.env.LOOPS_API_KEY;
 export default async function handler(
     req: NextApiRequestWithSvixRequiredHeaders,
