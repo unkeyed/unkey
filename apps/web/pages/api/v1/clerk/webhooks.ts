@@ -47,6 +47,9 @@ export default async function handler(
             });
             const json = await loopsResponse.json();
             if (json.status !== "success") {
+                if(json.message === "Email already on list."){
+                    return res.status(201).json({});
+                }
                 return res.status(400).json({ "Error": "Loops API Error ", "jsonResponse": json });
             }
             return res.status(201).json({})
