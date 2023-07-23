@@ -45,7 +45,7 @@ export default async function handler(
                 body: JSON.stringify({ email: email }),
             });
             const json = await loopsResponse.json();
-            res.status(201).json({})
+            res.status(201).json({json})
 
         } catch (_) {
             return res.status(400).json({});
