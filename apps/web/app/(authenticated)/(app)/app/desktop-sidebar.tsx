@@ -4,7 +4,7 @@ import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
 import { ApiLink } from "./api-link";
 import { WorkspaceSwitcher } from "./team-switcher";
-import type { Workspace } from "@unkey/db";
+import type { Workspace } from "@/lib/db";
 type Props = {
   workspace: Workspace & {
     apis: {

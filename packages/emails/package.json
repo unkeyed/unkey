@@ -11,14 +11,14 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.2.3",
-    "@types/react": "18.2.13",
+    "@types/node": "^20.4.4",
+    "@types/react": "18.2.15",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.0.4"
+    "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@react-email/body": "^0.0.2",
-    "@react-email/button": "^0.0.9",
+    "@react-email/body": "^0.0.3",
+    "@react-email/button": "^0.0.10",
     "@react-email/column": "^0.0.7",
     "@react-email/container": "0.0.8",
     "@react-email/head": "^0.0.5",
@@ -35,6 +35,6 @@
     "@react-email/text": "^0.0.5",
     "react": "^18.2.0",
     "react-email": "^1.9.4",
-    "resend": "^0.15.3"
+    "resend": "^0.17.1"
   }
 }

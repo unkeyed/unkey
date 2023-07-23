@@ -6,7 +6,7 @@ import { StylizedImage } from "@/components/landing/stylized-image";
 import laptopImage from "@/images/computer-user.jpg";
 import { Button } from "@/components/landing/button";
 import { StatList, StatListItem } from "@/components/landing/stat-list";
-import { db, schema, sql } from "@unkey/db";
+import { db, schema, sql } from "@/lib/db";
 export const revalidate = 60;
 
 const [workspaces, apis, keys] = await Promise.all([
@@ -121,7 +121,7 @@ export default async function Home() {
             secure, manage, and scale their APIs.
           </p>
         </FadeIn>
-        <Button href='/app' className="px-8 py-3 mt-4">
+        <Button href="/app" className="px-8 py-3 mt-4">
           Start for free
         </Button>
       </Container>

@@ -1,6 +1,8 @@
-import { schema, db } from "@unkey/db";
+import { schema } from "@unkey/db";
 import { z } from "zod";
 import crypto from "node:crypto";
+import mysql from "mysql2/promise";
+import { drizzle } from "drizzle-orm/mysql2";
 
 import baseX from "base-x";
 const envSchema = z.object({
@@ -25,6 +27,14 @@ function newId(prefix: "api" | "ws" | "key_auth") {
 
 async function main() {
   const env = envSchema.parse(process.env);
+
+  const db = drizzle(
+    await mysql.createConnection({
+      host: env.DATABASE_HOST,
+      user: env.DATABASE_USERNAME,
+      password: env.DATABASE_PASSWORD,
+    }),
+  );
 
   const workspaceId = newId("ws");
 

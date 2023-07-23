@@ -1,5 +1,5 @@
 {
-  "name": "k6",
+  "name": "@unkey/k6",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,6 +10,6 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "k6": "^0.0.0"
+    "k6": "latest"
   }
 }
