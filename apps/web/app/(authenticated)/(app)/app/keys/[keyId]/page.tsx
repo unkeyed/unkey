@@ -1,4 +1,4 @@
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 
 import { getTenantId } from "@/lib/auth";

@@ -2,7 +2,7 @@ import { ColumnChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { fillRange } from "@/lib/utils";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { getTotalActiveKeys, getDailyUsage } from "@/lib/tinybird";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";

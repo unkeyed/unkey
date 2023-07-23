@@ -1,13 +1,14 @@
-/** @type {import('next').NextConfig} */
 import { withContentlayer } from "next-contentlayer";
 import { withSentryConfig } from "@sentry/nextjs";
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   experimental: {
     serverActions: true,
     esmExternals: "loose",
   },
+  transpilePackages: ["@unkey/db"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

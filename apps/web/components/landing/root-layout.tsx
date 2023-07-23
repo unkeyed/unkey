@@ -215,13 +215,13 @@ function RootLayoutInner({
 }: {
   children: React.ReactNode;
 }) {
-  let panelId = useId();
-  let [expanded, setExpanded] = useState(false);
-  let openRef = useRef();
+  const panelId = useId();
+  const [expanded, setExpanded] = useState(false);
+  const openRef = useRef();
 
-  let closeRef = useRef();
-  let navRef = useRef();
-  let shouldReduceMotion = useReducedMotion();
+  const closeRef = useRef();
+  const navRef = useRef();
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     function onClick(event: MouseEvent) {
@@ -322,8 +322,8 @@ export function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let pathname = usePathname();
-  let [logoHovered, setLogoHovered] = useState(false);
+  const pathname = usePathname();
+  const [logoHovered, setLogoHovered] = useState(false);
 
   return (
     <RootLayoutContext.Provider value={{ logoHovered, setLogoHovered }}>

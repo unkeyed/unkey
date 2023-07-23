@@ -1,4 +1,4 @@
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { getTenantId } from "@/lib/auth";
 import Stripe from "stripe";
 import { redirect } from "next/navigation";

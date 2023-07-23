@@ -66,7 +66,7 @@ export default async function ChangeLogLayout({
 
         <Container className="mt-24 sm:mt-32 lg:mt-40">
           <FadeIn>
-            <div className='max-w-5xl mx-auto prose lg:prose-md'>
+            <div className="max-w-5xl mx-auto prose lg:prose-md">
               <Content />
             </div>
           </FadeIn>

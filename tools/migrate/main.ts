@@ -1,7 +1,10 @@
-import { schema, db, eq, isNull } from "@unkey/db";
+import { schema } from "@unkey/db";
 import { randomBytes } from "node:crypto";
 import baseX from "base-x";
 
+import mysql from "mysql2/promise";
+import { eq, isNull } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/mysql2";
 const prefixes = {
   key: "key",
   policy: "pol",
@@ -20,16 +23,20 @@ export function newId(prefix: keyof typeof prefixes): string {
 }
 
 async function main() {
+  const db = drizzle(
+    await mysql.createConnection({
+      host: process.env.DATABASE_HOST,
+      user: process.env.DATABASE_USERNAME,
+      password: process.env.DATABASE_PASSWORD,
+    }),
+    { schema },
+  );
   const keys = await db.query.keys.findMany({ where: isNull(schema.keys.keyAuthId) });
   let i = 0;
   for (const key of keys) {
     console.log("");
     console.log(++i, "/", keys.length);
     console.table(key);
-    if (!key.apiId) {
-      console.error("key also doesn't have old apiId", key);
-      continue;
-    }
 
     const api = await db.query.apis.findFirst({ where: eq(schema.apis.id, key.apiId) });
     if (!api) {
