@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Unkey } from "@unkey/api";
 
-
 export async function GET(req: NextRequest) {
   const unkey = new Unkey({ token: process.env.UNKEY_TOKEN! });
   // This part is a bit ugly, but we just use it here to make it easy to access this example
