@@ -14,6 +14,8 @@ type API struct {
 	Name        string         `json:"name"`         // name
 	WorkspaceID string         `json:"workspace_id"` // workspace_id
 	IPWhitelist sql.NullString `json:"ip_whitelist"` // ip_whitelist
+	AuthType    NullAuthType   `json:"auth_type"`    // auth_type
+	KeyAuthID   sql.NullString `json:"key_auth_id"`  // key_auth_id
 	// xo fields
 	_exists, _deleted bool
 }
@@ -39,13 +41,13 @@ func (a *API) Insert(ctx context.Context, db DB) error {
 	}
 	// insert (manual)
 	const sqlstr = `INSERT INTO unkey.apis (` +
-		`id, name, workspace_id, ip_whitelist` +
+		`id, name, workspace_id, ip_whitelist, auth_type, key_auth_id` +
 		`) VALUES (` +
-		`?, ?, ?, ?` +
+		`?, ?, ?, ?, ?, ?` +
 		`)`
 	// run
-	logf(sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist)
-	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist); err != nil {
+	logf(sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist, a.AuthType, a.KeyAuthID)
+	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist, a.AuthType, a.KeyAuthID); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -63,11 +65,11 @@ func (a *API) Update(ctx context.Context, db DB) error {
 	}
 	// update with primary key
 	const sqlstr = `UPDATE unkey.apis SET ` +
-		`name = ?, workspace_id = ?, ip_whitelist = ? ` +
+		`name = ?, workspace_id = ?, ip_whitelist = ?, auth_type = ?, key_auth_id = ? ` +
 		`WHERE id = ?`
 	// run
-	logf(sqlstr, a.Name, a.WorkspaceID, a.IPWhitelist, a.ID)
-	if _, err := db.ExecContext(ctx, sqlstr, a.Name, a.WorkspaceID, a.IPWhitelist, a.ID); err != nil {
+	logf(sqlstr, a.Name, a.WorkspaceID, a.IPWhitelist, a.AuthType, a.KeyAuthID, a.ID)
+	if _, err := db.ExecContext(ctx, sqlstr, a.Name, a.WorkspaceID, a.IPWhitelist, a.AuthType, a.KeyAuthID, a.ID); err != nil {
 		return logerror(err)
 	}
 	return nil
@@ -89,15 +91,15 @@ func (a *API) Upsert(ctx context.Context, db DB) error {
 	}
 	// upsert
 	const sqlstr = `INSERT INTO unkey.apis (` +
-		`id, name, workspace_id, ip_whitelist` +
+		`id, name, workspace_id, ip_whitelist, auth_type, key_auth_id` +
 		`) VALUES (` +
-		`?, ?, ?, ?` +
+		`?, ?, ?, ?, ?, ?` +
 		`)` +
 		` ON DUPLICATE KEY UPDATE ` +
-		`id = VALUES(id), name = VALUES(name), workspace_id = VALUES(workspace_id), ip_whitelist = VALUES(ip_whitelist)`
+		`id = VALUES(id), name = VALUES(name), workspace_id = VALUES(workspace_id), ip_whitelist = VALUES(ip_whitelist), auth_type = VALUES(auth_type), key_auth_id = VALUES(key_auth_id)`
 	// run
-	logf(sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist)
-	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist); err != nil {
+	logf(sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist, a.AuthType, a.KeyAuthID)
+	if _, err := db.ExecContext(ctx, sqlstr, a.ID, a.Name, a.WorkspaceID, a.IPWhitelist, a.AuthType, a.KeyAuthID); err != nil {
 		return logerror(err)
 	}
 	// set exists
@@ -132,7 +134,7 @@ func (a *API) Delete(ctx context.Context, db DB) error {
 func APIByID(ctx context.Context, db DB, id string) (*API, error) {
 	// query
 	const sqlstr = `SELECT ` +
-		`id, name, workspace_id, ip_whitelist ` +
+		`id, name, workspace_id, ip_whitelist, auth_type, key_auth_id ` +
 		`FROM unkey.apis ` +
 		`WHERE id = ?`
 	// run
@@ -140,7 +142,27 @@ func APIByID(ctx context.Context, db DB, id string) (*API, error) {
 	a := API{
 		_exists: true,
 	}
-	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&a.ID, &a.Name, &a.WorkspaceID, &a.IPWhitelist); err != nil {
+	if err := db.QueryRowContext(ctx, sqlstr, id).Scan(&a.ID, &a.Name, &a.WorkspaceID, &a.IPWhitelist, &a.AuthType, &a.KeyAuthID); err != nil {
+		return nil, logerror(err)
+	}
+	return &a, nil
+}
+
+// APIByKeyAuthID retrieves a row from 'unkey.apis' as a [API].
+//
+// Generated from index 'key_auth_id_idx'.
+func APIByKeyAuthID(ctx context.Context, db DB, keyAuthID sql.NullString) (*API, error) {
+	// query
+	const sqlstr = `SELECT ` +
+		`id, name, workspace_id, ip_whitelist, auth_type, key_auth_id ` +
+		`FROM unkey.apis ` +
+		`WHERE key_auth_id = ?`
+	// run
+	logf(sqlstr, keyAuthID)
+	a := API{
+		_exists: true,
+	}
+	if err := db.QueryRowContext(ctx, sqlstr, keyAuthID).Scan(&a.ID, &a.Name, &a.WorkspaceID, &a.IPWhitelist, &a.AuthType, &a.KeyAuthID); err != nil {
 		return nil, logerror(err)
 	}
 	return &a, nil

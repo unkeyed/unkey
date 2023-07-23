@@ -6,6 +6,7 @@ const prefixes = {
   api: "api",
   request: "req",
   workspace: "ws",
+  keyAuth: "key_auth",
 } as const;
 
 export function newId(prefix: keyof typeof prefixes): string {

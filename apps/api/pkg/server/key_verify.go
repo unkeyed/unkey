@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -125,17 +126,16 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// Get the api from either cache or db
 	// ---------------------------------------------------------------------------------------------
 
-	api, isCached := s.apiCache.Get(ctx, key.ApiId)
-
+	api, isCached := s.apiCache.Get(ctx, key.KeyAuthId)
 	if !isCached {
-		api, err = s.db.GetApi(ctx, key.ApiId)
+		keyAuth, err := s.db.GetKeyAuth(ctx, key.KeyAuthId)
 		if err != nil {
 			if errors.Is(err, database.ErrNotFound) {
 				return c.Status(http.StatusNotFound).JSON(VerifyKeyErrorResponse{
 					Valid: false,
 					ErrorResponse: ErrorResponse{
 						Code:  NOT_FOUND,
-						Error: "api not found",
+						Error: fmt.Sprintf("keyAuth not found: %s", key.KeyAuthId),
 					},
 				})
 			}
@@ -148,7 +148,28 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 				},
 			})
 		}
-		s.apiCache.Set(ctx, key.ApiId, api)
+
+		api, err = s.db.GetApiByKeyAuthId(ctx, keyAuth.Id)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return c.Status(http.StatusNotFound).JSON(VerifyKeyErrorResponse{
+					Valid: false,
+					ErrorResponse: ErrorResponse{
+						Code:  NOT_FOUND,
+						Error: fmt.Sprintf("api not found: %s", key.ApiId),
+					},
+				})
+			}
+
+			return c.Status(500).JSON(VerifyKeyErrorResponse{
+				Valid: false,
+				ErrorResponse: ErrorResponse{
+					Code:  INTERNAL_SERVER_ERROR,
+					Error: err.Error(),
+				},
+			})
+		}
+		s.apiCache.Set(ctx, key.KeyAuthId, api)
 	}
 
 	// ---------------------------------------------------------------------------------------------

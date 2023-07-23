@@ -13,6 +13,7 @@ const kafka = new Kafka({
   username: env.UPSTASH_KAFKA_REST_USERNAME,
   password: env.UPSTASH_KAFKA_REST_PASSWORD,
 });
+const producer = kafka.producer();
 
 export const apiRouter = t.router({
   delete: t.procedure
@@ -33,8 +34,6 @@ export const apiRouter = t.router({
       if (!api || api.workspace?.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
       }
-
-      const producer = kafka.producer();
 
       // delete keys for the api
       let keys: Key[] = [];
@@ -75,10 +74,18 @@ export const apiRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
       }
 
+      const keyAuth = {
+        id: newId("keyAuth"),
+        workspaceId: workspace.id,
+      };
+      await db.insert(schema.keyAuth).values(keyAuth);
+
       await db.insert(schema.apis).values({
         id,
         workspaceId: workspace.id,
         name: input.name,
+        authType: "key",
+        keyAuthId: keyAuth.id,
       });
 
       return {

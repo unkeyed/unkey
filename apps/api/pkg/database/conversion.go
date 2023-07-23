@@ -14,7 +14,13 @@ func keyModelToEntity(model *models.Key) (entities.Key, error) {
 
 	key := entities.Key{}
 	key.Id = model.ID
-	key.ApiId = model.APIID
+	if model.APIID.Valid {
+		key.ApiId = model.APIID.String
+	}
+	if model.KeyAuthID.Valid {
+
+		key.KeyAuthId = model.KeyAuthID.String
+	}
 	key.WorkspaceId = model.WorkspaceID
 	key.Hash = model.Hash
 	key.Start = model.Start
@@ -68,7 +74,8 @@ func keyEntityToModel(e entities.Key) (*models.Key, error) {
 
 	key := &models.Key{
 		ID:          e.Id,
-		APIID:       e.ApiId,
+		APIID:       sql.NullString{String: e.ApiId, Valid: e.ApiId != ""},
+		KeyAuthID:   sql.NullString{String: e.KeyAuthId, Valid: e.KeyAuthId != ""},
 		Start:       e.Start,
 		WorkspaceID: e.WorkspaceId,
 		Hash:        e.Hash,
@@ -134,6 +141,8 @@ func apiEntityToModel(a entities.Api) *models.API {
 		Name:        a.Name,
 		WorkspaceID: a.WorkspaceId,
 		IPWhitelist: sql.NullString{String: strings.Join(a.IpWhitelist, ","), Valid: len(a.IpWhitelist) > 0},
+		AuthType:    models.NullAuthType{AuthType: 1, Valid: true},
+		KeyAuthID:   sql.NullString{String: a.KeyAuthId, Valid: a.KeyAuthId != ""},
 	}
 
 }
@@ -143,10 +152,43 @@ func apiModelToEntity(model *models.API) entities.Api {
 		Id:          model.ID,
 		Name:        model.Name,
 		WorkspaceId: model.WorkspaceID,
+		KeyAuthId:   model.KeyAuthID.String,
 	}
+
 	if model.IPWhitelist.Valid {
 		a.IpWhitelist = strings.Split(model.IPWhitelist.String, ",")
 	}
+
+	if model.AuthType.Valid {
+		switch model.AuthType.AuthType.String() {
+		case "key":
+			a.KeyAuthId = model.KeyAuthID.String
+			a.AuthType = entities.AuthTypeKey
+		case "jwt":
+			a.AuthType = entities.AuthTypeJWT
+		}
+
+	}
+
+	return a
+
+}
+
+func keyAuthEntityToModel(a entities.KeyAuth) *models.KeyAuth {
+
+	return &models.KeyAuth{
+		ID:          a.Id,
+		WorkspaceID: a.WorkspaceId,
+	}
+
+}
+
+func keyAuthModelToEntity(model *models.KeyAuth) entities.KeyAuth {
+	a := entities.KeyAuth{
+		Id:          model.ID,
+		WorkspaceId: model.WorkspaceID,
+	}
+
 	return a
 
 }
