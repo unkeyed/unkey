@@ -7,19 +7,15 @@
       "recommended": true,
       "correctness": {
         "noUnusedVariables": "warn"
-    
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
-    
       },
       "style": {
         "useBlockStatements": "error"
-        
       },
       "performance": {
         "noDelete": "off"
-        
       }
     },
     "ignore": ["node_modules", ".next", "dist", ".nuxt",".contentlayer"]

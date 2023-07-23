@@ -1,9 +1,12 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
-import { ApiLink } from "./api-link";
+import { ApiLink } from "@/components/dashboard/app-link";
 import { WorkspaceSwitcher } from "./team-switcher";
+import { cn } from "@/lib/utils";
 import type { Workspace } from "@/lib/db";
 type Props = {
   workspace: Workspace & {
@@ -12,28 +15,27 @@ type Props = {
       name: string;
     }[];
   };
+  className?: string;
 };
 
-export const DesktopSidebar: React.FC<Props> = ({ workspace }) => {
+export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   return (
-    <aside className="fixed h-screen pb-12 border-r lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-white/10">
+    <aside
+      className={cn("fixed h-screen pb-12 lg:inset-y-0 lg:flex lg:w-72 lg:flex-col", className)}
+    >
       <Link
         href="/app"
-        className="flex items-center gap-2 px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-default stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
+        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
       >
-        {/* <Logo className="w-8 h-8 duration-200 " /> */}
-        Unkey.dev
+        <span className="text-transparent bg-gradient-to-tr from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 bg-clip-text">
+          U
+        </span>
+        <span>nkey</span>
       </Link>
       <div className="space-y-4">
         <div className="px-6 py-2">
           <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
           <div className="space-y-1">
-            {/* <Link href="/app">
-              <Button variant="ghost" size="sm" className="justify-start w-full">
-                <Home className="w-4 h-4 mr-2" />
-                Overview
-              </Button>
-            </Link> */}
             <Link href="/app/apis">
               <Button variant="ghost" size="sm" className="justify-start w-full ">
                 <FileJson className="w-4 h-4 mr-2" />

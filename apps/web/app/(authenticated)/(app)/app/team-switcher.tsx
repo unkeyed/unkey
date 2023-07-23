@@ -8,8 +8,23 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { Check, Zap, ChevronsUpDown, Plus, Book, LogOut, Rocket } from "lucide-react";
+import {
+  Check,
+  Zap,
+  ChevronsUpDown,
+  Plus,
+  Book,
+  LogOut,
+  Rocket,
+  Moon,
+  Monitor,
+  Sun,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,7 +33,11 @@ import { Loading } from "@/components/dashboard/loading";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+import { DropdownMenuSub } from "@radix-ui/react-dropdown-menu";
+import { useTheme } from "next-themes";
 import type { Workspace } from "@/lib/db";
+
 type Props = {
   workspace: Workspace;
 };
@@ -29,7 +48,6 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
   const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -43,14 +61,15 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       setLoading(false);
     }
   }
+  const { setTheme, theme } = useTheme();
   return (
     <DropdownMenu>
       {loading ? (
         <Loading />
       ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between w-full gap-4 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700">
-          <div className="flex items-center justify-start w-full gap-4 ">
-            <Avatar>
+        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded lg:w-full hover:bg-zinc-100 dark:hover:bg-stone-800">
+          <div className="flex flex-row-reverse items-center justify-start w-full gap-4 lg:flex-row ">
+            <Avatar className="w-8 h-8 lg:w-10 lg:h-10">
               {user?.profileImageUrl ? (
                 <AvatarImage src={user.profileImageUrl} alt={user.username ?? "Profile picture"} />
               ) : null}
@@ -58,15 +77,14 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                 {(currentOrg?.slug ?? user?.username ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col items-start gap-1 ">
+            <div className="flex flex-row-reverse items-center gap-4 lg:gap-1 lg:items-start lg:flex-col">
               <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
                 {currentOrg?.name ?? "Personal"}
               </span>
-
               <PlanBadge plan={workspace.plan} />
             </div>
           </div>
-          <ChevronsUpDown className="w-4 h-4" />
+          <ChevronsUpDown className="hidden w-4 h-4 md:block" />
         </DropdownMenuTrigger>
       )}
       <DropdownMenuContent className="w-full lg:w-56" align="end" forceMount>
@@ -90,7 +108,43 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
-
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Change Theme</DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                <DropdownMenuCheckboxItem
+                  checked={theme === "light"}
+                  onCheckedChange={() => setTheme("light")}
+                >
+                  <div className="flex items-center gap-2 ">
+                    <Sun size={16} />
+                    Light
+                  </div>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={theme === "dark"}
+                  onCheckedChange={() => setTheme("dark")}
+                >
+                  <div className="flex items-center gap-2 ">
+                    <Moon size={16} />
+                    Dark
+                  </div>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={theme === "system"}
+                  onCheckedChange={() => setTheme("system")}
+                >
+                  <div className="flex items-center gap-2 ">
+                    <Monitor size={16} />
+                    System
+                  </div>
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
@@ -119,6 +173,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>
+
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <Link href="/app/team/create">
@@ -141,7 +196,6 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
           <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
             <DropdownMenuItem asChild className="cursor-pointer">
               <span>
-                {" "}
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign out
               </span>
@@ -157,7 +211,7 @@ const PlanBadge: React.FC<{ plan: Workspace["plan"] }> = ({ plan }) => {
   return (
     <span
       className={cn(" inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md", {
-        "text-zinc-800": plan === "free",
+        "text-zinc-800 dark:text-zinc-300": plan === "free",
         "text-primary-foreground  bg-primary px-2 border border-primary-500": plan === "pro",
         "text-white bg-black px-2 border border-black": plan === "enterprise",
         "text-red-600 bg-red-100 px-2 border border-red-500": !plan,

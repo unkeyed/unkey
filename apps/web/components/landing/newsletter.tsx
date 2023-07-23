@@ -2,9 +2,9 @@
 
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { Icons } from "@/components/ui/icons";
 import { addEmail } from "@/app/actions/addEmail";
 import { useRef } from "react";
+import { Loading } from "../dashboard/loading";
 // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function ArrowIcon(props: any) {
   return (
@@ -26,7 +26,7 @@ const SubmitButton = () => {
       disabled={pending}
       className="flex items-center justify-center h-full text-white transition aspect-square rounded-xl bg-neutral-950 hover:bg-neutral-800 disabled:bg-neutral-500"
     >
-      {pending ? <Icons.spinner className="w-4 h-4 animate-spin" /> : <ArrowIcon className="w-4" />}
+      {pending ? <Loading className="w-4 h-4" /> : <ArrowIcon className="w-4" />}
     </button>
   );
 };

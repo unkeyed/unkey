@@ -6,14 +6,8 @@ import { db, schema, eq, sql } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ApiList } from "./client";
+import { Search } from "lucide-react";
 
 export const revalidate = 3;
 
@@ -42,79 +36,41 @@ export default async function TenantOverviewPage() {
   );
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
   return (
-    <div>
+    <div className="">
       {unpaid ? (
         <div>
           <PageHeader title="Applications" description="Manage your APIs" />
-
           <Separator className="my-6" />
-
-          <div className="flex items-center justify-center">
-            <Card className="duration-500 hover:border-primary bg-muted w-3xl ">
-              <CardHeader>
-                <CardTitle>Please add billing to your account</CardTitle>
-              </CardHeader>
-
-              <CardContent>
-                <p className="text-gray-500">
-                  Team workspaces is a paid feature. Please add billing to your account to continue
-                  using it.
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Link
-                  href="/app/stripe"
-                  target="_blank"
-                  className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
-                >
-                  Add billing
-                </Link>
-              </CardFooter>
-            </Card>
+          <section className="flex flex-col gap-4 my-4 md:items-center md:flex-row">
+            <div className="flex items-center flex-grow h-10 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-input focus-within:border-primary/40">
+              <Search size={18} />
+              <input
+                disabled
+                className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none "
+                placeholder="Search.."
+              />
+            </div>
+            <CreateApiButton disabled />
+          </section>
+          <div className="flex flex-col justify-center items-center mt-10  md:mt-24 px-4 space-y-6 border border-dashed rounded-lg min-h-[400px]">
+            <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
+              Please add billing to your account
+            </h3>
+            <p className="text-sm text-center text-gray-500 md:text-base">
+              Team workspaces is a paid feature. Please add billing to your account to continue
+              using it.
+            </p>
+            <Link
+              href="/app/stripe"
+              target="_blank"
+              className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
+            >
+              Add billing
+            </Link>
           </div>
         </div>
       ) : (
-        <div>
-          <PageHeader title="Applications" description="Manage your APIs" />
-
-          <Separator className="my-6" />
-
-          <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
-            <Card className="duration-500 hover:border-primary bg-muted">
-              <CardHeader>
-                <CardTitle>Create New API</CardTitle>
-              </CardHeader>
-
-              <CardContent />
-              <CardFooter>
-                <CreateApiButton key="createApi" />
-              </CardFooter>
-            </Card>
-            {apis.map((api) => (
-              <Link key={api.id} href={`/app/${api.id}`}>
-                <Card className="duration-500 hover:border-primary">
-                  <CardHeader>
-                    <CardTitle>{api.name}</CardTitle>
-                    <CardDescription>{api.id}</CardDescription>
-                  </CardHeader>
-
-                  <CardContent>
-                    <dl className="text-sm leading-6 divide-y divide-gray-100 ">
-                      <div className="flex justify-between py-3 gap-x-4">
-                        <dt className="text-gray-500">API Keys</dt>
-                        <dd className="flex items-start gap-x-2">
-                          <div className="font-medium text-gray-900">
-                            {api.keys.at(0)?.count ?? 0}
-                          </div>
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </ul>
-        </div>
+        <ApiList apis={apis} />
       )}
     </div>
   );

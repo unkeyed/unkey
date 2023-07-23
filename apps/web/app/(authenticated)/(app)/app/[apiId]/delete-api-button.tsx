@@ -3,7 +3,7 @@
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 
-import { Loading } from "../../../../../components/dashboard/loading";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc/client";
@@ -34,16 +34,23 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
         title: "API deleted",
         description: "Your API and all its keys have been removed",
       });
+      setModalOpen(false);
       router.refresh();
     },
     onError(err) {
       console.error(err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
+  const [modalOpen, setModalOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
       <DialogTrigger asChild>
         <Button variant="destructive">Delete API</Button>
       </DialogTrigger>
@@ -56,14 +63,14 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
           </DialogDescription>
         </DialogHeader>
         If you want to continue, please type in the name of the api below:{" "}
-        <Code className="mt-2 text-center bg-gray-100 rounded ">{apiName}</Code>
-
+        <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-zinc-900 hover:border-zinc-200 dark:hover:border-zinc-800">
+          {apiName}
+        </Code>
         <Input
           value={typedName}
           placeholder={apiName}
           onChange={(v) => setTypedName(v.currentTarget.value)}
         />
-
         <DialogFooter>
           <Button
             disabled={typedName !== apiName || deleteApi.isLoading}

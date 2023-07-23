@@ -103,12 +103,6 @@ export default async function SettingsPage() {
             </div>
           </div>
         </CardContent>
-        {/* <CardFooter className="flex items-center justify-end gap-2">
-                    <BillingButton teamId={team.id} />
-                    <Link key="plans" href={`/${team.slug}/settings/plans`}>
-                        <Button variant="primary">Change your plan</Button>
-                    </Link>
-                </CardFooter> */}
       </Card>
     </div>
   );
