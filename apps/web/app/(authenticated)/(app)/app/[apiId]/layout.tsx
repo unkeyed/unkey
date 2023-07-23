@@ -43,17 +43,15 @@ export default async function ApiPageLayout(props: Props) {
           <Badge
             key="apiId"
             variant="outline"
-            className="font-mono font-medium w-full flex justify-between"
+            className="flex justify-between w-full font-mono font-medium"
           >
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
-          <div className=" flex items-center gap-4">
-            <Link href={`/app/${api.id}/keys/new`}>
-              <Button variant="outline">Create Key</Button>
-            </Link>
-            <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />
-          </div>,
+          <Link key="new" href={`/app/${api.id}/keys/new`}>
+            <Button variant="outline">Create Key</Button>
+          </Link>,
+          <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,
         ]}
       />
       <div className="-mt-4 md:space-x-4 ">

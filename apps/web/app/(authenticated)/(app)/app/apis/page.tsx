@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { ApiList } from "./client";
-import { Icons } from "@/components/ui/icons";
+import { Search } from "lucide-react";
 
 export const revalidate = 3;
 
@@ -36,28 +36,27 @@ export default async function TenantOverviewPage() {
   );
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
   return (
-    <div className=" ">
+    <div className="">
       {unpaid ? (
         <div>
           <PageHeader title="Applications" description="Manage your APIs" />
           <Separator className="my-6" />
-          <section className=" my-4 flex md:items-center gap-4 flex-col md:flex-row">
-            <div className="flex h-10 flex-grow items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-within:border-primary/40">
-              <Icons.search size={18} />
+          <section className="flex flex-col gap-4 my-4 md:items-center md:flex-row">
+            <div className="flex items-center flex-grow h-10 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-input focus-within:border-primary/40">
+              <Search size={18} />
               <input
                 disabled
-                className="disabled:cursor-not-allowed bg-transparent flex-grow disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none  "
+                className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none "
                 placeholder="Search.."
               />
             </div>
             <CreateApiButton disabled />
           </section>
           <div className="flex flex-col justify-center items-center mt-10  md:mt-24 px-4 space-y-6 border border-dashed rounded-lg min-h-[400px]">
-            <Icons.payment size={80} />
-            <h3 className="md:text-2xl tet-xl font-semibold text-center leading-none tracking-tight">
+            <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
               Please add billing to your account
             </h3>
-            <p className="text-gray-500 text-center text-sm md:text-base">
+            <p className="text-sm text-center text-gray-500 md:text-base">
               Team workspaces is a paid feature. Please add billing to your account to continue
               using it.
             </p>

@@ -11,12 +11,8 @@ export const workspaceRouter = t.router({
       z.object({
         tenantId: z.string(),
         name: z.string().min(1).max(50),
-        slug: z
-          .string()
-          .min(1)
-          .max(50)
-          .regex(/^[a-zA-Z0-9-_\.]+$/),
-      })
+        slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
+      }),
     )
     .mutation(async ({ input }) => {
       const id = newId("workspace");

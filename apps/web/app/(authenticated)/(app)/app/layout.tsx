@@ -25,10 +25,10 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <>
-      <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-tl">
-        <DesktopSidebar workspace={workspace} className=" hidden md:block" />
-        <MobileSideBar workspace={workspace} />
-        <div className="w-full px-4 md:px-8 md:m-2 bg-gradient-to-br bg-zinc-100 dark:bg-zinc-900 shadow md:ml-72 rounded-xl">
+      <div className="flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-stone-200 to-stone-100 dark:from-stone-900 dark:to-stone-900">
+        <DesktopSidebar workspace={workspace} className="hidden lg:block" />
+        <MobileSideBar workspace={workspace} className="lg:hidden" />
+        <div className="p-4 m-2 bg-white shadow lg:w-full lg:p-6 dark:bg-stone-950 lg:ml-72 rounded-xl">
           {children}
         </div>
       </div>

@@ -1,4 +1,5 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,7 +42,7 @@ export function OAuthSignIn() {
         onClick={() => oauthSignIn("oauth_github")}
       >
         {isLoading === "oauth_github" ? (
-          <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />
+          <Loading className="w-4 h-4 mr-2" />
         ) : (
           <Icons.gitHub className="w-4 h-4 mr-2" />
         )}
@@ -53,7 +54,7 @@ export function OAuthSignIn() {
         onClick={() => oauthSignIn("oauth_google")}
       >
         {isLoading === "oauth_google" ? (
-          <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />
+          <Loading className="w-4 h-4 mr-2" />
         ) : (
           <Icons.google className="w-4 h-4 mr-2" />
         )}

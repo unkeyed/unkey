@@ -67,9 +67,9 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       {loading ? (
         <Loading />
       ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded outline-none md:w-full hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:drop-shadow-sm">
-          <div className="flex items-center justify-start w-full gap-4">
-            <Avatar className="w-8 h-8 md:w-10 md:h-10">
+        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded lg:w-full hover:bg-zinc-100 dark:hover:bg-stone-800">
+          <div className="flex flex-row-reverse items-center justify-start w-full gap-4 lg:flex-row ">
+            <Avatar className="w-8 h-8 lg:w-10 lg:h-10">
               {user?.profileImageUrl ? (
                 <AvatarImage src={user.profileImageUrl} alt={user.username ?? "Profile picture"} />
               ) : null}
@@ -77,7 +77,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
                 {(currentOrg?.slug ?? user?.username ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-col items-start hidden gap-1 md:flex">
+            <div className="flex flex-row-reverse items-center gap-4 lg:gap-1 lg:items-start lg:flex-col">
               <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
                 {currentOrg?.name ?? "Personal"}
               </span>

@@ -12,7 +12,7 @@ export function EmptyPlaceholder({
     <div
       className={cn(
         "animate-in fade-in-50 flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed p-8 text-center",
-        className
+        className,
       )}
       {...props}
     >
@@ -25,28 +25,22 @@ export function EmptyPlaceholder({
 
 EmptyPlaceholder.Icon = function EmptyPlaceHolderIcon() {
   return (
-    <div className="bg-muted flex h-20 w-20 items-center justify-center rounded-full">
+    <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted">
       <FileJson />
     </div>
   );
 };
 
-// rome-ignore lint/suspicious/noEmptyInterface: <explanation>
-interface EmptyPlaceholderTitleProps
-  extends React.HTMLAttributes<HTMLHeadingElement> {}
+type EmptyPlaceholderTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 
 EmptyPlaceholder.Title = function EmptyPlaceholderTitle({
   className,
   ...props
 }: EmptyPlaceholderTitleProps) {
-  return (
-    <h2 className={cn("mt-6 text-xl font-semibold", className)} {...props} />
-  );
+  return <h2 className={cn("mt-6 text-xl font-semibold", className)} {...props} />;
 };
 
-// rome-ignore lint/suspicious/noEmptyInterface: <explanation>
-interface EmptyPlaceholderDescriptionProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {}
+type EmptyPlaceholderDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
 
 EmptyPlaceholder.Description = function EmptyPlaceholderDescription({
   className,
@@ -56,7 +50,7 @@ EmptyPlaceholder.Description = function EmptyPlaceholderDescription({
     <p
       className={cn(
         "text-muted-foreground mb-8 mt-2 text-center text-sm font-normal leading-6",
-        className
+        className,
       )}
       {...props}
     />
