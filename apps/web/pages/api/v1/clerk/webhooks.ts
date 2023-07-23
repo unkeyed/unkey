@@ -5,15 +5,18 @@ import type { WebhookEvent } from "@clerk/nextjs/server"
 import { Webhook } from "svix";
 
 
-const webhookSecret: string = process.env.WEBHOOK_SECRET || "";
-const loopsAPIKey: string = process.env.LOOPS_API_KEY || "";
+const webhookSecret: string | undefined = process.env.WEBHOOK_SECRET;
+const loopsAPIKey: string | undefined = process.env.LOOPS_API_KEY;
 export default async function handler(
     req: NextApiRequestWithSvixRequiredHeaders,
     res: NextApiResponse
 ) {
     const payload = JSON.stringify(req.body);
     const headers = req.headers;
-
+    if(!webhookSecret || !loopsAPIKey){
+        // just return a 400 here, it will never happen but it's good to be safe
+      return res.status(400).json({ "Error": "Missing environment variables" });
+    }
     const wh = new Webhook(webhookSecret);
 
     let evt: WebhookEvent;
@@ -32,10 +35,6 @@ export default async function handler(
         const email = evt.data.email_addresses[0].email_address;
         if (!email) {
             return res.status(400).json({ "Error": "No email address found" });
-        }
-        if (!loopsAPIKey) {
-            // Don't log an error, just return a 400
-            return res.status(400).json({});
         }
         try {
             const loopsResponse = await fetch("https://app.loops.so/api/v1/contacts/create", {
