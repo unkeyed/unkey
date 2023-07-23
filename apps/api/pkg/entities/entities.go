@@ -5,6 +5,7 @@ import "time"
 type Key struct {
 	Id             string
 	ApiId          string
+	KeyAuthId      string
 	WorkspaceId    string
 	Name           string
 	Hash           string
@@ -29,11 +30,22 @@ type Ratelimit struct {
 	RefillInterval int64
 }
 
+type AuthType string
+
+const (
+	AuthTypeKey AuthType = "key"
+	AuthTypeJWT AuthType = "jwt"
+)
+
 type Api struct {
 	Id          string
 	Name        string
 	WorkspaceId string
 	IpWhitelist []string
+
+	AuthType AuthType
+	// Only set if AuthType == "key"
+	KeyAuthId string
 }
 
 type Workspace struct {
@@ -43,4 +55,9 @@ type Workspace struct {
 	TenantId           string
 	Internal           bool
 	EnableBetaFeatures bool
+}
+
+type KeyAuth struct {
+	Id          string
+	WorkspaceId string
 }

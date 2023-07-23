@@ -20,15 +20,13 @@ export function newId(prefix: keyof typeof prefixes): string {
 }
 
 async function main() {
-  await db.delete(schema.keyAuth);
   const apis = await db.query.apis.findMany();
   let i = 0;
   for (const api of apis) {
     console.log("");
-    console.log(i++, "/", apis.length);
+    console.log(++i, "/", apis.length);
     console.table(api);
-    await db.update(schema.apis).set({ authType: "key" }).where(eq(schema.apis.id, api.id));
-    if (api.keyAuthId !== "key_auth_APcipZWD9qb3ZAMumtDzUA") {
+    if (api.keyAuthId) {
       console.log("skipping");
       continue;
     }
@@ -37,7 +35,10 @@ async function main() {
       id: keyAuthId,
       workspaceId: api.workspaceId,
     });
-    await db.update(schema.apis).set({ keyAuthId }).where(eq(schema.apis.id, api.id));
+    await db
+      .update(schema.apis)
+      .set({ keyAuthId, authType: "key" })
+      .where(eq(schema.apis.id, api.id));
   }
 }
 

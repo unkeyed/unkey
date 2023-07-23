@@ -1,13 +1,23 @@
-import { mysqlTable, varchar, datetime, text, int, uniqueIndex } from "drizzle-orm/mysql-core";
+import {
+  mysqlTable,
+  varchar,
+  datetime,
+  text,
+  int,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { apis } from "./apis";
 import { workspaces } from "./workspaces";
+import { keyAuth } from "./keyAuth";
 
 export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     apiId: varchar("api_id", { length: 256 }),
+    keyAuthId: varchar("key_auth_id", { length: 256 }),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
@@ -42,6 +52,7 @@ export const keys = mysqlTable(
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
+    keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
   }),
 );
 
@@ -49,6 +60,10 @@ export const keysRelations = relations(keys, ({ one }) => ({
   api: one(apis, {
     fields: [keys.apiId],
     references: [apis.id],
+  }),
+  keyAuth: one(keyAuth, {
+    fields: [keys.keyAuthId],
+    references: [keyAuth.id],
   }),
   workspace: one(workspaces, {
     fields: [keys.workspaceId],
