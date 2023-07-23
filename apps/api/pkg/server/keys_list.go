@@ -100,7 +100,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		})
 	}
 
-	keys, err := s.db.ListKeysByApiId(ctx, api.Id, req.Limit, req.Offset, req.OwnerId)
+	keyAuth, err := s.db.GetKeyAuth(ctx, api.KeyAuthId)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,
@@ -108,7 +108,15 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		})
 	}
 
-	total, err := s.db.CountKeys(ctx, api.Id)
+	keys, err := s.db.ListKeysByKeyAuthId(ctx, keyAuth.Id, req.Limit, req.Offset, req.OwnerId)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
+			Code:  INTERNAL_SERVER_ERROR,
+			Error: err.Error(),
+		})
+	}
+
+	total, err := s.db.CountKeys(ctx, keyAuth.Id)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
 			Code:  INTERNAL_SERVER_ERROR,
