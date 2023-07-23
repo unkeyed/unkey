@@ -215,3 +215,16 @@ func (mw *tracingMiddleware) GetKeyAuth(ctx context.Context, keyAuthId string) (
 	}
 	return keyAuth, err
 }
+
+func (mw *tracingMiddleware) GetApiByKeyAuthId(ctx context.Context, keyAuthId string) (entities.Api, error) {
+	ctx, span := mw.t.Start(ctx, fmt.Sprintf("%s.getApiByKeyAuthId", mw.pkg), trace.WithAttributes(
+		attribute.String("keyAuthId", keyAuthId),
+	))
+	defer span.End()
+
+	api, err := mw.next.GetApiByKeyAuthId(ctx, keyAuthId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return api, err
+}

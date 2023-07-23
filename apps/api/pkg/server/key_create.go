@@ -125,7 +125,7 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 	if api.AuthType != entities.AuthTypeKey || api.KeyAuthId == "" {
 		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
 			Code:  BAD_REQUEST,
-			Error: "api is not set up to handle key auth",
+			Error: fmt.Sprintf("api is not set up to handle key auth: %+v", api),
 		})
 	}
 

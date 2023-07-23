@@ -1,4 +1,4 @@
-import { schema, db, eq } from "@unkey/db";
+import { schema, db, eq, isNull } from "@unkey/db";
 import { randomBytes } from "node:crypto";
 import baseX from "base-x";
 
@@ -20,25 +20,44 @@ export function newId(prefix: keyof typeof prefixes): string {
 }
 
 async function main() {
-  const apis = await db.query.apis.findMany();
+  const keys = await db.query.keys.findMany({ where: isNull(schema.keys.keyAuthId) });
   let i = 0;
-  for (const api of apis) {
+  for (const key of keys) {
     console.log("");
-    console.log(++i, "/", apis.length);
-    console.table(api);
-    if (api.keyAuthId) {
-      console.log("skipping");
+    console.log(++i, "/", keys.length);
+    console.table(key);
+    if (!key.apiId) {
+      console.error("key also doesn't have old apiId", key);
       continue;
     }
-    const keyAuthId = newId("keyAuth");
-    await db.insert(schema.keyAuth).values({
-      id: keyAuthId,
-      workspaceId: api.workspaceId,
-    });
+
+    const api = await db.query.apis.findFirst({ where: eq(schema.apis.id, key.apiId) });
+    if (!api) {
+      console.error("api doesn't exist", key);
+      continue;
+    }
+    if (!api.keyAuthId) {
+      console.error("api doesn't have keyAuth", key);
+      continue;
+    }
+
+    console.log("updating key %s with %s", key.id, api.keyAuthId);
     await db
-      .update(schema.apis)
-      .set({ keyAuthId, authType: "key" })
-      .where(eq(schema.apis.id, api.id));
+      .update(schema.keys)
+      .set({ keyAuthId: api.keyAuthId })
+      .where(eq(schema.keys.id, key.id));
+
+    // const keyAuthId = newId("keyAuth");
+    // await db.insert(schema.keyAuth).values({
+    //   id: keyAuthId,
+    //   workspaceId: api.workspaceId,
+    // });
+    // await db
+    //   .update(schema.apis)
+    //   .set({ keyAuthId, authType: "key" })
+    //   .where(eq(schema.apis.id, api.id));
+
+    // await db.update(schema.keys).set({ keyAuthId }).where(eq(schema.keys.apiId, api.id));
   }
 }
 

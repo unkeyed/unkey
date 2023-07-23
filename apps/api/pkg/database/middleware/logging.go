@@ -113,3 +113,10 @@ func (mw *loggingMiddleware) GetKeyAuth(ctx context.Context, keyAuthId string) (
 	keyAuth, err = mw.next.GetKeyAuth(ctx, keyAuthId)
 	return keyAuth, err
 }
+
+func (mw *loggingMiddleware) GetApiByKeyAuthId(ctx context.Context, keyAuthId string) (api entities.Api, err error) {
+	defer mw.l.Info("database.getAPiByKeyAuthId", zap.Any("req", keyAuthId), zap.Any("res", api), zap.Error(err))
+
+	api, err = mw.next.GetApiByKeyAuthId(ctx, keyAuthId)
+	return api, err
+}

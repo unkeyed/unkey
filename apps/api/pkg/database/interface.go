@@ -9,6 +9,7 @@ import (
 type Database interface {
 	CreateApi(ctx context.Context, newApi entities.Api) error
 	GetApi(ctx context.Context, apiId string) (entities.Api, error)
+	GetApiByKeyAuthId(ctx context.Context, keyAuthId string) (entities.Api, error)
 
 	CreateKey(ctx context.Context, newKey entities.Key) error
 	UpdateKey(ctx context.Context, key entities.Key) error

@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-
 )
 
 func (db *database) CountKeys(ctx context.Context, keyAuthId string) (int, error) {

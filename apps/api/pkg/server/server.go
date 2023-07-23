@@ -25,8 +25,9 @@ import (
 )
 
 type Config struct {
-	Logger          logging.Logger
-	KeyCache        cache.Cache[entities.Key]
+	Logger   logging.Logger
+	KeyCache cache.Cache[entities.Key]
+	// The ApiCache uses the KeyAuthId as cache key, not an apiId
 	ApiCache        cache.Cache[entities.Api]
 	Database        database.Database
 	Ratelimit       ratelimit.Ratelimiter

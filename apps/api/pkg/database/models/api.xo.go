@@ -147,3 +147,23 @@ func APIByID(ctx context.Context, db DB, id string) (*API, error) {
 	}
 	return &a, nil
 }
+
+// APIByKeyAuthID retrieves a row from 'unkey.apis' as a [API].
+//
+// Generated from index 'key_auth_id_idx'.
+func APIByKeyAuthID(ctx context.Context, db DB, keyAuthID sql.NullString) (*API, error) {
+	// query
+	const sqlstr = `SELECT ` +
+		`id, name, workspace_id, ip_whitelist, auth_type, key_auth_id ` +
+		`FROM unkey.apis ` +
+		`WHERE key_auth_id = ?`
+	// run
+	logf(sqlstr, keyAuthID)
+	a := API{
+		_exists: true,
+	}
+	if err := db.QueryRowContext(ctx, sqlstr, keyAuthID).Scan(&a.ID, &a.Name, &a.WorkspaceID, &a.IPWhitelist, &a.AuthType, &a.KeyAuthID); err != nil {
+		return nil, logerror(err)
+	}
+	return &a, nil
+}
