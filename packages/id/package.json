@@ -11,9 +11,9 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.3.1",
+    "@types/node": "^20.4.4",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.1.3"
+    "typescript": "^5.1.6"
   },
   "dependencies": {
     "base-x": "^4.0.0"

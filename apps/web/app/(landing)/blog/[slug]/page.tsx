@@ -42,7 +42,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
         </FadeIn>
 
         <FadeIn>
-          <div className='max-w-5xl mx-auto prose lg:prose-md'>
+          <div className="max-w-5xl mx-auto prose lg:prose-md">
             <Content />
           </div>
         </FadeIn>

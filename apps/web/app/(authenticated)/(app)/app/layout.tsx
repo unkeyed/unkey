@@ -1,6 +1,6 @@
 import { DesktopSidebar } from "@/app/(authenticated)/(app)/app/desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@unkey/db";
+import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 interface LayoutProps {

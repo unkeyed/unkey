@@ -64,7 +64,7 @@ export function NewsletterForm() {
         <input
           type="email"
           name="email"
-          id='email'
+          id="email"
           placeholder="Email address"
           autoComplete="email"
           aria-label="Email address"

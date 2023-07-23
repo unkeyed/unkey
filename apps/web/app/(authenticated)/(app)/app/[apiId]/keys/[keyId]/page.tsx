@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@unkey/db";
+import { db, schema, eq } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getDailyUsage } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";

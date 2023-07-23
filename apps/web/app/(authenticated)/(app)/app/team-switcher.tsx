@@ -18,7 +18,7 @@ import { Loading } from "@/components/dashboard/loading";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import type { Workspace } from "@unkey/db";
+import type { Workspace } from "@/lib/db";
 type Props = {
   workspace: Workspace;
 };

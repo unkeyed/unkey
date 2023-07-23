@@ -1,5 +1,5 @@
 import { stripeEnv, cronEnv } from "@/lib/env";
-import { db, isNotNull, schema } from "@unkey/db";
+import { db, isNotNull, schema } from "@/lib/db";
 import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
 import Stripe from "stripe";
 import { NextApiRequest, NextApiResponse } from "next";
@@ -33,7 +33,7 @@ export default async function (req: NextApiRequest, res: NextApiResponse) {
       const end = subscription.current_period_end * 1000;
       for (const item of subscription.items.data) {
         switch (item.price.product) {
-          case stripeEnv!.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+          case stripeEnv?.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
             const usage = await getTotalActiveKeys({ workspaceId: ws.id, start, end });
             const quantity = usage.data.at(0)?.usage;
             if (quantity) {
@@ -45,7 +45,7 @@ export default async function (req: NextApiRequest, res: NextApiResponse) {
             console.log("updated quantity");
             break;
           }
-          case stripeEnv!.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+          case stripeEnv?.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
             const usage = await getTotalVerificationsForWorkspace({
               workspaceId: ws.id,
               start,
