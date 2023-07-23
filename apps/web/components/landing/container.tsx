@@ -5,13 +5,14 @@ export function Container({
   className,
   children,
 }: {
+  // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   as?: any;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <Component className={clsx("mx-auto max-w-7xl px-6 lg:px-8", className)}>
-      <div className="mx-auto max-w-2xl lg:max-w-none">{children}</div>
+      <div className="max-w-2xl mx-auto lg:max-w-none">{children}</div>
     </Component>
   );
 }

@@ -1,5 +1,5 @@
 // db.ts
-import { boolean, int, mysqlTable, uniqueIndex, varchar, mysqlEnum } from "drizzle-orm/mysql-core";
+import { boolean, mysqlTable, uniqueIndex, varchar, mysqlEnum } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { apis } from "./apis";
 import { keys } from "./keys";
