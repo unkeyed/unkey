@@ -19,7 +19,7 @@ export const PageHeader: React.FC<Props> = ({ title, description, actions }) => 
         <p className="text-sm text-zinc-500 dark:text-zinc-400">{description}</p>
       </div>
       {actionRows.map((row, i) => (
-        <ul key={i.toString()} className="flex items-center justify-end gap-2 md:gap-4">
+        <ul key={i.toString()} className="flex items-center justify-end gap-2 md:gap-4 flex-wrap md:flex-nowrap">
           {row.map((action, i) => (
             // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             <li key={i}>{action}</li>
