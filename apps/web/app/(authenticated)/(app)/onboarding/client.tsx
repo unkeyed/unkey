@@ -54,7 +54,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
     <div className="flex flex-col items-center justify-center w-full min-h-screen">
       <Card className="z-10 mx-6 shadow-md md:mx-0">
         <CardHeader>
-          <CardTitle className="py-2 bg-gradient-to-tr border-zinc-400">
+          <CardTitle className="py-2 bg-gradient-to-tr border-stone-400">
             <p className="text-sm ">Let's get started</p>
             Create your first Workspace
           </CardTitle>

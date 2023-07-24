@@ -17,7 +17,7 @@ export type Props = {
 export function ResetWarning({ name }: Props) {
   return (
     <Tailwind>
-      <Html className="font-sans text-zinc-800">
+      <Html className="font-sans text-stone-800">
         <Head />
         <Preview>Unkey: API Key Reset (Sunday)</Preview>
         <Body className="bg-white">

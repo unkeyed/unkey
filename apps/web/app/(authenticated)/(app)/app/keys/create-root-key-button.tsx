@@ -100,7 +100,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
               </Code>
             </DialogHeader>
 
-            <p className="mt-2 text-sm font-medium text-center text-zinc-700 ">
+            <p className="mt-2 text-sm font-medium text-center text-stone-700 ">
               Try creating a new api key for your users:
             </p>
             <Code className="flex items-start justify-between w-full gap-4 my-8 ">

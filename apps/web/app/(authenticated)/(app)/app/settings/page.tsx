@@ -74,7 +74,7 @@ export default async function SettingsPage() {
         </CardHeader>
 
         <CardContent>
-          <div className="flex justify-center py-4 divide-x divide-zinc-200">
+          <div className="flex justify-center py-4 divide-x divide-stone-200">
             <div className="flex flex-col items-center gap-2 px-8">
               <Text size="xl">Current Usage</Text>
               <div className="flex items-center gap-2">

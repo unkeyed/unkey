@@ -17,8 +17,8 @@ export const NavLink: React.FC<NavLinkProps> = ({ label, href }) => {
       href={href}
       className={cn(
         path === href
-          ? "border-zinc-900 text-zinc-900 font-medium dark:text-zinc-100 dark:border-zinc-100"
-          : "text-zinc-600 border-transparent hover:border-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 dark:hover:border-zinc-300",
+          ? "border-stone-900 text-stone-900 font-medium dark:text-stone-100 dark:border-stone-100"
+          : "text-stone-600 border-transparent hover:border-stone-500 hover:text-stone-900 dark:hover:text-stone-300 dark:hover:border-stone-300",
         "border-b py-2 px-3 inline-flex duration-150 transition-all items-center text-sm ",
       )}
     >

@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 const textVariants = cva("", {
   variants: {
     variant: {
-      default: "leading-7 text-zinc-900",
-      code: "relative rounded bg-zinc-100 py-[0.2rem] px-[0.3rem] font-mono text-sm font-semibold text-zinc-900",
-      lead: "text-zinc-700",
+      default: "leading-7 text-stone-900",
+      code: "relative rounded bg-stone-100 py-[0.2rem] px-[0.3rem] font-mono text-sm font-semibold text-stone-900",
+      lead: "text-stone-700",
 
-      subtle: "text-zinc-500",
+      subtle: "text-stone-500",
     },
     size: {
       xs: "text-xs leading-none",
