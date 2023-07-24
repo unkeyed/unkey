@@ -150,7 +150,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </Code>
           </div>
 
-          <p className="my-2 font-medium text-center text-zinc-700 ">Try verifying it:</p>
+          <p className="my-2 font-medium text-center text-stone-700 ">Try verifying it:</p>
           <Code className="flex items-start justify-between w-full gap-4 my-8 ">
             {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
             <div className="flex items-start justify-between gap-4">

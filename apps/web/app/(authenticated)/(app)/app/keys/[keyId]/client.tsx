@@ -30,7 +30,7 @@ export const Client: React.FC<Props> = ({ apiKey }) => {
           </DeleteKeyButton>,
         ]}
       />
-      <div className="mt-8 space-y-10 divide-y divide-zinc-900/10" />
+      <div className="mt-8 space-y-10 divide-y divide-stone-900/10" />
     </div>
   );
 };

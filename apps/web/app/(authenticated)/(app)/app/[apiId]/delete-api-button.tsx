@@ -63,7 +63,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
           </DialogDescription>
         </DialogHeader>
         If you want to continue, please type in the name of the api below:{" "}
-        <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-zinc-900 hover:border-zinc-200 dark:hover:border-zinc-800">
+        <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-stone-900 hover:border-stone-200 dark:hover:border-stone-800">
           {apiName}
         </Code>
         <Input

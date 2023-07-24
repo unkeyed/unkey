@@ -76,7 +76,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                       <Input
                         placeholder="my-api"
                         {...field}
-                        className=" dark:focus:border-zinc-700"
+                        className=" dark:focus:border-stone-700"
                       />
                     </FormControl>
                     <FormDescription>

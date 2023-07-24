@@ -25,7 +25,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     >
       <Link
         href="/app"
-        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-zinc-800 dark:text-zinc-200 dark:stroke-zinc-500 dark:hover:stroke-white hover:stroke-zinc-700 hover:text-zinc-700 dark:hover:text-white"
+        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-stone-800 dark:text-stone-200 dark:stroke-stone-500 dark:hover:stroke-white hover:stroke-stone-700 hover:text-stone-700 dark:hover:text-white"
       >
         <span className="text-transparent bg-gradient-to-tr from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 bg-clip-text">
           U

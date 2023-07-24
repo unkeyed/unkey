@@ -81,7 +81,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       </Card>
       <Card className="col-span-3 overflow-hidden hover:drop-shadow-md relative">
         <div className=" absolute bottom-0 h-4  w-[200px] blur-2xl bg-white opacity-25" />
-        <CardHeader className=" border-b dark:border-zinc-800">
+        <CardHeader className=" border-b dark:border-stone-800">
           <CardTitle>Usage in the last 30 days</CardTitle>
           <CardDescription>This includes all key verifications in this API</CardDescription>
         </CardHeader>

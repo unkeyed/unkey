@@ -27,7 +27,7 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
     <button
       type="button"
       className={cn(
-        "relative z-20 inline-flex h-8 items-center justify-center rounded-md border-zinc-200 p-2 text-sm font-medium text-zinc-900 transition-all hover:bg-zinc-100 focus:outline-none dark:text-zinc-100 dark:hover:bg-zinc-800",
+        "relative z-20 inline-flex h-8 items-center justify-center rounded-md border-stone-200 p-2 text-sm font-medium text-stone-900 transition-all hover:bg-stone-100 focus:outline-none dark:text-stone-100 dark:hover:bg-stone-800",
         className,
       )}
       onClick={() => {

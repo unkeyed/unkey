@@ -37,7 +37,7 @@ export function Changelog({
 }: Props) {
   return (
     <Tailwind>
-      <Html className="font-sans text-zinc-800">
+      <Html className="font-sans text-stone-800">
         <Head />
         <Preview>{preview}</Preview>
         <Body className="bg-white">
@@ -57,7 +57,7 @@ export function Changelog({
             </Section>
             <Section className="my-4 text-center">
               <Button
-                className="px-8 py-4 font-medium text-white rounded bg-zinc-900"
+                className="px-8 py-4 font-medium text-white rounded bg-stone-900"
                 href={changelogUrl}
               >
                 View Changelog
