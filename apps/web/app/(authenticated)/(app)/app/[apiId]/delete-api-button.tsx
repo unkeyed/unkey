@@ -50,7 +50,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <Dialog modal={false} open={modalOpen} onOpenChange={setModalOpen}>
+    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
       <DialogTrigger asChild>
         <Button variant="destructive">Delete API</Button>
       </DialogTrigger>
