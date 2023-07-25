@@ -10,7 +10,6 @@ type Props = {
 };
 
 export const AreaChart: React.FC<Props> = ({ data }) => {
-  
   return (
     <Area
       autoFit={true}
@@ -41,7 +40,7 @@ export const AreaChart: React.FC<Props> = ({ data }) => {
 };
 
 export const ColumnChart: React.FC<Props> = ({ data }) => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   console.log(theme);
   return (
     <Column

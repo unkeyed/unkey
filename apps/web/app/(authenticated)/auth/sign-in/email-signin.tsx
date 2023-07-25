@@ -13,7 +13,7 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
   const { toast } = useToast();
   const param = "__clerk_ticket";
-  
+
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   React.useEffect(() => {

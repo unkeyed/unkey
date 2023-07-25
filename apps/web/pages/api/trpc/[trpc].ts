@@ -9,8 +9,8 @@ export const config = {
 
 clerkClient.users.verifyPassword({
   password: "test",
-  userId: "user_2132141"
-})
+  userId: "user_2132141",
+});
 
 // export API handler
 export default async function handler(req: NextRequest) {

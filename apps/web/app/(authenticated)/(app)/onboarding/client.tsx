@@ -48,8 +48,7 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
           description: "Workspace already exists, please change the slug and try again",
           variant: "destructive",
         });
-      }
-      else {
+      } else {
         toast({
           title: "Error",
           description: "An error occured while creating your workspace",

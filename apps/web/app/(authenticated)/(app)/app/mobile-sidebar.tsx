@@ -33,26 +33,24 @@ export const MobileSideBar = ({ workspace, className }: Props) => {
           <div className="flex flex-col w-full p-4 ">
             <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
             <div className="space-y-1">
-            
               <Link href="/app/apis">
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start w-full">
-                  <FileJson className="w-4 h-4 mr-2" />
-                  APIs
-                </Button>
+                <SheetClose asChild>
+                  <Button variant="ghost" className="justify-start w-full">
+                    <FileJson className="w-4 h-4 mr-2" />
+                    APIs
+                  </Button>
                 </SheetClose>
               </Link>
 
-              
               <Link href="/app/keys">
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start w-full border-t">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
+                <SheetClose asChild>
+                  <Button variant="ghost" className="justify-start w-full border-t">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Button>
                 </SheetClose>
               </Link>
-              
+
               <Link href="https://docs.unkey.dev" target="_blank">
                 <Button variant="ghost" className="justify-start w-full py-2 border-t">
                   <BookOpen className="w-4 h-4 mr-2" />

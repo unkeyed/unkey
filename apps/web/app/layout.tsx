@@ -12,7 +12,7 @@ const pangea = localFont({
   variable: "--font-pangea",
 });
 export const metadata = {
-  metadataBase: new URL('https://unkey.dev'),
+  metadataBase: new URL("https://unkey.dev"),
   title: "Open Source API Key Management",
   description: "Accelerate your API development",
   openGraph: {
