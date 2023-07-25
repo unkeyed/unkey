@@ -107,7 +107,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="text-xs md:text-sm" variant="outline">Revoke selected keys</Button>
+                <Button className="text-xs md:text-sm w-full" variant="outline">Revoke selected keys</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
