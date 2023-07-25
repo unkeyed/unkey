@@ -50,7 +50,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+    <Dialog modal={false} open={modalOpen} onOpenChange={setModalOpen}>
       <DialogTrigger asChild>
         <Button variant="destructive">Delete API</Button>
       </DialogTrigger>
@@ -66,6 +66,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
         <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-stone-900 hover:border-stone-200 dark:hover:border-stone-800">
           {apiName}
         </Code>
+        <form>
         <Input
           value={typedName}
           placeholder={apiName}
@@ -83,7 +84,9 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
           >
             {deleteApi.isLoading ? <Loading /> : "Delete"}
           </Button>
+          
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
