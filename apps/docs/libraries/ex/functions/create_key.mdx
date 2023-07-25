@@ -85,6 +85,21 @@ In milliseconds
  </Expandable>
 </ParamField>
 
+ <ParamField body="remaining" type="int" >
+  Optionally limit the number of times a key can be used. This is different from time-based expiration using `expires`.
+
+Example:
+
+```json
+"remaining": 10
+```
+
+The created key can be verified successfully 10 times, afterwards it is invalidated automatically.
+
+Read more [here](/features/remaining)
+
+</ParamField>
+
 ## Response
 
 <ResponseField name="key" type="string" required>
@@ -118,7 +133,8 @@ In milliseconds
               "limit" => 10,
               "refillRate" => 1,
               "refillInterval" => 1000
-            }
+            },
+            "remaining" => 10
           })
 
         Logger.info(opts)
