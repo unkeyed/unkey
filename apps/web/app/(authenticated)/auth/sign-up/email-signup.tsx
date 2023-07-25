@@ -13,18 +13,19 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
   const { toast } = useToast();
   const param = "__clerk_ticket";
-  const ticket = new URL(window.location.href).searchParams.get(param);
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
 
   React.useEffect(() => {
     const signUpOrgUser = async () => {
-      if (!ticket) {
-        return;
-      }
+      const ticket = new URL(window.location.href).searchParams.get(param);
       if (!signUpLoaded) {
         return;
       }
+      if (!ticket) {
+        return;
+      }
+      setIsLoading(true);
       await signUp
         .create({
           strategy: "ticket",
@@ -43,7 +44,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
         });
     };
     signUpOrgUser();
-  }, [ticket, signUpLoaded]);
+  }, [signUpLoaded]);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
