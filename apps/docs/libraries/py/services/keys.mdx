@@ -33,3 +33,16 @@ Revokes access and removes the key with the given ID.
 ```py
 result = await client.keys.revoke_key("key_456GHI")
 ```
+
+## Update key
+
+Updates the key with the given ID.
+
+```py
+result = await client.keys.update_key(
+    "key_456GHI",
+    meta={"billing_tier": "premium"},
+    remaining=None,
+    expires=None,
+)
+```
