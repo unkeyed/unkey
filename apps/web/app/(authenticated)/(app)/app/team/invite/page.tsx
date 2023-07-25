@@ -120,7 +120,7 @@ export default function TeamCreation() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="gh">Member</SelectItem>
+                      <SelectItem value="basic_member">Member</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
