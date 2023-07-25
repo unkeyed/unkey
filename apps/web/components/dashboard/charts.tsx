@@ -1,7 +1,7 @@
 "use client";
 
 import { Area, Column } from "@ant-design/plots";
-
+import { useTheme } from "next-themes";
 type Props = {
   data: {
     x: string;
@@ -10,6 +10,7 @@ type Props = {
 };
 
 export const AreaChart: React.FC<Props> = ({ data }) => {
+  
   return (
     <Area
       autoFit={true}
@@ -40,9 +41,11 @@ export const AreaChart: React.FC<Props> = ({ data }) => {
 };
 
 export const ColumnChart: React.FC<Props> = ({ data }) => {
+  const {theme} = useTheme();
+  console.log(theme);
   return (
     <Column
-      // theme="dark"
+      theme={theme}
       autoFit={true}
       data={data}
       padding={[40, 40, 30, 40]}
