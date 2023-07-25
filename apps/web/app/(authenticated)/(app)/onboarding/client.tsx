@@ -42,12 +42,20 @@ export const Onboarding: React.FC<Props> = ({ tenantId }) => {
       router.push("/app");
     },
     onError(err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
+      if (err.message.includes("Duplicate entry")) {
+        toast({
+          title: "Error",
+          description: "Workspace already exists, please change the slug and try again",
+          variant: "destructive",
+        });
+      }
+      else {
+        toast({
+          title: "Error",
+          description: "An error occured while creating your workspace",
+          variant: "destructive",
+        });
+      }
     },
   });
   return (
