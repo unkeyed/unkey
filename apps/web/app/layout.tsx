@@ -12,6 +12,7 @@ const pangea = localFont({
   variable: "--font-pangea",
 });
 export const metadata = {
+  metadataBase: new URL("https://unkey.dev"),
   title: "Open Source API Key Management",
   description: "Accelerate your API development",
   openGraph: {
@@ -19,10 +20,12 @@ export const metadata = {
     description: "Accelerate your API development",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
+    image: "https://unkey.dev/og.png",
   },
   twitter: {
     title: "Unkey",
     card: "summary_large_image",
+    image: "https://unkey.dev/og.png",
   },
   robots: {
     index: true,
@@ -53,8 +56,6 @@ export default function RootLayout({
           src="https://plausible.io/js/script.exclusions.js"
           data-exclude="/app/api*, /app/api*/*"
         />
-        <meta property="og:image" content="https://unkey.dev/og.png" />
-        <meta name="twitter:image" content="https://unkey.dev/og.png" />
       </head>
       <body>{children}</body>
     </html>

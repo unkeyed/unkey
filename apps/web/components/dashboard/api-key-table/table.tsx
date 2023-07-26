@@ -103,7 +103,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
-        <div className="flex items-center justify-between space-x-4">
+        <div className="flex items-center justify-between space-x-4 space-y-4 sm:space-y-0 flex-wrap sm:flex-nowrap">
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>

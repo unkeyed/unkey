@@ -66,24 +66,26 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
         <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-stone-900 hover:border-stone-200 dark:hover:border-stone-800">
           {apiName}
         </Code>
-        <Input
-          value={typedName}
-          placeholder={apiName}
-          onChange={(v) => setTypedName(v.currentTarget.value)}
-        />
-        <DialogFooter>
-          <Button
-            disabled={typedName !== apiName || deleteApi.isLoading}
-            variant="destructive"
-            onClick={() => {
-              if (typedName === apiName) {
-                deleteApi.mutate({ apiId });
-              }
-            }}
-          >
-            {deleteApi.isLoading ? <Loading /> : "Delete"}
-          </Button>
-        </DialogFooter>
+        <form>
+          <Input
+            value={typedName}
+            placeholder={apiName}
+            onChange={(v) => setTypedName(v.currentTarget.value)}
+          />
+          <DialogFooter>
+            <Button
+              disabled={typedName !== apiName || deleteApi.isLoading}
+              variant="destructive"
+              onClick={() => {
+                if (typedName === apiName) {
+                  deleteApi.mutate({ apiId });
+                }
+              }}
+            >
+              {deleteApi.isLoading ? <Loading /> : "Delete"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
