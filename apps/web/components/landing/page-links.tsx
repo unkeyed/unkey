@@ -30,7 +30,7 @@ function PageLink({ page }: { page: Page }) {
       <Border position="left" className="relative flex flex-col items-start pl-8">
         <h3 className="mt-6 text-base font-semibold text-neutral-950">{page.title}</h3>
         <time dateTime={page.date} className="order-first text-sm text-neutral-600">
-          {formatDate(page.date)}
+          {new Date(page.date).toDateString()}
         </time>
         <p className="mt-2.5 text-base text-neutral-600">{page.description}</p>
         <Link
