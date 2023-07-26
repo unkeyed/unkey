@@ -25,7 +25,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
     <>
       <Container as="article" className="mt-24 sm:mt-32 lg:mt-40 ">
         <FadeIn>
-          <header className="flex flex-col max-w-5xl mx-auto text-center">
+          <header className="flex flex-col max-w-5xl mx-auto text-center mb-8">
             <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-neutral-950 [text-wrap:balance] sm:text-6xl">
               {post.title}
             </h1>
@@ -33,7 +33,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               dateTime={new Date(post.date).toDateString()}
               className="order-first text-sm text-neutral-950"
             >
-              {formatDate(new Date(post.date).toString())}
+              {new Date(post.date).toDateString()}
             </time>
             <p className="mt-6 text-sm font-semibold text-neutral-950">
               by {post.author.name}, {post.author.role}

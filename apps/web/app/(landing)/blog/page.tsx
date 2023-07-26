@@ -15,7 +15,7 @@ export const metadata = {
 };
 
 export default async function Blog() {
-  const posts = allPosts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const posts = allPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   return (
     <>
       <PageIntro eyebrow="Blog" title="The latest articles and news">
@@ -40,7 +40,7 @@ export default async function Blog() {
                         <dt className="sr-only">Published</dt>
                         <dd className="absolute top-0 left-0 text-sm text-neutral-950 lg:static">
                           <time dateTime={new Date(post.date).toDateString()}>
-                            {formatDate(new Date(post.date).toString())}
+                            {new Date(post.date).toDateString()}
                           </time>
                         </dd>
                         <dt className="sr-only">Author</dt>
