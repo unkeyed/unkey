@@ -1,0 +1,36 @@
+---
+title: "Get API"
+description: "Retrieve information about an api"
+---
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+
+func main() {
+	response, err := features.APIGet("API_ID","AUTH_TOKEN")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	fmt.Printf("Response: %+v\n", response)
+}
+```
+
+### Structs Reference
+The structs used in code for you to get a better idea of the request & response bodies.
+
+```go
+type APIGetResponse struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	WorkspaceID string `json:"workspaceId"`
+}
+```
