@@ -29,11 +29,14 @@ export default function TeamCreation() {
     mode: "all",
   });
   const { createOrganization, isLoaded, setActive } = useOrganizationList();
-  const duplicateCheck = trpc.workspace.get.useQuery({
-    slug: form.getValues("slug"),
-  }, {
-    enabled: false,
-  });
+  const duplicateCheck = trpc.workspace.get.useQuery(
+    {
+      slug: form.getValues("slug"),
+    },
+    {
+      enabled: false,
+    },
+  );
   const { toast } = useToast();
   const router = useRouter();
 
@@ -91,7 +94,7 @@ export default function TeamCreation() {
       <h1 className=" text-4xl font-semibold leading-none tracking-tight">
         Create your Team workspace
       </h1>
-      <Form  {...form}>
+      <Form {...form}>
         <form
           onSubmit={form.handleSubmit((values) => createClerkOrg({ values }))}
           className="flex flex-col space-y-4 max-w-2xl"

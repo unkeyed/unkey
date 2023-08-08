@@ -6,7 +6,6 @@ export const config = {
   runtime: "edge",
 };
 
-
 // export API handler
 export default async function handler(req: NextRequest) {
   return fetchRequestHandler({

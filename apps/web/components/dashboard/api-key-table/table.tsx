@@ -107,7 +107,9 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="md:min-w-min mt-4 min-w-full " variant="outline">Revoke selected keys</Button>
+                <Button className="md:min-w-min mt-4 min-w-full " variant="outline">
+                  Revoke selected keys
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -136,7 +138,10 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="md:min-w-min mt-4 md:mt-0 min-w-full ml-0 md:ml-auto" variant="outline">
+              <Button
+                className="md:min-w-min mt-4 md:mt-0 min-w-full ml-0 md:ml-auto"
+                variant="outline"
+              >
                 Columns
               </Button>
             </DropdownMenuTrigger>
