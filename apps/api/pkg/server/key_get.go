@@ -1,12 +1,10 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/api/pkg/database"
-	"net/http"
-)
+	"github.com/unkeyed/unkey/apps/api/pkg/errors"
+	)
 
 type GetKeyRequest struct {
 	KeyId string `validate:"required"`
@@ -23,58 +21,45 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 
 	err := s.validator.Struct(req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to validate request: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
 	authHash, err := getKeyHash(c.Get("Authorization"))
 	if err != nil {
-		return err
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
 
-	authKey, err := s.db.GetKeyByHash(ctx, authHash)
+	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find key by hash: %s", authHash))
 	}
 
 	if authKey.ForWorkspaceId == "" {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: "wrong key type",
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, "wrong key type")
 	}
 
-	key, err := s.db.GetKeyById(ctx, req.KeyId)
+	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusNotFound).JSON(ErrorResponse{
-				Code:  NOT_FOUND,
-				Error: fmt.Sprintf("unable to find key: %s", req.KeyId),
-			})
-		}
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
 	}
 	if key.WorkspaceId != authKey.ForWorkspaceId {
-		return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-			Code:  UNAUTHORIZED,
-			Error: "access to workspace denied",
-		})
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
 	}
 
-	api, err := s.db.GetApiByKeyAuthId(ctx, key.KeyAuthId)
+	api, found, err := s.db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
+	}
+	if !found {
+
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
 
 	res := GetKeyResponse{
@@ -98,8 +83,8 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 			RefillInterval: key.Ratelimit.RefillInterval,
 		}
 	}
-	if key.Remaining.Enabled {
-		res.Remaining = &key.Remaining.Remaining
+	if key.Remaining != nil {
+		res.Remaining = key.Remaining
 	}
 
 	return c.JSON(res)

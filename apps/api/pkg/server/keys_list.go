@@ -1,11 +1,10 @@
 package server
 
 import (
-	"errors"
 	"fmt"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/api/pkg/database"
-	"net/http"
+	"github.com/unkeyed/unkey/apps/api/pkg/errors"
 )
 
 type ListKeysRequest struct {
@@ -17,9 +16,9 @@ type ListKeysRequest struct {
 
 type ratelimitSettng struct {
 	Type           string `json:"type"`
-	Limit          int64  `json:"limit"`
-	RefillRate     int64  `json:"refillRate"`
-	RefillInterval int64  `json:"refillInterval"`
+	Limit          int32  `json:"limit"`
+	RefillRate     int32  `json:"refillRate"`
+	RefillInterval int32  `json:"refillInterval"`
 }
 
 type keyResponse struct {
@@ -33,12 +32,12 @@ type keyResponse struct {
 	Expires        int64            `json:"expires,omitempty"`
 	Ratelimit      *ratelimitSettng `json:"ratelimit,omitempty"`
 	ForWorkspaceId string           `json:"forWorkspaceId,omitempty"`
-	Remaining      *int64           `json:"remaining"`
+	Remaining      *int32           `json:"remaining"`
 }
 
 type ListKeysResponse struct {
 	Keys  []keyResponse `json:"keys"`
-	Total int           `json:"total"`
+	Total int64         `json:"total"`
 }
 
 func (s *Server) listKeys(c *fiber.Ctx) error {
@@ -54,74 +53,57 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to validate request: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
 	authHash, err := getKeyHash(c.Get("Authorization"))
 	if err != nil {
-		return err
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
 
-	authKey, err := s.db.GetKeyByHash(ctx, authHash)
+	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "unauthorized")
 	}
 
 	if authKey.ForWorkspaceId == "" {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: "wrong key type",
-		})
+		return errors.NewHttpError(c, errors.INVALID_KEY_TYPE, "root key required")
 	}
 
-	api, err := s.db.GetApi(ctx, req.ApiId)
+	api, found, err := s.db.FindApi(ctx, req.ApiId)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusNotFound).JSON(ErrorResponse{
-				Code:  NOT_FOUND,
-				Error: fmt.Sprintf("unable to find api: %s", req.ApiId),
-			})
-		}
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api %s", req.ApiId))
+
 	}
 	if api.WorkspaceId != authKey.ForWorkspaceId {
-		return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-			Code:  UNAUTHORIZED,
-			Error: "access to workspace denied",
-		})
+		return errors.NewHttpError(c, errors.FORBIDDEN, "workspace access denined")
 	}
 
-	keyAuth, err := s.db.GetKeyAuth(ctx, api.KeyAuthId)
+	keyAuth, found, err := s.db.FindKeyAuth(ctx, api.KeyAuthId)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: err.Error(),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("keyAuth %s not found", api.KeyAuthId))
+
 	}
 
 	keys, err := s.db.ListKeysByKeyAuthId(ctx, keyAuth.Id, req.Limit, req.Offset, req.OwnerId)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: err.Error(),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+
 	}
 
 	total, err := s.db.CountKeys(ctx, keyAuth.Id)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: err.Error(),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
 
 	res := ListKeysResponse{

@@ -5,12 +5,18 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
+	gen "github.com/unkeyed/unkey/apps/api/gen/database"
 	"go.uber.org/zap"
 )
 
+type replica struct {
+	db    *sql.DB
+	query *gen.Queries
+}
+
 type database struct {
-	primary     *sql.DB
-	readReplica *sql.DB
+	primary     *replica
+	readReplica *replica
 	logger      *zap.Logger
 }
 
@@ -23,7 +29,9 @@ type Config struct {
 	PlanetscaleBoost bool
 }
 
-func New(config Config) (Database, error) {
+type Middleware func(Database) Database
+
+func New(config Config, middlewares ...Middleware) (Database, error) {
 	logger := config.Logger.With(zap.String("pkg", "database"))
 	primary, err := sql.Open("mysql", fmt.Sprintf("%s&parseTime=true", config.PrimaryUs))
 	if err != nil {
@@ -75,23 +83,26 @@ func New(config Config) (Database, error) {
 		}
 	}
 
-	return &database{
-		primary:     primary,
-		readReplica: readReplica,
+	var db Database = &database{
+		primary:     &replica{db: primary, query: gen.New(primary)},
+		readReplica: &replica{db: readReplica, query: gen.New(readReplica)},
 		logger:      logger,
-	}, nil
-
+	}
+	for _, mw := range middlewares {
+		db = mw(db)
+	}
+	return db, nil
 }
 
 // read returns the primary writable db
-func (d *database) write() *sql.DB {
-	return d.primary
+func (d *database) write() *gen.Queries {
+	return d.primary.query
 }
 
-// read returns the closests read replica
-func (d *database) read() *sql.DB {
+// read returns the closests read replica or primary as fallback
+func (d *database) read() *gen.Queries {
 	if d.readReplica != nil {
-		return d.readReplica
+		return d.readReplica.query
 	}
-	return d.primary
+	return d.primary.query
 }

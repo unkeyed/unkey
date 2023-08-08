@@ -2,26 +2,51 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 
+	gen "github.com/unkeyed/unkey/apps/api/gen/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
-	"go.uber.org/zap"
 )
 
 func (db *database) UpdateKey(ctx context.Context, key entities.Key) error {
-	m, err := keyEntityToModel(key)
+	params, err := transformKeyEntitytoUpdateKeyParams(key)
 	if err != nil {
-		return fmt.Errorf("unable to convert key")
+		return fmt.Errorf("unable to transform key entity to UpdateKeyParams")
+	}
+	return db.primary.query.UpdateKey(ctx, params)
+}
+
+func transformKeyEntitytoUpdateKeyParams(key entities.Key) (gen.UpdateKeyParams, error) {
+	params := gen.UpdateKeyParams{
+		ID:        key.Id,
+		Hash:      key.Hash,
+		Start:     key.Start,
+		OwnerID:   sql.NullString{String: key.OwnerId, Valid: key.OwnerId != ""},
+		CreatedAt: key.CreatedAt,
+		Expires:   sql.NullTime{Time: key.Expires, Valid: !key.Expires.IsZero()},
+		Name:      sql.NullString{String: key.Name, Valid: key.Name != ""},
 	}
 
-	db.logger.Info("db Update key", zap.Any("m", m))
-
-	const sqlstr = `UPDATE unkey.keys SET ` +
-		`key_auth_id = ?, hash = ?, start = ?, owner_id = ?, meta = ?, created_at = ?, expires = ?, ratelimit_type = ?, ratelimit_limit = ?, ratelimit_refill_rate = ?, ratelimit_refill_interval = ?, workspace_id = ?, for_workspace_id = ?, name = ?, remaining_requests = ? ` +
-		`WHERE id = ?`
-	_, err = db.write().ExecContext(ctx, sqlstr, m.KeyAuthID.String, m.Hash, m.Start, m.OwnerID, m.Meta, m.CreatedAt, m.Expires, m.RatelimitType, m.RatelimitLimit, m.RatelimitRefillRate, m.RatelimitRefillInterval, m.WorkspaceID, m.ForWorkspaceID, m.Name, m.RemainingRequests, m.ID)
+	metaJson, err := json.Marshal(key.Meta)
 	if err != nil {
-		return fmt.Errorf("unable to update key, %w", err)
+		return gen.UpdateKeyParams{}, fmt.Errorf("unable to marshal meta: %w", err)
 	}
-	return nil
+	params.Meta = sql.NullString{String: string(metaJson), Valid: true}
+
+	if key.Ratelimit != nil {
+		params.RatelimitType = sql.NullString{String: key.Ratelimit.Type, Valid: true}
+		params.RatelimitLimit = sql.NullInt32{Int32: int32(key.Ratelimit.Limit), Valid: true}
+		params.RatelimitRefillRate = sql.NullInt32{Int32: key.Ratelimit.RefillRate, Valid: true}
+		params.RatelimitRefillInterval = sql.NullInt32{Int32: key.Ratelimit.RefillInterval, Valid: true}
+	}
+
+	if key.Remaining != nil {
+		params.RemainingRequests = sql.NullInt32{Int32: *key.Remaining, Valid: true}
+
+	}
+
+	return params, nil
+
 }

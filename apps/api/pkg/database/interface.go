@@ -7,23 +7,30 @@ import (
 )
 
 type Database interface {
-	CreateApi(ctx context.Context, newApi entities.Api) error
-	GetApi(ctx context.Context, apiId string) (entities.Api, error)
-	GetApiByKeyAuthId(ctx context.Context, keyAuthId string) (entities.Api, error)
+	// CreateApi(ctx context.Context, newApi entities.Api) error
+	// GetApi(ctx context.Context, apiId string) (entities.Api, error)
 
-	CreateKey(ctx context.Context, newKey entities.Key) error
-	UpdateKey(ctx context.Context, key entities.Key) error
-
-	DeleteKey(ctx context.Context, keyId string) error
-	GetKeyByHash(ctx context.Context, hash string) (entities.Key, error)
-	GetKeyById(ctx context.Context, keyId string) (entities.Key, error)
-	CountKeys(ctx context.Context, keyAuthId string) (int, error)
-	ListKeysByKeyAuthId(ctx context.Context, keyAuthId string, limit int, offset int, ownerId string) ([]entities.Key, error)
+	// DeleteKey(ctx context.Context, keyId string) error
+	// GetKeyByHash(ctx context.Context, hash string) (entities.Key, error)
+	// GetKeyById(ctx context.Context, keyId string) (entities.Key, error)
+	// CountKeys(ctx context.Context, apiId string) (int, error)
+	// ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error)
 	CreateWorkspace(ctx context.Context, newWorkspace entities.Workspace) error
 
-	CreateKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error
-	GetKeyAuth(ctx context.Context, keyAuthId string) (entities.KeyAuth, error)
+	// GetWorkspace(ctx context.Context, workspaceId string) (*workspacev1.Workspace, error)
+	// DecrementRemainingKeyUsage(ctx context.Context, keyId string) (int64, error)
 
-	GetWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, error)
-	DecrementRemainingKeyUsage(ctx context.Context, keyId string) (int64, error)
+	// Api
+	FindApi(ctx context.Context, apiId string) (api entities.Api, found bool, err error)
+	FindApiByKeyAuthId(ctx context.Context, keyuathId string) (api entities.Api, found bool, err error)
+	// Key
+	CreateKey(ctx context.Context, newKey entities.Key) error
+	FindKeyById(ctx context.Context, keyId string) (key entities.Key, found bool, err error)
+	FindKeyByHash(ctx context.Context, hash string) (key entities.Key, found bool, err error)
+	UpdateKey(ctx context.Context, key entities.Key) error
+	DeleteKey(ctx context.Context, keyId string) error
+	DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error)
+	CountKeys(ctx context.Context, keyAuthId string) (int64, error)
+
+	FindKeyAuth(ctx context.Context, keyAuthId string) (keyauth entities.KeyAuth, found bool, err error)
 }

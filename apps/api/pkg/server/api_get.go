@@ -1,12 +1,10 @@
 package server
 
 import (
-	"errors"
 	"fmt"
-	"net/http"
-
+	
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/api/pkg/database"
+	"github.com/unkeyed/unkey/apps/api/pkg/errors"
 )
 
 type GetApiRequest struct {
@@ -30,50 +28,36 @@ func (s *Server) getApi(c *fiber.Ctx) error {
 
 	err := s.validator.Struct(req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to validate request: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
 	authHash, err := getKeyHash(c.Get("Authorization"))
 	if err != nil {
-		return err
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
 
-	authKey, err := s.db.GetKeyByHash(ctx, authHash)
+	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find key by hash: %s", authHash))
 	}
 
 	if authKey.ForWorkspaceId == "" {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: "wrong key type",
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, "wrong key type")
 	}
 
-	api, err := s.db.GetApi(ctx, req.ApiId)
+	api, found, err := s.db.FindApi(ctx, req.ApiId)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusNotFound).JSON(ErrorResponse{
-				Code:  NOT_FOUND,
-				Error: fmt.Sprintf("unable to find api: %s", req.ApiId),
-			})
-		}
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find api: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api: %s", req.ApiId))
+	}
+
 	if api.WorkspaceId != authKey.ForWorkspaceId {
-		return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-			Code:  UNAUTHORIZED,
-			Error: "access to workspace denied",
-		})
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
 	return c.JSON(GetApiResponse{

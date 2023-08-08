@@ -118,7 +118,7 @@ func (r *redisRateLimiter) Take(req RatelimitRequest) RatelimitResponse {
 	return RatelimitResponse{
 		Pass:      res[0] > 0,
 		Limit:     req.Max,
-		Remaining: res[0],
+		Remaining: int32(res[0]),
 		Reset:     res[1],
 	}
 

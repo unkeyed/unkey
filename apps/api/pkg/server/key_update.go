@@ -2,14 +2,12 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/api/pkg/database"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/errors"
 	"github.com/unkeyed/unkey/apps/api/pkg/kafka"
 	"go.uber.org/zap"
 )
@@ -35,11 +33,11 @@ type UpdateKeyRequest struct {
 	Expires   nullish[int64]          `json:"expires"`
 	Ratelimit nullish[struct {
 		Type           string `json:"type" validate:"required"`
-		Limit          int64  `json:"limit" validate:"required"`
-		RefillRate     int64  `json:"refillRate" validate:"required"`
-		RefillInterval int64  `json:"refillInterval" validate:"required"`
+		Limit          int32  `json:"limit" validate:"required"`
+		RefillRate     int32  `json:"refillRate" validate:"required"`
+		RefillInterval int32  `json:"refillInterval" validate:"required"`
 	}] `json:"ratelimit"`
-	Remaining nullish[int64] `json:"remaining"`
+	Remaining nullish[int32] `json:"remaining"`
 }
 
 type UpdateKeyResponse struct{}
@@ -54,37 +52,24 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 
 	err := c.BodyParser(&req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to parse body: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
 	}
 
 	s.logger.Info("req", zap.Any("req", req))
 
 	err = c.BodyParser(&req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to parse body: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to validate body: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate body: %s", err.Error()))
 	}
 
 	s.logger.Info("updating key", zap.Any("req", req))
 	if req.Expires.Defined && req.Expires.Value != nil && *req.Expires.Value > 0 && *req.Expires.Value < time.Now().UnixMilli() {
-		return c.Status(http.StatusBadRequest).JSON(
-			ErrorResponse{
-				Code:  BAD_REQUEST,
-				Error: "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?",
-			})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
 	authHash, err := getKeyHash(c.Get("Authorization"))
@@ -92,46 +77,27 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		return err
 	}
 
-	authKey, err := s.db.GetKeyByHash(ctx, authHash)
+	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-				Code:  UNAUTHORIZED,
-				Error: "unauthorized",
-			})
-		}
-
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "unauthorized")
 	}
 
 	if authKey.ForWorkspaceId == "" {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: "wrong key type",
-		})
+		return errors.NewHttpError(c, errors.INVALID_KEY_TYPE, "a root key is required")
 	}
 
-	key, err := s.db.GetKeyById(ctx, req.KeyId)
+	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-				Code:  BAD_REQUEST,
-				Error: "wrong keyId",
-			})
-		}
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to find key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s does not exist", req.KeyId))
 	}
 	if key.WorkspaceId != authKey.ForWorkspaceId {
-		return c.Status(http.StatusUnauthorized).JSON(ErrorResponse{
-			Code:  UNAUTHORIZED,
-			Error: "access to workspace denied",
-		})
+		return errors.NewHttpError(c, errors.FORBIDDEN, "access to workspace denied")
 	}
 
 	s.logger.Info("found key", zap.Any("key", key))
@@ -179,20 +145,13 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	}
 	if req.Remaining.Defined {
 		if req.Remaining.Value != nil {
-			key.Remaining.Enabled = true
-			key.Remaining.Remaining = *req.Remaining.Value
-		} else {
-			key.Remaining.Enabled = false
-			key.Remaining.Remaining = 0
+			key.Remaining = req.Remaining.Value
 		}
 	}
 
 	err = s.db.UpdateKey(ctx, key)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to write key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to write key: %s", err.Error()))
 	}
 	if s.kafka != nil {
 

@@ -11,21 +11,21 @@ type bucket struct {
 	// unix milli of when this bucket was created
 	startTime int64
 	// Currently remaining tokens
-	remaining int64
+	remaining int32
 
 	// how many tokens at maximum fill
-	max int64
+	max int32
 
 	// how many tokens to refill per interval
-	refillRate int64
+	refillRate int32
 	// in milliseconds
-	refillInterval int64
+	refillInterval int32
 
 	// the window where the last refill happened
 	lastTick int64
 }
 
-func newBucket(refillRate int64, refillInterval int64, max int64) *bucket {
+func newBucket(refillRate int32, refillInterval int32, max int32) *bucket {
 	now := time.Now().UnixMilli()
 	return &bucket{
 		startTime:      now,
@@ -41,15 +41,15 @@ func (b *bucket) take() RatelimitResponse {
 	now := time.Now().UnixMilli()
 
 	// The number of the window since bucket creation
-	tick := (now - b.startTime) / b.refillInterval
+	tick := (now - b.startTime) / int64(b.refillInterval)
 
-	reset := b.startTime + ((tick + 1) * b.refillInterval)
+	reset := b.startTime + ((tick + 1) * int64(b.refillInterval))
 
 	b.Lock()
 	defer b.Unlock()
 
 	if b.lastTick < tick {
-		b.remaining += (tick - b.lastTick) * b.refillRate
+		b.remaining += int32((tick - b.lastTick) * int64(b.refillRate))
 		if b.remaining > b.max {
 			b.remaining = b.max
 		}
@@ -94,10 +94,10 @@ func NewInMemory() *inMemory {
 
 			for id, b := range r.state {
 				b.Lock()
-				currentTick := (now - b.startTime) / b.refillInterval
+				currentTick := (now - b.startTime) / int64(b.refillInterval)
 				requiredTicksToRefill := (b.max - b.remaining) / b.refillRate
 
-				if requiredTicksToRefill > currentTick-b.lastTick {
+				if int64(requiredTicksToRefill) > currentTick-b.lastTick {
 					delete(r.state, id)
 				}
 				b.Unlock()

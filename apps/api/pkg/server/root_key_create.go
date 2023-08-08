@@ -3,13 +3,14 @@ package server
 import (
 	"crypto/subtle"
 	"fmt"
-	"go.uber.org/zap"
-	"net/http"
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/api/pkg/entities"
+	"github.com/unkeyed/unkey/apps/api/pkg/errors"
 	"github.com/unkeyed/unkey/apps/api/pkg/hash"
 	"github.com/unkeyed/unkey/apps/api/pkg/kafka"
 	"github.com/unkeyed/unkey/apps/api/pkg/keys"
@@ -36,44 +37,27 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 
 	appToken := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
 	if subtle.ConstantTimeCompare([]byte(s.unkeyAppAuthToken), []byte(appToken)) == 0 {
-		return c.Status(http.StatusUnauthorized).JSON(
-			ErrorResponse{
-				Code:  UNAUTHORIZED,
-				Error: "unauthorized",
-			})
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "unauthorized")
 	}
 
 	req := CreateRootKeyRequest{}
 	err := c.BodyParser(&req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to parse body: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(ErrorResponse{
-			Code:  BAD_REQUEST,
-			Error: fmt.Sprintf("unable to validate body: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
 	if req.Expires > 0 && req.Expires < time.Now().UnixMilli() {
-		return c.Status(http.StatusBadRequest).JSON(
-			ErrorResponse{
-				Code:  BAD_REQUEST,
-				Error: "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?",
-			})
+		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
 	keyValue, err := keys.NewV1Key("unkey", 16)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: err.Error(),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
 	separatorIndex := strings.Index(keyValue, "_")
 	keyHash := hash.Sha256(keyValue)
@@ -100,10 +84,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 
 	err = s.db.CreateKey(ctx, newKey)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(ErrorResponse{
-			Code:  INTERNAL_SERVER_ERROR,
-			Error: fmt.Sprintf("unable to store key: %s", err.Error()),
-		})
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to store key: %s", err.Error()))
 	}
 	if s.kafka != nil {
 

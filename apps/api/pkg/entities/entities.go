@@ -15,18 +15,16 @@ type Key struct {
 	Expires        time.Time
 	Ratelimit      *Ratelimit
 	ForWorkspaceId string
-	Remaining      struct {
-		// Whether or not the value in `Remaining` makes any sense or is just a default
-		Enabled   bool
-		Remaining int64
-	}
+	// How many more times this key may be verified
+	// nil == disabled
+	Remaining *int32
 }
 
 type Ratelimit struct {
 	Type           string
-	Limit          int64
-	RefillRate     int64
-	RefillInterval int64
+	Limit          int32
+	RefillRate     int32
+	RefillInterval int32
 }
 
 type AuthType string
@@ -47,6 +45,14 @@ type Api struct {
 	KeyAuthId string
 }
 
+type Plan string
+
+const (
+	FreePlan       Plan = "free"
+	ProPlan        Plan = "pro"
+	EnterprisePlan Plan = "enterprise"
+)
+
 type Workspace struct {
 	Id                 string
 	Name               string
@@ -54,6 +60,7 @@ type Workspace struct {
 	TenantId           string
 	Internal           bool
 	EnableBetaFeatures bool
+	Plan               Plan
 }
 
 type KeyAuth struct {

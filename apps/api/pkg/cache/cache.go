@@ -18,7 +18,7 @@ type cache[T any] struct {
 	data              map[string]swrEntry[T]
 	fresh             time.Duration
 	stale             time.Duration
-	refreshFromOrigin func(ctx context.Context, identifier string) (T, error)
+	refreshFromOrigin func(ctx context.Context, identifier string) (T, bool, error)
 
 	// If a key is stale, its identifier will be put into this channel and a goroutine refreshes it in the background
 	refreshC chan string
@@ -36,7 +36,7 @@ type Config[T any] struct {
 	Stale time.Duration
 
 	// A handler that will be called to refetch data from the origin when necessary
-	RefreshFromOrigin func(ctx context.Context, identifier string) (T, error)
+	RefreshFromOrigin func(ctx context.Context, identifier string) (T, bool, error)
 
 	Logger *zap.Logger
 }
@@ -76,9 +76,13 @@ func (c *cache[T]) runRefreshing() {
 		select {
 		case identifier := <-c.refreshC:
 			ctx := context.Background()
-			t, err := c.refreshFromOrigin(ctx, identifier)
+			t, found, err := c.refreshFromOrigin(ctx, identifier)
 			if err != nil {
 				c.logger.Error("unable to refresh", zap.String("identifier", identifier), zap.Error(err))
+				continue
+			}
+			if !found {
+				c.logger.Info("origin couldn't find", zap.String("identifier", identifier))
 				continue
 			}
 			c.Set(ctx, identifier, t)
