@@ -1,0 +1,40 @@
+---
+title: "Revoke"
+description: "Revoke an api key"
+---
+
+Pass the optional & required parameters as per the official [API docs](https://docs.unkey.dev/api-reference/keys/revoke). See the structs reference for more information on the request body for `KeyRevoke`
+
+```go
+package main
+
+import (
+	"fmt"
+
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+
+func main() {
+	// Specify the key ID to revoke
+	keyID := "your-key-id"
+
+	// Provide the authentication token
+	authToken := "your-auth-token"
+
+	// Call the KeyRevoke function
+	success, err := unkey.KeyRevoke(keyID, authToken)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+    // The API returns `{}` as a success response for revoking key. For user convenience, unkey-go returns boolean
+
+	// Process the response
+	if success {
+		fmt.Println("Key revoked successfully")
+	} else {
+		fmt.Println("Failed to revoke key")
+	}
+}
+```
