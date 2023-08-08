@@ -64,6 +64,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const _router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
     defaultValues: {
       prefix: "key",
       bytes: 16,
