@@ -10,6 +10,7 @@ type Props = {
 };
 
 export const AreaChart: React.FC<Props> = ({ data }) => {
+  const { theme } = useTheme();
   return (
     <Area
       autoFit={true}
@@ -18,7 +19,7 @@ export const AreaChart: React.FC<Props> = ({ data }) => {
       padding={[40, 40, 30, 40]}
       xField="x"
       yField="y"
-      color="#52525b"
+      theme={theme}
       xAxis={{
         tickCount: 3,
       }}
@@ -41,7 +42,6 @@ export const AreaChart: React.FC<Props> = ({ data }) => {
 
 export const ColumnChart: React.FC<Props> = ({ data }) => {
   const { theme } = useTheme();
-  console.log(theme);
   return (
     <Column
       theme={theme}
@@ -50,7 +50,6 @@ export const ColumnChart: React.FC<Props> = ({ data }) => {
       padding={[40, 40, 30, 40]}
       xField="x"
       yField="y"
-      color="#09090b"
       yAxis={{
         tickCount: 3,
         label: {

@@ -26,11 +26,13 @@ const formSchema = z.object({
 export default function TeamCreation() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
   });
   const { createOrganization, isLoaded, setActive } = useOrganizationList();
 
   const { toast } = useToast();
   const router = useRouter();
+
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess() {
       router.push("/app/stripe");
@@ -39,7 +41,7 @@ export default function TeamCreation() {
       console.error(err);
       toast({
         title: "Error",
-        description: err.message,
+        description: "Error creating your team workspace. Please reach out to Unkey support",
         variant: "destructive",
       });
     },
@@ -53,6 +55,19 @@ export default function TeamCreation() {
   }: {
     values: { name: string; slug: string };
   }) => {
+    const duplicateCheck = trpc.workspace.get.useQuery({
+      slug: values.slug,
+    })
+
+    if (duplicateCheck.data) {
+      toast({
+        title: "Error",
+        description: "This workspace already exists, please choose another slug",
+        variant: "destructive",
+      });
+      return;
+    }
+
     await createOrganization({
       ...values,
     })
@@ -75,7 +90,7 @@ export default function TeamCreation() {
       <h1 className=" text-4xl font-semibold leading-none tracking-tight">
         Create your Team workspace
       </h1>
-      <Form {...form}>
+      <Form  {...form}>
         <form
           onSubmit={form.handleSubmit((values) => createClerkOrg({ values }))}
           className="flex flex-col space-y-4 max-w-2xl"

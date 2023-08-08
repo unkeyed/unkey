@@ -1,4 +1,4 @@
-import { db, schema } from "@/lib/db";
+import { db, schema, eq } from "@/lib/db";
 import { z } from "zod";
 
 import { t, auth } from "../trpc";
@@ -26,4 +26,14 @@ export const workspaceRouter = t.router({
         id,
       };
     }),
+  get: t.procedure.use(auth).input(
+    z
+      .object({
+        slug: z.string(),
+      }),
+  ).query(({ input }) => {
+    return db.query.workspaces.findFirst({
+      where: eq(schema.workspaces.slug, input.slug),
+    });
+  }),
 });
