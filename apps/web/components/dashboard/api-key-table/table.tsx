@@ -96,18 +96,20 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
 
   return (
     <div>
-      <div className="flex items-center justify-between space-x-4">
+      <div>
         <Input
           placeholder="Filter keys"
           value={(table.getColumn("start")?.getFilterValue() as string) ?? ""}
           onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
-          className="max-w-sm"
+          className="max-w-sm md:max-w-2xl"
         />
-        <div className="flex items-center justify-between space-x-4 space-y-4 sm:space-y-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center justify-between space-x-0 md:space-x-4 space-y-4 sm:space-y-0 flex-wrap sm:flex-nowrap">
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline">Revoke selected keys</Button>
+                <Button className="md:min-w-min mt-4 min-w-full " variant="outline">
+                  Revoke selected keys
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -136,7 +138,10 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
+              <Button
+                className="md:min-w-min mt-4 md:mt-0 min-w-full ml-0 md:ml-auto"
+                variant="outline"
+              >
                 Columns
               </Button>
             </DropdownMenuTrigger>
