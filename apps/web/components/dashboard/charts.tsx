@@ -19,6 +19,7 @@ export const AreaChart: React.FC<Props> = ({ data }) => {
       padding={[40, 40, 30, 40]}
       xField="x"
       yField="y"
+      color={theme === "dark" ? "#fff" : "#52525b"}
       theme={theme}
       xAxis={{
         tickCount: 3,
@@ -45,6 +46,7 @@ export const ColumnChart: React.FC<Props> = ({ data }) => {
   return (
     <Column
       theme={theme}
+      color={theme === "dark" ? "#fff" : "#52525b"}
       autoFit={true}
       data={data}
       padding={[40, 40, 30, 40]}
