@@ -34,6 +34,9 @@ export const workspaceRouter = t.router({
   ).query(({ input }) => {
     return db.query.workspaces.findFirst({
       where: eq(schema.workspaces.slug, input.slug),
+      columns: {
+        slug: true,
+      }
     });
   }),
 });

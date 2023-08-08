@@ -29,7 +29,11 @@ export default function TeamCreation() {
     mode: "all",
   });
   const { createOrganization, isLoaded, setActive } = useOrganizationList();
-
+  const duplicateCheck = trpc.workspace.get.useQuery({
+    slug: form.getValues("slug"),
+  }, {
+    enabled: false,
+  });
   const { toast } = useToast();
   const router = useRouter();
 
@@ -55,11 +59,8 @@ export default function TeamCreation() {
   }: {
     values: { name: string; slug: string };
   }) => {
-    const duplicateCheck = trpc.workspace.get.useQuery({
-      slug: values.slug,
-    })
-
-    if (duplicateCheck.data) {
+    const isDuplicated = await duplicateCheck.refetch();
+    if (isDuplicated) {
       toast({
         title: "Error",
         description: "This workspace already exists, please choose another slug",
