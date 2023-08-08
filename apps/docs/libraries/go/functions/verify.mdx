@@ -1,0 +1,55 @@
+---
+title: "Verify"
+description: "Verify an api key"
+---
+
+Pass the optional & required parameters as per the official [API docs](https://docs.unkey.dev/api-reference/keys/verify). See the structs reference for more information on the request body for `KeyVerify`
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+
+func main() {
+	apiKey := "key_3ZZ7faUrkfv1YAhffAcnKW74"
+
+	response, err := unkey.KeyVerify(apiKey)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	if response.Valid {
+		fmt.Println("Key is valid")
+	} else {
+		fmt.Println("Key is invalid")
+	}
+}
+```
+
+
+### Struct Reference
+The structs used in code for you to get a better idea of the request & response bodies.
+
+```go
+type ratelimitResponse struct {
+	Limit     int64 `json:"limit"`
+	Remaining int64 `json:"remaining"`
+	Reset     int64 `json:"reset"`
+}
+
+type KeyVerifyResponse struct {
+	Valid     bool                   `json:"valid"`
+	OwnerId   string                 `json:"ownerId,omitempty"`
+	Meta      map[string]interface{} `json:"meta,omitempty"`
+	Expires   int64                  `json:"expires,omitempty"`
+	Remaining int64                  `json:"remaining,omitempty"`
+	Ratelimit *ratelimitResponse     `json:"ratelimit,omitempty"`
+	Code      string                 `json:"code,omitempty"`
+}
+```

@@ -130,6 +130,29 @@
       ]
     },
     {
+      "group": "Go",
+      "icon": "code",
+      "pages": [
+        "libraries/go/overview",
+        {
+          "group": "Functions",
+          "pages": [
+            "libraries/go/functions/create",
+            "libraries/go/functions/verify",
+            "libraries/go/functions/revoke",
+            "libraries/go/functions/update"
+          ]
+        },
+        {
+          "group": "API",
+          "pages": [
+            "libraries/go/api/list",
+            "libraries/go/api/get"
+          ]
+        }
+      ]
+    },
+    {
       "group": "Nuxt",
       "icon": "code",
       "pages": ["libraries/nuxt/overview"]
