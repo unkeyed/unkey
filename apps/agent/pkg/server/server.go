@@ -101,6 +101,9 @@ func New(config Config) *Server {
 	}}))
 
 	s.app.Use(func(c *fiber.Ctx) error {
+		if c.Path() == "/v1/liveness" {
+			return c.Next()
+		}
 
 		// This header is a three letter region code which represents the region that the connection was accepted in and routed from.
 		edgeRegion := c.Get("Fly-Region")
@@ -124,7 +127,7 @@ func New(config Config) *Server {
 			zap.Int("status", c.Response().StatusCode()),
 			zap.String("path", c.Path()),
 			zap.Error(err),
-			zap.Duration("ms", latency),
+			zap.Int64("serviceLatency", latency.Milliseconds()),
 			zap.String("edgeRegion", edgeRegion),
 			zap.Int("status", c.Response().StatusCode()),
 		)

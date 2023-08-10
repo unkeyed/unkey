@@ -134,6 +134,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	logger := s.logger.With(
 		zap.String("keyId", key.Id),
+		zap.String("apiId", api.Id),
 		zap.String("keyAuthId", key.KeyAuthId),
 		zap.String("workspaceId", key.WorkspaceId),
 	)

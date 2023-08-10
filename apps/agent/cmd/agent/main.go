@@ -22,13 +22,13 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/kafka"
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/version"
 	"go.uber.org/zap"
 )
 
 var (
 	enableAxiom    bool
 	enableTinybird bool
-	version        string
 )
 
 func init() {
@@ -43,13 +43,13 @@ var AgentCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		logger := logging.New().With(zap.String("version", version))
+		logger := logging.New().With(zap.String("version", version.Version), zap.String("allocId", os.Getenv("FLY_ALLOC_ID")))
 
 		defer func() {
 			// this is best effort and can error quite frequently
 			_ = logger.Sync()
 		}()
-		logger.Info("Starting Unkey API Server")
+		logger.Info("Starting Unkey Agent")
 
 		e := env.Env{
 			ErrorHandler: func(err error) { logger.Fatal("unable to load environment variable", zap.Error(err)) },
@@ -57,25 +57,24 @@ var AgentCmd = &cobra.Command{
 		region := e.String("FLY_REGION", "local")
 		logger = logger.With(zap.String("region", region))
 
-		axiomOrgId := e.String("AXIOM_ORG_ID", "")
-		axiomToken := e.String("AXIOM_TOKEN", "")
-
 		var tb *tinybird.Tinybird
-		tinybirdToken := e.String("TINYBIRD_TOKEN", "")
-		if tinybirdToken != "" {
-			tb = tinybird.New(tinybird.Config{
-				Token:  tinybirdToken,
-				Logger: logger,
-			})
-			defer tb.Close()
+		if enableTinybird {
+			tinybirdToken := e.String("TINYBIRD_TOKEN")
+			if tinybirdToken != "" {
+				tb = tinybird.New(tinybird.Config{
+					Token:  tinybirdToken,
+					Logger: logger,
+				})
+				defer tb.Close()
+			}
 		}
 
 		var tracer tracing.Tracer
-		if axiomOrgId != "" && axiomToken != "" {
+		if enableAxiom {
 			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
 				Dataset:    "tracing",
 				Service:    "api",
-				Version:    version,
+				Version:    version.Version,
 				AxiomOrgId: e.String("AXIOM_ORG_ID"),
 				AxiomToken: e.String("AXIOM_TOKEN"),
 			})
@@ -127,12 +126,11 @@ var AgentCmd = &cobra.Command{
 			ReplicaAsia:      e.String("DATABASE_DSN_ASIA", ""),
 			FlyRegion:        region,
 			PlanetscaleBoost: e.Bool("PLANETSCALE_BOOST", false),
-		})
+		},
+			database.WithTracing(tracer))
 		if err != nil {
 			logger.Fatal("Failed to connect to database", zap.Error(err))
 		}
-		// db = databaseMiddleware.WithTracing(db, tracer)
-		// db = databaseMiddleware.WithLogging(db, logger)
 
 		keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
 			Fresh:             time.Minute,
@@ -141,7 +139,7 @@ var AgentCmd = &cobra.Command{
 			Logger:            logger,
 		})
 		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
-		keyCache = cacheMiddleware.WithLogging[entities.Key](keyCache, logger)
+		keyCache = cacheMiddleware.WithLogging[entities.Key](keyCache, logger.With(zap.String("cacheType", "key")))
 
 		apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
 			Fresh:             time.Minute,
@@ -150,7 +148,7 @@ var AgentCmd = &cobra.Command{
 			Logger:            logger,
 		})
 		apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
-		apiCache = cacheMiddleware.WithLogging[entities.Api](apiCache, logger)
+		apiCache = cacheMiddleware.WithLogging[entities.Api](apiCache, logger.With(zap.String("cacheType", "api")))
 
 		k.RegisterOnKeyEvent(func(ctx context.Context, e kafka.KeyEvent) error {
 			logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
@@ -187,7 +185,7 @@ var AgentCmd = &cobra.Command{
 			UnkeyKeyAuthId:    e.String("UNKEY_KEY_AUTH_ID"),
 			Region:            region,
 			Kafka:             k,
-			Version:           version,
+			Version:           version.Version,
 		})
 
 		go func() {

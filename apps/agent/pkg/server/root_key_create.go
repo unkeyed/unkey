@@ -55,8 +55,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
-
-keyValue, err := keys.NewV1Key("unkey", 16)
+	keyValue, err := keys.NewV1Key("unkey", 16)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}

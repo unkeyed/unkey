@@ -36,3 +36,7 @@ primary_region = "iad"
 
 [env]
   PLANETSCALE_BOOST = "true"
+
+
+[experimental]
+cmd = ["/usr/local/bin/unkey","agent", "--enable-tinybird", "--enable-axiom"]
