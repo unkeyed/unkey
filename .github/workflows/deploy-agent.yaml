@@ -34,7 +34,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: apps/api
+          context: apps/agent
           platforms: linux/amd64
           push: true
           tags: ${{ env.TAG }}
@@ -67,13 +67,13 @@ jobs:
 
       - name: Deploy preview
         run:  flyctl --app="unkey-api-preview" deploy --image=${{ env.TAG }} --strategy=immediate
-        working-directory: apps/api
+        working-directory: apps/agent
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy prod
         if: "!github.event.release.prerelease"
         run: flyctl --app="unkey-api-production" deploy --image=${{ env.TAG }} --strategy=canary
-        working-directory: apps/api
+        working-directory: apps/agent
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
