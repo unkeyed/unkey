@@ -60,7 +60,28 @@ function Changelog({ changelogs } = { changelogs: allChangelogs }) {
 export const metadata = {
   title: "Changelog | Unkey",
   description: "Stay up-to-date with the latest updates and changes to Unkey",
+  openGraph: {
+    title: "Changelog | Unkey",
+    description: "Stay up-to-date with the latest updates and changes to Unkey",
+    url: "https://unkey.dev/changelog",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Changelog | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/unkey.png",
+  },
 };
+
 
 export default async function Changelogs() {
   const changelogs = allChangelogs.sort(

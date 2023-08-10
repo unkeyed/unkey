@@ -1,20 +1,61 @@
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
-import { formatDate } from "@/lib/formatDate";
 import { allPosts } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata, ResolvingMetadata } from 'next'
+ 
+type Props = {
+  params: { slug: string }
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+ 
+export async function generateMetadata(
+  { params }: Props,
+): Promise<Metadata> {
+  // read route params
+  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
+
+ 
+  return {
+    title: `${post?.title} | Unkey`,
+  description: post?.description,
+  openGraph: {
+    title: `${post?.title} | Unkey`,
+  description: post?.description,
+    url: `https://unkey.dev/blog/${params.slug}`,
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: `https://unkey.dev/og?title=${post?.title}`,
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: `${post?.title} | Unkey`,
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/unkey.png",
+  },
+  }
+}
+
 export const generateStaticParams = async () =>
   allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
+
+
 
 const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
   const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
   if (!post) {
     return notFound();
   }
-
+  
   const Content = getMDXComponent(post.body.code);
 
   // Find other articles to recommend at the bottom of the page that aren't the current article
@@ -112,3 +153,4 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
 };
 
 export default BlogArticleWrapper;
+
