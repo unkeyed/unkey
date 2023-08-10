@@ -12,7 +12,7 @@ import (
 
 func (db *database) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (entities.Key, error) {
 
-	tx, err := db.primary.db.BeginTx(ctx, nil)
+	tx, err := db.writeReplica.db.BeginTx(ctx, nil)
 	if err != nil {
 		return entities.Key{}, fmt.Errorf("unable to begin transaction: %w", err)
 	}

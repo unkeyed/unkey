@@ -10,42 +10,11 @@ const (
 
 func getClosestContinent(flyRegion string) continent {
 	switch flyRegion {
-	case "atl":
-	case "bog":
-	case "bos":
-	case "den":
-	case "dfw":
-	case "ewr":
-	case "iad":
-	case "lax":
-	case "mia":
-	case "ord":
-	case "qro":
-	case "scl":
-	case "sea":
-	case "sjc":
-	case "yul":
-	case "yyz":
+	case "atl", "bog", "bos", "den", "dfw", "ewr", "iad", "lax", "mia", "ord", "qro", "scl", "sea", "sjc", "yul", "yyz":
 		return continentUs
-	case "ams":
-	case "arn":
-	case "cdg":
-	case "eze":
-	case "fra":
-	case "gdl":
-	case "gig":
-	case "gru":
-	case "jnb":
-	case "lhr":
-	case "mad":
-	case "otp":
-	case "waw":
+	case "ams", "arn", "cdg", "eze", "fra", "gdl", "gig", "gru", "jnb", "lhr", "mad", "otp", "waw":
 		return continentEu
-	case "hkg":
-	case "bom":
-	case "nrt":
-	case "sin":
-	case "syd":
+	case "hkg", "bom", "nrt", "sin", "syd":
 		return continentAsia
 	}
 	return continentUs

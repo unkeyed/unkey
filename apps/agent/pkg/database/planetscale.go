@@ -15,9 +15,9 @@ type replica struct {
 }
 
 type database struct {
-	primary     *replica
-	readReplica *replica
-	logger      *zap.Logger
+	writeReplica *replica
+	readReplica  *replica
+	logger       *zap.Logger
 }
 
 type Config struct {
@@ -66,6 +66,13 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error opening database: %w", err)
 		}
+	} else {
+		logger.Info("Adding database read replica", zap.String("continent", "us"))
+
+		readDB, err = sql.Open("mysql", fmt.Sprintf("%s&parseTime=true", config.PrimaryUs))
+		if err != nil {
+			return nil, fmt.Errorf("error opening database: %w", err)
+		}
 	}
 
 	if readDB != nil {
@@ -73,6 +80,7 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to ping read replica")
 		}
+		logger.Info("pinged read db")
 		if config.PlanetscaleBoost {
 			logger.Info("enabling planetscale boost for replica")
 
@@ -83,12 +91,14 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 		}
 	}
 
-	primaryReplica := &replica{
+	writeReplica := &replica{
 		db:    primary,
 		query: gen.New(primary),
 	}
 	var readReplica *replica
 	if readDB != nil {
+
+		logger.Info("creating readReplica")
 		readReplica = &replica{
 			db:    readDB,
 			query: gen.New(readDB),
@@ -96,9 +106,9 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 	}
 
 	var db Database = &database{
-		primary:     primaryReplica,
-		readReplica: readReplica,
-		logger:      logger,
+		writeReplica: writeReplica,
+		readReplica:  readReplica,
+		logger:       logger,
 	}
 	for _, mw := range middlewares {
 		db = mw(db)
@@ -108,17 +118,15 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 
 // read returns the primary writable db
 func (d *database) write() *gen.Queries {
-	return d.primary.query
+	return d.writeReplica.query
 }
 
 // read returns the closests read replica or primary as fallback
 func (d *database) read() *gen.Queries {
+	d.logger.Info("read replica", zap.Bool("isNotNil", d.readReplica != nil))
 	if d.readReplica != nil && d.readReplica.query != nil {
 		return d.readReplica.query
 	}
-	if d.primary != nil && d.primary.query != nil {
-		return d.primary.query
-	}
-
-	panic("neither primary, nor read replica are available")
+	d.logger.Warn("falling back to primary ")
+	return d.writeReplica.query
 }

@@ -2,10 +2,14 @@ package tinybird
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
+	"io"
 	"net/http"
+	"time"
+
+	"go.uber.org/zap"
 )
 
 type Tinybird struct {
@@ -93,4 +97,64 @@ func (t *Tinybird) publishEvent(datasource string, event interface{}) error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+type usage struct {
+	Time  int64
+	Value int64
+}
+type KeyStats struct {
+	Usage []usage
+}
+
+func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (KeyStats, error) {
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.tinybird.co/v0/pipes/x__endpoint_get_daily_key_stats.json?keyId=%s&token=%s", keyId, t.token), nil)
+	if err != nil {
+		return KeyStats{}, fmt.Errorf("unable to prepare request: %w", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return KeyStats{}, fmt.Errorf("unable to call tinybird: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return KeyStats{}, fmt.Errorf("unable to call tinybird: status=%d", res.StatusCode)
+	}
+
+	type tinybirdResponse struct {
+		Data []struct {
+			Time  string `json:"time"`
+			Usage int64  `json:"usage"`
+		} `json:"data"`
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return KeyStats{}, fmt.Errorf("unable to read body: %w", err)
+	}
+	tr := tinybirdResponse{}
+
+	err = json.Unmarshal(body, &tr)
+	if err != nil {
+		return KeyStats{}, fmt.Errorf("unable to unmarshal body: %w", err)
+	}
+
+	stats := KeyStats{
+		Usage: make([]usage, len(tr.Data)),
+	}
+	for i, day := range tr.Data {
+		t, err := time.Parse(time.DateTime, day.Time)
+		if err != nil {
+			return KeyStats{}, fmt.Errorf("unable to parse time %s: %w", day.Time, err)
+		}
+		stats.Usage[i] = usage{
+			Time:  t.UnixMilli(),
+			Value: day.Usage,
+		}
+	}
+
+	return stats, nil
+
 }
