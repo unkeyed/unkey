@@ -1,0 +1,80 @@
+---
+title: "Create"
+description: "Create an api key for your users"
+---
+
+Pass the optional & required parameters as per the official [API docs](https://docs.unkey.dev/api-reference/keys/create). See the structs reference for more information on the request body for `KeyCreate`
+
+```go
+package main
+
+import (
+	"fmt"
+
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+
+func main() {
+	// Prepare the request body
+	request := unkey.KeyCreateRequest{
+		APIId:      "your-api-id",
+		Prefix:     "your-prefix",
+		ByteLength: 16,
+		OwnerId:    "your-owner-id",
+		Meta:       map[string]string{"key": "value"},
+		Expires:    0,
+		Remaining:  0,
+		RateLimit: unkey.KeyCreateRateLimit{
+			Type:           "fast",
+			Limit:          100,
+			RefillRate:     10,
+			RefillInterval: 60,
+		},
+	}
+
+	// Provide the authentication token
+	authToken := "your-auth-token"
+
+	// Call the KeyCreate function
+	response, err := unkey.KeyCreate(request, authToken)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Process the response
+	fmt.Println("Key:", response.Key)
+	fmt.Println("Key ID:", response.KeyId)
+}
+
+```
+
+### Structs Reference
+The structs used in code for you to get a better idea of the request & response bodies.
+
+```go
+type KeyCreateRequest struct {
+	APIId      string             `json:"apiId"`
+	Prefix     string             `json:"prefix"`
+	ByteLength int                `json:"byteLength"`
+	OwnerId    string             `json:"ownerId"`
+	Meta       Meta               `json:"meta"`
+	Expires    int64              `json:"expires"`
+	Remaining  int                `json:"remaining"`
+	RateLimit  KeyCreateRateLimit `json:"ratelimit"`
+}
+
+type Meta map[string]string
+
+type KeyCreateRateLimit struct {
+	Type           string `json:"type"`
+	Limit          int    `json:"limit"`
+	RefillRate     int    `json:"refillRate"`
+	RefillInterval int    `json:"refillInterval"`
+}
+
+type KeyCreateResponse struct {
+	Key   string `json:"key"`
+	KeyId string `json:"keyId"`
+}
+```
