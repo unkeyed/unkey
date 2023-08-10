@@ -73,7 +73,7 @@ var AgentCmd = &cobra.Command{
 		if enableAxiom {
 			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
 				Dataset:    "tracing",
-				Service:    "api",
+				Service:    "agent",
 				Version:    version.Version,
 				AxiomOrgId: e.String("AXIOM_ORG_ID"),
 				AxiomToken: e.String("AXIOM_TOKEN"),
@@ -119,21 +119,24 @@ var AgentCmd = &cobra.Command{
 			}
 		}
 
-		db, err := database.New(database.Config{
-			Logger:           logger,
-			PrimaryUs:        e.String("DATABASE_DSN"),
-			ReplicaEu:        e.String("DATABASE_DSN_EU", ""),
-			ReplicaAsia:      e.String("DATABASE_DSN_ASIA", ""),
-			FlyRegion:        region,
-			PlanetscaleBoost: e.Bool("PLANETSCALE_BOOST", false),
-		},
-			database.WithTracing(tracer))
+		db, err := database.New(
+			database.Config{
+				Logger:           logger,
+				PrimaryUs:        e.String("DATABASE_DSN"),
+				ReplicaEu:        e.String("DATABASE_DSN_EU", ""),
+				ReplicaAsia:      e.String("DATABASE_DSN_ASIA", ""),
+				FlyRegion:        region,
+				PlanetscaleBoost: e.Bool("PLANETSCALE_BOOST", false),
+			},
+			database.WithLogging(logger),
+			database.WithTracing(tracer),
+		)
 		if err != nil {
 			logger.Fatal("Failed to connect to database", zap.Error(err))
 		}
 
 		keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
-			Fresh:             time.Minute,
+			Fresh:             time.Minute * 5,
 			Stale:             time.Minute * 15,
 			RefreshFromOrigin: db.FindKeyByHash,
 			Logger:            logger,
@@ -142,7 +145,7 @@ var AgentCmd = &cobra.Command{
 		keyCache = cacheMiddleware.WithLogging[entities.Key](keyCache, logger.With(zap.String("cacheType", "key")))
 
 		apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
-			Fresh:             time.Minute,
+			Fresh:             time.Minute * 5,
 			Stale:             time.Minute * 15,
 			RefreshFromOrigin: db.FindApi,
 			Logger:            logger,

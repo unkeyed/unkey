@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 

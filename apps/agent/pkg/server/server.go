@@ -112,11 +112,13 @@ func New(config Config) *Server {
 			attribute.String("method", c.Route().Method),
 			attribute.String("path", c.Path()),
 			attribute.String("edgeRegion", edgeRegion),
+			attribute.String("region", s.region),
 		))
 		defer span.End()
 		c.SetUserContext(ctx)
+		traceId := span.SpanContext().TraceID().String()
 
-		c.Set("Unkey-Trace-Id", fmt.Sprintf("%s:%s::%s", s.region, edgeRegion, span.SpanContext().TraceID().String()))
+		c.Set("Unkey-Trace-Id", fmt.Sprintf("%s:%s::%s", s.region, edgeRegion, traceId))
 		c.Set("Unkey-Version", s.version)
 		start := time.Now()
 		err := c.Next()
@@ -129,7 +131,7 @@ func New(config Config) *Server {
 			zap.Error(err),
 			zap.Int64("serviceLatency", latency.Milliseconds()),
 			zap.String("edgeRegion", edgeRegion),
-			zap.Int("status", c.Response().StatusCode()),
+			zap.String("traceId", traceId),
 		)
 
 		if err != nil || c.Response().StatusCode() >= 500 {
@@ -155,6 +157,8 @@ func New(config Config) *Server {
 
 	s.app.Get("/v1/apis/:apiId", s.getApi)
 	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)
+
+	s.app.Get("/vx/keys/:keyId/stats", s.getKeyStats)
 
 	return s
 }
