@@ -8,7 +8,7 @@ There are a few 3rd party services that are required to run the app:
 - [Upstash Kafka](https://upstash.com/kafka?ref=unkey): Cache invalidation
 - [Clerk](https://clerk.com?ref=unkey): Authentication
 
-Set environment variables in `/apps/web/.env` and/or `/apps/api/.env` respectively and populate the values from the services above.:
+Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respectively and populate the values from the services above.:
 
 ```sh-session
 cp apps/web/.env.example apps/web/.env
@@ -74,7 +74,7 @@ pnpm build
 
 ## Run API
 
-Add a `.env` file in `/apps/api/.env` and populate the values from the services above.:
+Add a `.env` file in `/apps/agent/.env` and populate the values from the services above.:
 ```sh-session
 cp apps/api/.env.example apps/api/.env
 ```
