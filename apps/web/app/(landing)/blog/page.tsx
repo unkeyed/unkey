@@ -10,8 +10,28 @@ import { formatDate } from "@/lib/formatDate";
 import { allPosts } from "contentlayer/generated";
 
 export const metadata = {
-  title: "Blog",
-  description: "Stay up-to-date with the latest news and articles from the Unkey team.",
+  title: "Blog | Unkey",
+  description: "Latest blog posts and news from the Unkey team.",
+  openGraph: {
+    title: "Blog | Unkey",
+    description: "Latest blog posts and news from the Unkey team.",
+    url: "https://unkey.dev/og?title=Blog",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Blog | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/unkey.png",
+  },
 };
 
 export default async function Blog() {

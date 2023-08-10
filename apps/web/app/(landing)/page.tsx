@@ -105,7 +105,28 @@ function Features() {
 }
 
 export const metadata = {
-  description: "We are developer studio working at the intersection of design and technology.",
+  title: "Unkey",
+  description: "Accelerate your API Development",
+  openGraph: {
+    title: "Unkey",
+    description: "Accelerate your API Development",
+    url: "https://unkey.dev/",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/unkey.png",
+  },
 };
 
 export default async function Home() {
