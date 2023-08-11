@@ -82,7 +82,6 @@ export const metadata = {
   },
 };
 
-
 export default async function Changelogs() {
   const changelogs = allChangelogs.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
