@@ -24,36 +24,22 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
-	authHash, err := getKeyHash(c.Get("Authorization"))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
 
-	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
-	}
-	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find key by hash: %s", authHash))
-	}
-
-	if authKey.ForWorkspaceId == "" {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, "wrong key type")
-	}
-
-	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
+	key, found, err := withCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
-
 	}
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
 	}
-	if key.WorkspaceId != authKey.ForWorkspaceId {
+	if key.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
 	}
-
-	api, found, err := s.db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
+	api, found, err := withCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
