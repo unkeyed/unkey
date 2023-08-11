@@ -6,47 +6,43 @@ import { allChangelogs } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
 
-import type { Metadata } from 'next'
- 
+import type { Metadata } from "next";
+
 type Props = {
-  params: { date: string }
-}
- 
-export async function generateMetadata(
-  { params }: Props,
-): Promise<Metadata> {
+  params: { date: string };
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const changelog = allChangelogs.find(
     (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
 
- 
   return {
     title: `${changelog?.title} | Unkey`,
-  description: changelog?.description,
-  openGraph: {
-    title: `${changelog?.title} | Unkey`,
-  description: changelog?.description,
-    url: `https://unkey.dev/changelog/${changelog?.url}`,
-    siteName: "unkey.dev",
-    images: [
-      {
-        url: `https://unkey.dev/api/og/changelog?title=${changelog?.title}&date=${changelog?.date}`,
-        width: 1200,
-        height: 675,
-      },
-    ],
-  },
-  twitter: {
-    title: `${changelog?.title} | Unkey`,
-    card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/unkey.png",
-  },
-  }
+    description: changelog?.description,
+    openGraph: {
+      title: `${changelog?.title} | Unkey`,
+      description: changelog?.description,
+      url: `https://unkey.dev/changelog/${changelog?.url}`,
+      siteName: "unkey.dev",
+      images: [
+        {
+          url: `https://unkey.dev/og/changelog?title=${changelog?.title}&date=${changelog?.date}`,
+          width: 1200,
+          height: 675,
+        },
+      ],
+    },
+    twitter: {
+      title: `${changelog?.title} | Unkey`,
+      card: "summary_large_image",
+    },
+    icons: {
+      shortcut: "/unkey.png",
+    },
+  };
 }
-
 
 export const generateStaticParams = async () =>
   allChangelogs.map((c) => ({

@@ -67,7 +67,7 @@ export const metadata = {
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/api/og/changelog",
+        url: "https://unkey.dev/og/changelog",
         width: 1200,
         height: 675,
       },
@@ -81,7 +81,6 @@ export const metadata = {
     shortcut: "/unkey.png",
   },
 };
-
 
 export default async function Changelogs() {
   const changelogs = allChangelogs.sort(
