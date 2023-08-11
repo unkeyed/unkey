@@ -31,7 +31,7 @@ export async function generateMetadata(
     siteName: "unkey.dev",
     images: [
       {
-        url: `https://unkey.dev/og?title=${changelog?.title}`,
+        url: `https://unkey.dev/api/og/changelog?title=${changelog?.title}&date=${changelog?.date}`,
         width: 1200,
         height: 675,
       },
