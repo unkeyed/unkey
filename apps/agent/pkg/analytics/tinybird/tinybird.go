@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"go.uber.org/zap"
 )
 
@@ -17,11 +18,13 @@ type Tinybird struct {
 
 	client *http.Client
 
-	keyVerificationsC chan KeyVerificationEvent
+	keyVerificationsC chan analytics.KeyVerificationEvent
 	closeC            chan struct{}
 
 	logger *zap.Logger
 }
+
+var _ analytics.Analytics = &Tinybird{}
 
 type Config struct {
 	// Token is the Tinybird token
@@ -35,7 +38,7 @@ func New(config Config) *Tinybird {
 	t := &Tinybird{
 		token:             config.Token,
 		client:            http.DefaultClient,
-		keyVerificationsC: make(chan KeyVerificationEvent),
+		keyVerificationsC: make(chan analytics.KeyVerificationEvent),
 		closeC:            make(chan struct{}),
 		logger:            config.Logger,
 	}
@@ -63,16 +66,8 @@ func (t *Tinybird) Close() {
 
 }
 
-type KeyVerificationEvent struct {
-	ApiId       string `json:"apiId"`
-	WorkspaceId string `json:"workspaceId"`
-	KeyId       string `json:"keyId"`
-	Ratelimited bool   `json:"ratelimited"`
-	Time        int64  `json:"time"`
-}
-
-func (t *Tinybird) PublishKeyVerificationEventChannel() chan<- KeyVerificationEvent {
-	return t.keyVerificationsC
+func (t *Tinybird) PublishKeyVerificationEvent(ctx context.Context, event analytics.KeyVerificationEvent) {
+	t.keyVerificationsC <- event
 }
 
 func (t *Tinybird) publishEvent(datasource string, event interface{}) error {
@@ -99,28 +94,20 @@ func (t *Tinybird) publishEvent(datasource string, event interface{}) error {
 	return nil
 }
 
-type usage struct {
-	Time  int64
-	Value int64
-}
-type KeyStats struct {
-	Usage []usage
-}
-
-func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (KeyStats, error) {
+func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (analytics.KeyStats, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.tinybird.co/v0/pipes/x__endpoint_get_daily_key_stats.json?keyId=%s&token=%s", keyId, t.token), nil)
 	if err != nil {
-		return KeyStats{}, fmt.Errorf("unable to prepare request: %w", err)
+		return analytics.KeyStats{}, fmt.Errorf("unable to prepare request: %w", err)
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return KeyStats{}, fmt.Errorf("unable to call tinybird: %w", err)
+		return analytics.KeyStats{}, fmt.Errorf("unable to call tinybird: %w", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		return KeyStats{}, fmt.Errorf("unable to call tinybird: status=%d", res.StatusCode)
+		return analytics.KeyStats{}, fmt.Errorf("unable to call tinybird: status=%d", res.StatusCode)
 	}
 
 	type tinybirdResponse struct {
@@ -132,24 +119,24 @@ func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (KeyStats, err
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return KeyStats{}, fmt.Errorf("unable to read body: %w", err)
+		return analytics.KeyStats{}, fmt.Errorf("unable to read body: %w", err)
 	}
 	tr := tinybirdResponse{}
 
 	err = json.Unmarshal(body, &tr)
 	if err != nil {
-		return KeyStats{}, fmt.Errorf("unable to unmarshal body: %w", err)
+		return analytics.KeyStats{}, fmt.Errorf("unable to unmarshal body: %w", err)
 	}
 
-	stats := KeyStats{
-		Usage: make([]usage, len(tr.Data)),
+	stats := analytics.KeyStats{
+		Usage: make([]analytics.ValueAtTime, len(tr.Data)),
 	}
 	for i, day := range tr.Data {
 		t, err := time.Parse(time.DateTime, day.Time)
 		if err != nil {
-			return KeyStats{}, fmt.Errorf("unable to parse time %s: %w", day.Time, err)
+			return analytics.KeyStats{}, fmt.Errorf("unable to parse time %s: %w", day.Time, err)
 		}
-		stats.Usage[i] = usage{
+		stats.Usage[i] = analytics.ValueAtTime{
 			Time:  t.UnixMilli(),
 			Value: day.Usage,
 		}

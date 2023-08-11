@@ -60,7 +60,7 @@ func (s *Server) getKeyStats(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
 	}
 
-	keyStats, err := s.tinybird.GetKeyStats(ctx, key.Id)
+	keyStats, err := s.analytics.GetKeyStats(ctx, key.Id)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, "unable to load stats")
 	}

@@ -44,7 +44,8 @@ export const apiRouter = t.router({
         await Promise.all(
           keys.map(async (key) => {
             await db.delete(schema.keys).where(eq(schema.keys.id, key.id));
-            await producer.produce("key.deleted", {
+            await producer.produce("key.changed", {
+              type: "deleted",
               key: {
                 id: key.id,
                 hash: key.hash,

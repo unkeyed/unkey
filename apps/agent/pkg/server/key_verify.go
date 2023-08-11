@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/whitelist"
 	"go.uber.org/zap"
 )
@@ -208,17 +208,13 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// Send usage to tinybird
 	// ---------------------------------------------------------------------------------------------
 
-	if s.tinybird != nil {
-		defer func() {
-			s.tinybird.PublishKeyVerificationEventChannel() <- tinybird.KeyVerificationEvent{
-				WorkspaceId: key.WorkspaceId,
-				ApiId:       api.Id,
-				KeyId:       key.Id,
-				Ratelimited: res.Code == errors.RATELIMITED,
-				Time:        time.Now().UnixMilli(),
-			}
-		}()
-	}
+	s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
+		WorkspaceId: key.WorkspaceId,
+		ApiId:       api.Id,
+		KeyId:       key.Id,
+		Ratelimited: res.Code == errors.RATELIMITED,
+		Time:        time.Now().UnixMilli(),
+	})
 
 	return c.JSON(res)
 }

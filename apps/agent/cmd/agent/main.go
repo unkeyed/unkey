@@ -6,34 +6,40 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
-	"github.com/unkeyed/unkey/apps/agent/pkg/kafka"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events/kafka"
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/version"
 	"go.uber.org/zap"
 )
 
-var (
-	enableAxiom    bool
-	enableTinybird bool
-)
+type features struct {
+	enableAxiom bool
+	analytics   string
+	eventBus    string
+}
+
+var runtimeConfig features
 
 func init() {
-	AgentCmd.Flags().BoolVar(&enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
-	AgentCmd.Flags().BoolVar(&enableTinybird, "enable-tinybird", false, "Send analytics to tinybird")
+	AgentCmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
+	AgentCmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
+	AgentCmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
 }
 
 // AgentCmd represents the agent command
@@ -49,7 +55,7 @@ var AgentCmd = &cobra.Command{
 			// this is best effort and can error quite frequently
 			_ = logger.Sync()
 		}()
-		logger.Info("Starting Unkey Agent")
+		logger.Info("Starting Unkey Agent", zap.Any("runtimeConfig", runtimeConfig))
 
 		e := env.Env{
 			ErrorHandler: func(err error) { logger.Fatal("unable to load environment variable", zap.Error(err)) },
@@ -57,20 +63,18 @@ var AgentCmd = &cobra.Command{
 		region := e.String("FLY_REGION", "local")
 		logger = logger.With(zap.String("region", region))
 
-		var tb *tinybird.Tinybird
-		if enableTinybird {
-			tinybirdToken := e.String("TINYBIRD_TOKEN")
-			if tinybirdToken != "" {
-				tb = tinybird.New(tinybird.Config{
-					Token:  tinybirdToken,
-					Logger: logger,
-				})
-				defer tb.Close()
-			}
+		var a analytics.Analytics
+		if runtimeConfig.analytics == "tinybird" {
+			tb := tinybird.New(tinybird.Config{
+				Token:  e.String("TINYBIRD_TOKEN"),
+				Logger: logger,
+			})
+			defer tb.Close()
+			a = tb
 		}
 
 		var tracer tracing.Tracer
-		if enableAxiom {
+		if runtimeConfig.enableAxiom {
 			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
 				Dataset:    "tracing",
 				Service:    "agent",
@@ -93,19 +97,25 @@ var AgentCmd = &cobra.Command{
 			tracer = tracing.NewNoop()
 		}
 
-		k, err := kafka.New(kafka.Config{
-			Logger:   logger,
-			GroupId:  e.String("FLY_ALLOC_ID", "local"),
-			Broker:   e.String("KAFKA_BROKER"),
-			Username: e.String("KAFKA_USERNAME"),
-			Password: e.String("KAFKA_PASSWORD"),
-		})
-		if err != nil {
-			logger.Fatal("unable to start kafka", zap.Error(err))
+		var eventBus events.EventBus = events.NewNoop()
+		if runtimeConfig.eventBus == "kafka" {
+			k, err := kafka.New(kafka.Config{
+				Logger:   logger,
+				GroupId:  e.String("FLY_ALLOC_ID", "local"),
+				Broker:   e.String("KAFKA_BROKER"),
+				Username: e.String("KAFKA_USERNAME"),
+				Password: e.String("KAFKA_PASSWORD"),
+			})
+			if err != nil {
+				logger.Fatal("unable to start kafka", zap.Error(err))
+			}
+
+			k.Start()
+			defer k.Close()
+			eventBus = k
 		}
 
-		go k.Start()
-		defer k.Close()
+		var err error
 
 		fastRatelimit := ratelimit.NewInMemory()
 		var consistentRatelimit ratelimit.Ratelimiter
@@ -153,11 +163,11 @@ var AgentCmd = &cobra.Command{
 		apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
 		apiCache = cacheMiddleware.WithLogging[entities.Api](apiCache, logger.With(zap.String("cacheType", "api")))
 
-		k.RegisterOnKeyEvent(func(ctx context.Context, e kafka.KeyEvent) error {
+		eventBus.OnKeyEvent(func(ctx context.Context, e events.KeyEvent) error {
 			logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
 			keyCache.Remove(context.Background(), e.Key.Hash)
 
-			if e.Type == kafka.KeyCreated || e.Type == kafka.KeyUpdated {
+			if e.Type == events.KeyCreated || e.Type == events.KeyUpdated {
 				logger.Info("fetching key from origin", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
 				key, found, err := db.FindKeyById(ctx, e.Key.Id)
 				if err != nil {
@@ -181,13 +191,13 @@ var AgentCmd = &cobra.Command{
 			Ratelimit:         fastRatelimit,
 			GlobalRatelimit:   consistentRatelimit,
 			Tracer:            tracer,
-			Tinybird:          tb,
+			Analytics:         a,
 			UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),
 			UnkeyWorkspaceId:  e.String("UNKEY_WORKSPACE_ID"),
 			UnkeyApiId:        e.String("UNKEY_API_ID"),
 			UnkeyKeyAuthId:    e.String("UNKEY_KEY_AUTH_ID"),
 			Region:            region,
-			Kafka:             k,
+			EventBus:          eventBus,
 			Version:           version.Version,
 		})
 

@@ -14,13 +14,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
-	"github.com/unkeyed/unkey/apps/agent/pkg/kafka"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -29,20 +29,18 @@ type Config struct {
 	Logger   logging.Logger
 	KeyCache cache.Cache[entities.Key]
 	// The ApiCache uses the KeyAuthId as cache key, not an apiId
-	ApiCache        cache.Cache[entities.Api]
-	Database        database.Database
-	Ratelimit       ratelimit.Ratelimiter
-	GlobalRatelimit ratelimit.Ratelimiter
-	Tracer          trace.Tracer
-	// Potentially the user does not have tinybird set up or does not want to use it
-	// simply pass in nil in that case
-	Tinybird          *tinybird.Tinybird
+	ApiCache          cache.Cache[entities.Api]
+	Database          database.Database
+	Ratelimit         ratelimit.Ratelimiter
+	GlobalRatelimit   ratelimit.Ratelimiter
+	Tracer            trace.Tracer
+	Analytics         analytics.Analytics
 	UnkeyAppAuthToken string
 	UnkeyWorkspaceId  string
 	UnkeyApiId        string
 	UnkeyKeyAuthId    string
 	Region            string
-	Kafka             *kafka.Kafka
+	EventBus          events.EventBus
 	Version           string
 }
 
@@ -55,17 +53,21 @@ type Server struct {
 	apiCache        cache.Cache[entities.Api]
 	ratelimit       ratelimit.Ratelimiter
 	globalRatelimit ratelimit.Ratelimiter
-	tracer          trace.Tracer
-	// potentially nil, always do a check first
-	tinybird *tinybird.Tinybird
-	// Used to authenticate our frontend when creating new unkey keys.
+
+	// Not guaranteed to be available, always do a nil check first!
+	tracer trace.Tracer
+	// Not guaranteed to be available, always do a nil check first!
+	analytics         analytics.Analytics
 	unkeyAppAuthToken string
 	unkeyWorkspaceId  string
 	unkeyApiId        string
 	unkeyKeyAuthId    string
 	region            string
-	kafka             *kafka.Kafka
-	version           string
+
+	// Used for communication with other pods
+	// Not guaranteed to be available, always do a nil check first!
+	events  events.EventBus
+	version string
 }
 
 func New(config Config) *Server {
@@ -77,7 +79,7 @@ func New(config Config) *Server {
 
 	s := &Server{
 		app:               fiber.New(appConfig),
-		kafka:             config.Kafka,
+		events:            config.EventBus,
 		logger:            config.Logger,
 		validator:         validator.New(),
 		db:                config.Database,
@@ -85,13 +87,19 @@ func New(config Config) *Server {
 		apiCache:          config.ApiCache,
 		ratelimit:         config.Ratelimit,
 		tracer:            config.Tracer,
-		tinybird:          config.Tinybird,
+		analytics:         config.Analytics,
 		unkeyAppAuthToken: config.UnkeyAppAuthToken,
 		unkeyWorkspaceId:  config.UnkeyWorkspaceId,
 		unkeyApiId:        config.UnkeyApiId,
 		unkeyKeyAuthId:    config.UnkeyKeyAuthId,
 		region:            config.Region,
 		version:           config.Version,
+	}
+	if s.events == nil {
+		s.events = events.NewNoop()
+	}
+	if s.analytics == nil {
+		s.analytics = analytics.NewNoop()
 	}
 
 	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {

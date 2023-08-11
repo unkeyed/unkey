@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/kafka"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"go.uber.org/zap"
 )
 
@@ -155,15 +155,14 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to write key: %s", err.Error()))
 	}
-	if s.kafka != nil {
 
-		go func() {
-			err := s.kafka.ProduceKeyEvent(ctx, kafka.KeyUpdated, key.Id, key.Hash)
-			if err != nil {
-				s.logger.Error("unable to emit key event to kafka", zap.Error(err))
-			}
-		}()
-	}
+	s.events.EmitKeyEvent(ctx, events.KeyEvent{
+		Type: events.KeyUpdated,
+		Key: events.Key{
+			Id:   key.Id,
+			Hash: key.Hash,
+		},
+	})
 
 	return c.JSON(UpdateKeyResponse{})
 }
