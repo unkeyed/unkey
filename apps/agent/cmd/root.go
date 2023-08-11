@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/agent/cmd/agent"
+	"github.com/unkeyed/unkey/apps/agent/pkg/version"
 )
 
 var (
@@ -18,8 +19,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "unkey",
-	Short: "A brief description of your application",
+	Use:     "unkey",
+	Version: version.Version,
+	Short:   "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
 

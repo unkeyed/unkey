@@ -67,7 +67,7 @@ export const metadata = {
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og.png",
+        url: "https://unkey.dev/og/changelog",
         width: 1200,
         height: 675,
       },

@@ -60,6 +60,7 @@
     "@upstash/qstash": "^0.3.6",
     "@upstash/ratelimit": "^0.4.3",
     "@upstash/redis": "^1.22.0",
+    "@vercel/og": "^0.5.10",
     "acorn": "^8.10.0",
     "acorn-jsx": "^5.3.2",
     "autoprefixer": "^10.4.14",
