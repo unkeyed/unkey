@@ -102,10 +102,30 @@ function Team() {
 }
 
 export const metadata = {
-  title: "About Us",
-  description:
-    "Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.",
+  title: "About Us | Unkey",
+  description: "Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.",
+  openGraph: {
+    title: "About Us | Unkey",
+    description: "Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.",
+    url: "https://unkey.dev/pricing",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "About Us | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/unkey.png",
+  },
 };
+
 
 export default async function About() {
   const blogArticles = allPosts
