@@ -39,4 +39,10 @@ primary_region = "iad"
 
 
 [experimental]
-cmd = ["/usr/local/bin/unkey","agent", "--analytics=tinybird", "--event-bus=kafka", "--enable-axiom"]
+cmd = [
+  "/usr/local/bin/unkey",
+  "agent",
+   "--analytics=tinybird",
+   "--event-bus=kafka",
+   "--enable-axiom"
+   ]

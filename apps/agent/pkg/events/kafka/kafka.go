@@ -63,10 +63,11 @@ func New(config Config) (*Kafka, error) {
 		logger:       logger,
 		callbackLock: sync.RWMutex{},
 		keyChangedReader: kafka.NewReader(kafka.ReaderConfig{
-			Brokers: []string{config.Broker},
-			GroupID: config.GroupId,
-			Topic:   topic,
-			Dialer:  dialer,
+			Brokers:     []string{config.Broker},
+			GroupID:     config.GroupId,
+			Topic:       topic,
+			Dialer:      dialer,
+			StartOffset: kafka.LastOffset,
 		}),
 		keyChangedWriter: kafka.NewWriter(kafka.WriterConfig{
 			Brokers: []string{config.Broker},

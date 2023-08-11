@@ -63,33 +63,19 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
-	authHash, err := getKeyHash(c.Get("Authorization"))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
 
-	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
-	}
-	if !found {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "key does not exist")
-
-	}
-
-	if authKey.ForWorkspaceId == "" {
-		return errors.NewHttpError(c, errors.INVALID_KEY_TYPE, "a root key is required")
-	}
-
-	api, found, err := s.db.FindApi(ctx, req.ApiId)
+	api, found, err := withCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
-
 	}
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api: %s", req.ApiId))
 	}
-	if api.WorkspaceId != authKey.ForWorkspaceId {
+	if api.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 
 	}
@@ -111,7 +97,7 @@ func (s *Server) createKey(c *fiber.Ctx) error {
 	newKey := entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   api.KeyAuthId,
-		WorkspaceId: authKey.ForWorkspaceId,
+		WorkspaceId: authorizedWorkspaceId,
 		Name:        req.Name,
 		Hash:        keyHash,
 		Start:       keyValue[:startLength],

@@ -72,31 +72,18 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
-	authHash, err := getKeyHash(c.Get("Authorization"))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
 	if err != nil {
-		return err
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
-
-	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
-	}
-	if !found {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "unauthorized")
-	}
-
-	if authKey.ForWorkspaceId == "" {
-		return errors.NewHttpError(c, errors.INVALID_KEY_TYPE, "a root key is required")
-	}
-
-	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
+	key, found, err := withCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
 	}
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s does not exist", req.KeyId))
 	}
-	if key.WorkspaceId != authKey.ForWorkspaceId {
+	if key.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.FORBIDDEN, "access to workspace denied")
 	}
 
@@ -155,6 +142,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to write key: %s", err.Error()))
 	}
+	s.keyCache.Set(ctx, key.Hash, key)
 
 	s.events.EmitKeyEvent(ctx, events.KeyEvent{
 		Type: events.KeyUpdated,

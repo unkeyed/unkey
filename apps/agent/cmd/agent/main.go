@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
+	analyticsMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/analytics/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
@@ -63,58 +64,69 @@ var AgentCmd = &cobra.Command{
 		region := e.String("FLY_REGION", "local")
 		logger = logger.With(zap.String("region", region))
 
-		var a analytics.Analytics
-		if runtimeConfig.analytics == "tinybird" {
-			tb := tinybird.New(tinybird.Config{
-				Token:  e.String("TINYBIRD_TOKEN"),
-				Logger: logger,
-			})
-			defer tb.Close()
-			a = tb
+		// Setup Axiom
+
+		var tracer tracing.Tracer = tracing.NewNoop()
+		{
+			if runtimeConfig.enableAxiom {
+				t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
+					Dataset:    "tracing",
+					Service:    "agent",
+					Version:    version.Version,
+					AxiomOrgId: e.String("AXIOM_ORG_ID"),
+					AxiomToken: e.String("AXIOM_TOKEN"),
+				})
+				if err != nil {
+					logger.Fatal("unable to start tracer", zap.Error(err))
+				}
+				defer func() {
+					err := closeTracer()
+					if err != nil {
+						logger.Fatal("unable to close tracer", zap.Error(err))
+					}
+				}()
+				tracer = t
+				logger.Info("Axiom tracing enabled")
+			}
 		}
 
-		var tracer tracing.Tracer
-		if runtimeConfig.enableAxiom {
-			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
-				Dataset:    "tracing",
-				Service:    "agent",
-				Version:    version.Version,
-				AxiomOrgId: e.String("AXIOM_ORG_ID"),
-				AxiomToken: e.String("AXIOM_TOKEN"),
-			})
-			if err != nil {
-				logger.Fatal("unable to start tracer", zap.Error(err))
+		// Setup Analytics
+
+		var a analytics.Analytics = analytics.NewNoop()
+		{
+			if runtimeConfig.analytics == "tinybird" {
+				tb := tinybird.New(tinybird.Config{
+					Token:  e.String("TINYBIRD_TOKEN"),
+					Logger: logger,
+				})
+				defer tb.Close()
+				a = tb
 			}
-			defer func() {
-				err := closeTracer()
-				if err != nil {
-					logger.Fatal("unable to close tracer", zap.Error(err))
-				}
-			}()
-			tracer = t
-			logger.Info("Axiom tracing enabled")
-		} else {
-			tracer = tracing.NewNoop()
+			a = analyticsMiddleware.WithTracing(a, tracer)
+
 		}
+
+		// Setup Event Bus
 
 		var eventBus events.EventBus = events.NewNoop()
-		if runtimeConfig.eventBus == "kafka" {
-			k, err := kafka.New(kafka.Config{
-				Logger:   logger,
-				GroupId:  e.String("FLY_ALLOC_ID", "local"),
-				Broker:   e.String("KAFKA_BROKER"),
-				Username: e.String("KAFKA_USERNAME"),
-				Password: e.String("KAFKA_PASSWORD"),
-			})
-			if err != nil {
-				logger.Fatal("unable to start kafka", zap.Error(err))
+		{
+			if runtimeConfig.eventBus == "kafka" {
+				k, err := kafka.New(kafka.Config{
+					Logger:   logger,
+					GroupId:  e.String("FLY_ALLOC_ID", "local"),
+					Broker:   e.String("KAFKA_BROKER"),
+					Username: e.String("KAFKA_USERNAME"),
+					Password: e.String("KAFKA_PASSWORD"),
+				})
+				if err != nil {
+					logger.Fatal("unable to start kafka", zap.Error(err))
+				}
+
+				k.Start()
+				defer k.Close()
+				eventBus = k
 			}
-
-			k.Start()
-			defer k.Close()
-			eventBus = k
 		}
-
 		var err error
 
 		fastRatelimit := ratelimit.NewInMemory()
@@ -146,42 +158,68 @@ var AgentCmd = &cobra.Command{
 		}
 
 		keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
-			Fresh:             time.Minute * 5,
-			Stale:             time.Minute * 15,
-			RefreshFromOrigin: db.FindKeyByHash,
-			Logger:            logger,
+			Fresh:   time.Minute * 5,
+			Stale:   time.Minute * 15,
+			MaxSize: 1024,
+			RefreshFromOrigin: func(ctx context.Context, keyHash string) (entities.Key, bool) {
+				key, found, err := db.FindKeyByHash(ctx, keyHash)
+				if err != nil {
+					logger.Error("unable to refresh key by hash", zap.Error(err))
+					return entities.Key{}, false
+				}
+				return key, found
+			},
+			Logger: logger.With(zap.String("cacheType", "key")),
 		})
 		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
 		keyCache = cacheMiddleware.WithLogging[entities.Key](keyCache, logger.With(zap.String("cacheType", "key")))
 
 		apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
-			Fresh:             time.Minute * 5,
-			Stale:             time.Minute * 15,
-			RefreshFromOrigin: db.FindApi,
-			Logger:            logger,
+			Fresh:   time.Minute * 5,
+			Stale:   time.Minute * 15,
+			MaxSize: 1024,
+			RefreshFromOrigin: func(ctx context.Context, apiId string) (entities.Api, bool) {
+				key, found, err := db.FindApi(ctx, apiId)
+				if err != nil {
+					logger.Error("unable to refresh api by id", zap.Error(err))
+					return entities.Api{}, false
+				}
+				return key, found
+			},
+			Logger: logger.With(zap.String("cacheType", "api")),
 		})
 		apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
 		apiCache = cacheMiddleware.WithLogging[entities.Api](apiCache, logger.With(zap.String("cacheType", "api")))
 
 		eventBus.OnKeyEvent(func(ctx context.Context, e events.KeyEvent) error {
-			logger.Info("evicting key from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
-			keyCache.Remove(context.Background(), e.Key.Hash)
 
-			if e.Type == events.KeyCreated || e.Type == events.KeyUpdated {
-				logger.Info("fetching key from origin", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
-				key, found, err := db.FindKeyById(ctx, e.Key.Id)
-				if err != nil {
-					return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
-				}
-				if found {
-					keyCache.Set(ctx, key.Hash, key)
-				}
+			if e.Type == events.KeyDeleted {
+				logger.Info("evicting from cache", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
+				keyCache.Remove(context.Background(), e.Key.Hash)
+				return nil
 			}
+
+			logger.Info("fetching key from origin", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
+			key, found, err := db.FindKeyById(ctx, e.Key.Id)
+			if err != nil {
+				return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
+			}
+			if !found {
+				return nil
+			}
+			keyCache.Set(ctx, key.Hash, key)
+
+			api, found, err := db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
+			if err != nil {
+				return fmt.Errorf("unable to find api by keyAuthId: %s: %w", key.KeyAuthId, err)
+			}
+			if !found {
+				return nil
+			}
+			apiCache.Set(ctx, api.KeyAuthId, api)
 
 			return nil
 		})
-
-		port := e.String("PORT", "8080")
 
 		srv := server.New(server.Config{
 			Logger:            logger,
@@ -202,7 +240,7 @@ var AgentCmd = &cobra.Command{
 		})
 
 		go func() {
-			err = srv.Start(fmt.Sprintf("0.0.0.0:%s", port))
+			err = srv.Start(fmt.Sprintf("0.0.0.0:%s", e.String("PORT", "8080")))
 			if err != nil {
 				logger.Fatal("Failed to run service", zap.Error(err))
 			}

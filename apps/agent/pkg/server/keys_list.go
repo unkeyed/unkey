@@ -32,7 +32,7 @@ type keyResponse struct {
 	Expires        int64            `json:"expires,omitempty"`
 	Ratelimit      *ratelimitSettng `json:"ratelimit,omitempty"`
 	ForWorkspaceId string           `json:"forWorkspaceId,omitempty"`
-	Remaining      *int32           `json:"remaining"`
+	Remaining      *int32           `json:"remaining,omitempty"`
 }
 
 type ListKeysResponse struct {
@@ -56,24 +56,11 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
-	authHash, err := getKeyHash(c.Get("Authorization"))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
-
-	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
-	}
-	if !found {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "unauthorized")
-	}
-
-	if authKey.ForWorkspaceId == "" {
-		return errors.NewHttpError(c, errors.INVALID_KEY_TYPE, "root key required")
-	}
-
-	api, found, err := s.db.FindApi(ctx, req.ApiId)
+	api, found, err := withCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
@@ -81,26 +68,17 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api %s", req.ApiId))
 
 	}
-	if api.WorkspaceId != authKey.ForWorkspaceId {
+	if api.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.FORBIDDEN, "workspace access denined")
 	}
 
-	keyAuth, found, err := s.db.FindKeyAuth(ctx, api.KeyAuthId)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
-	}
-	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("keyAuth %s not found", api.KeyAuthId))
-
-	}
-
-	keys, err := s.db.ListKeys(ctx, keyAuth.Id, req.OwnerId, req.Limit, req.Offset)
+	keys, err := s.db.ListKeys(ctx, api.KeyAuthId, req.OwnerId, req.Limit, req.Offset)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 
 	}
 
-	total, err := s.db.CountKeys(ctx, keyAuth.Id)
+	total, err := s.db.CountKeys(ctx, api.KeyAuthId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
