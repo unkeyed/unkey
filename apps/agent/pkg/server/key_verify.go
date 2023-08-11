@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/whitelist"
 	"go.uber.org/zap"
 )
@@ -60,9 +60,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			Code:  errors.NOT_FOUND,
 		})
 	}
-
 	key, isCached := s.keyCache.Get(ctx, hash)
-
 	if !isCached {
 		var found bool
 		key, found, err = s.db.FindKeyByHash(ctx, hash)
@@ -74,7 +72,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 				Valid: false,
 				Code:  errors.NOT_FOUND,
 			})
-		} else {
+		} else if key.Remaining == nil {
 			s.keyCache.Set(ctx, hash, key)
 		}
 	}
@@ -95,20 +93,12 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	// Get the api from either cache or db
 	// ---------------------------------------------------------------------------------------------
-
-	api, isCached := s.apiCache.Get(ctx, key.KeyAuthId)
-	if !isCached {
-		var found bool
-		api, found, err = s.db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
-		if err != nil {
-			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
-		}
-		if !found {
-			return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("keyauth %s not found", key.KeyAuthId))
-		} else {
-
-			s.apiCache.Set(ctx, key.KeyAuthId, api)
-		}
+	api, found, err := withCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
+	if err != nil {
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("keyauth %s not found", key.KeyAuthId))
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -164,7 +154,6 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		if err != nil {
 			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 		}
-		s.keyCache.Set(ctx, key.Hash, keyAfterUpdate)
 		if *keyAfterUpdate.Remaining < 0 {
 			res.Valid = false
 			zero := int32(0)
@@ -208,17 +197,13 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// Send usage to tinybird
 	// ---------------------------------------------------------------------------------------------
 
-	if s.tinybird != nil {
-		defer func() {
-			s.tinybird.PublishKeyVerificationEventChannel() <- tinybird.KeyVerificationEvent{
-				WorkspaceId: key.WorkspaceId,
-				ApiId:       api.Id,
-				KeyId:       key.Id,
-				Ratelimited: res.Code == errors.RATELIMITED,
-				Time:        time.Now().UnixMilli(),
-			}
-		}()
-	}
+	s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
+		WorkspaceId: key.WorkspaceId,
+		ApiId:       api.Id,
+		KeyId:       key.Id,
+		Ratelimited: res.Code == errors.RATELIMITED,
+		Time:        time.Now().UnixMilli(),
+	})
 
 	return c.JSON(res)
 }

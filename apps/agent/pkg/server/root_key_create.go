@@ -6,13 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
-	"github.com/unkeyed/unkey/apps/agent/pkg/kafka"
 	"github.com/unkeyed/unkey/apps/agent/pkg/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
@@ -86,14 +84,13 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to store key: %s", err.Error()))
 	}
-	if s.kafka != nil {
+	if s.events != nil {
+		e := events.KeyEvent{}
+		e.Type = events.KeyCreated
+		e.Key.Id = newKey.Id
+		e.Key.Hash = newKey.Hash
+		s.events.EmitKeyEvent(ctx, e)
 
-		go func() {
-			err := s.kafka.ProduceKeyEvent(ctx, kafka.KeyCreated, newKey.Id, newKey.Hash)
-			if err != nil {
-				s.logger.Error("unable to emit new key event to kafka", zap.Error(err))
-			}
-		}()
 	}
 	return c.JSON(CreateRootKeyResponse{
 		Key:   keyValue,

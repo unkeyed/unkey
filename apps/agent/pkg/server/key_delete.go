@@ -3,10 +3,9 @@ package server
 import (
 	"fmt"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/kafka"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 
 	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
 )
 
 type DeleteKeyRequest struct {
@@ -30,33 +29,18 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
-	authHash, err := getKeyHash(c.Get("Authorization"))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
 	if err != nil {
-		return err
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
-
-	authKey, found, err := s.db.FindKeyByHash(ctx, authHash)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
-
-	}
-	if !found {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "")
-	}
-
-	if authKey.ForWorkspaceId == "" {
-		return errors.NewHttpError(c, errors.INVALID_KEY_TYPE, "you need to use a root key")
-
-	}
-
-	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
+	key, found, err := withCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
 	}
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find key: %s", req.KeyId))
 	}
-	if key.WorkspaceId != authKey.ForWorkspaceId {
+	if key.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
@@ -64,11 +48,14 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to delete key: %s", err.Error()))
 	}
-	if s.kafka != nil {
-		err := s.kafka.ProduceKeyEvent(ctx, kafka.KeyDeleted, key.Id, key.Hash)
-		if err != nil {
-			s.logger.Error("unable to emit keyDeletedEvent", zap.Error(err))
-		}
-	}
+
+	s.events.EmitKeyEvent(ctx, events.KeyEvent{
+		Type: events.KeyDeleted,
+		Key: events.Key{
+			Id:   key.Id,
+			Hash: key.Hash,
+		},
+	})
+
 	return c.JSON(DeleteKeyResponse{})
 }
