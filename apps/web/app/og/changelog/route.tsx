@@ -190,7 +190,7 @@ export async function GET(req: NextRequest) {
             width: "100%",
           }}
         >
-          <p>{date ? `Changelog - ${date}` : "Changelog"}</p>
+          <p>{date ? `Changelog - ${date}` : null}</p>
           <p>Unkey.dev</p>
         </div>
       </div>,
