@@ -17,6 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const changelog = allChangelogs.find(
     (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
+  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
 
   return {
     title: `${changelog?.title} | Unkey`,
@@ -24,11 +25,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${changelog?.title} | Unkey`,
       description: changelog?.description,
-      url: `https://unkey.dev/changelog/${changelog?.url}`,
+      url: `${baseUrl}/changelog/${changelog?.url}`,
       siteName: "unkey.dev",
       images: [
         {
-          url: `https://unkey.dev/og/changelog?title=${changelog?.title}&date=${changelog?.date}`,
+          url: `${baseUrl}/og/changelog?title=${changelog?.title}&date=${changelog?.date}`,
           width: 1200,
           height: 675,
         },
