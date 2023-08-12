@@ -63,7 +63,7 @@ export default function TeamCreation() {
     values: { name: string; slug: string };
   }) => {
     const isDuplicated = await duplicateCheck.refetch();
-    if (isDuplicated) {
+    if (isDuplicated.data) {
       toast({
         title: "Error",
         description: "This workspace already exists, please choose another slug",
@@ -91,13 +91,13 @@ export default function TeamCreation() {
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <h1 className=" text-4xl font-semibold leading-none tracking-tight">
+      <h1 className="text-4xl font-semibold leading-none tracking-tight ">
         Create your Team workspace
       </h1>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit((values) => createClerkOrg({ values }))}
-          className="flex flex-col space-y-4 max-w-2xl"
+          className="flex flex-col max-w-2xl space-y-4"
         >
           <FormField
             control={form.control}
