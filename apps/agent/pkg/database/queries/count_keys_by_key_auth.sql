@@ -1,6 +1,6 @@
 -- name: CountKeysByKeyAuth :one
 SELECT
-    count(id)
+    count(*)
 FROM
     `keys`
 WHERE
