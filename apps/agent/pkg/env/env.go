@@ -12,98 +12,99 @@ type Env struct {
 	ErrorHandler func(error)
 }
 
-func (e *Env) String(name string, fallback ...string) string {
-	value := os.Getenv(name)
-	if value != "" {
-		return value
+type EnvError struct {
+	Key string
+}
+
+func (e *EnvError) Error() string {
+	return fmt.Sprintf("%s is not set and no fallback provided", e.Key)
+}
+
+func (e *Env) String(key string, fallback ...string) string {
+	val, err := get(key, parseString, fallback...)
+	if err != nil {
+		e.ErrorHandler(err)
+		return val
 	}
-	if len(fallback) > 0 {
-		return fallback[0]
-	}
-	e.ErrorHandler(fmt.Errorf("%s is not set and no fallback provided", name))
-	return ""
+	return val
 }
 
 // Strings parses a comma-separated list of strings.
-func (e *Env) Strings(name string, fallback ...[]string) []string {
-	value := os.Getenv(name)
-	if value != "" {
-		return strings.Split(value, ",")
+func (e *Env) Strings(key string, fallback ...[]string) []string {
+	val, err := get(key, parseStrings, fallback...)
+	if err != nil {
+		e.ErrorHandler(err)
+		return val
 	}
-	if len(fallback) > 0 {
-		return fallback[0]
-	}
-	e.ErrorHandler(fmt.Errorf("%s is not set and no fallback provided", name))
-	return []string{}
-
+	return val
 }
 
-// Strings parses a comma-separated list of strings and appends it to the default values
-func (e *Env) StringsAppend(name string, defaultValues ...[]string) []string {
+// StringsAppend parses a comma-separated list of strings and appends it to the default values
+func (e *Env) StringsAppend(key string, defaultValues ...[]string) []string {
 	all := []string{}
 	if len(defaultValues) > 0 {
 		all = defaultValues[0]
 	}
 
-	value := os.Getenv(name)
-	if value != "" {
-		all = append(all, strings.Split(value, ",")...)
+	if val, ok := os.LookupEnv(key); ok {
+		all = append(all, strings.Split(val, ",")...)
 	}
+
 	if len(all) == 0 {
-		e.ErrorHandler(fmt.Errorf("%s is not set and no fallback provided", name))
-		return []string{}
+		e.ErrorHandler(&EnvError{Key: key})
+		return all
 	}
 	return all
 
 }
 
-func (e *Env) Int(name string, fallback ...int) int {
-	value := os.Getenv(name)
-	if value != "" {
-		i, err := strconv.Atoi(value)
-		if err != nil {
-			e.ErrorHandler(err)
-			return 0
-		}
-		return i
+func (e *Env) Int(key string, fallback ...int) int {
+	val, err := get(key, strconv.Atoi, fallback...)
+	if err != nil {
+		e.ErrorHandler(err)
+		return val
 	}
-	if len(fallback) > 0 {
-		return fallback[0]
-	}
-	e.ErrorHandler(fmt.Errorf("%s is not set and no fallback provided", name))
-	return 0
+	return val
 }
 
-func (e *Env) Bool(name string, fallback ...bool) bool {
-	value := os.Getenv(name)
-	if value != "" {
-		b, err := strconv.ParseBool(value)
-		if err != nil {
-			e.ErrorHandler(err)
-			return false
-		}
-		return b
+func (e *Env) Bool(key string, fallback ...bool) bool {
+	val, err := get(key, strconv.ParseBool, fallback...)
+	if err != nil {
+		e.ErrorHandler(err)
+		return val
 	}
-	if len(fallback) > 0 {
-		return fallback[0]
-	}
-	e.ErrorHandler(fmt.Errorf("%s is not set and no fallback provided", name))
-	return false
+	return val
 }
 
-func (e *Env) Duration(name string, fallback ...time.Duration) time.Duration {
-	value := os.Getenv(name)
-	if value != "" {
-		d, err := time.ParseDuration(value)
-		if err != nil {
-			e.ErrorHandler(err)
-			return 0
+func (e *Env) Duration(key string, fallback ...time.Duration) time.Duration {
+	val, err := get(key, time.ParseDuration, fallback...)
+	if err != nil {
+		e.ErrorHandler(err)
+		return val
+	}
+	return val
+}
+
+func get[V any](key string, parse func(string) (V, error), fallback ...V) (V, error) {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		if len(fallback) > 0 {
+			return fallback[0], nil
 		}
-		return d
+		return *new(V), &EnvError{Key: key}
 	}
-	if len(fallback) > 0 {
-		return fallback[0]
+
+	v, err := parse(val)
+	if err != nil {
+		return *new(V), err
 	}
-	e.ErrorHandler(fmt.Errorf("%s is not set and no fallback provided", name))
-	return 0
+	return v, nil
+}
+
+func parseString(val string) (string, error) {
+	return val, nil
+}
+
+func parseStrings(val string) ([]string, error) {
+	return strings.Split(val, ","), nil
 }
