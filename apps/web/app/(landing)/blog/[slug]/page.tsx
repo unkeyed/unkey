@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: "unkey.dev",
       images: [
         {
-          url: `https://unkey.dev/og?title=${post?.title}`,
+          url: `https://unkey.dev/og/blog?title=${post?.title}&author=${post?.author.name}`,
           width: 1200,
           height: 675,
         },
@@ -84,7 +84,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
         </FadeIn>
       </Container>
       <FadeIn>
-        <div className="py-24 mx-auto max-w-7xl sm:px-6 sm:py-32 lg:px-8">
+      <div className="py-24 mx-auto max-w-7xl sm:px-6 sm:py-32 lg:px-8">
           <div className="relative px-6 pt-16 overflow-hidden bg-gray-900 shadow-2xl isolate sm:rounded-xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
             <svg
               viewBox="0 0 1024 1024"

@@ -15,7 +15,7 @@ export const metadata = {
   openGraph: {
     title: "Blog | Unkey",
     description: "Latest blog posts and news from the Unkey team.",
-    url: "https://unkey.dev/og?title=Blog",
+    url: "https://unkey.dev/blog",
     siteName: "unkey.dev",
     images: [
       {
