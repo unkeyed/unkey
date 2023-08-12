@@ -16,6 +16,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
 
+  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
+  const ogUrl = new URL("/og/blog", baseUrl)
+  ogUrl.searchParams.set("title", post?.title ?? "")
+  ogUrl.searchParams.set("author", post?.author.name ?? "")
+  if (post?.author.image?.src) {
+    ogUrl.searchParams.set("image", new URL(post?.author.image.src, baseUrl).toString())
+  }
+
+  console.log(ogUrl.toString())
   return {
     title: `${post?.title} | Unkey`,
     description: post?.description,
@@ -26,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: "unkey.dev",
       images: [
         {
-          url: `https://unkey.dev/og/blog?title=${post?.title}&author=${post?.author.name}`,
+          url: ogUrl.toString(),
           width: 1200,
           height: 675,
         },
@@ -61,7 +70,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
     <>
       <Container as="article" className="mt-24 sm:mt-32 lg:mt-40 ">
         <FadeIn>
-          <header className="flex flex-col max-w-5xl mx-auto text-center mb-8">
+          <header className="flex flex-col max-w-5xl mx-auto mb-8 text-center">
             <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-neutral-950 [text-wrap:balance] sm:text-6xl">
               {post.title}
             </h1>
@@ -84,7 +93,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
         </FadeIn>
       </Container>
       <FadeIn>
-      <div className="py-24 mx-auto max-w-7xl sm:px-6 sm:py-32 lg:px-8">
+        <div className="py-24 mx-auto max-w-7xl sm:px-6 sm:py-32 lg:px-8">
           <div className="relative px-6 pt-16 overflow-hidden bg-gray-900 shadow-2xl isolate sm:rounded-xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
             <svg
               viewBox="0 0 1024 1024"

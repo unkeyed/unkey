@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
 import { NextRequest, NextResponse } from "next/server";
-
 export const runtime = "edge";
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
@@ -18,6 +17,7 @@ export async function GET(req: NextRequest) {
 
     const title = searchParams.get("title") || "Blog";
     const author = searchParams.get("author");
+    const image = searchParams.get("image");
     return new ImageResponse(
       <div
         style={{
@@ -169,8 +169,10 @@ export async function GET(req: NextRequest) {
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             color: "transparent",
+            textAlign: "center"
           }}
         >
+
           {truncate(title, 55)}
         </h1>
 
@@ -189,8 +191,22 @@ export async function GET(req: NextRequest) {
             width: "100%",
           }}
         >
-          <p>{author ? `By - ${author}` : null}</p>
-          <p>Unkey.dev</p>
+          <div style={{
+            display: "flex",
+            alignItems: "center"
+
+          }}>
+
+            {image ? <img alt="author" style={{
+              width: 64,
+              height: 64,
+              filter: "grayscale()",
+              borderRadius: "100%",
+              marginRight: "10px"
+            }} src={image} /> : null}
+            <p>{author ? `by ${author}` : null}</p>
+          </div>
+          <p style={{ marginLeft: "4px" }}>Unkey.dev</p>
         </div>
       </div>,
       {

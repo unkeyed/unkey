@@ -295,6 +295,9 @@ importers:
       react-hook-form:
         specifier: ^7.45.2
         version: 7.45.4(react@18.2.0)
+      react-wrap-balancer:
+        specifier: ^1.0.0
+        version: 1.0.0(react@18.2.0)
       recma-import-images:
         specifier: 0.0.3
         version: 0.0.3
@@ -14260,6 +14263,14 @@ packages:
       invariant: 2.2.4
       react: 18.2.0
       tslib: 2.6.1
+    dev: false
+
+  /react-wrap-balancer@1.0.0(react@18.2.0):
+    resolution: {integrity: sha512-yjDH+I8WGyDfh95gKhX/6ckfSBAltwQkxiYxtLPlyIRQNUVSjvz1uHR6Hpy+zHyOkJQw6GEC5RPglA41QXvzyw==}
+    peerDependencies:
+      react: '>=16.8.0 || ^17.0.0 || ^18'
+    dependencies:
+      react: 18.2.0
     dev: false
 
   /react@18.2.0:
