@@ -5,13 +5,11 @@ import (
 	"context"
 	"fmt"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -21,21 +19,16 @@ import (
 )
 
 func TestUpdateKey_UpdateAll(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Logger:    logging.NewNoopLogger(),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -46,7 +39,7 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now(),
 	}
-	err = db.CreateKey(ctx, key)
+	err := resources.Database.CreateKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"name":"newName",
@@ -72,7 +65,7 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := db.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, "newName", foundKey.Name)
@@ -91,17 +84,11 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Logger:    logging.NewNoopLogger(),
-	})
-	require.NoError(t, err)
-
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -113,7 +100,7 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 		CreatedAt:   time.Now(),
 		Name:        "original",
 	}
-	err = db.CreateKey(ctx, key)
+	err := resources.Database.CreateKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"ratelimit": {
@@ -134,7 +121,7 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := db.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, key.Name, foundKey.Name)
@@ -153,17 +140,11 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Logger:    logging.NewNoopLogger(),
-	})
-	require.NoError(t, err)
-
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -176,7 +157,7 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 		Expires:     time.Now().Add(time.Hour),
 	}
 
-	err = db.CreateKey(ctx, key)
+	err := resources.Database.CreateKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"expires": null
@@ -192,7 +173,7 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := db.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, key.Name, foundKey.Name)
@@ -207,17 +188,11 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Logger:    logging.NewNoopLogger(),
-	})
-	require.NoError(t, err)
-
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -231,13 +206,12 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 	ten := int32(10)
 	key.Remaining = &ten
 
-	err = db.CreateKey(ctx, key)
+	err := resources.Database.CreateKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"remaining": null
 	}`)
 
-	t.Log("keyId", key.Id)
 	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
 	req.Header.Set("Content-Type", "application/json")
@@ -248,7 +222,7 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := db.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
 	require.True(t, found)
 
@@ -260,21 +234,16 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 }
 
 func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Logger:    logging.NewNoopLogger(),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -288,7 +257,7 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 		OwnerId:     "ownerId",
 		Expires:     time.Now().Add(time.Hour),
 	}
-	err = db.CreateKey(ctx, key)
+	err := resources.Database.CreateKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"ownerId": "newOwnerId"
@@ -304,7 +273,7 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := db.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, key.Name, foundKey.Name)

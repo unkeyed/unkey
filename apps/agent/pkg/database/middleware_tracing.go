@@ -140,6 +140,17 @@ func (mw *tracingMiddleware) ListKeys(ctx context.Context, keyAuthId string, own
 	}
 	return keys, err
 }
+
+func (mw *tracingMiddleware) ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "listAllApis"))
+	defer span.End()
+
+	apis, err := mw.next.ListAllApis(ctx, limit, offset)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return apis, err
+}
 func (mw *tracingMiddleware) CreateKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "createKeyAuth"))
 	defer span.End()
@@ -160,4 +171,8 @@ func (mw *tracingMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) 
 		span.RecordError(err)
 	}
 	return keyAuth, found, err
+}
+
+func (mw *tracingMiddleware) Close() error {
+	return mw.next.Close()
 }

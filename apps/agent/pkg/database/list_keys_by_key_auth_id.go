@@ -18,14 +18,14 @@ func (db *database) ListKeys(ctx context.Context, keyAuthId string, ownerId stri
 	)
 	if ownerId != "" {
 		models, err = db.read().ListKeysByKeyAuthIdAndOwnerId(ctx, gen.ListKeysByKeyAuthIdAndOwnerIdParams{
-			KeyAuthID: sql.NullString{String: keyAuthId, Valid: true},
+			KeyAuthID: keyAuthId,
 			Limit:     int32(offset),
 			Offset:    int32(limit),
 			OwnerID:   sql.NullString{String: ownerId, Valid: true},
 		})
 	} else {
 		models, err = db.read().ListKeysByKeyAuthId(ctx, gen.ListKeysByKeyAuthIdParams{
-			KeyAuthID: sql.NullString{String: keyAuthId, Valid: true},
+			KeyAuthID: keyAuthId,
 			Limit:     int32(offset),
 			Offset:    int32(limit),
 		})

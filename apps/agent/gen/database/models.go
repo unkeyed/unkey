@@ -121,7 +121,7 @@ type Key struct {
 	ForWorkspaceID          sql.NullString
 	Name                    sql.NullString
 	RemainingRequests       sql.NullInt32
-	KeyAuthID               sql.NullString
+	KeyAuthID               string
 }
 
 type KeyAuth struct {

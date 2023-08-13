@@ -29,7 +29,7 @@ func transformKeyEntitytoCreateKeyParams(key entities.Key) (gen.CreateKeyParams,
 		WorkspaceID:    key.WorkspaceId,
 		ForWorkspaceID: sql.NullString{String: key.ForWorkspaceId, Valid: key.ForWorkspaceId != ""},
 		Name:           sql.NullString{String: key.Name, Valid: key.Name != ""},
-		KeyAuthID:      sql.NullString{String: key.KeyAuthId, Valid: true},
+		KeyAuthID:      key.KeyAuthId,
 	}
 
 	metaJson, err := json.Marshal(key.Meta)

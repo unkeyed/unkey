@@ -7,14 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -22,21 +20,16 @@ import (
 )
 
 func TestCreateKey_Simple(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-		Logger:    logging.NewNoopLogger(),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -64,28 +57,23 @@ func TestCreateKey_Simple(t *testing.T) {
 	require.NotEmpty(t, createKeyResponse.Key)
 	require.NotEmpty(t, createKeyResponse.KeyId)
 
-	foundKey, found, err := db.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
 }
 
 func TestCreateKey_StartIncludesPrefix(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -115,7 +103,7 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 	require.NotEmpty(t, createKeyResponse.Key)
 	require.NotEmpty(t, createKeyResponse.KeyId)
 
-	foundKey, found, err := db.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
@@ -124,21 +112,16 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 }
 
 func TestCreateKey_WithCustom(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -176,7 +159,7 @@ func TestCreateKey_WithCustom(t *testing.T) {
 	require.NotEmpty(t, createKeyResponse.Key)
 	require.NotEmpty(t, createKeyResponse.KeyId)
 
-	foundKey, found, err := db.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
@@ -193,21 +176,16 @@ func TestCreateKey_WithCustom(t *testing.T) {
 }
 
 func TestCreateKey_WithRemanining(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -236,7 +214,7 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 	require.NotEmpty(t, createKeyResponse.Key)
 	require.NotEmpty(t, createKeyResponse.KeyId)
 
-	foundKey, found, err := db.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)

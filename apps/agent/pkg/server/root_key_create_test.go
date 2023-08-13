@@ -20,6 +20,7 @@ import (
 )
 
 func TestRootCreateKey_Simple(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
@@ -68,6 +69,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 }
 
 func TestRootCreateKey_WithExpiry(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)

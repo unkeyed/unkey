@@ -27,6 +27,7 @@ type Database interface {
 	InsertApi(ctx context.Context, api entities.Api) error
 	FindApi(ctx context.Context, apiId string) (api entities.Api, found bool, err error)
 	FindApiByKeyAuthId(ctx context.Context, keyuathId string) (api entities.Api, found bool, err error)
+	ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error)
 	// Key
 	CreateKey(ctx context.Context, newKey entities.Key) error
 	FindKeyById(ctx context.Context, keyId string) (key entities.Key, found bool, err error)
@@ -38,4 +39,6 @@ type Database interface {
 	ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error)
 
 	FindKeyAuth(ctx context.Context, keyAuthId string) (keyauth entities.KeyAuth, found bool, err error)
+
+	Close() error
 }

@@ -7,9 +7,13 @@
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "ISC",
+  "scripts": {
+    "push": "dotenv -e .env drizzle-kit push:mysql"
+  },
   "devDependencies": {
     "@types/node": "^20.4.4",
     "@unkey/tsconfig": "workspace:^",
+    "dotenv-cli": "^7.2.1",
     "drizzle-kit": "^0.19.10",
     "drizzle-orm": "^0.27.2",
     "typescript": "^5.1.6"
