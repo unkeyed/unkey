@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -22,21 +20,15 @@ import (
 )
 
 func TestListKeys_Simple(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -49,7 +41,7 @@ func TestListKeys_Simple(t *testing.T) {
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
 		}
-		err := db.CreateKey(ctx, key)
+		err := resources.Database.CreateKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
@@ -78,21 +70,15 @@ func TestListKeys_Simple(t *testing.T) {
 }
 
 func TestListKeys_FilterOwnerId(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -109,7 +95,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 		if i%2 == 0 {
 			key.OwnerId = "chronark"
 		}
-		err := db.CreateKey(ctx, key)
+		err := resources.Database.CreateKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
@@ -142,21 +128,15 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 }
 
 func TestListKeys_WithLimit(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -169,7 +149,7 @@ func TestListKeys_WithLimit(t *testing.T) {
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
 		}
-		err := db.CreateKey(ctx, key)
+		err := resources.Database.CreateKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
@@ -196,21 +176,15 @@ func TestListKeys_WithLimit(t *testing.T) {
 }
 
 func TestListKeys_WithOffset(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -223,7 +197,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
 		}
-		err := db.CreateKey(ctx, key)
+		err := resources.Database.CreateKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 

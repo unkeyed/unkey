@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -22,21 +20,15 @@ import (
 )
 
 func KeyGetKey_Simple(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -47,7 +39,7 @@ func KeyGetKey_Simple(t *testing.T) {
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now(),
 	}
-	err = db.CreateKey(ctx, key)
+	err := resources.Database.CreateKey(ctx, key)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/keys/%s", key.Id), nil)

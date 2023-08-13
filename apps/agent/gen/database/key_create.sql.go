@@ -68,7 +68,7 @@ type CreateKeyParams struct {
 	ForWorkspaceID          sql.NullString
 	Name                    sql.NullString
 	RemainingRequests       sql.NullInt32
-	KeyAuthID               sql.NullString
+	KeyAuthID               string
 }
 
 func (q *Queries) CreateKey(ctx context.Context, arg CreateKeyParams) error {

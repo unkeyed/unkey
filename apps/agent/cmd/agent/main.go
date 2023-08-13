@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	analyticsMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/analytics/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
+	"github.com/unkeyed/unkey/apps/agent/pkg/boot"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
@@ -33,6 +34,7 @@ type features struct {
 	enableAxiom bool
 	analytics   string
 	eventBus    string
+	prewarm     bool
 }
 
 var runtimeConfig features
@@ -41,6 +43,7 @@ func init() {
 	AgentCmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
 	AgentCmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
 	AgentCmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
+	AgentCmd.Flags().BoolVar(&runtimeConfig.prewarm, "prewarm", false, "Load all keys from the db to memory on boot")
 }
 
 // AgentCmd represents the agent command
@@ -50,7 +53,9 @@ var AgentCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		logger := logging.New().With(zap.String("version", version.Version), zap.String("allocId", os.Getenv("FLY_ALLOC_ID")))
+		logger := logging.New().With(
+			zap.String("version", version.Version),
+		)
 
 		defer func() {
 			// this is best effort and can error quite frequently
@@ -62,7 +67,11 @@ var AgentCmd = &cobra.Command{
 			ErrorHandler: func(err error) { logger.Fatal("unable to load environment variable", zap.Error(err)) },
 		}
 		region := e.String("FLY_REGION", "local")
+		allocId := e.String("FLY_ALLOC_ID", "")
 		logger = logger.With(zap.String("region", region))
+		if allocId != "" {
+			logger = logger.With(zap.String("allocId", allocId))
+		}
 
 		// Setup Axiom
 
@@ -143,12 +152,11 @@ var AgentCmd = &cobra.Command{
 
 		db, err := database.New(
 			database.Config{
-				Logger:           logger,
-				PrimaryUs:        e.String("DATABASE_DSN"),
-				ReplicaEu:        e.String("DATABASE_DSN_EU", ""),
-				ReplicaAsia:      e.String("DATABASE_DSN_ASIA", ""),
-				FlyRegion:        region,
-				PlanetscaleBoost: e.Bool("PLANETSCALE_BOOST", false),
+				Logger:      logger,
+				PrimaryUs:   e.String("DATABASE_DSN"),
+				ReplicaEu:   e.String("DATABASE_DSN_EU", ""),
+				ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
+				FlyRegion:   region,
 			},
 			database.WithLogging(logger),
 			database.WithTracing(tracer),
@@ -156,11 +164,12 @@ var AgentCmd = &cobra.Command{
 		if err != nil {
 			logger.Fatal("Failed to connect to database", zap.Error(err))
 		}
+		defer db.Close()
 
 		keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
-			Fresh:   time.Minute * 5,
-			Stale:   time.Minute * 15,
-			MaxSize: 1024,
+			Fresh:   time.Minute * 15,
+			Stale:   time.Minute * 60,
+			MaxSize: 1024 * 1024,
 			RefreshFromOrigin: func(ctx context.Context, keyHash string) (entities.Key, bool) {
 				key, found, err := db.FindKeyByHash(ctx, keyHash)
 				if err != nil {
@@ -177,7 +186,7 @@ var AgentCmd = &cobra.Command{
 		apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
 			Fresh:   time.Minute * 5,
 			Stale:   time.Minute * 15,
-			MaxSize: 1024,
+			MaxSize: 1024 * 1024,
 			RefreshFromOrigin: func(ctx context.Context, apiId string) (entities.Api, bool) {
 				key, found, err := db.FindApi(ctx, apiId)
 				if err != nil {
@@ -199,7 +208,7 @@ var AgentCmd = &cobra.Command{
 				return nil
 			}
 
-			logger.Info("fetching key from origin", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
+			logger.Info("precaching key", zap.String("keyId", e.Key.Id), zap.String("keyHash", e.Key.Hash))
 			key, found, err := db.FindKeyById(ctx, e.Key.Id)
 			if err != nil {
 				return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
@@ -208,7 +217,7 @@ var AgentCmd = &cobra.Command{
 				return nil
 			}
 			keyCache.Set(ctx, key.Hash, key)
-
+			logger.Info("precaching api", zap.String("keyAuthId", key.KeyAuthId))
 			api, found, err := db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
 			if err != nil {
 				return fmt.Errorf("unable to find api by keyAuthId: %s: %w", key.KeyAuthId, err)
@@ -220,6 +229,23 @@ var AgentCmd = &cobra.Command{
 
 			return nil
 		})
+
+		if runtimeConfig.prewarm {
+
+			cacheWarmer := boot.NewCacheWarmer(boot.Config{
+				KeyCache: keyCache,
+				ApiCache: apiCache,
+				DB:       db,
+				Logger:   logger,
+			})
+
+			go func() {
+				err := cacheWarmer.Run(context.Background())
+				if err != nil {
+					logger.Error("unable to warm cache", zap.Error(err))
+				}
+			}()
+		}
 
 		srv := server.New(server.Config{
 			Logger:            logger,

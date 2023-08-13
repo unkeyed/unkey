@@ -34,7 +34,7 @@ CREATE TABLE `keys` (
     `for_workspace_id` varchar(256) NULL,
     `name` varchar(256) NULL,
     `remaining_requests` int NULL,
-    `key_auth_id` varchar(256) NULL,
+    `key_auth_id` varchar(256) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE INDEX `hash_idx` (`hash`),
     INDEX `key_auth_id_idx` (`key_auth_id`)

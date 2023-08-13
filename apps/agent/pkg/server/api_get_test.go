@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -21,21 +19,15 @@ import (
 )
 
 func TestGetApi_Exists(t *testing.T) {
+	t.Parallel()
 
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -61,7 +53,7 @@ func TestGetApi_Exists(t *testing.T) {
 }
 
 func TestGetApi_NotFound(t *testing.T) {
-
+	t.Parallel()
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
@@ -96,20 +88,15 @@ func TestGetApi_NotFound(t *testing.T) {
 }
 
 func TestGetApi_WithIpWhitelist(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	db, err := database.New(database.Config{
-		Logger:    logging.NewNoopLogger(),
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -117,7 +104,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 		Id:          uid.KeyAuth(),
 		WorkspaceId: resources.UserWorkspace.Id,
 	}
-	err = db.CreateKeyAuth(ctx, keyAuth)
+	err := resources.Database.CreateKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
 	api := entities.Api{
@@ -129,7 +116,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 		KeyAuthId:   keyAuth.Id,
 	}
 
-	err = db.InsertApi(ctx, api)
+	err = resources.Database.InsertApi(ctx, api)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", api.Id), nil)

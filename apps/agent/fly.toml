@@ -17,7 +17,7 @@ primary_region = "iad"
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 3
   [http_service.concurrency]
     type = "requests"
     hard_limit = 1000
@@ -34,15 +34,12 @@ primary_region = "iad"
     path = "/v1/liveness"
 
 
-[env]
-  PLANETSCALE_BOOST = "true"
-
-
 [experimental]
 cmd = [
   "/usr/local/bin/unkey",
   "agent",
    "--analytics=tinybird",
    "--event-bus=kafka",
-   "--enable-axiom"
+   "--enable-axiom",
+   "--prewarm",
    ]
