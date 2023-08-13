@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
@@ -26,18 +24,13 @@ import (
 )
 
 func TestVerifyKey_Simple(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		Logger:    logging.NewNoopLogger(),
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	key := uid.New(16, "test")
-	err = db.CreateKey(ctx, entities.Key{
+	err := resources.Database.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -50,7 +43,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -68,7 +61,6 @@ func TestVerifyKey_Simple(t *testing.T) {
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 
-	t.Logf("body: %s", string(body))
 	require.Equal(t, 200, res.StatusCode)
 
 	successResponse := VerifyKeyResponse{}
@@ -80,19 +72,13 @@ func TestVerifyKey_Simple(t *testing.T) {
 }
 
 func TestVerifyKey_WithTemporaryKey(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	key := uid.New(16, "test")
-	err = db.CreateKey(ctx, entities.Key{
+	err := resources.Database.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -106,7 +92,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -155,15 +141,8 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	key := uid.New(16, "test")
-	err = db.CreateKey(ctx, entities.Key{
+	err := resources.Database.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -182,7 +161,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 		Logger:    logging.NewNoopLogger(),
 		KeyCache:  cache.NewNoopCache[entities.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
-		Database:  db,
+		Database:  resources.Database,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
 	})
@@ -282,17 +261,11 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		Logger:    logging.NewNoopLogger(),
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	keyAuth := entities.KeyAuth{
 		Id:          uid.KeyAuth(),
 		WorkspaceId: resources.UserWorkspace.Id,
 	}
-	err = db.CreateKeyAuth(ctx, keyAuth)
+	err := resources.Database.CreateKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
 	api := entities.Api{
@@ -303,11 +276,11 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 		AuthType:    entities.AuthTypeKey,
 		KeyAuthId:   keyAuth.Id,
 	}
-	err = db.InsertApi(ctx, api)
+	err = resources.Database.InsertApi(ctx, api)
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = db.CreateKey(ctx, entities.Key{
+	err = resources.Database.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
@@ -320,7 +293,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -353,18 +326,11 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		Logger: logging.NewNoopLogger(),
-
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	keyAuth := entities.KeyAuth{
 		Id:          uid.KeyAuth(),
 		WorkspaceId: resources.UserWorkspace.Id,
 	}
-	err = db.CreateKeyAuth(ctx, keyAuth)
+	err := resources.Database.CreateKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
 	api := entities.Api{
@@ -375,11 +341,11 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		WorkspaceId: resources.UserWorkspace.Id,
 		IpWhitelist: []string{"100.100.100.100"},
 	}
-	err = db.InsertApi(ctx, api)
+	err = resources.Database.InsertApi(ctx, api)
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = db.CreateKey(ctx, entities.Key{
+	err = resources.Database.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   keyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
@@ -392,7 +358,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		Logger:   logging.NewNoopLogger(),
 		KeyCache: cache.NewNoopCache[entities.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
-		Database: db,
+		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
@@ -425,15 +391,9 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	db, err := database.New(database.Config{
-		Logger:    logging.NewNoopLogger(),
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
-	})
-	require.NoError(t, err)
-
 	key := uid.New(16, "test")
 	remaining := int32(10)
-	err = db.CreateKey(ctx, entities.Key{
+	err := resources.Database.CreateKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -447,7 +407,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 		Logger:    logging.NewNoopLogger(),
 		KeyCache:  cache.NewNoopCache[entities.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
-		Database:  db,
+		Database:  resources.Database,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
 	})

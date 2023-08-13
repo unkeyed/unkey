@@ -25,7 +25,7 @@ LIMIT
 `
 
 type ListKeysByKeyAuthIdAndOwnerIdParams struct {
-	KeyAuthID sql.NullString
+	KeyAuthID string
 	OwnerID   sql.NullString
 	Limit     int32
 	Offset    int32

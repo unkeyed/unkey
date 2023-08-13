@@ -7,19 +7,18 @@ package database
 
 import (
 	"context"
-	"database/sql"
 )
 
 const countKeysByKeyAuth = `-- name: CountKeysByKeyAuth :one
 SELECT
-    count(id)
+    count(*)
 FROM
     ` + "`" + `keys` + "`" + `
 WHERE
     key_auth_id = ?
 `
 
-func (q *Queries) CountKeysByKeyAuth(ctx context.Context, keyAuthID sql.NullString) (int64, error) {
+func (q *Queries) CountKeysByKeyAuth(ctx context.Context, keyAuthID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countKeysByKeyAuth, keyAuthID)
 	var count int64
 	err := row.Scan(&count)

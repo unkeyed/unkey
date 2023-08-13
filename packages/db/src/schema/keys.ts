@@ -15,7 +15,7 @@ export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    keyAuthId: varchar("key_auth_id", { length: 256 }),
+    keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 

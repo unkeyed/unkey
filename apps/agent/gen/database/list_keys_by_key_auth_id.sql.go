@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listKeysByKeyAuthId = `-- name: ListKeysByKeyAuthId :many
@@ -24,7 +23,7 @@ LIMIT
 `
 
 type ListKeysByKeyAuthIdParams struct {
-	KeyAuthID sql.NullString
+	KeyAuthID string
 	Limit     int32
 	Offset    int32
 }

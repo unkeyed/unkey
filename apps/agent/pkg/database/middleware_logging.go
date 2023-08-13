@@ -105,6 +105,14 @@ func (mw *loggingMiddleware) ListKeys(ctx context.Context, keyAuthId string, own
 	mw.logger.Info("mw.database", zap.String("method", "listKeys"), zap.Error(err), zap.Int64("latency", time.Since(start).Milliseconds()))
 	return keys, err
 }
+
+func (mw *loggingMiddleware) ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error) {
+	start := time.Now()
+
+	apis, err := mw.next.ListAllApis(ctx, limit, offset)
+	mw.logger.Info("mw.database", zap.String("method", "listAllApis"), zap.Error(err), zap.Int64("latency", time.Since(start).Milliseconds()))
+	return apis, err
+}
 func (mw *loggingMiddleware) CreateKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error {
 	start := time.Now()
 
@@ -119,4 +127,12 @@ func (mw *loggingMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) 
 	keyAuth, found, err = mw.next.FindKeyAuth(ctx, keyAuthId)
 	mw.logger.Info("mw.database", zap.String("method", "findKeyAuth"), zap.Error(err), zap.Int64("latency", time.Since(start).Milliseconds()))
 	return keyAuth, found, err
+}
+
+func (mw *loggingMiddleware) Close() error {
+	start := time.Now()
+
+	err := mw.next.Close()
+	mw.logger.Info("mw.database", zap.String("method", "Close"), zap.Error(err), zap.Int64("latency", time.Since(start).Milliseconds()))
+	return err
 }

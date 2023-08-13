@@ -33,7 +33,7 @@ func transformKeyModelToEntity(m gen.Key) (entities.Key, error) {
 
 	key := entities.Key{
 		Id:          m.ID,
-		KeyAuthId:   m.KeyAuthID.String,
+		KeyAuthId:   m.KeyAuthID,
 		WorkspaceId: m.WorkspaceID,
 		Hash:        m.Hash,
 		Start:       m.Start,

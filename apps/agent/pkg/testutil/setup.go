@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -24,20 +23,26 @@ type resources struct {
 	UserApi        entities.Api
 	UserKeyAuth    entities.KeyAuth
 	Database       database.Database
+	DatabaseDSN    string
 }
 
 func SetupResources(t *testing.T) resources {
 	t.Helper()
 	ctx := context.Background()
+
+	dsn, err := createMysqlDatabase(t)
+	require.NoError(t, err)
+
 	db, err := database.New(database.Config{
 		Logger:    logging.NewNoopLogger(),
-		PrimaryUs: os.Getenv("DATABASE_DSN"),
+		PrimaryUs: dsn,
 	})
 
 	require.NoError(t, err)
 
 	r := resources{
-		Database: db,
+		Database:    db,
+		DatabaseDSN: dsn,
 	}
 
 	r.UnkeyWorkspace = entities.Workspace{
