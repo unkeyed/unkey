@@ -73,7 +73,7 @@ jobs:
 
       - name: Deploy prod
         if: "!github.event.release.prerelease"
-        run: flyctl -c="fly.prod.toml" deploy --image=${{ env.TAG }} --strategy=canary
+        run: flyctl -c="./fly.prod.toml" deploy --image=${{ env.TAG }} --strategy=canary
         working-directory: apps/agent
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
