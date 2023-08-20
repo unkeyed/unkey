@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
@@ -61,6 +62,47 @@ func TestCreateKey_Simple(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
+}
+
+func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
+	t.Parallel()
+
+	resources := testutil.SetupResources(t)
+
+	srv := New(Config{
+		Logger:   logging.NewNoopLogger(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
+		Database: resources.Database,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"apiId":"%s",
+		"ratelimit": {
+			"type": "x"
+			}
+		}`, resources.UserApi.Id))
+
+	req := httptest.NewRequest("POST", "/v1/keys", buf)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, res.StatusCode, 400)
+
+	createKeyResponse := errors.ErrorResponse{}
+	err = json.Unmarshal(body, &createKeyResponse)
+	require.NoError(t, err)
+
+	require.Equal(t, "BAD_REQUEST", createKeyResponse.Error.Code)
+
 }
 
 func TestCreateKey_StartIncludesPrefix(t *testing.T) {

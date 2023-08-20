@@ -36,11 +36,12 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     for (const item of subscription.items.data) {
       console.log("handling item %s -> product %s", item.id, item.price.product);
       switch (item.price.product) {
-        case stripeEnv!.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+        case stripeEnv.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
           const usage = await getTotalActiveKeys({ workspaceId: ws.id, start, end });
           const quantity = usage.data.at(0)?.usage;
           if (quantity) {
             await stripe.subscriptionItems.createUsageRecord(item.id, {
+              timestamp: Math.floor(Date.now() / 1000),
               action: "set",
               quantity,
             });
@@ -48,7 +49,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
           }
           break;
         }
-        case stripeEnv!.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+        case stripeEnv.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
           const usage = await getTotalVerificationsForWorkspace({
             workspaceId: ws.id,
             start,
@@ -57,6 +58,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
           const quantity = usage.data.at(0)?.usage;
           if (quantity) {
             await stripe.subscriptionItems.createUsageRecord(item.id, {
+              timestamp: Math.floor(Date.now() / 1000),
               action: "set",
               quantity,
             });

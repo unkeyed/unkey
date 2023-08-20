@@ -22,10 +22,10 @@ type CreateKeyRequest struct {
 	Meta       map[string]any `json:"meta"`
 	Expires    int64          `json:"expires"`
 	Ratelimit  *struct {
-		Type           string `json:"type"`
-		Limit          int32  `json:"limit"`
-		RefillRate     int32  `json:"refillRate"`
-		RefillInterval int32  `json:"refillInterval"`
+		Type           string `json:"type" validate:"required,oneof=fast consistent"`
+		Limit          int32  `json:"limit" validate:"required"`
+		RefillRate     int32  `json:"refillRate" validate:"required"`
+		RefillInterval int32  `json:"refillInterval"  validate:"required"`
 	} `json:"ratelimit"`
 	// ForWorkspaceId is used internally when the frontend wants to create a new root key.
 	// Therefore we might not want to add this field to our docs.
