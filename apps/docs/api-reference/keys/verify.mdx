@@ -23,6 +23,9 @@ The key you want to verify.
   If you have set an `ownerId` on this key it is returned here. You can use this to clearly authenticate a user in your system.
 </ResponseField>
 
+<ResponseField name="expires" type="int">
+  The unix timestamp in milliseconds indicating when this key expires.
+</ResponseField>
 
 <ResponseField name="meta" type="object" >
 This is the `meta` data you have set when creating the key.
@@ -92,11 +95,18 @@ curl --request POST \
 <ResponseExample>
 ```json
 {
-	"valid": true,
-	"ownerId": "chronark",
-	"meta": {
-		"hello": "world"
-	}
+    "valid": true,
+    "ownerId": "chronark",
+    "expires": 1693186967794,
+    "remaining": 94,
+    "meta": {
+        "hello": "world"
+    },
+    "ratelimit": {
+        "limit": 10,
+        "remaining": 3,
+        "reset": 1692322949482
+    }
 }
 ```
 
