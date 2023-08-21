@@ -33,7 +33,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
         description: "Your API and all its keys have been removed",
       });
       // replace to avoid back button to a delete API.
-      router.replace("/app/apis");
+      router.refresh();
     },
 
     onError(err) {
