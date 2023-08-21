@@ -16,15 +16,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
 
-  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
-  const ogUrl = new URL("/og/blog", baseUrl)
-  ogUrl.searchParams.set("title", post?.title ?? "")
-  ogUrl.searchParams.set("author", post?.author.name ?? "")
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+  const ogUrl = new URL("/og/blog", baseUrl);
+  ogUrl.searchParams.set("title", post?.title ?? "");
+  ogUrl.searchParams.set("author", post?.author.name ?? "");
   if (post?.author.image?.src) {
-    ogUrl.searchParams.set("image", new URL(post?.author.image.src, baseUrl).toString())
+    ogUrl.searchParams.set("image", new URL(post?.author.image.src, baseUrl).toString());
   }
 
-  console.log(ogUrl.toString())
+  console.log(ogUrl.toString());
   return {
     title: `${post?.title} | Unkey`,
     description: post?.description,

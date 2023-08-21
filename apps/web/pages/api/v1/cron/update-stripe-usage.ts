@@ -1,4 +1,4 @@
-import { stripeEnv } from "@/lib/env";
+import { env, stripeEnv } from "@/lib/env";
 import { db, isNotNull, schema } from "@/lib/db";
 import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
 import Stripe from "stripe";
@@ -68,6 +68,10 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
         }
       }
     }
+  }
+  // report success
+  if (env.UPTIME_CRON_URL_COLLECT_BILLING) {
+    await fetch(env.UPTIME_CRON_URL_COLLECT_BILLING);
   }
 
   res.send("OK");

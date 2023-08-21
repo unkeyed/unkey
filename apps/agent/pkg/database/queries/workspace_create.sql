@@ -1,4 +1,4 @@
--- name: CreateWorkspace :exec
+-- name: InsertWorkspace :exec
 INSERT INTO
     `workspaces` (
         id,

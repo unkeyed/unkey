@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 
 	"os"
 	"os/signal"
@@ -99,6 +100,21 @@ var AgentCmd = &cobra.Command{
 			}
 		}
 
+		db, err := database.New(
+			database.Config{
+				Logger:      logger,
+				PrimaryUs:   e.String("DATABASE_DSN"),
+				ReplicaEu:   e.String("DATABASE_DSN_EU", ""),
+				ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
+				FlyRegion:   region,
+			},
+			database.WithLogging(logger),
+			database.WithTracing(tracer),
+		)
+		if err != nil {
+			logger.Fatal("Failed to connect to database", zap.Error(err))
+		}
+		defer db.Close()
 		// Setup Analytics
 
 		var a analytics.Analytics = analytics.NewNoop()
@@ -136,7 +152,6 @@ var AgentCmd = &cobra.Command{
 				eventBus = k
 			}
 		}
-		var err error
 
 		fastRatelimit := ratelimit.NewInMemory()
 		var consistentRatelimit ratelimit.Ratelimiter
@@ -149,22 +164,6 @@ var AgentCmd = &cobra.Command{
 				logger.Fatal("unable to start redis ratelimiting", zap.Error(err))
 			}
 		}
-
-		db, err := database.New(
-			database.Config{
-				Logger:      logger,
-				PrimaryUs:   e.String("DATABASE_DSN"),
-				ReplicaEu:   e.String("DATABASE_DSN_EU", ""),
-				ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
-				FlyRegion:   region,
-			},
-			database.WithLogging(logger),
-			database.WithTracing(tracer),
-		)
-		if err != nil {
-			logger.Fatal("Failed to connect to database", zap.Error(err))
-		}
-		defer db.Close()
 
 		keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
 			Fresh:   time.Minute * 15,
@@ -238,6 +237,7 @@ var AgentCmd = &cobra.Command{
 				DB:       db,
 				Logger:   logger,
 			})
+			defer cacheWarmer.Stop()
 
 			go func() {
 				err := cacheWarmer.Run(context.Background())
@@ -246,6 +246,14 @@ var AgentCmd = &cobra.Command{
 				}
 			}()
 		}
+
+		workspaceService := workspaces.New(
+			workspaces.Config{
+				Database: db,
+			},
+			workspaces.WithLogging(logger),
+			workspaces.WithTracing(tracer),
+		)
 
 		srv := server.New(server.Config{
 			Logger:            logger,
@@ -263,6 +271,7 @@ var AgentCmd = &cobra.Command{
 			Region:            region,
 			EventBus:          eventBus,
 			Version:           version.Version,
+			WorkspaceService:  workspaceService,
 		})
 
 		go func() {

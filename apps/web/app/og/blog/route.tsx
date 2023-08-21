@@ -169,10 +169,9 @@ export async function GET(req: NextRequest) {
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             color: "transparent",
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
-
           {truncate(title, 55)}
         </h1>
 
@@ -191,19 +190,25 @@ export async function GET(req: NextRequest) {
             width: "100%",
           }}
         >
-          <div style={{
-            display: "flex",
-            alignItems: "center"
-
-          }}>
-
-            {image ? <img alt="author" style={{
-              width: 64,
-              height: 64,
-              filter: "grayscale()",
-              borderRadius: "100%",
-              marginRight: "10px"
-            }} src={image} /> : null}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            {image ? (
+              <img
+                alt="author"
+                style={{
+                  width: 64,
+                  height: 64,
+                  filter: "grayscale()",
+                  borderRadius: "100%",
+                  marginRight: "10px",
+                }}
+                src={image}
+              />
+            ) : null}
             <p>{author ? `by ${author}` : null}</p>
           </div>
           <p style={{ marginLeft: "4px" }}>Unkey.dev</p>

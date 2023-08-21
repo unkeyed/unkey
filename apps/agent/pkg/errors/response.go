@@ -26,6 +26,8 @@ func NewHttpError(c *fiber.Ctx, code ErrorCode, message string) error {
 		status = fiber.StatusOK
 	case TODO, INTERNAL_SERVER_ERROR:
 		status = fiber.StatusInternalServerError
+	case NOT_UNIQUE:
+		status = fiber.StatusConflict
 	default:
 		status = fiber.StatusInternalServerError
 	}

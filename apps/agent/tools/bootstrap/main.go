@@ -64,7 +64,7 @@ func main() {
 		KeyAuthId:   keyAuth.Id,
 	}
 
-	err = db.CreateWorkspace(ctx, workspace)
+	err = db.InsertWorkspace(ctx, workspace)
 	if err != nil {
 		logger.Fatal("unable to create workspace", zap.Error(err))
 	}

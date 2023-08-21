@@ -155,7 +155,7 @@ func (k *Kafka) Start() {
 				return
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
 			m, err := k.keyChangedReader.FetchMessage(ctx)
 			if err != nil {

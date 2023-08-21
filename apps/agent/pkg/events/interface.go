@@ -19,7 +19,7 @@ var (
 
 type Key struct {
 	Id   string `json:"id"`
-	Hash string `hson:"hash"`
+	Hash string `json:"hash"`
 }
 
 type KeyEvent struct {

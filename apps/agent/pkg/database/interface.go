@@ -15,7 +15,9 @@ type Database interface {
 	// GetKeyById(ctx context.Context, keyId string) (entities.Key, error)
 	// CountKeys(ctx context.Context, apiId string) (int, error)
 	// ListKeysByApiId(ctx context.Context, apiId string, limit int, offset int, ownerId string) ([]entities.Key, error)
-	CreateWorkspace(ctx context.Context, newWorkspace entities.Workspace) error
+	InsertWorkspace(ctx context.Context, newWorkspace entities.Workspace) error
+	UpdateWorkspace(ctx context.Context, workspace entities.Workspace) error
+	FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error)
 
 	// GetWorkspace(ctx context.Context, workspaceId string) (*workspacev1.Workspace, error)
 	// DecrementRemainingKeyUsage(ctx context.Context, keyId string) (int64, error)

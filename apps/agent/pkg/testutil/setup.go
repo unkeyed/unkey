@@ -83,10 +83,10 @@ func SetupResources(t *testing.T) resources {
 		KeyAuthId:   r.UserKeyAuth.Id,
 	}
 
-	require.NoError(t, db.CreateWorkspace(ctx, r.UnkeyWorkspace))
+	require.NoError(t, db.InsertWorkspace(ctx, r.UnkeyWorkspace))
 	require.NoError(t, db.CreateKeyAuth(ctx, r.UnkeyKeyAuth))
 	require.NoError(t, db.InsertApi(ctx, r.UnkeyApi))
-	require.NoError(t, db.CreateWorkspace(ctx, r.UserWorkspace))
+	require.NoError(t, db.InsertWorkspace(ctx, r.UserWorkspace))
 	require.NoError(t, db.CreateKeyAuth(ctx, r.UserKeyAuth))
 	require.NoError(t, db.InsertApi(ctx, r.UserApi))
 

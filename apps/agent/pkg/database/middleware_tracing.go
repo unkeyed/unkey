@@ -19,11 +19,11 @@ type tracingMiddleware struct {
 	tracer tracing.Tracer
 }
 
-func (mw *tracingMiddleware) CreateWorkspace(ctx context.Context, newWorkspace entities.Workspace) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "createWorkspace"))
+func (mw *tracingMiddleware) InsertWorkspace(ctx context.Context, newWorkspace entities.Workspace) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "InsertWorkspace"))
 	defer span.End()
 
-	err = mw.next.CreateWorkspace(ctx, newWorkspace)
+	err = mw.next.InsertWorkspace(ctx, newWorkspace)
 	if err != nil {
 		span.RecordError(err)
 	}
@@ -31,7 +31,7 @@ func (mw *tracingMiddleware) CreateWorkspace(ctx context.Context, newWorkspace e
 
 }
 func (mw *tracingMiddleware) InsertApi(ctx context.Context, api entities.Api) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "insertApi"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "InsertApi"))
 	defer span.End()
 
 	err = mw.next.InsertApi(ctx, api)
@@ -41,7 +41,7 @@ func (mw *tracingMiddleware) InsertApi(ctx context.Context, api entities.Api) (e
 	return err
 }
 func (mw *tracingMiddleware) FindApi(ctx context.Context, apiId string) (api entities.Api, found bool, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "findApi"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindApi"))
 	defer span.End()
 
 	api, found, err = mw.next.FindApi(ctx, apiId)
@@ -51,7 +51,7 @@ func (mw *tracingMiddleware) FindApi(ctx context.Context, apiId string) (api ent
 	return api, found, err
 }
 func (mw *tracingMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId string) (api entities.Api, found bool, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "findApiByKeyAuthId"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindApiByKeyAuthId"))
 	defer span.End()
 
 	api, found, err = mw.next.FindApiByKeyAuthId(ctx, keyAuthId)
@@ -61,7 +61,7 @@ func (mw *tracingMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId s
 	return api, found, err
 }
 func (mw *tracingMiddleware) CreateKey(ctx context.Context, newKey entities.Key) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "createKey"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "CreateKey"))
 	defer span.End()
 
 	err = mw.next.CreateKey(ctx, newKey)
@@ -71,7 +71,7 @@ func (mw *tracingMiddleware) CreateKey(ctx context.Context, newKey entities.Key)
 	return err
 }
 func (mw *tracingMiddleware) FindKeyById(ctx context.Context, keyId string) (key entities.Key, found bool, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "findKeyById"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindKeyById"))
 	defer span.End()
 
 	key, found, err = mw.next.FindKeyById(ctx, keyId)
@@ -81,7 +81,7 @@ func (mw *tracingMiddleware) FindKeyById(ctx context.Context, keyId string) (key
 	return key, found, err
 }
 func (mw *tracingMiddleware) FindKeyByHash(ctx context.Context, hash string) (key entities.Key, found bool, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "findKeyByHash"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindKeyByHash"))
 	defer span.End()
 
 	key, found, err = mw.next.FindKeyByHash(ctx, hash)
@@ -91,7 +91,7 @@ func (mw *tracingMiddleware) FindKeyByHash(ctx context.Context, hash string) (ke
 	return key, found, err
 }
 func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "updateKey"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "UpdateKey"))
 	defer span.End()
 
 	err = mw.next.UpdateKey(ctx, key)
@@ -101,7 +101,7 @@ func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) (e
 	return err
 }
 func (mw *tracingMiddleware) DeleteKey(ctx context.Context, keyId string) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "deleteKey"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "DeleteKey"))
 	defer span.End()
 
 	err = mw.next.DeleteKey(ctx, keyId)
@@ -111,7 +111,7 @@ func (mw *tracingMiddleware) DeleteKey(ctx context.Context, keyId string) (err e
 	return err
 }
 func (mw *tracingMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "decrementRemainingKeyUsage"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "DecrementRemainingKeyUsage"))
 	defer span.End()
 
 	key, err = mw.next.DecrementRemainingKeyUsage(ctx, keyId)
@@ -121,7 +121,7 @@ func (mw *tracingMiddleware) DecrementRemainingKeyUsage(ctx context.Context, key
 	return key, err
 }
 func (mw *tracingMiddleware) CountKeys(ctx context.Context, keyAuthId string) (count int64, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "countKeys"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "CountKeys"))
 	defer span.End()
 
 	count, err = mw.next.CountKeys(ctx, keyAuthId)
@@ -131,7 +131,7 @@ func (mw *tracingMiddleware) CountKeys(ctx context.Context, keyAuthId string) (c
 	return count, err
 }
 func (mw *tracingMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "listKeys"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "ListKeys"))
 	defer span.End()
 
 	keys, err := mw.next.ListKeys(ctx, keyAuthId, ownerId, limit, offset)
@@ -142,7 +142,7 @@ func (mw *tracingMiddleware) ListKeys(ctx context.Context, keyAuthId string, own
 }
 
 func (mw *tracingMiddleware) ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "listAllApis"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "ListAllApis"))
 	defer span.End()
 
 	apis, err := mw.next.ListAllApis(ctx, limit, offset)
@@ -152,7 +152,7 @@ func (mw *tracingMiddleware) ListAllApis(ctx context.Context, limit int, offset 
 	return apis, err
 }
 func (mw *tracingMiddleware) CreateKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "createKeyAuth"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "CreateKeyAuth"))
 	defer span.End()
 
 	err := mw.next.CreateKeyAuth(ctx, newKeyAuth)
@@ -163,7 +163,7 @@ func (mw *tracingMiddleware) CreateKeyAuth(ctx context.Context, newKeyAuth entit
 }
 
 func (mw *tracingMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) (keyAuth entities.KeyAuth, found bool, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "findKeyAuth"))
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindKeyAuth"))
 	defer span.End()
 
 	keyAuth, found, err = mw.next.FindKeyAuth(ctx, keyAuthId)
@@ -171,6 +171,27 @@ func (mw *tracingMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) 
 		span.RecordError(err)
 	}
 	return keyAuth, found, err
+}
+
+func (mw *tracingMiddleware) UpdateWorkspace(ctx context.Context, workspace entities.Workspace) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "UpdateWorkspace"))
+	defer span.End()
+
+	err = mw.next.UpdateWorkspace(ctx, workspace)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return err
+}
+func (mw *tracingMiddleware) FindWorkspace(ctx context.Context, workspaceId string) (workspace entities.Workspace, found bool, err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindWorkspace"))
+	defer span.End()
+
+	workspace, found, err = mw.next.FindWorkspace(ctx, workspaceId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return workspace, found, err
 }
 
 func (mw *tracingMiddleware) Close() error {
