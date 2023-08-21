@@ -362,6 +362,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
                               onBlur={(e) => {
                                 try {
+                                  const value = JSON.parse(e.target.value);
+                                  const prettier = JSON.stringify(value, null, 2);
+                                  e.target.value = prettier;
                                   field.onChange(JSON.parse(e.target.value));
                                   form.clearErrors("meta");
                                 } catch (_e) {}
