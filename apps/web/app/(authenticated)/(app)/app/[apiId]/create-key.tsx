@@ -40,6 +40,8 @@ const formSchema = z.object({
   metaEnabled: z.boolean().default(false),
   meta: z.record(z.unknown()).optional(),
   expiresEnabled: z.boolean().default(false),
+  remainingEnabled: z.boolean().default(false),
+  remaining: z.coerce.number().positive().optional(),
   expires: z
     .string()
     .transform((s) => new Date(s).getTime())
@@ -61,7 +63,7 @@ type Props = {
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
-  const _router = useRouter();
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -77,6 +79,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         description: "Your Key has been created",
       });
       form.reset();
+      router.refresh();
     },
     onError(err) {
       const errors = JSON.parse(err.message);
@@ -223,7 +226,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <div className="grid md:grid-cols-3 grid-cols-1 gap-4 my-4">
+                  <div className="grid md:grid-cols-4 grid-cols-1 gap-4 my-4">
                     <FormField
                       control={form.control}
                       name="expiresEnabled"
@@ -296,6 +299,32 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   }}
                                 />
                                 <FormLabel>Enable Custom Metadata</FormLabel>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        );
+                      }}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="remainingEnabled"
+                      render={({ field }) => {
+                        return (
+                          <FormItem>
+                            <FormControl>
+                              <div className="flex items-center space-x-4">
+                                <Switch
+                                  checked={field.value}
+                                  defaultValue={"false"}
+                                  onCheckedChange={(value) => {
+                                    if (value === false) {
+                                      form.resetField("remaining");
+                                      form.clearErrors("remaining");
+                                    }
+                                    field.onChange(value);
+                                  }}
+                                />
+                                <FormLabel>Enable Limited Use</FormLabel>
                               </div>
                             </FormControl>
                           </FormItem>
@@ -409,6 +438,24 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         How many requests may be performed in a given interval
                       </FormDescription>
                     </>
+                  )}
+                  {form.watch("remainingEnabled") && (
+                    <FormField
+                      control={form.control}
+                      name="remaining"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Limited Usage</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Enter the remaining amount of uses for this key.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
                   <Accordion type="multiple" className="w-full">
                     <AccordionItem disabled value="item-3">
