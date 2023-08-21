@@ -32,7 +32,10 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
   const router = useRouter();
 
   const key = trpc.key.createInternalRootKey.useMutation({
-    onError(err) {
+    onSuccess() {
+      router.refresh();
+    },
+      onError(err) {
       console.error(err);
       toast({
         title: "Error",

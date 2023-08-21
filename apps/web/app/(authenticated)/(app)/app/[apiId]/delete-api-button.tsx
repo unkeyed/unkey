@@ -2,7 +2,6 @@
 
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,16 +25,16 @@ type Props = {
 export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
   const { toast } = useToast();
   const [typedName, setTypedName] = useState("");
-
   const router = useRouter();
   const deleteApi = trpc.api.delete.useMutation({
+  
     onSuccess() {
       toast({
         title: "API deleted",
         description: "Your API and all its keys have been removed",
       });
-      setModalOpen(false);
-      router.refresh();
+      // replace to avoid back button to a delete API.
+      router.replace("/app/apis");
     },
     onError(err) {
       console.error(err);
@@ -72,7 +71,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
             placeholder={apiName}
             onChange={(v) => setTypedName(v.currentTarget.value)}
           />
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button
               disabled={typedName !== apiName || deleteApi.isLoading}
               variant="destructive"

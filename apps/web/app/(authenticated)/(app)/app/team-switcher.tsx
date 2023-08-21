@@ -70,11 +70,11 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
         <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded lg:w-full hover:bg-stone-100 dark:hover:bg-stone-800">
           <div className="flex flex-row-reverse items-center justify-start w-full gap-4 lg:flex-row ">
             <Avatar className="w-8 h-8 lg:w-10 lg:h-10">
-              {user?.profileImageUrl ? (
-                <AvatarImage src={user.profileImageUrl} alt={user.username ?? "Profile picture"} />
+              {user?.imageUrl ? (
+                <AvatarImage src={user.imageUrl} alt={user.fullName ?? "Profile picture"} />
               ) : null}
               <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden border rounded-md bg-stone-100 border-stone-500 text-stone-700">
-                {(currentOrg?.slug ?? user?.username ?? "").slice(0, 2).toUpperCase() ?? "P"}
+                {(currentOrg?.slug ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-row-reverse items-center gap-4 lg:gap-1 lg:items-start lg:flex-col">

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema, type Key } from "@/lib/db";
+import { db, eq,ne, schema, type Key } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { CreateRootKeyButton } from "./create-root-key-button";
@@ -34,7 +34,9 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
   for (const k of found) {
     if (k.expires && k.expires.getTime() < Date.now()) {
       expired.push(k);
-    } else {
+    }
+    // remove temp keys from the list of keys.
+    if(!k.expires) {
       keys.push(k);
     }
   }

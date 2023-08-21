@@ -61,7 +61,7 @@ type Props = {
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
-  const _router = useRouter();
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -77,6 +77,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         description: "Your Key has been created",
       });
       form.reset();
+      router.refresh();
     },
     onError(err) {
       const errors = JSON.parse(err.message);
