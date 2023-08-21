@@ -35,7 +35,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
     onSuccess() {
       router.refresh();
     },
-      onError(err) {
+    onError(err) {
       console.error(err);
       toast({
         title: "Error",

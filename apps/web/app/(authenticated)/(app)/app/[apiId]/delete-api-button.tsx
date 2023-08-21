@@ -27,7 +27,6 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
   const [typedName, setTypedName] = useState("");
   const router = useRouter();
   const deleteApi = trpc.api.delete.useMutation({
-  
     onSuccess() {
       toast({
         title: "API deleted",

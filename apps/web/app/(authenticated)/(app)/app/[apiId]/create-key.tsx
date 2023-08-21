@@ -447,9 +447,11 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         <FormItem>
                           <FormLabel>Limited Usage</FormLabel>
                           <FormControl>
-                          <Input type="number" {...field} />
+                            <Input type="number" {...field} />
                           </FormControl>
-                          <FormDescription>Enter the remaining amount of uses for this key.</FormDescription>
+                          <FormDescription>
+                            Enter the remaining amount of uses for this key.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

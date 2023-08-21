@@ -138,7 +138,8 @@ export default async function Home() {
             API authentication made easy
           </h1>
           <p className={"mt-6 text-xl text-neutral-600"}>
-            Seriously fast and easy to use. Unkey helps developers secure, manage, and scale their APIs.
+            Seriously fast and easy to use. Unkey helps developers secure, manage, and scale their
+            APIs.
           </p>
         </FadeIn>
         <Button href="/app" className="px-8 py-3 mt-4">
