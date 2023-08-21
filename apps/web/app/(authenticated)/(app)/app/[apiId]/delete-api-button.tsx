@@ -36,6 +36,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
       // replace to avoid back button to a delete API.
       router.replace("/app/apis");
     },
+
     onError(err) {
       console.error(err);
       toast({
@@ -75,7 +76,8 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
             <Button
               disabled={typedName !== apiName || deleteApi.isLoading}
               variant="destructive"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 if (typedName === apiName) {
                   deleteApi.mutate({ apiId });
                 }
