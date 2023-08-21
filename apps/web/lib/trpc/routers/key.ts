@@ -22,6 +22,7 @@ export const keyRouter = t.router({
         apiId: z.string(),
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
+        remaining: z.number().int().positive().optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
 
         ratelimit: z
@@ -54,6 +55,7 @@ export const keyRouter = t.router({
         byteLength: input.bytesLength,
         ownerId: input.ownerId ?? undefined,
         meta: input.meta,
+        remaining: input.remaining,
         expires: input.expires ?? undefined,
         ratelimit: input.ratelimit,
       });
