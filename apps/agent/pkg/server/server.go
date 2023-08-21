@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -42,6 +43,7 @@ type Config struct {
 	Region            string
 	EventBus          events.EventBus
 	Version           string
+	WorkspaceService  workspaces.WorkspaceService
 }
 
 type Server struct {
@@ -68,6 +70,8 @@ type Server struct {
 	// Not guaranteed to be available, always do a nil check first!
 	events  events.EventBus
 	version string
+
+	workspaceService workspaces.WorkspaceService
 }
 
 func New(config Config) *Server {
@@ -94,6 +98,7 @@ func New(config Config) *Server {
 		unkeyKeyAuthId:    config.UnkeyKeyAuthId,
 		region:            config.Region,
 		version:           config.Version,
+		workspaceService:  config.WorkspaceService,
 	}
 	if s.events == nil {
 		s.events = events.NewNoop()
@@ -143,7 +148,7 @@ func New(config Config) *Server {
 		)
 
 		if err != nil || c.Response().StatusCode() >= 500 {
-			log.Error("request failed", zap.String("body", string(c.Response().Body())))
+			log.Error("request failed", zap.String("body", string(c.Response().Body())), zap.Error(err))
 			span.RecordError(err)
 		} else {
 			log.Info("request completed")
@@ -167,6 +172,9 @@ func New(config Config) *Server {
 	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)
 
 	s.app.Get("/vx/keys/:keyId/stats", s.getKeyStats)
+
+	// new RPC style endpoints
+	s.app.Post("/v1/workspaces.create", s.createWorkspace)
 
 	return s
 }

@@ -16,6 +16,7 @@ type CacheWarmer struct {
 	keyCache cache.Cache[entities.Key]
 	db       database.Database
 	logger   logging.Logger
+	stopped  bool
 }
 
 type Config struct {
@@ -31,14 +32,25 @@ func NewCacheWarmer(config Config) *CacheWarmer {
 		keyCache: config.KeyCache,
 		db:       config.DB,
 		logger:   config.Logger.With(zap.String("pkg", "cacheWarmer")),
+		stopped:  false,
 	}
 }
 
+func (c *CacheWarmer) Stop() {
+	c.stopped = true
+
+}
 func (c *CacheWarmer) Run(ctx context.Context) error {
+	if c.stopped {
+		return nil
+	}
 
 	apiOffset := 0
 	pageSize := 100
 	for {
+		if c.stopped {
+			return nil
+		}
 		apis, err := c.db.ListAllApis(ctx, pageSize, apiOffset)
 		if err != nil {
 			return fmt.Errorf("unable to list apis: %w", err)
@@ -55,7 +67,6 @@ func (c *CacheWarmer) Run(ctx context.Context) error {
 					return fmt.Errorf("unable to list keys: %w", err)
 				}
 				for _, key := range keys {
-					logger.Info("seeding key", zap.String("keyId", key.Id))
 					c.keyCache.Set(ctx, key.Hash, key)
 				}
 				if len(keys) == pageSize {

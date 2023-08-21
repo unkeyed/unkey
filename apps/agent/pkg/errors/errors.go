@@ -26,6 +26,7 @@ const (
 	FORBIDDEN             ErrorCode = "FORBIDDEN"
 	KEY_USAGE_EXCEEDED    ErrorCode = "KEY_USAGE_EXCEEDED"
 	INVALID_KEY_TYPE      ErrorCode = "INVALID_KEY_TYPE"
+	NOT_UNIQUE            ErrorCode = "NOT_UNIQUE"
 )
 
 // this is what a json body response looks like

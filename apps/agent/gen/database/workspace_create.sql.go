@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const createWorkspace = `-- name: CreateWorkspace :exec
+const insertWorkspace = `-- name: InsertWorkspace :exec
 INSERT INTO
     ` + "`" + `workspaces` + "`" + ` (
         id,
@@ -28,7 +28,7 @@ VALUES
     )
 `
 
-type CreateWorkspaceParams struct {
+type InsertWorkspaceParams struct {
 	ID       string
 	Name     string
 	Slug     string
@@ -36,8 +36,8 @@ type CreateWorkspaceParams struct {
 	Plan     NullWorkspacesPlan
 }
 
-func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) error {
-	_, err := q.db.ExecContext(ctx, createWorkspace,
+func (q *Queries) InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error {
+	_, err := q.db.ExecContext(ctx, insertWorkspace,
 		arg.ID,
 		arg.Name,
 		arg.Slug,
