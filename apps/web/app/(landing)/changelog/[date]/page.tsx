@@ -17,7 +17,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const changelog = allChangelogs.find(
     (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
   );
-  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
 
   return {
     title: `${changelog?.title} | Unkey`,

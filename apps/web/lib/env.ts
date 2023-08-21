@@ -25,6 +25,8 @@ export const env = z
 
     CLERK_WEBHOOK_SECRET: z.string().optional(),
     LOOPS_API_KEY: z.string().optional(),
+
+    UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
   })
   .parse(process.env);
 
