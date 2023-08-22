@@ -137,6 +137,18 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		Meta:    key.Meta,
 	}
 
+	// ---------------------------------------------------------------------------------------------
+	// Send usage to tinybird
+	// ---------------------------------------------------------------------------------------------
+
+	defer s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
+		WorkspaceId: key.WorkspaceId,
+		ApiId:       api.Id,
+		KeyId:       key.Id,
+		Ratelimited: res.Code == errors.RATELIMITED,
+		Time:        time.Now().UnixMilli(),
+	})
+
 	if !key.Expires.IsZero() {
 		res.Expires = key.Expires.UnixMilli()
 	}
@@ -192,18 +204,6 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			}
 		}
 	}
-
-	// ---------------------------------------------------------------------------------------------
-	// Send usage to tinybird
-	// ---------------------------------------------------------------------------------------------
-
-	s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
-		WorkspaceId: key.WorkspaceId,
-		ApiId:       api.Id,
-		KeyId:       key.Id,
-		Ratelimited: res.Code == errors.RATELIMITED,
-		Time:        time.Now().UnixMilli(),
-	})
 
 	return c.JSON(res)
 }

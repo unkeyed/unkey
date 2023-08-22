@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
@@ -455,5 +458,68 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 
 	require.False(t, verifyRes2.Valid)
 	require.Equal(t, int32(0), *verifyRes2.Remaining)
+
+}
+
+type mockAnalytics struct {
+	calledPublish atomic.Int32
+}
+
+func (m *mockAnalytics) PublishKeyVerificationEvent(ctx context.Context, event analytics.KeyVerificationEvent) {
+	m.calledPublish.Add(1)
+}
+func (m *mockAnalytics) GetKeyStats(ctx context.Context, keyId string) (analytics.KeyStats, error) {
+	return analytics.KeyStats{}, fmt.Errorf("Implement me")
+}
+
+func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	key := uid.New(16, "test")
+	err := resources.Database.CreateKey(ctx, entities.Key{
+		Id:          uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.Id,
+		WorkspaceId: resources.UserWorkspace.Id,
+		Hash:        hash.Sha256(key),
+		CreatedAt:   time.Now(),
+		Remaining:   util.Pointer(int32(0)),
+	})
+	require.NoError(t, err)
+
+	a := &mockAnalytics{}
+	srv := New(Config{
+		Logger:    logging.NewNoopLogger(),
+		KeyCache:  cache.NewNoopCache[entities.Key](),
+		ApiCache:  cache.NewNoopCache[entities.Api](),
+		Database:  resources.Database,
+		Tracer:    tracing.NewNoop(),
+		Analytics: a,
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"key":"%s"
+		}`, key))
+
+	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, 200, res.StatusCode)
+
+	successResponse := VerifyKeyResponse{}
+	err = json.Unmarshal(body, &successResponse)
+	require.NoError(t, err)
+
+	require.False(t, successResponse.Valid)
+	require.Equal(t, int32(1), a.calledPublish.Load())
 
 }
