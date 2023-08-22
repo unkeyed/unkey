@@ -1,5 +1,5 @@
-import { withContentlayer } from "next-contentlayer";
-import { withSentryConfig } from "@sentry/nextjs";
+const { withContentlayer } = require("next-contentlayer");
+const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -55,4 +55,4 @@ if (sentryOrg && sentryProject) {
   );
 }
 
-export default config;
+module.exports = config;
