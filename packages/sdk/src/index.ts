@@ -16,6 +16,16 @@ type ApiRequest = {
   body?: unknown;
 };
 
+
+type Result<R, E extends Error> = {
+  result: R
+  error?: never
+} |
+{
+  result?: never
+  error: R
+}
+
 export class Unkey {
   public readonly baseUrl: string;
   private readonly token: string;

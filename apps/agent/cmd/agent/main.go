@@ -76,7 +76,7 @@ var AgentCmd = &cobra.Command{
 
 		// Setup Axiom
 
-		var tracer tracing.Tracer = tracing.NewNoop()
+		tracer := tracing.NewNoop()
 		{
 			if runtimeConfig.enableAxiom {
 				t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
@@ -117,7 +117,7 @@ var AgentCmd = &cobra.Command{
 		defer db.Close()
 		// Setup Analytics
 
-		var a analytics.Analytics = analytics.NewNoop()
+		a := analytics.NewNoop()
 		{
 			if runtimeConfig.analytics == "tinybird" {
 				tb := tinybird.New(tinybird.Config{
@@ -133,7 +133,7 @@ var AgentCmd = &cobra.Command{
 
 		// Setup Event Bus
 
-		var eventBus events.EventBus = events.NewNoop()
+		eventBus := events.NewNoop()
 		{
 			if runtimeConfig.eventBus == "kafka" {
 				k, err := kafka.New(kafka.Config{
