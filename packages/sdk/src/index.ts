@@ -1,3 +1,5 @@
+import { UnkeyError } from "./errors";
+
 export type UnkeyOptions = {
   /**
    * @default https://api.unkey.dev
@@ -16,15 +18,15 @@ type ApiRequest = {
   body?: unknown;
 };
 
-
-type Result<R, E extends Error> = {
-  result: R
-  error?: never
-} |
-{
-  result?: never
-  error: R
-}
+type Result<R> =
+  | {
+      result: R;
+      error?: never;
+    }
+  | {
+      result?: never;
+      error: UnkeyError;
+    };
 
 export class Unkey {
   public readonly baseUrl: string;
@@ -41,20 +43,25 @@ export class Unkey {
     this.token = opts.token;
   }
 
-  private async fetch<TResult>(req: ApiRequest): Promise<TResult> {
-    const url = `${this.baseUrl}/${req.path.join("/")}`;
-    const res = await fetch(url, {
-      method: req.method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.token}`,
-      },
-      body: JSON.stringify(req.body),
-    });
-    if (!res.ok) {
-      throw new Error(await res.text());
+  private async fetch<TResult>(req: ApiRequest): Promise<Result<TResult>> {
+    try {
+      const url = `${this.baseUrl}/${req.path.join("/")}`;
+      const res = await fetch(url, {
+        method: req.method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+        },
+        body: JSON.stringify(req.body),
+      });
+      if (!res.ok) {
+        return { error: await res.json() };
+      }
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
-    return await res.json();
   }
 
   public get keys() {
@@ -139,7 +146,7 @@ export class Unkey {
          * @see https://docs.unkey.dev/features/remaining
          */
         remaining?: number;
-      }): Promise<{ key: string; keyId: string }> => {
+      }): Promise<Result<{ key: string; keyId: string }>> => {
         return await this.fetch<{ key: string; keyId: string }>({
           path: ["v1", "keys"],
           method: "POST",
@@ -210,39 +217,40 @@ export class Unkey {
          * @see https://docs.unkey.dev/features/remaining
          */
         remaining?: number | null;
-      }): Promise<{ key: string; keyId: string }> => {
+      }): Promise<Result<{ key: string; keyId: string }>> => {
         return await this.fetch<{ key: string; keyId: string }>({
           path: ["v1", "keys", req.keyId],
           method: "PUT",
           body: req,
         });
       },
-      verify: async (req: { key: string }): Promise<{
-        /**
-         * Whether or not this key is valid and has passed the ratelimit. If false you should not grant access to whatever the user is requesting
-         */
-        valid: boolean;
+      verify: async (req: { key: string }): Promise<
+        Result<{
+          /**
+           * Whether or not this key is valid and has passed the ratelimit. If false you should not grant access to whatever the user is requesting
+           */
+          valid: boolean;
 
-        /**
-         * If you have set an ownerId on this key it is returned here. You can use this to clearly authenticate a user in your system.
-         */
-        ownerId?: string;
+          /**
+           * If you have set an ownerId on this key it is returned here. You can use this to clearly authenticate a user in your system.
+           */
+          ownerId?: string;
 
-        meta?: unknown;
-
-        /**
-         * This is the meta data you have set when creating the key.
-         *
-         * Example:
-         *
-         * ```json
-         * {
-         *   "billingTier":"PRO",
-         *   "trialEnds": "2023-06-16T17:16:37.161Z"
-         * }
-         * ```
-         */
-      }> => {
+          /**
+           * This is the meta data you have set when creating the key.
+           *
+           * Example:
+           *
+           * ```json
+           * {
+           *   "billingTier":"PRO",
+           *   "trialEnds": "2023-06-16T17:16:37.161Z"
+           * }
+           * ```
+           */
+          meta?: unknown;
+        }>
+      > => {
         return await this.fetch<{
           valid: boolean;
           ownerId?: string;
@@ -253,12 +261,8 @@ export class Unkey {
           body: req,
         });
       },
-      revoke: async (req: { keyId: string }): Promise<void> => {
-        await this.fetch<{
-          valid: boolean;
-          ownerId?: string;
-          meta?: unknown;
-        }>({
+      revoke: async (req: { keyId: string }): Promise<Result<void>> => {
+        return await this.fetch<void>({
           path: ["v1", "keys", req.keyId],
           method: "DELETE",
         });
@@ -285,7 +289,7 @@ export class Unkey {
 
         // Used to create root keys from the frontend, please ignore
         forWorkspaceId: string;
-      }): Promise<{ key: string; keyId: string }> => {
+      }): Promise<Result<{ key: string; keyId: string }>> => {
         return await this.fetch<{ key: string; keyId: string }>({
           path: ["v1", "internal", "rootkeys"],
           method: "POST",

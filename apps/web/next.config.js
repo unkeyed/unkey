@@ -1,9 +1,10 @@
-import { withContentlayer } from "next-contentlayer";
-import { withSentryConfig } from "@sentry/nextjs";
+const { withContentlayer } = require("next-contentlayer");
+const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
+  productionBrowserSourceMaps: true, // we're open-source anyways
   experimental: {
     serverActions: true,
     esmExternals: "loose",
@@ -55,4 +56,4 @@ if (sentryOrg && sentryProject) {
   );
 }
 
-export default config;
+module.exports = config;

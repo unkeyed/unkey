@@ -19,8 +19,11 @@ export async function GET(req: NextRequest) {
     // ..
   });
 
+  if (created.error) {
+    return NextResponse.json({ error: created.error }, { status: 500 });
+  }
   // At this point you can return the key to your user in your UI.
   // In this example we'll just redirect to another page.
 
-  return NextResponse.redirect(new URL(`/keys/verify?key=${created.key}`, url));
+  return NextResponse.redirect(new URL(`/keys/verify?key=${created.result.key}`, url));
 }
