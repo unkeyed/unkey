@@ -55,7 +55,11 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": ["introduction", "quickstart", "security"]
+      "pages": [
+        "introduction",
+        "quickstart",
+        "security"
+      ]
     },
     {
       "group": "Features",
@@ -71,7 +75,21 @@
       "icon": "code",
       "pages": [
         "api-reference/authentication",
-        "api-reference/errors",
+        {
+          "group": "Errors",
+          "pages": [
+            "api-reference/errors/introduction",
+            "api-reference/errors/code/BAD_REQUEST",
+            "api-reference/errors/code/FORBIDDEN",
+            "api-reference/errors/code/INTERNAL_SERVER_ERROR",
+            "api-reference/errors/code/INVALID_KEY_TYPE",
+            "api-reference/errors/code/KEY_USAGE_EXCEEDED",
+            "api-reference/errors/code/NOT_FOUND",
+            "api-reference/errors/code/NOT_UNIQUE",
+            "api-reference/errors/code/RATELIMITED",
+            "api-reference/errors/code/UNAUTHORIZED"
+          ]
+        },
         {
           "group": "Keys",
           "pages": [
@@ -83,7 +101,10 @@
         },
         {
           "group": "APIs",
-          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
+          "pages": [
+            "api-reference/apis/get",
+            "api-reference/apis/list-keys"
+          ]
         }
       ]
     },
@@ -109,7 +130,10 @@
         "libraries/py/overview",
         {
           "group": "Services",
-          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+          "pages": [
+            "libraries/py/services/keys",
+            "libraries/py/services/apis"
+          ]
         }
       ]
     },
@@ -155,7 +179,9 @@
     {
       "group": "Nuxt",
       "icon": "code",
-      "pages": ["libraries/nuxt/overview"]
+      "pages": [
+        "libraries/nuxt/overview"
+      ]
     }
   ],
   "footerSocials": {
