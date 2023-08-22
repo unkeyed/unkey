@@ -10,11 +10,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No key provided" }, { status: 400 });
   }
 
-  const verification = await unkey.keys.verify({ key });
+  const { result, error } = await unkey.keys.verify({ key });
 
-  if (!verification.valid) {
+  if (error) {
+    return NextResponse.json({ error }, { status: 500 });
+  }
+
+  if (!result.valid) {
     // Do not grant access to your user!
-    return NextResponse.json(verification, { status: 400 });
+    return NextResponse.json(result, { status: 400 });
   }
 
   // process the request here
@@ -24,7 +28,7 @@ export async function GET(req: NextRequest) {
 Here's the key that was generated for you: ${key}
 
 And some more information from the verification:
-${JSON.stringify(verification, null, 2)}
-  
+${JSON.stringify(result, null, 2)}
+
   `);
 }

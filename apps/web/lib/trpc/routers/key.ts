@@ -48,8 +48,11 @@ export const keyRouter = t.router({
         name: "Dashboard",
         expires: Date.now() + 60000, // expires in 1 minute
       });
+      if (newRootKey.error) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+      }
 
-      return unkeyScoped(newRootKey.key).keys.create({
+      const { error, result } = await unkeyScoped(newRootKey.result.key).keys.create({
         apiId: input.apiId,
         prefix: input.prefix,
         byteLength: input.bytesLength,
@@ -59,6 +62,10 @@ export const keyRouter = t.router({
         expires: input.expires ?? undefined,
         ratelimit: input.ratelimit,
       });
+      if (error) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      }
+      return result;
     }),
   createInternalRootKey: t.procedure.use(auth).mutation(async ({ ctx }) => {
     const unkeyApi = await db.query.apis.findFirst({
@@ -80,19 +87,18 @@ export const keyRouter = t.router({
       throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
     }
 
-    const newRootKey = await unkeyRoot._internal
-      .createRootKey({
-        forWorkspaceId: workspace.id,
-      })
-      .catch((err) => {
-        console.error(err);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `unable to create root key: ${err.message}`,
-        });
-      });
+    const { error, result } = await unkeyRoot._internal.createRootKey({
+      forWorkspaceId: workspace.id,
+    });
 
-    return newRootKey;
+    if (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `unable to create root key: ${error.message}`,
+      });
+    }
+
+    return result;
   }),
   delete: t.procedure
     .use(auth)
