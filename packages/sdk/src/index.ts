@@ -10,6 +10,26 @@ export type UnkeyOptions = {
    * The workspace key from unkey.dev
    */
   token: string;
+
+  /**
+  * Retry on network errors
+  */
+  retry?: {
+    /**
+    * How many attempts should be made
+    * The maximum number of requests will be `attempts + 1`
+    * `0` means no retries
+    *
+    * @default 5
+    */
+    attempts?: number;
+    /**
+    * Return how many milliseconds to wait until the next attempt is made
+    *
+    * @default `(retryCount) => Math.round(Math.exp(retryCount) * 10)),`
+    */
+    backoff?: (retryCount: number) => number;
+  };
 };
 
 type ApiRequest = {
@@ -31,6 +51,10 @@ type Result<R> =
 export class Unkey {
   public readonly baseUrl: string;
   private readonly token: string;
+  public readonly retry: {
+    attempts: number;
+    backoff: (retryCount: number) => number;
+  };
 
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
@@ -41,33 +65,51 @@ export class Unkey {
       throw new Error("Unkey token must not be empty");
     }
     this.token = opts.token;
+
+    this.retry = {
+      attempts: opts.retry?.attempts ?? 5,
+      backoff: opts.retry?.backoff ?? ((n) => Math.round(Math.exp(n) * 10))
+    }
   }
 
   private async fetch<TResult>(req: ApiRequest): Promise<Result<TResult>> {
-    try {
-      const url = `${this.baseUrl}/${req.path.join("/")}`;
-      const res = await fetch(url, {
+    let res: Response | null = null
+    let err: Error | null = null
+    for (let i = 0; i <= this.retry.attempts; i++) {
+      res = await fetch(`${this.baseUrl}/x${req.path.join("/")}`, {
         method: req.method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.token}`,
         },
         body: JSON.stringify(req.body),
-      });
-      if (!res.ok) {
-        return { error: await res.json() };
+      }).catch((e: Error) => {
+        err = e
+        return null // set `res` to `null`
+      })
+      if (res?.ok) {
+        return { result: await res.json() }
       }
-      return { result: await res.json() }
-    } catch (e) {
-      return {
-        error: {
-          code: "FETCH_ERROR",
-          message: (e as Error).message,
-          docs: "https://developer.mozilla.org/en-US/docs/Web/API/fetch",
-          requestId: "N/A"
-        }
+      const backoff = this.retry.backoff(i)
+      console.debug("attempt %d of %d failed, retrying in %d ms...", i + 1, this.retry.attempts + 1, backoff)
+      await new Promise(r => setTimeout(r, backoff))
+    }
+
+    if (res) {
+      return { error: await res.json() };
+    }
+
+
+    return {
+      error: {
+        code: "FETCH_ERROR",
+        // @ts-ignore I don't understand why `err` is `never`
+        message: err?.message ?? "No response",
+        docs: "https://developer.mozilla.org/en-US/docs/Web/API/fetch",
+        requestId: "N/A"
       }
     }
+
   }
 
   public get keys() {

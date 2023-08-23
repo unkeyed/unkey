@@ -3,31 +3,15 @@ title: "Overview"
 description: "Typescript client for unkey"
 ---
 
-
 If you prefer a typed experience over calling http endpoints directly, you can use our sdk `@unkey/api`.
-
 
 ## Install
 
 <Tabs>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add @unkey/api
-    ```
-  </Tab>
-  <Tab title="yarn">
-    ```bash
-    yarn add @unkey/api
-    ```
-  </Tab>
-  <Tab title="npm">
-    ```bash
-    npm install @unkey/api
-    ```
-  </Tab>
+  <Tab title="pnpm">```bash pnpm add @unkey/api ```</Tab>
+  <Tab title="yarn">```bash yarn add @unkey/api ```</Tab>
+  <Tab title="npm">```bash npm install @unkey/api ```</Tab>
 </Tabs>
-
-
 
 ## Bearer Token
 
@@ -35,9 +19,68 @@ When requesting resources, you will need your access token — you can create a 
 Afterwards you need to provide it to the client:
 
 ```ts
-import { Unkey } from "@unkey/api"
+import { Unkey } from "@unkey/api";
 
-const unkey = new Unkey({token: "<UNKEY_TOKEN>" })
+const unkey = new Unkey({ token: "<UNKEY_TOKEN>" });
 ```
 
-Always keep your token safe and reset it if you suspect it has been compromised.
+Always keep your token safe and reset it `if` you suspect it has been compromised.
+
+## Response format
+
+Because forgetting to handle thrown errors properly in javascript is often forgotten, we have decided to explicitely return errors to be handled. Fortunately typescript helps us here and everything is typesafe.
+
+Every method returns either an `error` or a `result` field, never both and never none.
+
+<CodeGroup>
+```ts Success
+{
+  result: T // the result depends on what method you called
+}
+```
+
+```ts Error
+{
+  error: {
+    // A machine readable error code
+    code: ErrorCode;
+
+    // A link to our documentation explaining this error in more detail
+    docs: string;
+
+    // A human readable short explanation
+    message: string;
+
+    // The request id for easy support lookup
+    requestId: string;
+  }
+}
+```
+
+</CodeGroup>
+
+## Checking for errors
+
+To check for errors, all you need to do is this:
+
+```ts
+const { result, error } = await unkey.keys.verify({ key });
+
+// catch actual errors, like network or api related
+if (error) {
+  // handle it somehow
+  return;
+}
+
+// if you have thrown or returned in the if clause above, typescript now knows
+// that `result` must be defined
+
+// check if the key is valid
+if (!result.valid) {
+  // Do not grant access to your user!
+  // handle it somehow
+  return;
+}
+
+// process the request here
+```
