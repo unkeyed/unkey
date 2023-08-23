@@ -13,7 +13,7 @@ import (
 )
 
 type VerifyKeyRequest struct {
-	Key string `json:"key"`
+	Key string `json:"key" validate:"required"`
 }
 
 // part of the response

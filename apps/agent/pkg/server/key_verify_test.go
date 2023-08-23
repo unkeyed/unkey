@@ -74,6 +74,54 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 }
 
+func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	key := uid.New(16, "test")
+	err := resources.Database.CreateKey(ctx, entities.Key{
+		Id:          uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.Id,
+		WorkspaceId: resources.UserWorkspace.Id,
+		Hash:        hash.Sha256(key),
+		CreatedAt:   time.Now(),
+	})
+	require.NoError(t, err)
+
+	srv := New(Config{
+		Logger:   logging.NewNoopLogger(),
+		KeyCache: cache.NewNoopCache[entities.Key](),
+		ApiCache: cache.NewNoopCache[entities.Api](),
+		Database: resources.Database,
+		Tracer:   tracing.NewNoop(),
+	})
+
+	buf := bytes.NewBufferString(fmt.Sprintf(`{
+		"somethingelse":"%s"
+		}`, key))
+
+	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := srv.app.Test(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, 400, res.StatusCode)
+
+	errorResponse := errors.ErrorResponse{}
+	err = json.Unmarshal(body, &errorResponse)
+	require.NoError(t, err)
+
+	require.Equal(t, errors.BAD_REQUEST, errorResponse.Error.Code)
+
+}
+
 func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
