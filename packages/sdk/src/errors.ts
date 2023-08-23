@@ -8,7 +8,7 @@ export type ErrorCode =
   | "KEY_USAGE_EXCEEDED"
   | "INVALID_KEY_TYPE"
   | "NOT_UNIQUE"
-  | "FETCH_ERROR" // not from unkey but returned when fetch fails
+  | "FETCH_ERROR"; // not from unkey but returned when fetch fails
 
 export type UnkeyError = {
   // A machine readable error code
