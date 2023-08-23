@@ -44,20 +44,24 @@ Example:
 <RequestExample>
 
 ```ts
-const res = await unkey.keys.verify({
-  key: "xyz_AS5HDkXXPot2MMoPHD8jnL",
-});
+import { verifyKey } from "@unkey/api"
 
-if (res.error) {
-  console.error(res.error.code, res.error.message);
-  return; // handle error
+const { result, error } = await verifyKey("key_123")
+
+if (error){
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message)
+  return
 }
 
-if (!res.result.invalid) {
-  return; // reject request
+if (!result.valid) {
+  // do not grant access
+  return
 }
 
-// handle request
+// process request
+console.log(result)
 ```
 
 </RequestExample>
