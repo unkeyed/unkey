@@ -20,13 +20,13 @@ type ApiRequest = {
 
 type Result<R> =
   | {
-      result: R;
-      error?: never;
-    }
+    result: R;
+    error?: never;
+  }
   | {
-      result?: never;
-      error: UnkeyError;
-    };
+    result?: never;
+    error: UnkeyError;
+  };
 
 export class Unkey {
   public readonly baseUrl: string;
@@ -57,10 +57,16 @@ export class Unkey {
       if (!res.ok) {
         return { error: await res.json() };
       }
-      return await res.json();
+      return { result: await res.json() }
     } catch (e) {
-      console.error(e);
-      throw e;
+      return {
+        error: {
+          code: "FETCH_ERROR",
+          message: (e as Error).message,
+          docs: "https://developer.mozilla.org/en-US/docs/Web/API/fetch",
+          requestId: "N/A"
+        }
+      }
     }
   }
 
