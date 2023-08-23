@@ -8,59 +8,71 @@ Verify a key from your users.
 ## Request
 
 <ParamField body="key" type="string" required>
-The key you want to verify.
+  The key you want to verify.
 </ParamField>
 
 ## Response
 
+<ResponseField name="result">
+<Expandable title="properties" defaultOpen>
+
 <ResponseField name="valid" type="boolean" required>
-  Whether or not this key is valid and has passed the ratelimit.
-  If `false` you should not grant access to whatever the user is requesting
+  Whether or not this key is valid and has passed the ratelimit. If `false` you
+  should not grant access to whatever the user is requesting
 </ResponseField>
 <ResponseField name="ownerId" type="string">
-  If you have set an `ownerId` on this key it is returned here. You can use this to clearly authenticate a user in your system.
+  If you have set an `ownerId` on this key it is returned here. You can use this
+  to clearly authenticate a user in your system.
 </ResponseField>
-
 
 <ResponseField name="meta" type="object" >
 This is the `meta` data you have set when creating the key.
 
 Example:
+
 ```json
 {
-  "billingTier":"PRO",
+  "billingTier": "PRO",
   "trialEnds": "2023-06-16T17:16:37.161Z"
 }
 ```
 
 </ResponseField>
+</Expandable>
+</ResponseField>
 
 <RequestExample>
 
-
-
 ```ts
 const res = await unkey.keys.verify({
-  key: "xyz_AS5HDkXXPot2MMoPHD8jnL"
-})
+  key: "xyz_AS5HDkXXPot2MMoPHD8jnL",
+});
+
+if (res.error) {
+  console.error(res.error.code, res.error.message);
+  return; // handle error
+}
+
+if (!res.result.invalid) {
+  return; // reject request
+}
+
+// handle request
 ```
-
-
-
-
 
 </RequestExample>
 
 <ResponseExample>
 ```ts
 {
-	valid: true,
-	ownerId: "chronark",
-	meta: {
-		hello: "world"
+  result: {
+    valid: true,
+    ownerId: "chronark",
+	  meta: {
+	  	hello: "world"
+    }
 	}
 }
 ```
-
 
 </ResponseExample>
