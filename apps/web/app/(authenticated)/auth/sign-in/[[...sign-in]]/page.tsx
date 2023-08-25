@@ -4,6 +4,7 @@ import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
+import { FadeIn } from "@/components/landing/fade-in";
 
 export const runtime = "edge";
 
@@ -46,11 +47,15 @@ export default function AuthenticationPage() {
         </>
       )}
       {verify && (
-        <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">Enter your email code</h1>
-          <p className="text-md text-muted-foreground">We sent you a 6 digit code to your email</p>
-          <EmailCode />
-        </div>
+        <FadeIn>
+          <div className="flex flex-col space-y-2 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight">Enter your email code</h1>
+            <p className="text-md text-muted-foreground">
+              We sent you a 6 digit code to your email
+            </p>
+            <EmailCode />
+          </div>
+        </FadeIn>
       )}
     </div>
   );

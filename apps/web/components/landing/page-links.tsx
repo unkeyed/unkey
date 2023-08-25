@@ -6,7 +6,6 @@ import { Container } from "@/components/landing/container";
 import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
 import { GridPattern } from "@/components/landing/grid-pattern";
 import { SectionIntro } from "@/components/landing/section-intro";
-import { formatDate } from "@/lib/formatDate";
 
 interface Page {
   title: string;
