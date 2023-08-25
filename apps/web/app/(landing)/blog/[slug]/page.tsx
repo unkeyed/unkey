@@ -5,7 +5,7 @@ import { allPosts } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Metadata, ResolvingMetadata } from "next";
+import type { Metadata } from "next";
 
 type Props = {
   params: { slug: string };
@@ -26,7 +26,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ogUrl.searchParams.set("image", new URL(post?.author.image.src, baseUrl).toString());
   }
 
-  console.log(ogUrl.toString());
   return {
     title: `${post?.title} | Unkey`,
     description: post?.description,

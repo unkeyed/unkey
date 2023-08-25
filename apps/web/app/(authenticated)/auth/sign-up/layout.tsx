@@ -159,8 +159,8 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
             </defs>
           </svg>
           <div className="lg:pr-4 lg:pt-4 hidden md:block">
-            {features.map((feature, index) => (
-              <div key={index} className="mb-8 lg:max-w-lg">
+            {features.map((feature) => (
+              <div key={feature.title} className="mb-8 lg:max-w-lg">
                 <h3 className="my-2 text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
                   {feature.title}
                 </h3>
