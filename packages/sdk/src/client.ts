@@ -76,7 +76,8 @@ export class Unkey {
     let res: Response | null = null;
     let err: Error | null = null;
     for (let i = 0; i <= this.retry.attempts; i++) {
-      res = await fetch(`${this.baseUrl}/${req.path.join("/")}`, {
+      const url = `${this.baseUrl}/${req.path.join("/")}`;
+      res = await fetch(url, {
         method: req.method,
         headers: {
           "Content-Type": "application/json",
@@ -92,10 +93,13 @@ export class Unkey {
       }
       const backoff = this.retry.backoff(i);
       console.debug(
-        "attempt %d of %d failed, retrying in %d ms...",
+        "attempt %d of %d to reach %s failed, retrying in %d ms: %s",
         i + 1,
         this.retry.attempts + 1,
+        url,
         backoff,
+        // @ts-ignore I don't understand why `err` is `never`
+        err?.message,
       );
       await new Promise((r) => setTimeout(r, backoff));
     }

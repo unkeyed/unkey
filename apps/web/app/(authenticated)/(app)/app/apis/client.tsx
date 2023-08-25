@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Search } from "lucide-react";
+import { BookOpen, KeyRound, Search } from "lucide-react";
 
 type ApiWithKeys = {
   id: string;
@@ -43,7 +43,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
           {localData.map((api) => (
             <Link key={api.id} href={`/app/${api.id}`}>
-              <Card className="relative overflow-hidden duration-500 hover:border-primary/10 group hover:drop-shadow-md ">
+              <Card className="relative overflow-hidden duration-500 hover:border-primary/50 group ">
                 <CardHeader>
                   <div className="flex items-center justify-between ">
                     <CardTitle>{api.name}</CardTitle>
@@ -68,7 +68,9 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         </ul>
       ) : (
         <EmptyPlaceholder className="my-4 ">
-          <EmptyPlaceholder.Icon />
+          <EmptyPlaceholder.Icon>
+            <KeyRound />
+          </EmptyPlaceholder.Icon>
           <EmptyPlaceholder.Title>No API Keys Yet</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
             You haven&apos;t created any API yet. Create one to get started.
