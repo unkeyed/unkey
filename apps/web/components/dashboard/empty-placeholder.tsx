@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { FileJson } from "lucide-react";
 
 export function EmptyPlaceholder({
   className,
@@ -23,10 +22,10 @@ export function EmptyPlaceholder({
   );
 }
 
-EmptyPlaceholder.Icon = function EmptyPlaceHolderIcon() {
+EmptyPlaceholder.Icon = function EmptyPlaceHolderIcon({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted">
-      <FileJson />
+      {children}
     </div>
   );
 };

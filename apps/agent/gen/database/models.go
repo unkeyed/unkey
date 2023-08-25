@@ -130,12 +130,17 @@ type KeyAuth struct {
 }
 
 type Workspace struct {
-	ID                   string
-	Name                 string
-	Slug                 string
-	TenantID             string
-	Internal             bool
-	StripeCustomerID     sql.NullString
-	StripeSubscriptionID sql.NullString
-	Plan                 NullWorkspacesPlan
+	ID                    string
+	Name                  string
+	Slug                  string
+	TenantID              string
+	Internal              bool
+	StripeCustomerID      sql.NullString
+	StripeSubscriptionID  sql.NullString
+	Plan                  NullWorkspacesPlan
+	QuotaMaxActiveKeys    sql.NullInt32
+	UsageActiveKeys       sql.NullInt32
+	QuotaMaxVerifications sql.NullInt32
+	UsageVerifications    sql.NullInt32
+	LastUsageUpdate       sql.NullTime
 }

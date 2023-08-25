@@ -177,7 +177,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
 
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <Link href="/app/team/create">
+          <Link href="/new">
             <DropdownMenuItem>
               <Plus className="w-4 h-4 mr-2 " />
               <span className="cursor-pointer">Create Workspace</span>

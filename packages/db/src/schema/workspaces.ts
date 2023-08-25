@@ -1,5 +1,13 @@
 // db.ts
-import { boolean, mysqlTable, uniqueIndex, varchar, mysqlEnum } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+  mysqlEnum,
+  int,
+  datetime,
+} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { apis } from "./apis";
 import { keys } from "./keys";
@@ -23,6 +31,13 @@ export const workspaces = mysqlTable(
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
     stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
+
+    // quotas and usage
+    maxActiveKeys: int("quota_max_active_keys"),
+    usageActiveKeys: int("usage_active_keys"),
+    maxVerifications: int("quota_max_verifications"),
+    usageVerifications: int("usage_verifications"),
+    lastUsageUpdate: datetime("last_usage_update", { fsp: 3 }), // unix milli
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

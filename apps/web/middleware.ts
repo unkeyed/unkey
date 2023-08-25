@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { db, schema, eq } from "@/lib/db";
 const DEBUG_ON = process.env.CLERK_DEBUG === "true";
 
-const checktenancy = async ({ tenantId }: { tenantId: string }) => {
+const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
@@ -41,18 +41,15 @@ export default authMiddleware({
     // Stops users from accessing the application if they have not paid yet.
     if (
       auth.orgId &&
-      req.nextUrl.pathname !== "/app/stripe" &&
-      req.nextUrl.pathname !== "/app/apis" &&
-      req.nextUrl.pathname !== "/app"
+      !["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)
     ) {
-      const workspace = await checktenancy({ tenantId: auth.orgId });
+      const workspace = await findWorkspace({ tenantId: auth.orgId });
       if (workspace?.plan === "free") {
         return NextResponse.redirect(new URL("/app/stripe", req.url));
       }
     }
     if (auth.userId && req.nextUrl.pathname === "/app/apis") {
-      const tenantId = auth.orgId ?? auth.userId;
-      const workspace = await checktenancy({ tenantId });
+      const workspace = await findWorkspace({ tenantId: auth.userId });
       if (!workspace) {
         return NextResponse.redirect(new URL("/onboarding", req.url));
       }

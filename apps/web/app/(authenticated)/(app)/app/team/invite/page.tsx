@@ -76,7 +76,7 @@ export default function TeamCreation() {
       });
   };
   if (!organization) {
-    return redirect("/app/team/create");
+    return redirect("/new");
   }
 
   return (
