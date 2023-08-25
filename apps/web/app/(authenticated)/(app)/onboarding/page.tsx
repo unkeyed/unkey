@@ -1,17 +1,16 @@
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { Onboarding } from "./client";
 
 export default async function OnboardingPage() {
   const tenantId = getTenantId();
-  const workspace = await db.query.workspaces.findFirst({
+  const workspaces = await db.query.workspaces.findMany({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
 
-  if (workspace) {
+  if (workspaces.length > 0) {
     return redirect("/app/apis");
   }
 
-  return <Onboarding tenantId={tenantId} />;
+  return redirect("/new");
 }
