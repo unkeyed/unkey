@@ -122,11 +122,12 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
             to filter keys by a namespace. We recommend creating one API for each environment,
             typically <span className="font-medium text-mono text-foreground">development</span>,{" "}
             <span className="font-medium text-mono text-foreground">preview</span> and{" "}
-            <span className="font-medium text-mono text-foreground">production</span>
+            <span className="font-medium text-mono text-foreground">production</span>.
           </p>
           <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-muted-foreground">
             <li>Group keys together</li>
-            <li>Globally distributed keys in 35+ locations</li>
+            <li>Globally distributed in 35+ locations</li>
+            <li>Key and API analytics </li>
           </ol>
         </div>
       </aside>

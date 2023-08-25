@@ -237,14 +237,9 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
           </div>
           <h4 className="text-lg font-medium">Root Keys</h4>
           <p className="text-sm text-muted-foreground">
-            Root keys are used to create resources such as keys or apis on Unkey. You should never
-            give this to your users.
+            Root keys create resources such as keys or APIs on Unkey. You should never give this to
+            your users.
           </p>
-          <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-muted-foreground">
-            <li />
-            <li>xyz</li>
-            <li>bruh</li>
-          </ol>
         </div>
         <div className="space-y-2">
           <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
@@ -252,14 +247,9 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
           </div>
           <h4 className="text-lg font-medium">Regular Keys</h4>
           <p className="text-sm text-muted-foreground">
-            Regular keys are used to authenticate your users. You can use your root key to create
-            regular keys and give them to your users.
+            Regular API keys are used to authenticate your users. You can use your root key to
+            create regular API keys and give them to your users.
           </p>
-          <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-muted-foreground">
-            <li>1 Free Workspace</li>
-            <li>xyz</li>
-            <li>bruh</li>
-          </ol>
         </div>
       </aside>
     </div>

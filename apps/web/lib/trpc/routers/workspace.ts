@@ -19,7 +19,7 @@ export const workspaceRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       let organizationId: string | null = null;
-      let userId = ctx.user?.id;
+      const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "unable to find userId" });
       }
@@ -42,6 +42,11 @@ export const workspaceRouter = t.router({
         stripeCustomerId: null,
         stripeSubscriptionId: null,
         internal: false,
+        maxActiveKeys: input.plan === "free" ? 100 : null,
+        maxVerifications: input.plan === "free" ? 2500 : null,
+        usageActiveKeys: null,
+        usageVerifications: null,
+        lastUsageUpdate: null,
       };
       await db.insert(schema.workspaces).values(workspace);
 
@@ -49,36 +54,35 @@ export const workspaceRouter = t.router({
         const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
           apiVersion: "2022-11-15",
         });
-        switch (input.plan) {
-          case "pro":
-            const customer = await stripe.customers.create({
-              name: input.name,
-            });
-            workspace.stripeCustomerId = customer.id;
-            await db
-              .update(schema.workspaces)
-              .set({ stripeCustomerId: customer.id })
-              .where(eq(schema.workspaces.id, workspace.id));
+        if (input.plan === "pro") {
+          const customer = await stripe.customers.create({
+            name: input.name,
+          });
+          workspace.stripeCustomerId = customer.id;
+          await db
+            .update(schema.workspaces)
+            .set({ stripeCustomerId: customer.id })
+            .where(eq(schema.workspaces.id, workspace.id));
 
-            await stripe.subscriptions.create({
-              customer: customer.id,
-              items: [
-                {
-                  // base
-                  price: stripeEnv.STRIPE_PRO_PLAN_PRICE_ID,
-                  quantity: 1,
-                },
-                {
-                  // additional keys
-                  price: stripeEnv.STRIPE_ACTIVE_KEYS_PRICE_ID,
-                },
-                {
-                  // additional verifications
-                  price: stripeEnv.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
-                },
-              ],
-              trial_period_days: 14,
-            });
+          await stripe.subscriptions.create({
+            customer: customer.id,
+            items: [
+              {
+                // base
+                price: stripeEnv.STRIPE_PRO_PLAN_PRICE_ID,
+                quantity: 1,
+              },
+              {
+                // additional keys
+                price: stripeEnv.STRIPE_ACTIVE_KEYS_PRICE_ID,
+              },
+              {
+                // additional verifications
+                price: stripeEnv.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
+              },
+            ],
+            trial_period_days: 14,
+          });
         }
       }
 

@@ -11,7 +11,7 @@ import (
 
 const findWorkspace = `-- name: FindWorkspace :one
 SELECT
-    id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan
+    id, name, slug, tenant_id, internal, stripe_customer_id, stripe_subscription_id, plan, quota_max_active_keys, usage_active_keys, quota_max_verifications, usage_verifications, last_usage_update
 FROM
     ` + "`" + `workspaces` + "`" + `
 WHERE
@@ -30,6 +30,11 @@ func (q *Queries) FindWorkspace(ctx context.Context, id string) (Workspace, erro
 		&i.StripeCustomerID,
 		&i.StripeSubscriptionID,
 		&i.Plan,
+		&i.QuotaMaxActiveKeys,
+		&i.UsageActiveKeys,
+		&i.QuotaMaxVerifications,
+		&i.UsageVerifications,
+		&i.LastUsageUpdate,
 	)
 	return i, err
 }

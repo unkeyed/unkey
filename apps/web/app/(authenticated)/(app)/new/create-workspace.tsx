@@ -221,14 +221,9 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
           </div>
           <h4 className="text-lg font-medium">What is a workspace?</h4>
           <p className="text-sm text-muted-foreground">
-            A workspace groups all your resources and billing together. You can have one personal
-            workspace for free and create more workspaces with your team mates.
+            A workspace groups all your resources and billing. You can have one personal workspace
+            for free and create more workspaces with your teammates.
           </p>
-          <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-muted-foreground">
-            <li>1 Free Workspace</li>
-            <li>xyz</li>
-            <li>bruh</li>
-          </ol>
         </div>
       </aside>
     </div>
