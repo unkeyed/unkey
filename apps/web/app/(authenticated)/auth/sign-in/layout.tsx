@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { Particles } from "@/components/dashboard/particles";
 
 export default function AuthLayout(props: { children: React.ReactNode }) {
-
   const { userId } = auth();
 
   if (userId) {
@@ -16,8 +15,8 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
           {props.children}
         </div>
         <div className="hidden relative md:flex items-center justify-center bg-white md:bg-black h-screen bg-gradient-to-t from-violet-400/0 to-violet-400/20 ">
-        <Particles
-        className="absolute inset-0 h-screen"
+          <Particles
+            className="absolute inset-0 h-screen"
             vy={-1}
             quantity={80}
             staticity={300}
