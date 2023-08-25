@@ -15,13 +15,19 @@
 
 When you sign up for an Unkey account you now get a new onboarding experience. We take you through creating a workspace, API and showing how Unkey works before you land in the dashboard. 
 
-Image of first screen.
+First we ask you to create a workspace, A workspace groups all your resources and billing. You can have one personal workspace for free and create more workspaces with your teammates.
 
-Explain some stuff about it.
+![Step 1](/images/changelog/aug-25/unkey-onboard-step-1.png)
 
-Image two explain it
+Next we ask you to create an API, an API groups all of your keys together. They are invisible to your users but allow you to filter keys by a namespace. We recommend creating one API for each environment, typically development, preview and production.
 
-Image three explain it.
+![Step 2](/images/changelog/aug-25/unkey-onboard-step-2.png)
+
+Finally we show you how to use Unkey, we show you how to create a root key, how to use it in your application and how to create a regular key.
+
+![Step 3](/images/changelog/aug-25/unkey-onboard-step-4.png)
+
+We think this experience will help new users get up to speed with Unkey and make it easier to get started. Let us know what you think!
 
 ## Dashboard improvements
 
@@ -31,7 +37,7 @@ We fixed a number of bugs and also improved the dashboard experience here are a 
 2. The caching issues have been resolved, so creating, updating or removing any data will be reflected correctly. 
 3. Adds Remaining feature to the UI to allow you to create limited usage keys in a single click.
 
-****************************Error messages built to inform****************************
+## Error messages built to inform
 
 Have you ever worked with a third party lib, and you received an “Oops try again” error or an extremely vague error that gives you zero indication of what caused it? Great news! Unkey’s error response provide everything you could need to rectify the problem. Every error response will return:
 
