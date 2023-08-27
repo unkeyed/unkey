@@ -196,6 +196,9 @@ importers:
       '@unkey/id':
         specifier: workspace:*
         version: link:../../packages/id
+      '@unkey/loops':
+        specifier: workspace:*
+        version: link:../../packages/loops
       '@unkey/policies':
         specifier: workspace:*
         version: link:../../packages/policies
@@ -505,6 +508,18 @@ importers:
         version: 20.4.4
       '@unkey/tsconfig':
         specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.1.6
+        version: 5.1.6
+
+  packages/loops:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.4.4
+        version: 20.4.4
+      '@unkey/tsconfig':
+        specifier: workspace:^
         version: link:../tsconfig
       typescript:
         specifier: ^5.1.6
