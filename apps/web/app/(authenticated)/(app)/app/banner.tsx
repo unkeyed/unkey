@@ -1,6 +1,7 @@
 import { Banner } from "@/components/banner";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
+import ms from "ms";
 import Link from "next/link";
 /**
  * Shows a banner if necessary
@@ -18,19 +19,21 @@ export const UsageBanner: React.FC = async () => {
     return null;
   }
 
+
   const fmt = new Intl.NumberFormat("en-US").format;
 
-  // if (team.trialExpires) {
-  //   return (
-  //     <Banner>
-  //       Your trial expires in {ms(team.trialExpires.getTime() - Date.now(), { long: true })}.{" "}
-  //       <Link href={`/${team.slug}/settings/usage`} className="underline">
-  //         Add a payment method
-  //       </Link>{" "}
-  //       to keep using Planetfall.
-  //     </Banner>
-  //   );
-  // }
+  // Show a banner if their trial is ending within 7 days
+   if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
+     return (
+       <Banner><p className="text-xs text-center">
+        {workspace.trialEnds.getTime() <= Date.now() ? "Your trial has expired." : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), { long: true })}.`}{" "}
+         <Link href="/app/stripe" className="underline">
+           Add a payment method
+         </Link>
+       </p>
+       </Banner>
+     );
+   }
 
   if (
     workspace.maxActiveKeys &&
@@ -39,13 +42,11 @@ export const UsageBanner: React.FC = async () => {
   ) {
     return (
       <Banner variant="alert">
-        <div className="text-center">
-          <div>
+        <p className="text-xs text-center">
             You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
             <strong>{fmt(workspace.usageActiveKeys)}</strong> /{" "}
-            <strong>{fmt(workspace.maxActiveKeys)}</strong>
-          </div>
-          <div>
+            <strong>{fmt(workspace.maxActiveKeys)}</strong>.{" "}
+          
             <Link href="/app/stripe" className="underline">
               Upgrade your plan
             </Link>{" "}
@@ -53,8 +54,8 @@ export const UsageBanner: React.FC = async () => {
             <Link href="mailto:andreas@unkey.dev" className="underline">
               contact us.
             </Link>
-          </div>
-        </div>
+          
+        </p>
       </Banner>
     );
   }
@@ -66,23 +67,21 @@ export const UsageBanner: React.FC = async () => {
   ) {
     return (
       <Banner variant="alert">
-        <div className="text-center">
-          <div>
-            You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
-            <strong>{fmt(workspace.usageVerifications)}</strong> /{" "}
-            <strong>{fmt(workspace.maxVerifications)}</strong>
-          </div>
-          <div>
-            <Link href="/app/stripe" className="underline">
-              Upgrade your plan
-            </Link>{" "}
-            or{" "}
-            <Link href="mailto:andreas@unkey.dev" className="underline">
-              contact us.
-            </Link>
-          </div>
-        </div>
-      </Banner>
+      <p className="text-xs text-center">
+          You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
+          <strong>{fmt(workspace.usageVerifications)}</strong> /{" "}
+          <strong>{fmt(workspace.maxVerifications)}</strong>.{" "}
+        
+          <Link href="/app/stripe" className="underline">
+            Upgrade your plan
+          </Link>{" "}
+          or{" "}
+          <Link href="mailto:andreas@unkey.dev" className="underline">
+            contact us.
+          </Link>
+        
+      </p>
+    </Banner>
     );
   }
 

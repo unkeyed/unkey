@@ -26,7 +26,7 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-stone-200 to-stone-100 dark:from-neutral-950 dark:to-neutral-900">
+      <div className="relative flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-stone-200 to-stone-100 dark:from-neutral-950 dark:to-neutral-900">
         <UsageBanner />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar workspace={workspace} className="lg:hidden" />
