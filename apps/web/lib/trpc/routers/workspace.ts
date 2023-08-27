@@ -6,6 +6,7 @@ import { newId } from "@unkey/id";
 import { clerkClient } from "@clerk/nextjs";
 import { stripeEnv } from "@/lib/env";
 import Stripe from "stripe";
+import { QUOTA } from "@/lib/constants/quotas";
 
 export const workspaceRouter = t.router({
   create: t.procedure
@@ -42,8 +43,8 @@ export const workspaceRouter = t.router({
         stripeCustomerId: null,
         stripeSubscriptionId: null,
         internal: false,
-        maxActiveKeys: input.plan === "free" ? 100 : null,
-        maxVerifications: input.plan === "free" ? 2500 : null,
+        maxActiveKeys: QUOTA[input.plan].maxActiveKeys,
+        maxVerifications: QUOTA[input.plan].maxVerifications,
         usageActiveKeys: null,
         usageVerifications: null,
         lastUsageUpdate: null,
