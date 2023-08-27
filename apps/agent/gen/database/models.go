@@ -143,4 +143,7 @@ type Workspace struct {
 	QuotaMaxVerifications sql.NullInt32
 	UsageVerifications    sql.NullInt32
 	LastUsageUpdate       sql.NullTime
+	BillingPeriodStart    sql.NullTime
+	BillingPeriodEnd      sql.NullTime
+	TrialEnds             sql.NullTime
 }

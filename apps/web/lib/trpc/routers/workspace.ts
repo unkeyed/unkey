@@ -47,6 +47,9 @@ export const workspaceRouter = t.router({
         usageActiveKeys: null,
         usageVerifications: null,
         lastUsageUpdate: null,
+        billingPeriodStart: null,
+        billingPeriodEnd: null,
+        trialEnds: null,
       };
       await db.insert(schema.workspaces).values(workspace);
 
