@@ -76,7 +76,10 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
-	key, found, err := withCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
+	// This is not cached on purpose
+	// In case you're updating the same key in rapid succession or your requests are handled by
+	// different machines, it was possible to overwrite the key with cached data
+	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
 	}
