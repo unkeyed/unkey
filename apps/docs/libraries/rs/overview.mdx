@@ -1,0 +1,69 @@
+---
+title: "Overview"
+description: "Rust client for unkey"
+---
+
+# Unkey for Rust
+
+An asynchronous Rust SDK for the [Unkey API](https://docs.unkey.dev/introduction).
+
+All the API key management features you love, now with more type safety!
+
+## MSRV
+
+The minimum supported Rust verision for the project is `1.63.0`.
+
+## Setup
+
+### Using `cargo`
+
+```bash
+$ cargo add unkey
+```
+
+### Manually
+
+Add the following to your `Cargo.toml` dependencies array:
+
+```toml
+unkey = "0.1"
+```
+
+## Getting started
+
+More examples can be found in the documentation.
+
+### Example
+
+```rust
+use unkey::models::{VerifyKeyRequest, Wrapped};
+use unkey::Client;
+
+#[tokio::main]
+async fn main() {
+    // Create a new client with your root api key
+    let client = Client::new(env!("UNKEY_ROOT_KEY"));
+
+    // Create the request you want to send
+    let req = VerifyKeyRequest::new("invalid_key42");
+
+    // Check the response
+    match client.verify_key(req).await {
+        // Success, we know this key shouldn't be valid
+        Wrapped::Ok(res) => assert!(!res.valid),
+        // Error, something went wrong
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+### Project Links
+
+- [Documentation](https://docs.rs/unkey)
+- [Repository](https://github.com/Jonxslays/unkey)
+- [Crate](https://crates.io/crates/unkey)
+
+### Other useful links
+
+- [The Client](https://docs.rs/unkey/latest/unkey/struct.Client.html)
+- [Models](https://docs.rs/unkey/latest/unkey/models/index.html)

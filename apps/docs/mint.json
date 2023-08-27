@@ -182,6 +182,13 @@
       "pages": [
         "libraries/nuxt/overview"
       ]
+    },
+    {
+      "group": "Rust",
+      "icon": "code",
+      "pages": [
+        "libraries/rs/overview"
+      ]
     }
   ],
   "footerSocials": {
