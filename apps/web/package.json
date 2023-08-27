@@ -54,6 +54,7 @@
     "@trpc/server": "^10.35.0",
     "@unkey/api": "workspace:*",
     "@unkey/db": "workspace:*",
+    "@unkey/loops": "workspace:*",
     "@unkey/id": "workspace:*",
     "@unkey/policies": "workspace:*",
     "@upstash/kafka": "^1.3.3",

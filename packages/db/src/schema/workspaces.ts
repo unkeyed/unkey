@@ -29,15 +29,24 @@ export const workspaces = mysqlTable(
 
     // different plans, this should only be used for visualisations in the ui
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
+
+    // stripe
     stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
+
+    // null means there was no trial
+    trialEnds: datetime("trial_ends", { fsp: 3 }),
+    // if null, you should fall back to start of month
+    billingPeriodStart: datetime("billing_period_start", { fsp: 3 }),
+    // if null, you should fall back to end of month
+    billingPeriodEnd: datetime("billing_period_end", { fsp: 3 }),
 
     // quotas and usage
     maxActiveKeys: int("quota_max_active_keys"),
     usageActiveKeys: int("usage_active_keys"),
     maxVerifications: int("quota_max_verifications"),
     usageVerifications: int("usage_verifications"),
-    lastUsageUpdate: datetime("last_usage_update", { fsp: 3 }), // unix milli
+    lastUsageUpdate: datetime("last_usage_update", { fsp: 3 }),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

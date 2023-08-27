@@ -3,7 +3,9 @@ import Stripe from "stripe";
 import { Readable } from "node:stream";
 import { db, eq, schema } from "@/lib/db";
 import { z } from "zod";
-import { stripeEnv } from "@/lib/env";
+import { env, stripeEnv } from "@/lib/env";
+import { Loops } from "@unkey/loops";
+import { clerkClient } from "@clerk/nextjs";
 
 // Stripe requires the raw body to construct the event.
 export const config = {
@@ -19,12 +21,6 @@ async function buffer(readable: Readable) {
   }
   return Buffer.concat(chunks);
 }
-
-const _relevantEvents = new Set([
-  "customer.subscription.created",
-  "customer.subscription.updated",
-  "customer.subscription.deleted",
-]);
 
 const requestValidation = z.object({
   method: z.literal("POST"),
@@ -56,15 +52,18 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     switch (event.type) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
-        const newSubscription = event.data.object as Stripe.Subscription;
+        const sub = event.data.object as Stripe.Subscription;
         await db
           .update(schema.workspaces)
           .set({
-            stripeCustomerId: newSubscription.customer.toString(),
-            stripeSubscriptionId: newSubscription.id,
+            stripeCustomerId: sub.customer.toString(),
+            stripeSubscriptionId: sub.id,
             plan: "pro",
+            billingPeriodStart: new Date(sub.current_period_start * 1000),
+            billingPeriodEnd: new Date(sub.current_period_end * 1000),
+            trialEnds: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
           })
-          .where(eq(schema.workspaces.stripeCustomerId, newSubscription.customer.toString()));
+          .where(eq(schema.workspaces.stripeCustomerId, sub.customer.toString()));
 
         break;
       }
@@ -85,11 +84,56 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             stripeCustomerId: subscription.customer.toString(),
             stripeSubscriptionId: null,
             plan: "free",
+            billingPeriodStart: null,
+            billingPeriodEnd: null,
           })
           .where(eq(schema.workspaces.id, ws.id));
 
         break;
       }
+      case "customer.subscription.trial_will_end": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("subscription will end", subscription);
+        if (!env.LOOPS_API_KEY) {
+          // no need to fetch everything if we don't use it
+          break;
+        }
+        const ws = await db.query.workspaces.findFirst({
+          where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
+        });
+        if (!ws) {
+          throw new Error("workspace does not exist");
+        }
+
+        const userIds: string[] = [];
+        if (ws.tenantId.startsWith("org_")) {
+          const members = await clerkClient.organizations.getOrganizationMembershipList({
+            organizationId: ws.tenantId,
+          });
+          for (const m of members) {
+            userIds.push(m.id);
+          }
+        } else {
+          userIds.push(ws.tenantId);
+        }
+        const loops = await new Loops({ apiKey: env.LOOPS_API_KEY });
+        for await (const userId of userIds) {
+          const user = await clerkClient.users.getUser(userId);
+          const email = user.emailAddresses.at(0)?.emailAddress;
+          if (!email) {
+            console.warn("user doesn't have an email: %s", user.id);
+            continue;
+          }
+          await loops.sendTrialEnds({
+            email,
+            name: user.firstName ?? user.username ?? "",
+            date: new Date(subscription.trial_end! * 1000),
+          });
+        }
+
+        break;
+      }
+
       default:
         console.error("Incoming stripe event, that should not be received", event.type);
         break;
