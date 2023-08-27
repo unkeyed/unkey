@@ -6,6 +6,7 @@ import { z } from "zod";
 import { env, stripeEnv } from "@/lib/env";
 import { Loops } from "@unkey/loops";
 import { clerkClient } from "@clerk/nextjs";
+import { QUOTA } from "@/lib/constants/quotas";
 
 // Stripe requires the raw body to construct the event.
 export const config = {
@@ -62,6 +63,8 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             billingPeriodStart: new Date(sub.current_period_start * 1000),
             billingPeriodEnd: new Date(sub.current_period_end * 1000),
             trialEnds: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+            maxActiveKeys: QUOTA.pro.maxActiveKeys,
+            maxVerifications: QUOTA.pro.maxVerifications,
           })
           .where(eq(schema.workspaces.stripeCustomerId, sub.customer.toString()));
 

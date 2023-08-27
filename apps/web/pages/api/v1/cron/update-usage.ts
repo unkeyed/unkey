@@ -1,5 +1,5 @@
 import { env, stripeEnv } from "@/lib/env";
-import { Workspace, db, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
 import Stripe from "stripe";
 import { NextApiRequest, NextApiResponse } from "next";
@@ -8,33 +8,27 @@ import { verifySignature } from "@upstash/qstash/nextjs";
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
   try {
     if (!stripeEnv) {
-      res.status(500).send("STRIPE_SECRET_KEY is missing");
-      res.end();
-      return;
+      throw new Error("STRIPE_SECRET_KEY is missing");
     }
 
     const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
       apiVersion: "2022-11-15",
     });
 
-    const workspaceBatchSize = 50;
-    let workspaceOffset = 0;
+    const allWorkspaces = await db.query.workspaces.findMany();
 
-    let workspaces: Workspace[] = [];
-    do {
-      workspaces = await db.query.workspaces.findMany({
-        limit: workspaceBatchSize,
-        offset: workspaceOffset,
-        orderBy: schema.workspaces.id,
-      });
-      workspaceOffset += workspaces.length;
+    console.log("found %d workspaces", allWorkspaces.length);
+    while (allWorkspaces.length > 0) {
+      const workspaces = allWorkspaces.splice(0, 20);
 
       await Promise.all(
         workspaces.map(async (ws) => {
+          console.warn("workspace with subscription: %s -> %s", ws.id, ws.stripeSubscriptionId);
           let [start, end] = getMonthStartAndEnd();
           let subscription: Stripe.Response<Stripe.Subscription> | null = null;
 
           if (ws.stripeSubscriptionId) {
+            console.log("fetching subscription %s", ws.stripeSubscriptionId);
             subscription = await stripe.subscriptions.retrieve(ws.stripeSubscriptionId);
             if (!subscription) {
               throw new Error(`subscription not found: ${ws.stripeSubscriptionId}`);
@@ -51,14 +45,6 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             start,
             end,
           }).then((res) => res.data.at(0)?.usage);
-
-          console.log(`updating workspace ${ws.id}`, {
-            start,
-            end,
-            activeKeys,
-            verifications,
-            subscriptionId: subscription?.id,
-          });
 
           await db.update(schema.workspaces).set({
             usageActiveKeys: activeKeys ?? 0,
@@ -96,7 +82,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
           }
         }),
       );
-    } while (workspaces.length === workspaceBatchSize);
+    }
 
     // report success
     if (env.UPTIME_CRON_URL_COLLECT_BILLING) {
