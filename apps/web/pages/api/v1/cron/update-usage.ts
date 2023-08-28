@@ -1,5 +1,5 @@
 import { env, stripeEnv } from "@/lib/env";
-import { db, schema } from "@/lib/db";
+import { db, schema, eq } from "@/lib/db";
 import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
 import Stripe from "stripe";
 import { NextApiRequest, NextApiResponse } from "next";
@@ -46,11 +46,15 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             end,
           }).then((res) => res.data.at(0)?.usage);
 
-          await db.update(schema.workspaces).set({
-            usageActiveKeys: activeKeys ?? 0,
-            usageVerifications: verifications ?? 0,
-            lastUsageUpdate: new Date(),
-          });
+          await db
+            .update(schema.workspaces)
+            .set({
+              usageActiveKeys: activeKeys ?? 0,
+              usageVerifications: verifications ?? 0,
+              lastUsageUpdate: new Date(),
+            })
+            .where(eq(schema.workspaces.id, ws.id));
+
           if (subscription) {
             for (const item of subscription.items.data) {
               console.log("handling item %s -> product %s", item.id, item.price.product);

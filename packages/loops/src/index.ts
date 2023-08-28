@@ -30,7 +30,7 @@ export class Loops {
 
   public async sendTrialEnds(req: { email: string; name: string; date: Date }): Promise<void> {
     await this.fetch({
-      path: ["/v1/transactional"],
+      path: ["v1", "transactional"],
       method: "POST",
       body: {
         transactionalId: "cllt7wzoc00rqmh0ohcumn2c4",
