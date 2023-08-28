@@ -144,7 +144,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     res.send("OK");
   } catch (e) {
     const err = e as Error;
-    console.error(err.message);
+    console.error(err);
     res.status(500).send(err.message);
     return;
   } finally {
