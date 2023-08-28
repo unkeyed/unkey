@@ -106,7 +106,7 @@
   :where(pre) {
     display: flex;
     background-color: theme(colors.neutral.950);
-    border-radius: theme(borderRadius.4xl);
+    border-radius: theme(borderRadius.2xl);
     overflow-x: auto;
     margin-top: theme(spacing.10);
     margin-bottom: theme(spacing.10);
