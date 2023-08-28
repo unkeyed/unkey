@@ -19,5 +19,6 @@ See [here](./.github/CONTRIBUTING.md) for more information on how to contribute 
   <img src="https://contrib.rocks/image?repo=unkeyed/unkey" />
 </a>
 
+## Stats
 
 ![Alt](https://repobeats.axiom.co/api/embed/7fffcb5e94fd0a27b9c4d6ffe2d7e3261da2d0e4.svg "Repobeats analytics image")
