@@ -1,9 +1,9 @@
 import { DesktopSidebar } from "./desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { redirect } from "next/navigation";
 import { MobileSideBar } from "./mobile-sidebar";
 import { UsageBanner } from "./banner";
+import { notFound } from "next/navigation";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
@@ -11,17 +11,18 @@ interface LayoutProps {
   };
 }
 
-export default async function Layout({ children }: LayoutProps) {
-  const tenantId = getTenantId();
+export default async function Layout({ children, params }: LayoutProps) {
+  const _tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: eq(schema.workspaces.slug, params.workspaceSlug),
     with: {
       apis: true,
     },
   });
   if (!workspace) {
-    return redirect("/app/apis");
+    console.warn("Could not find workspace %s, redirecing to onboarding", params.workspaceSlug);
+    return notFound()
   }
 
   return (

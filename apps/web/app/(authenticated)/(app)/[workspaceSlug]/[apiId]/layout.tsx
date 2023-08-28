@@ -13,12 +13,13 @@ import { NavLink } from "@/components/dashboard/api-navbar";
 
 type Props = PropsWithChildren<{
   params: {
+    workspaceSlug: string;
     apiId: string;
   };
 }>;
 export const revalidate = 0;
 export default async function ApiPageLayout(props: Props) {
-  const tenantId = getTenantId();
+  const _tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
     where: eq(schema.apis.id, props.params.apiId),
@@ -26,12 +27,12 @@ export default async function ApiPageLayout(props: Props) {
       workspace: true,
     },
   });
-  if (!api || api.workspace.tenantId !== tenantId) {
+  if (!api || api.workspace.slug !== props.params.workspaceSlug) {
     return redirect("/onboarding");
   }
   const navigation: { name: string; href: string }[] = [
-    { name: "Overview", href: `/app/${props.params.apiId}` },
-    { name: "Keys", href: `/app/${props.params.apiId}/keys` },
+    { name: "Overview", href: `/${props.params.workspaceSlug}/${props.params.apiId}` },
+    { name: "Keys", href: `/${props.params.workspaceSlug}/${props.params.apiId}/keys` },
   ];
 
   return (
@@ -48,7 +49,7 @@ export default async function ApiPageLayout(props: Props) {
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
-          <Link key="new" href={`/app/${api.id}/keys/new`}>
+          <Link key="new" href={`/${props.params.workspaceSlug}/${api.id}/keys/new`}>
             <Button variant="outline">Create Key</Button>
           </Link>,
           <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,

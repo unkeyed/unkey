@@ -26,8 +26,8 @@ import {
   Sun,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Loading } from "@/components/dashboard/loading";
 
 import { cn } from "@/lib/utils";
@@ -43,24 +43,34 @@ type Props = {
 };
 
 export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element => {
+  const params = useParams();
   const { setActive, organizationList } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  async function changeOrg(orgId: string | null) {
+  
+  useEffect(() => {
+    const slug = params?.workspaceSlug;
+    if (!slug) {
+      return;
+    }
+    if (currentOrg?.slug === slug) {
+      return;
+    }
+    const org = organizationList?.find((org) => org.organization.slug === slug);
+    if (!org) {
+      console.error("Could not find org");
+      return;
+    }
     if (!setActive) {
       return;
     }
-    try {
-      setLoading(true);
-      await setActive({
-        organization: orgId,
-      });
-    } finally {
+    setLoading(true);
+    setActive({ organization: org.organization.id }).finally(() => {
       setLoading(false);
-    }
-  }
+    })
+  }, [params, currentOrg, setActive,organizationList]);
   const { setTheme, theme } = useTheme();
   return (
     <DropdownMenu>
@@ -101,7 +111,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
               <span>Docs</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="/app/stripe">
+          <Link href={`/${workspace.slug}/stripe`}>
             <DropdownMenuItem className="cursor-pointer">
               <Zap className="w-4 h-4 mr-2" />
               <span>Plans & Billing</span>
@@ -150,7 +160,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
           <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
 
           <DropdownMenuItem
-            onClick={() => changeOrg(null)}
+            onClick={() => router.push(`/${workspace.slug}`)}
             className={cn("flex items-center justify-between", {
               "bg-stone-100 dark:bg-stone-700 dark:text-stone-100 cursor-pointer":
                 currentOrg === null,
@@ -163,7 +173,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
           {organizationList?.map((org) => (
             <DropdownMenuItem
               key={org.organization.id}
-              onClick={() => changeOrg(org.organization.id)}
+              onClick={() => router.push(`/${org.organization.slug}`)}
               className={cn("flex items-center justify-between", {
                 "bg-stone-100 dark:bg-stone-700 dark:text-stone-100 cursor-pointer":
                   currentOrg?.slug === org.organization.slug,
@@ -184,7 +194,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
             </DropdownMenuItem>
           </Link>
           {membership?.role === "admin" ? (
-            <Link href="/app/team/invite">
+            <Link href={`/${workspace.slug}/team/invite`}>
               <DropdownMenuItem>
                 <Plus className="w-4 h-4 mr-2 " />
                 <span className="cursor-pointer">Invite Member</span>

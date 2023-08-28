@@ -2,7 +2,13 @@ import { getTenantId } from "@/lib/auth";
 import { db, schema, eq } from "@/lib/db";
 import { redirect } from "next/navigation";
 
-export default async function TenantOverviewPage() {
+type Props = {
+  params: {
+    workspaceSlug: string;
+  };
+};
+
+export default async function TenantOverviewPage(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
@@ -10,5 +16,6 @@ export default async function TenantOverviewPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-  return redirect("/app/apis");
+
+  return redirect(`/${props.params.workspaceSlug}/apis`);
 }

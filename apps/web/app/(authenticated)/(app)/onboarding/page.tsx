@@ -9,7 +9,7 @@ export default async function OnboardingPage() {
   });
 
   if (workspaces.length > 0) {
-    return redirect("/app/apis");
+    return redirect(`/${workspaces.at(0)!.slug}/apis`);
   }
 
   return redirect("/new");

@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,6 +26,7 @@ const formSchema = z.object({
 });
 
 export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+  const params = useParams();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,7 +39,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
         description: "Your API has been created",
       });
       router.refresh();
-      router.push(`/app/${res.id}`);
+      router.push(`/${params?.workspaceSlug}/${res.id}`);
     },
     onError(err) {
       console.error(err);
@@ -58,8 +59,8 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className=" gap-2 font-semibold items-center flex-row" {...rest}>
-            <Plus size={18} className=" w-4 h-4 md:w-5 md:h-5" />
+          <Button className="flex-row items-center gap-2 font-semibold " {...rest}>
+            <Plus size={18} className="w-4 h-4 md:w-5 md:h-5" />
             Create New API
           </Button>
         </DialogTrigger>
@@ -87,7 +88,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                 )}
               />
 
-              <DialogFooter className=" pt-4 justify-end flex-row gap-2">
+              <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
                 <Button
                   disabled={create.isLoading || !form.formState.isValid}
                   className="mt-4 "

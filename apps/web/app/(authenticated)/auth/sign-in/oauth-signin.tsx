@@ -21,7 +21,7 @@ export function OAuthSignIn() {
       await signIn.authenticateWithRedirect({
         strategy: provider,
         redirectUrl: "/auth/sso-callback",
-        redirectUrlComplete: "/app/apis",
+        redirectUrlComplete: "/home",
       });
     } catch (cause) {
       console.error(cause);

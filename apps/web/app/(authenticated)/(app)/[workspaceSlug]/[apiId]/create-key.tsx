@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Form,
@@ -32,6 +32,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Code } from "@/components/ui/code";
 import { Textarea } from "@/components/ui/textarea";
+import { workerData } from "worker_threads";
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
@@ -62,6 +63,7 @@ type Props = {
 };
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
+  const params = useParams();
   const { toast } = useToast();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -163,7 +165,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </div>
           </Code>
           <div className="flex justify-end my-4 space-x-4">
-            <Link href={`/app/${apiId}`}>
+            <Link href={`/${params?.workspaceSlug}/${apiId}`}>
               <Button variant="outline">Back</Button>
             </Link>
             <Button onClick={() => key.reset()}>Create another key</Button>
@@ -226,7 +228,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <div className="grid md:grid-cols-4 grid-cols-1 gap-4 my-4">
+                  <div className="grid grid-cols-1 gap-4 my-4 md:grid-cols-4">
                     <FormField
                       control={form.control}
                       name="expiresEnabled"

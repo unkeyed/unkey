@@ -9,7 +9,7 @@ export default function SSOCallback() {
   return (
     <div className="flex items-center justify-center h-screen ">
       <Loading className="w-16 h-16" />
-      <AuthenticateWithRedirectCallback afterSignInUrl="/app/apis" afterSignUpUrl="/onboarding" />
+      <AuthenticateWithRedirectCallback afterSignInUrl="/home" afterSignUpUrl="/onboarding" />
     </div>
   );
 }

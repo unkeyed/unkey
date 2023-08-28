@@ -39,21 +39,21 @@ export default authMiddleware({
       return redirectToSignIn({ returnBackUrl: req.url });
     }
     // Stops users from accessing the application if they have not paid yet.
-    if (
-      auth.orgId &&
-      !["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)
-    ) {
-      const workspace = await findWorkspace({ tenantId: auth.orgId });
-      if (workspace?.plan === "free") {
-        return NextResponse.redirect(new URL("/app/stripe", req.url));
-      }
-    }
-    if (auth.userId && req.nextUrl.pathname === "/app/apis") {
-      const workspace = await findWorkspace({ tenantId: auth.userId });
-      if (!workspace) {
-        return NextResponse.redirect(new URL("/onboarding", req.url));
-      }
-    }
+    // if (
+    //   auth.orgId &&
+    //   !["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)
+    // ) {
+    //   const workspace = await findWorkspace({ tenantId: auth.orgId });
+    //   if (workspace?.plan === "free") {
+    //     return NextResponse.redirect(new URL("/app/stripe", req.url));
+    //   }
+    // }
+    // if (auth.userId && req.nextUrl.pathname === "/app/apis") {
+    //   const workspace = await findWorkspace({ tenantId: auth.userId });
+    //   if (!workspace) {
+    //     return NextResponse.redirect(new URL("/onboarding", req.url));
+    //   }
+    // }
   },
 });
 

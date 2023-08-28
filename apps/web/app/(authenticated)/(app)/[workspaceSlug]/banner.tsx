@@ -19,21 +19,25 @@ export const UsageBanner: React.FC = async () => {
     return null;
   }
 
-
   const fmt = new Intl.NumberFormat("en-US").format;
 
   // Show a banner if their trial is ending within 7 days
-   if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
-     return (
-       <Banner><p className="text-xs text-center">
-        {workspace.trialEnds.getTime() <= Date.now() ? "Your trial has expired." : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), { long: true })}.`}{" "}
-         <Link href="/app/stripe" className="underline">
-           Add a payment method
-         </Link>
-       </p>
-       </Banner>
-     );
-   }
+  if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
+    return (
+      <Banner>
+        <p className="text-xs text-center">
+          {workspace.trialEnds.getTime() <= Date.now()
+            ? "Your trial has expired."
+            : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
+                long: true,
+              })}.`}{" "}
+          <Link href={`/${workspace.slug}/stripe`} className="underline">
+            Add a payment method
+          </Link>
+        </p>
+      </Banner>
+    );
+  }
 
   if (
     workspace.maxActiveKeys &&
@@ -43,18 +47,16 @@ export const UsageBanner: React.FC = async () => {
     return (
       <Banner variant="alert">
         <p className="text-xs text-center">
-            You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
-            <strong>{fmt(workspace.usageActiveKeys)}</strong> /{" "}
-            <strong>{fmt(workspace.maxActiveKeys)}</strong>.{" "}
-          
-            <Link href="/app/stripe" className="underline">
-              Upgrade your plan
-            </Link>{" "}
-            or{" "}
-            <Link href="mailto:andreas@unkey.dev" className="underline">
-              contact us.
-            </Link>
-          
+          You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
+          <strong>{fmt(workspace.usageActiveKeys)}</strong> /{" "}
+          <strong>{fmt(workspace.maxActiveKeys)}</strong>.{" "}
+          <Link href={`/${workspace.slug}/stripe`} className="underline">
+            Upgrade your plan
+          </Link>{" "}
+          or{" "}
+          <Link href="mailto:andreas@unkey.dev" className="underline">
+            contact us.
+          </Link>
         </p>
       </Banner>
     );
@@ -67,21 +69,19 @@ export const UsageBanner: React.FC = async () => {
   ) {
     return (
       <Banner variant="alert">
-      <p className="text-xs text-center">
+        <p className="text-xs text-center">
           You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
           <strong>{fmt(workspace.usageVerifications)}</strong> /{" "}
           <strong>{fmt(workspace.maxVerifications)}</strong>.{" "}
-        
-          <Link href="/app/stripe" className="underline">
+          <Link href={`/${workspace.slug}/stripe`} className="underline">
             Upgrade your plan
           </Link>{" "}
           or{" "}
           <Link href="mailto:andreas@unkey.dev" className="underline">
             contact us.
           </Link>
-        
-      </p>
-    </Banner>
+        </p>
+      </Banner>
     );
   }
 

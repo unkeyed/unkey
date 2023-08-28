@@ -24,7 +24,7 @@ import {
 import { Alert } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc/client";
 import { Loading } from "../loading";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import ms from "ms";
 import Link from "next/link";
@@ -46,6 +46,7 @@ type Props = {
 };
 
 export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
+  const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const deleteKey = trpc.key.delete.useMutation({
@@ -161,7 +162,10 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/${apiId}/keys/${row.original.id}`} className="w-full">
+                  <Link
+                    href={`/${params?.workspaceSlug}/${apiId}/keys/${row.original.id}`}
+                    className="w-full"
+                  >
                     Details
                   </Link>
                 </DropdownMenuItem>

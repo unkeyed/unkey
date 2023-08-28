@@ -6,6 +6,7 @@ import { WorkspaceSwitcher } from "./team-switcher";
 import { Workspace } from "@unkey/db";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { workspacesRelations } from "@unkey/db/src/schema";
 
 type Props = {
   workspace: Workspace;
@@ -33,7 +34,7 @@ export const MobileSideBar = ({ workspace, className }: Props) => {
           <div className="flex flex-col w-full p-4 ">
             <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
             <div className="space-y-1">
-              <Link href="/app/apis">
+              <Link href={`/${workspace.slug}/apis`}>
                 <SheetClose asChild>
                   <Button variant="ghost" className="justify-start w-full">
                     <FileJson className="w-4 h-4 mr-2" />
@@ -42,7 +43,7 @@ export const MobileSideBar = ({ workspace, className }: Props) => {
                 </SheetClose>
               </Link>
 
-              <Link href="/app/keys">
+              <Link href={`/${workspace.slug}/keys`}>
                 <SheetClose asChild>
                   <Button variant="ghost" className="justify-start w-full border-t">
                     <Settings className="w-4 h-4 mr-2" />

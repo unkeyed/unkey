@@ -36,7 +36,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
         <div className="px-6 py-2">
           <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
           <div className="space-y-1">
-            <Link href="/app/apis">
+            <Link href={`/${workspace.slug}/apis`}>
               <Button variant="ghost" size="sm" className="justify-start w-full ">
                 <FileJson className="w-4 h-4 mr-2" />
                 APIs
@@ -48,7 +48,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
               Audit
             </Button>
 
-            <Link href="/app/keys">
+            <Link href={`/${workspace.slug}/keys`}>
               <Button variant="ghost" size="sm" className="justify-start w-full ">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
@@ -70,7 +70,12 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
               {workspace.apis
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((api) => (
-                  <ApiLink key={api.id} name={api.name} href={`/app/${api.id}`} id={api.id} />
+                  <ApiLink
+                    key={api.id}
+                    name={api.name}
+                    href={`/${workspace.slug}/${api.id}`}
+                    id={api.id}
+                  />
                 ))}
             </div>
           </ScrollArea>
