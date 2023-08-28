@@ -114,7 +114,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             organizationId: ws.tenantId,
           });
           for (const m of members) {
-            userIds.push(m.id);
+            userIds.push(m.publicUserData!.userId);
           }
         } else {
           userIds.push(ws.tenantId);
