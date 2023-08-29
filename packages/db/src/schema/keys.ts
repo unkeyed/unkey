@@ -1,15 +1,15 @@
-import {
-  mysqlTable,
-  varchar,
-  datetime,
-  text,
-  int,
-  uniqueIndex,
-  index,
-} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
-import { workspaces } from "./workspaces";
+import {
+  datetime,
+  index,
+  int,
+  mysqlTable,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
+import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
   "keys",

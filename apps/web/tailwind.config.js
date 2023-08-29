@@ -31,62 +31,69 @@ module.exports = {
       },
     },
 
-    extend: {
-      colors: {
-        white: "hsl(var(--white))",
-        black: "hsl(var(--black))",
-        background: {
-          DEFAULT: "hsl(var(--background))",
-          subtle: "hsl(var(--background-subtle))",
-        },
-        content: {
-          DEFAULT: "hsl(var(--content))",
-          subtle: "hsl(var(--content-subtle))",
-          info: "hsl(var(--content-info))",
-          warn: "hsl(var(--content-warn))",
-          alert: "hsl(var(--content-alert))",
-        },
-
-        brand: {
-          DEFAULT: "hsl(var(--brand))",
-          foreground: "hsl(var(--brand-foreground))",
-          border: "hsl(var(--brand-border))",
-        },
-
-        warn: {
-          DEFAULT: "hsl(var(--warn))",
-          foreground: "hsl(var(--warn-foreground))",
-          border: "hsl(var(--warn-border))",
-        },
-
-        alert: {
-          DEFAULT: "hsl(var(--alert))",
-          foreground: "hsl(var(--alert-foreground))",
-          border: "hsl(var(--alert-border))",
-        },
-
-        subtle: {
-          DEFAULT: "hsl(var(--subtle))",
-          foreground: "hsl(var(--subtle-foreground))",
-          border: "hsl(var(--subtle-border))",
-        },
-
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-          border: "hsl(var(--primary-border))",
-        },
-
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-          border: "hsl(var(--secondary-border))",
-        },
-
-        border: "hsl(var(--border))",
-        ring: "hsl(var(--ring))",
+    colors: {
+      white: "hsl(var(--white))",
+      black: "hsl(var(--black))",
+      gray: {
+        50: "#fafaf9",
+        100: "#f5f5f4",
+        200: "#e7e5e4",
+        300: "#d6d3d1",
+        400: "#a8a29e",
+        500: "#78716c",
+        600: "#57534e",
+        700: "#44403c",
+        800: "#292524",
+        900: "#1c1917",
+        950: "#0c0a09",
+      },
+      background: {
+        DEFAULT: "hsl(var(--background))",
+        subtle: "hsl(var(--background-subtle))",
+      },
+      content: {
+        DEFAULT: "hsl(var(--content))",
+        subtle: "hsl(var(--content-subtle))",
+        info: "hsl(var(--content-info))",
+        warn: "hsl(var(--content-warn))",
+        alert: "hsl(var(--content-alert))",
       },
 
+      brand: {
+        DEFAULT: "hsl(var(--brand))",
+        foreground: "hsl(var(--brand-foreground))",
+       
+      },
+
+      warn: {
+        DEFAULT: "hsl(var(--warn))",
+        foreground: "hsl(var(--warn-foreground))",
+       },
+
+      alert: {
+        DEFAULT: "hsl(var(--alert))",
+        foreground: "hsl(var(--alert-foreground))",
+      },
+
+      subtle: {
+        DEFAULT: "hsl(var(--subtle))",
+        foreground: "hsl(var(--subtle-foreground))",
+      },
+
+      primary: {
+        DEFAULT: "hsl(var(--primary))",
+        foreground: "hsl(var(--primary-foreground))",
+      },
+
+      secondary: {
+        DEFAULT: "hsl(var(--secondary))",
+        foreground: "hsl(var(--secondary-foreground))",
+      },
+
+      border: "hsl(var(--border))",
+      ring: "hsl(var(--ring))",
+    },
+    extend: {
       keyframes: {
         "accordion-down": {
           from: { height: 0 },

@@ -1,11 +1,11 @@
 "use client";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { Workspace } from "@unkey/db";
 import { BookOpen, FileJson, Menu, Settings } from "lucide-react";
 import Link from "next/link";
 import { WorkspaceSwitcher } from "./team-switcher";
-import { Workspace } from "@unkey/db";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
 type Props = {
   workspace: Workspace;
@@ -27,7 +27,7 @@ export const MobileSideBar = ({ workspace, className }: Props) => {
         </SheetHeader>
         <SheetContent
           position="bottom"
-          className="bg-white shadow dark:bg-stone-950 rounded-xl"
+          className="bg-white shadow dark:bg-gray-950 rounded-xl"
           size="lg"
         >
           <div className="flex flex-col w-full p-4 ">

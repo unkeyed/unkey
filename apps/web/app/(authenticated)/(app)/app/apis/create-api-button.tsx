@@ -1,4 +1,7 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -8,9 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -45,7 +45,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
       toast({
         title: "Error",
         description: err.message,
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -76,7 +76,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                       <Input
                         placeholder="my-api"
                         {...field}
-                        className=" dark:focus:border-stone-700"
+                        className=" dark:focus:border-gray-700"
                       />
                     </FormControl>
                     <FormDescription>

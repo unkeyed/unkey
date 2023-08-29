@@ -1,9 +1,9 @@
-import { db, eq, schema } from "@/lib/db";
 import { getTenantId } from "@/lib/auth";
-import Stripe from "stripe";
-import { redirect } from "next/navigation";
+import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import Stripe from "stripe";
 
 export default async function StripeRedirect() {
   const tenantId = getTenantId();

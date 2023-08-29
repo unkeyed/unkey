@@ -1,14 +1,14 @@
-import { PageHeader } from "@/components/dashboard/page-header";
 import { ColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Text } from "@/components/dashboard/text";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { fillRange } from "@/lib/utils";
 import { db, eq, schema } from "@/lib/db";
 import { getDailyUsage } from "@/lib/tinybird";
+import { fillRange } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { CopyButton } from "@/components/dashboard/copy-button";
 
 export const revalidate = 0;
 
@@ -50,7 +50,7 @@ export default async function SettingsPage() {
         title={workspace.name}
         description="Settings"
         actions={[
-          <Badge key="workspaceId" variant="outline" className="font-mono font-medium">
+          <Badge key="workspaceId" variant="secondary" className="font-mono font-medium">
             {workspace.id}
             <CopyButton value={workspace.id} className="ml-2" />
           </Badge>,
@@ -74,7 +74,7 @@ export default async function SettingsPage() {
         </CardHeader>
 
         <CardContent>
-          <div className="flex justify-center py-4 divide-x divide-stone-200">
+          <div className="flex justify-center py-4 divide-x divide-gray-200">
             <div className="flex flex-col items-center gap-2 px-8">
               <Text size="xl">Current Usage</Text>
               <div className="flex items-center gap-2">

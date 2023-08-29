@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "fmt": "pnpm rome check . --apply-suggested && pnpm rome format . --write",
+    "fmt": "pnpm biome check . --apply && pnpm biome format . --write",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap"
   },
@@ -19,7 +19,7 @@
   "license": "ISC",
   "devDependencies": {
     "checkly": "^4.0.12",
-    "rome": "11.0.0",
+    "@biomejs/biome": "^1.0.0",
     "ts-node": "^10.9.1",
     "turbo": "^1.10.9",
     "typescript": "^5.1.6"

@@ -1,13 +1,13 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { CreateApiButton } from "./create-api-button";
 
-import { getTenantId } from "@/lib/auth";
-import { db, schema, eq, sql } from "@/lib/db";
-import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
-import { ApiList } from "./client";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema, sql } from "@/lib/db";
 import { Search } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ApiList } from "./client";
 
 export const revalidate = 3;
 
@@ -31,6 +31,7 @@ export default async function TenantOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
+        // rome-ignore lint: suspicious/noNonNullAssertion
         .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
@@ -46,7 +47,7 @@ export default async function TenantOverviewPage() {
               <Search size={18} />
               <input
                 disabled
-                className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none "
+                className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-content-subtle focus-visible:outline-none "
                 placeholder="Search.."
               />
             </div>

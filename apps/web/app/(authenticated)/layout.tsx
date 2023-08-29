@@ -1,5 +1,5 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toaster";
+import { ClerkProvider } from "@clerk/nextjs";
 
 export default function AuthenticatedLayout({
   children,

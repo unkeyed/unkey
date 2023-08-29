@@ -2,10 +2,10 @@ import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
 import { allPosts } from "contentlayer/generated";
+import type { Metadata } from "next";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 
 type Props = {
   params: { slug: string };
@@ -72,16 +72,16 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
       <Container as="article" className="mt-24 sm:mt-32 lg:mt-40 ">
         <FadeIn>
           <header className="flex flex-col max-w-5xl mx-auto mb-8 text-center">
-            <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-neutral-950 [text-wrap:balance] sm:text-6xl">
+            <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-6xl">
               {post.title}
             </h1>
             <time
               dateTime={new Date(post.date).toDateString()}
-              className="order-first text-sm text-neutral-950"
+              className="order-first text-sm text-gray-950"
             >
               {new Date(post.date).toDateString()}
             </time>
-            <p className="mt-6 text-sm font-semibold text-neutral-950">
+            <p className="mt-6 text-sm font-semibold text-gray-950">
               by {post.author.name}, {post.author.role}
             </p>
           </header>
@@ -101,6 +101,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               className="absolute left-1/2 top-1/2 -z-10 h-[64rem] w-[64rem] -translate-y-1/2 [mask-image:radial-gradient(closest-side,white,transparent)] sm:left-full sm:-ml-80 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2 lg:translate-y-0"
               aria-hidden="true"
             >
+              <title>svg</title>
               <circle
                 cx={512}
                 cy={512}

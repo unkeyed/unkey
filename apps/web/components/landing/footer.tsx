@@ -2,8 +2,8 @@ import Link from "next/link";
 
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
-import { socialMediaProfiles } from "@/components/landing/social-media";
 import { NewsletterForm } from "@/components/landing/newsletter";
+import { socialMediaProfiles } from "@/components/landing/social-media";
 
 const navigation = [
   {
@@ -35,13 +35,13 @@ function Navigation() {
       <ul role="list" className="grid grid-cols-2 gap-8 sm:grid-cols-3">
         {navigation.map((section) => (
           <li key={section.title}>
-            <div className="font-display text-sm font-semibold tracking-wider text-neutral-950">
+            <div className="text-sm font-semibold tracking-wider font-display text-gray-950">
               {section.title}
             </div>
-            <ul role="list" className="mt-4 text-sm text-neutral-700">
+            <ul role="list" className="mt-4 text-sm text-gray-700">
               {section.links.map((link) => (
                 <li key={link.title} className="mt-4">
-                  <Link href={link.href} className="transition hover:text-neutral-950">
+                  <Link href={link.href} className="transition hover:text-gray-950">
                     {link.title}
                   </Link>
                 </li>
@@ -56,7 +56,7 @@ function Navigation() {
 
 export function Footer() {
   return (
-    <Container as="footer" className="mt-24 w-full sm:mt-32 lg:mt-40">
+    <Container as="footer" className="w-full mt-24 sm:mt-32 lg:mt-40">
       <FadeIn>
         <div className="grid grid-cols-1 gap-x-8 gap-y-16 lg:grid-cols-2">
           <Navigation />
@@ -64,7 +64,7 @@ export function Footer() {
             <NewsletterForm />
           </div>
         </div>
-        <div className="mb-20 mt-24 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-t border-neutral-950/10 pt-12">
+        <div className="flex flex-wrap items-end justify-between pt-12 mt-24 mb-20 border-t gap-x-6 gap-y-4 border-gray-950/10">
           <Link href="/" aria-label="Home">
             <svg
               width="32"
@@ -73,6 +73,7 @@ export function Footer() {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <title>Home</title>
               <g filter="url(#filter0_d_101_3)">
                 <path
                   d="M160.206 70H197V156.749C197 167.064 194.529 175.99 189.588 183.528C184.691 191.021 177.853 196.818 169.074 200.917C160.294 204.972 150.103 207 138.5 207C126.809 207 116.574 204.972 107.794 200.917C99.0147 196.818 92.1765 191.021 87.2794 183.528C82.4265 175.99 80 167.064 80 156.749V70H116.794V153.575C116.794 157.763 117.721 161.51 119.574 164.816C121.426 168.078 123.985 170.634 127.25 172.486C130.559 174.337 134.309 175.263 138.5 175.263C142.735 175.263 146.485 174.337 149.75 172.486C153.015 170.634 155.574 168.078 157.426 164.816C159.279 161.51 160.206 157.763 160.206 153.575V70Z"
@@ -146,7 +147,7 @@ export function Footer() {
               </defs>
             </svg>
           </Link>
-          <p className="text-sm text-neutral-700">© Unkeyed, Inc. {new Date().getFullYear()}</p>
+          <p className="text-sm text-gray-700">© Unkeyed, Inc. {new Date().getFullYear()}</p>
         </div>
       </FadeIn>
     </Container>

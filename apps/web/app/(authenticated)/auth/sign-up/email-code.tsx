@@ -41,7 +41,7 @@ export function EmailCode() {
           toast({
             title: "Error",
             description: "Please check the 6 digit code, the one you entered is incorrect",
-            variant: "destructive",
+            variant: "alert",
           });
         }
       });

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { allPosts } from "@/.contentlayer/generated";
 import { Border } from "@/components/landing/border";
 import { Container } from "@/components/landing/container";
 import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
@@ -6,12 +6,12 @@ import { GridList, GridListItem } from "@/components/landing/grid-list";
 import { PageIntro } from "@/components/landing/page-intro";
 import { PageLinks } from "@/components/landing/page-links";
 import { SectionIntro } from "@/components/landing/section-intro";
-import { allPosts } from "@/.contentlayer/generated";
-import imageJamesPerkins from "@/images/team/james.jpg";
 import imageAndreas from "@/images/team/andreas.jpeg";
+import imageJamesPerkins from "@/images/team/james.jpg";
+import Image from "next/image";
 function AboutUnkey() {
   return (
-    <div className="py-24 mt-24 rounded-4xl bg-neutral-950 sm:mt-32 lg:mt-40 lg:py-32 ">
+    <div className="py-24 mt-24 rounded-4xl bg-gray-950 sm:mt-32 lg:mt-40 lg:py-32 ">
       <SectionIntro eyebrow="" title="What is Unkey?" invert />
       <Container className="mt-16">
         <GridList>
@@ -63,7 +63,7 @@ function Team() {
             <Border as={FadeIn} />
             <div className="grid grid-cols-1 gap-6 pt-12 sm:pt-16 lg:grid-cols-4 xl:gap-8">
               <FadeIn>
-                <h2 className="font-sans text-2xl font-semibold font-display text-neutral-950">
+                <h2 className="font-sans text-2xl font-semibold font-display text-gray-950">
                   {group.title}
                 </h2>
               </FadeIn>
@@ -75,7 +75,7 @@ function Team() {
                   {group.people.map((person) => (
                     <li key={person.name}>
                       <FadeIn>
-                        <div className="relative overflow-hidden group rounded-3xl bg-neutral-100">
+                        <div className="relative overflow-hidden group rounded-3xl bg-gray-100">
                           <Image
                             alt=""
                             {...person.image}

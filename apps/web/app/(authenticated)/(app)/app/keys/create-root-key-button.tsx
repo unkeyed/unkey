@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Loading } from "@/components/dashboard/loading";
+import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
@@ -37,7 +37,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
       toast({
         title: "Error",
         description: err.message,
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -48,8 +48,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
   -d '{
     "prefix": "hello",
     "apiId": "${apiId ?? "<API_ID>"}"
-  }'
-  `;
+  }'`;
 
   const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
   const [showKey, setShowKey] = useState(false);
@@ -78,7 +77,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
                 safe.
               </DialogDescription>
               <div>
-                <Alert variant="destructive" className="my-4">
+                <Alert variant="alert" className="my-4">
                   <AlertTriangle className="w-4 h-4" />
                   <AlertTitle>Root Key Generated</AlertTitle>
                   <AlertDescription>
@@ -100,7 +99,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
               </Code>
             </DialogHeader>
 
-            <p className="mt-2 text-sm font-medium text-center text-stone-700 ">
+            <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
               Try creating a new api key for your users:
             </p>
             <Code className="flex items-start justify-between w-full gap-4 my-8 ">

@@ -18,7 +18,7 @@ export type Props = {
 export function EarlyAccessInvitation({ inviteLink }: Props) {
   return (
     <Tailwind>
-      <Html className="font-sans text-stone-800">
+      <Html className="font-sans text-gray-800">
         <Head />
         <Preview>Join the Early Access on unkey.dev</Preview>
         <Body className="bg-white">
@@ -43,7 +43,7 @@ export function EarlyAccessInvitation({ inviteLink }: Props) {
               }}
             >
               <Button
-                className="px-8 py-4 font-medium text-white rounded bg-stone-900"
+                className="px-8 py-4 font-medium text-white rounded bg-gray-900"
                 href={inviteLink}
               >
                 Sign Up

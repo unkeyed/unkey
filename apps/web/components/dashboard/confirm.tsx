@@ -9,15 +9,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loading } from "./loading";
 import React, { useEffect, useState } from "react";
+import { Loading } from "./loading";
 
 export type ConfirmProps = {
   title: string;
   description?: string;
   trigger: React.ReactNode;
   onConfirm: () => void | Promise<void>;
-  variant?: "destructive";
+  variant?: "alert";
 };
 
 export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {

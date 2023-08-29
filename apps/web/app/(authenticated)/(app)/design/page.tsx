@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import React, { PropsWithChildren } from "react";
 
-import { Switch } from "@/components/ui/switch";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Moon, Sun } from "lucide-react";
 export default function Page() {
   const { theme, setTheme } = useTheme();
@@ -51,7 +51,11 @@ export default function Page() {
       <Section title="Text Colors">
         <Grid>
           <Swatch textColor="text-content" name="content" bgColor="bg-content" />
-          <Swatch textColor="text-content-subtle" name="content-subtle" bgColor="bg-content-subtle" />
+          <Swatch
+            textColor="text-content-subtle"
+            name="content-subtle"
+            bgColor="bg-content-subtle"
+          />
           <Swatch textColor="text-content-info" name="content-info" bgColor="bg-content-info" />
           <Swatch textColor="text-content-warn" name="content-warn" bgColor="bg-content-warn" />
           <Swatch textColor="text-content-alert" name="content-alert" bgColor="bg-content-alert" />

@@ -39,7 +39,7 @@ export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, chi
           </DialogHeader>
           <DialogFooter>
             <Button
-              variant="destructive"
+              variant="alert"
               disabled={deleteKey.isLoading}
               onClick={async () => {
                 try {
@@ -53,7 +53,7 @@ export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, chi
                   toast({
                     title: "Error deleting key",
                     description: (e as Error).message,
-                    variant: "destructive",
+                    variant: "alert",
                   });
                 }
               }}

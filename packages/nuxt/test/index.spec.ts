@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
-import { setup, $fetch, fetch } from "@nuxt/test-utils";
+import { $fetch, fetch, setup } from "@nuxt/test-utils";
 import { config } from "dotenv";
+import { describe, expect, it } from "vitest";
 
 config({
   path: fileURLToPath(new URL("../.env", import.meta.url)),

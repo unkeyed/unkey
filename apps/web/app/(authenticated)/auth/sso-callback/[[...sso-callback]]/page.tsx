@@ -1,7 +1,7 @@
 "use client";
 
-import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 import { Loading } from "@/components/dashboard/loading";
+import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
 export const runtime = "edge";
 

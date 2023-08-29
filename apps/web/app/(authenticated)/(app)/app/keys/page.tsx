@@ -1,9 +1,9 @@
+import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema, type Key } from "@/lib/db";
+import { type Key, db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;

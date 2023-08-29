@@ -1,12 +1,8 @@
 "use client";
 
-import { useToast } from "@/components/ui/use-toast";
-import { useRouter } from "next/navigation";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpc/client";
-import { useState } from "react";
+import { Code } from "@/components/ui/code";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Code } from "@/components/ui/code";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc/client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type Props = {
   apiId: string;
@@ -41,7 +41,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
       toast({
         title: "Error",
         description: err.message,
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -51,7 +51,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
   return (
     <Dialog open={modalOpen} onOpenChange={setModalOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive">Delete API</Button>
+        <Button variant="alert">Delete API</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -62,7 +62,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
           </DialogDescription>
         </DialogHeader>
         If you want to continue, please type in the name of the api below:{" "}
-        <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-stone-900 hover:border-stone-200 dark:hover:border-stone-800">
+        <Code className="mt-2 text-center bg-gray-100 rounded dark:bg-gray-900 hover:border-gray-200 dark:hover:border-gray-800">
           {apiName}
         </Code>
         <form>
@@ -74,7 +74,7 @@ export const DeleteApiButton: React.FC<Props> = ({ apiId, apiName }) => {
           <DialogFooter className="mt-4">
             <Button
               disabled={typedName !== apiName || deleteApi.isLoading}
-              variant="destructive"
+              variant="alert"
               onClick={(e) => {
                 e.preventDefault();
                 if (typedName === apiName) {

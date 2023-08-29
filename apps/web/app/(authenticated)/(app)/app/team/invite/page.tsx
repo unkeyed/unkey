@@ -1,4 +1,6 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -8,24 +10,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectItem,
-  SelectValue,
   SelectContent,
+  SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { useOrganization } from "@clerk/nextjs";
 import { MembershipRole } from "@clerk/types";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { redirect } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"], {
@@ -71,7 +71,7 @@ export default function TeamCreation() {
         toast({
           title: "Error",
           description: "Error sending invite, please reach out to support",
-          variant: "destructive",
+          variant: "alert",
         });
       });
   };

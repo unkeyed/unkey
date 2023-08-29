@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/rome/configuration_schema.json",
+  "$schema": "https://biomejs.dev/schemas/1.0.0/schema.json",
 
   "linter": {
     "enabled": true,
@@ -18,13 +18,13 @@
         "noDelete": "off"
       }
     },
-    "ignore": ["node_modules", ".next", "dist", ".nuxt",".contentlayer"]
+    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer"]
   },
   "formatter": {
     "indentStyle": "space",
     "indentSize": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt",".contentlayer"]
+    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer"]
   }
 }

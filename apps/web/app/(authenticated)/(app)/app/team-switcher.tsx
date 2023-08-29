@@ -1,42 +1,43 @@
 "use client";
 
+import { Loading } from "@/components/dashboard/loading";
 import {
-  DropdownMenuTrigger,
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSubTrigger,
   DropdownMenuPortal,
+  DropdownMenuSeparator,
   DropdownMenuSubContent,
-  DropdownMenuCheckboxItem,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
-  Check,
-  Zap,
-  ChevronsUpDown,
-  Plus,
   Book,
+  Check,
+  ChevronsUpDown,
   LogOut,
-  Rocket,
-  Moon,
   Monitor,
+  Moon,
+  Plus,
+  Rocket,
   Sun,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loading } from "@/components/dashboard/loading";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
+import type { Workspace } from "@/lib/db";
 import { DropdownMenuSub } from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "next-themes";
-import type { Workspace } from "@/lib/db";
 
 type Props = {
   workspace: Workspace;
@@ -67,13 +68,13 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       {loading ? (
         <Loading />
       ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded lg:w-full hover:bg-stone-100 dark:hover:bg-stone-800">
+        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded lg:w-full hover:bg-gray-100 dark:hover:bg-gray-800">
           <div className="flex flex-row-reverse items-center justify-start w-full gap-4 lg:flex-row ">
             <Avatar className="w-8 h-8 lg:w-10 lg:h-10">
               {user?.imageUrl ? (
                 <AvatarImage src={user.imageUrl} alt={user.fullName ?? "Profile picture"} />
               ) : null}
-              <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden border rounded-md bg-stone-100 border-stone-500 text-stone-700">
+              <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
                 {(currentOrg?.slug ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
               </AvatarFallback>
             </Avatar>
@@ -152,27 +153,29 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
           <DropdownMenuItem
             onClick={() => changeOrg(null)}
             className={cn("flex items-center justify-between", {
-              "bg-stone-100 dark:bg-stone-700 dark:text-stone-100 cursor-pointer":
-                currentOrg === null,
+              "bg-gray-100 dark:bg-gray-700 dark:text-gray-100 cursor-pointer": currentOrg === null,
             })}
           >
             <span>Personal</span>
             {currentOrg === null ? <Check className="w-4 h-4" /> : null}
           </DropdownMenuItem>
 
-          {organizationList?.map((org) => (
-            <DropdownMenuItem
-              key={org.organization.id}
-              onClick={() => changeOrg(org.organization.id)}
-              className={cn("flex items-center justify-between", {
-                "bg-stone-100 dark:bg-stone-700 dark:text-stone-100 cursor-pointer":
-                  currentOrg?.slug === org.organization.slug,
-              })}
-            >
-              <span>{org.organization.name}</span>
-              {currentOrg?.slug === org.organization.slug ? <Check className="w-4 h-4" /> : null}
-            </DropdownMenuItem>
-          ))}
+          <ScrollArea className="max-h-64">
+            {organizationList?.map((org) => (
+              <DropdownMenuItem
+                key={org.organization.id}
+                onClick={() => changeOrg(org.organization.id)}
+                className={cn("flex items-center justify-between", {
+                  "bg-gray-100 dark:bg-gray-700 dark:text-gray-100 cursor-pointer":
+                    currentOrg?.slug === org.organization.slug,
+                })}
+              >
+                <span>{org.organization.name}</span>
+                {currentOrg?.slug === org.organization.slug ? <Check className="w-4 h-4" /> : null}
+              </DropdownMenuItem>
+            ))}
+            <ScrollBar />
+          </ScrollArea>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
@@ -212,7 +215,7 @@ const PlanBadge: React.FC<{ plan: Workspace["plan"] }> = ({ plan }) => {
   return (
     <span
       className={cn(" inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md", {
-        "text-stone-800 dark:text-stone-300": plan === "free",
+        "text-gray-800 dark:text-gray-300": plan === "free",
         "text-primary-foreground  bg-primary px-2 border border-primary-500": plan === "pro",
         "text-white bg-black px-2 border border-black": plan === "enterprise",
         "text-red-600 bg-red-100 px-2 border border-red-500": !plan,

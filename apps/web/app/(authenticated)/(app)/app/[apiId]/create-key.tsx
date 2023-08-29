@@ -1,6 +1,16 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { Loading } from "@/components/dashboard/loading";
+import { VisibleButton } from "@/components/dashboard/visible-button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Code } from "@/components/ui/code";
 import {
   Form,
   FormControl,
@@ -10,28 +20,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-import { CopyButton } from "@/components/dashboard/copy-button";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
-import { VisibleButton } from "@/components/dashboard/visible-button";
-import Link from "next/link";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { Code } from "@/components/ui/code";
-import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
@@ -88,14 +88,14 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         toast({
           title: "Error",
           description: "You need to include all ratelimit fields",
-          variant: "destructive",
+          variant: "alert",
         });
         return;
       }
       toast({
         title: "Error",
         description: "An error occured, please try again",
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -154,7 +154,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </Code>
           </div>
 
-          <p className="my-2 font-medium text-center text-stone-700 ">Try verifying it:</p>
+          <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
           <Code className="flex items-start justify-between w-full gap-4 my-8 ">
             {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
             <div className="flex items-start justify-between gap-4">
@@ -164,7 +164,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
           </Code>
           <div className="flex justify-end my-4 space-x-4">
             <Link href={`/app/${apiId}`}>
-              <Button variant="outline">Back</Button>
+              <Button variant="secondary">Back</Button>
             </Link>
             <Button onClick={() => key.reset()}>Create another key</Button>
           </div>
@@ -226,7 +226,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     )}
                   />
 
-                  <div className="grid md:grid-cols-4 grid-cols-1 gap-4 my-4">
+                  <div className="grid grid-cols-1 gap-4 my-4 md:grid-cols-4">
                     <FormField
                       control={form.control}
                       name="expiresEnabled"

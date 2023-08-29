@@ -1,17 +1,9 @@
 "use client";
 
-import { DataTable } from "./table";
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +13,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Alert } from "@/components/ui/alert";
-import { trpc } from "@/lib/trpc/client";
-import { Loading } from "../loading";
-import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc/client";
+import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loading } from "../loading";
+import { DataTable } from "./table";
 type Column = {
   id: string;
   start: string;
@@ -179,10 +179,10 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
                   <DialogHeader>
                     <DialogTitle>Revoke Api Key</DialogTitle>
                     <DialogDescription>
-                      Delete the key <Badge variant="outline">{row.original.start}...</Badge>{" "}
+                      Delete the key <Badge variant="secondary">{row.original.start}...</Badge>{" "}
                       permanenty
                     </DialogDescription>
-                    <Alert variant="destructive">
+                    <Alert variant="alert">
                       This action can not be undone. Your users will no longer be able to
                       authenticate using this key.
                     </Alert>
@@ -190,7 +190,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
 
                   <DialogFooter>
                     <Button
-                      variant="destructive"
+                      variant="alert"
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
                     >

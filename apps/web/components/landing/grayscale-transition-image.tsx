@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import Image from "next/image";
 import { motion, useMotionTemplate, useScroll, useTransform } from "framer-motion";
+import Image from "next/image";
+import { useRef } from "react";
 
 const MotionImage = motion(Image);
 

@@ -1,12 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
 import { Unkey } from "@unkey/api";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
-  const unkey = new Unkey({ token: process.env.UNKEY_TOKEN! });
+  const unkeyToken = process.env.UNKEY_TOKEN;
+  if (!unkeyToken) {
+    return NextResponse.json({ error: "UNKEY_TOKEN is undefined" }, { status: 500 });
+  }
+  const unkey = new Unkey({ token: unkeyToken });
   const url = new URL(req.url);
+  const apiId = process.env.UNKEY_API_ID;
+  if (!apiId) {
+    return NextResponse.json({ error: "UNKEY_API_ID is undefined" }, { status: 500 });
+  }
   const created = await unkey.keys.create({
-    apiId: process.env.UNKEY_API_ID!,
+    apiId,
     ratelimit: {
       type: "fast",
       limit: 5,

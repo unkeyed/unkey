@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between min-h-screen p-24">
       <div className="z-10 items-center justify-between w-full max-w-5xl font-mono text-sm lg:flex">
-        <p className="fixed top-0 left-0 flex justify-center w-full pt-8 pb-6 border-b border-gray-300 bg-gradient-to-b from-stone-200 backdrop-blur-2xl dark:border-neutral-800 dark:bg-stone-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-stone-800/30">
+        <p className="fixed top-0 left-0 flex justify-center w-full pt-8 pb-6 border-b border-gray-300 bg-gradient-to-b from-gray-200 backdrop-blur-2xl dark:border-gray-800 dark:bg-gray-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-gray-800/30">
           Get started with&nbsp;
           <Link target="_blank" href="https://unkey.dev" className="font-bold ">
             unkey.dev
@@ -23,7 +23,7 @@ export default function Home() {
       <div className="grid mb-32 text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
         <a
           href="https://docs.unkey.dev"
-          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-gray-700 hover:dark:bg-gray-800/30"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -40,7 +40,7 @@ export default function Home() {
 
         <a
           href="https://github.com/unkeyed/unkey"
-          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
+          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-gray-700 hover:dark:bg-gray-800 hover:dark:bg-opacity-30"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -57,7 +57,7 @@ export default function Home() {
 
         <a
           href="https://github.com/unkeyed/unkey/tree/main/examples"
-          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-gray-700 hover:dark:bg-gray-800/30"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -72,7 +72,7 @@ export default function Home() {
 
         <a
           href="https://github.com/unkeyed/unkey"
-          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-gray-700 hover:dark:bg-gray-800/30"
           target="_blank"
           rel="noopener noreferrer"
         >

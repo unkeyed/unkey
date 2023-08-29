@@ -1,10 +1,10 @@
-import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@/lib/db";
-import { notFound } from "next/navigation";
-import { getDailyUsage } from "@/lib/tinybird";
-import { fillRange } from "@/lib/utils";
 import { ColumnChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema } from "@/lib/db";
+import { getDailyUsage } from "@/lib/tinybird";
+import { fillRange } from "@/lib/utils";
+import { notFound } from "next/navigation";
 
 export const revalidate = 0;
 

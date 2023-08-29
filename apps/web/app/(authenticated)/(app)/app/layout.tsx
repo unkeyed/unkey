@@ -1,9 +1,9 @@
-import { DesktopSidebar } from "./desktop-sidebar";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { MobileSideBar } from "./mobile-sidebar";
 import { UsageBanner } from "./banner";
+import { DesktopSidebar } from "./desktop-sidebar";
+import { MobileSideBar } from "./mobile-sidebar";
 interface LayoutProps {
   children: React.ReactNode;
   params: {
@@ -26,11 +26,11 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <>
-      <div className="relative flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-stone-200 to-stone-100 dark:from-neutral-950 dark:to-neutral-900">
+      <div className="relative flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-gray-200 to-gray-100 dark:from-gray-950 dark:to-gray-900">
         <UsageBanner />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar workspace={workspace} className="lg:hidden" />
-        <div className="p-4 m-2 bg-white shadow dark:shadow-none lg:w-full lg:p-6 dark:bg-neutral-950 lg:ml-72 rounded-xl dark:rounded-none dark:m-0 dark:lg:ml-72">
+        <div className="p-4 m-2 bg-white shadow dark:shadow-none lg:w-full lg:p-6 dark:bg-gray-950 lg:ml-72 rounded-xl dark:rounded-none dark:m-0 dark:lg:ml-72">
           {children}
         </div>
       </div>

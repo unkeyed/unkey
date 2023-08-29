@@ -1,8 +1,8 @@
-import { schema } from "@unkey/db";
-import { z } from "zod";
 import crypto from "node:crypto";
-import mysql from "mysql2/promise";
+import { schema } from "@unkey/db";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import { z } from "zod";
 
 import baseX from "base-x";
 const envSchema = z.object({

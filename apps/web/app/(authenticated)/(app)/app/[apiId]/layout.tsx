@@ -1,3 +1,4 @@
+import { NavLink } from "@/components/dashboard/api-navbar";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 import { DeleteApiButton } from "./delete-api-button";
-import { NavLink } from "@/components/dashboard/api-navbar";
 
 type Props = PropsWithChildren<{
   params: {
@@ -42,14 +42,14 @@ export default async function ApiPageLayout(props: Props) {
         actions={[
           <Badge
             key="apiId"
-            variant="outline"
+            variant="secondary"
             className="flex justify-between w-full font-mono font-medium"
           >
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
           <Link key="new" href={`/app/${api.id}/keys/new`}>
-            <Button variant="outline">Create Key</Button>
+            <Button variant="secondary">Create Key</Button>
           </Link>,
           <DeleteApiButton key="delete-api" apiId={api.id} apiName={api.name} />,
         ]}

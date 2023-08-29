@@ -21,7 +21,7 @@ export const Banner: React.FC<PropsWithChildren<Props>> = ({ children, variant }
           "pointer-events-auto flex items-center justify-between gap-x-6  px-6 py-2.5 sm:rounded-lg sm:py-3 sm:pl-4 sm:pr-3.5",
           {
             "bg-primary text-primary-foreground": variant === undefined,
-            "bg-destructive text-destructive-foreground": variant === "alert",
+            "bg-alert text-alert-foreground": variant === "alert",
           },
         )}
       >

@@ -1,13 +1,13 @@
 "use client";
 
+import { ApiLink } from "@/components/dashboard/app-link";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Workspace } from "@/lib/db";
+import { cn } from "@/lib/utils";
 import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
 import Link from "next/link";
-import { ApiLink } from "@/components/dashboard/app-link";
 import { WorkspaceSwitcher } from "./team-switcher";
-import { cn } from "@/lib/utils";
-import type { Workspace } from "@/lib/db";
 type Props = {
   workspace: Workspace & {
     apis: {
@@ -25,7 +25,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     >
       <Link
         href="/app"
-        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-stone-800 dark:text-stone-200 dark:stroke-stone-500 dark:hover:stroke-white hover:stroke-stone-700 hover:text-stone-700 dark:hover:text-white"
+        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-gray-800 dark:text-gray-200 dark:stroke-gray-500 dark:hover:stroke-white hover:stroke-gray-700 hover:text-gray-700 dark:hover:text-white"
       >
         <span className="text-transparent bg-gradient-to-tr from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 bg-clip-text">
           U

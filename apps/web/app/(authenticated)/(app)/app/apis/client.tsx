@@ -1,13 +1,13 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreateApiButton } from "./create-api-button";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
-import Link from "next/link";
 import { BookOpen, KeyRound, Search } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { CreateApiButton } from "./create-api-button";
 
 type ApiWithKeys = {
   id: string;
@@ -27,7 +27,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         <div className="flex items-center flex-grow h-10 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-input focus-within:border-primary/40">
           <Search size={18} />
           <input
-            className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none "
+            className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-content-subtle focus-visible:outline-none "
             placeholder="Search.."
             onChange={(e) => {
               const filtered = apis.filter((a) =>
@@ -78,7 +78,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
             <CreateApiButton key="createApi" className="" />
             <Link href="/docs" target="_blank">
-              <Button variant="outline" className="items-center w-full gap-2 ">
+              <Button variant="secondary" className="items-center w-full gap-2 ">
                 <BookOpen className="w-4 h-4 md:w-5 md:h-5" />
                 Read the docs
               </Button>
