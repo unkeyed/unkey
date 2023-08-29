@@ -32,6 +32,7 @@ module.exports = {
     },
 
     colors: {
+      transparent: "transparent",
       white: "hsl(var(--white))",
       black: "hsl(var(--black))",
       gray: {
@@ -62,13 +63,12 @@ module.exports = {
       brand: {
         DEFAULT: "hsl(var(--brand))",
         foreground: "hsl(var(--brand-foreground))",
-       
       },
 
       warn: {
         DEFAULT: "hsl(var(--warn))",
         foreground: "hsl(var(--warn-foreground))",
-       },
+      },
 
       alert: {
         DEFAULT: "hsl(var(--alert))",

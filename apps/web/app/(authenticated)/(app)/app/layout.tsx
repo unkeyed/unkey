@@ -26,11 +26,11 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <>
-      <div className="relative flex flex-col min-h-screen lg:flex-row bg-gradient-to-tl from-gray-200 to-gray-100 dark:from-gray-950 dark:to-gray-900">
+      <div className="relative flex flex-col min-h-screen bg-gray-100 lg:flex-row dark:bg-gray-950">
         <UsageBanner />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar workspace={workspace} className="lg:hidden" />
-        <div className="p-4 m-2 bg-white shadow dark:shadow-none lg:w-full lg:p-6 dark:bg-gray-950 lg:ml-72 rounded-xl dark:rounded-none dark:m-0 dark:lg:ml-72">
+        <div className="p-4 border-l bg-background border-border lg:w-full lg:p-6 lg:ml-64">
           {children}
         </div>
       </div>

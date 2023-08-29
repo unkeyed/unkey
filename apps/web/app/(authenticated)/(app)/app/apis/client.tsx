@@ -24,7 +24,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
       <PageHeader title="Applications" description="Manage your APIs" />
       <Separator className="my-6" />
       <section className="flex flex-col gap-4 my-4 md:items-center md:flex-row">
-        <div className="flex items-center flex-grow h-10 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-input focus-within:border-primary/40">
+        <div className="flex items-center flex-grow h-10 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-border focus-within:border-primary/40">
           <Search size={18} />
           <input
             className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-content-subtle focus-visible:outline-none "
