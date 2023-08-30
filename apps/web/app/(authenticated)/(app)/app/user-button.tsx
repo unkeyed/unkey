@@ -1,32 +1,34 @@
 "use client";
 
-import { ApiLink } from "@/components/dashboard/app-link";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Workspace } from "@/lib/db";
-import { cn } from "@/lib/utils";
-import { BarChart, Book, BookOpen, ChevronRight, Code, FileJson, LogOut, LucideIcon, Monitor, Moon, MoreVertical, Rocket, Settings, Sun, Zap } from "lucide-react";
-import Link from "next/link";
-import { WorkspaceSwitcher } from "./team-switcher";
-import React from "react";
-import { useSelectedLayoutSegments } from "next/navigation";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SignOutButton, useUser } from "@clerk/nextjs";
+import { Book, ChevronRight, LogOut, Monitor, Moon, Rocket, Sun, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import React from "react";
 export const UserButton: React.FC = () => {
-  const { user } = useUser()
-  const { theme, setTheme } = useTheme()
-  const router = useRouter()
+  const { user } = useUser();
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   if (!user) {
-    return null
+    return null;
   }
   return (
-
-
-
     <DropdownMenu>
       <DropdownMenuTrigger className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 hover:cursor-pointer">
         <div className="flex items-center gap-2">
@@ -114,7 +116,5 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-
-
   );
 };

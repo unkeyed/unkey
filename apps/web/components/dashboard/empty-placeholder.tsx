@@ -10,7 +10,7 @@ export function EmptyPlaceholder({
   return (
     <div
       className={cn(
-        "animate-in fade-in-50 flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed p-8 text-center",
+        "animate-in relative fade-in-50 flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed p-8 text-center",
         className,
       )}
       {...props}
@@ -24,7 +24,7 @@ export function EmptyPlaceholder({
 
 EmptyPlaceholder.Icon = function EmptyPlaceHolderIcon({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted">
+    <div className="flex items-center justify-center w-20 h-20 rounded-full bg-background-subtle">
       {children}
     </div>
   );

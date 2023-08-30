@@ -124,7 +124,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               <div className="flex items-center justify-center mt-10 gap-x-6 lg:justify-start">
                 <Link
                   href="/app"
-                  className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  className="rounded-md g-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Get started
                 </Link>
@@ -135,7 +135,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
             </div>
             <div className="relative mt-16 h-80 lg:mt-8">
               <img
-                className="absolute left-0 top-0 w-[57rem] max-w-none rounded-md bg-white/5 ring-1 ring-white/10"
+                className="absolute left-0 top-0 w-[57rem] max-w-none rounded-md g-white/5 ring-1 ring-white/10"
                 src="/images/landing/app.png"
                 alt="App screenshot"
                 width={1824}

@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 import { Loading } from "./loading";
 
@@ -41,7 +42,9 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
   return (
     <Dialog>
       <DialogTrigger asChild>{props.trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent
+        className={cn("sm:max-w-[425px]", { "border-alert": props.variant === "alert" })}
+      >
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>
           <DialogDescription>{props.description}</DialogDescription>

@@ -7,7 +7,7 @@ const textVariants = cva("", {
   variants: {
     variant: {
       default: "leading-7 text-gray-900",
-      code: "relative rounded bg-gray-100 py-[0.2rem] px-[0.3rem] font-mono text-sm font-semibold text-gray-900",
+      code: "relative rounded-md bg-gray-100 py-[0.2rem] px-[0.3rem] font-mono text-sm font-semibold text-gray-900",
       lead: "text-gray-700",
 
       subtle: "text-gray-500",

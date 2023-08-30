@@ -97,17 +97,11 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   return (
     <div>
       <div>
-        <Input
-          placeholder="Filter keys"
-          value={(table.getColumn("start")?.getFilterValue() as string) ?? ""}
-          onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
-          className="max-w-sm md:max-w-2xl"
-        />
-        <div className="flex items-center justify-between space-x-0 md:space-x-4 space-y-4 sm:space-y-0 flex-wrap sm:flex-nowrap">
+        <div className="flex flex-wrap items-center justify-between space-x-0 space-y-4 md:space-x-4 sm:space-y-0 sm:flex-nowrap">
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="md:min-w-min mt-4 min-w-full " variant="secondary">
+                <Button className="min-w-full mt-4 md:min-w-min " variant="secondary">
                   Revoke selected keys
                 </Button>
               </DialogTrigger>
@@ -136,10 +130,16 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
               </DialogContent>
             </Dialog>
           ) : null}
+          <Input
+            placeholder="Filter keys"
+            value={(table.getColumn("start")?.getFilterValue() as string) ?? ""}
+            onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
+            className="max-w-sm md:max-w-2xl"
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                className="md:min-w-min mt-4 md:mt-0 min-w-full ml-0 md:ml-auto"
+                className="min-w-full mt-4 ml-0 md:min-w-min md:mt-0 md:ml-auto"
                 variant="secondary"
               >
                 Columns
@@ -203,7 +203,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
       </Table>
       <div className="flex items-center justify-end py-4 space-x-2">
         <Button
-          variant="secondary"
+          variant={table.getCanPreviousPage() ? "secondary" : "disabled"}
           size="sm"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
@@ -211,7 +211,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           Previous
         </Button>
         <Button
-          variant="secondary"
+          variant={table.getCanNextPage() ? "secondary" : "disabled"}
           size="sm"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}

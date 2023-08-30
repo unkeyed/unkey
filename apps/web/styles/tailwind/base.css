@@ -27,8 +27,8 @@
     --alert: 0 100% 65%;
     --alert-foreground: 0 100% 20%;
     
-    --primary : 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
+    --primary : 24 10% 10%;
+    --primary-foreground: 24 10% 90%;
     
     --secondary :20 6% 94%;
     --secondary-foreground: 0 0% 0%;
@@ -67,8 +67,8 @@
     --primary-foreground: 0 0% 0%;
     
 
-    --secondary :20 6% 10%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary : 24 10% 10%;
+    --secondary-foreground: 24 10% 100%;
     
     --content: 240 10% 90%;
     --content-subtle:  240 3.8% 46.1%;

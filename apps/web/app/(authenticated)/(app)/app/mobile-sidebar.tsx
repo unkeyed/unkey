@@ -2,17 +2,15 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Workspace } from "@unkey/db";
 import { BookOpen, FileJson, Menu, Settings } from "lucide-react";
 import Link from "next/link";
 import { WorkspaceSwitcher } from "./team-switcher";
 
 type Props = {
-  workspace: Workspace;
   className?: string;
 };
 
-export const MobileSideBar = ({ workspace, className }: Props) => {
+export const MobileSideBar = ({ className }: Props) => {
   return (
     <div className={cn(className, "w-full")}>
       <Sheet>
@@ -20,7 +18,7 @@ export const MobileSideBar = ({ workspace, className }: Props) => {
           <SheetTrigger>
             <Menu className="w-6 h-6" />
           </SheetTrigger>
-          <WorkspaceSwitcher workspace={workspace} />
+          <WorkspaceSwitcher />
         </div>
         <SheetHeader>
           <SheetClose />

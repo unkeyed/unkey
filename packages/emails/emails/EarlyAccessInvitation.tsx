@@ -43,7 +43,7 @@ export function EarlyAccessInvitation({ inviteLink }: Props) {
               }}
             >
               <Button
-                className="px-8 py-4 font-medium text-white rounded bg-gray-900"
+                className="px-8 py-4 font-medium text-white bg-gray-900 rounded-md"
                 href={inviteLink}
               >
                 Sign Up
