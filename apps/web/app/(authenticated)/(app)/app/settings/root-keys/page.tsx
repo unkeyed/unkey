@@ -46,8 +46,8 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
   return (
     <div className="min-h-screen">
       <PageHeader
-        title="TODO"
-        description="Create, manage and delete root keys."
+        title="Root Keys"
+        description="Root keys are used to interact with the Unkey API."
         actions={[<CreateRootKeyButton key="create-root-key" apiId={props.params.apiId} />]}
       />
       <ApiKeyTable data={keys} apiId={props.params.apiId} />

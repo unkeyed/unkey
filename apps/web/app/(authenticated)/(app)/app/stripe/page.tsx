@@ -49,7 +49,6 @@ export default async function StripeRedirect() {
       .set({ stripeCustomerId: customer.id })
       .where(eq(schema.workspaces.id, ws.id));
   }
-
   const returnUrl = `${headers().get("referer") ?? "https://unkey.dev"}/app`;
 
   const session = await stripe.checkout.sessions.create({

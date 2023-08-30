@@ -141,10 +141,9 @@ const Members: React.FC = () => {
                   title="Remove member"
                   description={`Are you sure you want to remove ${publicUserData.identifier}?`}
                   onConfirm={() => {
-                    {
-                      /* rome-ignore lint/style/noNonNullAssertion: clerk has some explaining to do */
+                    if (publicUserData.userId) {
+                      organization?.removeMember(publicUserData.userId);
                     }
-                    organization?.removeMember(publicUserData.userId!);
                   }}
                   trigger={
                     <Button variant="secondary" size="sm">

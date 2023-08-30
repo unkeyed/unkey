@@ -1,10 +1,17 @@
-import { ColumnChart } from "@/components/dashboard/charts";
-import { Text } from "@/components/dashboard/text";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { getDailyUsage } from "@/lib/tinybird";
-import { fillRange } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const revalidate = 0;
@@ -18,78 +25,112 @@ export default async function SettingsPage() {
   if (!workspace) {
     return redirect("/onboarding");
   }
-  const usage = await getDailyUsage({
-    workspaceId: workspace.id,
-  });
 
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const start = new Date(year, month, 0, 0, 0, 0, 0);
-  const end = new Date(start.getTime());
-  end.setUTCMonth(end.getUTCMonth() + 1);
+  const t = new Date();
+  t.setUTCDate(0);
+  t.setUTCHours(0, 0, 0, 0);
 
-  const usageOverTime = fillRange(
-    usage.data.map(({ time, usage }) => ({ value: usage, time })),
-    start.getTime(),
-    end.getTime(),
-  ).map(({ value, time }) => ({
-    x: new Date(time).toUTCString(),
-    y: value,
-  }));
+  let start = t.getTime() + 1;
 
-  const totalUsage = usage.data.reduce((sum, day) => {
-    return sum + day.usage;
-  }, 0);
+  t.setUTCMonth(t.getUTCMonth() + 1);
+  let end = t.getTime();
+
+  if (workspace.billingPeriodStart) {
+    start = workspace.billingPeriodStart.getTime();
+  }
+  if (workspace.billingPeriodEnd) {
+    end = workspace.billingPeriodEnd.getTime();
+  }
+
+  const activeKeysPercentage = percentage(
+    workspace.usageActiveKeys ?? 0,
+    workspace.maxActiveKeys ?? 0,
+  );
+  const verificationsPercentage = percentage(
+    workspace.usageVerifications ?? 0,
+    workspace.maxVerifications ?? 0,
+  );
+
   return (
     <div>
       <Card>
-        <CardHeader>
-          <CardTitle>Usage & Billing</CardTitle>
-          <CardDescription>
-            <Text>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>Usage</CardTitle>
+            <CardDescription>
               Current billing cycle:{" "}
-              <strong>
-                {new Date(year, month, 1).toLocaleString(undefined, {
-                  month: "long",
-                })}{" "}
-                {year}
-              </strong>{" "}
-            </Text>
-          </CardDescription>
+              <span className="font-medium text-primary">
+                {new Date(start).toDateString()} - {new Date(end).toDateString()}
+              </span>{" "}
+            </CardDescription>
+          </div>
+          <Link href="/app/stripe">
+            <Button>Change Billing</Button>
+          </Link>
         </CardHeader>
 
         <CardContent>
-          <div className="flex justify-center py-4 divide-x divide-gray-200">
-            <div className="flex flex-col items-center gap-2 px-8">
-              <Text size="xl">Current Usage</Text>
-              <div className="flex items-center gap-2">
-                <Text size="lg">{totalUsage.toLocaleString()}</Text>/{" "}
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  shapeRendering="geometricPrecision"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  height="24"
-                >
-                  <title>usage</title>
-                  <path d="M13.833 8.875S15.085 7 18.043 7C21 7 23 9.5 23 12s-1.784 5-4.864 5-4.914-3.124-6.136-5c-1.222-1.875-3.392-5-6.446-5S1 9.5 1 12s1.351 5 4.648 5c3.296 0 4.519-1.875 4.519-1.875" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="p-8">
-            <div className="h-48">
-              <ColumnChart data={usageOverTime} />
-            </div>
-          </div>
+          <ol className="flex flex-col space-y-4">
+            <li className="flex flex-col w-2/3">
+              <h3 className="text-sm font-medium text-content">Active Keys</h3>
+              {activeKeysPercentage !== null ? (
+                <div className="mt-1 overflow-hidden bg-gray-300 rounded-full">
+                  <div
+                    className={cn("h-2 rounded bg-primary", {
+                      "bg-alert": workspace.maxActiveKeys && activeKeysPercentage >= 100,
+                    })}
+                    style={{ width: `${activeKeysPercentage}%` }}
+                  />
+                </div>
+              ) : null}
+              <p className="text-xs text-content-subtle">
+                {workspace.usageActiveKeys?.toLocaleString()} /{" "}
+                {workspace.maxActiveKeys?.toLocaleString() ?? "∞"}{" "}
+                {activeKeysPercentage !== null
+                  ? `(${activeKeysPercentage.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}%)`
+                  : null}
+              </p>
+            </li>
+            <li className="flex flex-col w-2/3">
+              <h3 className="text-sm font-medium text-content">Verifications</h3>
+              {verificationsPercentage !== null ? (
+                <div className="mt-1 overflow-hidden bg-gray-300 rounded-full">
+                  <div
+                    className={cn("h-2 rounded bg-primary", {
+                      "bg-alert": workspace.maxVerifications && verificationsPercentage >= 100,
+                    })}
+                    style={{ width: `${verificationsPercentage}%` }}
+                  />
+                </div>
+              ) : null}
+              <p className="text-xs text-content-subtle">
+                {workspace.usageVerifications?.toLocaleString()} /{" "}
+                {workspace.maxVerifications?.toLocaleString() ?? "∞"}{" "}
+                {verificationsPercentage !== null
+                  ? `(${verificationsPercentage.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}%)`
+                  : null}
+              </p>
+            </li>
+          </ol>
         </CardContent>
+        <CardFooter>
+          <p className="text-xs text-content-subtle">
+            These are soft limits. We will not throttle or block you if you go over them, however we
+            will contact you if you exceed them repeatedly.
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
+}
+
+function percentage(num: number, total: number): number {
+  if (total === 0) {
+    return 0;
+  }
+  return Math.min(100, (num / total) * 100);
 }
