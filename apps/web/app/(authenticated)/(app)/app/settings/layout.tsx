@@ -58,7 +58,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
               <Link
                 href={href}
                 className={cn(
-                  "text-sm font-medium py-2 px-3 -mx-3 text-content-subtle  hover:bg-primary rounded-md hover:text-primary-foreground",
+                  "text-sm font-medium py-2 px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
                   {
                     "text-primary": active,
                   },
