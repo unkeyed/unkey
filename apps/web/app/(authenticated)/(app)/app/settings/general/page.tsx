@@ -21,8 +21,7 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       <UpdateWorkspaceName workspace={workspace} />
-      {/* personal accounst use the logo from the user instead */}
-      {workspace.tenantId.startsWith("org_") ? <UpdateWorkspaceImage /> : null}
+      <UpdateWorkspaceImage />
       <Card>
         <CardHeader>
           <CardTitle>Workspace ID</CardTitle>

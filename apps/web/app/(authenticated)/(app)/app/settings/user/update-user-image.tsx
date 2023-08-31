@@ -1,26 +1,24 @@
 "use client";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { useOrganization } from "@clerk/nextjs";
+import { useOrganization, useUser } from "@clerk/nextjs";
 import { UploadCloud } from "lucide-react";
-import Link from "next/link";
 
-export const UpdateWorkspaceImage: React.FC = () => {
+export const UpdateUserImage: React.FC = () => {
   const { toast } = useToast();
-  const { organization } = useOrganization();
+  const { user } = useUser();
 
-  const [image, setImage] = useState<string | null>(organization?.imageUrl ?? null);
+  const [image, setImage] = useState<string | null>(user?.imageUrl ?? null);
 
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
-    if (organization?.imageUrl) {
-      setImage(organization.imageUrl);
+    if (user?.imageUrl) {
+      setImage(user.imageUrl);
     }
-  }, [organization?.imageUrl]);
+  }, [user?.imageUrl]);
 
   const onChangePicture = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -46,12 +44,12 @@ export const UpdateWorkspaceImage: React.FC = () => {
       };
       reader.readAsDataURL(file);
 
-      if (!organization) {
+      if (!user) {
         toast({ description: "Only allowed for orgs", variant: "alert" });
         return;
       }
-      organization
-        .setLogo({ file })
+      user
+        .setProfileImage({ file })
         .then(() => {
           toast({ description: "Image uploaded" });
         })
@@ -59,27 +57,8 @@ export const UpdateWorkspaceImage: React.FC = () => {
           toast({ description: "Error uploading image", variant: "alert" });
         });
     },
-    [setImage, organization],
+    [setImage, user],
   );
-
-  if (!organization) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspace Avatar</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-content-subtle">
-            This is a personal workspace. Change your personal avatar{" "}
-            <Link href="/app/settings/user" className="underline hover:text-content">
-              here
-            </Link>
-            .
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <form
@@ -90,14 +69,14 @@ export const UpdateWorkspaceImage: React.FC = () => {
           return;
         }
 
-        await organization?.setLogo({ file: image });
-        await organization?.reload();
+        await user?.setProfileImage({ file: image });
+        await user?.reload();
         toast({ description: "Image uploaded" });
       }}
     >
       <Card className="flex items-start justify-between">
         <CardHeader>
-          <CardTitle>Workspace Avatar</CardTitle>
+          <CardTitle>Your Avatar</CardTitle>
           <CardDescription>
             Click on the avatar to upload a custom one from your files.
             <br />
@@ -177,43 +156,5 @@ export const UpdateWorkspaceImage: React.FC = () => {
         </CardContent>
       </Card>
     </form>
-    // <form
-    //   action={async (formData: FormData) => {
-    //     const res = await updateWorkspaceName(formData);
-    //     if (res.error) {
-    //       toast({
-    //         title: "Error",
-    //         description: res.error,
-    //         variant: "alert",
-    //       });
-    //       return;
-    //     }
-    //     toast({
-    //       title: "Success",
-    //       description: "Workspace name updated",
-    //     });
-
-    //     user?.reload();
-    //   }}
-    // >
-    //   <Card>
-
-    //     <CardContent>
-
-    //       <div className="flex flex-col space-y-2">
-    //         <input type="hidden" name="workspaceId" value={workspace.id} />
-    //         <Label>Name</Label>
-    //         <Input name="name" className="max-w-sm" defaultValue={workspace.name} />
-    //         <p className="text-xs text-content-subtle">What should your workspace be called?</p>
-    //       </div>
-    //     </CardContent>
-    //     <CardFooter className="justify-end">
-
-    //       <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
-    //         {pending ? <Loading /> : "Save"}
-    //       </Button>
-    //     </CardFooter>
-    //   </Card>
-    // </form>
   );
 };
