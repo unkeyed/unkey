@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "fmt": "pnpm biome check . --apply && pnpm biome format . --write",
+    "fmt": "pnpm biome format . --write && pnpm biome check . --apply ",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap"
   },
@@ -36,3 +36,4 @@
     }
   }
 }
+

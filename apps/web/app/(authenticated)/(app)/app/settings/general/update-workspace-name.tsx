@@ -4,8 +4,8 @@ import React from "react";
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { updateWorkspaceName } from "./actions";
@@ -42,16 +42,24 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         user?.reload();
       }}
     >
-      <div className="flex flex-col space-y-2">
-        <input type="hidden" name="workspaceId" value={workspace.id} />
-        <Label>Name</Label>
-        <Input name="name" defaultValue={workspace.name} />
-        <p className="text-xs text-content-subtle">What should your workspace be called?</p>
-      </div>
-
-      <Button variant="primary" type="submit" size="sm" disabled={pending}>
-        {pending ? <Loading /> : "Save"}
-      </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspace Name</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-2">
+            <input type="hidden" name="workspaceId" value={workspace.id} />
+            <label className="hidden sr-only">Name</label>
+            <Input name="name" className="max-w-sm" defaultValue={workspace.name} />
+            <p className="text-xs text-content-subtle">What should your workspace be called?</p>
+          </div>
+        </CardContent>
+        <CardFooter className="justify-end">
+          <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
+            {pending ? <Loading /> : "Save"}
+          </Button>
+        </CardFooter>
+      </Card>
     </form>
   );
 };
