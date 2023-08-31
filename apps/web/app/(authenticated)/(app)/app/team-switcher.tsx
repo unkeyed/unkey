@@ -86,7 +86,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
           onClick={() => changeOrg(null)}
         >
           <span className={currentOrg === null ? "font-semibold" : undefined}>
-            {user?.username}
+            {user?.fullName}
           </span>
           {currentOrg === null ? <Check className="w-4 h-4" /> : null}
         </DropdownMenuItem>
