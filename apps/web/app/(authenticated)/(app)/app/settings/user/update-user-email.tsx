@@ -149,7 +149,7 @@ export const UpdateUserEmail: React.FC = () => {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Email</CardTitle>
+                <CardTitle>Email Code</CardTitle>
               </CardHeader>
               <CardContent>
                 <FormField
