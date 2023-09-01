@@ -23,86 +23,160 @@ const formSchema = z.object({
   email: z.string().email(),
 });
 
+const verificationSchema = z.object({
+  code: z.string().min(6).max(6),
+});
+
 export const UpdateUserEmail: React.FC = () => {
   const { toast } = useToast();
   const { user } = useUser();
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const [verification, setVerification] = React.useState(false);
+  const emailForm = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
     defaultValues: {
-      email: user?.emailAddresses.at(0)?.emailAddress ?? undefined,
+      email: user?.primaryEmailAddress?.emailAddress ?? ""
     },
   });
+  const verificationForm = useForm<z.infer<typeof verificationSchema>>({
+    resolver: zodResolver(verificationSchema),
+    mode: "all",
+  });
+
+
   if (!user) {
     return null;
   }
 
-  const isDisabled = form.formState.isLoading || !form.formState.isValid;
+  const isDisabled = emailForm.formState.isLoading || !emailForm.formState.isValid;
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(async ({ email }) => {
-          try {
-            const emailResponse = await user.createEmailAddress({ email });
-            const flow = emailResponse.createMagicLinkFlow();
-            toast({
-              title: "Confirm Email",
-              description: `We have sent an email to ${email}, please confirm it by clicking the link in the email.`,
-            });
-            const magic = await flow.startMagicLinkFlow({ redirectUrl: "TODO" });
-            if (magic.verification.status === "verified") {
-              toast({
-                title: "Success",
-                description: "Workspace name updated",
-              });
-              user.reload();
-              return;
-            }
-            toast({
-              title: "Error",
-              description: `Something went wrong: ${magic.verification.error?.message}`,
-              variant: "alert",
-            });
-          } catch (e) {
-            toast({
-              title: "Error",
-              description: (e as Error).message,
-              variant: "alert",
-            });
-          }
-        })}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Email</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input {...field} className="max-w-sm" />
-                  </FormControl>
-                  <FormDescription>What's your email?</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button
-              type="submit"
-              variant={isDisabled ? "disabled" : "primary"}
-              disabled={isDisabled}
-            >
-              {form.formState.isLoading ? <Loading /> : "Save"}
-            </Button>
-          </CardFooter>
-        </Card>
-      </form>
-    </Form>
+    <>
+      {!verification && (
+        <Form {...emailForm}>
+          <form
+            onSubmit={emailForm.handleSubmit(async ({ email }) => {
+              try {
+                const emailResponse = await user.createEmailAddress({ email });
+                await emailResponse.prepareVerification({
+                  strategy: "email_code"
+                }).then(() => {
+                  setVerification(true);
+                })
+
+                toast({
+                  title: "Confirm Email",
+                  description: `We have sent an email to ${email}, please confirm it by entering the code we sent you.`,
+                });
+              } catch (e) {
+                toast({
+                  title: "Error",
+                  description: (e as Error).message,
+                  variant: "alert",
+                });
+              }
+            })}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Email</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={emailForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input {...field} className="max-w-sm" />
+                      </FormControl>
+                      <FormDescription>What's your email?</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Button
+                  type="submit"
+                  variant={isDisabled ? "disabled" : "primary"}
+                  disabled={isDisabled}
+                >
+                  {emailForm.formState.isLoading ? <Loading /> : "Save"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </form>
+        </Form>
+      )}
+      {verification && (
+        <Form {...verificationForm}>
+          <form
+            onSubmit={verificationForm.handleSubmit(async ({ code }) => {
+              try {
+                const enteredEmail = emailForm.getValues().email;
+                const email = user.emailAddresses.find((email) => email.emailAddress === enteredEmail);
+                if (!email) {
+                  throw new Error("Email not found");
+                }
+                const verify = await email.attemptVerification({ code });
+                if (verify.verification.status === "verified") {
+                  // finally set the email as primary
+                  await user.update({
+                    primaryEmailAddressId: email.id,
+                  })
+                  toast({
+                    title: "Success",
+                    description: `We have succesfully updated your primary email to ${email.emailAddress}`,
+                  });
+                  setVerification(false);
+                } else {
+                  toast({
+                    title: "Error",
+                    description: "Invalid verification code",
+                    variant: "alert",
+                  });
+                }
+              } catch (e) {
+                toast({
+                  title: "Error",
+                  description: (e as Error).message,
+                  variant: "alert",
+                });
+              }
+            })}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Email</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={verificationForm.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input {...field} className="max-w-sm" />
+                      </FormControl>
+                      <FormDescription>Enter your verification code</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter className="justify-end">
+                <Button
+                  type="submit"
+                  variant={isDisabled ? "disabled" : "primary"}
+                  disabled={isDisabled}
+                >
+                  {verificationForm.formState.isLoading ? <Loading /> : "Verify"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </form>
+        </Form>
+      )}
+    </>
   );
 };
