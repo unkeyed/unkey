@@ -21,7 +21,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -32,7 +31,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
@@ -176,296 +174,220 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <FormField
-                    control={form.control}
-                    name="prefix"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Prefix</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Using a prefix can make it easier for your users to distinguish between
-                          apis
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="bytes"
-                    rules={{ required: true }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bytes</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormDescription>How many bytes to use.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="ownerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Owner</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          This is the id of the user or workspace in your system, so you can
-                          identify users from an API key.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 gap-4 my-4 md:grid-cols-4">
+                  <div className="flex justify-evenly gap-4">
                     <FormField
                       control={form.control}
-                      name="expiresEnabled"
-                      render={({ field }) => {
-                        return (
-                          <FormItem>
-                            <FormControl>
-                              <div className="flex items-center space-x-4">
-                                <Switch
-                                  checked={field.value}
-                                  defaultValue={"false"}
-                                  onCheckedChange={(value) => {
-                                    if (value === false) {
-                                      form.resetField("expires");
-                                      form.clearErrors("expires");
-                                    }
-                                    field.onChange(value);
-                                  }}
-                                />
-                                <FormLabel>Enable Expiration</FormLabel>
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        );
-                      }}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="rateLimitEnabled"
-                      render={({ field }) => {
-                        return (
-                          <FormItem>
-                            <FormControl>
-                              <div className="flex items-center space-x-4">
-                                <Switch
-                                  checked={field.value}
-                                  defaultValue={"false"}
-                                  onCheckedChange={(value) => {
-                                    if (value === false) {
-                                      form.resetField("ratelimit");
-                                    }
-                                    field.onChange(value);
-                                  }}
-                                />
-                                <FormLabel>Enable Ratelimiting</FormLabel>
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        );
-                      }}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="metaEnabled"
-                      render={({ field }) => {
-                        return (
-                          <FormItem>
-                            <FormControl>
-                              <div className="flex items-center space-x-4">
-                                <Switch
-                                  checked={field.value}
-                                  defaultValue={"false"}
-                                  onCheckedChange={(value) => {
-                                    if (value === false) {
-                                      form.resetField("meta");
-                                      form.clearErrors("meta");
-                                    }
-                                    field.onChange(value);
-                                  }}
-                                />
-                                <FormLabel>Enable Custom Metadata</FormLabel>
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        );
-                      }}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="remainingEnabled"
-                      render={({ field }) => {
-                        return (
-                          <FormItem>
-                            <FormControl>
-                              <div className="flex items-center space-x-4">
-                                <Switch
-                                  checked={field.value}
-                                  defaultValue={"false"}
-                                  onCheckedChange={(value) => {
-                                    if (value === false) {
-                                      form.resetField("remaining");
-                                      form.clearErrors("remaining");
-                                    }
-                                    field.onChange(value);
-                                  }}
-                                />
-                                <FormLabel>Enable Limited Use</FormLabel>
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        );
-                      }}
-                    />
-                  </div>
-                  {form.watch("expiresEnabled") && (
-                    <FormField
-                      control={form.control}
-                      name="expires"
+                      name="prefix"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Expiry Date</FormLabel>
+                          <FormLabel>Prefix</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} />
+                            <Input {...field} />
                           </FormControl>
                           <FormDescription>
-                            This api key will automatically be revoked after the given date.
+                            Using a prefix can make it easier for your users to distinguish between
+                            apis
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
-                  {form.watch("metaEnabled") && (
+
                     <FormField
                       control={form.control}
-                      name="meta"
+                      name="bytes"
+                      rules={{ required: true }}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Custom Metadata</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
-                              onBlur={(e) => {
-                                try {
-                                  const value = JSON.parse(e.target.value);
-                                  const prettier = JSON.stringify(value, null, 2);
-                                  e.target.value = prettier;
-                                  field.onChange(JSON.parse(e.target.value));
-                                  form.clearErrors("meta");
-                                } catch (_e) {}
-                              }}
-                              onChange={(e) => {
-                                try {
-                                  field.onChange(JSON.parse(e.target.value));
-                                  form.clearErrors("meta");
-                                } catch (_e) {
-                                  form.setError("meta", {
-                                    type: "manual",
-                                    message: "Invalid JSON",
-                                  });
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormDescription>Enter custom metadata as a JSON object.</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  {form.watch("rateLimitEnabled") && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="ratelimit.limit"
-                        render={({ field }) => (
-                          <FormItem className="w-full">
-                            <FormLabel>Limit</FormLabel>
-                            <FormControl>
-                              <Input autoFocus={true} type="number" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              The maximum number of requests possible during a burst.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex items-center gap-4 mt-8">
-                        <FormField
-                          control={form.control}
-                          name="ratelimit.refillRate"
-                          render={({ field }) => (
-                            <FormItem className="w-full">
-                              <FormLabel>Refill Rate</FormLabel>
-                              <FormControl>
-                                <Input type="number" {...field} />
-                              </FormControl>
-
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="ratelimit.refillInterval"
-                          render={({ field }) => (
-                            <FormItem className="w-full">
-                              <FormLabel>Refill Interval (milliseconds)</FormLabel>
-                              <FormControl>
-                                <Input type="number" {...field} />
-                              </FormControl>
-
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormDescription>
-                        How many requests may be performed in a given interval
-                      </FormDescription>
-                    </>
-                  )}
-                  {form.watch("remainingEnabled") && (
-                    <FormField
-                      control={form.control}
-                      name="remaining"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Limited Usage</FormLabel>
+                          <FormLabel>Bytes</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} />
                           </FormControl>
+                          <FormDescription>How many bytes to use.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="ownerId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Owner</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
                           <FormDescription>
-                            Enter the remaining amount of uses for this key.
+                            This is the id of the user or workspace in your system, so you can
+                            identify users from an API key.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
-                  <Accordion type="multiple" className="w-full">
-                    <AccordionItem disabled value="item-3">
-                      <AccordionTrigger dir="">Add Policies (soon)</AccordionTrigger>
-                      <AccordionContent>TODO: andreas</AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  </div>
+                  <h3 className="my-4 text-xl">Advanced</h3>
+                  <div className="grid grid-cols-1 gap-4 my-4 md:grid-cols-2 ">
+                    <Accordion type="multiple" className="w-full">
+                      <AccordionItem value="ratelimit">
+                        <AccordionTrigger dir="">Add Ratelimiting</AccordionTrigger>
+                        <AccordionContent>
+                          <FormField
+                            control={form.control}
+                            name="ratelimit.limit"
+                            render={({ field }) => (
+                              <FormItem className="w-full">
+                                <FormLabel>Limit</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="10"
+                                    autoFocus={true}
+                                    type="number"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  The maximum number of requests possible during a burst.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="flex items-center gap-4 mt-8">
+                            <FormField
+                              control={form.control}
+                              name="ratelimit.refillRate"
+                              render={({ field }) => (
+                                <FormItem className="w-full">
+                                  <FormLabel>Refill Rate</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="5" type="number" {...field} />
+                                  </FormControl>
+
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="ratelimit.refillInterval"
+                              render={({ field }) => (
+                                <FormItem className="w-full">
+                                  <FormLabel>Refill Interval (milliseconds)</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="1000" type="number" {...field} />
+                                  </FormControl>
+
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <FormDescription>
+                            How many requests may be performed in a given interval
+                          </FormDescription>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    <Accordion type="multiple" className="w-full">
+                      <AccordionItem value="limit">
+                        <AccordionTrigger dir="">Limit Usage</AccordionTrigger>
+                        <AccordionContent>
+                          <FormField
+                            control={form.control}
+                            name="remaining"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Number of uses</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="100"
+                                    className="w-full"
+                                    type="number"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Enter the remaining amount of uses for this key.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    <Accordion type="multiple" className="w-full">
+                      <AccordionItem value="metadata" className="w-full">
+                        <AccordionTrigger dir="">Add Custom Metadata</AccordionTrigger>
+                        <AccordionContent className="flex w-full">
+                          <FormField
+                            control={form.control}
+                            name="meta"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Textarea
+                                    className="border-gray-300 rounded-md shadow-sm m-4 w-full"
+                                    placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
+                                    onBlur={(e) => {
+                                      try {
+                                        const value = JSON.parse(e.target.value);
+                                        const prettier = JSON.stringify(value, null, 2);
+                                        e.target.value = prettier;
+                                        field.onChange(JSON.parse(e.target.value));
+                                        form.clearErrors("meta");
+                                      } catch (_e) {}
+                                    }}
+                                    onChange={(e) => {
+                                      try {
+                                        field.onChange(JSON.parse(e.target.value));
+                                        form.clearErrors("meta");
+                                      } catch (_e) {
+                                        form.setError("meta", {
+                                          type: "manual",
+                                          message: "Invalid JSON",
+                                        });
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Enter custom metadata as a JSON object.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    <Accordion type="multiple" className="w-full">
+                      <AccordionItem value="expiration">
+                        <AccordionTrigger dir="">Add Expiration </AccordionTrigger>
+                        <AccordionContent className="flex w-full ">
+                          <FormField
+                            control={form.control}
+                            name="expires"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Expiry Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  This api key will automatically be revoked after the given date.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
                   <div className="flex justify-end mt-8">
                     <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
                       {key.isLoading ? <Loading /> : "Create"}

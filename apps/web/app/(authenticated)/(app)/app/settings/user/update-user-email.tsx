@@ -1,7 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import React from "react";
-
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -35,14 +34,13 @@ export const UpdateUserEmail: React.FC = () => {
     resolver: zodResolver(formSchema),
     mode: "all",
     defaultValues: {
-      email: user?.primaryEmailAddress?.emailAddress ?? ""
+      email: user?.primaryEmailAddress?.emailAddress ?? "",
     },
   });
   const verificationForm = useForm<z.infer<typeof verificationSchema>>({
     resolver: zodResolver(verificationSchema),
     mode: "all",
   });
-
 
   if (!user) {
     return null;
@@ -57,11 +55,13 @@ export const UpdateUserEmail: React.FC = () => {
             onSubmit={emailForm.handleSubmit(async ({ email }) => {
               try {
                 const emailResponse = await user.createEmailAddress({ email });
-                await emailResponse.prepareVerification({
-                  strategy: "email_code"
-                }).then(() => {
-                  setVerification(true);
-                })
+                await emailResponse
+                  .prepareVerification({
+                    strategy: "email_code",
+                  })
+                  .then(() => {
+                    setVerification(true);
+                  });
 
                 toast({
                   title: "Confirm Email",
@@ -114,7 +114,9 @@ export const UpdateUserEmail: React.FC = () => {
             onSubmit={verificationForm.handleSubmit(async ({ code }) => {
               try {
                 const enteredEmail = emailForm.getValues().email;
-                const email = user.emailAddresses.find((email) => email.emailAddress === enteredEmail);
+                const email = user.emailAddresses.find(
+                  (email) => email.emailAddress === enteredEmail,
+                );
                 if (!email) {
                   throw new Error("Email not found");
                 }
@@ -123,7 +125,7 @@ export const UpdateUserEmail: React.FC = () => {
                   // finally set the email as primary
                   await user.update({
                     primaryEmailAddressId: email.id,
-                  })
+                  });
                   toast({
                     title: "Success",
                     description: `We have succesfully updated your primary email to ${email.emailAddress}`,

@@ -74,7 +74,9 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
           {!clerkLoaded || isLoading ? (
             <Loading />
           ) : (
-            <span className="text-sm font-semibold">{currentOrg?.name ?? "Personal Workspace"}</span>
+            <span className="text-sm font-semibold">
+              {currentOrg?.name ?? "Personal Workspace"}
+            </span>
           )}
         </div>
         <ChevronsUpDown className="hidden w-3 h-3 md:block" />

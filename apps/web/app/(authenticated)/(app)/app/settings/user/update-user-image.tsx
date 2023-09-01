@@ -3,7 +3,7 @@ import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { useOrganization, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { UploadCloud } from "lucide-react";
 
 export const UpdateUserImage: React.FC = () => {

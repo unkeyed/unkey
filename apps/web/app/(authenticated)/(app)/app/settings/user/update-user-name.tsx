@@ -1,7 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import React, { useState } from "react";
-
+import React from "react";
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,7 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { isDirty, z } from "zod";
+import { z } from "zod";
 
 const formSchema = z.object({
   username: z.string().min(3),
