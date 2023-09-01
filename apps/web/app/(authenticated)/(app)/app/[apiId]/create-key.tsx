@@ -325,10 +325,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </AccordionItem>
                     </Accordion>
                     <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="metadata" className="w-full">
-                        <AccordionTrigger dir="">Add Custom Metadata</AccordionTrigger>
-                        <AccordionContent className="flex w-full">
-                          <FormField
+                      <AccordionItem value="metadata">
+                        <AccordionTrigger dir="">Custom Metadata</AccordionTrigger>
+                        <AccordionContent>
+                        <FormField
                             control={form.control}
                             name="meta"
                             render={({ field }) => (
@@ -370,10 +370,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </AccordionItem>
                     </Accordion>
                     <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="expiration">
-                        <AccordionTrigger dir="">Add Expiration </AccordionTrigger>
-                        <AccordionContent className="flex w-full ">
-                          <FormField
+                      <AccordionItem value="expiration-field  ">
+                        <AccordionTrigger dir="">Add Expiration</AccordionTrigger>
+                        <AccordionContent>
+                        <FormField
                             control={form.control}
                             name="expires"
                             render={({ field }) => (
