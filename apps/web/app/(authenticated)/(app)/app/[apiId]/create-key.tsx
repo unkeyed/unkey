@@ -35,16 +35,12 @@ const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
-  metaEnabled: z.boolean().default(false),
   meta: z.record(z.unknown()).optional(),
-  expiresEnabled: z.boolean().default(false),
-  remainingEnabled: z.boolean().default(false),
   remaining: z.coerce.number().positive().optional(),
   expires: z
     .string()
     .transform((s) => new Date(s).getTime())
     .optional(),
-  rateLimitEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
@@ -99,12 +95,12 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!values.rateLimitEnabled || values.ratelimit === undefined) {
+    if (values.ratelimit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
       delete values.ratelimit;
     }
-    if (!(values.metaEnabled && values.meta)) {
+    if (!values.meta) {
       delete values.meta;
     }
 
@@ -242,7 +238,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormControl>
                                   <Input
                                     placeholder="10"
-                                    autoFocus={true}
                                     type="number"
                                     {...field}
                                   />
