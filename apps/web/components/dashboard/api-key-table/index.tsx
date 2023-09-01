@@ -41,11 +41,10 @@ type Column = {
 };
 
 type Props = {
-  apiId: string;
   data: Column[];
 };
 
-export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
+export const ApiKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
   const { toast } = useToast();
   const deleteKey = trpc.key.delete.useMutation({
@@ -161,7 +160,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/${apiId}/keys/${row.original.id}`} className="w-full">
+                  <Link href={`/app/keys/${row.original.id}`} className="w-full">
                     Details
                   </Link>
                 </DropdownMenuItem>

@@ -70,3 +70,17 @@ export const getTotalActiveKeys = tb.buildPipe({
     cache: "no-store",
   },
 });
+
+export const getLatestVerifications = tb.buildPipe({
+  pipe: "endpoint__get_latest_verifications__v1",
+  parameters: z.object({
+    keyId: z.string(),
+  }),
+  data: z.object({
+    time: z.number(),
+    ratelimited: z.number().transform((n) => n > 0),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});

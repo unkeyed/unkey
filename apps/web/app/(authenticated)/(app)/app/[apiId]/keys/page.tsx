@@ -38,7 +38,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   return (
     <div>
-      <ApiKeyTable data={keys} apiId={props.params.apiId} />
+      <ApiKeyTable data={keys} />
     </div>
   );
 }
