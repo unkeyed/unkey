@@ -28,23 +28,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
-  metaEnabled: z.boolean().default(false),
   meta: z.record(z.unknown()).optional(),
-  expiresEnabled: z.boolean().default(false),
-  remainingEnabled: z.boolean().default(false),
   remaining: z.coerce.number().positive().optional(),
   expires: z
     .string()
     .transform((s) => new Date(s).getTime())
     .optional(),
-  rateLimitEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
@@ -62,14 +58,23 @@ type Props = {
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
   const router = useRouter();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
     defaultValues: {
       prefix: "key",
       bytes: 16,
     },
   });
+  const formData = form.watch();
+  useEffect(() => {
+    if (formData.ratelimit?.limit === undefined && formData.ratelimit?.refillRate === undefined && formData.ratelimit?.refillInterval === undefined) {
+      form.resetField("ratelimit")
+    }
+  }, [formData.ratelimit]);
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast({
@@ -99,12 +104,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!values.rateLimitEnabled || values.ratelimit === undefined) {
+
+    if (values.ratelimit?.limit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
       delete values.ratelimit;
     }
-    if (!(values.metaEnabled && values.meta)) {
+    if (!values.meta) {
       delete values.meta;
     }
 
@@ -242,7 +248,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormControl>
                                   <Input
                                     placeholder="10"
-                                    autoFocus={true}
                                     type="number"
                                     {...field}
                                   />
@@ -320,17 +325,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </AccordionItem>
                     </Accordion>
                     <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="metadata" className="w-full">
-                        <AccordionTrigger dir="">Add Custom Metadata</AccordionTrigger>
-                        <AccordionContent className="flex w-full">
-                          <FormField
+                      <AccordionItem value="metadata">
+                        <AccordionTrigger dir="">Custom Metadata</AccordionTrigger>
+                        <AccordionContent>
+                        <FormField
                             control={form.control}
                             name="meta"
                             render={({ field }) => (
                               <FormItem>
                                 <FormControl>
                                   <Textarea
-                                    className="border-gray-300 rounded-md shadow-sm m-4 w-full"
+                                    className="border rounded-md shadow-sm m-4 max-w-full w-96"
                                     placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
                                     onBlur={(e) => {
                                       try {
@@ -339,7 +344,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                         e.target.value = prettier;
                                         field.onChange(JSON.parse(e.target.value));
                                         form.clearErrors("meta");
-                                      } catch (_e) {}
+                                      } catch (_e) { }
                                     }}
                                     onChange={(e) => {
                                       try {
@@ -365,10 +370,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </AccordionItem>
                     </Accordion>
                     <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="expiration">
-                        <AccordionTrigger dir="">Add Expiration </AccordionTrigger>
-                        <AccordionContent className="flex w-full ">
-                          <FormField
+                      <AccordionItem value="expiration-field  ">
+                        <AccordionTrigger dir="">Add Expiration</AccordionTrigger>
+                        <AccordionContent>
+                        <FormField
                             control={form.control}
                             name="expires"
                             render={({ field }) => (
