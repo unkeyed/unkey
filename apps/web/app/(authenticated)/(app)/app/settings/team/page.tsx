@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useClerk, useOrganization } from "@clerk/nextjs";
+import { useAuth, useClerk, useOrganization } from "@clerk/nextjs";
 
 import { Loading } from "@/components/dashboard/loading";
 import {
@@ -233,7 +233,7 @@ const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> =
   const [isLoading, setLoading] = useState(false);
   const { organization } = useOrganization();
   const { toast } = useToast();
-
+  const {userId} = useAuth()
   async function updateRole(role: Member["role"]) {
     try {
       setLoading(true);
@@ -263,6 +263,7 @@ const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> =
   return (
     <Select
       value={role}
+      disabled={member.id === userId}
       onValueChange={async (value: Member["role"]) => {
         updateRole(value);
       }}
