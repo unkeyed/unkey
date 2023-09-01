@@ -1,7 +1,7 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React from "react";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -35,7 +36,11 @@ export const UpdateUserName: React.FC = () => {
     },
   });
   if (!user) {
-    return null;
+    return (
+      <EmptyPlaceholder className="min-h-[200px]">
+        <Loading />
+      </EmptyPlaceholder>
+    );
   }
 
   const isDisabled = form.formState.isLoading || !form.formState.isValid;

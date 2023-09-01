@@ -1,43 +1,38 @@
-"use client";
-
-import Link from "next/link";
 import * as React from "react";
 
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { useSelectedLayoutSegment } from "next/navigation";
+import { Navbar } from "@/components/dashboard/navbar";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
-  const segment = useSelectedLayoutSegment();
-  const navigation: { label: string; href: string; active?: boolean }[] = [
+  const navigation = [
     {
       label: "General",
       href: "/app/settings/general",
-      active: segment === "general",
+      segment: "general",
     },
     {
       label: "Team",
       href: "/app/settings/team",
-      active: segment === "team",
+      segment: "team",
     },
     {
       label: "Root Keys",
       href: "/app/settings/root-keys",
-      active: segment === "root-keys",
+      segment: "root-keys",
     },
     {
       label: "Billing",
       href: "/app/stripe",
+      segment: null,
     },
     {
       label: "Usage",
       href: "/app/settings/usage",
-      active: segment === "usage",
+      segment: "usage",
     },
     {
       label: "User",
       href: "/app/settings/user",
-      active: segment === "user",
+      segment: "user",
     },
   ];
 
@@ -47,32 +42,9 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         <h2 className="text-2xl font-semibold tracking-tight">Settings</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">Manage your workspace settings.</p>
       </div>
-      <nav className="sticky top-0 bg-background">
-        <div className="flex items-center w-full gap-4 mt-8">
-          {navigation.map(({ label, href, active }) => (
-            <li
-              className={cn(" list-none border-b-2 border-transparent p-2 ", {
-                "border-primary ": active,
-              })}
-            >
-              <Link
-                href={href}
-                className={cn(
-                  "text-sm font-medium py-2 px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
-                  {
-                    "text-primary": active,
-                  },
-                )}
-              >
-                {label}
-              </Link>
-            </li>
-          ))}
-        </div>
-        <Separator className="" />
-      </nav>
+      <Navbar navigation={navigation} />
 
-      <main className="mt-8">{children}</main>
+      <main className="mt-8 mb-20">{children}</main>
     </div>
   );
 }

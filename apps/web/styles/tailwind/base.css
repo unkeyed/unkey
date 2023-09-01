@@ -25,7 +25,7 @@
     --warn-foreground: 46, 97%, 15%;
     
     --alert: 0 100% 65%;
-    --alert-foreground: 0 100% 20%;
+    --alert-foreground: 0 100% 980%;
     
     --primary : 24 10% 10%;
     --primary-foreground: 24 10% 90%;
@@ -49,6 +49,7 @@
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
+    
     --background: 20 14% 4%;
     --background-subtle: 24 10% 10%;
     
@@ -59,14 +60,13 @@
     --warn: 46, 100%, 45%;
     --warn-foreground: 46, 97%, 5%;
     
-    --alert: 0 100% 35%;
+    --alert: 0 100% 45%;
     --alert-foreground: 0 100% 95%;
     
 
     --primary : 0 0% 100%;
     --primary-foreground: 0 0% 0%;
-    
-
+  
     --secondary : 24 10% 10%;
     --secondary-foreground: 24 10% 100%;
     

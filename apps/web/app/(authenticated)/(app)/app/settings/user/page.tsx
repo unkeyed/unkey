@@ -1,6 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { UpdateTheme } from "./update-theme";
 import { UpdateUserEmail } from "./update-user-email";
 import { UpdateUserImage } from "./update-user-image";
 import { UpdateUserName } from "./update-user-name";
@@ -21,6 +22,7 @@ export default async function SettingsPage() {
       <UpdateUserName />
       <UpdateUserEmail />
       <UpdateUserImage />
+      <UpdateTheme />
     </div>
   );
 }

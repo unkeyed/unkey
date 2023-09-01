@@ -233,7 +233,7 @@ const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> =
   const [isLoading, setLoading] = useState(false);
   const { organization } = useOrganization();
   const { toast } = useToast();
-  const {userId} = useAuth()
+  const { userId } = useAuth();
   async function updateRole(role: Member["role"]) {
     try {
       setLoading(true);

@@ -61,13 +61,13 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-6">
           <CardTitle>{formatNumber(keys)}</CardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-6">
           <CardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
           </CardTitle>
@@ -75,7 +75,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
         </CardHeader>
       </Card>
       <Card className="col-span-2 md:col-span-1">
-        <CardHeader>
+        <CardHeader className="pb-6">
           <CardTitle>{formatNumber(usage.data.reduce((sum, day) => sum + day.usage, 0))}</CardTitle>
           <CardDescription>Verifications (30 days)</CardDescription>
         </CardHeader>

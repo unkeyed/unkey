@@ -86,7 +86,7 @@ export const UpdateUserImage: React.FC = () => {
         <CardContent>
           <label
             htmlFor="image"
-            className="relative flex flex-col items-center justify-center w-24 h-24 mt-1 transition-all bg-white border border-gray-300 rounded-full shadow-sm cursor-pointer group hover:bg-gray-50"
+            className="relative flex flex-col items-center justify-center w-24 h-24 mt-1 transition-all border rounded-full shadow-sm cursor-pointer border-border bg-background group hover:bg-background-subtle"
           >
             <div
               className="absolute z-[5] h-full w-full rounded-full"

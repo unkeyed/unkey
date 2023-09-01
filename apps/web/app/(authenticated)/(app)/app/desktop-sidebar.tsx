@@ -95,9 +95,9 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       href={item.href}
       target={item.external ? "_blank" : undefined}
       className={cn(
-        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 ",
+        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 ",
         {
-          "bg-gray-200": item.active,
+          "bg-gray-200 dark:bg-gray-800": item.active,
         },
       )}
     >

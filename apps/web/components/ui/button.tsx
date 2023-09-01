@@ -13,7 +13,8 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground hover:bg-secondary hover:text-secondary-foreground border border-primary",
         secondary:
           " text-secondary-foreground hover:bg-primary hover:text-primary-foreground border border-border",
-        alert: "bg-background border border-border text-alert  hover:border-alert",
+        alert:
+          "bg-background border border-alert text-alert hover:bg-alert hover:text-alert-foreground",
         disabled: " text-secondary-foreground bg-secondary border border-border opacity-50",
 
         ghost: "hover:bg-gray-200 hover:text-gray-900",

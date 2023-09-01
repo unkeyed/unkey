@@ -1,20 +1,41 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React from "react";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -29,7 +50,10 @@ const verificationSchema = z.object({
 export const UpdateUserEmail: React.FC = () => {
   const { toast } = useToast();
   const { user } = useUser();
-  const [verification, setVerification] = React.useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [promotingEmail, setPromotingEmail] = useState(false);
+  const [openRemoveModal, setOpenRemoveModal] = React.useState(false);
+  const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
   const emailForm = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -37,148 +61,332 @@ export const UpdateUserEmail: React.FC = () => {
       email: user?.primaryEmailAddress?.emailAddress ?? "",
     },
   });
+
+  if (!user) {
+    return (
+      <EmptyPlaceholder className="min-h-[200px]">
+        <Loading />
+      </EmptyPlaceholder>
+    );
+  }
+  const isDisabled = emailForm.formState.isLoading || !emailForm.formState.isValid;
+  const verifiedEmails = user.emailAddresses.filter(
+    (email) => email.verification.status === "verified",
+  ).length;
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Email Addresses</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Primary</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Settings</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {user.emailAddresses?.map(
+                ({ id, emailAddress, verification, destroy, prepareVerification }) => (
+                  <TableRow key={id}>
+                    <TableCell>{emailAddress}</TableCell>
+                    <TableCell>
+                      {user.primaryEmailAddress?.id === id ? (
+                        <Badge size="sm" variant="secondary">
+                          Primary
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        size="sm"
+                        variant={verification.status === "verified" ? "secondary" : "alert"}
+                        className="capitalize"
+                      >
+                        {verification.status}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                          <DropdownMenuGroup>
+                            <Dialog
+                              open={openRemoveModal}
+                              onOpenChange={(o) => setOpenRemoveModal(o)}
+                            >
+                              <DialogTrigger asChild>
+                                <DropdownMenuItem
+                                  disabled={
+                                    verifiedEmails <= 1 && verification.status === "verified"
+                                  }
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setOpenRemoveModal(true);
+                                  }}
+                                >
+                                  Remove
+                                  <DropdownMenuShortcut>
+                                    <X className="w-4 h-4" />
+                                  </DropdownMenuShortcut>
+                                </DropdownMenuItem>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[425px] border-alert">
+                                <DialogHeader>
+                                  <DialogTitle>Remove Email</DialogTitle>
+                                  <DialogDescription>
+                                    Are you sure you want to remove {emailAddress}?
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                <DialogFooter>
+                                  <Button
+                                    type="submit"
+                                    variant="alert"
+                                    onClick={() => {
+                                      destroy()
+                                        .then(() => {
+                                          toast({
+                                            title: "Success",
+                                            description: "Email removed",
+                                          });
+                                          user.reload();
+                                        })
+                                        .catch((e) => {
+                                          toast({
+                                            title: "Error",
+                                            description: (e as Error).message,
+                                            variant: "alert",
+                                          });
+                                        });
+                                    }}
+                                  >
+                                    Confirm
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                            <DropdownMenuItem
+                              disabled={false}
+                              onClick={async () => {
+                                try {
+                                  setPromotingEmail(true);
+                                  await user.update({ primaryEmailAddressId: id });
+                                  user.reload();
+                                } catch (e) {
+                                  toast({
+                                    title: "Error",
+                                    description: (e as Error).message,
+                                    variant: "alert",
+                                  });
+                                } finally {
+                                  setPromotingEmail(false);
+                                }
+                              }}
+                            >
+                              Make Primary
+                              <DropdownMenuShortcut>
+                                {" "}
+                                {promotingEmail ? (
+                                  <Loading className="w-4 h-4" />
+                                ) : (
+                                  <ChevronsUp className="w-4 h-4" />
+                                )}
+                              </DropdownMenuShortcut>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={false}
+                              onClick={async () => {
+                                try {
+                                  setSendingVerification(true);
+                                  await prepareVerification({
+                                    strategy: "email_code",
+                                  });
+                                  setVerifyEmail(emailAddress);
+                                } catch (e) {
+                                  toast({
+                                    title: "Error",
+                                    description: (e as Error).message,
+                                    variant: "alert",
+                                  });
+                                } finally {
+                                  setSendingVerification(false);
+                                }
+                              }}
+                            >
+                              Verify
+                              <DropdownMenuShortcut>
+                                {sendingVerification ? (
+                                  <Loading className="w-4 h-4" />
+                                ) : (
+                                  <ShieldCheck className="w-4 h-4" />
+                                )}
+                              </DropdownMenuShortcut>
+                            </DropdownMenuItem>
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter className="justify-end">
+          <Form {...emailForm}>
+            <form
+              onSubmit={emailForm.handleSubmit(async ({ email }) => {
+                try {
+                  setSendingVerification(true);
+                  const emailResponse = await user.createEmailAddress({ email });
+
+                  await emailResponse.prepareVerification({
+                    strategy: "email_code",
+                  });
+
+                  setVerifyEmail(email);
+                } catch (e) {
+                  toast({
+                    title: "Error",
+                    description: (e as Error).message,
+                    variant: "alert",
+                  });
+                } finally {
+                  setSendingVerification(false);
+                }
+              })}
+              className="flex items-start justify-start gap-4"
+            >
+              <FormField
+                control={emailForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} className="max-w-md min-w-md" placeholder="Add new email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                type="submit"
+                variant={isDisabled || sendingVerification ? "disabled" : "primary"}
+                disabled={isDisabled || sendingVerification}
+              >
+                {emailForm.formState.isLoading || sendingVerification ? <Loading /> : "Save"}
+              </Button>
+            </form>
+          </Form>
+        </CardFooter>
+      </Card>
+
+      <Dialog
+        open={!!verifyEmail}
+        onOpenChange={(o) => {
+          setVerifyEmail(o ? verifyEmail : null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify your email</DialogTitle>
+            <DialogDescription>We have sent a code to your email</DialogDescription>
+          </DialogHeader>
+
+          <VerificationForm
+            email={emailForm.getValues().email}
+            onSuccess={() => {
+              setVerifyEmail(null);
+              user.reload();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+type VerificationFormProps = {
+  email: string;
+  onSuccess: () => void;
+};
+
+const VerificationForm: React.FC<VerificationFormProps> = ({ email, onSuccess }) => {
+  const { toast } = useToast();
+  const { user } = useClerk();
   const verificationForm = useForm<z.infer<typeof verificationSchema>>({
     resolver: zodResolver(verificationSchema),
-    mode: "all",
+    mode: "onSubmit",
   });
-
   if (!user) {
     return null;
   }
-
-  const isDisabled = emailForm.formState.isLoading || !emailForm.formState.isValid;
   return (
-    <>
-      {!verification && (
-        <Form {...emailForm}>
-          <form
-            onSubmit={emailForm.handleSubmit(async ({ email }) => {
-              try {
-                const emailResponse = await user.createEmailAddress({ email });
-                await emailResponse
-                  .prepareVerification({
-                    strategy: "email_code",
-                  })
-                  .then(() => {
-                    setVerification(true);
-                  });
+    <Form {...verificationForm}>
+      <form
+        onSubmit={verificationForm.handleSubmit(async ({ code }) => {
+          try {
+            const emailResource = user.emailAddresses.find((e) => e.emailAddress === email);
+            if (!emailResource) {
+              throw new Error("Invalid email");
+            }
+            const verify = await emailResource.attemptVerification({ code });
+            if (verify.verification.status !== "verified") {
+              throw new Error("Invalid verification code");
+            }
 
-                toast({
-                  title: "Confirm Email",
-                  description: `We have sent an email to ${email}, please confirm it by entering the code we sent you.`,
-                });
-              } catch (e) {
-                toast({
-                  title: "Error",
-                  description: (e as Error).message,
-                  variant: "alert",
-                });
-              }
-            })}
+            onSuccess();
+          } catch (e) {
+            toast({
+              title: "Error",
+              description: (e as Error).message,
+              variant: "alert",
+            });
+          }
+        })}
+      >
+        <div className="flex items-start justify-between w-full gap-4">
+          <div className="w-full">
+            <FormField
+              control={verificationForm.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      className="w-full grow"
+                      placeholder="Enter the 6 digit code here"
+                      autoComplete="off"
+                    />
+                  </FormControl>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <Button
+            type="submit"
+            variant={verificationForm.formState.isLoading ? "disabled" : "primary"}
+            disabled={verificationForm.formState.isLoading}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Email</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={emailForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input {...field} className="max-w-sm" />
-                      </FormControl>
-                      <FormDescription>What's your email?</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              <CardFooter className="justify-end">
-                <Button
-                  type="submit"
-                  variant={isDisabled ? "disabled" : "primary"}
-                  disabled={isDisabled}
-                >
-                  {emailForm.formState.isLoading ? <Loading /> : "Save"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </form>
-        </Form>
-      )}
-      {verification && (
-        <Form {...verificationForm}>
-          <form
-            onSubmit={verificationForm.handleSubmit(async ({ code }) => {
-              try {
-                const enteredEmail = emailForm.getValues().email;
-                const email = user.emailAddresses.find(
-                  (email) => email.emailAddress === enteredEmail,
-                );
-                if (!email) {
-                  throw new Error("Email not found");
-                }
-                const verify = await email.attemptVerification({ code });
-                if (verify.verification.status === "verified") {
-                  // finally set the email as primary
-                  await user.update({
-                    primaryEmailAddressId: email.id,
-                  });
-                  toast({
-                    title: "Success",
-                    description: `We have succesfully updated your primary email to ${email.emailAddress}`,
-                  });
-                  setVerification(false);
-                } else {
-                  toast({
-                    title: "Error",
-                    description: "Invalid verification code",
-                    variant: "alert",
-                  });
-                }
-              } catch (e) {
-                toast({
-                  title: "Error",
-                  description: (e as Error).message,
-                  variant: "alert",
-                });
-              }
-            })}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Email Code</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={verificationForm.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input {...field} className="max-w-sm" />
-                      </FormControl>
-                      <FormDescription>Enter your verification code</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              <CardFooter className="justify-end">
-                <Button
-                  type="submit"
-                  variant={isDisabled ? "disabled" : "primary"}
-                  disabled={isDisabled}
-                >
-                  {verificationForm.formState.isLoading ? <Loading /> : "Verify"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </form>
-        </Form>
-      )}
-    </>
+            {verificationForm.formState.isLoading ? <Loading /> : "Verify"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };

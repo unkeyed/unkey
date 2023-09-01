@@ -3,26 +3,19 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SignOutButton, useUser } from "@clerk/nextjs";
-import { Book, ChevronRight, LogOut, Monitor, Moon, Rocket, Sun, Zap } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Book, ChevronRight, LogOut, Rocket, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 export const UserButton: React.FC = () => {
   const { user } = useUser();
-  const { theme, setTheme } = useTheme();
   const router = useRouter();
 
   if (!user) {
@@ -65,43 +58,6 @@ export const UserButton: React.FC = () => {
               <span>Plans & Billing</span>
             </DropdownMenuItem>
           </Link>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>Change Theme</DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuCheckboxItem
-                  checked={theme === "light"}
-                  onCheckedChange={() => setTheme("light")}
-                >
-                  <div className="flex items-center gap-2 ">
-                    <Sun size={16} />
-                    Light
-                  </div>
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={theme === "dark"}
-                  onCheckedChange={() => setTheme("dark")}
-                >
-                  <div className="flex items-center gap-2 ">
-                    <Moon size={16} />
-                    Dark
-                  </div>
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={theme === "system"}
-                  onCheckedChange={() => setTheme("system")}
-                >
-                  <div className="flex items-center gap-2 ">
-                    <Monitor size={16} />
-                    System
-                  </div>
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

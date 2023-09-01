@@ -1,10 +1,10 @@
 "use client";
-import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useOrganization } from "@clerk/nextjs";
 import { UploadCloud } from "lucide-react";
 import Link from "next/link";
+import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 
 export const UpdateWorkspaceImage: React.FC = () => {
   const { toast } = useToast();
@@ -105,7 +105,7 @@ export const UpdateWorkspaceImage: React.FC = () => {
         <CardContent>
           <label
             htmlFor="image"
-            className="relative flex flex-col items-center justify-center w-24 h-24 mt-1 transition-all bg-white border border-gray-300 rounded-full shadow-sm cursor-pointer group hover:bg-gray-50"
+            className="relative flex flex-col items-center justify-center w-24 h-24 mt-1 transition-all border rounded-full shadow-sm cursor-pointer bg-background border-border group hover:bg-background-subtle"
           >
             <div
               className="absolute z-[5] h-full w-full rounded-full"
