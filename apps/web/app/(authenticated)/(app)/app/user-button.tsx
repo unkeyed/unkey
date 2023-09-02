@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SignOutButton, useUser } from "@clerk/nextjs";
-import { Book, ChevronRight, LogOut, Rocket, Zap } from "lucide-react";
+import { Book, ChevronRight, LogOut, Rocket, Settings, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -56,6 +56,12 @@ export const UserButton: React.FC = () => {
             <DropdownMenuItem className="cursor-pointer">
               <Zap className="w-4 h-4 mr-2" />
               <span>Plans & Billing</span>
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/app/settings/user">
+            <DropdownMenuItem className="cursor-pointer">
+              <Settings className="w-4 h-4 mr-2" />
+              <span>Settings</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>

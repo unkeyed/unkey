@@ -2,6 +2,15 @@
 
 import { Area, Column } from "@ant-design/plots";
 import { useTheme } from "next-themes";
+
+const useColors = () => {
+  const { theme } = useTheme();
+  return {
+    color: theme === "dark" ? "#f1efef" : "#1c1917",
+    axisColor: theme === "dark" ? "#1b1918" : "#e8e5e3",
+  };
+};
+
 type Props = {
   data: {
     x: string;
@@ -10,25 +19,44 @@ type Props = {
 };
 
 export const AreaChart: React.FC<Props> = ({ data }) => {
-  const { theme } = useTheme();
+  const { color, axisColor } = useColors();
   return (
     <Area
       autoFit={true}
       data={data}
       smooth={true}
-      padding={[40, 40, 30, 40]}
+      padding={[20, 40, 50, 40]}
       xField="x"
       yField="y"
-      color={theme === "dark" ? "#fff" : "#52525b"}
-      theme={theme}
+      color={color}
       xAxis={{
         tickCount: 3,
+        tickLine: {
+          style: {
+            stroke: axisColor,
+          },
+        },
+        line: {
+          style: {
+            stroke: axisColor,
+          },
+        },
+        label: {
+          formatter: (v: string) => new Date(v).toLocaleDateString(),
+        },
       }}
       yAxis={{
         tickCount: 3,
         label: {
           formatter: (v: string) =>
             Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(v)),
+        },
+        grid: {
+          line: {
+            style: {
+              stroke: axisColor,
+            },
+          },
         },
       }}
       tooltip={{
@@ -42,21 +70,43 @@ export const AreaChart: React.FC<Props> = ({ data }) => {
 };
 
 export const ColumnChart: React.FC<Props> = ({ data }) => {
-  const { theme } = useTheme();
+  const { color, axisColor } = useColors();
   return (
     <Column
-      theme={theme}
-      color={theme === "dark" ? "#fff" : "#52525b"}
+      color={color}
       autoFit={true}
       data={data}
-      padding={[40, 40, 30, 40]}
+      padding={[20, 40, 50, 40]}
       xField="x"
       yField="y"
+      xAxis={{
+        maxTickCount: 5,
+        label: {
+          formatter: (v: string) => new Date(v).toLocaleDateString(),
+        },
+        tickLine: {
+          style: {
+            stroke: axisColor,
+          },
+        },
+        line: {
+          style: {
+            stroke: axisColor,
+          },
+        },
+      }}
       yAxis={{
-        tickCount: 3,
+        tickCount: 5,
         label: {
           formatter: (v: string) =>
             Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(v)),
+        },
+        grid: {
+          line: {
+            style: {
+              stroke: axisColor,
+            },
+          },
         },
       }}
       tooltip={{

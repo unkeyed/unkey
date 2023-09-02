@@ -6,7 +6,7 @@ import { experimental_useFormStatus as useFormStatus } from "react-dom";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { deleterApi } from "./actions";
+import { deleteApi } from "./actions";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -56,7 +56,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
         <form
           action={async (formData: FormData) => {
-            const res = await deleterApi(formData);
+            const res = await deleteApi(formData);
             if (res.error) {
               toast({
                 title: "Error",

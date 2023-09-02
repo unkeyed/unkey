@@ -28,9 +28,9 @@ export default async function ApiPageLayout(props: Props) {
     return redirect("/onboarding");
   }
   const navigation = [
-    { label: "Overview", href: `/app/${props.params.apiId}`, segment: null },
-    { label: "Keys", href: `/app/${props.params.apiId}/keys`, segment: "keys" },
-    { label: "Settings", href: `/app/${props.params.apiId}/settings`, segment: "settings" },
+    { label: "Overview", href: `/app/apis/${props.params.apiId}`, segment: null },
+    { label: "Keys", href: `/app/apis/${props.params.apiId}/keys`, segment: "keys" },
+    { label: "Settings", href: `/app/apis/${props.params.apiId}/settings`, segment: "settings" },
   ];
 
   return (
@@ -47,7 +47,7 @@ export default async function ApiPageLayout(props: Props) {
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
-          <Link key="new" href={`/app/${api.id}/keys/new`}>
+          <Link key="new" href={`/app/apis/${api.id}/keys/new`}>
             <Button variant="secondary">Create Key</Button>
           </Link>,
         ]}

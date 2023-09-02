@@ -72,7 +72,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
                   <NavLink
                     item={{
                       icon: Code,
-                      href: `/app/${api.id}`,
+                      href: `/app/apis/${api.id}`,
                       label: api.name,
                       active: segments.includes(api.id),
                     }}

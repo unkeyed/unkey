@@ -20,13 +20,16 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-
 const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
 
 const formSchema = z.object({
-  username: z.string().min(3).refine((v) => validCharactersRegex.test(v),{
-    message: "Username can only contain letters, numbers, dashes and underscores",
-  })});
+  username: z
+    .string()
+    .min(3)
+    .refine((v) => validCharactersRegex.test(v), {
+      message: "Username can only contain letters, numbers, dashes and underscores",
+    }),
+});
 
 export const UpdateUserName: React.FC = () => {
   const { toast } = useToast();
@@ -61,7 +64,7 @@ export const UpdateUserName: React.FC = () => {
               });
               user.reload();
             })
-            .catch((e) => {
+            .catch(() => {
               toast({
                 title: "Error",
                 description: "Sorry there was an error updating your username",

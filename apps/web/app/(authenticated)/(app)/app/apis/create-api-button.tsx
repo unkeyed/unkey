@@ -38,7 +38,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
         description: "Your API has been created",
       });
       router.refresh();
-      router.push(`/app/${res.id}`);
+      router.push(`/app/apis/${res.id}`);
     },
     onError(err) {
       console.error(err);

@@ -35,3 +35,16 @@ export function fillRange(
   }
   return series;
 }
+
+export function cumulative(
+  data: { value: number; time: number }[],
+): { value: number; time: number }[] {
+  let value = 0;
+  return data.map((d) => {
+    value += d.value;
+    return {
+      time: d.time,
+      value,
+    };
+  });
+}

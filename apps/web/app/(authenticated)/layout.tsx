@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider } from "@clerk/nextjs";
 
 export default function AuthenticatedLayout({
@@ -8,18 +9,20 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <>
-      <ClerkProvider
-        afterSignInUrl="/app"
-        afterSignUpUrl="/onboarding"
-        appearance={{
-          variables: {
-            colorPrimary: "#5C36A3",
-            colorText: "#5C36A3",
-          },
-        }}
-      >
-        {children}
-      </ClerkProvider>
+      <TooltipProvider>
+        <ClerkProvider
+          afterSignInUrl="/app"
+          afterSignUpUrl="/onboarding"
+          appearance={{
+            variables: {
+              colorPrimary: "#5C36A3",
+              colorText: "#5C36A3",
+            },
+          }}
+        >
+          {children}
+        </ClerkProvider>
+      </TooltipProvider>
       <Toaster />
     </>
   );

@@ -81,7 +81,7 @@ export const updateIpWhitelist = serverAction({
   },
 });
 
-export const deleterApi = serverAction({
+export const deleteApi = serverAction({
   input: z.object({
     apiId: z.string(),
     workspaceId: z.string(),

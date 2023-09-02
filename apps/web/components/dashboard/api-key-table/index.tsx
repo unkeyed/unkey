@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
@@ -26,6 +27,7 @@ import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CopyButton } from "../copy-button";
 import { Loading } from "../loading";
 import { DataTable } from "./table";
 type Column = {
@@ -38,6 +40,7 @@ type Column = {
   ratelimitLimit: number | null;
   ratelimitRefillRate: number | null;
   ratelimitRefillInterval: number | null;
+  remainingRequests: number | null;
 };
 
 type Props = {
@@ -89,9 +92,33 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       enableHiding: false,
     },
     {
+      accessorKey: "id",
+      header: "Key ID",
+      cell: ({ row }) => (
+        <Badge
+          key="apiId"
+          variant="secondary"
+          className="flex justify-between w-full font-mono font-medium"
+        >
+          {row.getValue("id")}
+          <CopyButton value={row.getValue("id")} className="ml-2" />
+        </Badge>
+      ),
+    },
+    {
       accessorKey: "start",
       header: "Key",
-      cell: ({ row }) => <Badge variant="secondary">{row.getValue("start")}...</Badge>,
+      cell: ({ row }) => (
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="secondary">{row.getValue("start")}...</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            This is the first part of the key to visually match it. We don't store the full key for
+            security reasons.
+          </TooltipContent>
+        </Tooltip>
+      ),
     },
     {
       accessorKey: "createdAt",
@@ -112,6 +139,16 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) =>
         row.original.expires ? (
           <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+        ) : (
+          <Minus className="w-4 h-4 text-gray-300" />
+        ),
+    },
+    {
+      accessorKey: "remainingRequests",
+      header: "Remaining",
+      cell: ({ row }) =>
+        row.original.remainingRequests ? (
+          <span>{row.original.remainingRequests.toLocaleString()}</span>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),

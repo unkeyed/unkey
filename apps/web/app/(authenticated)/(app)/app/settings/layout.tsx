@@ -42,7 +42,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         <h2 className="text-2xl font-semibold tracking-tight">Settings</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">Manage your workspace settings.</p>
       </div>
-      <Navbar navigation={navigation} />
+
+      <Navbar navigation={navigation} className="mt-8" />
 
       <main className="mt-8 mb-20">{children}</main>
     </div>

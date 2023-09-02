@@ -78,7 +78,38 @@ export const getLatestVerifications = tb.buildPipe({
   }),
   data: z.object({
     time: z.number(),
+    requestedResource: z.string(),
     ratelimited: z.number().transform((n) => n > 0),
+    usageExceeded: z.number().transform((n) => n > 0),
+    region: z.string(),
+    userAgent: z.string(),
+    ipAddress: z.string(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getTotalUsage = tb.buildPipe({
+  pipe: "endpoint__get_total_usage_for_key__v1",
+  parameters: z.object({
+    keyId: z.string(),
+  }),
+  data: z.object({
+    totalUsage: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getLastUsed = tb.buildPipe({
+  pipe: "endpoint__get_last_used__v1",
+  parameters: z.object({
+    keyId: z.string(),
+  }),
+  data: z.object({
+    lastUsed: z.number(),
   }),
   opts: {
     cache: "no-store",

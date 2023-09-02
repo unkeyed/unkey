@@ -71,8 +71,12 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
   const formData = form.watch();
   useEffect(() => {
-    if (formData.ratelimit?.limit === undefined && formData.ratelimit?.refillRate === undefined && formData.ratelimit?.refillInterval === undefined) {
-      form.resetField("ratelimit")
+    if (
+      formData.ratelimit?.limit === undefined &&
+      formData.ratelimit?.refillRate === undefined &&
+      formData.ratelimit?.refillInterval === undefined
+    ) {
+      form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
   const key = trpc.key.create.useMutation({
@@ -104,7 +108,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-
     if (values.ratelimit?.limit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
@@ -167,7 +170,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </div>
           </Code>
           <div className="flex justify-end my-4 space-x-4">
-            <Link href={`/app/${apiId}`}>
+            <Link href={`/app/apis/${apiId}`}>
               <Button variant="secondary">Back</Button>
             </Link>
             <Button onClick={() => key.reset()}>Create another key</Button>
@@ -180,7 +183,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="flex justify-evenly gap-4">
+                  <div className="flex gap-4 justify-evenly">
                     <FormField
                       control={form.control}
                       name="prefix"
@@ -247,11 +250,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem className="w-full">
                                   <FormLabel>Limit</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      placeholder="10"
-                                      type="number"
-                                      {...field}
-                                    />
+                                    <Input placeholder="10" type="number" {...field} />
                                   </FormControl>
                                   <FormDescription>
                                     The maximum number of requests possible during a burst.
@@ -338,7 +337,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem>
                                   <FormControl>
                                     <Textarea
-                                      className="border rounded-md shadow-sm m-4 max-w-full w-96"
+                                      className="max-w-full m-4 border rounded-md shadow-sm w-96"
                                       placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
                                       onBlur={(e) => {
                                         try {
@@ -347,7 +346,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                           e.target.value = prettier;
                                           field.onChange(JSON.parse(e.target.value));
                                           form.clearErrors("meta");
-                                        } catch (_e) { }
+                                        } catch (_e) {}
                                       }}
                                       onChange={(e) => {
                                         try {

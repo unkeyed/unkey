@@ -101,7 +101,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="min-w-full mt-4 md:min-w-min " variant="secondary">
+                <Button className="min-w-full md:min-w-min " variant="secondary">
                   Revoke selected keys
                 </Button>
               </DialogTrigger>

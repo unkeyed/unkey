@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   datetime,
   index,
   int,
@@ -47,6 +48,7 @@ export const keys = mysqlTable(
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
     ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
     ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
+    totalUses: bigint("total_uses", { mode: "number" }).default(0),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),

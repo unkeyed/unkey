@@ -255,7 +255,6 @@ export const UpdateUserEmail: React.FC = () => {
                   });
 
                   setVerifyEmail(email);
-
                 } catch (e) {
                   toast({
                     title: "Error",

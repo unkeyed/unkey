@@ -42,7 +42,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
       {apis.length ? (
         <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-3 xl:gap-x-8">
           {localData.map((api) => (
-            <Link key={api.id} href={`/app/${api.id}`}>
+            <Link key={api.id} href={`/app/apis/${api.id}`}>
               <Card className="relative overflow-hidden duration-500 hover:border-primary/50 group ">
                 <CardHeader>
                   <div className="flex items-center justify-between ">

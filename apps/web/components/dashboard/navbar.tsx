@@ -9,13 +9,14 @@ import { useSelectedLayoutSegment } from "next/navigation";
 
 type Props = {
   navigation: { label: string; href: string; segment: string | null }[];
+  className?: string;
 };
 
-export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation }) => {
+export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, className }) => {
   const selectedSegment = useSelectedLayoutSegment();
   return (
-    <nav className="sticky top-0 bg-background">
-      <div className="flex items-center w-full gap-4 mt-8">
+    <nav className={cn("sticky top-0 bg-background z-20", className)}>
+      <div className="flex items-center w-full gap-4 ">
         {navigation.map(({ label, href, segment }) => {
           const active = segment === selectedSegment;
           return (
