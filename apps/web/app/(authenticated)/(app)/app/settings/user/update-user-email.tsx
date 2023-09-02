@@ -38,7 +38,6 @@ import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 const formSchema = z.object({
   email: z.string().email(),
 });
@@ -177,7 +176,7 @@ export const UpdateUserEmail: React.FC = () => {
                               </DialogContent>
                             </Dialog>
                             <DropdownMenuItem
-                              disabled={false}
+                              disabled={user.primaryEmailAddress?.id === id}
                               onClick={async () => {
                                 try {
                                   setPromotingEmail(true);
@@ -205,7 +204,7 @@ export const UpdateUserEmail: React.FC = () => {
                               </DropdownMenuShortcut>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              disabled={false}
+                              disabled={verification.status === "verified"}
                               onClick={async () => {
                                 try {
                                   setSendingVerification(true);
@@ -256,6 +255,7 @@ export const UpdateUserEmail: React.FC = () => {
                   });
 
                   setVerifyEmail(email);
+
                 } catch (e) {
                   toast({
                     title: "Error",
@@ -309,6 +309,7 @@ export const UpdateUserEmail: React.FC = () => {
             email={emailForm.getValues().email}
             onSuccess={() => {
               setVerifyEmail(null);
+              emailForm.reset();
               user.reload();
             }}
           />
