@@ -71,12 +71,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
   const formData = form.watch();
   useEffect(() => {
-    if (
-      formData.ratelimit?.limit === undefined &&
-      formData.ratelimit?.refillRate === undefined &&
-      formData.ratelimit?.refillInterval === undefined
-    ) {
-      form.resetField("ratelimit");
+    if (formData.ratelimit?.limit === undefined && formData.ratelimit?.refillRate === undefined && formData.ratelimit?.refillInterval === undefined) {
+      form.resetField("ratelimit")
     }
   }, [formData.ratelimit]);
   const key = trpc.key.create.useMutation({
@@ -108,6 +104,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+
     if (values.ratelimit?.limit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
@@ -183,7 +180,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="flex gap-4 justify-evenly">
+                  <div className="flex justify-evenly gap-4">
                     <FormField
                       control={form.control}
                       name="prefix"
@@ -237,160 +234,168 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     />
                   </div>
                   <h3 className="my-4 text-xl">Advanced</h3>
-                  <div className="grid grid-cols-1 gap-4 my-4 md:grid-cols-2 ">
-                    <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="ratelimit">
-                        <AccordionTrigger dir="">Add Ratelimiting</AccordionTrigger>
-                        <AccordionContent>
-                          <FormField
-                            control={form.control}
-                            name="ratelimit.limit"
-                            render={({ field }) => (
-                              <FormItem className="w-full">
-                                <FormLabel>Limit</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="10" type="number" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  The maximum number of requests possible during a burst.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="flex items-center gap-4 mt-8">
+                  <div className="flex flex-col md:flex-row ">
+                    <div className="w-full px-4">
+                      <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="ratelimit">
+                          <AccordionTrigger dir="">Add Ratelimiting</AccordionTrigger>
+                          <AccordionContent>
                             <FormField
                               control={form.control}
-                              name="ratelimit.refillRate"
+                              name="ratelimit.limit"
                               render={({ field }) => (
                                 <FormItem className="w-full">
-                                  <FormLabel>Refill Rate</FormLabel>
+                                  <FormLabel>Limit</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="5" type="number" {...field} />
+                                    <Input
+                                      placeholder="10"
+                                      type="number"
+                                      {...field}
+                                    />
                                   </FormControl>
-
+                                  <FormDescription>
+                                    The maximum number of requests possible during a burst.
+                                  </FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
+
+                            <div className="flex items-center gap-4 mt-8">
+                              <FormField
+                                control={form.control}
+                                name="ratelimit.refillRate"
+                                render={({ field }) => (
+                                  <FormItem className="w-full">
+                                    <FormLabel>Refill Rate</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="5" type="number" {...field} />
+                                    </FormControl>
+
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="ratelimit.refillInterval"
+                                render={({ field }) => (
+                                  <FormItem className="w-full">
+                                    <FormLabel>Refill Interval (milliseconds)</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="1000" type="number" {...field} />
+                                    </FormControl>
+
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <FormDescription>
+                              How many requests may be performed in a given interval
+                            </FormDescription>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                      <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="limit">
+                          <AccordionTrigger dir="">Limit Usage</AccordionTrigger>
+                          <AccordionContent>
                             <FormField
                               control={form.control}
-                              name="ratelimit.refillInterval"
+                              name="remaining"
                               render={({ field }) => (
-                                <FormItem className="w-full">
-                                  <FormLabel>Refill Interval (milliseconds)</FormLabel>
+                                <FormItem>
+                                  <FormLabel>Number of uses</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="1000" type="number" {...field} />
+                                    <Input
+                                      placeholder="100"
+                                      className="w-full"
+                                      type="number"
+                                      {...field}
+                                    />
                                   </FormControl>
-
+                                  <FormDescription>
+                                    Enter the remaining amount of uses for this key.
+                                  </FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
-                          </div>
-                          <FormDescription>
-                            How many requests may be performed in a given interval
-                          </FormDescription>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="limit">
-                        <AccordionTrigger dir="">Limit Usage</AccordionTrigger>
-                        <AccordionContent>
-                          <FormField
-                            control={form.control}
-                            name="remaining"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Number of uses</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="100"
-                                    className="w-full"
-                                    type="number"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Enter the remaining amount of uses for this key.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="metadata">
-                        <AccordionTrigger dir="">Custom Metadata</AccordionTrigger>
-                        <AccordionContent>
-                          <FormField
-                            control={form.control}
-                            name="meta"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Textarea
-                                    className="max-w-full m-4 border rounded-md shadow-sm w-96"
-                                    placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
-                                    onBlur={(e) => {
-                                      try {
-                                        const value = JSON.parse(e.target.value);
-                                        const prettier = JSON.stringify(value, null, 2);
-                                        e.target.value = prettier;
-                                        field.onChange(JSON.parse(e.target.value));
-                                        form.clearErrors("meta");
-                                      } catch (_e) {}
-                                    }}
-                                    onChange={(e) => {
-                                      try {
-                                        field.onChange(JSON.parse(e.target.value));
-                                        form.clearErrors("meta");
-                                      } catch (_e) {
-                                        form.setError("meta", {
-                                          type: "manual",
-                                          message: "Invalid JSON",
-                                        });
-                                      }
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Enter custom metadata as a JSON object.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="expiration-field  ">
-                        <AccordionTrigger dir="">Add Expiration</AccordionTrigger>
-                        <AccordionContent>
-                          <FormField
-                            control={form.control}
-                            name="expires"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Expiry Date</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  This api key will automatically be revoked after the given date.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
+                    <div className="w-full px-4">
+                      <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="metadata">
+                          <AccordionTrigger dir="">Custom Metadata</AccordionTrigger>
+                          <AccordionContent>
+                            <FormField
+                              control={form.control}
+                              name="meta"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Textarea
+                                      className="border rounded-md shadow-sm m-4 max-w-full w-96"
+                                      placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
+                                      onBlur={(e) => {
+                                        try {
+                                          const value = JSON.parse(e.target.value);
+                                          const prettier = JSON.stringify(value, null, 2);
+                                          e.target.value = prettier;
+                                          field.onChange(JSON.parse(e.target.value));
+                                          form.clearErrors("meta");
+                                        } catch (_e) { }
+                                      }}
+                                      onChange={(e) => {
+                                        try {
+                                          field.onChange(JSON.parse(e.target.value));
+                                          form.clearErrors("meta");
+                                        } catch (_e) {
+                                          form.setError("meta", {
+                                            type: "manual",
+                                            message: "Invalid JSON",
+                                          });
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Enter custom metadata as a JSON object.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                      <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="expiration-field  ">
+                          <AccordionTrigger dir="">Add Expiration</AccordionTrigger>
+                          <AccordionContent>
+                            <FormField
+                              control={form.control}
+                              name="expires"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Expiry Date</FormLabel>
+                                  <FormControl>
+                                    <Input type="date" {...field} />
+                                  </FormControl>
+                                  <FormDescription>
+                                    This api key will automatically be revoked after the given date.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
                   </div>
                   <div className="flex justify-end mt-8">
                     <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
