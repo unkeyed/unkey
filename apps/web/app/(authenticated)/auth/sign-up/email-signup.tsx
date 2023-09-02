@@ -70,13 +70,13 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
             toast({
               title: "Error",
               description: "Sorry, it looks like you have an account. Please use sign in",
-              variant: "destructive",
+              variant: "alert",
             });
           } else {
             toast({
               title: "Error",
               description: "Sorry, We couldn't sign you up. Please try again later",
-              variant: "destructive",
+              variant: "alert",
             });
           }
         });

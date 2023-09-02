@@ -1,5 +1,5 @@
-import * as schema from "./schema";
 import { InferModel } from "drizzle-orm";
+import * as schema from "./schema";
 
 export type Key = InferModel<typeof schema.keys>;
 export type Api = InferModel<typeof schema.apis>;

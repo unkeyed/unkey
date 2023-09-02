@@ -35,25 +35,25 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.6.5",
+    "@nuxt/kit": "^3.7.0",
     "@unkey/api": "workspace:*",
     "defu": "^6.1.2"
   },
   "devDependencies": {
-    "@nuxt/devtools": "^0.7.0",
-    "@nuxt/module-builder": "^0.4.0",
-    "@nuxt/schema": "^3.6.5",
-    "@nuxt/test-utils": "^3.6.5",
-    "@types/node": "^20.4.4",
+    "@nuxt/devtools": "^0.8.2",
+    "@nuxt/module-builder": "^0.5.1",
+    "@nuxt/schema": "^3.7.0",
+    "@nuxt/test-utils": "^3.7.0",
+    "@types/node": "^20.5.7",
     "@vue/reactivity": "^3.3.4",
     "@vue/runtime-core": "^3.3.4",
     "@vue/runtime-dom": "^3.3.4",
     "@vue/shared": "^3.3.4",
     "dotenv": "^16.3.1",
-    "h3": "^1.7.1",
-    "nuxt": "^3.6.5",
+    "h3": "^1.8.1",
+    "nuxt": "^3.7.0",
     "unctx": "^2.3.1",
-    "vitest": "^0.33.0",
+    "vitest": "^0.34.3",
     "vue": "^3.3.4"
   }
 }

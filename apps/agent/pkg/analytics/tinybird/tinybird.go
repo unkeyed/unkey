@@ -53,7 +53,19 @@ func (t *Tinybird) consume() {
 		case <-t.closeC:
 			return
 		case e := <-t.keyVerificationsC:
-			err := t.publishEvent("key_verifications__v1", e)
+
+			err := t.publishEvent("key_verifications__v1", analytics.KeyVerificationV1Event{
+				WorkspaceId: e.WorkspaceId,
+				ApiId:       e.ApiId,
+				KeyId:       e.KeyId,
+				Ratelimited: e.Ratelimited,
+				Time:        e.Time,
+			})
+			if err != nil {
+				t.logger.Error("unable to publish v1 event to tinybird", zap.Error(err))
+			}
+
+			err = t.publishEvent("key_verifications__v2", e)
 			if err != nil {
 				t.logger.Error("unable to publish event to tinybird", zap.Error(err))
 			}
@@ -67,6 +79,7 @@ func (t *Tinybird) Close() {
 }
 
 func (t *Tinybird) PublishKeyVerificationEvent(ctx context.Context, event analytics.KeyVerificationEvent) {
+	t.logger.Info("publishing event", zap.Any("event", event))
 	t.keyVerificationsC <- event
 }
 

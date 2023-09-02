@@ -1,15 +1,16 @@
-import {
-  mysqlTable,
-  varchar,
-  datetime,
-  text,
-  int,
-  uniqueIndex,
-  index,
-} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
-import { workspaces } from "./workspaces";
+import {
+  bigint,
+  datetime,
+  index,
+  int,
+  mysqlTable,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
+import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
   "keys",
@@ -47,6 +48,7 @@ export const keys = mysqlTable(
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
     ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
     ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
+    totalUses: bigint("total_uses", { mode: "number" }).default(0),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),

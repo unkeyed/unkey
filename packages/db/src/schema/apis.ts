@@ -1,5 +1,5 @@
-import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
+import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { workspaces } from "./workspaces";
 
 export const apis = mysqlTable(

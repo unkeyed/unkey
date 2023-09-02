@@ -1,5 +1,8 @@
 "use client";
 
+import { Loading } from "@/components/dashboard/loading";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -9,20 +12,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useOrganizationList } from "@clerk/nextjs";
-import { cn } from "@/lib/utils";
-import { Box, Code2 } from "lucide-react";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
+import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Workspace } from "@unkey/db";
+import { Box } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Workspace } from "@unkey/db";
-import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
@@ -62,13 +62,13 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
         toast({
           title: "Error",
           description: "Workspace already exists, please change the slug and try again",
-          variant: "destructive",
+          variant: "alert",
         });
       } else {
         toast({
           title: "Error",
           description: `An error occured while creating your workspace: ${err.message}`,
-          variant: "destructive",
+          variant: "alert",
         });
       }
     },
@@ -140,10 +140,10 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                             <div>
                               <FormLabel className="font-semibold">PRO</FormLabel>
 
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-content-subtle">
                                 Usage based billing for teams
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-content-subtle">
                                 250 Monthly active keys and 10,000 verifications included.
                               </p>
                             </div>
@@ -177,16 +177,16 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                                 })}
                               >
                                 <FormLabel className="font-semibold">FREE</FormLabel>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-content-subtle">
                                   Free forever for side projects
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-content-subtle">
                                   The free tier allows up to 100 monthly active keys and 2,500
                                   verifications per month.
                                 </p>
                               </div>
                               {workspaces.length > 0 ? (
-                                <p className="mt-2 text-xs text-destructive">
+                                <p className="mt-2 text-xs text-alert">
                                   Only one free workspace allowed
                                 </p>
                               ) : null}
@@ -202,7 +202,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
 
               <div className="mt-8">
                 <Button
-                  variant={form.formState.isValid ? "default" : "outline"}
+                  variant={form.formState.isValid ? "primary" : "disabled"}
                   disabled={createWorkspace.isLoading || !form.formState.isValid}
                   type="submit"
                   className="w-full"
@@ -220,7 +220,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
             <Box className="w-6 h-6 text-primary" />
           </div>
           <h4 className="text-lg font-medium">What is a workspace?</h4>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-content-subtle">
             A workspace groups all your resources and billing. You can have one personal workspace
             for free and create more workspaces with your teammates.
           </p>

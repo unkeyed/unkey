@@ -1,9 +1,8 @@
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
-import { db, eq, schema, type Key } from "@/lib/db";
-import { redirect } from "next/navigation";
 import { ApiKeyTable } from "@/components/dashboard/api-key-table";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { getTenantId } from "@/lib/auth";
+import { type Key, db, eq, schema } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
@@ -45,15 +44,13 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
   }
 
   return (
-    <div>
+    <div className="min-h-screen">
       <PageHeader
-        title="Keys"
-        description="These keys are used to interact with the unkey API"
-        actions={[<CreateRootKeyButton key="create-key" apiId={workspace.apis.at(0)?.id} />]}
+        title="Root Keys"
+        description="Root keys are used to interact with the Unkey API."
+        actions={[<CreateRootKeyButton key="create-root-key" apiId={props.params.apiId} />]}
       />
-      <Separator className="my-6" />
-
-      <ApiKeyTable data={keys} apiId={props.params.apiId} />
+      <ApiKeyTable data={keys} />
     </div>
   );
 }

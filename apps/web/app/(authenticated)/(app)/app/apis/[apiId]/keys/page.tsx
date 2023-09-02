@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq, type Key } from "@/lib/db";
+import { type Key, db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 import { ApiKeyTable } from "@/components/dashboard/api-key-table";
@@ -18,6 +18,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     return redirect("/onboarding");
   }
   const allKeys = await db.query.keys.findMany({
+    // rome-ignore lint: suspicious/noNonNullAssertion
     where: eq(schema.keys.keyAuthId, api.keyAuthId!),
   });
 
@@ -37,7 +38,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
 
   return (
     <div>
-      <ApiKeyTable data={keys} apiId={props.params.apiId} />
+      <ApiKeyTable data={keys} />
     </div>
   );
 }

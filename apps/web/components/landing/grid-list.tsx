@@ -38,14 +38,14 @@ export function GridListItem({
       className={clsx(
         "text-base",
         invert
-          ? "text-neutral-300 before:bg-white after:bg-white/10"
-          : "text-neutral-600 before:bg-neutral-950 after:bg-neutral-100",
+          ? "text-gray-300 before:bg-white after:bg-white/10"
+          : "text-gray-600 before:bg-gray-950 after:bg-gray-100",
         className,
       )}
     >
       <FadeIn>
         <Border position="left" className="pl-8" invert={invert}>
-          <strong className={clsx("font-semibold", invert ? "text-white" : "text-neutral-950")}>
+          <strong className={clsx("font-semibold", invert ? "text-white" : "text-gray-950")}>
             {title}.
           </strong>{" "}
           {children}

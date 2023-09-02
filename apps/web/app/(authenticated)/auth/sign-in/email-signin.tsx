@@ -78,13 +78,13 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
           toast({
             title: "Error",
             description: "Sorry, We couldn't find your account. Please use sign up",
-            variant: "destructive",
+            variant: "alert",
           });
         } else {
           toast({
             title: "Error",
             description: "Sorry, We couldn't sign you in. Please try again later",
-            variant: "destructive",
+            variant: "alert",
           });
         }
       });
