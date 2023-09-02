@@ -23,7 +23,7 @@ export const UserButton: React.FC = () => {
   }
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 hover:cursor-pointer">
+      <DropdownMenuTrigger className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer">
         <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8">
             {user.imageUrl ? (
