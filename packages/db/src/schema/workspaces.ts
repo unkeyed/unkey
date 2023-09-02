@@ -1,14 +1,14 @@
+import { relations } from "drizzle-orm";
 // db.ts
 import {
   boolean,
+  datetime,
+  int,
+  mysqlEnum,
   mysqlTable,
   uniqueIndex,
   varchar,
-  mysqlEnum,
-  int,
-  datetime,
 } from "drizzle-orm/mysql-core";
-import { relations } from "drizzle-orm";
 import { apis } from "./apis";
 import { keys } from "./keys";
 

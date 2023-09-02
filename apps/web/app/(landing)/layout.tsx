@@ -9,7 +9,7 @@ export default function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full text-base antialiased bg-neutral-950">
+    <html lang="en" className="h-full text-base antialiased bg-background">
       <body className="flex flex-col min-h-full">
         <RootLayout>{children}</RootLayout>
         <Toaster />

@@ -77,21 +77,21 @@ export default async function ChangeLogLayout({
             <p>{changelog.description}</p>
           </PageIntro>
 
-          <div className="mt-24 border-t border-neutral-200 bg-white/50 sm:mt-32 lg:mt-40">
+          <div className="mt-24 border-t border-gray-200 bg-white/50 sm:mt-32 lg:mt-40">
             <Container>
               <div className="max-w-5xl mx-auto">
-                <dl className="grid grid-cols-1 -mx-6 text-sm text-neutral-950 sm:mx-0 sm:grid-cols-3">
-                  <div className="px-6 py-4 border-t border-neutral-200 first:border-t-0 sm:border-l sm:border-t-0">
+                <dl className="grid grid-cols-1 -mx-6 text-sm text-gray-950 sm:mx-0 sm:grid-cols-3">
+                  <div className="px-6 py-4 border-t border-gray-200 first:border-t-0 sm:border-l sm:border-t-0">
                     <dt className="font-semibold">Number of changes</dt>
                     <dd>{changelog.changes}</dd>
                   </div>
-                  <div className="px-6 py-4 border-t border-neutral-200 first:border-t-0 sm:border-l sm:border-t-0">
+                  <div className="px-6 py-4 border-t border-gray-200 first:border-t-0 sm:border-l sm:border-t-0">
                     <dt className="font-semibold">Date</dt>
                     <dd>
                       <time dateTime={changelog.date}>{changelog.date}</time>
                     </dd>
                   </div>
-                  <div className="px-6 py-4 border-t border-neutral-200 first:border-t-0 sm:border-l sm:border-t-0">
+                  <div className="px-6 py-4 border-t border-gray-200 first:border-t-0 sm:border-l sm:border-t-0">
                     <dt className="font-semibold">New Features</dt>
                     <dd>{changelog.features}</dd>
                   </div>
@@ -100,8 +100,8 @@ export default async function ChangeLogLayout({
             </Container>
           </div>
 
-          <div className="border-y border-neutral-200 bg-neutral-100">
-            <div className="-my-px mx-auto max-w-[76rem] bg-neutral-200" />
+          <div className="border-y border-gray-200 bg-gray-100">
+            <div className="-my-px mx-auto max-w-[76rem] bg-gray-200" />
           </div>
         </header>
 

@@ -1,13 +1,13 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { CreateApiButton } from "./create-api-button";
 
-import { getTenantId } from "@/lib/auth";
-import { db, schema, eq, sql } from "@/lib/db";
-import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
-import { ApiList } from "./client";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema, sql } from "@/lib/db";
 import { Search } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ApiList } from "./client";
 
 export const revalidate = 3;
 
@@ -31,6 +31,7 @@ export default async function TenantOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
+        // rome-ignore lint: suspicious/noNonNullAssertion
         .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
@@ -42,11 +43,11 @@ export default async function TenantOverviewPage() {
           <PageHeader title="Applications" description="Manage your APIs" />
           <Separator className="my-6" />
           <section className="flex flex-col gap-4 my-4 md:items-center md:flex-row">
-            <div className="flex items-center flex-grow h-10 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-input focus-within:border-primary/40">
-              <Search size={18} />
+            <div className="flex items-center flex-grow h-8 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-border focus-within:border-primary/40">
+              <Search className="w-4 h-4" />
               <input
                 disabled
-                className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-muted-foreground focus-visible:outline-none "
+                className="flex-grow bg-transparent disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-content-subtle focus-visible:outline-none "
                 placeholder="Search.."
               />
             </div>

@@ -1,8 +1,8 @@
 import { drizzle } from "drizzle-orm/planetscale-serverless";
 
+import { env } from "@/lib/env";
 import { connect } from "@planetscale/database";
 import { schema } from "@unkey/db";
-import { env } from "@/lib/env";
 
 export const db = drizzle(
   connect({
@@ -12,7 +12,7 @@ export const db = drizzle(
     // rome-ignore lint/suspicious/noExplicitAny: TODO
     fetch: (url: string, init: any) => {
       // rome-ignore lint/suspicious/noExplicitAny: TODO
-      (init as any)["cache"] = undefined; // Remove cache header
+      (init as any).cache = undefined; // Remove cache header
       return fetch(url, init);
     },
   }),

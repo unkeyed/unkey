@@ -1,9 +1,9 @@
-import { db, schema, eq } from "@/lib/db";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { t, auth } from "../trpc";
-import { Kafka } from "@upstash/kafka";
+import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { TRPCError } from "@trpc/server";
+import { Kafka } from "@upstash/kafka";
+import { z } from "zod";
+import { auth, t } from "../trpc";
 
 import { unkeyRoot, unkeyScoped } from "@/lib/api";
 const kafka = new Kafka({

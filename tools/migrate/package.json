@@ -8,20 +8,20 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
-    "@planetscale/database": "^1.8.0",
+    "@planetscale/database": "^1.11.0",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.27.2",
-    "mysql2": "^3.5.2",
-    "zod": "^3.21.4"
+    "drizzle-orm": "^0.28.5",
+    "mysql2": "^3.6.0",
+    "zod": "^3.22.2"
   },
   "devDependencies": {
-    "@types/node": "20.4.4",
+    "@types/node": "20.5.7",
     "@unkey/tsconfig": "workspace:^",
-    "dotenv-cli": "^7.2.1",
-    "tsup": "^7.1.0",
-    "tsx": "^3.12.7",
-    "typescript": "^5.1.6"
+    "dotenv-cli": "^7.3.0",
+    "tsup": "^7.2.0",
+    "tsx": "^3.12.8",
+    "typescript": "^5.2.2"
   }
 }

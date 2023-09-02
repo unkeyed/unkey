@@ -1,11 +1,11 @@
+import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
 import { List, ListItem } from "@/components/landing/list";
 import { SectionIntro } from "@/components/landing/section-intro";
+import { StatList, StatListItem } from "@/components/landing/stat-list";
 import { StylizedImage } from "@/components/landing/stylized-image";
 import laptopImage from "@/images/computer-user.jpg";
-import { Button } from "@/components/landing/button";
-import { StatList, StatListItem } from "@/components/landing/stat-list";
 import { db, schema, sql } from "@/lib/db";
 export const revalidate = 60;
 
@@ -134,10 +134,10 @@ export default async function Home() {
     <>
       <Container className="mt-24 sm:mt-32 md:mt-56">
         <FadeIn className="max-w-3xl">
-          <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950 [text-wrap:balance] sm:text-7xl font-sans">
+          <h1 className="font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-7xl font-sans">
             API authentication made easy
           </h1>
-          <p className={"mt-6 text-xl text-neutral-600"}>
+          <p className={"mt-6 text-xl text-gray-600"}>
             Seriously fast and easy to use. Unkey helps developers secure, manage, and scale their
             APIs.
           </p>

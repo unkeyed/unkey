@@ -1,8 +1,8 @@
-import EarlyAccessInvitation from "./emails/EarlyAccessInvitation";
 import { render } from "@react-email/render";
 import { Resend } from "resend";
-import { ResetWarning } from "./emails/ResetWarning";
 import Changelog from "./emails/Changelog";
+import EarlyAccessInvitation from "./emails/EarlyAccessInvitation";
+import { ResetWarning } from "./emails/ResetWarning";
 
 interface ChangelogProps {
   item?: { id: number; shortDescription: string }[];

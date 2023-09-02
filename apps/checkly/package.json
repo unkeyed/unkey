@@ -9,11 +9,11 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "20.4.4",
+    "@types/node": "20.5.7",
     "@unkey/tsconfig": "workspace:^",
-    "checkly": "^4.0.12",
-    "dotenv-cli": "^7.2.1",
-    "typescript": "^5.1.6",
-    "zod": "^3.21.4"
+    "checkly": "^4.1.0",
+    "dotenv-cli": "^7.3.0",
+    "typescript": "^5.2.2",
+    "zod": "^3.22.2"
   }
 }

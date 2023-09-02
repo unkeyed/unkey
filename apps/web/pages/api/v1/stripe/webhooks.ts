@@ -1,12 +1,12 @@
+import { Readable } from "node:stream";
+import { QUOTA } from "@/lib/constants/quotas";
+import { db, eq, schema } from "@/lib/db";
+import { env, stripeEnv } from "@/lib/env";
+import { clerkClient } from "@clerk/nextjs";
+import { Loops } from "@unkey/loops";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
-import { Readable } from "node:stream";
-import { db, eq, schema } from "@/lib/db";
 import { z } from "zod";
-import { env, stripeEnv } from "@/lib/env";
-import { Loops } from "@unkey/loops";
-import { clerkClient } from "@clerk/nextjs";
-import { QUOTA } from "@/lib/constants/quotas";
 
 // Stripe requires the raw body to construct the event.
 export const config = {
@@ -114,6 +114,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             organizationId: ws.tenantId,
           });
           for (const m of members) {
+            // rome-ignore lint: suspicious/noNonNullAssertion
             userIds.push(m.publicUserData!.userId);
           }
         } else {
@@ -130,6 +131,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email,
             name: user.firstName ?? user.username ?? "",
+            // rome-ignore lint: suspicious/noNonNullAssertion
             date: new Date(subscription.trial_end! * 1000),
           });
         }

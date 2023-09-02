@@ -82,7 +82,7 @@ export default async function PricingPage() {
   return (
     <div>
       <div className="flex items-center justify-center overflow-auto">
-        <div className="relative isolate w-full max-w-6xl px-6 py-10 lg:px-8">
+        <div className="relative w-full max-w-6xl px-6 py-10 isolate lg:px-8">
           <div>
             <div className="text-center">
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
@@ -96,7 +96,7 @@ export default async function PricingPage() {
                 }
               </p>
             </div>
-            <div className="mt-10 flex flex-col gap-y-6 sm:gap-x-6 lg:flex-row">
+            <div className="flex flex-col mt-10 gap-y-6 sm:gap-x-6 lg:flex-row">
               {(["free", "pro", "custom"] as const).map((tier) => (
                 <div
                   key={tiers[tier].id}
@@ -115,18 +115,18 @@ export default async function PricingPage() {
                   <p className="mt-4 min-h-[3rem] text-sm leading-6 text-gray-600">
                     {tiers[tier].description}
                   </p>
-                  <p className="mt-6 flex items-center mx-auto  gap-x-1">
+                  <p className="flex items-center mx-auto mt-6 gap-x-1">
                     {typeof tiers[tier].price === "number" ? (
                       <>
-                        <span className="text-center text-4xl font-bold tracking-tight text-gray-900">
+                        <span className="text-4xl font-bold tracking-tight text-center text-gray-900">
                           {`$${tiers[tier].price}`}
                         </span>
-                        <span className=" mx-autotext-center text-sm font-semibold leading-6 text-gray-600">
+                        <span className="text-sm font-semibold leading-6 text-gray-600 mx-autotext-center">
                           {"/month"}
                         </span>
                       </>
                     ) : (
-                      <span className="mx-auto text-4xl text-center font-bold tracking-tight text-gray-900">
+                      <span className="mx-auto text-4xl font-bold tracking-tight text-center text-gray-900">
                         {tiers[tier].price}
                       </span>
                     )}
@@ -158,7 +158,7 @@ export default async function PricingPage() {
                       </div>
                     </>
                   )}
-                  <div className="flex grow flex-col justify-between">
+                  <div className="flex flex-col justify-between grow">
                     <ul
                       role="list"
                       className="mt-8 space-y-3 text-sm leading-6 text-gray-600 xl:mt-10"
@@ -168,9 +168,10 @@ export default async function PricingPage() {
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
-                            className="h-6 w-5 flex-none text-gray-700"
+                            className="flex-none w-5 h-6 text-gray-700"
                             aria-hidden="true"
                           >
+                            <title>Check</title>
                             <path
                               fill="currentColor"
                               fillRule="evenodd"
@@ -186,7 +187,7 @@ export default async function PricingPage() {
                     {tiers[tier].footnotes && (
                       <ul className="mt-6">
                         {tiers[tier].footnotes.map((footnote, i) => (
-                          <li key={`note-${i}`} className="flex gap-x-3 text-xs text-gray-600">
+                          <li key={`note-${i}`} className="flex text-xs text-gray-600 gap-x-3">
                             {footnote}
                           </li>
                         ))}
@@ -200,12 +201,12 @@ export default async function PricingPage() {
         </div>
       </div>
       <div className="flex items-center justify-center overflow-auto">
-        <div className="relative isolate w-full max-w-6xl px-6 pb-4 lg:px-8">
+        <div className="relative w-full max-w-6xl px-6 pb-4 isolate lg:px-8">
           <div>
             <div className="text-center">
-              <p className="text-md text-gray-900 sm:text-lg">
+              <p className="text-gray-900 text-md sm:text-lg">
                 Volume pricing is available on request,{" "}
-                <a className="underline text-gray-600" href="mailto:james@unkey.dev">
+                <a className="text-gray-600 underline" href="mailto:james@unkey.dev">
                   contact us
                 </a>{" "}
                 for more information.

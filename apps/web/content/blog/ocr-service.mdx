@@ -77,12 +77,12 @@ Type: `POST`
 Body:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>email</td>
         <td>string</td>
         <td>Email address to sign up with</td>
     </tr>
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>name</td>
         <td>string</td>
         <td>Name of user</td>
@@ -93,7 +93,7 @@ Body:
 Returns:
 
 <table className="text-center text-sm font-light">
-<thead className="border-y font-medium dark:border-neutral-500">
+<thead className="border-y font-medium dark:border-gray-500">
     <tr className="mx-auto">
             <th>key</th>
             <th>string</th>
@@ -118,7 +118,7 @@ Type: `POST`
 Headers:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>Bearer</td>
         <td>string</td>
         <td>API key in Bearer auth</td>
@@ -128,7 +128,7 @@ Headers:
 Body:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>sampleFile</td>
         <td>file</td>
         <td>Image file</td>
@@ -138,12 +138,12 @@ Body:
 Returns:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>text</td>
         <td>string, null</td>
         <td>OCR results</td>
     </tr>
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>error</td>
         <td>string, null</td>
         <td>Error if any</td>
@@ -158,7 +158,7 @@ Type: `POST`
 Headers:
 
 <table className="text-center text-sm font-light">
-<tr className=" text-center border-y dark:border-neutral-500">
+<tr className=" text-center border-y dark:border-gray-500">
         <td>Bearer</td>
         <td>string</td>
         <td>API key in Bearer auth</td>
@@ -168,7 +168,7 @@ Headers:
 Body:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>imageBase64</td>
         <td>string</td>
         <td>Base64 encoded image</td>
@@ -178,12 +178,12 @@ Body:
 Returns:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>text</td>
         <td>string, null</td>
         <td>OCR results</td>
     </tr>
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>error</td>
         <td>string, null</td>
         <td>Error if any</td>
@@ -201,17 +201,17 @@ Headers: None
 Body:
 
 <table className="text-center text-sm font-light">
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>email</td>
         <td>string</td>
         <td>Email address of the user</td>
     </tr>
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>transactionId</td>
         <td>string</td>
         <td>Imaginary transaction id</td>
     </tr>
-<tr className="border-y dark:border-neutral-500">
+<tr className="border-y dark:border-gray-500">
         <td>apiKeyId</td>
         <td>string</td>
         <td>Id of the API key to be updated. It is returned when a key is created.</td>
@@ -407,24 +407,24 @@ Suppose we want to offer an API as a paid service with subscription tiers. We ca
 Consider the following plans:
 
 <table className="text-center text-sm font-light">
-<thead className="border-y font-medium dark:border-neutral-500">
+<thead className="border-y font-medium dark:border-gray-500">
     <tr className="mx-auto">
         <td className="px-6 py-4">Price</td>
         <td className="px-6 py-4">Requests</td>
         <td className="px-6 py-4">Rate Limit</td>
     </tr>
     </thead>
-    <tr className="border-y dark:border-neutral-500">
+    <tr className="border-y dark:border-gray-500">
         <td>Free</td>
         <td>100/month</td>
         <td>6/min</td>
     </tr>
-    <tr className="border-y dark:border-neutral-500">
+    <tr className="border-y dark:border-gray-500">
         <td>$10/month</td>
         <td>10,000/month</td>
         <td>100/min</td>
     </tr>
-    <tr className="border-y dark:border-neutral-500">
+    <tr className="border-y dark:border-gray-500">
         <td>$100/month</td>
         <td>100,000/month</td>
         <td>No Limit</td>

@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useEffect, useId, useRef, useState } from "react";
+import clsx from "clsx";
+import { MotionConfig, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import clsx from "clsx";
-import { motion, MotionConfig, useReducedMotion } from "framer-motion";
+import { createContext, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
@@ -17,6 +17,7 @@ const RootLayoutContext = createContext({});
 function XIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+      <title>X</title>
       <path d="m5.636 4.223 14.142 14.142-1.414 1.414L4.222 5.637z" />
       <path d="M4.222 18.363 18.364 4.22l1.414 1.p414L5.636 19.777z" />
     </svg>
@@ -27,6 +28,7 @@ function XIcon(props: any) {
 function MenuIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+      <title>Menu</title>
       <path d="M2 6h20v2H2zM2 16h20v2H2z" />
     </svg>
   );
@@ -61,6 +63,7 @@ function Header({
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
+            <title>grid</title>
             <g filter="url(#filter0_d_101_3)">
               <path
                 d="M160.206 70H197V156.749C197 167.064 194.529 175.99 189.588 183.528C184.691 191.021 177.853 196.818 169.074 200.917C160.294 204.972 150.103 207 138.5 207C126.809 207 116.574 204.972 107.794 200.917C99.0147 196.818 92.1765 191.021 87.2794 183.528C82.4265 175.99 80 167.064 80 156.749V70H116.794V153.575C116.794 157.763 117.721 161.51 119.574 164.816C121.426 168.078 123.985 170.634 127.25 172.486C130.559 174.337 134.309 175.263 138.5 175.263C142.735 175.263 146.485 174.337 149.75 172.486C153.015 170.634 155.574 168.078 157.426 164.816C159.279 161.51 160.206 157.763 160.206 153.575V70Z"
@@ -140,7 +143,7 @@ function Header({
             aria-controls={panelId}
             className={clsx(
               "group -m-2.5 rounded-full p-2.5 transition",
-              invert ? "hover:bg-white/10" : "hover:bg-neutral-950/10",
+              invert ? "hover:bg-white/10" : "hover:bg-gray-950/10",
             )}
             aria-label="Toggle navigation"
           >
@@ -148,8 +151,8 @@ function Header({
               className={clsx(
                 "h-6 w-6",
                 invert
-                  ? "fill-white group-hover:fill-neutral-200"
-                  : "fill-neutral-950 group-hover:fill-neutral-700",
+                  ? "fill-white group-hover:fill-gray-200"
+                  : "fill-gray-950 group-hover:fill-gray-700",
               )}
             />
           </button>
@@ -165,7 +168,7 @@ function NavigationRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="even:mt-px sm:bg-neutral-950">
+    <div className="even:mt-px sm:bg-gray-950">
       <Container>
         <div className="grid grid-cols-1 sm:grid-cols-2">{children}</div>
       </Container>
@@ -183,10 +186,10 @@ function NavigationItem({
   return (
     <Link
       href={href}
-      className="relative px-6 py-10 -mx-6 group isolate bg-neutral-950 even:mt-px sm:mx-0 sm:px-0 sm:py-16 sm:odd:pr-16 sm:even:mt-0 sm:even:border-l sm:even:border-neutral-800 sm:even:pl-16"
+      className="relative px-6 py-10 -mx-6 group isolate bg-gray-950 even:mt-px sm:mx-0 sm:px-0 sm:py-16 sm:odd:pr-16 sm:even:mt-0 sm:even:border-l sm:even:border-gray-800 sm:even:pl-16"
     >
       {children}
-      <span className="absolute inset-y-0 w-screen transition opacity-0 -z-10 bg-neutral-900 group-odd:right-0 group-even:left-0 group-hover:opacity-100" />
+      <span className="absolute inset-y-0 w-screen transition bg-gray-900 opacity-0 -z-10 group-odd:right-0 group-even:left-0 group-hover:opacity-100" />
     </Link>
   );
 }
@@ -267,15 +270,15 @@ function RootLayoutInner({
           style={{ height: expanded ? "auto" : "0.5rem" }}
           className={
             expanded
-              ? "relative z-50 overflow-hidden bg-neutral-950 pt-2"
+              ? "relative z-50 overflow-hidden bg-gray-950 pt-2"
               : "relative z-50 overflow-hidden pt-2"
           }
           aria-hidden={expanded ? undefined : "true"}
           data-inert={expanded ? undefined : ""}
         >
-          <motion.div layout className="bg-neutral-800">
+          <motion.div layout className="bg-gray-800">
             {/* @ts-expect-error */}
-            <div ref={navRef} className="pb-16 bg-neutral-950 pt-14">
+            <div ref={navRef} className="pb-16 bg-gray-950 pt-14">
               <Header
                 invert
                 panelId={panelId}
@@ -303,7 +306,7 @@ function RootLayoutInner({
       >
         <motion.div layout className="relative flex flex-col w-full isolate pt-9">
           <GridPattern
-            className="absolute inset-x-0 -top-14 -z-10 h-[1000px] w-full fill-neutral-50 stroke-neutral-950/5 [mask-image:linear-gradient(to_bottom_left,white_40%,transparent_50%)]"
+            className="absolute inset-x-0 -top-14 -z-10 h-[1000px] w-full fill-gray-50 stroke-gray-950/5 [mask-image:linear-gradient(to_bottom_left,white_40%,transparent_50%)]"
             yOffset={-96}
             interactive
           />

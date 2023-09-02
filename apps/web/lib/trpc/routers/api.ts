@@ -1,12 +1,12 @@
-import { db, schema, type Key } from "@/lib/db";
+import { type Key, db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { t, auth } from "../trpc";
-import { newId } from "@unkey/id";
-import { eq } from "drizzle-orm";
-import { Kafka } from "@upstash/kafka";
 import { env } from "@/lib/env";
+import { newId } from "@unkey/id";
+import { Kafka } from "@upstash/kafka";
+import { eq } from "drizzle-orm";
+import { auth, t } from "../trpc";
 
 const kafka = new Kafka({
   url: env.UPSTASH_KAFKA_REST_URL,
@@ -39,6 +39,7 @@ export const apiRouter = t.router({
       let keys: Key[] = [];
       do {
         keys = await db.query.keys.findMany({
+          // rome-ignore lint: suspicious/noNonNullAssertion
           where: eq(schema.keys.keyAuthId, api.keyAuthId!),
         });
         await Promise.all(

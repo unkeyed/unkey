@@ -10,6 +10,6 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "k6": "latest"
+    "k6": "^0.0.0"
   }
 }

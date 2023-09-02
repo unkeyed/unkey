@@ -55,20 +55,12 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": [
-        "introduction",
-        "quickstart",
-        "security"
-      ]
+      "pages": ["introduction", "quickstart", "security"]
     },
     {
       "group": "Features",
       "icon": "bolt",
-      "pages": [
-        "features/ratelimiting",
-        "features/temp-keys",
-        "features/remaining"
-      ]
+      "pages": ["features/ratelimiting", "features/temp-keys", "features/remaining"]
     },
     {
       "group": "API Documentation",
@@ -101,10 +93,7 @@
         },
         {
           "group": "APIs",
-          "pages": [
-            "api-reference/apis/get",
-            "api-reference/apis/list-keys"
-          ]
+          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
         }
       ]
     },
@@ -130,10 +119,7 @@
         "libraries/py/overview",
         {
           "group": "Services",
-          "pages": [
-            "libraries/py/services/keys",
-            "libraries/py/services/apis"
-          ]
+          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
         }
       ]
     },
@@ -169,26 +155,19 @@
         },
         {
           "group": "API",
-          "pages": [
-            "libraries/go/api/list",
-            "libraries/go/api/get"
-          ]
+          "pages": ["libraries/go/api/list", "libraries/go/api/get"]
         }
       ]
     },
     {
       "group": "Nuxt",
       "icon": "code",
-      "pages": [
-        "libraries/nuxt/overview"
-      ]
+      "pages": ["libraries/nuxt/overview"]
     },
     {
       "group": "Rust",
       "icon": "code",
-      "pages": [
-        "libraries/rs/overview"
-      ]
+      "pages": ["libraries/rs/overview"]
     }
   ],
   "footerSocials": {

@@ -1,7 +1,7 @@
+import { db, eq, schema } from "@/lib/db";
 import { authMiddleware } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
-import { db, schema, eq } from "@/lib/db";
 const DEBUG_ON = process.env.CLERK_DEBUG === "true";
 
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
