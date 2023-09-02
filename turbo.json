@@ -2,41 +2,21 @@
   "$schema": "https://turborepo.org/schema.json",
   "pipeline": {
     "install": {
-      "outputs": [
-        "node_modules/**",
-        "pnpm-lock.yaml",
-        "yarn.lock"
-      ]
+      "outputs": ["node_modules/**", "pnpm-lock.yaml", "yarn.lock"]
     },
     "build": {
-      "dependsOn": [
-        "fmt",
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        ".output/**",
-        ".nuxt/**",
-        ".next/**"
-      ]
+      "dependsOn": ["fmt", "^build"],
+      "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**"]
     },
     "@unkey/nuxt#dev:prepare": {
-      "outputs": [
-        "dist/**",
-        "playground/.nuxt/**"
-      ]
+      "outputs": ["dist/**", "playground/.nuxt/**"]
     },
     "@unkey/nuxt#test": {
-      "dependsOn": [
-        "@unkey/api#build",
-        "@unkey/nuxt#dev:prepare"
-      ],
+      "dependsOn": ["@unkey/api#build", "@unkey/nuxt#dev:prepare"],
       "outputs": []
     },
     "@unkey/nuxt#build": {
-      "dependsOn": [
-        "@unkey/nuxt#dev:prepare"
-      ]
+      "dependsOn": ["@unkey/nuxt#dev:prepare"]
     },
     "fmt": {
       "cache": false

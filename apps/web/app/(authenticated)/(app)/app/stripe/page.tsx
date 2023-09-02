@@ -1,9 +1,9 @@
-import { db, eq, schema } from "@/lib/db";
 import { getTenantId } from "@/lib/auth";
-import Stripe from "stripe";
-import { redirect } from "next/navigation";
+import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import Stripe from "stripe";
 
 export default async function StripeRedirect() {
   const tenantId = getTenantId();
@@ -49,7 +49,6 @@ export default async function StripeRedirect() {
       .set({ stripeCustomerId: customer.id })
       .where(eq(schema.workspaces.id, ws.id));
   }
-
   const returnUrl = `${headers().get("referer") ?? "https://unkey.dev"}/app`;
 
   const session = await stripe.checkout.sessions.create({

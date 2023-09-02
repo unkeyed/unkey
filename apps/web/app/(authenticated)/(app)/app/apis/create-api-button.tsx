@@ -1,4 +1,7 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -8,9 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -38,14 +38,14 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
         description: "Your API has been created",
       });
       router.refresh();
-      router.push(`/app/${res.id}`);
+      router.push(`/app/apis/${res.id}`);
     },
     onError(err) {
       console.error(err);
       toast({
         title: "Error",
         description: err.message,
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -58,8 +58,8 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className=" gap-2 font-semibold items-center flex-row" {...rest}>
-            <Plus size={18} className=" w-4 h-4 md:w-5 md:h-5" />
+          <Button className="flex-row items-center gap-1 font-semibold " {...rest}>
+            <Plus size={18} className="w-4 h-4 " />
             Create New API
           </Button>
         </DialogTrigger>
@@ -76,7 +76,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                       <Input
                         placeholder="my-api"
                         {...field}
-                        className=" dark:focus:border-stone-700"
+                        className=" dark:focus:border-gray-700"
                       />
                     </FormControl>
                     <FormDescription>
@@ -87,7 +87,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                 )}
               />
 
-              <DialogFooter className=" pt-4 justify-end flex-row gap-2">
+              <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
                 <Button
                   disabled={create.isLoading || !form.formState.isValid}
                   className="mt-4 "

@@ -1,49 +1,24 @@
 "use client";
 
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { useOrganizationList } from "@clerk/nextjs";
-import { cn } from "@/lib/utils";
-import { Lock, KeyRound, PlusCircle, AlertTriangle } from "lucide-react";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Workspace } from "@unkey/db";
-import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardDescription,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import { Text } from "@/components/dashboard/text";
-import { useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Code } from "@/components/ui/code";
-import { VisibleButton } from "@/components/dashboard/visible-button";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Loading } from "@/components/dashboard/loading";
+import { VisibleButton } from "@/components/dashboard/visible-button";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Code } from "@/components/ui/code";
+import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc/client";
+import { KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
-const _formSchema = z.object({
-  name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
-  slug: z.string().min(1, "Slug is required").max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
-  plan: z.enum(["free", "pro"]),
-});
+import { useState } from "react";
 
 type Steps =
   | {
@@ -78,7 +53,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
       toast({
         title: "Error",
         description: err.message,
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -91,7 +66,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
       toast({
         title: "Error",
         description: err.message,
-        variant: "destructive",
+        variant: "alert",
       });
     },
   });
@@ -119,10 +94,15 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
   `;
 
   function maskKey(key: string): string {
+    if (key.length === 0) {
+      return "";
+    }
     const split = key.split("_");
     if (split.length === 1) {
+      // rome-ignore lint: suspicious/noNonNullAssertion
       return "*".repeat(split.at(0)!.length);
     }
+    // rome-ignore lint: suspicious/noNonNullAssertion
     return `${split.at(0)}_${"*".repeat(split.at(1)!.length)}`;
   }
 
@@ -156,7 +136,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                 </div>
               </Code>
 
-              <p className="mt-2 text-sm font-medium text-center text-stone-700 ">
+              <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
                 Try creating a new api key for your users:
               </p>
               <Code className="flex items-start justify-between w-full gap-4 my-8 ">
@@ -236,7 +216,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
             <Lock className="w-6 h-6 text-primary" />
           </div>
           <h4 className="text-lg font-medium">Root Keys</h4>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-content-subtle">
             Root keys create resources such as keys or APIs on Unkey. You should never give this to
             your users.
           </p>
@@ -246,7 +226,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
             <KeyRound className="w-6 h-6 text-primary" />
           </div>
           <h4 className="text-lg font-medium">Regular Keys</h4>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-content-subtle">
             Regular API keys are used to authenticate your users. You can use your root key to
             create regular API keys and give them to your users.
           </p>

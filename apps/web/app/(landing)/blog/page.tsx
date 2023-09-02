@@ -52,19 +52,19 @@ export default async function Blog() {
                 <Border className={"pt-16"}>
                   <div className="relative lg:-mx-4 lg:flex lg:justify-end">
                     <div className="pt-10 lg:w-2/3 lg:flex-none lg:px-4 lg:pt-0">
-                      <h2 className="text-2xl font-semibold font-display text-neutral-950">
+                      <h2 className="text-2xl font-semibold font-display text-gray-950">
                         <Link href={post.url}>{post.title}</Link>
                       </h2>
                       <dl className="lg:absolute lg:left-0 lg:top-0 lg:w-1/3 lg:px-4">
                         <dt className="sr-only">Published</dt>
-                        <dd className="absolute top-0 left-0 text-sm text-neutral-950 lg:static">
+                        <dd className="absolute top-0 left-0 text-sm text-gray-950 lg:static">
                           <time dateTime={new Date(post.date).toDateString()}>
                             {new Date(post.date).toDateString()}
                           </time>
                         </dd>
                         <dt className="sr-only">Author</dt>
                         <dd className="flex mt-6 gap-x-4">
-                          <div className="flex-none overflow-hidden rounded-xl bg-neutral-100">
+                          <div className="flex-none overflow-hidden rounded-xl bg-gray-100">
                             <Image
                               alt={post.author.name}
                               {...post.author.image}
@@ -73,15 +73,13 @@ export default async function Blog() {
                               className="object-cover w-12 h-12 grayscale"
                             />
                           </div>
-                          <div className="text-sm text-neutral-950">
+                          <div className="text-sm text-gray-950">
                             <div className="font-semibold">{post.author.name}</div>
                             <div>{post.author.role}</div>
                           </div>
                         </dd>
                       </dl>
-                      <p className="max-w-2xl mt-6 text-base text-neutral-600">
-                        {post.description}
-                      </p>
+                      <p className="max-w-2xl mt-6 text-base text-gray-600">{post.description}</p>
                       <Button
                         href={post.url}
                         aria-label={`Read more: ${post.title}`}

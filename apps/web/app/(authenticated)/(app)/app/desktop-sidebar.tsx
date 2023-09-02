@@ -1,13 +1,12 @@
 "use client";
-
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { BarChart, BookOpen, FileJson, Settings } from "lucide-react";
-import Link from "next/link";
-import { ApiLink } from "@/components/dashboard/app-link";
-import { WorkspaceSwitcher } from "./team-switcher";
-import { cn } from "@/lib/utils";
 import type { Workspace } from "@/lib/db";
+import { cn } from "@/lib/utils";
+import { BookOpen, Code, LucideIcon, Settings } from "lucide-react";
+import Link from "next/link";
+import { useSelectedLayoutSegments } from "next/navigation";
+import React from "react";
+import { WorkspaceSwitcher } from "./team-switcher";
+import { UserButton } from "./user-button";
 type Props = {
   workspace: Workspace & {
     apis: {
@@ -18,67 +17,94 @@ type Props = {
   className?: string;
 };
 
+type NavItem = {
+  icon: LucideIcon;
+  href: string;
+  external?: boolean;
+  label: string;
+  active?: boolean;
+};
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
+  const segments = useSelectedLayoutSegments();
+  const navigation: NavItem[] = [
+    {
+      icon: Code,
+      href: "/app/apis",
+      label: "APIs",
+      active: segments.at(0) === "apis",
+    },
+    {
+      icon: Settings,
+      href: "/app/settings",
+      label: "Settings",
+      active: segments.at(0) === "settings",
+    },
+    {
+      icon: BookOpen,
+      href: "https://docs.unkey.dev",
+      external: true,
+      label: "Docs",
+    },
+  ];
+
   return (
-    <aside
-      className={cn("fixed h-screen pb-12 lg:inset-y-0 lg:flex lg:w-72 lg:flex-col", className)}
-    >
-      <Link
-        href="/app"
-        className="flex items-center px-8 py-6 text-2xl font-semibold tracking-tight duration-200 cursor-pointer stroke-stone-800 dark:text-stone-200 dark:stroke-stone-500 dark:hover:stroke-white hover:stroke-stone-700 hover:text-stone-700 dark:hover:text-white"
-      >
-        <span className="text-transparent bg-gradient-to-tr from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 bg-clip-text">
-          U
-        </span>
-        <span>nkey</span>
-      </Link>
-      <div className="space-y-4">
-        <div className="px-6 py-2">
-          <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
-          <div className="space-y-1">
-            <Link href="/app/apis">
-              <Button variant="ghost" size="sm" className="justify-start w-full ">
-                <FileJson className="w-4 h-4 mr-2" />
-                APIs
-              </Button>
-            </Link>
-
-            <Button variant="ghost" disabled size="sm" className="justify-start w-full">
-              <BarChart className="w-4 h-4 mr-2" />
-              Audit
-            </Button>
-
-            <Link href="/app/keys">
-              <Button variant="ghost" size="sm" className="justify-start w-full ">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-            </Link>
-            <Link href="https://docs.unkey.dev" target="_blank">
-              <Button variant="ghost" size="sm" className="justify-start w-full">
-                <BookOpen className="w-4 h-4 mr-2" />
-                Docs
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        <div className="py-2">
-          <h2 className="relative px-8 text-lg font-semibold tracking-tight">Apis</h2>
-          <ScrollArea className="h-[230px] px-4">
-            <div className="p-2 space-y-1 ">
-              {workspace.apis
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((api) => (
-                  <ApiLink key={api.id} name={api.name} href={`/app/${api.id}`} id={api.id} />
-                ))}
-            </div>
-          </ScrollArea>
-        </div>
+    <aside className={cn("fixed  h-screen  inset-y-0 flex w-64 flex-col px-6 gap-y-5", className)}>
+      <div className="flex items-center h-16 mt-4 shrink-0">
+        <WorkspaceSwitcher />
       </div>
-      <div className="absolute inset-x-0 mx-6 bottom-8">
-        <WorkspaceSwitcher workspace={workspace} />
-      </div>
+      <nav className="flex flex-col flex-1 flex-grow">
+        <ul role="list" className="flex flex-col flex-1 gap-y-7">
+          <li>
+            <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
+            <ul role="list" className="mt-2 -mx-2 space-y-1">
+              {navigation.map((item) => (
+                <li key={item.label}>
+                  <NavLink item={item} />
+                </li>
+              ))}
+            </ul>
+          </li>
+          <li>
+            <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
+            <ul role="list" className="mt-2 -mx-2 space-y-1">
+              {workspace.apis.map((api) => (
+                <li key={api.id}>
+                  <NavLink
+                    item={{
+                      icon: Code,
+                      href: `/app/apis/${api.id}`,
+                      label: api.name,
+                      active: segments.includes(api.id),
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ul>
+      </nav>
+
+      <UserButton />
     </aside>
+  );
+};
+
+const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
+  return (
+    <Link
+      href={item.href}
+      target={item.external ? "_blank" : undefined}
+      className={cn(
+        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 ",
+        {
+          "bg-gray-200 dark:bg-gray-800": item.active,
+        },
+      )}
+    >
+      <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
+        <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+      </span>
+      {item.label}
+    </Link>
   );
 };

@@ -1,4 +1,4 @@
-import { defineNuxtModule, createResolver, addServerHandler } from "@nuxt/kit";
+import { addServerHandler, createResolver, defineNuxtModule } from "@nuxt/kit";
 import { defu } from "defu";
 
 export interface ModuleOptions {

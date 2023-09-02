@@ -20,9 +20,7 @@ export function Border({
       className={clsx(
         className,
         "relative before:absolute after:absolute",
-        invert
-          ? "before:bg-white after:bg-white/10"
-          : "before:bg-neutral-950 after:bg-neutral-950/10",
+        invert ? "before:bg-white after:bg-white/10" : "before:bg-gray-950 after:bg-gray-950/10",
         position === "top" &&
           "before:left-0 before:top-0 before:h-px before:w-6 after:left-8 after:right-0 after:top-0 after:h-px",
         position === "left" &&

@@ -1,7 +1,7 @@
-import { mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
-import { workspaces } from "./workspaces";
+import { mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
+import { workspaces } from "./workspaces";
 
 export const keyAuth = mysqlTable("key_auth", {
   id: varchar("id", { length: 256 }).primaryKey(),

@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, schema, eq } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export default async function TenantOverviewPage() {
