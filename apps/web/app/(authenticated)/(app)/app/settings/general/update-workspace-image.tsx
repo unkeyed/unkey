@@ -30,11 +30,11 @@ export const UpdateWorkspaceImage: React.FC = () => {
         return;
       }
       if (file.size / 1024 / 1024 > 2) {
-        toast({ description: "File size too big (max 2MB)" });
+        toast({ description: "File size too big (max 2MB)", variant: "alert"});
         return;
       }
       if (file.type !== "image/png" && file.type !== "image/jpeg") {
-        toast({ description: "File type not supported (.png or .jpg only)" });
+        toast({ description: "File type not supported (.png or .jpg only)", variant: "alert"});
         return;
       }
 
