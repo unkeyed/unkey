@@ -1,6 +1,6 @@
+import { useRuntimeConfig } from "#imports";
 import { Unkey } from "@unkey/api";
 import type { H3Event } from "h3";
-import { useRuntimeConfig } from "#imports";
 
 let unkey: Unkey;
 

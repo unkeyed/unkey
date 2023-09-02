@@ -1,53 +1,33 @@
 "use client";
 
+import { Loading } from "@/components/dashboard/loading";
 import {
-  DropdownMenuTrigger,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
-  DropdownMenuSubContent,
-  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Check,
-  Zap,
-  ChevronsUpDown,
-  Plus,
-  Book,
-  LogOut,
-  Rocket,
-  Moon,
-  Monitor,
-  Sun,
-} from "lucide-react";
-import Link from "next/link";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Loading } from "@/components/dashboard/loading";
+import React, { useMemo, useState } from "react";
 
-import { cn } from "@/lib/utils";
-import { SignOutButton, useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
-import { DropdownMenuSub } from "@radix-ui/react-dropdown-menu";
-import { useTheme } from "next-themes";
-import type { Workspace } from "@/lib/db";
+import Link from "next/link";
 
-type Props = {
-  workspace: Workspace;
-};
+type Props = {};
 
-export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element => {
-  const { setActive, organizationList } = useOrganizationList();
+export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
+  const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const _router = useRouter();
+  const [isLoading, setLoading] = useState(false);
+
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -61,128 +41,83 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
       setLoading(false);
     }
   }
-  const { setTheme, theme } = useTheme();
+  const [search, _setSearch] = useState("");
+  // rome-ignore lint: suspicious/noNonNullAssertion
+  const filteredOrgs = useMemo(() => {
+    if (!organizationList) {
+      return [];
+    }
+    if (search === "") {
+      return organizationList;
+    }
+    console.log({ search });
+    return organizationList?.filter(
+      ({ organization }) =>
+        organization.name.toLowerCase().includes(search.toLowerCase()) ||
+        organization.slug?.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [search, organizationList])!;
   return (
     <DropdownMenu>
-      {loading ? (
-        <Loading />
-      ) : (
-        <DropdownMenuTrigger className="flex items-center justify-between gap-4 px-2 py-1 rounded lg:w-full hover:bg-stone-100 dark:hover:bg-stone-800">
-          <div className="flex flex-row-reverse items-center justify-start w-full gap-4 lg:flex-row ">
-            <Avatar className="w-8 h-8 lg:w-10 lg:h-10">
-              {user?.imageUrl ? (
-                <AvatarImage src={user.imageUrl} alt={user.fullName ?? "Profile picture"} />
-              ) : null}
-              <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden border rounded-md bg-stone-100 border-stone-500 text-stone-700">
-                {(currentOrg?.slug ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-row-reverse items-center gap-4 lg:gap-1 lg:items-start lg:flex-col">
-              <span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-[8rem]">
-                {currentOrg?.name ?? "Personal"}
-              </span>
-              <PlanBadge plan={workspace.plan} />
-            </div>
-          </div>
-          <ChevronsUpDown className="hidden w-4 h-4 md:block" />
-        </DropdownMenuTrigger>
-      )}
-      <DropdownMenuContent className="w-full lg:w-56" align="end" forceMount>
-        <DropdownMenuGroup>
-          <Link href="/onboarding">
-            <DropdownMenuItem className="cursor-pointer">
-              <Rocket className="w-4 h-4 mr-2" />
-              <span>Onboarding</span>
-            </DropdownMenuItem>
-          </Link>
-          <Link href="https://docs.unkey.dev" target="_blank">
-            <DropdownMenuItem className="cursor-pointer">
-              <Book className="w-4 h-4 mr-2" />
-              <span>Docs</span>
-            </DropdownMenuItem>
-          </Link>
-          <Link href="/app/stripe">
-            <DropdownMenuItem className="cursor-pointer">
-              <Zap className="w-4 h-4 mr-2" />
-              <span>Plans & Billing</span>
-            </DropdownMenuItem>
-          </Link>
-        </DropdownMenuGroup>
+      <DropdownMenuTrigger className="flex items-center justify-between w-full gap-2">
+        <div className="flex items-center gap-2">
+          <Avatar className="w-6 h-6">
+            {currentOrg?.imageUrl ? (
+              <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
+            ) : user?.imageUrl ? (
+              <AvatarImage src={user.imageUrl} alt={user.username ?? "Profile picture"} />
+            ) : null}
+            <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
+              {(currentOrg?.name ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
+            </AvatarFallback>
+          </Avatar>
+          {!clerkLoaded || isLoading ? (
+            <Loading />
+          ) : (
+            <span className="text-sm font-semibold">
+              {currentOrg?.name ?? "Personal Workspace"}
+            </span>
+          )}
+        </div>
+        <ChevronsUpDown className="hidden w-3 h-3 md:block" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" className="w-96">
+        <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
+        <DropdownMenuItem
+          className="flex items-center justify-between"
+          onClick={() => changeOrg(null)}
+        >
+          <span className={currentOrg === null ? "font-semibold" : undefined}>
+            {user?.fullName}
+          </span>
+          {currentOrg === null ? <Check className="w-4 h-4" /> : null}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>Change Theme</DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuCheckboxItem
-                  checked={theme === "light"}
-                  onCheckedChange={() => setTheme("light")}
-                >
-                  <div className="flex items-center gap-2 ">
-                    <Sun size={16} />
-                    Light
-                  </div>
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={theme === "dark"}
-                  onCheckedChange={() => setTheme("dark")}
-                >
-                  <div className="flex items-center gap-2 ">
-                    <Moon size={16} />
-                    Dark
-                  </div>
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={theme === "system"}
-                  onCheckedChange={() => setTheme("system")}
-                >
-                  <div className="flex items-center gap-2 ">
-                    <Monitor size={16} />
-                    System
-                  </div>
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
 
-          <DropdownMenuItem
-            onClick={() => changeOrg(null)}
-            className={cn("flex items-center justify-between", {
-              "bg-stone-100 dark:bg-stone-700 dark:text-stone-100 cursor-pointer":
-                currentOrg === null,
-            })}
-          >
-            <span>Personal</span>
-            {currentOrg === null ? <Check className="w-4 h-4" /> : null}
-          </DropdownMenuItem>
-
-          {organizationList?.map((org) => (
+        <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          {filteredOrgs.map(({ organization }) => (
             <DropdownMenuItem
-              key={org.organization.id}
-              onClick={() => changeOrg(org.organization.id)}
-              className={cn("flex items-center justify-between", {
-                "bg-stone-100 dark:bg-stone-700 dark:text-stone-100 cursor-pointer":
-                  currentOrg?.slug === org.organization.slug,
-              })}
+              key={organization.id}
+              className="flex items-center justify-between"
+              onClick={() => changeOrg(organization.id)}
             >
-              <span>{org.organization.name}</span>
-              {currentOrg?.slug === org.organization.slug ? <Check className="w-4 h-4" /> : null}
+              <span className={organization.id === currentOrg?.id ? "font-semibold" : undefined}>
+                {" "}
+                {organization.name}
+              </span>
+              {organization.id === currentOrg?.id ? <Check className="w-4 h-4" /> : null}
             </DropdownMenuItem>
           ))}
-        </DropdownMenuGroup>
+          <DropdownMenuSeparator />
 
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <Link href="/new">
-            <DropdownMenuItem>
-              <Plus className="w-4 h-4 mr-2 " />
-              <span className="cursor-pointer">Create Workspace</span>
-            </DropdownMenuItem>
-          </Link>
+          <DropdownMenuItem>
+            <Link href="/new" className="flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              <span>Create Workspace</span>
+            </Link>
+            {/* <DropdownMenuShortcut>⌘B</DropdownMenuShortcut> */}
+          </DropdownMenuItem>
           {membership?.role === "admin" ? (
             <Link href="/app/team/invite">
               <DropdownMenuItem>
@@ -192,33 +127,7 @@ export const WorkspaceSwitcher: React.FC<Props> = ({ workspace }): JSX.Element =
             </Link>
           ) : null}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <span>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign out
-              </span>
-            </DropdownMenuItem>
-          </SignOutButton>
-        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-};
-
-const PlanBadge: React.FC<{ plan: Workspace["plan"] }> = ({ plan }) => {
-  return (
-    <span
-      className={cn(" inline-flex items-center  font-medium py-0.5 text-xs uppercase  rounded-md", {
-        "text-stone-800 dark:text-stone-300": plan === "free",
-        "text-primary-foreground  bg-primary px-2 border border-primary-500": plan === "pro",
-        "text-white bg-black px-2 border border-black": plan === "enterprise",
-        "text-red-600 bg-red-100 px-2 border border-red-500": !plan,
-      })}
-    >
-      {(plan ?? "N/A").toUpperCase()}
-    </span>
   );
 };

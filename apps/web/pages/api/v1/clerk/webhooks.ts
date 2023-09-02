@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from "http";
+import type { WebhookEvent } from "@clerk/nextjs/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { WebhookRequiredHeaders } from "svix";
-import type { WebhookEvent } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 
 const webhookSecret: string | undefined = process.env.CLERK_WEBHOOK_SECRET;

@@ -27,7 +27,7 @@ export function OAuthSignUp() {
       console.error(cause);
       setIsLoading(null);
       toast({
-        variant: "destructive",
+        variant: "alert",
         title: "Error",
         description: "Something went wrong, please try again.",
       });
@@ -37,7 +37,7 @@ export function OAuthSignUp() {
   return (
     <div className="flex flex-col gap-2">
       <Button
-        variant="outline"
+        variant="secondary"
         className="bg-background"
         onClick={() => oauthSignIn("oauth_github")}
       >
@@ -49,7 +49,7 @@ export function OAuthSignUp() {
         GitHub
       </Button>
       <Button
-        variant="outline"
+        variant="secondary"
         className="bg-background"
         onClick={() => oauthSignIn("oauth_google")}
       >

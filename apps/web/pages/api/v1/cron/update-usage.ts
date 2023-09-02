@@ -1,9 +1,9 @@
+import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
-import { db, schema, eq } from "@/lib/db";
 import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
-import Stripe from "stripe";
-import { NextApiRequest, NextApiResponse } from "next";
 import { verifySignature } from "@upstash/qstash/nextjs";
+import { NextApiRequest, NextApiResponse } from "next";
+import Stripe from "stripe";
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -59,7 +59,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             for (const item of subscription.items.data) {
               console.log("handling item %s -> product %s", item.id, item.price.product);
               switch (item.price.product) {
-                case stripeEnv!.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+                case stripeEnv?.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
                   if (activeKeys) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),
@@ -70,7 +70,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
                   }
                   break;
                 }
-                case stripeEnv!.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+                case stripeEnv?.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
                   if (verifications) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),

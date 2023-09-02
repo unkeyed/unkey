@@ -1,17 +1,9 @@
 "use client";
 
-import { DataTable } from "./table";
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +13,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Alert } from "@/components/ui/alert";
-import { trpc } from "@/lib/trpc/client";
-import { Loading } from "../loading";
-import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc/client";
+import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { CopyButton } from "../copy-button";
+import { Loading } from "../loading";
+import { DataTable } from "./table";
 type Column = {
   id: string;
   start: string;
@@ -38,14 +40,14 @@ type Column = {
   ratelimitLimit: number | null;
   ratelimitRefillRate: number | null;
   ratelimitRefillInterval: number | null;
+  remainingRequests: number | null;
 };
 
 type Props = {
-  apiId: string;
   data: Column[];
 };
 
-export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
+export const ApiKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
   const { toast } = useToast();
   const deleteKey = trpc.key.delete.useMutation({
@@ -90,9 +92,33 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
       enableHiding: false,
     },
     {
+      accessorKey: "id",
+      header: "Key ID",
+      cell: ({ row }) => (
+        <Badge
+          key="apiId"
+          variant="secondary"
+          className="flex justify-between w-full font-mono font-medium"
+        >
+          {row.getValue("id")}
+          <CopyButton value={row.getValue("id")} className="ml-2" />
+        </Badge>
+      ),
+    },
+    {
       accessorKey: "start",
       header: "Key",
-      cell: ({ row }) => <Badge variant="secondary">{row.getValue("start")}...</Badge>,
+      cell: ({ row }) => (
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="secondary">{row.getValue("start")}...</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            This is the first part of the key to visually match it. We don't store the full key for
+            security reasons.
+          </TooltipContent>
+        </Tooltip>
+      ),
     },
     {
       accessorKey: "createdAt",
@@ -113,6 +139,16 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
       cell: ({ row }) =>
         row.original.expires ? (
           <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+        ) : (
+          <Minus className="w-4 h-4 text-gray-300" />
+        ),
+    },
+    {
+      accessorKey: "remainingRequests",
+      header: "Remaining",
+      cell: ({ row }) =>
+        row.original.remainingRequests ? (
+          <span>{row.original.remainingRequests.toLocaleString()}</span>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),
@@ -161,7 +197,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/${apiId}/keys/${row.original.id}`} className="w-full">
+                  <Link href={`/app/keys/${row.original.id}`} className="w-full">
                     Details
                   </Link>
                 </DropdownMenuItem>
@@ -179,10 +215,10 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
                   <DialogHeader>
                     <DialogTitle>Revoke Api Key</DialogTitle>
                     <DialogDescription>
-                      Delete the key <Badge variant="outline">{row.original.start}...</Badge>{" "}
+                      Delete the key <Badge variant="secondary">{row.original.start}...</Badge>{" "}
                       permanenty
                     </DialogDescription>
-                    <Alert variant="destructive">
+                    <Alert variant="alert">
                       This action can not be undone. Your users will no longer be able to
                       authenticate using this key.
                     </Alert>
@@ -190,7 +226,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data, apiId }) => {
 
                   <DialogFooter>
                     <Button
-                      variant="destructive"
+                      variant="alert"
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
                     >

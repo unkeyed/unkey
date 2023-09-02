@@ -14,6 +14,9 @@ import (
 
 type VerifyKeyRequest struct {
 	Key string `json:"key" validate:"required"`
+	X   struct {
+		Resource string `json:"resource,omitempty"`
+	} `json:"x,omitempty"`
 }
 
 // part of the response
@@ -142,11 +145,17 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 
 	defer s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
-		WorkspaceId: key.WorkspaceId,
-		ApiId:       api.Id,
-		KeyId:       key.Id,
-		Ratelimited: res.Code == errors.RATELIMITED,
-		Time:        time.Now().UnixMilli(),
+		WorkspaceId:       key.WorkspaceId,
+		ApiId:             api.Id,
+		KeyId:             key.Id,
+		Ratelimited:       res.Code == errors.RATELIMITED,
+		UsageExceeded:     res.Code == errors.KEY_USAGE_EXCEEDED,
+		Time:              time.Now().UnixMilli(),
+		Region:            s.region,
+		EdgeRegion:        c.Get("Fly-Region"),
+		UserAgent:         c.Get("User-Agent"),
+		IpAddress:         c.Get("Fly-Client-IP"),
+		RequestedResource: req.X.Resource,
 	})
 
 	if !key.Expires.IsZero() {

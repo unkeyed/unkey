@@ -11,10 +11,10 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.4.4",
-    "@types/react": "18.2.15",
+    "@types/node": "^20.5.7",
+    "@types/react": "18.2.21",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.1.6"
+    "typescript": "^5.2.2"
   },
   "dependencies": {
     "@react-email/body": "^0.0.3",
@@ -35,6 +35,6 @@
     "@react-email/text": "^0.0.5",
     "react": "^18.2.0",
     "react-email": "^1.9.4",
-    "resend": "^0.17.1"
+    "resend": "^1.0.0"
   }
 }

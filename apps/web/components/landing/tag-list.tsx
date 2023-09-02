@@ -22,12 +22,7 @@ export function TagListItem({
   children?: React.ReactNode;
 }) {
   return (
-    <li
-      className={clsx(
-        "rounded-full bg-neutral-100 px-4 py-1.5 text-base text-neutral-600",
-        className,
-      )}
-    >
+    <li className={clsx("rounded-full bg-gray-100 px-4 py-1.5 text-base text-gray-600", className)}>
       {children}
     </li>
   );

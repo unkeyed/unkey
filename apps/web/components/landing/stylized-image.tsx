@@ -1,6 +1,6 @@
-import { useId } from "react";
-import Image, { ImageProps, StaticImageData } from "next/image";
 import clsx from "clsx";
+import Image, { ImageProps, StaticImageData } from "next/image";
+import { useId } from "react";
 
 const shapes = [
   {
@@ -37,18 +37,19 @@ export function StylizedImage({
   return (
     <div className={clsx(className, "relative flex aspect-[719/680] w-full grayscale")}>
       <svg viewBox={`0 0 ${width} ${height}`} fill="none" className="h-full">
+        <title>image</title>
         <g clipPath={`url(#${id}-clip)`} className="group">
           <g className="transition duration-500 origin-center scale-100 motion-safe:group-hover:scale-105">
             <foreignObject width={width} height={height}>
               <Image
                 alt=""
-                className="object-cover w-full bg-neutral-100"
+                className="object-cover w-full bg-gray-100"
                 style={{ aspectRatio: `${width} / ${height}` }}
                 {...src}
               />
             </foreignObject>
           </g>
-          <use href={`#${id}-shape`} strokeWidth="2" className="stroke-neutral-950/10" />
+          <use href={`#${id}-shape`} strokeWidth="2" className="stroke-gray-950/10" />
         </g>
         <defs>
           <clipPath id={`${id}-clip`}>

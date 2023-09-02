@@ -2,10 +2,10 @@ import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
 import { allPosts } from "contentlayer/generated";
+import type { Metadata } from "next";
 import { getMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 
 type Props = {
   params: { slug: string };
@@ -72,16 +72,16 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
       <Container as="article" className="mt-24 sm:mt-32 lg:mt-40 ">
         <FadeIn>
           <header className="flex flex-col max-w-5xl mx-auto mb-8 text-center">
-            <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-neutral-950 [text-wrap:balance] sm:text-6xl">
+            <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-6xl">
               {post.title}
             </h1>
             <time
               dateTime={new Date(post.date).toDateString()}
-              className="order-first text-sm text-neutral-950"
+              className="order-first text-sm text-gray-950"
             >
               {new Date(post.date).toDateString()}
             </time>
-            <p className="mt-6 text-sm font-semibold text-neutral-950">
+            <p className="mt-6 text-sm font-semibold text-gray-950">
               by {post.author.name}, {post.author.role}
             </p>
           </header>
@@ -101,6 +101,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               className="absolute left-1/2 top-1/2 -z-10 h-[64rem] w-[64rem] -translate-y-1/2 [mask-image:radial-gradient(closest-side,white,transparent)] sm:left-full sm:-ml-80 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2 lg:translate-y-0"
               aria-hidden="true"
             >
+              <title>svg</title>
               <circle
                 cx={512}
                 cy={512}
@@ -123,7 +124,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               <div className="flex items-center justify-center mt-10 gap-x-6 lg:justify-start">
                 <Link
                   href="/app"
-                  className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  className="rounded-md g-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Get started
                 </Link>
@@ -134,7 +135,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
             </div>
             <div className="relative mt-16 h-80 lg:mt-8">
               <img
-                className="absolute left-0 top-0 w-[57rem] max-w-none rounded-md bg-white/5 ring-1 ring-white/10"
+                className="absolute left-0 top-0 w-[57rem] max-w-none rounded-md g-white/5 ring-1 ring-white/10"
                 src="/images/landing/app.png"
                 alt="App screenshot"
                 width={1824}

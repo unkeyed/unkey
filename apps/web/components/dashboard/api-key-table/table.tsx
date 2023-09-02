@@ -2,17 +2,18 @@
 
 import {
   ColumnDef,
+  ColumnFiltersState,
   SortingState,
-  getSortedRowModel,
+  VisibilityState,
   flexRender,
   getCoreRowModel,
-  useReactTable,
-  getPaginationRowModel,
-  ColumnFiltersState,
   getFilteredRowModel,
-  VisibilityState,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
 
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -21,16 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -40,9 +33,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc/client";
-import { toast } from "../../ui/use-toast";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "../../ui/use-toast";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -97,24 +97,18 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   return (
     <div>
       <div>
-        <Input
-          placeholder="Filter keys"
-          value={(table.getColumn("start")?.getFilterValue() as string) ?? ""}
-          onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
-          className="max-w-sm md:max-w-2xl"
-        />
-        <div className="flex items-center justify-between space-x-0 md:space-x-4 space-y-4 sm:space-y-0 flex-wrap sm:flex-nowrap">
+        <div className="flex flex-wrap items-center justify-between space-x-0 space-y-4 md:space-x-4 sm:space-y-0 sm:flex-nowrap">
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="md:min-w-min mt-4 min-w-full " variant="outline">
+                <Button className="min-w-full md:min-w-min " variant="secondary">
                   Revoke selected keys
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Revoke {Object.keys(rowSelection).length} keys</DialogTitle>
-                  <DialogDescription className="text-destructive">
+                  <DialogDescription className="text-alert">
                     This action can not be undone. Your users will no longer be able to authenticate
                     with these keys
                   </DialogDescription>
@@ -136,11 +130,17 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
               </DialogContent>
             </Dialog>
           ) : null}
+          <Input
+            placeholder="Filter keys"
+            value={(table.getColumn("start")?.getFilterValue() as string) ?? ""}
+            onChange={(event) => table.getColumn("start")?.setFilterValue(event.target.value)}
+            className="max-w-sm md:max-w-2xl"
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                className="md:min-w-min mt-4 md:mt-0 min-w-full ml-0 md:ml-auto"
-                variant="outline"
+                className="min-w-full mt-4 ml-0 md:min-w-min md:mt-0 md:ml-auto"
+                variant="secondary"
               >
                 Columns
               </Button>
@@ -203,7 +203,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
       </Table>
       <div className="flex items-center justify-end py-4 space-x-2">
         <Button
-          variant="outline"
+          variant={table.getCanPreviousPage() ? "secondary" : "disabled"}
           size="sm"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
@@ -211,7 +211,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           Previous
         </Button>
         <Button
-          variant="outline"
+          variant={table.getCanNextPage() ? "secondary" : "disabled"}
           size="sm"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}

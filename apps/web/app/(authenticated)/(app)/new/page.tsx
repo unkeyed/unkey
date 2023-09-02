@@ -1,12 +1,12 @@
-import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
-import { CreateWorkspace } from "./create-workspace";
-import { CreateApi } from "./create-api";
-import { Keys } from "./keys";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema } from "@/lib/db";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { CreateApi } from "./create-api";
+import { CreateWorkspace } from "./create-workspace";
+import { Keys } from "./keys";
 
 type Props = {
   searchParams: {
@@ -28,7 +28,7 @@ export default async function (props: Props) {
             <Link
               key="skip"
               href="/app"
-              className="flex items-center gap-1 text-sm duration-200 text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
               Skip <ArrowRight className="w-4 h-4" />{" "}
             </Link>,

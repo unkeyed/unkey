@@ -1,10 +1,10 @@
-import { schema } from "@unkey/db";
 import { randomBytes } from "node:crypto";
+import { schema } from "@unkey/db";
 import baseX from "base-x";
 
-import mysql from "mysql2/promise";
 import { eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 const prefixes = {
   key: "key",
   policy: "pol",
