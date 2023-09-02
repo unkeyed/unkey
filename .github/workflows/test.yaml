@@ -64,6 +64,6 @@ jobs:
         run: pnpm install
 
       - name: Format
-        run: pnpm rome ci .
+        run: pnpm biome ci .
       
      
