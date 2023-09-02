@@ -126,7 +126,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
                 </span>
               </TableCell>
               <TableCell>{verification.requestedResource}</TableCell>
-              <TableCell className="truncate">{verification.userAgent}</TableCell>
+              <TableCell className="max-w-sm truncate">{verification.userAgent}</TableCell>
               <TableCell>{verification.ipAddress}</TableCell>
               <TableCell>{verification.region}</TableCell>
               <TableCell>
