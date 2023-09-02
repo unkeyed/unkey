@@ -64,7 +64,7 @@ export const UpdateUserName: React.FC = () => {
             .catch((e) => {
               toast({
                 title: "Error",
-                description: (e as Error).message,
+                description: "Sorry there was an error updating your username",
                 variant: "alert",
               });
             });
