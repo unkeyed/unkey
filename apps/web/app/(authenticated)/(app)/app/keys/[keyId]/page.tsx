@@ -73,7 +73,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
             label="Expires"
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
           />
-          <Stat label="Remaining" value={key.remainingRequests ? fmt(key.remainingRequests) ?? <Minus />} />
+          <Stat label="Remaining" value={key.remainingRequests ? fmt(key.remainingRequests) : <Minus />} />
           <Stat
             label="LastUsed"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
