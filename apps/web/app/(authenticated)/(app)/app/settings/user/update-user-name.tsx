@@ -20,9 +20,13 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+
+const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
+
 const formSchema = z.object({
-  username: z.string().min(3),
-});
+  username: z.string().min(3).refine((v) => validCharactersRegex.test(v),{
+    message: "Username can only contain letters, numbers, dashes and underscores",
+  })});
 
 export const UpdateUserName: React.FC = () => {
   const { toast } = useToast();
@@ -68,7 +72,7 @@ export const UpdateUserName: React.FC = () => {
       >
         <Card>
           <CardHeader>
-            <CardTitle>User Name</CardTitle>
+            <CardTitle>Username</CardTitle>
           </CardHeader>
           <CardContent>
             <FormField
@@ -80,7 +84,7 @@ export const UpdateUserName: React.FC = () => {
                   <FormControl>
                     <Input {...field} className="max-w-sm" />
                   </FormControl>
-                  <FormDescription>What's your name?</FormDescription>
+                  <FormDescription>Update or create a username</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
