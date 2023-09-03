@@ -37,5 +37,10 @@
       "@opentelemetry/sdk-trace-node": "1.13.0",
       "@opentelemetry/semantic-conventions": "1.13.0"
     }
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
   }
 }
