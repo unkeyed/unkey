@@ -1,5 +1,5 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import Link from "next/link";
+import Link from "next/link"
 export default function Example() {
   return (
     <div className="">
@@ -7,7 +7,7 @@ export default function Example() {
         <div className="max-w-2xl mx-auto lg:mx-0 lg:flex-auto">
           <div className="flex">
             <div className="relative flex items-center px-4 py-1 text-sm leading-6 rounded-full text-primary gap-x-4 ring-1 ring-ring hover:ring-gray-900/20">
-              <span className="font-semibold text-indigo-600">Get 3 months free with code:</span>
+              <span className="font-semibold text-indigo-600">Get 3 months free with the code:</span>
               <span className="w-px h-4 bg-gray-900/10" aria-hidden="true" />
               <div className="flex items-center font-mono font-semibold gap-x-1">
                 DEVTOOLSFM <CopyButton value="DEVTOOLSFM" />
