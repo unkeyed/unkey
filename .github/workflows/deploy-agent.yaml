@@ -103,7 +103,7 @@ jobs:
         uses: stepci/stepci@main
         with:
           workflow: "apps/agent/e2e/workflow.json"
-          envs: "baseUrl=${{ env.PREVIEW_BASE_URL }} apiId=${{env.PREVIEW_API_ID}}"
+          envs: "baseUrl=${{ vars.PREVIEW_BASE_URL }} apiId=${{vars.PREVIEW_API_ID}}"
           secrets: "rootKey=${{ secrets.PREVIEW_ROOT_KEY }}"
 
 
@@ -154,5 +154,5 @@ jobs:
         uses: stepci/stepci@main
         with:
           workflow: "apps/agent/e2e/workflow.json"
-          envs: "baseUrl=${{ env.PRODUCTION_BASE_URL }} apiId=${{env.PRODUCTION_API_ID}}"
+          envs: "baseUrl=${{ vars.PRODUCTION_BASE_URL }} apiId=${{vars.PRODUCTION_API_ID}}"
           secrets: "rootKey=${{ secrets.PRODUCTION_ROOT_KEY }}"
