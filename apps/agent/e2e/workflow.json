@@ -87,19 +87,8 @@
             "check": {
               "status": 200,
               "jsonpath": {
-                "$.valid": false
-              },
-              "performance": {
-                "firstByte": [
-                  {
-                    "lte": 100
-                  }
-                ],
-                "total": [
-                  {
-                    "lte": 200
-                  }
-                ]
+                "$.valid": false,
+                "$.code": "NOT_FOUND"
               }
             }
           }
