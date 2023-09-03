@@ -45,7 +45,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
       apiId: api.id,
       keyId: key.id,
     }),
-    getTotalUsage({ keyId: key.id }).then(res => res.data.at(0)?.totalUsage ?? 0),
+    getTotalUsage({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
     getLatestVerifications({ keyId: key.id }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
@@ -62,7 +62,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
     y: value,
   }));
 
-  const fmt = new Intl.NumberFormat("en-US", { notation: "compact" }).format
+  const fmt = new Intl.NumberFormat("en-US", { notation: "compact" }).format;
   const usage30Days = usage.data.reduce((acc, { usage }) => acc + usage, 0);
   return (
     <div className="flex flex-col gap-8">
@@ -73,7 +73,10 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
             label="Expires"
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
           />
-          <Stat label="Remaining" value={key.remainingRequests ? fmt(key.remainingRequests) : <Minus />} />
+          <Stat
+            label="Remaining"
+            value={key.remainingRequests ? fmt(key.remainingRequests) : <Minus />}
+          />
           <Stat
             label="LastUsed"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
