@@ -9,6 +9,7 @@ const nextConfig = {
     serverActions: true,
     esmExternals: "loose",
   },
+
   transpilePackages: ["@unkey/db", "@unkey/loops"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
