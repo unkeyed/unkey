@@ -2,6 +2,7 @@ import { Unkey } from "@unkey/api";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const unkeyToken = process.env.UNKEY_TOKEN;
   if (!unkeyToken) {
