@@ -13,13 +13,16 @@
     "build": "turbo run build",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
-    "bootstrap": "turbo run bootstrap"
+    "bootstrap": "turbo run bootstrap",
+    "commit": "cz"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
     "@biomejs/biome": "^1.0.0",
+    "@changesets/cli": "^2.26.2",
     "checkly": "^4.1.0",
+    "cz-conventional-changelog": "^3.3.0",
     "ts-node": "^10.9.1",
     "turbo": "^1.10.13",
     "typescript": "^5.2.2"
@@ -33,6 +36,11 @@
       "@opentelemetry/sdk-trace-base": "1.13.0",
       "@opentelemetry/sdk-trace-node": "1.13.0",
       "@opentelemetry/semantic-conventions": "1.13.0"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
     }
   }
 }
