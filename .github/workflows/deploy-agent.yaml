@@ -111,7 +111,7 @@ jobs:
   deploy_production:
     name: Deploy Production
     runs-on: ubuntu-latest
-    if: "!github.event.release.prerelease"
+    if: !github.event.release.prerelease
     needs:
       - build
       - deploy_preview
