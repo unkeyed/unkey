@@ -20,7 +20,7 @@ export default function AuthenticationPage() {
       {!verify && (
         <>
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-3xl font-semibold tracking-tight">Sign In to Your Account</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Sign In to Unkey</h1>
             <p className="text-md text-content-subtle">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
