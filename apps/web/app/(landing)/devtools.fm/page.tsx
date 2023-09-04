@@ -6,8 +6,8 @@ export default function Example() {
       <div className="px-6 py-24 mx-auto max-w-7xl sm:py-32 lg:flex lg:items-center lg:gap-x-10 lg:px-8 lg:py-40">
         <div className="max-w-2xl mx-auto lg:mx-0 lg:flex-auto">
           <div className="flex">
-            <div className="relative flex items-center px-4 py-1 text-sm leading-6 rounded-full text-primary gap-x-4 ring-1 ring-ring hover:ring-gray-900/20">
-              <span className="font-semibold text-indigo-600">Get 3 months free with the code:</span>
+            <div className="relative flex items-center px-4 py-1 text-xs md:text-sm leading-6 rounded-full text-primary gap-x-4 ring-1 ring-ring hover:ring-gray-900/20">
+              <span className="font-semibold text-indigo-600 ">Get 3 months of Unkey Pro free with the code:</span>
               <span className="w-px h-4 bg-gray-900/10" aria-hidden="true" />
               <div className="flex items-center font-mono font-semibold gap-x-1">
                 DEVTOOLSFM <CopyButton value="DEVTOOLSFM" />
@@ -18,7 +18,7 @@ export default function Example() {
             API authentication made easy
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            James probably said something smart
+          James sat down with Andrew Lisowski and Justin Bennett to talk about Unkey and the future of API authentication. James provides insights into how Unkey works, how we made it fast, and how it can help you build your next project.
           </p>
           <div className="flex items-center mt-10 gap-x-6">
             <Link
