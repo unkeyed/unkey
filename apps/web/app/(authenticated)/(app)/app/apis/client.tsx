@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { BookOpen, KeyRound, Search } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreateApiButton } from "./create-api-button";
 
 type ApiWithKeys = {
@@ -18,6 +18,11 @@ type ApiWithKeys = {
 }[];
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
+  useEffect(() => {
+    if (apis.length) {
+      setLocalData(apis);
+    }
+  }, [apis]);
   const [localData, setLocalData] = useState(apis);
   return (
     <div>
