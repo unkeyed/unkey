@@ -43,15 +43,18 @@ export default authMiddleware({
       auth.orgId &&
       !["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)
     ) {
+
       const workspace = await findWorkspace({ tenantId: auth.orgId });
       if (workspace?.plan === "free") {
         return NextResponse.redirect(new URL("/app/stripe", req.url));
       }
+      return NextResponse.next();
     }
-    if (auth.userId && req.nextUrl.pathname === "/app/apis") {
+    if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
+      console.log("we also here");
       const workspace = await findWorkspace({ tenantId: auth.userId });
       if (!workspace) {
-        return NextResponse.redirect(new URL("/onboarding", req.url));
+        return NextResponse.redirect(new URL("/new", req.url));
       }
     }
   },
