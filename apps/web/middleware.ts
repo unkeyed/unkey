@@ -63,11 +63,12 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
         if (workspace?.plan === "free") {
           return NextResponse.redirect(new URL("/app/stripe", req.url));
         }
+        return NextResponse.next()
       }
-      if (auth.userId && req.nextUrl.pathname === "/app/apis") {
+      if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
         const workspace = await findWorkspace({ tenantId: auth.userId });
         if (!workspace) {
-          return NextResponse.redirect(new URL("/onboarding", req.url));
+          return NextResponse.redirect(new URL("/new", req.url));
         }
       }
     },
@@ -76,7 +77,8 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
   // @ts-ignore
   const sessionId = getSessionId(req, res)
 
-  const path = req.nextUrl.pathname.replace(/(api_[a-zA-Z0-9]+)/g, "[apiId]").replace(/(key_[a-zA-Z0-9]+)/g, "[keyId]")
+  // replace ids to make aggregations easier
+  const path = req.nextUrl.pathname.replace(/\/(api_[a-zA-Z0-9]+)/g, "[apiId]").replace(/\/(key_[a-zA-Z0-9]+)/g, "[keyId]")
 
 
   evt.waitUntil(ingestPageView({

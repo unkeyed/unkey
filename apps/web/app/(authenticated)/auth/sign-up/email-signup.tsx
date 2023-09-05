@@ -34,7 +34,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
         .then((result) => {
           if (result.status === "complete" && result.createdSessionId) {
             setActive({ session: result.createdSessionId }).then(() => {
-              router.push("/onboarding");
+              router.push("/app/apis");
             });
           }
         })
