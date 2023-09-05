@@ -17,12 +17,12 @@ export const ingestPageView = tb.buildIngestEndpoint({
     }),
 });
 
-export function getSessionId(req: NextRequest, res: { cookies: { set: (name: string, value: string) => void } }): string {
+export function getSessionId(req: NextRequest, res: NextResponse): string {
 
     let sessionId = req.cookies.get(cookieName)?.value;
     if (!sessionId) {
         
-        sessionId = ["sess", btoa(new TextDecoder().decode(crypto.getRandomValues(new Uint8Array(16))))].join("_");
+        sessionId = ["sess", crypto.randomUUID().replaceAll(/-/, "")].join("_");
         res.cookies.set(cookieName, sessionId);
     }
 
