@@ -21,8 +21,7 @@ export function getSessionId(req: NextRequest, res: NextResponse): string {
 
     let sessionId = req.cookies.get(cookieName)?.value;
     if (!sessionId) {
-        
-        sessionId = ["sess", crypto.randomUUID().replaceAll(/-/, "")].join("_");
+        sessionId = ["sess", crypto.randomUUID().replaceAll(/-/g, "")].join("_");
         res.cookies.set(cookieName, sessionId);
     }
 
