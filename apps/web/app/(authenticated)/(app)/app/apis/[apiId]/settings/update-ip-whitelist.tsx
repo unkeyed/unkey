@@ -57,7 +57,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
       }}
     >
       <Card>
-        <CardHeader className={cn({ "opacity-30": !isEnabled })}>
+        <CardHeader className={cn({ "opacity-40": !isEnabled })}>
           <CardTitle>IP Whitelist</CardTitle>
           <CardDescription>
             Protect your keys from being verified by unauthorized sources. Enter your IP addresses
