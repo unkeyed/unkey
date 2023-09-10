@@ -22,7 +22,7 @@ import Link from "next/link";
 type Props = {};
 
 export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
-  const { setActive, organizationList,  isLoaded: clerkLoaded } = useOrganizationList();
+  const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const _router = useRouter();
@@ -37,7 +37,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
       await setActive({
         organization: orgId,
       });
-      
     } finally {
       setLoading(false);
     }

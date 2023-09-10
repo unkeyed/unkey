@@ -4,6 +4,13 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
+  redirects: async () => [
+    {
+      source: "/onboarding",
+      destination: "/new",
+      permanent: true,
+    },
+  ],
   productionBrowserSourceMaps: true, // we're open-source anyways
   experimental: {
     serverActions: true,
