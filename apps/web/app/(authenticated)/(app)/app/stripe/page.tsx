@@ -15,7 +15,7 @@ export default async function StripeRedirect() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!ws) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   if (!stripeEnv) {

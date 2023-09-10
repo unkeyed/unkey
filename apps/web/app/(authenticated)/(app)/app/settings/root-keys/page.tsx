@@ -19,7 +19,7 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
     },
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const found = await db.query.keys.findMany({

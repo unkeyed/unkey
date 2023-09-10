@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const t = new Date();
@@ -88,8 +88,8 @@ export default async function SettingsPage() {
                 {workspace.maxActiveKeys?.toLocaleString() ?? "∞"}{" "}
                 {activeKeysPercentage !== null
                   ? `(${activeKeysPercentage.toLocaleString(undefined, {
-                      maximumFractionDigits: 2,
-                    })}%)`
+                    maximumFractionDigits: 2,
+                  })}%)`
                   : null}
               </p>
             </li>
@@ -110,8 +110,8 @@ export default async function SettingsPage() {
                 {workspace.maxVerifications?.toLocaleString() ?? "∞"}{" "}
                 {verificationsPercentage !== null
                   ? `(${verificationsPercentage.toLocaleString(undefined, {
-                      maximumFractionDigits: 2,
-                    })}%)`
+                    maximumFractionDigits: 2,
+                  })}%)`
                   : null}
               </p>
             </li>
