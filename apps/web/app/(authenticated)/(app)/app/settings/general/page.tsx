@@ -15,7 +15,7 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/new");
+    return redirect("/onboarding");
   }
 
   return (

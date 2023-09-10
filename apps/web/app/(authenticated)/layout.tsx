@@ -12,7 +12,7 @@ export default function AuthenticatedLayout({
       <TooltipProvider>
         <ClerkProvider
           afterSignInUrl="/app"
-          afterSignUpUrl="/new"
+          afterSignUpUrl="/onboarding"
           appearance={{
             variables: {
               colorPrimary: "#5C36A3",
