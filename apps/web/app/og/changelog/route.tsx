@@ -50,7 +50,6 @@ export async function GET(req: NextRequest) {
             left: 80,
           }}
         >
-          <title>background</title>
           <rect
             x="113"
             width="113"
