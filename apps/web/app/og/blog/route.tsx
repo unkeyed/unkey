@@ -49,7 +49,6 @@ export async function GET(req: NextRequest) {
             left: 80,
           }}
         >
-          <title>Gradient</title>
           <rect
             x="113"
             width="113"
