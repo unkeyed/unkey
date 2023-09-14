@@ -8,13 +8,13 @@ require (
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/gofiber/fiber/v2 v2.47.0
-	github.com/google/uuid v1.3.0
+	github.com/gofiber/fiber/v2 v2.49.2
+	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
 	github.com/segmentio/kafka-go v0.4.40
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.4
-	github.com/testcontainers/testcontainers-go v0.22.0
+	github.com/testcontainers/testcontainers-go/modules/mysql v0.22.0
 	go.opentelemetry.io/otel v1.14.0
 	go.opentelemetry.io/otel/trace v1.14.0
 	go.uber.org/zap v1.24.0
@@ -46,13 +46,13 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
-	github.com/klauspost/compress v1.16.5 // indirect
+	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
@@ -60,20 +60,16 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/opencontainers/runc v1.1.5 // indirect
-	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
-	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/testcontainers/testcontainers-go/modules/mysql v0.22.0 // indirect
-	github.com/tinylib/msgp v1.1.8 // indirect
+	github.com/testcontainers/testcontainers-go v0.22.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.47.0 // indirect
+	github.com/valyala/fasthttp v1.49.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -92,7 +88,7 @@ require (
 	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea // indirect
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // indirect
