@@ -1,41 +1,40 @@
 ---
 title: "List Keys"
-description: "Retrieve all keys belonging to an API"
-api: "GET /v1/apis/:apiId/keys"
-authMethod: "bearer"
-
+description: "Get a list of keys belonging to an API"
 ---
 
 ## Request
 
-<ParamField path="apiId" type="string" required>
+<ParamField body="apiId" type="string" required>
 The ID of the api you want to retrieve.
 </ParamField>
 
 
-<ParamField query="limit" type="int" default="100">
+<ParamField body="limit" type="int" default={100}>
 Limit the number of returned keys, the maximum is 100.
 </ParamField>
 
 
-<ParamField query="offset" type="int" default="0">
+<ParamField body="offset" type="int" default={0}>
 Specify an offset for pagination.
 
-Example:
-- An offset of `4` will skip the first 4 keys and return keys starting at the 5th position.
+*Example:*
+An offset of `4` will skip the first 4 keys and return keys starting at the 5th position.
 </ParamField>
 
 
-<ParamField query="ownerId" type="string">
+<ParamField body="ownerId" type="string">
 Filter by `ownerId`.
 
 If provided, this will only return keys where the `ownerId` matches.
 </ParamField>
 
 
-
-
 ## Response
+
+<ResponseField name="result">
+<Expandable title="properties" defaultOpen>
+
 
 
 <ResponseField name="keys" type="Array" required>
@@ -84,7 +83,7 @@ Example:
 ```
 
 </ResponseField>
-<ResponseField name="createdAt" type="int" required>
+<ResponseField name="createdAt" type="int" required >
   When the key was created, unix timestamp in milliseconds.
 
 
@@ -144,45 +143,44 @@ The ratelimit of this key, if configured.
   Useful to paginate through this endpoint.
   </ResponseField>
 
+</Expandable>
+</ResponseField>
+
 <RequestExample>
 
+```ts
+const created = await unkey.keys.create({
+	apiId:"api_7oKUUscTZy22jmVf9THxDA",
+	prefix:"xyz",
+	byteLength:16,
+	ownerId:"chronark",
+	meta:{
+		hello: "world"
+	},
+	expires: 1686941966471,
+	ratelimit:{
+		type:"fast",
+		limit:10,
+		refillRate: 1,
+		refillInterval: 1000
+	}
+	remaining: 1000
+})
 
+console.log(created)
 
-```sh
-curl \
-  --url https://api.unkey.dev/v1/apis/api_123/keys \
-  --header 'Authorization: Bearer <UNKEY>'
 ```
-
-
-
-
 
 </RequestExample>
 
 <ResponseExample>
-```json OK
+```ts
 {
-  "keys": [
-    {
-      "id": "key_HPnfviesBEKHnZBFFiY4fg",
-      "apiId": "api_QUGih1EMtBy9eSSf3vujmF",
-      "workspaceId": "ws_o17fS1LvwtRswPdncAcUM",
-      "start": "key_Crg",
-      "createdAt": 1687642066782,
-      "expires": null,
-      "ratelimit": {
-        "type": "fast",
-        "limit": 11,
-        "refillRate": 11,
-        "refillInterval": 11
-      }
-    },
-    ...
-  ],
-  "total": 4
+  result: {
+    key: "xyz_AS5HDkXXPot2MMoPHD8jnL"
+    keyId: "key_YALWkHZaA4neUa1JJoXTAw"
+	}
 }
 ```
-
 
 </ResponseExample>

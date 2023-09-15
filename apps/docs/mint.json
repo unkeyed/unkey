@@ -110,6 +110,10 @@
             "libraries/js/keys/update",
             "libraries/js/keys/revoke"
           ]
+        },
+        {
+          "group": "APIs",
+          "pages": ["libraries/js/apis/get", "libraries/js/apis/list-keys"]
         }
       ]
     },

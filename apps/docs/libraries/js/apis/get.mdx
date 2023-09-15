@@ -1,0 +1,59 @@
+---
+title: "Get"
+description: "Retrieve the configuration of an API"
+---
+
+## Request
+
+<ParamField body="apiId" type="string" required>
+  The id of the api to retrieve.
+</ParamField>
+
+## Response
+
+<ResponseField name="result">
+<Expandable title="properties" defaultOpen>
+
+<ResponseField name="id" type="string" required>
+The id of the api.
+</ResponseField>
+
+
+
+<ResponseField name="name" type="string" required>
+The human readable name you gave this api.
+</ResponseField>
+
+
+
+<ResponseField name="workspaceId" type="string" required>
+The id of the workspace in which this api is.
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```ts
+const api = await unkey.apis.get({
+  apiId: "api_123",
+});
+
+console.log(api);
+```
+
+</RequestExample>
+
+<ResponseExample>
+```ts
+{
+  result: {
+    id: 'api_123',
+    name: 'My API',
+    workspaceId: 'ws_123'
+  }
+}
+```
+
+</ResponseExample>
