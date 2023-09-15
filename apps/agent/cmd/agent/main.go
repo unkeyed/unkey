@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	metricsPkg "github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 
@@ -74,6 +75,20 @@ var AgentCmd = &cobra.Command{
 			logger = logger.With(zap.String("allocId", allocId))
 		}
 
+		metrics := metricsPkg.NewNoop()
+		if runtimeConfig.enableAxiom {
+			realMetrics, err := metricsPkg.New(metricsPkg.Config{
+				AxiomOrgId: e.String("AXIOM_ORG_ID"),
+				AxiomToken: e.String("AXIOM_TOKEN"),
+				Logger:     logger.With(zap.String("pkg", "metrics")),
+				Region:     region,
+			})
+			if err != nil {
+				logger.Fatal("unable to start metrics", zap.Error(err))
+			}
+			metrics = realMetrics
+		}
+
 		// Setup Axiom
 
 		tracer := tracing.NewNoop()
@@ -108,7 +123,7 @@ var AgentCmd = &cobra.Command{
 				ReplicaAsia: e.String("DATABASE_DSN_ASIA", ""),
 				FlyRegion:   region,
 			},
-			database.WithLogging(logger),
+			database.WithMetrics(metrics),
 			database.WithTracing(tracer),
 		)
 		if err != nil {
@@ -177,10 +192,11 @@ var AgentCmd = &cobra.Command{
 				}
 				return key, found
 			},
-			Logger: logger.With(zap.String("cacheType", "key")),
+			Logger:  logger.With(zap.String("cacheType", "key")),
+			Metrics: metrics,
 		})
 		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
-		keyCache = cacheMiddleware.WithLogging[entities.Key](keyCache, logger.With(zap.String("cacheType", "key")))
+		keyCache = cacheMiddleware.WithMetrics[entities.Key](keyCache, metrics, "key")
 
 		apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
 			Fresh:   time.Minute * 5,
@@ -194,10 +210,11 @@ var AgentCmd = &cobra.Command{
 				}
 				return key, found
 			},
-			Logger: logger.With(zap.String("cacheType", "api")),
+			Logger:  logger.With(zap.String("cacheType", "api")),
+			Metrics: metrics,
 		})
 		apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
-		apiCache = cacheMiddleware.WithLogging[entities.Api](apiCache, logger.With(zap.String("cacheType", "api")))
+		apiCache = cacheMiddleware.WithMetrics[entities.Api](apiCache, metrics, "api")
 
 		eventBus.OnKeyEvent(func(ctx context.Context, e events.KeyEvent) error {
 
