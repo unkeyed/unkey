@@ -3,15 +3,13 @@ title: "Create Key"
 description: "Create an api key for your users"
 api: "POST /v1/keys"
 authMethod: "bearer"
-
 ---
 
 ## Request
 
 <ParamField body="apiId" type="string" required>
-Choose an `API` where this key should be created.
+  Choose an `API` where this key should be created.
 </ParamField>
-
 
 <ParamField body="prefix" type="string" >
 To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
@@ -22,23 +20,22 @@ The underscore is automatically added if you are defining a prefix, for example:
 
 </ParamField>
 
-<ParamField body="name" type="string" >
-To make it easier to identify a particular key, you can provide a name.
+<ParamField body="name" type="string">
+  To make it easier to identify a particular key, you can provide a name.
 </ParamField>
-
 
 <ParamField body="byteLength" type="int" default={16} >
 The byte length used to generate your key determines its entropy as well as its length.
 Higher is better, but keys become longer and more annoying to handle.
 
 The default is `16 bytes`, or 2<sup>128</sup> possible combinations
- </ParamField>
 
+ </ParamField>
 
  <ParamField body="ownerId" type="string" >
   Your user's Id. This will provide a link between Unkey and your customer record.
 
-  When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
 
 </ParamField>
 
@@ -46,9 +43,10 @@ The default is `16 bytes`, or 2<sup>128</sup> possible combinations
 This is a place for dynamic meta data, anything that feels useful for you should go here
 
 Example:
+
 ```json
 {
-  "billingTier":"PRO",
+  "billingTier": "PRO",
   "trialEnds": "2023-06-16T17:16:37.161Z"
 }
 ```
@@ -57,41 +55,39 @@ Example:
 <ParamField body="expires" type="int" >
   You can auto expire keys by providing a unix timestamp in milliseconds.
 
-  Once keys expire they will automatically be deleted and are no longer valid.
-
+Once keys expire they will automatically be deleted and are no longer valid.
 
 </ParamField>
-
 
  <ParamField body="remaining" type="int" >
   Optionally limit the number of times a key can be used. This is different from time-based expiration using `expires`.
 
 Example:
+
 ```json
-"remaining": 10  
+"remaining": 10
 ```
+
 The created key can be verified successfully 10 times, afterwards it is invalidated automatically.
 
-  Read more [here](/features/remaining)
-
+Read more [here](/features/remaining)
 
 </ParamField>
 
 <ParamField body="ratelimit" type="Object" >
 
- Unkey comes with per-key ratelimiting out of the box.
+Unkey comes with per-key ratelimiting out of the box.
 
   <Expandable title="properties">
 
   <ParamField body="type" type="string" default="fast" required>
   Either `fast` or `consistent`.
 
-  Read more [here](/features/ratelimiting)
+Read more [here](/features/ratelimiting)
 
   </ParamField>
   <ParamField body="limit" type="int" required>
   The total amount of burstable requests.
-
 
   </ParamField>
   <ParamField body="refillRate" type="int" required>
@@ -100,7 +96,8 @@ The created key can be verified successfully 10 times, afterwards it is invalida
   <ParamField body="refillInterval" type="int" required>
   Determines the speed at which tokens are refilled.
 
-  In milliseconds
+In milliseconds
+
   </ParamField>
  </Expandable>
 </ParamField>
@@ -110,16 +107,16 @@ The created key can be verified successfully 10 times, afterwards it is invalida
 <ResponseField name="key" type="string" required>
   The newly created api key, do not store this on your own system but pass it along to your user.
 
-  Use this to authorize a user, for details see [here](/api-reference/keys/verify)
+Use this to authorize a user, for details see [here](/api-reference/keys/verify)
+
 </ResponseField>
 
 <ResponseField name="keyId" type="string" required>
-  A unique id to reference this key for updating or revoking. This id can not be used to verify the key.
+  A unique id to reference this key for updating or revoking. This id can not be
+  used to verify the key.
 </ResponseField>
 
 <RequestExample>
-
-
 
 ```sh
 curl --request POST \
@@ -145,10 +142,6 @@ curl --request POST \
   }'
 ```
 
-
-
-
-
 </RequestExample>
 
 <ResponseExample>
@@ -158,6 +151,5 @@ curl --request POST \
   "key": "xyz_AS5HDkXXPot2MMoPHD8jnL"
 }
 ```
-
 
 </ResponseExample>

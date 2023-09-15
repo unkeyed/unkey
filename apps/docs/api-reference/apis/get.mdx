@@ -3,49 +3,35 @@ title: "Get API"
 description: "Retrieve information about an api"
 api: "GET /v1/apis/:apiId"
 authMethod: "bearer"
-
 ---
 
 ## Request
 
 <ParamField path="apiId" type="string" required>
-The ID of the api you want to retrieve.
+  The ID of the api you want to retrieve.
 </ParamField>
-
 
 ## Response
 
-
 <ResponseField name="id" type="string" required>
-The id of the api.
+  The id of the api.
 </ResponseField>
-
-
 
 <ResponseField name="name" type="string" required>
-The human readable name you gave this api.
+  The human readable name you gave this api.
 </ResponseField>
-
-
 
 <ResponseField name="workspaceId" type="string" required>
-The id of the workspace in which this api is.
+  The id of the workspace in which this api is.
 </ResponseField>
 
-
 <RequestExample>
-
-
 
 ```sh
 curl \
   --url https://api.unkey.dev/v1/apis/api_123 \
   --header 'Authorization: Bearer <UNKEY>'
 ```
-
-
-
-
 
 </RequestExample>
 
@@ -57,6 +43,5 @@ curl \
   "workspaceId":"ws_123"
 }
 ```
-
 
 </ResponseExample>

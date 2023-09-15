@@ -3,46 +3,38 @@ title: "List Keys"
 description: "Retrieve all keys belonging to an API"
 api: "GET /v1/apis/:apiId/keys"
 authMethod: "bearer"
-
 ---
 
 ## Request
 
 <ParamField path="apiId" type="string" required>
-The ID of the api you want to retrieve.
+  The ID of the api you want to retrieve.
 </ParamField>
-
 
 <ParamField query="limit" type="int" default="100">
-Limit the number of returned keys, the maximum is 100.
+  Limit the number of returned keys, the maximum is 100.
 </ParamField>
-
 
 <ParamField query="offset" type="int" default="0">
 Specify an offset for pagination.
 
-Example:
-- An offset of `4` will skip the first 4 keys and return keys starting at the 5th position.
-</ParamField>
+_Example:_
+An offset of `4` will skip the first 4 keys and return keys starting at the 5th position.
 
+</ParamField>
 
 <ParamField query="ownerId" type="string">
 Filter by `ownerId`.
 
 If provided, this will only return keys where the `ownerId` matches.
+
 </ParamField>
 
-
-
-
 ## Response
-
 
 <ResponseField name="keys" type="Array" required>
 
  <Expandable>
-
-
 
 <ResponseField name="id" type="string" required>
 The unique key id, use this to reference the key directly when fetching or revoking.
@@ -50,25 +42,22 @@ The unique key id, use this to reference the key directly when fetching or revok
 </ResponseField>
 
 <ResponseField name="apiId" type="string" required>
-The API id where this key belongs to.
+  The API id where this key belongs to.
 </ResponseField>
 
 <ResponseField name="workspaceId" type="string" required>
-The workspace id where this key belongs to.
+  The workspace id where this key belongs to.
 </ResponseField>
-
 
  <ResponseField name="start" type="string" required >
   The first few characters of the key. This can be useful when displaying it your users, so they can match it.
 
 </ResponseField>
 
-
-
  <ResponseField name="ownerId" type="string" >
   Your user's Id. This will provide a link between Unkey and your customer record.
 
-  When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
 
 </ResponseField>
 
@@ -76,9 +65,10 @@ The workspace id where this key belongs to.
 This is a place for dynamic meta data, anything that feels useful for you should go here
 
 Example:
+
 ```json
 {
-  "billingTier":"PRO",
+  "billingTier": "PRO",
   "trialEnds": "2023-06-16T17:16:37.161Z"
 }
 ```
@@ -87,8 +77,6 @@ Example:
 <ResponseField name="createdAt" type="int" required>
   When the key was created, unix timestamp in milliseconds.
 
-
-
 </ResponseField>
 <ResponseField name="expires" type="int" >
   If set, this is when the key ceases to exist, unix timestamp in milliseconds.
@@ -96,28 +84,26 @@ Example:
 
 </ResponseField>
 
+{" "}
 
- <ResponseField name="remaining" type="int">
+<ResponseField name="remaining" type="int">
   How many more times this key can be used.
-  </ResponseField>
-
-
-
+</ResponseField>
 
 <ResponseField name="ratelimit" type="Object" >
 
 The ratelimit of this key, if configured.
+
   <Expandable title="properties">
 
   <ResponseField name="type" type="string" default="fast" required>
   Either `fast` or `consistent`.
 
-  Read more [here](/features/ratelimiting)
+Read more [here](/features/ratelimiting)
 
   </ResponseField>
   <ResponseField name="limit" type="int" required>
   The total amount of burstable requests.
-
 
   </ResponseField>
   <ResponseField name="refillRate" type="int" required>
@@ -126,37 +112,30 @@ The ratelimit of this key, if configured.
   <ResponseField name="refillInterval" type="int" required>
   Determines the speed at which tokens are refilled.
 
-  In milliseconds
+In milliseconds
+
   </ResponseField>
  </Expandable>
 </ResponseField>
-
-
-
 
  </Expandable>
 
 </ResponseField>
 
+{" "}
 
- <ResponseField name="total" type="int" required>
-  How many keys in total there are in this API.
-  Useful to paginate through this endpoint.
-  </ResponseField>
+<ResponseField name="total" type="int" required>
+  How many keys in total there are in this API. Useful to paginate through this
+  endpoint.
+</ResponseField>
 
 <RequestExample>
-
-
 
 ```sh
 curl \
   --url https://api.unkey.dev/v1/apis/api_123/keys \
   --header 'Authorization: Bearer <UNKEY>'
 ```
-
-
-
-
 
 </RequestExample>
 
@@ -183,6 +162,5 @@ curl \
   "total": 4
 }
 ```
-
 
 </ResponseExample>
