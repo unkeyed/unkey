@@ -1,17 +1,18 @@
 ---
-title: "Get API"
-description: "Retrieve information about an api"
-api: "GET /v1/apis/:apiId"
-authMethod: "bearer"
+title: "Get"
+description: "Retrieve the configuration of an API"
 ---
 
 ## Request
 
-<ParamField path="apiId" type="string" required>
-  The ID of the api you want to retrieve.
+<ParamField body="apiId" type="string" required>
+  The id of the api to retrieve.
 </ParamField>
 
 ## Response
+
+<ResponseField name="result">
+<Expandable title="properties" defaultOpen>
 
 <ResponseField name="id" type="string" required>
   The id of the api.
@@ -25,22 +26,29 @@ authMethod: "bearer"
   The id of the workspace in which this api is.
 </ResponseField>
 
+</Expandable>
+</ResponseField>
+
 <RequestExample>
 
-```sh
-curl \
-  --url https://api.unkey.dev/v1/apis/api_123 \
-  --header 'Authorization: Bearer <UNKEY>'
+```ts
+const api = await unkey.apis.get({
+  apiId: "api_123",
+});
+
+console.log(api);
 ```
 
 </RequestExample>
 
 <ResponseExample>
-```json OK
+```ts
 {
-  "id": "api_123",
-  "name":"my api",
-  "workspaceId":"ws_123"
+  result: {
+    id: 'api_123',
+    name: 'My API',
+    workspaceId: 'ws_123'
+  }
 }
 ```
 
