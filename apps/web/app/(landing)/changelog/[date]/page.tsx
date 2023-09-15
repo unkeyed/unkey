@@ -73,36 +73,9 @@ export default async function ChangeLogLayout({
     <>
       <article className="mt-24 sm:mt-32 lg:mt-40">
         <header>
-          <PageIntro eyebrow="" title={changelog.title} centered>
+          <PageIntro eyebrow={changelog.date} title={changelog.title} centered>
             <p>{changelog.description}</p>
           </PageIntro>
-
-          <div className="mt-24 border-t border-gray-200 bg-white/50 sm:mt-32 lg:mt-40">
-            <Container>
-              <div className="max-w-5xl mx-auto">
-                <dl className="grid grid-cols-1 -mx-6 text-sm text-gray-950 sm:mx-0 sm:grid-cols-3">
-                  <div className="px-6 py-4 border-t border-gray-200 first:border-t-0 sm:border-l sm:border-t-0">
-                    <dt className="font-semibold">Number of changes</dt>
-                    <dd>{changelog.changes}</dd>
-                  </div>
-                  <div className="px-6 py-4 border-t border-gray-200 first:border-t-0 sm:border-l sm:border-t-0">
-                    <dt className="font-semibold">Date</dt>
-                    <dd>
-                      <time dateTime={changelog.date}>{changelog.date}</time>
-                    </dd>
-                  </div>
-                  <div className="px-6 py-4 border-t border-gray-200 first:border-t-0 sm:border-l sm:border-t-0">
-                    <dt className="font-semibold">New Features</dt>
-                    <dd>{changelog.features}</dd>
-                  </div>
-                </dl>
-              </div>
-            </Container>
-          </div>
-
-          <div className="border-y border-gray-200 bg-gray-100">
-            <div className="-my-px mx-auto max-w-[76rem] bg-gray-200" />
-          </div>
         </header>
 
         <Container className="mt-24 sm:mt-32 lg:mt-40">

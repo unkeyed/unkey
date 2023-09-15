@@ -40,7 +40,7 @@ export const UserButton: React.FC = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" className="w-96">
         <DropdownMenuGroup>
-          <Link href="/onboarding">
+          <Link href="/new">
             <DropdownMenuItem className="cursor-pointer">
               <Rocket className="w-4 h-4 mr-2" />
               <span>Onboarding</span>

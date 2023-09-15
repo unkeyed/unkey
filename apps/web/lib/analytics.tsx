@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 import { Tinybird } from "@chronark/zod-bird";
-import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 const tb = new Tinybird({ token: env.TINYBIRD_TOKEN });
 const cookieName = "__unkey_session";
@@ -23,15 +23,12 @@ export const ingestPageView = tb.buildIngestEndpoint({
 });
 
 export function getSessionId(req: NextRequest, res: NextResponse): string {
-
   let sessionId = req.cookies.get(cookieName)?.value;
   if (!sessionId) {
     sessionId = ["sess", crypto.randomUUID().replaceAll(/-/g, "")].join("_");
     res.cookies.set(cookieName, sessionId);
   }
 
+
   return sessionId;
 }
-
-
-

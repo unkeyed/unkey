@@ -22,7 +22,7 @@ import Link from "next/link";
 type Props = {};
 
 export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
-  const { setActive, organizationList,  isLoaded: clerkLoaded } = useOrganizationList();
+  const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const _router = useRouter();
@@ -37,7 +37,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
       await setActive({
         organization: orgId,
       });
-      
     } finally {
       setLoading(false);
     }
@@ -65,10 +64,10 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
             {currentOrg?.imageUrl ? (
               <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
             ) : user?.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt={user.username ?? "Profile picture"} />
+              <AvatarImage src={user.imageUrl} alt={user?.username ?? user?.fullName ?? "Profile picture"} />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {(currentOrg?.name ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
+              {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>
           {!clerkLoaded || isLoading ? (
@@ -88,7 +87,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
           onClick={() => changeOrg(null)}
         >
           <span className={currentOrg === null ? "font-semibold" : undefined}>
-            {user?.fullName}
+            {user?.username ?? user?.fullName ?? ""}
           </span>
           {currentOrg === null ? <Check className="w-4 h-4" /> : null}
         </DropdownMenuItem>

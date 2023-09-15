@@ -76,7 +76,7 @@ export default function TeamCreation() {
       });
   };
   if (!organization) {
-    return redirect("/new");
+    return redirect("/onboarding");
   }
 
   return (

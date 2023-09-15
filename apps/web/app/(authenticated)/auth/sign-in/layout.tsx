@@ -1,4 +1,3 @@
-import { Particles } from "@/components/dashboard/particles";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 

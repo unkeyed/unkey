@@ -91,6 +91,7 @@
     "react-hook-form": "^7.45.4",
     "react-wrap-balancer": "^1.1.0",
     "recma-import-images": "0.0.3",
+    "rehype-pretty-code": "^0.10.1",
     "remark-gfm": "^3.0.1",
     "remark-rehype-wrap": "0.0.3",
     "remark-unwrap-images": "^3.0.1",
