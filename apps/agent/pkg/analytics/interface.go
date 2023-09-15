@@ -16,12 +16,12 @@ type KeyVerificationV1Event struct {
 }
 
 type KeyVerificationEvent struct {
-	ApiId       string `json:"apiId"`
-	WorkspaceId string `json:"workspaceId"`
-	KeyId       string `json:"keyId"`
-	Ratelimited bool   `json:"ratelimited"`
-	UsageExceeded bool `json:"usageExceeded"`
-	Time        int64  `json:"time"`
+	ApiId         string `json:"apiId"`
+	WorkspaceId   string `json:"workspaceId"`
+	KeyId         string `json:"keyId"`
+	Ratelimited   bool   `json:"ratelimited"`
+	UsageExceeded bool   `json:"usageExceeded"`
+	Time          int64  `json:"time"`
 
 	EdgeRegion string `json:"edgeRegion"`
 	Region     string `json:"region"`
@@ -30,7 +30,6 @@ type KeyVerificationEvent struct {
 
 	// custom field the user may provide, like a URL or some id
 	RequestedResource string `json:"requestedResource"`
-
 }
 
 type ValueAtTime struct {
