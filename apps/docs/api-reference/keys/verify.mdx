@@ -2,7 +2,6 @@
 title: "Verify Key"
 description: "Verify a key"
 api: "POST /v1/keys/verify"
-
 ---
 
 Verify a key from your users. Notice how this endpoint does not require an Unkey api key. You only need to send the api key from your user.
@@ -10,17 +9,18 @@ Verify a key from your users. Notice how this endpoint does not require an Unkey
 ## Request
 
 <ParamField body="key" type="string" required>
-The key you want to verify.
+  The key you want to verify.
 </ParamField>
 
 ## Response
 
 <ResponseField name="valid" type="boolean" required>
-  Whether or not this key is valid and has passed the ratelimit.
-  If `false` you should not grant access to whatever the user is requesting
+  Whether or not this key is valid and has passed the ratelimit. If `false` you
+  should not grant access to whatever the user is requesting
 </ResponseField>
 <ResponseField name="ownerId" type="string">
-  If you have set an `ownerId` on this key it is returned here. You can use this to clearly authenticate a user in your system.
+  If you have set an `ownerId` on this key it is returned here. You can use this
+  to clearly authenticate a user in your system.
 </ResponseField>
 
 <ResponseField name="expires" type="int">
@@ -31,15 +31,15 @@ The key you want to verify.
 This is the `meta` data you have set when creating the key.
 
 Example:
+
 ```json
 {
-  "billingTier":"PRO",
+  "billingTier": "PRO",
   "trialEnds": "2023-06-16T17:16:37.161Z"
 }
 ```
 
 </ResponseField>
-
 
 <ResponseField name="ratelimit" type="Object">
   The current ratelimit state.
@@ -53,9 +53,7 @@ Example:
   <ResponseField name="remaining" type="int" required>
   Remaining limit inside this burst window.
 
-
   </ResponseField>
-
 
     <ResponseField name="reset" type="int" required>
     A unix timestamp in millisecond when the ratelimit gets refilled the next time.
@@ -63,10 +61,7 @@ Example:
 
  </Expandable>
 
-
-
 </ResponseField>
-
 
     <ResponseField name="remaining" type="int">
     Shows how many more times this key may be verified before being invalidated.
@@ -74,8 +69,6 @@ Example:
     </ResponseField>
 
 <RequestExample>
-
-
 
 ```sh
 curl --request POST \
@@ -85,10 +78,6 @@ curl --request POST \
     "key":"xyz_AS5HDkXXPot2MMoPHD8jnL"
   }'
 ```
-
-
-
-
 
 </RequestExample>
 
@@ -109,6 +98,5 @@ curl --request POST \
     }
 }
 ```
-
 
 </ResponseExample>

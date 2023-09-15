@@ -3,15 +3,13 @@ title: "Revoke Key"
 description: "Delete an api key for your users"
 api: "DELETE /v1/keys/:keyId"
 authMethod: "bearer"
-
 ---
 
 ## Request
 
 <ParamField path="keyId" type="string" required>
-The ID of the key you want to revoke.
+  The ID of the key you want to revoke.
 </ParamField>
-
 
 ## Response
 
@@ -19,17 +17,11 @@ The ID of the key you want to revoke.
 
 <RequestExample>
 
-
-
 ```sh
 curl --request DELETE \
   --url https://api.unkey.dev/v1/keys/key_123 \
   --header 'Authorization: Bearer <UNKEY>'
 ```
-
-
-
-
 
 </RequestExample>
 
@@ -37,6 +29,5 @@ curl --request DELETE \
 ```
 OK
 ```
-
 
 </ResponseExample>

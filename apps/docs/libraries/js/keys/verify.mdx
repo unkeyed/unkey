@@ -44,24 +44,24 @@ Example:
 <RequestExample>
 
 ```ts
-import { verifyKey } from "@unkey/api"
+import { verifyKey } from "@unkey/api";
 
-const { result, error } = await verifyKey("key_123")
+const { result, error } = await verifyKey("key_123");
 
-if (error){
+if (error) {
   // handle potential network or bad request error
   // a link to our docs will be in the `error.docs` field
-  console.error(error.message)
-  return
+  console.error(error.message);
+  return;
 }
 
 if (!result.valid) {
   // do not grant access
-  return
+  return;
 }
 
 // process request
-console.log(result)
+console.log(result);
 ```
 
 </RequestExample>

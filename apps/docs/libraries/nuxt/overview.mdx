@@ -3,30 +3,15 @@ title: "Overview"
 description: "Nuxt module for unkey"
 ---
 
-
 If you are using Nuxt, you can benefit from an almost zero-config experience with the `@unkey/nuxt` module.
 
 ## Install
 
 <Tabs>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add @unkey/nuxt
-    ```
-  </Tab>
-  <Tab title="yarn">
-    ```bash
-    yarn add @unkey/nuxt
-    ```
-  </Tab>
-  <Tab title="npm">
-    ```bash
-    npm install @unkey/nuxt
-    ```
-  </Tab>
+  <Tab title="pnpm">```bash pnpm add @unkey/nuxt ```</Tab>
+  <Tab title="yarn">```bash yarn add @unkey/nuxt ```</Tab>
+  <Tab title="npm">```bash npm install @unkey/nuxt ```</Tab>
 </Tabs>
-
-
 
 ## Configuration
 
@@ -65,6 +50,7 @@ For example:
       };
     });
     ```
+
   </Tab>
   <Tab title="~/app.vue">
     ```html
@@ -78,6 +64,7 @@ For example:
     const wasVerified = useState(() => ({ unkey: useRequestEvent()?.context?.unkey.valid }))
     </script>
     ```
+
   </Tab>
 </Tabs>
 
@@ -88,26 +75,24 @@ For more about how to use the configured helper provided by `useUnkey()`, you ca
 For example:
 
 ```ts
-const unkey = useUnkey()
+const unkey = useUnkey();
 
 const created = await unkey.keys.create({
-	apiId:"api_7oKUUscTZy22jmVf9THxDA",
-	prefix:"xyz",
-	byteLength:16,
-	ownerId:"chronark",
-	meta:{
-		hello: "world"
-	},
-	expires: 1686941966471,
-	ratelimit:{
-		type:"fast",
-		limit:10,
-		refillRate: 1,
-		refillInterval: 1000
-	}
-})
+  apiId: "api_7oKUUscTZy22jmVf9THxDA",
+  prefix: "xyz",
+  byteLength: 16,
+  ownerId: "chronark",
+  meta: {
+    hello: "world",
+  },
+  expires: 1686941966471,
+  ratelimit: {
+    type: "fast",
+    limit: 10,
+    refillRate: 1,
+    refillInterval: 1000,
+  },
+});
 
-console.log(created.key)
+console.log(created.key);
 ```
-
-
