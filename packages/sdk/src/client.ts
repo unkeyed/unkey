@@ -91,6 +91,7 @@ export class Unkey {
           Authorization: `Bearer ${this.token}`,
         },
         body: JSON.stringify(req.body),
+        cache: req.cache
       }).catch((e: Error) => {
         err = e;
         return null; // set `res` to `null`
