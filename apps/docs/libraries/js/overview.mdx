@@ -15,7 +15,7 @@ If you prefer a typed experience over calling http endpoints directly, you can u
 
 ## Bearer Token
 
-When requesting resources, you will need your access token — you can create a new one in the [settings](https://unkey.dev/app/keys).
+When creating, revoking or updating resources, you will need your access token — you can create a new one in the [settings](https://unkey.dev/app/keys).
 Afterwards you need to provide it to the client:
 
 ```ts
@@ -61,26 +61,25 @@ Every method returns either an `error` or a `result` field, never both and never
 
 ## Checking for errors
 
-To check for errors, all you need to do is this:
+To check for errors you use the `error` property, our errors are easy to read and provide a link to our documentation for more information.
 
 ```ts
-const { result, error } = await unkey.keys.verify({ key });
+import { verifyKey } from "@unkey/api"
 
-// catch actual errors, like network or api related
-if (error) {
-  // handle it somehow
-  return;
+const { result, error } = await verifyKey("key_123")
+
+if (error){
+  // handle potential network or bad request error
+  // a link to our docs will be in the `error.docs` field
+  console.error(error.message)
+  return
 }
 
-// if you have thrown or returned in the if clause above, typescript now knows
-// that `result` must be defined
-
-// check if the key is valid
 if (!result.valid) {
-  // Do not grant access to your user!
-  // handle it somehow
-  return;
+  // do not grant access
+  return
 }
 
-// process the request here
+// process request
+console.log(result)
 ```
