@@ -42,16 +42,15 @@ export default async function handler(
         },
         body: JSON.stringify({ email: email, source: "clerk-signup" }),
       });
-      const json = await loopsResponse.json();
-      if (json.status !== "success") {
-        if (json.message === "Email already on list.") {
-          return res.status(201).json({});
-        }
-        return res.status(400).json({ Error: "Loops API Error ", jsonResponse: json });
+
+      if (loopsResponse.status < 200 || loopsResponse.status >= 300) {
+        return res.status(400).json({ error: "Loops API Error ", jsonResponse: await loopsResponse.json() });
       }
-      return res.status(201).json({});
-    } catch (_) {
-      return res.status(400).json({});
+      return res.status(200).json({});
+    } catch (err) {
+      return res.status(400).json({
+        error: (err as Error).message
+      });
     }
   }
 }
