@@ -64,10 +64,15 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
             {currentOrg?.imageUrl ? (
               <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
             ) : user?.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt={user?.username ?? user?.fullName ?? "Profile picture"} />
+              <AvatarImage
+                src={user.imageUrl}
+                alt={user?.username ?? user?.fullName ?? "Profile picture"}
+              />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "").slice(0, 2).toUpperCase() ?? "P"}
+              {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "")
+                .slice(0, 2)
+                .toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>
           {!clerkLoaded || isLoading ? (

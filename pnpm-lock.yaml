@@ -47,8 +47,8 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5(react-dom@18.2.0)(react@18.2.0)
       '@chronark/zod-bird':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.2.1
+        version: 0.2.1
       '@clerk/nextjs':
         specifier: ^4.23.3
         version: 4.23.3(next@13.4.19)(react-dom@18.2.0)(react@18.2.0)
@@ -1416,8 +1416,8 @@ packages:
     resolution: {integrity: sha512-KNxuQFcjfKIekDVAMXCqR7FBUr0BPOpUZj11vCfsC9v2IRTS3WWYJgxRx1tiZ703sjz8BeLbBnZW9aj6IalUaQ==}
     dev: false
 
-  /@chronark/zod-bird@0.1.1:
-    resolution: {integrity: sha512-6UD9yhNIsvIP0FUqNuZ+bByQLc0IY2eQpeQn55CsqvZziGKQuPGqJzyq6o283fDgkKXTbXmQ7zC/LDBX6yrBhA==}
+  /@chronark/zod-bird@0.2.1:
+    resolution: {integrity: sha512-Z6xC9/83ADDC0IvQoCPYdY5k9W3qlNotqRN5dP/ZqN67LOQg7Kfh5HuEB7fIqjh5CSvHaxb7yxtcrgmhC1/RvQ==}
     dependencies:
       zod: 3.22.2
     dev: false

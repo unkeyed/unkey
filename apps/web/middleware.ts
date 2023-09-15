@@ -3,7 +3,7 @@ import { authMiddleware } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 const DEBUG_ON = process.env.CLERK_DEBUG === "true";
-import { getSessionId, ingestPageView } from "@/lib/analytics";
+import { collectPageViewAnalytics } from "@/lib/analytics";
 
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
@@ -33,7 +33,7 @@ const publicRoutes = [
   "/api/v1/clerk/webhooks",
 ];
 
-export default async function(req: NextRequest, evt: NextFetchEvent) {
+export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
 
@@ -68,35 +68,9 @@ export default async function(req: NextRequest, evt: NextFetchEvent) {
     },
   })(req, evt);
 
-  try {
+  evt.waitUntil(collectPageViewAnalytics({ req, userId, tenantId }));
 
-    // @ts-ignore
-    const sessionId = getSessionId(req, res)
-
-    // replace ids to make aggregations easier
-    const path = req.nextUrl.pathname.replace(/\/(api_[a-zA-Z0-9]+)/g, "[apiId]").replace(/\/(key_[a-zA-Z0-9]+)/g, "[keyId]")
-
-
-    evt.waitUntil(ingestPageView({
-      time: Date.now(),
-      sessionId,
-      userId,
-      tenantId,
-      path,
-      region: req.geo?.region,
-      country: req.geo?.country,
-      city: req.geo?.city,
-      userAgent: req.headers.get("User-Agent") ?? undefined,
-    }))
-
-  } catch (e) {
-    console.error(e)
-  }
-
-
-
-  return res
-
+  return res;
 }
 
 export const config = {

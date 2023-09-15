@@ -9,6 +9,7 @@ SCHEMA >
     `region` Nullable(String) `json:$.region`,
     `country` Nullable(String) `json:$.country`,
     `city` Nullable(String) `json:$.city`,
-    `userAgent` Nullable(String) `json:$.userAgent`
+    `userAgent` Nullable(String) `json:$.userAgent`,
+    `referrer` Nullable(String) `json:$.referrer`
 
 ENGINE "MergeTree"

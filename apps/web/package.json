@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ant-design/plots": "^1.2.5",
-    "@chronark/zod-bird": "^0.1.1",
+    "@chronark/zod-bird": "^0.2.1",
     "@clerk/nextjs": "^4.23.3",
     "@hono/zod-validator": "^0.1.8",
     "@hookform/resolvers": "^3.3.1",

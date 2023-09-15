@@ -147,7 +147,7 @@ func New(config Config) *Server {
 			zap.String("traceId", traceId),
 		)
 
-		if err != nil || c.Response().StatusCode() >= 500 {
+		if c.Response().StatusCode() >= 500 || (err != nil && !errors.Is(err, fiber.ErrMethodNotAllowed)) {
 			log.Error("request failed", zap.String("body", string(c.Response().Body())), zap.Error(err))
 			span.RecordError(err)
 		} else {
