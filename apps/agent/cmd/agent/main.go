@@ -194,6 +194,7 @@ var AgentCmd = &cobra.Command{
 			},
 			Logger:  logger.With(zap.String("cacheType", "key")),
 			Metrics: metrics,
+			Resource: "key",
 		})
 		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
 		keyCache = cacheMiddleware.WithMetrics[entities.Key](keyCache, metrics, "key")
@@ -212,6 +213,7 @@ var AgentCmd = &cobra.Command{
 			},
 			Logger:  logger.With(zap.String("cacheType", "api")),
 			Metrics: metrics,
+			Resource: "api",
 		})
 		apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
 		apiCache = cacheMiddleware.WithMetrics[entities.Api](apiCache, metrics, "api")
