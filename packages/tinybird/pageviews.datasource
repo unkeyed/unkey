@@ -2,10 +2,13 @@ VERSION 1
 
 SCHEMA >
     `sessionId` String `json:$.sessionId`,
-    `userId` String `json:$.userId`,
-    `tenantId` String `json:$.tenantId`,
+    `userId` Nullable(String) `json:$.userId`,
+    `tenantId` Nullable(String) `json:$.tenantId`,
     `time` Int64 `json:$.time`,
-    `path` String `json:$.path`
+    `path` String `json:$.path`,
+    `region` Nullable(String) `json:$.region`,
+    `country` Nullable(String) `json:$.country`,
+    `city` Nullable(String) `json:$.city`,
+    `userAgent` Nullable(String) `json:$.userAgent`
 
 ENGINE "MergeTree"
-ENGINE_SORTING_KEY "userId, tenantId"

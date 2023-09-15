@@ -74,20 +74,31 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
     },
   })(req, evt)
 
-  // @ts-ignore
-  const sessionId = getSessionId(req, res)
+  try {
 
-  // replace ids to make aggregations easier
-  const path = req.nextUrl.pathname.replace(/\/(api_[a-zA-Z0-9]+)/g, "[apiId]").replace(/\/(key_[a-zA-Z0-9]+)/g, "[keyId]")
+    // @ts-ignore
+    const sessionId = getSessionId(req, res)
+
+    // replace ids to make aggregations easier
+    const path = req.nextUrl.pathname.replace(/\/(api_[a-zA-Z0-9]+)/g, "[apiId]").replace(/\/(key_[a-zA-Z0-9]+)/g, "[keyId]")
 
 
-  evt.waitUntil(ingestPageView({
-    time: Date.now(),
-    sessionId,
-    userId,
-    tenantId,
-    path,
-  }))
+    evt.waitUntil(ingestPageView({
+      time: Date.now(),
+      sessionId,
+      userId,
+      tenantId,
+      path,
+      region: req.geo?.region,
+      country: req.geo?.country,
+      city: req.geo?.city,
+      userAgent: req.headers.get("User-Agent") ?? undefined,
+    }))
+
+  } catch (e) {
+    console.error(e)
+  }
+
 
 
   return res
