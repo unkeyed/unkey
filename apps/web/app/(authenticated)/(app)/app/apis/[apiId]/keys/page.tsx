@@ -1,8 +1,7 @@
+import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { getTenantId } from "@/lib/auth";
 import { type Key, db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { ApiKeyTable } from "@/components/dashboard/api-key-table";
-
 
 export const revalidate = 0;
 export default async function ApiPage(props: { params: { apiId: string } }) {
