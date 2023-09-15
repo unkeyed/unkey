@@ -36,6 +36,8 @@ type ApiRequest = {
   path: string[];
   method: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
+  query?: Record<string, string>;
+  cache?: RequestCache;
 };
 
 type Result<R> =
@@ -76,7 +78,12 @@ export class Unkey {
     let res: Response | null = null;
     let err: Error | null = null;
     for (let i = 0; i <= this.retry.attempts; i++) {
-      const url = `${this.baseUrl}/${req.path.join("/")}`;
+      const url = new URL(`${this.baseUrl}/${req.path.join("/")}`);
+      if (req.query) {
+        for (const [k, v] of Object.entries(req.query)) {
+          url.searchParams.set(k, v);
+        }
+      }
       res = await fetch(url, {
         method: req.method,
         headers: {
@@ -206,6 +213,7 @@ export class Unkey {
           path: ["v1", "keys"],
           method: "POST",
           body: req,
+          cache: "no-cache",
         });
       },
       update: async (req: {
@@ -277,6 +285,7 @@ export class Unkey {
           path: ["v1", "keys", req.keyId],
           method: "PUT",
           body: req,
+          cache: "no-cache",
         });
       },
       verify: async (req: { key: string }): Promise<
@@ -350,12 +359,95 @@ export class Unkey {
           path: ["v1", "keys", "verify"],
           method: "POST",
           body: req,
+          cache: "no-cache",
         });
       },
       revoke: async (req: { keyId: string }): Promise<Result<void>> => {
         return await this.fetch<void>({
           path: ["v1", "keys", req.keyId],
           method: "DELETE",
+          cache: "no-cache",
+        });
+      },
+    };
+  }
+
+  public get apis() {
+    return {
+      get: async (req: {
+        /**
+         * The api id
+         */
+        apiId: string;
+      }): Promise<Result<{ id: string; name: string; workspaceId: string }>> => {
+        return await this.fetch({
+          path: ["v1", "apis", req.apiId],
+          method: "GET",
+          cache: "no-cache",
+        });
+      },
+
+      listKeys: async (req: {
+        /**
+         * The api id
+         */
+        apiId: string;
+
+        /**
+         * Limit the number of returned keys, the maximum is 100.
+         *
+         * @default 100
+         */
+        limit?: number;
+
+        /**
+         * Specify an offset for pagination.
+         * @example:
+         * An offset of 4 will skip the first 4 keys and return keys starting at the 5th position.
+         *
+         * @default 0
+         */
+        offset?: number;
+
+        /**
+         * If provided, this will only return keys where the ownerId matches.
+         */
+        ownerId?: string;
+      }): Promise<
+        Result<{
+          keys: {
+            id: string;
+            apiId: string;
+            workspaceId: string;
+            start: string;
+            createdAt: number;
+            expires: number | null;
+            ratelimit?: {
+              type: "fast" | "consistent";
+              limit: number;
+              refillRate: number;
+              refillInterval: number;
+            };
+          }[];
+          total: number;
+        }>
+      > => {
+        const query: Record<string, string> = {};
+        if (typeof req.limit !== "undefined") {
+          query.limit = req.limit.toString();
+        }
+        if (typeof req.offset !== "undefined") {
+          query.offset = req.offset.toString();
+        }
+        if (typeof req.ownerId !== "undefined") {
+          query.ownerId = req.ownerId;
+        }
+
+        return await this.fetch({
+          path: ["v1", "apis", req.apiId, "keys"],
+          method: "GET",
+          query,
+          cache: "no-cache",
         });
       },
     };
@@ -385,6 +477,7 @@ export class Unkey {
           path: ["v1", "internal", "rootkeys"],
           method: "POST",
           body: req,
+          cache: "no-cache",
         });
       },
     };
