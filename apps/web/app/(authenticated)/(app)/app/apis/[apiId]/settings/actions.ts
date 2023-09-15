@@ -80,36 +80,3 @@ export const updateIpWhitelist = serverAction({
     revalidatePath(`/apps/api/${input.apiId}`);
   },
 });
-
-export const deleteApi = serverAction({
-  input: z.object({
-    apiId: z.string(),
-    workspaceId: z.string(),
-  }),
-  handler: async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.id, input.workspaceId),
-      with: {
-        apis: {
-          where: eq(schema.apis.id, input.apiId),
-        },
-      },
-    });
-    if (!ws || ws.tenantId !== ctx.tenantId) {
-      throw new Error("workspace not found");
-    }
-    const api = ws.apis.find((api) => api.id === input.apiId);
-    if (!api) {
-      throw new Error("api not found");
-    }
-
-    if (api.keyAuthId) {
-      await db.delete(schema.keys).where(eq(schema.keys.keyAuthId, api.keyAuthId));
-      await db.delete(schema.keyAuth).where(eq(schema.keyAuth.id, api.keyAuthId));
-    }
-
-    await db.delete(schema.apis).where(eq(schema.apis.id, input.apiId));
-
-    revalidatePath(`/apps/api/${input.apiId}`);
-  },
-});

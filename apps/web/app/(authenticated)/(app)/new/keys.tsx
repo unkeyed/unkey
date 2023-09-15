@@ -99,10 +99,8 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
     }
     const split = key.split("_");
     if (split.length === 1) {
-      // rome-ignore lint: suspicious/noNonNullAssertion
       return "*".repeat(split.at(0)!.length);
     }
-    // rome-ignore lint: suspicious/noNonNullAssertion
     return `${split.at(0)}_${"*".repeat(split.at(1)!.length)}`;
   }
 

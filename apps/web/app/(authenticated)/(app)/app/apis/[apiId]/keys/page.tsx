@@ -17,7 +17,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     return redirect("/onboarding");
   }
   const allKeys = await db.query.keys.findMany({
-    // rome-ignore lint: suspicious/noNonNullAssertion
     where: eq(schema.keys.keyAuthId, api.keyAuthId!),
   });
 

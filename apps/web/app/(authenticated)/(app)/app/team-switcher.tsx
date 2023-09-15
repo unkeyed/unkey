@@ -42,7 +42,6 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
     }
   }
   const [search, _setSearch] = useState("");
-  // rome-ignore lint: suspicious/noNonNullAssertion
   const filteredOrgs = useMemo(() => {
     if (!organizationList) {
       return [];

@@ -32,6 +32,7 @@ module.exports = {
     },
 
     colors: {
+      current: "currentColor",
       transparent: "transparent",
       white: "hsl(var(--white))",
       black: "hsl(var(--black))",

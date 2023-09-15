@@ -26,7 +26,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const keysP = db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
-    // rome-ignore lint: suspicious/noNonNullAssertion
     .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
     .execute()
     .then((res) => res.at(0)?.count ?? 0);

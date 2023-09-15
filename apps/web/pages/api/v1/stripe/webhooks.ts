@@ -114,7 +114,6 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             organizationId: ws.tenantId,
           });
           for (const m of members) {
-            // rome-ignore lint: suspicious/noNonNullAssertion
             userIds.push(m.publicUserData!.userId);
           }
         } else {
@@ -131,7 +130,6 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email,
             name: user.firstName ?? user.username ?? "",
-            // rome-ignore lint: suspicious/noNonNullAssertion
             date: new Date(subscription.trial_end! * 1000),
           });
         }
