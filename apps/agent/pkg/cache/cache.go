@@ -31,10 +31,11 @@ type cache[T any] struct {
 	// If a key is stale, its identifier will be put into this channel and a goroutine refreshes it in the background
 	refreshC chan string
 
-	logger  *zap.Logger
-	maxSize int
-	lru     *list.List
-	metrics metrics.Metrics
+	logger   *zap.Logger
+	maxSize  int
+	lru      *list.List
+	metrics  metrics.Metrics
+	resource string
 }
 
 type Config[T any] struct {
@@ -54,7 +55,8 @@ type Config[T any] struct {
 	// Start evicting the least recently used entry when the cache grows to MaxSize
 	MaxSize int
 
-	Metrics metrics.Metrics
+	Metrics  metrics.Metrics
+	Resource string
 }
 
 func New[T any](config Config[T]) Cache[T] {
@@ -69,6 +71,7 @@ func New[T any](config Config[T]) Cache[T] {
 		maxSize:           config.MaxSize,
 		lru:               list.New(),
 		metrics:           config.Metrics,
+		resource:          config.Resource,
 	}
 
 	go c.runEviction()
@@ -89,6 +92,7 @@ func (c *cache[T]) runReporting() {
 			LruSize:          c.lru.Len(),
 			RefreshQueueSize: len(c.refreshC),
 			Utilization:      utilization,
+			Resource:         c.resource,
 		})
 
 		if size != c.lru.Len() {
