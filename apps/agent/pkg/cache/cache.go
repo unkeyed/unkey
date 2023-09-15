@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"go.uber.org/zap"
 )
 
@@ -33,6 +34,7 @@ type cache[T any] struct {
 	logger  *zap.Logger
 	maxSize int
 	lru     *list.List
+	metrics metrics.Metrics
 }
 
 type Config[T any] struct {
@@ -51,6 +53,8 @@ type Config[T any] struct {
 
 	// Start evicting the least recently used entry when the cache grows to MaxSize
 	MaxSize int
+
+	Metrics metrics.Metrics
 }
 
 func New[T any](config Config[T]) Cache[T] {
@@ -64,6 +68,7 @@ func New[T any](config Config[T]) Cache[T] {
 		logger:            config.Logger.With(zap.String("pkg", "cache")),
 		maxSize:           config.MaxSize,
 		lru:               list.New(),
+		metrics:           config.Metrics,
 	}
 
 	go c.runEviction()
@@ -77,14 +82,15 @@ func (c *cache[T]) runReporting() {
 		c.RLock()
 		size := len(c.data)
 		utilization := float64(size) / math.Max(1, float64(c.maxSize))
-		c.logger.Info(
-			"report.cache.health",
-			zap.Int("cacheSize", size),
-			zap.Int("cacheMaxSize", c.maxSize),
-			zap.Int("lruSize", c.lru.Len()),
-			zap.Int("refreshQueueSize", len(c.refreshC)),
-			zap.Float64("utilization", utilization),
-		)
+
+		c.metrics.ReportCacheHealth(metrics.CacheHealthReport{
+			CacheSize:        size,
+			CacheMaxSize:     c.maxSize,
+			LruSize:          c.lru.Len(),
+			RefreshQueueSize: len(c.refreshC),
+			Utilization:      utilization,
+		})
+
 		if size != c.lru.Len() {
 			c.logger.Error(
 				"cache skew detected",
