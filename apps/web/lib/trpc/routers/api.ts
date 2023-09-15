@@ -39,7 +39,6 @@ export const apiRouter = t.router({
       let keys: Key[] = [];
       do {
         keys = await db.query.keys.findMany({
-          // rome-ignore lint: suspicious/noNonNullAssertion
           where: eq(schema.keys.keyAuthId, api.keyAuthId!),
         });
         await Promise.all(

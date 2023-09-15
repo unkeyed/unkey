@@ -131,7 +131,6 @@ const Members: React.FC = () => {
               </div>
             </TableCell>
             <TableCell>
-              {/* rome-ignore lint/style/noNonNullAssertion: clerk has some explaining to do */}
               <RoleSwitcher member={{ id: publicUserData.userId!, role }} />
             </TableCell>
             <TableCell>

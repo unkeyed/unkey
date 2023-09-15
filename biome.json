@@ -15,7 +15,8 @@
         "noDangerouslySetInnerHtml": "off"
       },
       "style": {
-        "useBlockStatements": "error"
+        "useBlockStatements": "error",
+        "noNonNullAssertion": "off"
       },
       "performance": {
         "noDelete": "off"

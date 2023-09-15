@@ -31,7 +31,6 @@ export default async function TenantOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        // rome-ignore lint: suspicious/noNonNullAssertion
         .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
