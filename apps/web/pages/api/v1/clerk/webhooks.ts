@@ -44,12 +44,14 @@ export default async function handler(
       });
 
       if (loopsResponse.status < 200 || loopsResponse.status >= 300) {
-        return res.status(400).json({ error: "Loops API Error ", jsonResponse: await loopsResponse.json() });
+        return res
+          .status(500)
+          .json({ error: "Loops API Error ", jsonResponse: await loopsResponse.json() });
       }
       return res.status(200).json({});
     } catch (err) {
       return res.status(400).json({
-        error: (err as Error).message
+        error: (err as Error).message,
       });
     }
   }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -25,10 +26,8 @@ type Kafka struct {
 	callbackLock sync.RWMutex
 	onKeyEvent   []func(ctx context.Context, e events.KeyEvent) error
 
-	shutdownLock sync.RWMutex
-	shutdown     bool
-	shutdownC    chan struct{}
-	logger       *zap.Logger
+	stopC  chan struct{}
+	logger *zap.Logger
 
 	// Events are first written to this channel and then flushed to kafka
 	// This allows much cleaner code for users of this package
@@ -76,9 +75,7 @@ func New(config Config) (*Kafka, error) {
 		}),
 
 		onKeyEvent:     make([]func(ctx context.Context, e events.KeyEvent) error, 0),
-		shutdownLock:   sync.RWMutex{},
-		shutdown:       false,
-		shutdownC:      make(chan struct{}),
+		stopC:          make(chan struct{}),
 		keyEventBuffer: make(chan events.KeyEvent, 1024),
 	}
 
@@ -103,10 +100,7 @@ func (k *Kafka) Close() error {
 	defer k.logger.Info("stopped")
 	k.Lock()
 	defer k.Unlock()
-	k.shutdownLock.Lock()
-	k.shutdown = true
-	k.shutdownC <- struct{}{}
-	k.shutdownLock.Unlock()
+	close(k.stopC)
 
 	k.logger.Info("stopping reader")
 	err := k.keyChangedReader.Close()
@@ -128,7 +122,7 @@ func (k *Kafka) Start() {
 	go func() {
 		for {
 			select {
-			case <-k.shutdownC:
+			case <-k.stopC:
 				return
 			case e := <-k.keyEventBuffer:
 				value, err := json.Marshal(e)
@@ -148,51 +142,54 @@ func (k *Kafka) Start() {
 	}()
 	go func() {
 		for {
-			k.shutdownLock.RLock()
-			shutdown := k.shutdown
-			k.shutdownLock.RUnlock()
-			if shutdown {
+			select {
+			case <-k.stopC:
 				return
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-			defer cancel()
-			m, err := k.keyChangedReader.FetchMessage(ctx)
-			if err != nil {
-				if errors.Is(err, context.DeadlineExceeded) {
-					continue
-				}
-				k.logger.Error("unable to fetch message", zap.Error(err))
-				continue
-			}
-
-			if len(m.Value) == 0 {
-				k.logger.Warn("message is empty", zap.String("topic", m.Topic))
-				continue
-			}
-			e := events.KeyEvent{}
-			err = json.Unmarshal(m.Value, &e)
-			if err != nil {
-				k.logger.Error("unable to unmarshal message", zap.Error(err), zap.String("value", string(m.Value)))
-				continue
-			}
-			k.callbackLock.RLock()
-			for _, handler := range k.onKeyEvent {
-				err := handler(ctx, e)
-				if err != nil {
-					k.logger.Error("unable to handle message", zap.Error(err))
-					k.callbackLock.RUnlock()
-					continue
-				}
-			}
-			k.callbackLock.RUnlock()
-
-			err = k.keyChangedReader.CommitMessages(ctx, m)
-			if err != nil {
-				k.logger.Error("unable to commit message", zap.Error(err))
-				continue
+			default:
+				k.handleNextMessage(context.Background())
 			}
 
 		}
 	}()
+}
+
+func (k *Kafka) handleNextMessage(ctx context.Context) {
+
+	m, err := k.keyChangedReader.FetchMessage(ctx)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// The method returns io.EOF to indicate that the reader has been closed.
+			return
+		}
+
+		k.logger.Error("unable to fetch message", zap.Error(err))
+		return
+	}
+
+	if len(m.Value) == 0 {
+		k.logger.Warn("message is empty", zap.String("topic", m.Topic))
+		return
+	}
+	e := events.KeyEvent{}
+	err = json.Unmarshal(m.Value, &e)
+	if err != nil {
+		k.logger.Error("unable to unmarshal message", zap.Error(err), zap.String("value", string(m.Value)))
+		return
+	}
+	k.callbackLock.RLock()
+	defer k.callbackLock.RUnlock()
+	for _, handler := range k.onKeyEvent {
+		err := handler(ctx, e)
+		if err != nil {
+			k.logger.Error("unable to handle message", zap.Error(err))
+			continue
+		}
+	}
+
+	err = k.keyChangedReader.CommitMessages(ctx, m)
+	if err != nil {
+		k.logger.Error("unable to commit message", zap.Error(err))
+		return
+	}
+
 }
