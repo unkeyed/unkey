@@ -3,7 +3,7 @@ description: Change regarding improving the docs to be more accessible
 title: '[docs]'
 labels: ['documentation']
 body:
-   - type: dropdown
+  - type: dropdown
     id: type-of-doc-issue
     attributes:
       label: Type of documentation issue
