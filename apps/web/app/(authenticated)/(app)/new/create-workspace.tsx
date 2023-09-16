@@ -59,7 +59,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
     onError(err) {
       toast({
         title: "Error",
-        description: `An error occured while creating your workspace: ${err.message}`,
+        description: `An error occured while creating your workspace, please contact support.`,
         variant: "alert",
       });
     },
