@@ -34,8 +34,6 @@ type KeyVerificationReport struct {
 	ApiId       string `json:"apiId"`
 	KeyAuthId   string `json:"keyAuthId"`
 	WorkspaceId string `json:"workspaceId"`
-
-	TraceId string `json:"traceId"`
 }
 
 type CacheHitReport struct {

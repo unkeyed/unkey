@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
-	"go.uber.org/zap"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
 type Tinybird struct {
@@ -21,7 +21,7 @@ type Tinybird struct {
 	keyVerificationsC chan analytics.KeyVerificationEvent
 	closeC            chan struct{}
 
-	logger *zap.Logger
+	logger logging.Logger
 }
 
 var _ analytics.Analytics = &Tinybird{}
@@ -30,7 +30,7 @@ type Config struct {
 	// Token is the Tinybird token
 	Token string
 
-	Logger *zap.Logger
+	Logger logging.Logger
 }
 
 func New(config Config) *Tinybird {
@@ -62,12 +62,12 @@ func (t *Tinybird) consume() {
 				Time:        e.Time,
 			})
 			if err != nil {
-				t.logger.Error("unable to publish v1 event to tinybird", zap.Error(err))
+				t.logger.Err(err).Msg("unable to publish v1 event to tinybird")
 			}
 
 			err = t.publishEvent("key_verifications__v2", e)
 			if err != nil {
-				t.logger.Error("unable to publish event to tinybird", zap.Error(err))
+				t.logger.Err(err).Msg("unable to publish event to tinybird")
 			}
 		}
 	}
@@ -79,7 +79,7 @@ func (t *Tinybird) Close() {
 }
 
 func (t *Tinybird) PublishKeyVerificationEvent(ctx context.Context, event analytics.KeyVerificationEvent) {
-	t.logger.Info("publishing event", zap.Any("event", event))
+	t.logger.Debug().Any("event", event).Msg("publishing event")
 	t.keyVerificationsC <- event
 }
 

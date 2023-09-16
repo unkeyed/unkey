@@ -7,7 +7,6 @@ import (
 
 	ax "github.com/axiomhq/axiom-go/axiom"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"go.uber.org/zap"
 )
 
 type axiom struct {
@@ -38,7 +37,7 @@ func New(config Config) (Metrics, error) {
 	go func() {
 		_, err := client.IngestChannel(context.Background(), "metrics", a.eventsC)
 		if err != nil {
-			config.Logger.Error("unable to ingest to axiom", zap.Error(err))
+			config.Logger.Err(err).Msg("unable to ingest to axiom")
 		}
 	}()
 

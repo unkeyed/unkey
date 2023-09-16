@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
-	"go.uber.org/zap"
 )
 
 func (db *database) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (entities.Key, error) {
@@ -19,7 +18,7 @@ func (db *database) DecrementRemainingKeyUsage(ctx context.Context, keyId string
 	defer func() {
 		err := tx.Rollback()
 		if err != nil && !errors.Is(err, sql.ErrTxDone) {
-			db.logger.Error("unable to rollback transaction", zap.Error(err))
+			db.logger.Err(err).Msg("unable to rollback transaction")
 		}
 	}()
 	q := db.write().WithTx(tx)

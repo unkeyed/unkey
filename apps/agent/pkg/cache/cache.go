@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"go.uber.org/zap"
 )
 
 type swrEntry[T any] struct {
@@ -31,7 +31,7 @@ type cache[T any] struct {
 	// If a key is stale, its identifier will be put into this channel and a goroutine refreshes it in the background
 	refreshC chan string
 
-	logger   *zap.Logger
+	logger   logging.Logger
 	maxSize  int
 	lru      *list.List
 	metrics  metrics.Metrics
@@ -50,7 +50,7 @@ type Config[T any] struct {
 	// A handler that will be called to refetch data from the origin when necessary
 	RefreshFromOrigin func(ctx context.Context, identifier string) (entry T, ok bool)
 
-	Logger *zap.Logger
+	Logger logging.Logger
 
 	// Start evicting the least recently used entry when the cache grows to MaxSize
 	MaxSize int
@@ -67,7 +67,7 @@ func New[T any](config Config[T]) Cache[T] {
 		stale:             config.Stale,
 		refreshFromOrigin: config.RefreshFromOrigin,
 		refreshC:          make(chan string),
-		logger:            config.Logger.With(zap.String("pkg", "cache")),
+		logger:            config.Logger.With().Str("pkg", "cache").Logger(),
 		maxSize:           config.MaxSize,
 		lru:               list.New(),
 		metrics:           config.Metrics,
@@ -98,11 +98,8 @@ func (c *cache[T]) runReporting() {
 		})
 
 		if size != c.lru.Len() {
-			c.logger.Error(
-				"cache skew detected",
-				zap.Int("cacheSize", size),
-				zap.Int("lruSize", c.lru.Len()),
-			)
+			c.logger.Error().Int("cacheSize", size).Int("lruSize", c.lru.Len()).Msg("cache skew detected")
+
 		}
 		c.RUnlock()
 	}
@@ -114,7 +111,7 @@ func (c *cache[T]) runEviction() {
 		c.Lock()
 		for key, val := range c.data {
 			if now.After(val.Stale) {
-				c.logger.Info("evicting from cache", zap.Time("stale", val.Stale), zap.Time("now", now), zap.String("key", key))
+				c.logger.Info().Time("stale", val.Stale).Time("now", now).Str("key", key).Msg("evicting from cache")
 				c.lru.Remove(val.LruElement)
 				delete(c.data, key)
 			}
@@ -131,7 +128,7 @@ func (c *cache[T]) runRefreshing() {
 		ctx := context.Background()
 		t, ok := c.refreshFromOrigin(ctx, identifier)
 		if !ok {
-			c.logger.Info("origin couldn't find", zap.String("identifier", identifier))
+			c.logger.Warn().Str("identifier", identifier).Msg("origin couldn't find")
 			continue
 		}
 		c.Set(ctx, identifier, t)
@@ -178,7 +175,7 @@ func (c *cache[T]) Set(ctx context.Context, key string, value T) {
 	if !exists {
 		// If the cache is already full, we evict first
 		if c.maxSize > 0 && len(c.data) >= c.maxSize {
-			c.logger.Info("evicting from cache", zap.String("key", key))
+			c.logger.Info().Str("key", key).Msg("evicting from cache")
 			last := c.lru.Back()
 			c.lru.Remove(last)
 			delete(c.data, last.Value.(string))
