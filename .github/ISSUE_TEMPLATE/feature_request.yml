@@ -1,24 +1,32 @@
-name: Feature request
-description: Suggest an idea for this project
-title: '[feat]'
-labels: ['enhancement']
+name: "💡 Feature Request"
+description: Describe a new feature or capability you would like to see in Unkey's offering.
+labels:
+  - "enhancement"
 body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Welcome 👋🏻
+
+        Thank you for taking the time to write up a feature request. Please fill out the information below to be able to help you faster. If you have a question or need general help, please join our [Discord community](https://unkey.dev/discord).
+  - type: checkboxes
+    attributes:
+      label: Preliminary Checks
+      description: Please make sure that you verify each checkbox and follow the instructions for them.
+      options:
+        - label: |
+            I have reviewed https://docs.unkey.dev for existing features that would solve my problem
+          required: true
+        - label: |
+            I have searched for existing feature requests: https://github.com/unkeyed/unkey/issues
+          required: true
+        - label: |
+            This issue is not a question, general help request, or anything other than a feature request directly related to Unkey. Please ask questions in our Discord community: https://unkey.dev/discord.
+          required: true
   - type: textarea
     attributes:
-      label: Would you like to have a new feature? Please describe.
-      description: A clear and concise description of what the feature is
-      placeholder: Ex. Whenever I try to do (xyz) then [...]
+      label: Description
+      description: Describe the feature or capability you would like to see in Unkey's offering.
+      placeholder: Make sure it's unique, describe your use case, and explain the problem and proposed solution.
     validations:
-      required: false
-  - type: textarea
-    attributes:
-      label: How would this feature be beneficial for the project
-      description: A clear and concise description about the importance of the feature
-    validations:
-      required: false
-  - type: textarea
-    attributes:
-      label: Additional context
-      description: Add any other context or screenshots about the feature request here.
-    validations:
-      required: false
+      required: true

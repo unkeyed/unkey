@@ -1,40 +1,82 @@
-name: Bug report
-description: Create a report to help us improve
-title: '[bug]'
-labels: ['bug']
+name: "🐛 Bug Report"
+description: Report a bug for Unkey.
+labels:
+  - "needs-triage"
+  - "bug"
 body:
-  - type: textarea
+  - type: markdown
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is
-    validations:
-      required: false
-  - type: textarea
+      value: |
+        ## Welcome 👋🏻
+
+        Thank you for taking the time to report an issue with Unkey. Please fill out the information below to help us resolve your issue faster. If you have a question or need general help, please join our [Discord community](https://unkey.dev/discord).
+  - type: checkboxes
     attributes:
-      label: To Reproduce
+      label: Preliminary Checks
+      description: Please make sure that you verify each checkbox and follow the instructions for them.
+      options:
+        - label: |
+            I have reviewed the documentation: https://docs.unkey.dev
+          required: true
+        - label: |
+            I have searched for existing issues: https://github.com/unkeyed/unkey/issues
+          required: true
+        - label: |
+            This issue is not a question, general help request, or anything other than a bug report directly related to Unkey. Please ask questions in our Discord community: https://unkey.dev/discord.
+          required: true
+  - type: input
+    id: reproduction-link
+    attributes:
+      label: Reproduction / Replay Link (Optional)
+      placeholder: "https://github.com/username/repository-name/"
       description: |
-        Steps to reproduce the behavior.
-        1. Go to '...'
-        2. Click on '...'
-        3. Scroll down to '...'
-        4. See error
+        Link to a minimal reproduction (GitHub repository, CodeSandbox, StackBlitz, etc.) or a [Replay recording](https://www.replay.io/).
+
+        **Do not link to your actual project**, but provide a minimal reproduction in a fresh project.
+        
+        Instructions:
+        - [How to record a Replay](https://docs.replay.io/bug-reports/recording-a-replay)
     validations:
       required: false
   - type: textarea
     attributes:
-      label: Expected Behavior
-      description: A clear and concise description of what you expected to happen.
+      label: Description
+      description: Describe the issue that you're seeing.
+      value: |
+        <!-- Be as precise as you can. Feel free to share screenshots, videos, or data from the devtools of your browser -->
+
+        **Steps to reproduce:**
+
+        1. Step 1
+        2. Step 2
+
+        **Expected behavior:**
+
+        <!-- Describe what you expected to happen -->
+
+        **Actual behavior:**
+
+        <!-- Describe what actually happened -->
     validations:
-      required: false
+      required: true
   - type: textarea
     attributes:
-      label: Screenshot/ Video
-      description: If applicable, add screenshots to help explain your problem.
-    validations:
-      required: false
-  - type: textarea
-    attributes:
-      label: Additional context
-      description: Add any other context about the problem here.
+      label: Environment
+      render: Shell
+      description: Run "npx envinfo --system --browsers --binaries --npmPackages" in your project directory and paste the output here.
+      placeholder: |
+        You'll get an output similar to this:
+
+        System:
+          OS: Operating System
+          CPU: CPU
+        Binaries:
+          Node: X
+          npm: X
+        Browsers:
+          Chrome: X
+          Edge: X
+        npmPackages:
+          unkey: X => X
     validations:
       required: false
