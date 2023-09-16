@@ -14,7 +14,6 @@ export const workspaceRouter = t.router({
     .input(
       z.object({
         name: z.string().min(1).max(50),
-        slug: z.string().min(1).max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
         plan: z.enum(["free", "pro"]),
       }),
     )
@@ -28,7 +27,6 @@ export const workspaceRouter = t.router({
       if (input.plan !== "free") {
         const org = await clerkClient.organizations.createOrganization({
           name: input.name,
-          slug: input.slug,
           createdBy: userId,
         });
         organizationId = org.id;
@@ -36,9 +34,9 @@ export const workspaceRouter = t.router({
 
       const workspace: Workspace = {
         id: newId("workspace"),
+        slug: null,
         tenantId: organizationId ?? userId,
         name: input.name,
-        slug: input.slug,
         plan: input.plan,
         stripeCustomerId: null,
         stripeSubscriptionId: null,
@@ -58,9 +56,13 @@ export const workspaceRouter = t.router({
         const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
           apiVersion: "2022-11-15",
         });
+
+        const user = await clerkClient.users.getUser(ctx.user.id);
+
         if (input.plan === "pro") {
           const customer = await stripe.customers.create({
             name: input.name,
+            email: user.emailAddresses.at(0)?.emailAddress,
           });
           workspace.stripeCustomerId = customer.id;
           await db
@@ -94,20 +96,5 @@ export const workspaceRouter = t.router({
         workspace,
         organizationId,
       };
-    }),
-  get: t.procedure
-    .use(auth)
-    .input(
-      z.object({
-        slug: z.string(),
-      }),
-    )
-    .query(({ input }) => {
-      return db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.slug, input.slug),
-        columns: {
-          slug: true,
-        },
-      });
     }),
 });

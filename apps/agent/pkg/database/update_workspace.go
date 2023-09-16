@@ -15,7 +15,6 @@ func (db *database) UpdateWorkspace(ctx context.Context, workspace entities.Work
 func transformWorkspaceEntityToUpdateWorkspaceParams(workspace entities.Workspace) gen.UpdateWorkspaceParams {
 	return gen.UpdateWorkspaceParams{
 		ID:   workspace.Id,
-		Slug: workspace.Slug,
 		Name: workspace.Name,
 		Plan: gen.NullWorkspacesPlan{
 			WorkspacesPlan: gen.WorkspacesPlan(workspace.Plan),

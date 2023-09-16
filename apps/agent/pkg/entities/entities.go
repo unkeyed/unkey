@@ -56,7 +56,6 @@ const (
 type Workspace struct {
 	Id                 string
 	Name               string
-	Slug               string
 	TenantId           string
 	Internal           bool
 	EnableBetaFeatures bool

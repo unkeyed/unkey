@@ -11,7 +11,7 @@ import (
 
 const findKeyById = `-- name: FindKeyById :one
 SELECT
-    id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests, key_auth_id
+    id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests, key_auth_id, total_uses
 FROM
     ` + "`" + `keys` + "`" + `
 WHERE
@@ -38,6 +38,7 @@ func (q *Queries) FindKeyById(ctx context.Context, id string) (Key, error) {
 		&i.Name,
 		&i.RemainingRequests,
 		&i.KeyAuthID,
+		&i.TotalUses,
 	)
 	return i, err
 }

@@ -35,6 +35,7 @@ CREATE TABLE `keys` (
     `name` varchar(256) NULL,
     `remaining_requests` int NULL,
     `key_auth_id` varchar(256) NOT NULL,
+    `total_uses` bigint NULL DEFAULT 0,
     PRIMARY KEY (`id`),
     UNIQUE INDEX `hash_idx` (`hash`),
     INDEX `key_auth_id_idx` (`key_auth_id`)
@@ -44,7 +45,7 @@ CREATE TABLE `keys` (
 CREATE TABLE `workspaces` (
     `id` varchar(256) NOT NULL,
     `name` varchar(256) NOT NULL,
-    `slug` varchar(256) NOT NULL,
+    `slug` varchar(256) NULL,
     `tenant_id` varchar(256) NOT NULL,
     `internal` bool NOT NULL DEFAULT 0,
     `stripe_customer_id` varchar(256) NULL,

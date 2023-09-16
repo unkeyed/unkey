@@ -42,7 +42,6 @@ async function main() {
     id: workspaceId,
     tenantId: env.TENANT_ID,
     name: "Unkey",
-    slug: "unkey",
     internal: true,
   };
   await db.insert(schema.workspaces).values(workspace);

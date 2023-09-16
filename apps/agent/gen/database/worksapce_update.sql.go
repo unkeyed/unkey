@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const updateWorkspace = `-- name: UpdateWorkspace :exec
@@ -23,7 +24,7 @@ WHERE
 
 type UpdateWorkspaceParams struct {
 	Name     string
-	Slug     string
+	Slug     sql.NullString
 	TenantID string
 	Plan     NullWorkspacesPlan
 	ID       string

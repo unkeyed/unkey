@@ -122,6 +122,7 @@ type Key struct {
 	Name                    sql.NullString
 	RemainingRequests       sql.NullInt32
 	KeyAuthID               string
+	TotalUses               sql.NullInt64
 }
 
 type KeyAuth struct {
@@ -132,7 +133,7 @@ type KeyAuth struct {
 type Workspace struct {
 	ID                    string
 	Name                  string
-	Slug                  string
+	Slug                  sql.NullString
 	TenantID              string
 	Internal              bool
 	StripeCustomerID      sql.NullString

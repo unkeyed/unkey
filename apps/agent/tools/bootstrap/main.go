@@ -47,7 +47,6 @@ func main() {
 	workspace := entities.Workspace{
 		Id:       e.String("UNKEY_WORKSPACE_ID", uid.Workspace()),
 		Name:     "Unkey",
-		Slug:     "unkey",
 		TenantId: e.String("TENANT_ID", uid.New(16, "fake")),
 		Plan:     entities.EnterprisePlan,
 	}

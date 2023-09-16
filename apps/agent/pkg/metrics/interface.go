@@ -51,7 +51,7 @@ type CacheHealthReport struct {
 	LruSize          int     `json:"lruSize"`
 	RefreshQueueSize int     `json:"refreshQueueSize"`
 	Utilization      float64 `json:"utilization"`
-	Resource		 string  `json:"resource"`
+	Resource         string  `json:"resource"`
 }
 
 type DatabaseLatencyReport struct {

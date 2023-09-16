@@ -13,7 +13,6 @@ func (s *service) CreateWorkspace(ctx context.Context, req CreateWorkspaceReques
 	ws := entities.Workspace{
 		Id:       uid.Workspace(),
 		Name:     req.Name,
-		Slug:     req.Slug,
 		TenantId: req.TenantId,
 		Plan:     req.Plan,
 	}

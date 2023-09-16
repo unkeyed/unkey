@@ -28,7 +28,6 @@ type Props = {
   workspace: {
     id: string;
     name: string;
-    slug: string;
   };
 };
 
@@ -65,34 +64,23 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
               onSubmit={form.handleSubmit((values) => createApi.mutate({ ...values }))}
               className="flex flex-col space-y-4"
             >
-              <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:space-x-4">
-                <FormItem>
-                  <FormLabel>Workspace</FormLabel>
-
-                  <FormMessage className="text-xs" />
-                  <FormControl>
-                    <Input value={workspace.slug} readOnly />
-                  </FormControl>
-                </FormItem>
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>API Name</FormLabel>
-                      <FormMessage className="text-xs" />
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        <p>What should your api be called?</p>
-                        <p>This is just for you, and will not be visible to your customers</p>
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>API Name</FormLabel>
+                    <FormMessage className="text-xs" />
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      <p>What should your api be called?</p>
+                      <p>This is just for you, and will not be visible to your customers</p>
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
 
               <div className="mt-8">
                 <Button
