@@ -90,6 +90,14 @@ export const getTotalActiveKeys = tb.buildPipe({
   },
 });
 
+export const getTotalVerifications = tb.buildPipe({
+  pipe: "endpoint__get_total_verifications__v1",
+  data: z.object({ total: z.number() }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
 export const getLatestVerifications = tb.buildPipe({
   pipe: "endpoint__get_latest_verifications__v1",
   parameters: z.object({
