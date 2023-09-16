@@ -199,6 +199,8 @@ export async function GET(req: NextRequest) {
             {image ? (
               <img
                 alt="author"
+                width={64}
+                height={64}
                 style={{
                   width: 64,
                   height: 64,
