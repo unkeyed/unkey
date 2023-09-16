@@ -54,6 +54,12 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
         !["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)
       ) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
+        // if we end up here... something is wrong with the workspace and we should redirect to the new page.
+        // this should never happen.
+        if(!workspace) {
+          console.error("Workspace not found for orgId", auth.orgId);
+          return NextResponse.redirect(new URL("/new", req.url));
+        }
         if (workspace?.plan === "free") {
           return NextResponse.redirect(new URL("/app/stripe", req.url));
         }
