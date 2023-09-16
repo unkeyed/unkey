@@ -29,6 +29,8 @@ const requestValidation = z.object({
     "stripe-signature": z.string(),
   }),
 });
+const loops = env.LOOPS_API_KEY ? new Loops({ apiKey: env.LOOPS_API_KEY }) : null;
+
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const {
@@ -74,7 +76,6 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         console.log("subscription deleted", subscription);
-
         const ws = await db.query.workspaces.findFirst({
           where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
         });
@@ -92,12 +93,26 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           })
           .where(eq(schema.workspaces.id, ws.id));
 
+        if (loops) {
+          const portal = await stripe.billingPortal.sessions.create({
+            customer: ws.stripeCustomerId!,
+          });
+
+          const users = await getUsers(ws.tenantId);
+          for await (const user of users) {
+            await loops.sendSubscriptionEnded({
+              email: user.email,
+              name: user.name,
+              billingPortalLink: portal.url,
+            });
+          }
+        }
         break;
       }
       case "customer.subscription.trial_will_end": {
         const subscription = event.data.object as Stripe.Subscription;
         console.log("subscription will end", subscription);
-        if (!env.LOOPS_API_KEY) {
+        if (!loops) {
           // no need to fetch everything if we don't use it
           break;
         }
@@ -108,28 +123,11 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           throw new Error("workspace does not exist");
         }
 
-        const userIds: string[] = [];
-        if (ws.tenantId.startsWith("org_")) {
-          const members = await clerkClient.organizations.getOrganizationMembershipList({
-            organizationId: ws.tenantId,
-          });
-          for (const m of members) {
-            userIds.push(m.publicUserData!.userId);
-          }
-        } else {
-          userIds.push(ws.tenantId);
-        }
-        const loops = await new Loops({ apiKey: env.LOOPS_API_KEY });
-        for await (const userId of userIds) {
-          const user = await clerkClient.users.getUser(userId);
-          const email = user.emailAddresses.at(0)?.emailAddress;
-          if (!email) {
-            console.warn("user doesn't have an email: %s", user.id);
-            continue;
-          }
+        const users = await getUsers(ws.tenantId);
+        for await (const user of users) {
           await loops.sendTrialEnds({
-            email,
-            name: user.firstName ?? user.username ?? "",
+            email: user.email,
+            name: user.name,
             date: new Date(subscription.trial_end! * 1000),
           });
         }
@@ -150,4 +148,33 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
   } finally {
     res.end();
   }
+}
+
+async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
+  const userIds: string[] = [];
+  if (tenantId.startsWith("org_")) {
+    const members = await clerkClient.organizations.getOrganizationMembershipList({
+      organizationId: tenantId,
+    });
+    for (const m of members) {
+      userIds.push(m.publicUserData!.userId);
+    }
+  } else {
+    userIds.push(tenantId);
+  }
+
+  return await Promise.all(
+    userIds.map(async (userId) => {
+      const user = await clerkClient.users.getUser(userId);
+      const email = user.emailAddresses.at(0)?.emailAddress;
+      if (!email) {
+        throw new Error(`user ${user.id} does not have an email`);
+      }
+      return {
+        id: user.id,
+        name: user.firstName ?? user.username ?? "",
+        email,
+      };
+    }),
+  );
 }
