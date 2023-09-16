@@ -7,9 +7,11 @@ import { StatList, StatListItem } from "@/components/landing/stat-list";
 import { StylizedImage } from "@/components/landing/stylized-image";
 import laptopImage from "@/images/computer-user.jpg";
 import { db, schema, sql } from "@/lib/db";
+import { getTotalVerifications } from "@/lib/tinybird";
+
 export const revalidate = 60;
 
-const [workspaces, apis, keys] = await Promise.all([
+const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.workspaces)
@@ -22,6 +24,7 @@ const [workspaces, apis, keys] = await Promise.all([
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
     .then((res) => res.at(0)?.count ?? 0),
+  getTotalVerifications({}).then((res) => res.data.at(0)?.total ?? 0),
 ]);
 
 function NumbersServed() {
@@ -42,11 +45,15 @@ function NumbersServed() {
             />
             <StatListItem
               value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
-              label="APIS"
+              label="APIs"
             />
             <StatListItem
               value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
               label="Keys"
+            />
+            <StatListItem
+              value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
+              label="Verifications"
             />
           </StatList>
         </FadeInStagger>
