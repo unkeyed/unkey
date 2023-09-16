@@ -3,16 +3,22 @@ description: Change regarding improving the docs to be more accessible
 title: '[docs]'
 labels: ['documentation']
 body:
-  - type: textarea
+   - type: dropdown
+    id: type-of-doc-issue
     attributes:
-      label: Category of documentation update
-      description: |
-        What category does this change fall under.For example Typo error, New category addition, Rephrasing the sentences, fixing broken links etc 
+      label: Type of documentation issue
+      multiple: true
+      options:
+        - "Broken Link"
+        - "Incorrect Information"
+        - "Typo"
+        - "Missing Information"
+        - "Other"
     validations:
       required: true
   - type: textarea
     attributes:
       label: Describe the change you think might work
-      description: Please describe the change & need of change in atmost detail possible.
+      description: Please describe the change & need of change in as much detail possible.
     validations:
       required: false
