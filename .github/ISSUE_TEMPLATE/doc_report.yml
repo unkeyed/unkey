@@ -1,5 +1,5 @@
-name: Documentation request
-description: Change regarding improving the docs to be more accessible
+name: "📚 Documentation request"
+description: Need to report a documentation issue? Please fill out the information below
 title: '[docs]'
 labels: ['documentation']
 body:
@@ -18,7 +18,7 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Describe the change you think might work
+      label: Describe the problem and the proposed solution
       description: Please describe the change & need of change in as much detail possible.
     validations:
       required: false
