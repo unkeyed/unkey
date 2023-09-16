@@ -42,4 +42,23 @@ export class Loops {
       },
     });
   }
+
+  public async sendSubscriptionEnded(req: {
+    email: string;
+    name: string;
+    billingPortalLink: string;
+  }): Promise<void> {
+    await this.fetch({
+      path: ["v1", "transactional"],
+      method: "POST",
+      body: {
+        transactionalId: "clmlntcfv004pl20ovzzynybm",
+        email: req.email,
+        dataVariables: {
+          name: req.name,
+          billingPortalLink: req.billingPortalLink,
+        },
+      },
+    });
+  }
 }
