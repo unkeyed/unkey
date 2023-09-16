@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	httpErrors "github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
-	"go.uber.org/zap"
 )
 
 type CreateWorkspaceRequest struct {
@@ -40,7 +39,6 @@ func (s *Server) createWorkspace(c *fiber.Ctx) error {
 		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, err.Error())
 	}
 
-	s.logger.Info("req", zap.Any("req", req), zap.Any("ws", s.workspaceService))
 	ws, err := s.workspaceService.CreateWorkspace(ctx, workspaces.CreateWorkspaceRequest{
 		Name:     req.Name,
 		TenantId: req.TenantId,

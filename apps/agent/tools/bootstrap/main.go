@@ -10,29 +10,28 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
-	"go.uber.org/zap"
 )
 
 func main() {
 	ctx := context.Background()
 	logger := logging.New()
-	e := env.Env{ErrorHandler: func(err error) { logger.Error("unable to load env", zap.Error(err)) }}
+	e := env.Env{ErrorHandler: func(err error) { logger.Err(err).Msg("unable to load env") }}
 
 	seedDb, err := sql.Open("mysql", e.String("DATABASE_DSN"))
 	if err != nil {
-		logger.Fatal("error opening database", zap.Error(err))
+		logger.Fatal().Err(err).Msg("error opening database")
 	}
 	schema, err := os.ReadFile("../../pkg/database/schema.sql")
 	if err != nil {
-		logger.Fatal("error reading schema", zap.Error(err))
+		logger.Fatal().Err(err).Msg("error reading schema")
 	}
 	_, err = seedDb.Exec(string(schema))
 	if err != nil {
-		logger.Fatal("error pushing schema", zap.Error(err))
+		logger.Fatal().Err(err).Msg("error pushing schema")
 	}
 	err = seedDb.Close()
 	if err != nil {
-		logger.Fatal("uanble to close seed db", zap.Error(err))
+		logger.Fatal().Err(err).Msg("uanble to close seed db")
 	}
 
 	db, err := database.New(database.Config{
@@ -41,7 +40,7 @@ func main() {
 	})
 
 	if err != nil {
-		logger.Fatal("unable to connect to databae", zap.Error(err))
+		logger.Fatal().Err(err).Msg("unable to connect to databae")
 	}
 
 	workspace := entities.Workspace{
@@ -65,16 +64,16 @@ func main() {
 
 	err = db.InsertWorkspace(ctx, workspace)
 	if err != nil {
-		logger.Fatal("unable to create workspace", zap.Error(err))
+		logger.Fatal().Err(err).Msg("unable to create workspace")
 	}
 
 	err = db.CreateKeyAuth(ctx, keyAuth)
 	if err != nil {
-		logger.Fatal("unable to create keyAuth", zap.Error(err))
+		logger.Fatal().Err(err).Msg("unable to create keyAuth")
 	}
 	err = db.InsertApi(ctx, api)
 	if err != nil {
-		logger.Fatal("unable to create api", zap.Error(err))
+		logger.Fatal().Err(err).Msg("unable to create api")
 	}
 
 }

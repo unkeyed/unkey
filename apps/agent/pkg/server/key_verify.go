@@ -7,9 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/whitelist"
-	"go.uber.org/zap"
 )
 
 type VerifyKeyRequest struct {
@@ -110,10 +110,10 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 
 	if len(api.IpWhitelist) > 0 {
 		sourceIp := c.Get("Fly-Client-IP")
-		s.logger.Info("checking ip whitelist", zap.String("sourceIp", sourceIp), zap.Strings("whitelist", api.IpWhitelist))
+		s.logger.Debug().Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("checking ip whitelist")
 
 		if !whitelist.Ip(sourceIp, api.IpWhitelist) {
-			s.logger.Info("ip denied", zap.String("workspaceId", api.WorkspaceId), zap.String("apiId", api.Id), zap.String("keyId", key.Id), zap.String("sourceIp", sourceIp), zap.Strings("whitelist", api.IpWhitelist))
+			s.logger.Info().Str("workspaceId", api.WorkspaceId).Str("apiId", api.Id).Str("keyId", key.Id).Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("ip denied")
 			return c.JSON(VerifyKeyResponse{
 				Valid: false,
 				Code:  errors.FORBIDDEN,
@@ -125,14 +125,15 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	// Start validation
 	// ---------------------------------------------------------------------------------------------
-	logger := s.logger.With(
-		zap.String("keyId", key.Id),
-		zap.String("apiId", api.Id),
-		zap.String("keyAuthId", key.KeyAuthId),
-		zap.String("workspaceId", key.WorkspaceId),
-	)
 
-	logger.Info("report.key.verifying")
+	if s.metrics != nil {
+		s.metrics.ReportKeyVerification(metrics.KeyVerificationReport{
+			WorkspaceId: key.WorkspaceId,
+			ApiId:       api.Id,
+			KeyId:       key.Id,
+			KeyAuthId:   key.KeyAuthId,
+		})
+	}
 
 	res := VerifyKeyResponse{
 		Valid:   true,

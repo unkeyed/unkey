@@ -1,55 +1,47 @@
 package logging
 
 import (
-	adapter "github.com/axiomhq/axiom-go/adapters/zap"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"log"
+	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"os"
-	"time"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
 )
 
-type Logger = *zap.Logger
+type Logger = zerolog.Logger
 
-func New() Logger {
+const timeFormat = "2006-01-02T15:04:05.000MST"
 
-	axiomCore, err := adapter.New(adapter.SetDataset("api"))
-	if err != nil {
+func init() {
+	_, file, _, _ := runtime.Caller(0)
 
-		config := zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		logger, zapErr := config.Build()
-		if zapErr != nil {
-			log.Fatalf("can't initialize logger: %s", err.Error())
-		}
-		logger.Info("new development logger created")
-		return logger
+	dir := file
+	for i := 0; i < 3; i++ {
+		dir = filepath.Dir(dir)
 	}
-	go func() {
-		for range time.NewTicker(time.Second * 5).C {
+	prefixPath := fmt.Sprintf("%s/", filepath.ToSlash(dir))
 
-			err = axiomCore.Sync()
-			if err != nil {
-				log.Printf("can't sync to axiom: %s\n", err.Error())
-			}
-		}
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return fmt.Sprintf("%s:%s", strings.TrimPrefix(file, prefixPath), strconv.Itoa(line))
+	}
 
-	}()
+	zerolog.TimeFieldFormat = timeFormat
 
-	consoleCore := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-		os.Stdout,
-		zapcore.DebugLevel,
-	)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat})
+}
 
-	logger := zap.New(zapcore.NewTee(consoleCore, axiomCore))
-
-	logger.Info("logging set up with axiom")
-
-	return logger
-
+func New(debug ...bool) Logger {
+	isDebug := len(debug) > 0 && debug[0]
+	if isDebug {
+		return log.Level(zerolog.DebugLevel).With().Timestamp().Caller().Logger()
+	} else {
+		return log.Level(zerolog.InfoLevel).With().Timestamp().Caller().Logger()
+	}
 }
 
 func NewNoopLogger() Logger {
-	return zap.NewNop()
+	return zerolog.Nop()
 }

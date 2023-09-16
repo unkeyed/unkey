@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"go.uber.org/zap"
 )
 
 type loggingMiddleware struct {
@@ -26,13 +25,13 @@ func (mw *loggingMiddleware) CreateWorkspace(ctx context.Context, req CreateWork
 	start := time.Now()
 
 	res, err := mw.next.CreateWorkspace(ctx, req)
-	mw.logger.Info("mw.CreateWorkspace", zap.String("method", "CreateWorkspace"), zap.Error(err), zap.Int64("latency", time.Since(start).Milliseconds()))
+	mw.logger.Info().Str("method", "CreateWorkspace").Err(err).Int64("latency", time.Since(start).Milliseconds()).Msg("mw.workspaceService")
 	return res, err
 }
 func (mw *loggingMiddleware) ChangePlan(ctx context.Context, req ChangePlanRequest) (ChangePlanResponse, error) {
 	start := time.Now()
 
 	res, err := mw.next.ChangePlan(ctx, req)
-	mw.logger.Info("mw.workspaceService", zap.String("method", "ChangePlan"), zap.Error(err), zap.Int64("latency", time.Since(start).Milliseconds()))
+	mw.logger.Info().Str("method", "ChangePlan").Err(err).Int64("latency", time.Since(start).Milliseconds()).Msg("mw.workspaceService")
 	return res, err
 }

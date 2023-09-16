@@ -64,7 +64,8 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             plan: "pro",
             billingPeriodStart: new Date(sub.current_period_start * 1000),
             billingPeriodEnd: new Date(sub.current_period_end * 1000),
-            trialEnds: sub.status === "trialing" && sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+            trialEnds:
+              sub.status === "trialing" && sub.trial_end ? new Date(sub.trial_end * 1000) : null,
             maxActiveKeys: QUOTA.pro.maxActiveKeys,
             maxVerifications: QUOTA.pro.maxVerifications,
           })
@@ -130,10 +131,10 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         break;
       }
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice
+        const invoice = event.data.object as Stripe.Invoice;
         console.log("invoice failed", invoice);
-        if (!loops){
-           break
+        if (!loops) {
+          break;
         }
         const ws = await db.query.workspaces.findFirst({
           where: eq(schema.workspaces.stripeCustomerId, invoice.customer!.toString()),
@@ -146,11 +147,10 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email: user.email,
             name: user.name,
-            date: invoice.effective_at ? new Date(invoice.effective_at*1000) : new Date(),
+            date: invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date(),
           });
         }
-        break
-
+        break;
       }
 
       default:
