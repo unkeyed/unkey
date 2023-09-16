@@ -30,7 +30,6 @@ func transformWorkspaceModelToEntity(m gen.Workspace) entities.Workspace {
 	return entities.Workspace{
 		Id:       m.ID,
 		Name:     m.Name,
-		Slug:     m.Slug,
 		TenantId: m.TenantID,
 		Plan:     entities.Plan(m.Plan.WorkspacesPlan),
 	}

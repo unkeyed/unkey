@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertWorkspace = `-- name: InsertWorkspace :exec
@@ -31,7 +32,7 @@ VALUES
 type InsertWorkspaceParams struct {
 	ID       string
 	Name     string
-	Slug     string
+	Slug     sql.NullString
 	TenantID string
 	Plan     NullWorkspacesPlan
 }

@@ -65,7 +65,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     shouldFocusError: true,
     delayError: 100,
     defaultValues: {
-      prefix: "key",
       bytes: 16,
     },
   });

@@ -49,10 +49,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
     if (search === "") {
       return organizationList;
     }
-    return organizationList?.filter(
-      ({ organization }) =>
-        organization.name.toLowerCase().includes(search.toLowerCase()) ||
-        organization.slug?.toLowerCase().includes(search.toLowerCase()),
+    return organizationList?.filter(({ organization }) =>
+      organization.name.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, organizationList])!;
   return (

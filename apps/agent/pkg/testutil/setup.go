@@ -48,14 +48,12 @@ func SetupResources(t *testing.T) resources {
 	r.UnkeyWorkspace = entities.Workspace{
 		Id:       uid.Workspace(),
 		Name:     "unkey",
-		Slug:     uuid.NewString(),
 		TenantId: uuid.NewString(),
 	}
 
 	r.UserWorkspace = entities.Workspace{
 		Id:       uid.Workspace(),
 		Name:     "user",
-		Slug:     uuid.NewString(),
 		TenantId: uuid.NewString(),
 	}
 

@@ -13,7 +13,6 @@ type WorkspaceService interface {
 
 type CreateWorkspaceRequest struct {
 	Name     string
-	Slug     string
 	TenantId string
 	Plan     entities.Plan
 }
