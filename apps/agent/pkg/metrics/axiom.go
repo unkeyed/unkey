@@ -7,6 +7,7 @@ import (
 
 	ax "github.com/axiomhq/axiom-go/axiom"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type axiom struct {
@@ -49,7 +50,7 @@ func (m *axiom) Close() {
 }
 
 func (m *axiom) report(metric metricId, r any) {
-	e := toMap(r)
+	e := util.StructToMap(r)
 	e["metric"] = metric
 	e["_time"] = time.Now().UnixMilli()
 	e["region"] = m.region
