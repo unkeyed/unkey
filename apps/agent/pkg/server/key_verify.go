@@ -145,19 +145,28 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// Send usage to tinybird
 	// ---------------------------------------------------------------------------------------------
 
-	defer s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
-		WorkspaceId:       key.WorkspaceId,
-		ApiId:             api.Id,
-		KeyId:             key.Id,
-		Ratelimited:       res.Code == errors.RATELIMITED,
-		UsageExceeded:     res.Code == errors.KEY_USAGE_EXCEEDED,
-		Time:              time.Now().UnixMilli(),
-		Region:            s.region,
-		EdgeRegion:        c.Get("Fly-Region"),
-		UserAgent:         c.Get("User-Agent"),
-		IpAddress:         c.Get("Fly-Client-IP"),
-		RequestedResource: req.X.Resource,
-	})
+	defer func() {
+		var denied analytics.DeniedReason
+		switch res.Code {
+		case errors.KEY_USAGE_EXCEEDED:
+			denied = analytics.DeniedUsageExceeded
+		case errors.RATELIMITED:
+			denied = analytics.DeniedRateLimited
+		}
+
+		s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
+			WorkspaceId:       key.WorkspaceId,
+			ApiId:             api.Id,
+			KeyId:             key.Id,
+			Denied:            denied,
+			Time:              time.Now().UnixMilli(),
+			Region:            s.region,
+			EdgeRegion:        c.Get("Fly-Region"),
+			UserAgent:         c.Get("User-Agent"),
+			IpAddress:         c.Get("Fly-Client-IP"),
+			RequestedResource: req.X.Resource,
+		})
+	}()
 
 	if !key.Expires.IsZero() {
 		res.Expires = key.Expires.UnixMilli()
