@@ -88,6 +88,7 @@ var AgentCmd = &cobra.Command{
 			}
 			metrics = realMetrics
 		}
+		defer metrics.Close()
 
 		// Setup Axiom
 
