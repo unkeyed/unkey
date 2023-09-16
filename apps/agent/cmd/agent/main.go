@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -55,16 +56,33 @@ var AgentCmd = &cobra.Command{
 	Short: "Run the Unkey agent",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		e := env.Env{
+			ErrorHandler: func(err error) {
+				log.Fatalf("unable to load environment variable: %s", err.Error())
+			},
+		}
+		logConfig := &logging.Config{
+			Debug: runtimeConfig.verbose,
+		}
+		if runtimeConfig.enableAxiom {
+			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
+				AxiomToken: e.String("AXIOM_TOKEN"),
+				AxiomOrgId: e.String("AXIOM_ORG_ID"),
+			})
+			if err != nil {
+				log.Fatalf("unable to create axiom writer: %s", err.Error())
+			}
+			logConfig.Writer = append(logConfig.Writer, axiomWriter)
+		}
 
-		logger := logging.New(runtimeConfig.verbose).With().Str("version", version.Version).Logger()
+		logger, err := logging.New(logConfig)
+		if err != nil {
+			log.Fatalf("unable to create logger: %s", err.Error())
+		}
+		logger = logger.With().Str("version", version.Version).Logger()
 
 		logger.Info().Any("runtimeConfig", runtimeConfig).Msg("Starting Unkey Agent")
 
-		e := env.Env{
-			ErrorHandler: func(err error) {
-				logger.Fatal().Err(err).Msg("unable to load environment variable")
-			},
-		}
 		region := e.String("FLY_REGION", "local")
 		allocId := e.String("FLY_ALLOC_ID", "")
 		logger = logger.With().Str("region", region).Logger()
