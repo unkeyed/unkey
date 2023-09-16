@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
-	"go.uber.org/zap"
 )
 
 // nullish is a wrapper to allow a value to be optional or null
@@ -55,8 +54,6 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
 	}
 
-	s.logger.Info("req", zap.Any("req", req))
-
 	err = c.BodyParser(&req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
@@ -67,7 +64,6 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate body: %s", err.Error()))
 	}
 
-	s.logger.Info("updating key", zap.Any("req", req))
 	if req.Expires.Defined && req.Expires.Value != nil && *req.Expires.Value > 0 && *req.Expires.Value < time.Now().UnixMilli() {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
@@ -89,8 +85,6 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	if key.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.FORBIDDEN, "access to workspace denied")
 	}
-
-	s.logger.Info("found key", zap.Any("key", key))
 
 	if req.Name.Defined {
 		if req.Name.Value != nil {

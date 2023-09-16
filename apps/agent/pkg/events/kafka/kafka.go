@@ -13,7 +13,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
-	"go.uber.org/zap"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
 const topic = "key.changed"
@@ -27,7 +27,7 @@ type Kafka struct {
 	onKeyEvent   []func(ctx context.Context, e events.KeyEvent) error
 
 	stopC  chan struct{}
-	logger *zap.Logger
+	logger logging.Logger
 
 	// Events are first written to this channel and then flushed to kafka
 	// This allows much cleaner code for users of this package
@@ -42,12 +42,12 @@ type Config struct {
 	Broker   string
 	Username string
 	Password string
-	Logger   *zap.Logger
+	Logger   logging.Logger
 }
 
 func New(config Config) (*Kafka, error) {
-	logger := config.Logger.With(zap.String("pkg", "kafka"))
-	logger.Info("starting kafka")
+	logger := config.Logger.With().Str("pkg", "kafka").Logger()
+	logger.Info().Msg("starting kafka")
 	mechanism, err := scram.Mechanism(scram.SHA256, config.Username, config.Password)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create scram mechanism: %w", err)
@@ -96,19 +96,19 @@ func (k *Kafka) EmitKeyEvent(ctx context.Context, e events.KeyEvent) {
 }
 
 func (k *Kafka) Close() error {
-	k.logger.Info("stopping..")
-	defer k.logger.Info("stopped")
+	k.logger.Info().Msg("stopping..")
+	defer k.logger.Info().Msg("stopped")
 	k.Lock()
 	defer k.Unlock()
 	close(k.stopC)
 
-	k.logger.Info("stopping reader")
+	k.logger.Info().Msg("stopping reader")
 	err := k.keyChangedReader.Close()
 	if err != nil {
 		return err
 	}
 
-	k.logger.Info("stopping writer")
+	k.logger.Info().Msg("stopping writer")
 	err = k.keyChangedWriter.Close()
 	if err != nil {
 		return err
@@ -127,13 +127,13 @@ func (k *Kafka) Start() {
 			case e := <-k.keyEventBuffer:
 				value, err := json.Marshal(e)
 				if err != nil {
-					k.logger.Error("unable to marshal KeyEvent", zap.Error(err), zap.String("type", string(e.Type)), zap.String("keyId", e.Key.Id))
+					k.logger.Err(err).Str("type", string(e.Type)).Str("keyId", e.Key.Id).Msg("unable to marshal KeyEvent")
 					continue
 				}
 
 				err = k.keyChangedWriter.WriteMessages(context.Background(), kafka.Message{Value: value})
 				if err != nil {
-					k.logger.Error("unable write messages to kafka", zap.Error(err), zap.String("type", string(e.Type)), zap.String("keyId", e.Key.Id))
+					k.logger.Err(err).Str("type", string(e.Type)).Str("keyId", e.Key.Id).Msg("unable write messages to kafka")
 					continue
 				}
 			}
@@ -162,18 +162,18 @@ func (k *Kafka) handleNextMessage(ctx context.Context) {
 			return
 		}
 
-		k.logger.Error("unable to fetch message", zap.Error(err))
+		k.logger.Err(err).Msg("unable to fetch message")
 		return
 	}
 
 	if len(m.Value) == 0 {
-		k.logger.Warn("message is empty", zap.String("topic", m.Topic))
+		k.logger.Warn().Str("topic", m.Topic).Msg("message is empty")
 		return
 	}
 	e := events.KeyEvent{}
 	err = json.Unmarshal(m.Value, &e)
 	if err != nil {
-		k.logger.Error("unable to unmarshal message", zap.Error(err), zap.String("value", string(m.Value)))
+		k.logger.Err(err).Str("value", string(m.Value)).Msg("unable to unmarshal message")
 		return
 	}
 	k.callbackLock.RLock()
@@ -181,14 +181,14 @@ func (k *Kafka) handleNextMessage(ctx context.Context) {
 	for _, handler := range k.onKeyEvent {
 		err := handler(ctx, e)
 		if err != nil {
-			k.logger.Error("unable to handle message", zap.Error(err))
+			k.logger.Err(err).Msg("unable to handle message")
 			continue
 		}
 	}
 
 	err = k.keyChangedReader.CommitMessages(ctx, m)
 	if err != nil {
-		k.logger.Error("unable to commit message", zap.Error(err))
+		k.logger.Err(err).Msg("unable to commit message")
 		return
 	}
 

@@ -1,0 +1,19 @@
+# fly.toml app configuration file generated for unkey-agent-log-shipper on 2023-09-16T10:15:31+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "unkey-agent-log-shipper"
+primary_region = "fra"
+
+[build]
+  image = "ghcr.io/superfly/fly-log-shipper:latest"
+
+
+[[services]]
+  http_checks = []
+  internal_port = 8686
+
+[env]
+  SUBJECT = "logs.unkey-api-production.>"
+  QUEUE = "org-logs"

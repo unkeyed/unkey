@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"go.uber.org/zap"
 )
 
 type CacheWarmer struct {
@@ -31,7 +30,7 @@ func NewCacheWarmer(config Config) *CacheWarmer {
 		apiCache: config.ApiCache,
 		keyCache: config.KeyCache,
 		db:       config.DB,
-		logger:   config.Logger.With(zap.String("pkg", "cacheWarmer")),
+		logger:   config.Logger.With().Str("pkg", "cacheWarmer").Logger(),
 		stopped:  false,
 	}
 }
@@ -56,8 +55,8 @@ func (c *CacheWarmer) Run(ctx context.Context) error {
 			return fmt.Errorf("unable to list apis: %w", err)
 		}
 		for _, api := range apis {
-			logger := c.logger.With(zap.String("apiId", api.Id))
-			logger.Info("seeding api")
+			logger := c.logger.With().Str("apiId", api.Id).Logger()
+			logger.Info().Msg("seeding api")
 			c.apiCache.Set(ctx, api.KeyAuthId, api)
 
 			keyOffset := 0

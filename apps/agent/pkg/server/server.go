@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"go.uber.org/zap"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"go.opentelemetry.io/otel/attribute"
@@ -44,6 +44,7 @@ type Config struct {
 	EventBus          events.EventBus
 	Version           string
 	WorkspaceService  workspaces.WorkspaceService
+	Metrics           metrics.Metrics
 }
 
 type Server struct {
@@ -65,6 +66,7 @@ type Server struct {
 	unkeyApiId        string
 	unkeyKeyAuthId    string
 	region            string
+	metrics           metrics.Metrics
 
 	// Used for communication with other pods
 	// Not guaranteed to be available, always do a nil check first!
@@ -99,6 +101,7 @@ func New(config Config) *Server {
 		region:            config.Region,
 		version:           config.Version,
 		workspaceService:  config.WorkspaceService,
+		metrics:           config.Metrics,
 	}
 	if s.events == nil {
 		s.events = events.NewNoop()
@@ -110,7 +113,7 @@ func New(config Config) *Server {
 	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
 		buf := make([]byte, 2048)
 		buf = buf[:runtime.Stack(buf, false)]
-		config.Logger.Error("recovered from panic", zap.Any("err", err), zap.ByteString("stacktrace", buf))
+		config.Logger.Error().Any("err", err).Bytes("stacktrace", buf).Msg("recovered from panic")
 	}}))
 
 	s.app.Use(func(c *fiber.Ctx) error {
@@ -137,23 +140,38 @@ func New(config Config) *Server {
 		err := c.Next()
 		latency := time.Since(start)
 
-		log := config.Logger.With(
-			zap.String("method", c.Route().Method),
-			zap.Int("status", c.Response().StatusCode()),
-			zap.String("path", c.Path()),
-			zap.Error(err),
-			zap.Int64("serviceLatency", latency.Milliseconds()),
-			zap.String("edgeRegion", edgeRegion),
-			zap.String("traceId", traceId),
-		)
-
-		if c.Response().StatusCode() >= 500 || (err != nil && !errors.Is(err, fiber.ErrMethodNotAllowed)) {
-			log.Error("request failed", zap.String("body", string(c.Response().Body())), zap.Error(err))
-			span.RecordError(err)
-		} else {
-			log.Info("request completed")
+		error := ""
+		if err != nil {
+			error = err.Error()
+		}
+		if s.metrics != nil {
+			s.metrics.ReportHttpRequest(metrics.HttpRequestReport{
+				Method:         c.Route().Method,
+				Status:         c.Response().StatusCode(),
+				Path:           c.Path(),
+				EdgeRegion:     edgeRegion,
+				TraceId:        traceId,
+				ServiceLatency: latency.Milliseconds(),
+				Error:          error,
+			})
 		}
 
+		log := config.Logger.With().
+			Str("body", string(c.Response().Body())).
+			Str("method", c.Route().Method).
+			Int("status", c.Response().StatusCode()).
+			Str("path", c.Path()).
+			Int64("serviceLatency", latency.Milliseconds()).
+			Str("edgeRegion", edgeRegion).
+			Str("traceId", traceId).
+			Logger()
+
+		if c.Response().StatusCode() >= 500 || (err != nil && !errors.Is(err, fiber.ErrMethodNotAllowed)) {
+			log.Err(err).Msg("request failed")
+			span.RecordError(err)
+		} else {
+			log.Debug().Msg("request completed")
+		}
 		return err
 	})
 
@@ -180,7 +198,7 @@ func New(config Config) *Server {
 }
 
 func (s *Server) Start(addr string) error {
-	s.logger.Info("listening", zap.String("addr", addr))
+	s.logger.Info().Str("addr", addr).Msg("listening")
 	err := s.app.Listen(addr)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("api server error: %s", err.Error())
@@ -191,7 +209,7 @@ func (s *Server) Start(addr string) error {
 func (s *Server) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
-	s.logger.Info("stopping..")
-	defer s.logger.Info("stopped")
+	s.logger.Info().Msg("stopping..")
+	defer s.logger.Info().Msg("stopped")
 	return s.app.Server().ShutdownWithContext(ctx)
 }

@@ -6,7 +6,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-	"go.uber.org/zap"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
 type replica struct {
@@ -17,7 +17,7 @@ type replica struct {
 type database struct {
 	writeReplica *replica
 	readReplica  *replica
-	logger       *zap.Logger
+	logger       logging.Logger
 }
 
 type Config struct {
@@ -25,13 +25,13 @@ type Config struct {
 	ReplicaEu   string
 	ReplicaAsia string
 	FlyRegion   string
-	Logger      *zap.Logger
+	Logger      logging.Logger
 }
 
 type Middleware func(Database) Database
 
 func New(config Config, middlewares ...Middleware) (Database, error) {
-	logger := config.Logger.With(zap.String("pkg", "database"))
+	logger := config.Logger.With().Str("pkg", "database").Logger()
 	primary, err := connect(config.PrimaryUs)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to primary, %w", err)
@@ -39,7 +39,7 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 	var readDB *sql.DB
 	c := getClosestContinent(config.FlyRegion)
 	if c == continentEu && config.ReplicaEu != "" {
-		logger.Info("Adding database read replica", zap.String("continent", "europe"))
+		logger.Info().Str("continent", "europe").Msg("Adding database read replica")
 		readDB, err = connect(config.ReplicaEu)
 		if err != nil {
 			if err != nil {
@@ -47,13 +47,13 @@ func New(config Config, middlewares ...Middleware) (Database, error) {
 			}
 		}
 	} else if c == continentAsia && config.ReplicaAsia != "" {
-		logger.Info("Adding database read replica", zap.String("continent", "asia"))
+		logger.Info().Str("continent", "asia").Msg("Adding database read replica")
 		readDB, err = connect(config.ReplicaAsia)
 		if err != nil {
 			return nil, fmt.Errorf("unable to connect to asia replica")
 		}
 	} else {
-		logger.Info("Adding database read replica", zap.String("continent", "us"))
+		logger.Info().Str("continent", "us").Msg("Adding database read replica")
 		readDB, err = connect(config.PrimaryUs)
 		if err != nil {
 			return nil, fmt.Errorf("unable to connect to us replica")
@@ -86,7 +86,7 @@ func (d *database) read() *gen.Queries {
 	if d.readReplica != nil && d.readReplica.query != nil {
 		return d.readReplica.query
 	}
-	d.logger.Warn("falling back to primary ")
+	d.logger.Warn().Msg("falling back to primary ")
 	return d.writeReplica.query
 }
 

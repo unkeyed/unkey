@@ -455,7 +455,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:    logging.NewNoopLogger(),
+		Logger:    logging.New(),
 		KeyCache:  cache.NewNoopCache[entities.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  resources.Database,
