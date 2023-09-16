@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
@@ -60,7 +61,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
-	api, found, err := withCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
+	api, found, err := cache.WithCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}

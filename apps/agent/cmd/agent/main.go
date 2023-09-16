@@ -215,24 +215,24 @@ var AgentCmd = &cobra.Command{
 		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
 		keyCache = cacheMiddleware.WithMetrics[entities.Key](keyCache, metrics, "key")
 
-		apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
+		apiByKeyAuthIdCache := cache.New[entities.Api](cache.Config[entities.Api]{
 			Fresh:   time.Minute * 5,
 			Stale:   time.Minute * 15,
 			MaxSize: 1024 * 1024,
-			RefreshFromOrigin: func(ctx context.Context, apiId string) (entities.Api, bool) {
-				key, found, err := db.FindApi(ctx, apiId)
+			RefreshFromOrigin: func(ctx context.Context, keyAuthId string) (entities.Api, bool) {
+				api, found, err := db.FindApiByKeyAuthId(ctx, keyAuthId)
 				if err != nil {
-					logger.Err(err).Msg("unable to refresh api by id")
+					logger.Err(err).Msg("unable to refresh api by keyAuthId")
 					return entities.Api{}, false
 				}
-				return key, found
+				return api, found
 			},
 			Logger:   logger.With().Str("cacheType", "api").Logger(),
 			Metrics:  metrics,
 			Resource: "api",
 		})
-		apiCache = cacheMiddleware.WithTracing[entities.Api](apiCache, tracer)
-		apiCache = cacheMiddleware.WithMetrics[entities.Api](apiCache, metrics, "api")
+		apiByKeyAuthIdCache = cacheMiddleware.WithTracing[entities.Api](apiByKeyAuthIdCache, tracer)
+		apiByKeyAuthIdCache = cacheMiddleware.WithMetrics[entities.Api](apiByKeyAuthIdCache, metrics, "api")
 
 		eventBus.OnKeyEvent(func(ctx context.Context, e events.KeyEvent) error {
 
@@ -243,23 +243,19 @@ var AgentCmd = &cobra.Command{
 			}
 
 			logger.Debug().Str("keyId", e.Key.Id).Str("keyHash", e.Key.Hash).Msg("precaching key")
-			key, found, err := db.FindKeyById(ctx, e.Key.Id)
+			key, found, err := cache.WithCache(keyCache, db.FindKeyById)(ctx, e.Key.Id)
 			if err != nil {
 				return fmt.Errorf("unable to get key by id: %s: %w", e.Key.Id, err)
 			}
 			if !found {
 				return nil
 			}
-			keyCache.Set(ctx, key.Hash, key)
 			logger.Debug().Str("keyAuthId", key.KeyAuthId).Msg("precaching api")
-			api, found, err := db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
+
+			_, _, err = cache.WithCache(apiByKeyAuthIdCache, db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
 			if err != nil {
 				return fmt.Errorf("unable to find api by keyAuthId: %s: %w", key.KeyAuthId, err)
 			}
-			if !found {
-				return nil
-			}
-			apiCache.Set(ctx, api.KeyAuthId, api)
 
 			return nil
 		})
@@ -268,7 +264,7 @@ var AgentCmd = &cobra.Command{
 
 			cacheWarmer := boot.NewCacheWarmer(boot.Config{
 				KeyCache: keyCache,
-				ApiCache: apiCache,
+				ApiCache: apiByKeyAuthIdCache,
 				DB:       db,
 				Logger:   logger,
 			})
@@ -293,7 +289,7 @@ var AgentCmd = &cobra.Command{
 		srv := server.New(server.Config{
 			Logger:            logger,
 			KeyCache:          keyCache,
-			ApiCache:          apiCache,
+			ApiCache:          apiByKeyAuthIdCache,
 			Database:          db,
 			Ratelimit:         fastRatelimit,
 			GlobalRatelimit:   consistentRatelimit,

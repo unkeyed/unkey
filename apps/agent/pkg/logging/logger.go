@@ -53,9 +53,9 @@ func New(config *Config) (Logger, error) {
 
 	logger := zerolog.New(multi).With().Timestamp().Caller().Logger()
 	if config.Debug {
-		logger.Level(zerolog.DebugLevel)
+		logger = logger.Level(zerolog.DebugLevel)
 	} else {
-		logger.Level(zerolog.InfoLevel)
+		logger = logger.Level(zerolog.InfoLevel)
 	}
 	return logger, nil
 }

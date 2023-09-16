@@ -23,15 +23,15 @@ const (
 )
 
 type KeyVerificationEvent struct {
-	ApiId         string `json:"apiId"`
-	WorkspaceId   string `json:"workspaceId"`
-	KeyId         string `json:"keyId"`
-	
-		// Deprecated, use `Denied` instead
-	Ratelimited   bool   `json:"ratelimited"`
+	ApiId       string `json:"apiId"`
+	WorkspaceId string `json:"workspaceId"`
+	KeyId       string `json:"keyId"`
+
 	// Deprecated, use `Denied` instead
-	UsageExceeded bool   `json:"usageExceeded"`
-	Time          int64  `json:"time"`
+	Ratelimited bool `json:"ratelimited"`
+	// Deprecated, use `Denied` instead
+	UsageExceeded bool  `json:"usageExceeded"`
+	Time          int64 `json:"time"`
 
 	EdgeRegion string `json:"edgeRegion"`
 	Region     string `json:"region"`

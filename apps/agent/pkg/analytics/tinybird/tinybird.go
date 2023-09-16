@@ -48,6 +48,7 @@ func New(config Config) *Tinybird {
 }
 
 func (t *Tinybird) consume() {
+
 	for {
 		select {
 		case <-t.closeC:
