@@ -7,7 +7,7 @@ on:
 
 jobs:
   release-ts-sdk:
-    name: Release
+    name: Release @unkey/api
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -64,7 +64,7 @@ jobs:
         run: pnpm publish --access public --no-git-checks 
 
   release-unkey-nextjs:
-    name: Release
+    name: Release @unkey/nextjs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
