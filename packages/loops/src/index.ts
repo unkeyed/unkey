@@ -46,7 +46,6 @@ export class Loops {
   public async sendSubscriptionEnded(req: {
     email: string;
     name: string;
-    billingPortalLink: string;
   }): Promise<void> {
     await this.fetch({
       path: ["v1", "transactional"],
@@ -56,7 +55,21 @@ export class Loops {
         email: req.email,
         dataVariables: {
           name: req.name,
-          billingPortalLink: req.billingPortalLink,
+        },
+      },
+    });
+  }
+
+  public async sendPaymentFailure(req: { email: string; name: string; date: Date }): Promise<void> {
+    await this.fetch({
+      path: ["v1", "transactional"],
+      method: "POST",
+      body: {
+        transactionalId: "clmlpuojt001rme0qy8xewnyh",
+        email: req.email,
+        dataVariables: {
+          name: req.name,
+          date: req.date.toDateString(),
         },
       },
     });

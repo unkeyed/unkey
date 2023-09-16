@@ -64,7 +64,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             plan: "pro",
             billingPeriodStart: new Date(sub.current_period_start * 1000),
             billingPeriodEnd: new Date(sub.current_period_end * 1000),
-            trialEnds: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+            trialEnds: sub.status === "trialing" && sub.trial_end ? new Date(sub.trial_end * 1000) : null,
             maxActiveKeys: QUOTA.pro.maxActiveKeys,
             maxVerifications: QUOTA.pro.maxVerifications,
           })
@@ -94,16 +94,11 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           .where(eq(schema.workspaces.id, ws.id));
 
         if (loops) {
-          const portal = await stripe.billingPortal.sessions.create({
-            customer: ws.stripeCustomerId!,
-          });
-
           const users = await getUsers(ws.tenantId);
           for await (const user of users) {
             await loops.sendSubscriptionEnded({
               email: user.email,
               name: user.name,
-              billingPortalLink: portal.url,
             });
           }
         }
@@ -133,6 +128,29 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         }
 
         break;
+      }
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice
+        console.log("invoice failed", invoice);
+        if (!loops){
+           break
+        }
+        const ws = await db.query.workspaces.findFirst({
+          where: eq(schema.workspaces.stripeCustomerId, invoice.customer!.toString()),
+        });
+        if (!ws) {
+          throw new Error("workspace does not exist");
+        }
+        const users = await getUsers(ws.tenantId);
+        for await (const user of users) {
+          await loops.sendTrialEnds({
+            email: user.email,
+            name: user.name,
+            date: invoice.effective_at ? new Date(invoice.effective_at*1000) : new Date(),
+          });
+        }
+        break
+
       }
 
       default:
