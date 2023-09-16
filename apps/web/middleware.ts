@@ -1,5 +1,5 @@
 import { db, eq, schema } from "@/lib/db";
-import { authMiddleware } from "@clerk/nextjs";
+import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 const DEBUG_ON = process.env.CLERK_DEBUG === "true";
@@ -40,7 +40,7 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
   const res = await authMiddleware({
     publicRoutes,
     signInUrl: "/auth/sign-in",
-    debug: DEBUG_ON,
+    debug: true,
 
     afterAuth: async (auth, req) => {
       if (!(auth.userId || auth.isPublicRoute)) {
@@ -48,30 +48,31 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
       }
       userId = auth.userId ?? undefined;
       tenantId = auth.orgId ?? auth.userId ?? undefined;
-      // Stops users from accessing the application if they have not paid yet.
-      if (
-        auth.orgId &&
-        !["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)
-      ) {
+      if (auth.orgId) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
-        // if we end up here... something is wrong with the workspace and we should redirect to the new page.
-        // this should never happen.
-        if(!workspace) {
+        // okay if we don't find a workspace, we need to delete the orgId and send them to create a new workspace.
+        // this should never happen, but if it does, we need to handle it.
+        if (!workspace && req.nextUrl.pathname !== "/new") {
           console.error("Workspace not found for orgId", auth.orgId);
+          await clerkClient.organizations.deleteOrganization(auth.orgId);
+          console.log("Deleted orgId", auth.orgId, " sending to create new workspace.")
           return NextResponse.redirect(new URL("/new", req.url));
         }
-        if (workspace?.plan === "free") {
-          return NextResponse.redirect(new URL("/app/stripe", req.url));
+        // this stops users if they haven't paid.
+        if (!["/app/stripe", "/app/apis", "/app", "/new"].includes(req.nextUrl.pathname)) {
+          if (workspace?.plan === "free") {
+            return NextResponse.redirect(new URL("/app/stripe", req.url));
+          }
+          return NextResponse.next();
         }
-        return NextResponse.next();
-      }
-      if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
-        const workspace = await findWorkspace({ tenantId: auth.userId });
-        if (!workspace) {
-          return NextResponse.redirect(new URL("/new", req.url));
+        if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
+          const workspace = await findWorkspace({ tenantId: auth.userId });
+          if (!workspace) {
+            return NextResponse.redirect(new URL("/new", req.url));
+          }
         }
       }
-    },
+    }
   })(req, evt);
 
   evt.waitUntil(collectPageViewAnalytics({ req, userId, tenantId }));
