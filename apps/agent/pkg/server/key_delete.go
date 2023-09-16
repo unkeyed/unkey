@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 
@@ -33,7 +35,7 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
-	key, found, err := withCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
+	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
 	}

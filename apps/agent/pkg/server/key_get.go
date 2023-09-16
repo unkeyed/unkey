@@ -2,7 +2,9 @@ package server
 
 import (
 	"fmt"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
@@ -29,7 +31,7 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
 
-	key, found, err := withCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
+	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
@@ -39,7 +41,7 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 	if key.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
 	}
-	api, found, err := withCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
+	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}

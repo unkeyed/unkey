@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 )
 
@@ -21,7 +22,7 @@ func (s *Server) authorizeRootKey(ctx context.Context, header string) (authorize
 
 	h := hash.Sha256(token)
 
-	key, found, err := withCache(s.keyCache, s.db.FindKeyByHash)(ctx, h)
+	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyByHash)(ctx, h)
 	if err != nil {
 		return "", err
 	}
