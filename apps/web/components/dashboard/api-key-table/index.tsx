@@ -27,7 +27,6 @@ import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CopyButton } from "../copy-button";
 import { Loading } from "../loading";
 import { DataTable } from "./table";
 type Column = {
@@ -70,6 +69,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
   const columns: ColumnDef<Column>[] = [
     {
       id: "select",
+
       header: ({ table }) => (
         <div className="flex items-center justify-center">
           <Checkbox
@@ -90,20 +90,6 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       ),
       enableSorting: false,
       enableHiding: false,
-    },
-    {
-      accessorKey: "id",
-      header: "Key ID",
-      cell: ({ row }) => (
-        <Badge
-          key="apiId"
-          variant="secondary"
-          className="flex justify-between w-full font-mono font-medium"
-        >
-          {row.getValue("id")}
-          <CopyButton value={row.getValue("id")} className="ml-2" />
-        </Badge>
-      ),
     },
     {
       accessorKey: "start",

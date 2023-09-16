@@ -1,9 +1,9 @@
-import { ColumnChart } from "@/components/dashboard/charts";
+import { StackedColumnChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { getDailyUsage, getTotalActiveKeys } from "@/lib/tinybird";
+import { getDailyVerifications, getTotalActiveKeys } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -40,7 +40,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     end,
   });
 
-  const usage = await getDailyUsage({
+  const usage = await getDailyVerifications({
     workspaceId: api.workspaceId,
     apiId: api.id,
   });
@@ -48,14 +48,39 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   const keys = await keysP;
   const active = await activeP;
 
-  const usageOverTime = fillRange(
-    usage.data.map(({ time, usage }) => ({ value: usage, time })),
+  const successOverTime = fillRange(
+    usage.data.map(({ time, success }) => ({ value: success, time })),
     start,
     end,
   ).map(({ value, time }) => ({
     x: new Date(time).toUTCString(),
     y: value,
   }));
+
+  const ratelimitedOverTime = fillRange(
+    usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
+    start,
+    end,
+  ).map(({ value, time }) => ({
+    x: new Date(time).toUTCString(),
+    y: value,
+  }));
+
+  const usageExceededOverTime = fillRange(
+    usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
+    start,
+    end,
+  ).map(({ value, time }) => ({
+    x: new Date(time).toUTCString(),
+    y: value,
+  }));
+  console.log(usage, api.workspaceId, api.id);
+
+  const data = [
+    ...successOverTime.map((d) => ({ ...d, category: "Successful Verifications" })),
+    ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
+    ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
+  ];
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -75,8 +100,10 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       </Card>
       <Card className="col-span-2 md:col-span-1">
         <CardHeader className="pb-6">
-          <CardTitle>{formatNumber(usage.data.reduce((sum, day) => sum + day.usage, 0))}</CardTitle>
-          <CardDescription>Verifications (30 days)</CardDescription>
+          <CardTitle>
+            {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
+          </CardTitle>
+          <CardDescription>Successful Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>
       <Card className="relative col-span-3">
@@ -85,7 +112,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           <CardDescription>This includes all key verifications in this API</CardDescription>
         </CardHeader>
         <CardContent>
-          <ColumnChart data={usageOverTime} />
+          <StackedColumnChart data={data} />
         </CardContent>
       </Card>
     </div>

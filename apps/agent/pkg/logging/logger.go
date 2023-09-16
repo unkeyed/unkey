@@ -2,13 +2,14 @@ package logging
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 type Logger = zerolog.Logger
@@ -30,16 +31,33 @@ func init() {
 
 	zerolog.TimeFieldFormat = timeFormat
 
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat})
 }
 
-func New(debug ...bool) Logger {
-	isDebug := len(debug) > 0 && debug[0]
-	if isDebug {
-		return log.Level(zerolog.DebugLevel).With().Timestamp().Caller().Logger()
-	} else {
-		return log.Level(zerolog.InfoLevel).With().Timestamp().Caller().Logger()
+type Config struct {
+	Debug  bool
+	Writer []io.Writer
+}
+
+func New(config *Config) (Logger, error) {
+	if config == nil {
+		config = &Config{}
 	}
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
+
+	writers := []io.Writer{consoleWriter}
+	if len(config.Writer) > 0 {
+		writers = append(writers, config.Writer...)
+	}
+
+	multi := zerolog.MultiLevelWriter(writers...)
+
+	logger := zerolog.New(multi).With().Timestamp().Caller().Logger()
+	if config.Debug {
+		logger.Level(zerolog.DebugLevel)
+	} else {
+		logger.Level(zerolog.InfoLevel)
+	}
+	return logger, nil
 }
 
 func NewNoopLogger() Logger {
