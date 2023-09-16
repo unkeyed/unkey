@@ -15,11 +15,21 @@ type KeyVerificationV1Event struct {
 	Time        int64  `json:"time"`
 }
 
+type DeniedReason string
+
+const (
+	DeniedRateLimited   DeniedReason = "RATE_LIMITED"
+	DeniedUsageExceeded DeniedReason = "USAGE_EXCEEDED"
+)
+
 type KeyVerificationEvent struct {
 	ApiId         string `json:"apiId"`
 	WorkspaceId   string `json:"workspaceId"`
 	KeyId         string `json:"keyId"`
+	
+		// Deprecated, use `Denied` instead
 	Ratelimited   bool   `json:"ratelimited"`
+	// Deprecated, use `Denied` instead
 	UsageExceeded bool   `json:"usageExceeded"`
 	Time          int64  `json:"time"`
 
@@ -27,6 +37,8 @@ type KeyVerificationEvent struct {
 	Region     string `json:"region"`
 	IpAddress  string `json:"ipAddress"`
 	UserAgent  string `json:"userAgent"`
+
+	Denied DeniedReason `json:"deniedReason"`
 
 	// custom field the user may provide, like a URL or some id
 	RequestedResource string `json:"requestedResource"`

@@ -1,10 +1,11 @@
-package metrics
+package util
 
 import (
 	"reflect"
 )
 
-func toMap(s any) map[string]any {
+// StructToMap converts a struct to a map using its json tags
+func StructToMap(s any) map[string]any {
 	obj := map[string]any{}
 	if s == nil {
 		return obj
@@ -21,7 +22,7 @@ func toMap(s any) map[string]any {
 		field := reflectValue.Field(i).Interface()
 		if tag != "" && tag != "-" {
 			if v.Field(i).Type.Kind() == reflect.Struct {
-				obj[tag] = toMap(field)
+				obj[tag] = StructToMap(field)
 			} else {
 				obj[tag] = field
 			}
