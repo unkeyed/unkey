@@ -6,9 +6,6 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileSideBar } from "./mobile-sidebar";
 interface LayoutProps {
   children: React.ReactNode;
-  params: {
-    workspaceSlug: string;
-  };
 }
 
 export default async function Layout({ children }: LayoutProps) {

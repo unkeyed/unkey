@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, KeyRound, Search } from "lucide-react";
+import { BookOpen, Code, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CreateApiButton } from "./create-api-button";
@@ -74,11 +74,11 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
       ) : (
         <EmptyPlaceholder className="my-4 ">
           <EmptyPlaceholder.Icon>
-            <KeyRound />
+            <Code />
           </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No API Keys Yet</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Title>No APIs found</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
-            You haven&apos;t created any API yet. Create one to get started.
+            You haven&apos;t created any APIs yet. Create one to get started.
           </EmptyPlaceholder.Description>
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
             <CreateApiButton key="createApi" className="" />

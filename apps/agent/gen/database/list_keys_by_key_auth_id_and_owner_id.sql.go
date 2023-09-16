@@ -12,7 +12,7 @@ import (
 
 const listKeysByKeyAuthIdAndOwnerId = `-- name: ListKeysByKeyAuthIdAndOwnerId :many
 SELECT
-    id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests, key_auth_id
+    id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests, key_auth_id, total_uses
 FROM
     ` + "`" + `keys` + "`" + `
 WHERE
@@ -62,6 +62,7 @@ func (q *Queries) ListKeysByKeyAuthIdAndOwnerId(ctx context.Context, arg ListKey
 			&i.Name,
 			&i.RemainingRequests,
 			&i.KeyAuthID,
+			&i.TotalUses,
 		); err != nil {
 			return nil, err
 		}

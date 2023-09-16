@@ -26,7 +26,6 @@ import { z } from "zod";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
-  slug: z.string().min(1, "Slug is required").max(50).regex(/^[a-zA-Z0-9-_\.]+$/),
   plan: z.enum(["free", "pro"]),
 });
 
@@ -58,19 +57,11 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
       router.push(`/new?workspaceId=${workspace.id}`);
     },
     onError(err) {
-      if (err.message.includes("Duplicate entry")) {
-        toast({
-          title: "Error",
-          description: "Workspace already exists, please change the slug and try again",
-          variant: "alert",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: `An error occured while creating your workspace: ${err.message}`,
-          variant: "alert",
-        });
-      }
+      toast({
+        title: "Error",
+        description: `An error occured while creating your workspace: ${err.message}`,
+        variant: "alert",
+      });
     },
   });
 
@@ -83,40 +74,21 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
               onSubmit={form.handleSubmit((values) => createWorkspace.mutate({ ...values }))}
               className="flex flex-col space-y-4"
             >
-              <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:space-x-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormMessage className="text-xs" />
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>What should your workspace be called?</FormDescription>
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormMessage className="text-xs" />
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>What should your workspace be called?</FormDescription>
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormMessage className="text-xs" />
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        This will be used in urls etc. Only alphanumeric, dashes, underscores and
-                        periods are allowed
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-              </div>
               <div className="mt-8">
                 <FormField
                   control={form.control}
@@ -147,11 +119,8 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                                 250 Monthly active keys and 10,000 verifications included.
                               </p>
                             </div>
-                            <div>
-                              <Badge>
-                                $25<span className="ml-1 font-light">/ month</span>
-                              </Badge>
-                            </div>
+
+                            <Badge>14 Day Trial</Badge>
                           </FormItem>
                           <FormItem
                             className={cn(

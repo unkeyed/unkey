@@ -13,7 +13,6 @@ import (
 
 type CreateWorkspaceRequest struct {
 	Name     string `json:"name" validate:"required"`
-	Slug     string `json:"slug" validate:"required"`
 	TenantId string `json:"tenantId" validate:"required"`
 }
 
@@ -44,7 +43,6 @@ func (s *Server) createWorkspace(c *fiber.Ctx) error {
 	s.logger.Info("req", zap.Any("req", req), zap.Any("ws", s.workspaceService))
 	ws, err := s.workspaceService.CreateWorkspace(ctx, workspaces.CreateWorkspaceRequest{
 		Name:     req.Name,
-		Slug:     req.Slug,
 		TenantId: req.TenantId,
 		Plan:     entities.FreePlan,
 	})

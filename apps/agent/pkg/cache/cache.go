@@ -76,7 +76,9 @@ func New[T any](config Config[T]) Cache[T] {
 
 	go c.runEviction()
 	go c.runRefreshing()
-	go c.runReporting()
+	if c.metrics != nil {
+		go c.runReporting()
+	}
 	return c
 }
 

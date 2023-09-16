@@ -14,7 +14,6 @@ func (db *database) InsertWorkspace(ctx context.Context, ws entities.Workspace) 
 	err := db.write().InsertWorkspace(ctx, gen.InsertWorkspaceParams{
 		ID:       ws.Id,
 		Name:     ws.Name,
-		Slug:     ws.Slug,
 		TenantID: ws.TenantId,
 		Plan:     gen.NullWorkspacesPlan{WorkspacesPlan: gen.WorkspacesPlan(ws.Plan), Valid: ws.Plan != ""},
 	})

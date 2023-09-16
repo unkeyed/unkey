@@ -20,7 +20,7 @@ export const workspaces = mysqlTable(
     // This can be either a user_xxx or org_xxx id
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
-    slug: varchar("slug", { length: 256 }).notNull(),
+    slug: varchar("slug", { length: 256 }),
     // Internal workspaces are used to manage the unkey app itself
     internal: boolean("internal").notNull().default(false),
 
