@@ -1,4 +1,4 @@
-name: Release Typescript SDK
+name: Release Typescript SDKs
 
 on:
   release:
