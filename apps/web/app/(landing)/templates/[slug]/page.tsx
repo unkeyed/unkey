@@ -60,7 +60,7 @@ export default async function Templates(props: Props) {
   return (
     <Container>
       <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0 ">
-        <div className="sticky self-start w-full px-4 mx-auto top-32 h-max lg:w-2/5 sm:px-6 lg:px-8 ">
+        <div className="self-start w-full px-4 mx-auto lg:sticky top-32 h-max lg:w-2/5 sm:px-6 lg:px-8 ">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-content-subtle hover:text-foreground"
