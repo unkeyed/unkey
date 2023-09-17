@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, FileQuestion } from "lucide-react";
 import Link from "next/link";
-import {  templates } from "./data";
+import { templates } from "./data";
 export const metadata = {
   title: "Templates | Unkey",
   description: "Templates and apps using Unkey",
@@ -131,12 +131,12 @@ export default async function Templates() {
                 key={id}
                 className="flex flex-col items-start overflow-hidden duration-200 border border-gray-200 shadow rounded-xl hover:shadow-2xl hover:scale-[1.01]"
               >
-                <div className="relative w-full">
-                  <img
-                    src={template.image}
-                    alt=""
-                    className="aspect-[16/9] w-full   object-cover sm:aspect-[2/1] lg:aspect-[3/2]"
-                  />
+                <div className="relative flex justify-center items-center h-full w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[3/2]">
+                  {template.image ? (
+                    <img src={template.image} alt="" className="object-cover w-full " />
+                  ) : (
+                    <FileQuestion className="w-16 h-16 text-gray-200" />
+                  )}
                 </div>
                 <div className="flex flex-col justify-between h-full px-4 pb-4">
                   <div>

@@ -302,7 +302,7 @@ function RootLayoutInner({
       <motion.div
         layout
         style={{ borderTopLeftRadius: 40, borderTopRightRadius: 40 }}
-        className="relative flex flex-auto overflow-hidden bg-white pt-14"
+        className="relative flex flex-auto bg-white pt-14"
       >
         <motion.div layout className="relative flex flex-col w-full isolate pt-9">
           <GridPattern

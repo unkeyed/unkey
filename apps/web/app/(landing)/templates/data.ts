@@ -3,6 +3,7 @@ export const frameworks = {
   django: "Django",
   nextjs: "Next.js",
   svelte: "Svelte",
+  express: "Express",
 };
 
 // id -> label
@@ -98,5 +99,26 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/uselessdev/Iojinha/main/README.md",
     language: "ts",
     framework: "nextjs",
+  },
+  "atridadl-sprintpadawan": {
+    title: "sprintpadawan",
+    description: "A scrum poker tool that helps agile teams plan their sprints in real-time.",
+    authors: ["atridadl"],
+    image: "/templates/sprintpadawan.png",
+    repository: "https://github.com/atridadl/sprintpadawan",
+    readmeUrl: "https://raw.githubusercontent.com/atridadl/sprintpadawan/main/README.md",
+    url: "https://sprintpadawan.dev",
+    language: "ts",
+    framework: "nextjs",
+  },
+  ocr: {
+    title: "OCR as a Service",
+    description: "OCR API as a Service using Unkey",
+    authors: ["WilfredAlmeida"],
+    repository: "https://github.com/WilfredAlmeida/unkey-ocr",
+    readmeUrl: "https://raw.githubusercontent.com/WilfredAlmeida/unkey-ocr/main/README.md",
+    language: "ts",
+    url: "https://unkey.dev/blog/ocr-service",
+    framework: "express",
   },
 };
