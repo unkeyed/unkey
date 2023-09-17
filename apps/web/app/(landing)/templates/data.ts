@@ -83,8 +83,8 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Next.js",
   },
-  "uselessdev-lojinha": {
-    title: "Lojinha",
+  "uselessdev-iojinha": {
+    title: "Iojinha",
     description: "A template to build type-safe full-stack serverless applications!",
     authors: ["uselessdev"],
     repository: "https://github.com/uselessdev/Iojinha",
