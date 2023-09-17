@@ -214,7 +214,7 @@ export default function Templates() {
                   >
                     <div className="relative flex justify-center items-center h-full w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[3/2]">
                       {template.image ? (
-                        <img src={template.image} alt="" className="object-cover w-full " />
+                        <img src={template.image} alt="" className="object-cover w-full h-full" />
                       ) : (
                         <VenetianMask className="w-16 h-16 text-gray-200" />
                       )}
