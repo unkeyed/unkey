@@ -13,6 +13,8 @@ import (
 
 type swrEntry[T any] struct {
 	Value T
+
+	Hit CacheHit
 	// Before this time the entry is considered fresh and vaid
 	Fresh time.Time
 	// Before this time, the entry should be revalidated
@@ -136,24 +138,27 @@ func (c *cache[T]) runRefreshing() {
 
 }
 
-func (c *cache[T]) Get(ctx context.Context, key string) (value T, found bool) {
+func (c *cache[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
 	c.RLock()
 	e, ok := c.data[key]
 	c.RUnlock()
 	if !ok {
 		// This hack is necessary because you can not return nil as T
 		var t T
-		return t, false
+		return t, Miss
 	}
 
 	now := time.Now()
 
 	if now.Before(e.Fresh) {
-		return e.Value, true
+
+		return e.Value, e.Hit
+
 	}
 	if now.Before(e.Stale) {
 		c.refreshC <- key
-		return e.Value, true
+
+		return e.Value, e.Hit
 	}
 
 	c.Lock()
@@ -162,11 +167,18 @@ func (c *cache[T]) Get(ctx context.Context, key string) (value T, found bool) {
 	c.Unlock()
 
 	var t T
-	return t, false
+	return t, Miss
 
 }
 
+func (c *cache[T]) SetNull(ctx context.Context, key string) {
+	c.set(ctx, key)
+}
+
 func (c *cache[T]) Set(ctx context.Context, key string, value T) {
+	c.set(ctx, key, value)
+}
+func (c *cache[T]) set(ctx context.Context, key string, value ...T) {
 	now := time.Now()
 	c.Lock()
 	defer c.Unlock()
@@ -182,8 +194,12 @@ func (c *cache[T]) Set(ctx context.Context, key string, value T) {
 		}
 
 		entry = swrEntry[T]{
-			Value:      value,
 			LruElement: c.lru.PushFront(key),
+			Hit:        Null,
+		}
+		if len(value) > 0 {
+			entry.Value = value[0]
+			entry.Hit = Hit
 		}
 	}
 
@@ -191,7 +207,6 @@ func (c *cache[T]) Set(ctx context.Context, key string, value T) {
 	entry.Stale = now.Add(c.stale)
 	c.lru.MoveToFront(entry.LruElement)
 	c.data[key] = entry
-
 }
 
 func (c *cache[T]) Remove(ctx context.Context, key string) {

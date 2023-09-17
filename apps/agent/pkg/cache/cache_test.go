@@ -22,8 +22,8 @@ func TestWriteRead(t *testing.T) {
 		Logger: logging.NewNoopLogger(),
 	})
 	c.Set(context.Background(), "key", "value")
-	value, cacheHit := c.Get(context.Background(), "key")
-	require.True(t, cacheHit)
+	value, hit := c.Get(context.Background(), "key")
+	require.Equal(t, cache.Hit, hit)
 	require.Equal(t, "value", value)
 }
 
@@ -38,8 +38,8 @@ func TestEviction(t *testing.T) {
 	})
 	c.Set(context.Background(), "key", "value")
 	time.Sleep(time.Second * 2)
-	_, cacheMiss := c.Get(context.Background(), "key")
-	require.False(t, cacheMiss)
+	_, hit := c.Get(context.Background(), "key")
+	require.Equal(t, cache.Miss, hit)
 }
 
 func TestRefresh(t *testing.T) {
@@ -60,12 +60,26 @@ func TestRefresh(t *testing.T) {
 	time.Sleep(time.Second * 1)
 	for i := 0; i < 10; i++ {
 		_, hit := c.Get(context.Background(), "key")
-		require.True(t, hit)
+		require.Equal(t, cache.Hit, hit)
 		time.Sleep(time.Second * 1)
 	}
 
 	time.Sleep(5 * time.Second)
 
 	require.Equal(t, int32(5), refreshedFromOrigin.Load())
+
+}
+
+func TestNull(t *testing.T) {
+
+	c := cache.New[string](cache.Config[string]{
+		Fresh:  time.Second * 1,
+		Stale:  time.Minute * 5,
+		Logger: logging.NewNoopLogger(),
+	})
+	c.SetNull(context.Background(), "key")
+
+	_, hit := c.Get(context.Background(), "key")
+	require.Equal(t, cache.Null, hit)
 
 }
