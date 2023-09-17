@@ -20,9 +20,25 @@ Verify a key from your users.
   Whether or not this key is valid and has passed the ratelimit. If `false` you
   should not grant access to whatever the user is requesting
 </ResponseField>
+
+<ResponseField name="code" type="string" >
+  If the key is invalid this field will be set to the reason why it is invalid.
+
+  Possible values are:
+  - `NOT_FOUND` - The key does not exist
+  - `FORBIDDEN` - You are not allowed to verify this key. For example because of additional security
+  checks like `IP whitelists`
+  - `KEY_USAGE_ECDEEDED` - The key has been used up and is no longer valid
+  - `RATELIMITED` - The verification has been blocked due to ratelimiting
+</ResponseField>
+
 <ResponseField name="ownerId" type="string">
   If you have set an `ownerId` on this key it is returned here. You can use this
   to clearly authenticate a user in your system.
+</ResponseField>
+
+<ResponseField name="expires" type="int">
+  The unix timestamp in milliseconds indicating when this key expires.
 </ResponseField>
 
 <ResponseField name="meta" type="object" >
@@ -38,6 +54,34 @@ Example:
 ```
 
 </ResponseField>
+
+<ResponseField name="ratelimit" type="Object">
+  The current ratelimit state.
+
+  <Expandable title="properties">
+
+  <ResponseField name="limit" type="int"  required>
+  Current limit after this verification.
+
+  </ResponseField>
+  <ResponseField name="remaining" type="int" required>
+  Remaining limit inside this burst window.
+
+  </ResponseField>
+
+    <ResponseField name="reset" type="int" required>
+    A unix timestamp in millisecond when the ratelimit gets refilled the next time.
+    </ResponseField>
+
+ </Expandable>
+
+</ResponseField>
+
+    <ResponseField name="remaining" type="int">
+    Shows how many more times this key may be verified before being invalidated.
+    Only applies to keys where you have set a `remaining` count.
+    </ResponseField>
+
 </Expandable>
 </ResponseField>
 

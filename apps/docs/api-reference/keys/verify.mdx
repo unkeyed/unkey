@@ -18,6 +18,20 @@ Verify a key from your users. Notice how this endpoint does not require an Unkey
   Whether or not this key is valid and has passed the ratelimit. If `false` you
   should not grant access to whatever the user is requesting
 </ResponseField>
+
+
+<ResponseField name="code" type="string" >
+  If the key is invalid this field will be set to the reason why it is invalid.
+
+  Possible values are:
+  - `NOT_FOUND` - The key does not exist
+  - `FORBIDDEN` - You are not allowed to verify this key. For example because of additional security
+  checks like `IP whitelists`
+  - `KEY_USAGE_ECDEEDED` - The key has been used up and is no longer valid
+  - `RATELIMITED` - The verification has been blocked due to ratelimiting
+</ResponseField>
+
+
 <ResponseField name="ownerId" type="string">
   If you have set an `ownerId` on this key it is returned here. You can use this
   to clearly authenticate a user in your system.
