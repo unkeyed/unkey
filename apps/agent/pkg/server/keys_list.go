@@ -26,6 +26,7 @@ type keyResponse struct {
 	Id             string           `json:"id"`
 	ApiId          string           `json:"apiId"`
 	WorkspaceId    string           `json:"workspaceId"`
+	Name           string           `json:"name,omitempty"`
 	Start          string           `json:"start"`
 	OwnerId        string           `json:"ownerId,omitempty"`
 	Meta           map[string]any   `json:"meta,omitempty"`
@@ -94,6 +95,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 			Id:             k.Id,
 			ApiId:          api.Id,
 			WorkspaceId:    k.WorkspaceId,
+			Name:           k.Name,
 			Start:          k.Start,
 			OwnerId:        k.OwnerId,
 			Meta:           k.Meta,

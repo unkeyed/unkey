@@ -422,7 +422,8 @@ export class Unkey {
             workspaceId: string;
             start: string;
             createdAt: number;
-            expires: number | null;
+            name?:string
+            expires?: number;
             ratelimit?: {
               type: "fast" | "consistent";
               limit: number;
