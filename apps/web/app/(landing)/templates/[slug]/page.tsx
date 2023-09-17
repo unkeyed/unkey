@@ -3,7 +3,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
-import { frameworks, languages, templates } from "../data";
+import {  templates } from "../data";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
