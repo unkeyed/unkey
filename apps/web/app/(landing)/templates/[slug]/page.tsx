@@ -1,115 +1,139 @@
 import { Container } from "@/components/landing/container";
-import { PageIntro } from "@/components/landing/page-intro";
-import { ExternalLink } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox"
-import { languages, templates, frameworks } from "../data";
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+import { frameworks, languages, templates } from "../data";
 
-
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion"
 import Link from "next/link";
 import { notFound } from "next/navigation";
 export const metadata = {
+  title: "Templates | Unkey",
+  description: "Templates and apps using Unkey",
+  openGraph: {
     title: "Templates | Unkey",
     description: "Templates and apps using Unkey",
-    openGraph: {
-        title: "Templates | Unkey",
-        description: "Templates and apps using Unkey",
-        url: "https://unkey.dev/templates",
-        siteName: "unkey.dev",
-        images: [
-            {
-                url: "https://unkey.dev/og.png",
-                width: 1200,
-                height: 675,
-            },
-        ],
-    },
-    twitter: {
-        title: "Templates | Unkey",
-        card: "summary_large_image",
-    },
-    icons: {
-        shortcut: "/unkey.png",
-    },
+    url: "https://unkey.dev/templates",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "Templates | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/unkey.png",
+  },
 };
 
-
-
 type Props = {
-    params: {
-        slug: string;
-    }
+  params: {
+    slug: string;
+  };
+};
+
+export const revalidate = 300; // 5min
+
+export async function generateStaticParams() {
+  return Object.keys(templates).map((slug) => ({
+    slug,
+  }));
 }
-
-
 export default async function Templates(props: Props) {
-    const template = templates[props.params.slug]
-    if (!template) {
-        return notFound()
-    }
+  const template = templates[props.params.slug];
+  if (!template) {
+    return notFound();
+  }
 
+  const tags: Record<string, string | undefined> = {
+    Framework: template.framework ? frameworks[template.framework] : undefined,
+    Language: languages[template.language],
+  };
 
-    const tags: Record<string, string> = {
-        Framework: frameworks[template.framework],
-        Language: languages[template.language],
-    }
+  const readme = await fetch(template.readmeUrl).then((res) => res.text());
+  return (
+    <>
+      <Container>
+        <div className="flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0">
+          <div className="w-full px-4 mx-auto lg:w-2/5 sm:px-6 lg:px-8">
+            <Link
+              href="/templates"
+              className="flex items-center gap-1 text-xs duration-200 text-content-subtle hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Templates
+            </Link>
+            <div className="pb-10 mt-4">
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+                {template.title}{" "}
+              </h2>
+              <p className="mt-2 text-gray-500">{template.description}</p>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              {template.url ? (
+                <Link
+                  target="_blank"
+                  className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-gray-900 duration-150 border rounded-md hover:border-gray-900"
+                  href={template.url}
+                >
+                  Website
+                  <ExternalLink className="inline-block w-3 h-3 ml-1" />
+                </Link>
+              ) : null}
+              <Link
+                target="_blank"
+                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-gray-900 duration-150 border rounded-md hover:border-gray-900"
+                href={template.repository}
+              >
+                Repository
+                <ExternalLink className="inline-block w-3 h-3 ml-1" />
+              </Link>
+            </div>
 
-
-    const readme = await fetch(template.readmeUrl).then(res => res.text())
-    
-    return (
-        <>
-
-            <Container>
-                <div className="max-w-2xl px-4 py-24 mx-auto sm:px-6 sm:py-32 lg:max-w-7xl lg:px-8">
-                    <div className="grid items-center grid-cols-1 gap-x-8 gap-y-16 lg:grid-cols-2">
-                        <div>
-                            <div className="pb-10 border-b border-gray-200">
-                                <h2 className="font-medium text-gray-500">{template.title}</h2>
-                                <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{template.description} </p>
-                            </div>
-
-                            <dl className="mt-10 space-y-10">
-                                {Object.entries(tags).map(([key, value]) => (
-
-                                    <div key={key}>
-                                    <dt className="text-sm font-medium text-gray-900">{value}</dt>
-                                    <dd className="mt-3 text-sm text-gray-500">{key}</dd>
-                                </div>
-                                    ))}
-
-                            </dl>
-                        </div>
-
-                        <div>
-                            <div className="overflow-hidden bg-gray-100 rounded-lg aspect-h-1 aspect-w-1">
-                                <img
-                                    src={template.image}
-                                    alt="Black kettle with long pour spot and angled body on marble counter next to coffee mug and pour-over system."
-                                    className="object-cover object-center w-full h-full"
-                                />
-                            </div>
-
-                        </div>
-                    </div>
+            <dl className="grid grid-cols-2 gap-6 mt-10">
+              {Object.entries(tags).map(([key, value]) => (
+                <div key={key}>
+                  <dt className="text-sm font-medium text-gray-900">{value}</dt>
+                  <dd className="text-sm text-gray-500 ">{key}</dd>
                 </div>
+              ))}
 
-            </Container>
-            <Container>
-                <ReactMarkdown remarkPLugins={[remarkGfm]}>
-                    {readme}
-                </ReactMarkdown>
-            </Container>
+              <div>
+                <span className="mt-1 text-sm text-gray-500">by </span>
+                <span className="text-sm font-medium text-gray-900">
+                  {template.authors.join(", ")}
+                </span>
+              </div>
+            </dl>
+          </div>
 
-            
-        </>
-    );
+          <div className="w-full border-gray-100 lg:border-l lg:pl-8 lg:w-3/5">
+            <div>
+              <div className="overflow-hidden bg-gray-100 rounded-lg aspect-h-1 aspect-w-1">
+                <img
+                  src={template.image}
+                  alt={template.description}
+                  className="object-cover object-center w-full h-full"
+                />
+              </div>
+            </div>
+
+            <ReactMarkdown
+              className="max-w-5xl mx-auto mt-16 prose lg:prose-md"
+              remarkPlugins={[remarkGfm]}
+              //  @ts-ignore
+              rehypePlugins={[rehypeRaw]}
+            >
+              {readme}
+            </ReactMarkdown>
+          </div>
+        </div>
+      </Container>
+    </>
+  );
 }

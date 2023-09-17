@@ -8,8 +8,8 @@
     "generate": "nuxi generate"
   },
   "devDependencies": {
-    "@unkey/nuxt": "latest",
-    "@nuxt/devtools": "latest",
-    "nuxt": "latest"
+    "@unkey/nuxt": "workspace:*",
+    "@nuxt/devtools": "workspace:*",
+    "nuxt": "workspace:*"
   }
 }

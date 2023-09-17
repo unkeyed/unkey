@@ -23,6 +23,8 @@ const publicRoutes = [
   "/changelog/(.*)",
   "/policies",
   "/policies/(.*)",
+  "/templates",
+  "/templates/(.*)",
   "/docs",
   "/docs(.*)",
   "/og",
