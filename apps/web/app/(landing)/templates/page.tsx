@@ -210,7 +210,7 @@ export default function Templates() {
                 <FadeInStagger key={id}>
                   <Link
                     href={`/templates/${id}`}
-                    className="flex flex-col items-start max-h-80 overflow-hidden duration-200 border border-gray-200 shadow rounded-xl hover:shadow-md hover:scale-[1.01]"
+                    className="flex flex-col items-start h-96 overflow-hidden duration-200 border border-gray-200 shadow rounded-xl hover:shadow-md hover:scale-[1.01]"
                   >
                     <div className="relative flex justify-center items-center h-full w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[3/2]">
                       {template.image ? (
@@ -221,10 +221,10 @@ export default function Templates() {
                     </div>
                     <div className="flex flex-col justify-between h-full px-4 pb-4">
                       <div>
-                        <h3 className="mt-3 text-lg font-semibold leading-6 text-gray-900 group-hover:text-gray-600">
+                        <h3 className="mt-3 text-lg font-semibold leading-6 text-gray-900 group-hover:text-gray-600 line-clamp-2">
                           {template.title}
                         </h3>
-                        <p className="mt-5 text-sm leading-6 text-gray-500 line-clamp-3">
+                        <p className="mt-5 text-sm leading-6 text-gray-500 line-clamp-2">
                           {template.description}
                         </p>
                       </div>
