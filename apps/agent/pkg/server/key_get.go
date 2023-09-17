@@ -54,6 +54,7 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 		Id:             key.Id,
 		ApiId:          api.Id,
 		WorkspaceId:    key.WorkspaceId,
+		Name:           key.Name,
 		Start:          key.Start,
 		OwnerId:        key.OwnerId,
 		Meta:           key.Meta,
