@@ -207,7 +207,11 @@ function Navigation() {
       </NavigationRow>
       <NavigationRow>
         <NavigationItem href="/about">About</NavigationItem>
+        <NavigationItem href="/templates">Templates</NavigationItem>
+      </NavigationRow>
+      <NavigationRow>
         <NavigationItem href="https://unkey.dev/discord">Discord</NavigationItem>
+        <NavigationItem href="mailto:support@unkey.dev">Support</NavigationItem>
       </NavigationRow>
     </nav>
   );
@@ -302,7 +306,7 @@ function RootLayoutInner({
       <motion.div
         layout
         style={{ borderTopLeftRadius: 40, borderTopRightRadius: 40 }}
-        className="relative flex flex-auto overflow-hidden bg-white pt-14"
+        className="relative flex flex-auto bg-white pt-14"
       >
         <motion.div layout className="relative flex flex-col w-full isolate pt-9">
           <GridPattern
