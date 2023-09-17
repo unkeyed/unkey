@@ -1,72 +1,86 @@
+"use client";
 import { Container } from "@/components/landing/container";
 import { PageIntro } from "@/components/landing/page-intro";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ExternalLink, FileQuestion } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ExternalLink, VenetianMask } from "lucide-react";
 import Link from "next/link";
-import { templates } from "./data";
-export const metadata = {
-  title: "Templates | Unkey",
-  description: "Templates and apps using Unkey",
-  openGraph: {
-    title: "Templates | Unkey",
-    description: "Templates and apps using Unkey",
-    url: "https://unkey.dev/templates",
-    siteName: "unkey.dev",
-    images: [
-      {
-        url: "https://unkey.dev/og.png",
-        width: 1200,
-        height: 675,
-      },
-    ],
-  },
-  twitter: {
-    title: "Templates | Unkey",
-    card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/unkey.png",
-  },
-};
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Framework, Language, templates } from "./data";
 
-const frameworks = [
-  {
-    id: "sveltekit",
-    name: "SvelteKit",
-  },
-  {
-    id: "nextjs",
-    name: "Next.js",
-  },
-  {
-    id: "nuxtjs",
-    name: "Nuxt.js",
-  },
-];
+const schema = z.object({
+  search: z.string().optional(),
+  frameworks: z.array(z.string()),
+  languages: z.array(z.string()),
+});
 
-const languages = [
-  {
-    id: "ts",
-    name: "Typescript",
-  },
-  {
-    id: "go",
-    name: "Golang",
-  },
-  {
-    id: "rs",
-    name: "Rust",
-  },
-];
+export default function Templates() {
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      frameworks: [],
+      languages: [],
+    },
+    reValidateMode: "onChange",
+  });
 
-export default async function Templates() {
+  const languages = Object.values(templates).reduce((acc, { language }) => {
+    if (!acc[language]) {
+      acc[language] = 0;
+    }
+    acc[language]++;
+    return acc;
+  }, {} as Record<Language, number>);
+
+  const frameworks = Object.values(templates).reduce((acc, { framework }) => {
+    if (!framework) {
+      return acc;
+    }
+    if (!acc[framework]) {
+      acc[framework] = 0;
+    }
+    acc[framework]++;
+    return acc;
+  }, {} as Record<Framework, number>);
+
+  const fields = form.watch();
+  const filteredTemplates = useMemo(
+    () =>
+      Object.entries(templates).reduce((acc, [id, template]) => {
+        if (
+          fields.frameworks.length > 0 &&
+          (!template.framework || !fields.frameworks.includes(template.framework))
+        ) {
+          return acc;
+        }
+        if (fields.languages.length > 0 && !fields.languages.includes(template.language)) {
+          return acc;
+        }
+        if (
+          fields.search &&
+          !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
+          !template.description.toLowerCase().includes(fields.search.toLowerCase())
+        ) {
+          return acc;
+        }
+        acc[id] = template;
+        return acc;
+      }, {} as typeof templates),
+    [fields],
+  );
+
   return (
     <>
       <PageIntro eyebrow="Templates" title="Find your Template">
@@ -74,68 +88,133 @@ export default async function Templates() {
       </PageIntro>
 
       <Container className="pt-16 mt-24 border-t">
-        <div className="flex space-x-8 ">
-          <div className="w-1/4">
-            <h2 className="font-semibold ">Filter Templates</h2>
-            <Input placeholder="Search ..." className="mt-8" />
+        <div className="flex flex-col lg:space-x-8 lg:flex-row ">
+          <div className="w-full lg:w-1/4">
+            <Form {...form}>
+              <h2 className="mb-8 font-semibold">Filter Templates</h2>
 
-            <Accordion type="multiple" className="w-full mt-8">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>Frameworks</AccordionTrigger>
-                <AccordionContent>
-                  <div className="flex flex-col space-y-2">
-                    {frameworks.map((framework) => (
-                      <div
-                        className="flex items-center p-3 space-x-2 duration-150 rounded bg-gray-50 hover:bg-gray-100"
-                        key={framework.id}
-                      >
-                        <Checkbox id={framework.id} />
-                        <label
-                          htmlFor={framework.id}
-                          className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-content"
-                        >
-                          {framework.name}
-                        </label>
-                      </div>
+              <FormField
+                control={form.control}
+                name="search"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Search ..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="languages"
+                render={() => (
+                  <FormItem className="mt-8 mb-4">
+                    <FormLabel className="text-base">Languages</FormLabel>
+                    <FormDescription>
+                      Select the programming languages you want to explore.
+                    </FormDescription>
+                    {Object.entries(languages).map(([language, occurences]) => (
+                      <FormField
+                        key={language}
+                        control={form.control}
+                        name="languages"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={language}
+                              className="flex flex-row items-center p-2 space-x-3 space-y-0 duration-150 rounded bg-gray-50 group hover:bg-gray-100"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(language)}
+                                  onCheckedChange={(checked) => {
+                                    console.log({ checked, field, language });
+                                    return checked
+                                      ? field.onChange([...field.value, language])
+                                      : field.onChange(
+                                          field.value?.filter((value) => value !== language),
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="flex items-center justify-between w-full">
+                                <span className="text-sm font-normal">{language}</span>
+                                <span className="p-1 text-xs text-gray-500 duration-150 bg-gray-100 rounded-full group-hover:text-gray-800">
+                                  {occurences}
+                                </span>
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
                     ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-2">
-                <AccordionTrigger>Language</AccordionTrigger>
-                <AccordionContent>
-                  <div className="flex flex-col space-y-2">
-                    {languages.map((language) => (
-                      <div
-                        className="flex items-center p-3 space-x-2 duration-150 rounded bg-gray-50 hover:bg-gray-100"
-                        key={language.id}
-                      >
-                        <Checkbox id={language.id} />
-                        <label
-                          htmlFor={language.id}
-                          className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-content"
-                        >
-                          {language.name}
-                        </label>
-                      </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="frameworks"
+                render={() => (
+                  <FormItem className="mt-8 mb-4">
+                    <FormLabel className="text-base">Frameworks</FormLabel>
+                    <FormDescription>Fancy a specific framework? Select it here.</FormDescription>
+                    {Object.entries(frameworks).map(([framework, occurences]) => (
+                      <FormField
+                        key={framework}
+                        control={form.control}
+                        name="frameworks"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={framework}
+                              className="flex flex-row items-center p-2 space-x-3 space-y-0 duration-150 rounded bg-gray-50 group hover:bg-gray-100"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(framework)}
+                                  onCheckedChange={(checked) => {
+                                    console.log({ checked, field, framework });
+                                    return checked
+                                      ? field.onChange([...field.value, framework])
+                                      : field.onChange(
+                                          field.value?.filter((value) => value !== framework),
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="flex items-center justify-between w-full">
+                                <span className="text-sm font-normal">{framework}</span>
+                                <span className="p-1 text-xs text-gray-500 duration-150 bg-gray-100 rounded-full group-hover:text-gray-800">
+                                  {occurences}
+                                </span>
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
                     ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </Form>
           </div>
-          <div className="grid w-3/4 grid-cols-1 gap-8 auto-rows-fr lg:grid-cols-3">
-            {Object.entries(templates).map(([id, template]) => (
+          <div className="grid w-full grid-cols-1 gap-8 lg:w-3/4 auto-rows-fr lg:grid-cols-3">
+            {Object.entries(filteredTemplates).map(([id, template]) => (
               <Link
                 href={`/templates/${id}`}
                 key={id}
-                className="flex flex-col items-start overflow-hidden duration-200 border border-gray-200 shadow rounded-xl hover:shadow-2xl hover:scale-[1.01]"
+                className="flex flex-col items-start max-h-80 overflow-hidden duration-200 border border-gray-200 shadow rounded-xl hover:shadow-md hover:scale-[1.01]"
               >
                 <div className="relative flex justify-center items-center h-full w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[3/2]">
                   {template.image ? (
                     <img src={template.image} alt="" className="object-cover w-full " />
                   ) : (
-                    <FileQuestion className="w-16 h-16 text-gray-200" />
+                    <VenetianMask className="w-16 h-16 text-gray-200" />
                   )}
                 </div>
                 <div className="flex flex-col justify-between h-full px-4 pb-4">

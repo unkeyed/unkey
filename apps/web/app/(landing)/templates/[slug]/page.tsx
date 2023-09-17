@@ -52,8 +52,8 @@ export default async function Templates(props: Props) {
   }
 
   const tags: Record<string, string | undefined> = {
-    Framework: template.framework ? frameworks[template.framework] : undefined,
-    Language: languages[template.language],
+    Framework: template.framework,
+    Language: template.language,
   };
 
   const readme = await fetch(template.readmeUrl).then((res) => res.text());

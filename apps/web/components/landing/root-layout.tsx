@@ -207,7 +207,11 @@ function Navigation() {
       </NavigationRow>
       <NavigationRow>
         <NavigationItem href="/about">About</NavigationItem>
+        <NavigationItem href="/templates">Templates</NavigationItem>
+      </NavigationRow>
+      <NavigationRow>
         <NavigationItem href="https://unkey.dev/discord">Discord</NavigationItem>
+        <NavigationItem href="mailto:support@unkey.dev">Support</NavigationItem>
       </NavigationRow>
     </nav>
   );

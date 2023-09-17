@@ -1,19 +1,11 @@
-// id -> label
-export const frameworks = {
-  django: "Django",
-  nextjs: "Next.js",
-  svelte: "Svelte",
-  express: "Express",
-};
+type StrArrayToUnion<TArr extends readonly string[]> = TArr[number];
 
+// sort these alphabetically
+export const frameworks = ["Django", "Next.js", "Svelte", "Express"] as const;
+export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
-export const languages = {
-  ts: "Typescript",
-  py: "Python",
-  go: "Golang",
-  rs: "Rust",
-  ex: "Elixir",
-};
+export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
+export type Language = StrArrayToUnion<typeof languages>;
 
 export type Template = {
   title: string;
@@ -43,8 +35,8 @@ export type Template = {
    */
   readmeUrl: string;
 
-  language: keyof typeof languages;
-  framework?: keyof typeof frameworks;
+  language: Language;
+  framework?: Framework;
 };
 
 export const templates: Record<string, Template> = {
@@ -54,8 +46,8 @@ export const templates: Record<string, Template> = {
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/unkey/tree/main/examples/nextjs",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/nextjs/README.md",
-    language: "ts",
-    framework: "nextjs",
+    language: "Typescript",
+    framework: "Next.js",
   },
   "elixir-mix-supervision": {
     title: "Unkey + Elixir Mix Supervision",
@@ -65,7 +57,7 @@ export const templates: Record<string, Template> = {
       "https://github.com/unkeyed/unkey/tree/main/examples/elixir_mix_supervision_example",
     readmeUrl:
       "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/elixir_mix_supervision_example/README.md",
-    language: "ex",
+    language: "Elixir",
   },
 
   openstatus: {
@@ -76,8 +68,8 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/openstatusHQ/openstatus",
     image: "/templates/openstatus.png",
     readmeUrl: "https://raw.githubusercontent.com/openstatusHQ/openstatus/main/README.md",
-    language: "ts",
-    framework: "nextjs",
+    language: "Typescript",
+    framework: "Next.js",
     url: "https://openstatus.dev?ref=unkey.dev",
   },
   "atridadl-atash": {
@@ -88,8 +80,8 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/atridadl/Atash",
     readmeUrl: "https://raw.githubusercontent.com/atridadl/Atash/main/README.md",
     url: "https://atash.atri.dad/",
-    language: "ts",
-    framework: "nextjs",
+    language: "Typescript",
+    framework: "Next.js",
   },
   "uselessdev-lojinha": {
     title: "Atash",
@@ -97,8 +89,8 @@ export const templates: Record<string, Template> = {
     authors: ["uselessdev"],
     repository: "https://github.com/uselessdev/Iojinha",
     readmeUrl: "https://raw.githubusercontent.com/uselessdev/Iojinha/main/README.md",
-    language: "ts",
-    framework: "nextjs",
+    language: "Typescript",
+    framework: "Next.js",
   },
   "atridadl-sprintpadawan": {
     title: "sprintpadawan",
@@ -108,8 +100,8 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/atridadl/sprintpadawan",
     readmeUrl: "https://raw.githubusercontent.com/atridadl/sprintpadawan/main/README.md",
     url: "https://sprintpadawan.dev",
-    language: "ts",
-    framework: "nextjs",
+    language: "Typescript",
+    framework: "Next.js",
   },
   ocr: {
     title: "OCR as a Service",
@@ -117,8 +109,8 @@ export const templates: Record<string, Template> = {
     authors: ["WilfredAlmeida"],
     repository: "https://github.com/WilfredAlmeida/unkey-ocr",
     readmeUrl: "https://raw.githubusercontent.com/WilfredAlmeida/unkey-ocr/main/README.md",
-    language: "ts",
+    language: "Typescript",
     url: "https://unkey.dev/blog/ocr-service",
-    framework: "express",
+    framework: "Express",
   },
 };
