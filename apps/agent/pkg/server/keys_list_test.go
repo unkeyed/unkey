@@ -37,6 +37,7 @@ func TestListKeys_Simple(t *testing.T) {
 		key := entities.Key{
 			Id:          uid.Key(),
 			KeyAuthId:   resources.UserKeyAuth.Id,
+			Name:        fmt.Sprintf("test-%d", i),
 			WorkspaceId: resources.UserWorkspace.Id,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),

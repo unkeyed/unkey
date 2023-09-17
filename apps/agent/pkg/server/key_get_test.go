@@ -36,6 +36,7 @@ func KeyGetKey_Simple(t *testing.T) {
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
+		Name:        "test",
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now(),
 	}
