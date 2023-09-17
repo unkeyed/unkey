@@ -63,7 +63,7 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
           return NextResponse.next();
         }
       }
-      if (auth.userId && !auth.orgId && !auth.isPublicRoute) {
+      if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
         const workspace = await findWorkspace({ tenantId: auth.userId });
         if (!workspace) {
           return NextResponse.redirect(new URL("/new", req.url));
