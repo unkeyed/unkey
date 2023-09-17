@@ -18,12 +18,12 @@ func WithMetrics[T any](c cache.Cache[T], m metrics.Metrics, resource string) ca
 	return &metricsMiddleware[T]{next: c, metrics: m, resource: resource}
 }
 
-func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, bool) {
+func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
 	start := time.Now()
 	value, hit := mw.next.Get(ctx, key)
 	mw.metrics.ReportCacheHit(metrics.CacheHitReport{
 		Key:      key,
-		Hit:      hit,
+		Hit:      hit != cache.Miss,
 		Resource: mw.resource,
 		Latency:  time.Since(start).Milliseconds(),
 	})
@@ -31,6 +31,10 @@ func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, bool) {
 }
 func (mw *metricsMiddleware[T]) Set(ctx context.Context, key string, value T) {
 	mw.next.Set(ctx, key, value)
+
+}
+func (mw *metricsMiddleware[T]) SetNull(ctx context.Context, key string) {
+	mw.next.SetNull(ctx, key)
 
 }
 func (mw *metricsMiddleware[T]) Remove(ctx context.Context, key string) {

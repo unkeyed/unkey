@@ -64,14 +64,21 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			Code:  errors.NOT_FOUND,
 		})
 	}
-	key, isCached := s.keyCache.Get(ctx, hash)
-	if !isCached {
+	key, hit := s.keyCache.Get(ctx, hash)
+	if hit == cache.Null {
+		return c.JSON(VerifyKeyResponse{
+			Valid: false,
+			Code:  errors.NOT_FOUND,
+		})
+	}
+	if hit == cache.Miss {
 		var found bool
 		key, found, err = s.db.FindKeyByHash(ctx, hash)
 		if err != nil {
 			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 		}
 		if !found {
+			s.keyCache.SetNull(ctx, hash)
 			return c.JSON(VerifyKeyResponse{
 				Valid: false,
 				Code:  errors.NOT_FOUND,
