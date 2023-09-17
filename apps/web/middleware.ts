@@ -47,10 +47,8 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
       }
       userId = auth.userId ?? undefined;
       tenantId = auth.orgId ?? auth.userId ?? undefined;
-      if (auth.orgId) {
+      if (auth.orgId && !auth.isPublicRoute) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
-        // okay if we don't find a workspace, we need to delete the orgId and send them to create a new workspace.
-        // this should never happen, but if it does, we need to handle it.
         if (!workspace && req.nextUrl.pathname !== "/new") {
           console.error("Workspace not found for orgId", auth.orgId);
           await clerkClient.organizations.deleteOrganization(auth.orgId);
@@ -64,11 +62,11 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
           }
           return NextResponse.next();
         }
-        if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
-          const workspace = await findWorkspace({ tenantId: auth.userId });
-          if (!workspace) {
-            return NextResponse.redirect(new URL("/new", req.url));
-          }
+      }
+      if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
+        const workspace = await findWorkspace({ tenantId: auth.userId });
+        if (!workspace) {
+          return NextResponse.redirect(new URL("/new", req.url));
         }
       }
     },
