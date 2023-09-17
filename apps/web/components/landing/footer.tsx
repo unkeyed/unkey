@@ -25,7 +25,13 @@ const navigation = [
   },
   {
     title: "Connect",
-    links: socialMediaProfiles,
+    links: [
+      ...socialMediaProfiles,
+      {
+        title: <img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" />,
+        href: "https://cal.com/chronark/unkey?utm_source=banner&utm_campaign=oss",
+      },
+    ],
   },
 ];
 
@@ -40,7 +46,7 @@ function Navigation() {
             </div>
             <ul role="list" className="mt-4 text-sm text-gray-700">
               {section.links.map((link) => (
-                <li key={link.title} className="mt-4">
+                <li key={link.href} className="mt-4">
                   <Link href={link.href} className="transition hover:text-gray-950">
                     {link.title}
                   </Link>
