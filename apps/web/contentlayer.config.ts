@@ -110,4 +110,5 @@ export default makeSource({
   mdx: {
     rehypePlugins: [[rehypePrettyCode, rehypePrettyCodeOptions]],
   },
+
 });
