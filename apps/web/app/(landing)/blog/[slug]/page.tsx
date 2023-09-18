@@ -73,7 +73,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
     <>
       <Container className="scroll-smooth">
         <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0 ">
-          <div className="w-full mx-auto border-gray-100 lg:border-l lg:pl-8 ">
+          <div className="w-full mx-auto lg:pl-8 ">
             <h2 className="text-3xl text-center font-bold tracking-tight text-gray-900 sm:text-6xl">
               {post.title}
             </h2>
