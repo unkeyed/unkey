@@ -46,6 +46,9 @@ importers:
       '@ant-design/plots':
         specifier: ^1.2.5
         version: 1.2.5(react-dom@18.2.0)(react@18.2.0)
+      '@bufbuild/protobuf':
+        specifier: ^1.3.1
+        version: 1.3.1
       '@chronark/zod-bird':
         specifier: ^0.2.1
         version: 0.2.1
@@ -187,9 +190,6 @@ importers:
       '@unkey/policies':
         specifier: workspace:*
         version: link:../../packages/policies
-      '@upstash/kafka':
-        specifier: ^1.3.3
-        version: 1.3.3
       '@upstash/qstash':
         specifier: ^0.3.6
         version: 0.3.6
@@ -1255,6 +1255,10 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@bufbuild/protobuf@1.3.1:
+    resolution: {integrity: sha512-BUyJWutgP2S8K/1NphOJokuwDckXS4qI2T1pGZAlkFdZchWae3jm6fCdkcGbLlM1QLOcNFFePd+7Feo4BYGrJQ==}
+    dev: false
 
   /@changesets/apply-release-plan@6.1.4:
     resolution: {integrity: sha512-FMpKF1fRlJyCZVYHr3CbinpZZ+6MwvOtWUuO8uo+svcATEoc1zRDcj23pAurJ2TZ/uVz1wFHH6K3NlACy0PLew==}
@@ -6110,15 +6114,6 @@ packages:
     engines: {node: '>=16.0.0'}
     dependencies:
       '@upstash/redis': 1.22.0
-    transitivePeerDependencies:
-      - encoding
-    dev: false
-
-  /@upstash/kafka@1.3.3:
-    resolution: {integrity: sha512-CIr657FZuK+IMuwcxkj3oCB6xKO+LMlHd4BL4J/Lwbpj6+5YHO+5ZcpdMIQhbcemthJcRtE0gDUfZEnrfb3Rjg==}
-    engines: {node: '>=10'}
-    dependencies:
-      isomorphic-fetch: 3.0.0
     transitivePeerDependencies:
       - encoding
     dev: false
