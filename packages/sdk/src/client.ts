@@ -375,6 +375,49 @@ export class Unkey {
 
   public get apis() {
     return {
+      create: async (req: {
+        /**
+         * A name for you to identify your API.
+         */
+        name: string;
+      }): Promise<
+        Result<{
+          /**
+           * The global unique identifier of your api.
+           * You'll need this for other api requests.
+           */
+          apiId: string;
+        }>
+      > => {
+        return await this.fetch({
+          path: ["v1", "api.createApi"],
+          method: "POST",
+          body: req,
+          cache: "no-cache",
+        });
+      },
+      remove: async (req: {
+        /**
+         * The global unique identifier of your api.
+         * You'll need this for other api requests.
+         */
+        apiId: string;
+      }): Promise<
+        Result<{
+          /**
+           * The global unique identifier of your api.
+           * You'll need this for other api requests.
+           */
+          apiId: string;
+        }>
+      > => {
+        return await this.fetch({
+          path: ["v1", "api.removeApi"],
+          method: "POST",
+          body: req,
+          cache: "no-cache",
+        });
+      },
       get: async (req: {
         /**
          * The api id

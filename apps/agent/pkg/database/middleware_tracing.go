@@ -39,6 +39,17 @@ func (mw *tracingMiddleware) InsertApi(ctx context.Context, api entities.Api) (e
 		span.RecordError(err)
 	}
 	return err
+
+}
+func (mw *tracingMiddleware) InsertKeyAuth(ctx context.Context, keyAuth entities.KeyAuth) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "InsertKeyAuth"))
+	defer span.End()
+
+	err = mw.next.InsertKeyAuth(ctx, keyAuth)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return err
 }
 func (mw *tracingMiddleware) FindApi(ctx context.Context, apiId string) (api entities.Api, found bool, err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindApi"))
@@ -50,6 +61,28 @@ func (mw *tracingMiddleware) FindApi(ctx context.Context, apiId string) (api ent
 	}
 	return api, found, err
 }
+
+func (mw *tracingMiddleware) DeleteApi(ctx context.Context, apiId string) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "DeleteApi"))
+	defer span.End()
+
+	err = mw.next.DeleteApi(ctx, apiId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return err
+}
+
+func (mw *tracingMiddleware) DeleteKeyAuth(ctx context.Context, keyAuthId string) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "DeleteKeyAuth"))
+	defer span.End()
+
+	err = mw.next.DeleteKeyAuth(ctx, keyAuthId)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return err
+}
 func (mw *tracingMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId string) (api entities.Api, found bool, err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindApiByKeyAuthId"))
 	defer span.End()
@@ -60,11 +93,11 @@ func (mw *tracingMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId s
 	}
 	return api, found, err
 }
-func (mw *tracingMiddleware) CreateKey(ctx context.Context, newKey entities.Key) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "CreateKey"))
+func (mw *tracingMiddleware) InsertKey(ctx context.Context, newKey entities.Key) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "InsertKey"))
 	defer span.End()
 
-	err = mw.next.CreateKey(ctx, newKey)
+	err = mw.next.InsertKey(ctx, newKey)
 	if err != nil {
 		span.RecordError(err)
 	}
@@ -90,6 +123,7 @@ func (mw *tracingMiddleware) FindKeyByHash(ctx context.Context, hash string) (ke
 	}
 	return key, found, err
 }
+
 func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) (err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "UpdateKey"))
 	defer span.End()
@@ -150,16 +184,6 @@ func (mw *tracingMiddleware) ListAllApis(ctx context.Context, limit int, offset 
 		span.RecordError(err)
 	}
 	return apis, err
-}
-func (mw *tracingMiddleware) CreateKeyAuth(ctx context.Context, newKeyAuth entities.KeyAuth) error {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "CreateKeyAuth"))
-	defer span.End()
-
-	err := mw.next.CreateKeyAuth(ctx, newKeyAuth)
-	if err != nil {
-		span.RecordError(err)
-	}
-	return err
 }
 
 func (mw *tracingMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) (keyAuth entities.KeyAuth, found bool, err error) {

@@ -42,14 +42,14 @@ func TestListKeys_Simple(t *testing.T) {
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
 		}
-		err := resources.Database.CreateKey(ctx, key)
+		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
 	}
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.Id), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
@@ -96,14 +96,14 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 		if i%2 == 0 {
 			key.OwnerId = "chronark"
 		}
-		err := resources.Database.CreateKey(ctx, key)
+		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
 	}
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.Id), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
@@ -150,14 +150,14 @@ func TestListKeys_WithLimit(t *testing.T) {
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
 		}
-		err := resources.Database.CreateKey(ctx, key)
+		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
 	}
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.Id), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
@@ -198,14 +198,14 @@ func TestListKeys_WithOffset(t *testing.T) {
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now(),
 		}
-		err := resources.Database.CreateKey(ctx, key)
+		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
 		createdKeyIds[i] = key.Id
 
 	}
 
 	req1 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.Id), nil)
-	req1.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req1.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res1, err := srv.app.Test(req1)
 	require.NoError(t, err)
@@ -223,7 +223,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 	require.GreaterOrEqual(t, 10, len(successResponse1.Keys))
 
 	req2 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.Id), nil)
-	req2.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req2.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res2, err := srv.app.Test(req2)
 	require.NoError(t, err)

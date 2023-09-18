@@ -16,6 +16,7 @@ func createMysqlDatabase(t *testing.T) (string, error) {
 	require.NoError(t, err)
 
 	container, err := mysql.RunContainer(
+
 		ctx,
 		mysql.WithDatabase("unkey"),
 		mysql.WithUsername("username"),

@@ -66,7 +66,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 		"apiId": "%s",
 		"ownerId": "test_owner"
 	}`, resources.UserApi.Id)))
-	createKeyRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	createKeyRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	createKeyRequest.Header.Set("Content-Type", "application/json")
 
 	createKeyResponse, err := srv.app.Test(createKeyRequest)
@@ -90,7 +90,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	removeOwnerIdRequest := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", createdKey.KeyId), bytes.NewBufferString(`{
 		"ownerId": null
 	}`))
-	removeOwnerIdRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	removeOwnerIdRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	removeOwnerIdRequest.Header.Set("Content-Type", "application/json")
 
 	removeOwnerIdResponse, err := srv.app.Test(removeOwnerIdRequest)
@@ -108,7 +108,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	updateNameRequest := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", createdKey.KeyId), bytes.NewBufferString(`{
 		"name": "test_name"
 	}`))
-	updateNameRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	updateNameRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	updateNameRequest.Header.Set("Content-Type", "application/json")
 
 	updateNameResponse, err := srv.app.Test(updateNameRequest)

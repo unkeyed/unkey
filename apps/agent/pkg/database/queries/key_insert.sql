@@ -1,4 +1,4 @@
--- name: CreateKey :exec
+-- name: InsertKey :exec
 INSERT INTO
     `keys` (
         id,
