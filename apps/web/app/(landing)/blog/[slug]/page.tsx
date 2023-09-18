@@ -1,14 +1,12 @@
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { allPosts } from "contentlayer/generated";
 import type { Metadata } from "next";
 import { useMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import Image from "next/image";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 type Props = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
@@ -83,7 +81,6 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
             </div>
           </div>
           <div className="self-start w-full px-4 lg:sticky top-24 h-max lg:w-2/5 sm:px-6 lg:px-8 flex justify-end flex-col">
-
             <div className="flex items-center justify-start gap-4 mx-auto md:mx-0 border-y-0 md:border-b md:border-b-gray-200 p-2">
               <Avatar className="w-14 h-14 justify-items-start">
                 <AvatarImage src={post.author.image?.src} alt={post.author.name} />
@@ -93,20 +90,28 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               </div>
             </div>
             <div className="hidden md:block">
-            <h3 className="mt-8 text-lg font-bold tracking-wide text-gray-600 uppercase mb-4">
-              Table of Contents
-            </h3>
-            <div>
-              {post.headings.map((heading: { slug: string, level: string, text: string }) => {
-                return (
-                  <div key={`#${heading.slug}`} className="my-2">
-                    <a data-level={heading.level} className={heading.level === "two" || heading.level==="one" ? "font-semibold text-lg " : "ml-4"} href={`#${heading.slug}`}>
-                      {heading.text}
-                    </a>
-                  </div>
-                )
-              })}
-            </div>
+              <h3 className="mt-8 text-lg font-bold tracking-wide text-gray-600 uppercase mb-4">
+                Table of Contents
+              </h3>
+              <div>
+                {post.headings.map((heading: { slug: string; level: string; text: string }) => {
+                  return (
+                    <div key={`#${heading.slug}`} className="my-2">
+                      <a
+                        data-level={heading.level}
+                        className={
+                          heading.level === "two" || heading.level === "one"
+                            ? "font-semibold text-lg "
+                            : "ml-4"
+                        }
+                        href={`#${heading.slug}`}
+                      >
+                        {heading.text}
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

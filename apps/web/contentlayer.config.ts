@@ -1,9 +1,9 @@
 import { defineDocumentType, makeSource } from "contentlayer/source-files";
-import rehypePrettyCode from "rehype-pretty-code";
-import rehypeSlug from "rehype-slug";
-import GithubSlugger from "github-slugger"
+import GithubSlugger from "github-slugger";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
+import rehypePrettyCode from "rehype-pretty-code";
+import rehypeSlug from "rehype-slug";
 const Post = defineDocumentType(() => ({
   name: "Post",
   filePathPattern: "blog/*.mdx",
@@ -39,22 +39,18 @@ const Post = defineDocumentType(() => ({
     headings: {
       type: "json",
       resolve: async (doc) => {
-        const slugger = new GithubSlugger()
+        const slugger = new GithubSlugger();
         const regXHeader = /\n(?<flag>#{1,6})\s+(?<content>.+)/g;
-        const headings = Array.from(doc.body.raw.matchAll(regXHeader)).map(
-            ({ groups }) => {
-              const flag = groups?.flag;
-              const content = groups?.content;
-              return {
-                level: flag?.length == 1 ? "one"
-            : flag?.length == 2 ? "two"
-            : "three",
-                text: content,
-                slug: content ? slugger.slug(content) : undefined,
-              };
-            }
-          );
-          return headings;
+        const headings = Array.from(doc.body.raw.matchAll(regXHeader)).map(({ groups }) => {
+          const flag = groups?.flag;
+          const content = groups?.content;
+          return {
+            level: flag?.length === 1 ? "one" : flag?.length === 2 ? "two" : "three",
+            text: content,
+            slug: content ? slugger.slug(content) : undefined,
+          };
+        });
+        return headings;
       },
     },
   },
@@ -132,6 +128,6 @@ export default makeSource({
   contentDirPath: "content",
   documentTypes: [Changelog, Policies, Post],
   mdx: {
-    rehypePlugins: [rehypePrettyCode,rehypeAutolinkHeadings,rehypeSlug, rehypeCodeTitles],
+    rehypePlugins: [rehypePrettyCode, rehypeAutolinkHeadings, rehypeSlug, rehypeCodeTitles],
   },
 });
