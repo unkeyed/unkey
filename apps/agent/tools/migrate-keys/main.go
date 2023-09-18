@@ -91,7 +91,7 @@ func main() {
 		// 	}
 		// }
 
-		err = db.CreateKey(ctx, newKey)
+		err = db.InsertKey(ctx, newKey)
 		if err != nil {
 			log.Fatalf("unable to store key: %s", err.Error())
 		}

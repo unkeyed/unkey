@@ -1,12 +1,8 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
 func TestCreateWorkspace_Simple(t *testing.T) {
@@ -36,36 +33,28 @@ func TestCreateWorkspace_Simple(t *testing.T) {
 		WorkspaceService:  workspaces.New(workspaces.Config{Database: resources.Database}),
 	})
 
-	buf := bytes.NewBufferString(`{
-		"name":"simple",
-		"tenantId": "user_123"
-		}`)
+	tenantId := uid.New(16, "")
+	res := CreateWorkspaceResponseV1{}
+	testutil.Json(t, srv.app, testutil.JsonRequest{
+		Debug:  true,
+		Method: "POST",
+		Path:   "/v1/workspace.createWorkspace",
+		Body: fmt.Sprintf(`{
+			"name":"simple",
+			"tenantId": "%s"
+			}`, tenantId),
+		Bearer:     srv.unkeyAppAuthToken,
+		Response:   &res,
+		StatusCode: 200,
+	})
 
-	req := httptest.NewRequest("POST", "/v1/workspaces.create", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", srv.unkeyAppAuthToken))
-	req.Header.Set("Content-Type", "application/json")
+	require.NotEmpty(t, res.Id)
 
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	t.Logf("res: %s", string(body))
-	require.Equal(t, res.StatusCode, 200)
-
-	createWorkspaceResponse := CreateWorkspaceResponse{}
-	err = json.Unmarshal(body, &createWorkspaceResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createWorkspaceResponse.Id)
-
-	foundWorkspace, found, err := resources.Database.FindWorkspace(ctx, createWorkspaceResponse.Id)
+	foundWorkspace, found, err := resources.Database.FindWorkspace(ctx, res.Id)
 	require.NoError(t, err)
 	require.True(t, found)
 
-	require.Equal(t, createWorkspaceResponse.Id, foundWorkspace.Id)
+	require.Equal(t, res.Id, foundWorkspace.Id)
 	require.Equal(t, "simple", foundWorkspace.Name)
-	require.Equal(t, "user_123", foundWorkspace.TenantId)
+	require.Equal(t, tenantId, foundWorkspace.TenantId)
 }

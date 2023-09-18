@@ -1,17 +1,10 @@
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
-import { Kafka } from "@upstash/kafka";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
 import { unkeyRoot, unkeyScoped } from "@/lib/api";
-const kafka = new Kafka({
-  url: env.UPSTASH_KAFKA_REST_URL,
-  username: env.UPSTASH_KAFKA_REST_USERNAME,
-  password: env.UPSTASH_KAFKA_REST_PASSWORD,
-});
-
 export const keyRouter = t.router({
   create: t.procedure
     .use(auth)
@@ -108,36 +101,32 @@ export const keyRouter = t.router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
+
+      const newRootKey = await unkeyRoot._internal.createRootKey({
+        forWorkspaceId: workspace.id,
+        name: "Dashboard",
+        expires: Date.now() + 60000, // expires in 1 minute
+      });
+      if (newRootKey.error) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+      }
+
+      const sdk = unkeyScoped(newRootKey.result.key);
+
       await Promise.all(
         input.keyIds.map(async (keyId) => {
-          const where = eq(schema.keys.id, keyId);
-
-          const key = await db.query.keys.findFirst({
-            where,
+          const { error } = await sdk.keys.revoke({
+            keyId,
           });
-
-          if (!key) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
+          if (error) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
           }
-
-          const workspace = await db.query.workspaces.findFirst({
-            where: eq(schema.workspaces.id, key.forWorkspaceId ?? key.workspaceId),
-          });
-          if (!workspace) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
-          }
-          if (workspace.tenantId !== ctx.tenant.id) {
-            throw new TRPCError({ code: "UNAUTHORIZED" });
-          }
-
-          await db.delete(schema.keys).where(where);
-          await kafka.producer().produce("key.changed", {
-            type: "deleted",
-            key: {
-              id: key.id,
-              hash: key.hash,
-            },
-          });
         }),
       );
       return;

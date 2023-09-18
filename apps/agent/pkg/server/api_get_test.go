@@ -32,7 +32,7 @@ func TestGetApi_Exists(t *testing.T) {
 	})
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", resources.UserApi.Id), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
@@ -67,7 +67,7 @@ func TestGetApi_NotFound(t *testing.T) {
 	fakeApiId := uid.Api()
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", fakeApiId), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)
@@ -104,7 +104,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 		Id:          uid.KeyAuth(),
 		WorkspaceId: resources.UserWorkspace.Id,
 	}
-	err := resources.Database.CreateKeyAuth(ctx, keyAuth)
+	err := resources.Database.InsertKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
 	api := entities.Api{
@@ -120,7 +120,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", api.Id), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)

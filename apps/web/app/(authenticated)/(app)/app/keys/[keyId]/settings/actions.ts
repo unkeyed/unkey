@@ -2,17 +2,8 @@
 
 import { serverAction } from "@/lib/actions";
 import { db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { Kafka } from "@upstash/kafka";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-
-const kafka = new Kafka({
-  url: env.UPSTASH_KAFKA_REST_URL,
-  username: env.UPSTASH_KAFKA_REST_USERNAME,
-  password: env.UPSTASH_KAFKA_REST_PASSWORD,
-});
-const producer = kafka.producer();
 
 const stringToIntOrNull = z
   .string()
@@ -59,13 +50,6 @@ export const updateKeyRemaining = serverAction({
       .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
-    await producer.produce("key.changed", {
-      type: "updated",
-      key: {
-        id: key.id,
-        hash: key.hash,
-      },
-    });
   },
 });
 
@@ -126,13 +110,6 @@ export const updateKeyRatelimit = serverAction({
       .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
-    await producer.produce("key.changed", {
-      type: "updated",
-      key: {
-        id: key.id,
-        hash: key.hash,
-      },
-    });
   },
 });
 
@@ -174,13 +151,6 @@ export const updateExpiration = serverAction({
       .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
-    await producer.produce("key.changed", {
-      type: "updated",
-      key: {
-        id: key.id,
-        hash: key.hash,
-      },
-    });
   },
 });
 
@@ -208,12 +178,5 @@ export const updateMetadata = serverAction({
       .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
-    await producer.produce("key.changed", {
-      type: "updated",
-      key: {
-        id: key.id,
-        hash: key.hash,
-      },
-    });
   },
 });

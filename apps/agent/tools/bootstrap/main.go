@@ -70,7 +70,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("unable to create workspace")
 	}
 
-	err = db.CreateKeyAuth(ctx, keyAuth)
+	err = db.InsertKeyAuth(ctx, keyAuth)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("unable to create keyAuth")
 	}

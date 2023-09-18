@@ -9,6 +9,7 @@ export const auth = t.middleware(({ next, ctx }) => {
   if (!ctx.user?.id) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
+
   return next({
     ctx: {
       user: ctx.user,
