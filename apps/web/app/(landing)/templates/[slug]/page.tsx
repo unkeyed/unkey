@@ -5,32 +5,9 @@ import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { templates } from "../data";
 
+import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-export const metadata = {
-  title: "Templates | Unkey",
-  description: "Templates and apps using Unkey",
-  openGraph: {
-    title: "Templates | Unkey",
-    description: "Templates and apps using Unkey",
-    url: "https://unkey.dev/templates",
-    siteName: "unkey.dev",
-    images: [
-      {
-        url: "https://unkey.dev/og.png",
-        width: 1200,
-        height: 675,
-      },
-    ],
-  },
-  twitter: {
-    title: "Templates | Unkey",
-    card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/unkey.png",
-  },
-};
 
 type Props = {
   params: {
@@ -134,4 +111,42 @@ export default async function Templates(props: Props) {
       </div>
     </Container>
   );
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // read route params
+  const template = templates[params.slug];
+
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+  const ogUrl = new URL("/og/template", baseUrl);
+  ogUrl.searchParams.set("title", template?.title ?? "");
+  ogUrl.searchParams.set("author", template?.authors.join(", "));
+  ogUrl.searchParams.set("description", template?.description ?? "");
+
+  return {
+    title: `${template?.title} | Unkey`,
+    description: template?.description,
+    openGraph: {
+      title: `${template?.title} | Unkey`,
+      description: template?.description,
+      url: `https://unkey.dev/blog/${params.slug}`,
+      siteName: "unkey.dev",
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 675,
+        },
+      ],
+    },
+    twitter: {
+      title: `${template?.title} | Unkey`,
+      card: "summary_large_image",
+    },
+    icons: {
+      shortcut: "/unkey.png",
+    },
+  };
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	metricsPkg "github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 
 	"os"
@@ -286,6 +287,13 @@ var AgentCmd = &cobra.Command{
 			workspaces.WithTracing(tracer),
 		)
 
+		apiService := apis.New(apis.Config{
+			Database: db,
+		},
+			apis.WithLogging(logger),
+			apis.WithTracing(tracer),
+		)
+
 		srv := server.New(server.Config{
 			Logger:            logger,
 			KeyCache:          keyCache,
@@ -303,6 +311,7 @@ var AgentCmd = &cobra.Command{
 			EventBus:          eventBus,
 			Version:           version.Version,
 			WorkspaceService:  workspaceService,
+			ApiService:        apiService,
 			Metrics:           metrics,
 		})
 

@@ -74,7 +74,6 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     x: new Date(time).toUTCString(),
     y: value,
   }));
-  console.log(usage, api.workspaceId, api.id);
 
   const data = [
     ...successOverTime.map((d) => ({ ...d, category: "Successful Verifications" })),

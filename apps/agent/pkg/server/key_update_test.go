@@ -39,7 +39,7 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now(),
 	}
-	err := resources.Database.CreateKey(ctx, key)
+	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"name":"newName",
@@ -56,7 +56,7 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 	}`)
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -100,7 +100,7 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 		CreatedAt:   time.Now(),
 		Name:        "original",
 	}
-	err := resources.Database.CreateKey(ctx, key)
+	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"ratelimit": {
@@ -112,7 +112,7 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 	}`)
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -157,14 +157,14 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 		Expires:     time.Now().Add(time.Hour),
 	}
 
-	err := resources.Database.CreateKey(ctx, key)
+	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"expires": null
 	}`)
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -206,14 +206,14 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 	ten := int32(10)
 	key.Remaining = &ten
 
-	err := resources.Database.CreateKey(ctx, key)
+	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"remaining": null
 	}`)
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -257,14 +257,14 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 		OwnerId:     "ownerId",
 		Expires:     time.Now().Add(time.Hour),
 	}
-	err := resources.Database.CreateKey(ctx, key)
+	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 	buf := bytes.NewBufferString(`{
 		"ownerId": "newOwnerId"
 	}`)
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)

@@ -80,7 +80,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 		newKey.Expires = time.UnixMilli(req.Expires)
 	}
 
-	err = s.db.CreateKey(ctx, newKey)
+	err = s.db.InsertKey(ctx, newKey)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to store key: %s", err.Error()))
 	}

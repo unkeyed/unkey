@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -44,6 +45,7 @@ type Config struct {
 	EventBus          events.EventBus
 	Version           string
 	WorkspaceService  workspaces.WorkspaceService
+	ApiService        apis.ApiService
 	Metrics           metrics.Metrics
 }
 
@@ -74,6 +76,7 @@ type Server struct {
 	version string
 
 	workspaceService workspaces.WorkspaceService
+	apiService       apis.ApiService
 }
 
 func New(config Config) *Server {
@@ -101,7 +104,9 @@ func New(config Config) *Server {
 		region:            config.Region,
 		version:           config.Version,
 		workspaceService:  config.WorkspaceService,
-		metrics:           config.Metrics,
+		apiService:        config.ApiService,
+
+		metrics: config.Metrics,
 	}
 	if s.events == nil {
 		s.events = events.NewNoop()
@@ -180,6 +185,23 @@ func New(config Config) *Server {
 	// Used internally only, not covered by versioning
 	s.app.Post("/v1/internal/rootkeys", s.createRootKey)
 
+	// workspaceService
+	s.app.Post("/v1/workspace.createWorkspace", s.v1CreateWorkspace)
+
+	// apiService
+	s.app.Post("/v1/api.createApi", s.v1CreateApi)
+	s.app.Post("/v1/api.removeApi", s.v1RemoveApi)
+	s.app.Get("/v1/api.findApi", s.getApi)
+	s.app.Get("/v1/api.listKeys", s.listKeys)
+
+	// keyService
+	s.app.Post("/v1/key.createKey", s.createKey)
+	s.app.Post("/v1/key.verifyKey", s.verifyKey)
+	s.app.Post("/v1/key.removeKey", s.deleteKey)
+	s.app.Post("/v1/key.updateKey", s.updateKey)
+	s.app.Get("/v1/key.findKey", s.getKey)
+
+	// legacy
 	s.app.Post("/v1/keys", s.createKey)
 	s.app.Get("/v1/keys/:keyId", s.getKey)
 	s.app.Put("/v1/keys/:keyId", s.updateKey)
@@ -189,10 +211,8 @@ func New(config Config) *Server {
 	s.app.Get("/v1/apis/:apiId", s.getApi)
 	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)
 
+	// experimental
 	s.app.Get("/vx/keys/:keyId/stats", s.getKeyStats)
-
-	// new RPC style endpoints
-	s.app.Post("/v1/workspaces.create", s.createWorkspace)
 
 	return s
 }
