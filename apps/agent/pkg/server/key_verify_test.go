@@ -33,7 +33,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.CreateKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -81,7 +81,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.CreateKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -129,7 +129,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.CreateKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -193,7 +193,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.CreateKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -316,7 +316,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 		Id:          uid.KeyAuth(),
 		WorkspaceId: resources.UserWorkspace.Id,
 	}
-	err := resources.Database.CreateKeyAuth(ctx, keyAuth)
+	err := resources.Database.InsertKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
 	api := entities.Api{
@@ -331,7 +331,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = resources.Database.CreateKey(ctx, entities.Key{
+	err = resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
@@ -381,7 +381,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		Id:          uid.KeyAuth(),
 		WorkspaceId: resources.UserWorkspace.Id,
 	}
-	err := resources.Database.CreateKeyAuth(ctx, keyAuth)
+	err := resources.Database.InsertKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
 	api := entities.Api{
@@ -396,7 +396,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = resources.Database.CreateKey(ctx, entities.Key{
+	err = resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   keyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
@@ -444,7 +444,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 
 	key := uid.New(16, "test")
 	remaining := int32(10)
-	err := resources.Database.CreateKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
@@ -527,7 +527,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.CreateKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, entities.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,

@@ -40,11 +40,11 @@ func KeyGetKey_Simple(t *testing.T) {
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now(),
 	}
-	err := resources.Database.CreateKey(ctx, key)
+	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/keys/%s", key.Id), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
 	require.NoError(t, err)

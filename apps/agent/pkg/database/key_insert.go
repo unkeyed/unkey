@@ -10,16 +10,16 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 )
 
-func (db *database) CreateKey(ctx context.Context, key entities.Key) error {
-	params, err := transformKeyEntitytoCreateKeyParams(key)
+func (db *database) InsertKey(ctx context.Context, key entities.Key) error {
+	params, err := transformKeyEntitytoInsertKeyParams(key)
 	if err != nil {
-		return fmt.Errorf("unable to transform key entity to CreateKeyParams")
+		return fmt.Errorf("unable to transform key entity to InsertKeyParams")
 	}
-	return db.write().CreateKey(ctx, params)
+	return db.write().InsertKey(ctx, params)
 }
 
-func transformKeyEntitytoCreateKeyParams(key entities.Key) (gen.CreateKeyParams, error) {
-	params := gen.CreateKeyParams{
+func transformKeyEntitytoInsertKeyParams(key entities.Key) (gen.InsertKeyParams, error) {
+	params := gen.InsertKeyParams{
 		ID:             key.Id,
 		Hash:           key.Hash,
 		Start:          key.Start,
@@ -34,7 +34,7 @@ func transformKeyEntitytoCreateKeyParams(key entities.Key) (gen.CreateKeyParams,
 
 	metaJson, err := json.Marshal(key.Meta)
 	if err != nil {
-		return gen.CreateKeyParams{}, fmt.Errorf("unable to marshal meta: %w", err)
+		return gen.InsertKeyParams{}, fmt.Errorf("unable to marshal meta: %w", err)
 	}
 	params.Meta = sql.NullString{String: string(metaJson), Valid: true}
 

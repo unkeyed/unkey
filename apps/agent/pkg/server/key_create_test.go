@@ -39,7 +39,7 @@ func TestCreateKey_Simple(t *testing.T) {
 		}`, resources.UserApi.Id))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -85,7 +85,7 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 		}`, resources.UserApi.Id))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -126,7 +126,7 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 		}`, resources.UserApi.Id))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -182,7 +182,7 @@ func TestCreateKey_WithCustom(t *testing.T) {
 		}`, resources.UserApi.Id, time.Now().Add(time.Hour).UnixMilli()))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -237,7 +237,7 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 		}`, resources.UserApi.Id))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UnkeyKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)

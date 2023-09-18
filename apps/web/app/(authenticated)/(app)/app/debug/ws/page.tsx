@@ -9,7 +9,6 @@ export default async function DebugWorkspacePage() {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
-  console.log({ workspace });
   if (!workspace) {
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }

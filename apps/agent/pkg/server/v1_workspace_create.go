@@ -10,19 +10,19 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 )
 
-type CreateWorkspaceRequest struct {
+type CreateWorkspaceRequestV1 struct {
 	Name     string `json:"name" validate:"required"`
 	TenantId string `json:"tenantId" validate:"required"`
 }
 
-type CreateWorkspaceResponse struct {
+type CreateWorkspaceResponseV1 struct {
 	Id string `json:"id"`
 }
 
-func (s *Server) createWorkspace(c *fiber.Ctx) error {
-	ctx, span := s.tracer.Start(c.UserContext(), "server.getKey")
+func (s *Server) v1CreateWorkspace(c *fiber.Ctx) error {
+	ctx, span := s.tracer.Start(c.UserContext(), "server.v1.workspace.createWorkspace")
 	defer span.End()
-	req := CreateWorkspaceRequest{}
+	req := CreateWorkspaceRequestV1{}
 
 	err := c.BodyParser(&req)
 	if err != nil {
@@ -52,7 +52,7 @@ func (s *Server) createWorkspace(c *fiber.Ctx) error {
 		return httpErrors.NewHttpError(c, httpErrors.INTERNAL_SERVER_ERROR, err.Error())
 	}
 
-	return c.JSON(CreateWorkspaceResponse{
+	return c.JSON(CreateWorkspaceResponseV1{
 		Id: ws.Id,
 	})
 }
