@@ -4,6 +4,8 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+
 const Post = defineDocumentType(() => ({
   name: "Post",
   filePathPattern: "blog/*.mdx",
@@ -128,6 +130,7 @@ export default makeSource({
   contentDirPath: "content",
   documentTypes: [Changelog, Policies, Post],
   mdx: {
+    remarkPlugins: [remarkGfm],
     rehypePlugins: [rehypePrettyCode, rehypeAutolinkHeadings, rehypeSlug, rehypeCodeTitles],
   },
 });

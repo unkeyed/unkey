@@ -76,38 +76,18 @@ Type: `POST`
 
 Body:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>email</td>
-        <td>string</td>
-        <td>Email address to sign up with</td>
-    </tr>
-<tr className="border-y dark:border-gray-500">
-        <td>name</td>
-        <td>string</td>
-        <td>Name of user</td>
-    </tr>
-</table>
+| Name  | Type   | Description                   |
+|-------|--------|-------------------------------|
+| email | string | Email address to sign up with |
+| name  | string | Name of user                  |
 
 
 Returns:
 
-<table className="text-center text-sm font-light">
-<thead className="border-y font-medium dark:border-gray-500">
-    <tr className="mx-auto">
-            <th>key</th>
-            <th>string</th>
-            <th>API key</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr className="mx-auto">
-            <td>keyId</td>
-            <td>string</td>
-            <td>API key ID</td>
-        </tr>
-    </tbody>
-</table>
+| Name  | Type   | Description |
+|-------|--------|-------------|
+| key   | string | API Key     |
+| keyId | string | API Key ID  |
 
 
 2. `/upload`: Upload an image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
@@ -117,38 +97,22 @@ Type: `POST`
 
 Headers:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>Bearer</td>
-        <td>string</td>
-        <td>API key in Bearer auth</td>
-    </tr>
-</table>
+| Name   | Type   | Description            |
+|--------|--------|------------------------|
+| Bearer | string | API key in Bearer auth |
 
 Body:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>sampleFile</td>
-        <td>file</td>
-        <td>Image file</td>
-    </tr>
-</table>
+| Name       | Type | Description  |
+|------------|------|--------------|
+| sampleFile | file | Image to use |
 
 Returns:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>text</td>
-        <td>string, null</td>
-        <td>OCR results</td>
-    </tr>
-<tr className="border-y dark:border-gray-500">
-        <td>error</td>
-        <td>string, null</td>
-        <td>Error if any</td>
-    </tr>
-</table>
+| Name  | Type         | Description  |
+|-------|--------------|--------------|
+| text  | string, null | OCR Results  |
+| error | string, null | Error if any |
 
 3. `/uploadBase64`: Upload a base64 encoded image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
     
@@ -157,38 +121,23 @@ Type: `POST`
 
 Headers:
 
-<table className="text-center text-sm font-light">
-<tr className=" text-center border-y dark:border-gray-500">
-        <td>Bearer</td>
-        <td>string</td>
-        <td>API key in Bearer auth</td>
-    </tr>
-</table>
+| Name   | Type   | Description            |
+|--------|--------|------------------------|
+| Bearer | string | API key in Bearer auth |
 
 Body:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>imageBase64</td>
-        <td>string</td>
-        <td>Base64 encoded image</td>
-    </tr>
-</table>
+| Name       | Type | Description  |
+|------------|------|--------------|
+| imageBase64 | string | Base64 encoded image |
+
 
 Returns:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>text</td>
-        <td>string, null</td>
-        <td>OCR results</td>
-    </tr>
-<tr className="border-y dark:border-gray-500">
-        <td>error</td>
-        <td>string, null</td>
-        <td>Error if any</td>
-    </tr>
-</table>
+| Name  | Type         | Description  |
+|-------|--------------|--------------|
+| text  | string, null | OCR Results  |
+| error | string, null | Error if any |
 
 4. `/upgradeUser`: Upgrade a user to a paid plan. It validates an imaginary transaction id and then upgrades the user.  
     It increases the usage limit of the user based on the subscription the user has purchased.
@@ -200,23 +149,11 @@ Headers: None
 
 Body:
 
-<table className="text-center text-sm font-light">
-<tr className="border-y dark:border-gray-500">
-        <td>email</td>
-        <td>string</td>
-        <td>Email address of the user</td>
-    </tr>
-<tr className="border-y dark:border-gray-500">
-        <td>transactionId</td>
-        <td>string</td>
-        <td>Imaginary transaction id</td>
-    </tr>
-<tr className="border-y dark:border-gray-500">
-        <td>apiKeyId</td>
-        <td>string</td>
-        <td>Id of the API key to be updated. It is returned when a key is created.</td>
-    </tr>
-</table>
+| Name          | Type   | Description                                                            |
+|---------------|--------|------------------------------------------------------------------------|
+| email         | string | Email address of the user                                              |
+| transactionId | string | Imaginary transaction id                                               |
+| apiKeyId      | string | Id of the API key to be updated. It is returned when a key is created. |
 
 Returns: None
 
@@ -406,30 +343,11 @@ Suppose we want to offer an API as a paid service with subscription tiers. We ca
 
 Consider the following plans:
 
-<table className="text-center text-sm font-light">
-<thead className="border-y font-medium dark:border-gray-500">
-    <tr className="mx-auto">
-        <td className="px-6 py-4">Price</td>
-        <td className="px-6 py-4">Requests</td>
-        <td className="px-6 py-4">Rate Limit</td>
-    </tr>
-    </thead>
-    <tr className="border-y dark:border-gray-500">
-        <td>Free</td>
-        <td>100/month</td>
-        <td>6/min</td>
-    </tr>
-    <tr className="border-y dark:border-gray-500">
-        <td>$10/month</td>
-        <td>10,000/month</td>
-        <td>100/min</td>
-    </tr>
-    <tr className="border-y dark:border-gray-500">
-        <td>$100/month</td>
-        <td>100,000/month</td>
-        <td>No Limit</td>
-    </tr>
-</table>
+| Price      | Requests      | Rate Limit |
+|------------|---------------|------------|
+| Free       | 100/month     | 6/min      |
+| $10/month  | 10,000/month  | 100/min    |
+| $100/month | 100,000/month | No limit   |
 
 Suppose the user upgrades to the $10/month plan, then, we can update the rate limit of the key to allow 100 requests per minute. Following is the `/upgradeUser` endpoint that does it. In the following snippet, we're updating the rate limit parameters for the user key.
 

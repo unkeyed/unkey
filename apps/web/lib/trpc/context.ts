@@ -1,4 +1,4 @@
-import { TRPCError, inferAsyncReturnType } from "@trpc/server";
+import { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
 import { getAuth } from "@clerk/nextjs/server";
