@@ -1,12 +1,12 @@
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { allPosts } from "contentlayer/generated";
 import type { Metadata } from "next";
-import { getMDXComponent } from "next-contentlayer/hooks";
+import { useMDXComponent } from "next-contentlayer/hooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
 type Props = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
@@ -61,7 +61,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
     return notFound();
   }
 
-  const Content = getMDXComponent(post.body.code);
+  const Content = useMDXComponent(post.body.code);
 
   // Find other articles to recommend at the bottom of the page that aren't the current article
   const moreArticles = allPosts
@@ -69,29 +69,52 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
     .slice(0, 2);
   return (
     <>
-      <Container as="article" className="mt-24 sm:mt-32 lg:mt-40 ">
-        <FadeIn>
-          <header className="flex flex-col max-w-5xl mx-auto mb-8 text-center">
-            <h1 className="font-sans mt-6 font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-6xl">
+      <Container className="scroll-smooth">
+        <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0 ">
+          <div className="w-full mx-auto lg:pl-8 ">
+            <h2 className="text-3xl text-center font-bold tracking-tight text-gray-900 sm:text-6xl">
               {post.title}
-            </h1>
-            <time
-              dateTime={new Date(post.date).toDateString()}
-              className="order-first text-sm text-gray-950"
-            >
-              {new Date(post.date).toDateString()}
-            </time>
-            <p className="mt-6 text-sm font-semibold text-gray-950">
-              by {post.author.name}, {post.author.role}
-            </p>
-          </header>
-        </FadeIn>
-
-        <FadeIn>
-          <div className="max-w-5xl mx-auto prose lg:prose-md">
-            <Content />
+            </h2>
+            <p className="text-gray-500 text-center my-8 border-">{post.description}</p>
+            <div className="w-full mx-auto prose lg:prose-md ">
+              <Content />
+            </div>
           </div>
-        </FadeIn>
+          <div className="self-start w-full px-4 lg:sticky top-24 h-max lg:w-2/5 sm:px-6 lg:px-8 flex justify-end flex-col">
+            <div className="flex items-center justify-start gap-4 mx-auto md:mx-0 border-y-0 md:border-b md:border-b-gray-200 p-2">
+              <Avatar className="w-14 h-14 justify-items-start">
+                <AvatarImage src={post.author.image?.src} alt={post.author.name} />
+              </Avatar>
+              <div className="text-sm text-gray-950">
+                <div className="font-semibold">{post.author.name}</div>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <h3 className="mt-8 text-lg font-bold tracking-wide text-gray-600 uppercase mb-4">
+                Table of Contents
+              </h3>
+              <div>
+                {post.headings.map((heading: { slug: string; level: string; text: string }) => {
+                  return (
+                    <div key={`#${heading.slug}`} className="my-2">
+                      <a
+                        data-level={heading.level}
+                        className={
+                          heading.level === "two" || heading.level === "one"
+                            ? "font-semibold text-lg "
+                            : "ml-4"
+                        }
+                        href={`#${heading.slug}`}
+                      >
+                        {heading.text}
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       </Container>
       <FadeIn>
         <div className="py-24 mx-auto max-w-7xl sm:px-6 sm:py-32 lg:px-8">
