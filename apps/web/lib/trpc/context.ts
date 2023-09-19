@@ -9,47 +9,8 @@ export async function createContext({ req, resHeaders }: FetchCreateContextFnOpt
   // rome-ignore lint/suspicious/noExplicitAny: TODO
   const { userId, orgId, orgRole } = getAuth(req as any);
 
-  let rootKey: string | undefined;
   const tenantId = orgId ?? userId;
-  if (tenantId) {
-    const cookieName = `unkey_root_${tenantId}`;
-    rootKey = req.headers
-      .get("Cookie")
-      ?.split(" ")
-      .find((c) => c.startsWith(cookieName))
-      ?.split("=")
-      .at(1)
-      ?.replace(/;$/, "");
-    if (!rootKey) {
-      const ws = await db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.tenantId, tenantId),
-      });
-      if (!ws) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `no workspace found for ${tenantId}`,
-        });
-      }
-      const created = await unkeyRoot._internal.createRootKey({
-        name: "tRPC",
-        expires: Date.now() + 60_000,
-        forWorkspaceId: ws.id,
-      });
-      if (created.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: created.error.message });
-      }
-      rootKey = created.result.key;
-
-      let cookie = `${cookieName}=${rootKey}; Max-Age=60; HttpOnly`;
-      if (process.env.VERCEL) {
-        cookie += "; secure; domain=unkey.dev";
-      }
-      resHeaders.set("Set-Cookie", cookie);
-    }
-  }
-  if (!rootKey) {
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "unable to find a root key" });
-  }
+  const rootKey = tenantId ? await getRootKey(tenantId, req.headers, resHeaders) : undefined;
 
   return {
     req,
@@ -71,3 +32,46 @@ export async function createContext({ req, resHeaders }: FetchCreateContextFnOpt
 }
 
 export type Context = inferAsyncReturnType<typeof createContext>;
+
+async function getRootKey(
+  tenantId: string,
+  reqHeaders: Headers,
+  resHeaders: Headers,
+): Promise<string | null> {
+  const cookieName = `unkey_root_${tenantId}`;
+  const rootKey = reqHeaders
+    .get("Cookie")
+    ?.split(" ")
+    .find((c) => c.startsWith(cookieName))
+    ?.split("=")
+    .at(1)
+    ?.replace(/;$/, "");
+  if (rootKey) {
+    return rootKey;
+  }
+  const ws = await db.query.workspaces.findFirst({
+    where: eq(schema.workspaces.tenantId, tenantId),
+  });
+  if (!ws) {
+    console.warn(`no workspace found for ${tenantId}`);
+    return null;
+  }
+  const created = await unkeyRoot._internal.createRootKey({
+    name: "tRPC",
+    expires: Date.now() + 60_000,
+    forWorkspaceId: ws.id,
+  });
+  if (created.error) {
+    console.error(created.error.message);
+    return null;
+  }
+  created.result.key;
+
+  let cookie = `${cookieName}=${created.result.key}; Max-Age=60; HttpOnly`;
+  if (process.env.VERCEL) {
+    cookie += "; secure; domain=unkey.dev";
+  }
+  resHeaders.set("Set-Cookie", cookie);
+
+  return created.result.key ?? null;
+}

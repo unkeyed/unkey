@@ -13,6 +13,9 @@ export const apiRouter = t.router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (!ctx.rootKey) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "unable to load rootKey" });
+      }
       const res = await unkeyScoped(ctx.rootKey).apis.remove({ apiId: input.apiId });
       if (res.error) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.error.message });
@@ -26,6 +29,9 @@ export const apiRouter = t.router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (!ctx.rootKey) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "unable to load rootKey" });
+      }
       const res = await unkeyScoped(ctx.rootKey).apis.create({ name: input.name });
       if (res.error) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.error.message });
