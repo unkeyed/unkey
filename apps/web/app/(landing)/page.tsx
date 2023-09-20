@@ -82,7 +82,7 @@ function Features() {
               <StylizedImage
                 src={laptopImage}
                 sizes="(min-width: 1024px) 41rem, 31rem"
-                className="justify-center lg:justify-end"
+                className="justify-center lg:justify-end w-full"
               />
             </FadeIn>
           </div>
