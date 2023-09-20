@@ -180,18 +180,16 @@ export default async function Home() {
               height="315"
               src="https://www.youtube-nocookie.com/embed/-gvpo4SWgG8?si=8n5wIAdTZA7PCgZb&amp;controls=0"
               title="Unkey in Five minutes - YouTube"
-              frameborder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
+              allowFullScreen
             />
           </div>
           <div className="mt-4 aspect-w-16 aspect-h-9 lg:hidden">
             <iframe
               src="https://www.youtube-nocookie.com/embed/-gvpo4SWgG8?si=8n5wIAdTZA7PCgZb"
-              frameborder="0"
               title="Unkey in Five minutes - YouTube"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
+              allowFullScreen
             />
           </div>
         </FadeIn>
