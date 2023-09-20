@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRef } from "react";
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 import { Loading } from "../dashboard/loading";
+import { Button } from "../ui/button";
 // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function ArrowIcon(props: any) {
   return (
@@ -23,13 +24,13 @@ function ArrowIcon(props: any) {
 const SubmitButton = () => {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="button"
+    <Button
+      size="icon"
       disabled={pending}
       className="flex items-center justify-center h-full text-white transition aspect-square rounded-xl bg-gray-950 hover:bg-gray-800 disabled:bg-gray-500"
     >
       {pending ? <Loading className="w-4 h-4" /> : <ArrowIcon className="w-4" />}
-    </button>
+    </Button>
   );
 };
 
