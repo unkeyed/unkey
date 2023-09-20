@@ -1,4 +1,4 @@
-import { Button } from "@/components/landing/button";
+import { Button } from "@/components/ui/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
 import { List, ListItem } from "@/components/landing/list";
@@ -8,7 +8,8 @@ import { StylizedImage } from "@/components/landing/stylized-image";
 import laptopImage from "@/images/computer-user.jpg";
 import { db, schema, sql } from "@/lib/db";
 import { getTotalVerifications } from "@/lib/tinybird";
-
+import { Github } from "lucide-react";
+import Link from "next/link";
 export const revalidate = 60;
 
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
@@ -29,7 +30,7 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
 
 function NumbersServed() {
   return (
-    <div className="py-20 mt-24 rounded-4xl sm:mt-32 sm:py-32 lg:mt-32">
+    <div className="mt-24 rounded-4xl sm:mt-32  lg:mt-32">
       <Container className="">
         <FadeIn className="flex items-center gap-x-8">
           <h2 className="mb-8 text-2xl font-semibold tracking-wider text-center text-black font-display sm:text-left">
@@ -76,7 +77,7 @@ function Features() {
         </p>
       </SectionIntro>
       <Container className="mt-16 overflow-x-hidden	">
-      <div className="lg:flex lg:items-center lg:justify-end">
+        <div className="lg:flex lg:items-center lg:justify-end">
           <div className="flex justify-center lg:w-1/2 lg:justify-end lg:pr-12">
             <FadeIn className="w-[33.75rem] flex-none lg:w-[45rem]">
               <StylizedImage
@@ -139,21 +140,34 @@ export const metadata = {
 export default async function Home() {
   return (
     <>
-      <Container className="mt-24 sm:mt-32 md:mt-56">
-        <FadeIn className="max-w-3xl">
+      <Container className="md:mb-8 mt-24 sm:mt-32 md:mt-56 lg:px-0">
+        <FadeIn className="flex flex-col md:flex-row md:justify-stretch md:spacing-x-4">
+          <div className="w-full">
           <h1 className="font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-7xl font-sans">
             API authentication made easy
           </h1>
-          <p className={"mt-6 text-xl text-gray-600"}>
-            Seriously fast and easy to use. Unkey helps developers secure, manage, and scale their
+          <p className={"mt-6 text-xl text-gray-600 [text-wrap:balance]"}>
+            Seriously fast and easy to use. Unkey is an <span className="font-semibold">open source</span> API management platform that helps developers secure, manage, and scale their
             APIs.
           </p>
+          <div className="flex flex-col md:flex-row mt-4 md:space-x-8 space-y-4 md:space-y-0">
+          <Button size="xl" className="rounded-full text-sm font-semibold" asChild>
+            <Link className="flex-none" href="/app">Start for free</Link>
+          </Button>
+          <Button size="xl" className="rounded-full text-sm font-semibold" variant="secondary" asChild>
+            <a className="flex-none" href="https://github.com/unkeyed/unkey" target="_blank" rel="noreferrer"><Github className="mr-2 h-4 w-4" /> Star us on GitHub</a>
+          </Button>
+        </div>
+        </div>
+        <div className="hidden lg:block lg:ml-12">
+        <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/-gvpo4SWgG8?si=8n5wIAdTZA7PCgZb&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+        <div className="mt-4 aspect-w-16 aspect-h-9 lg:hidden">
+        <iframe src="https://www.youtube-nocookie.com/embed/-gvpo4SWgG8?si=8n5wIAdTZA7PCgZb" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
         </FadeIn>
-        <Button href="/app" className="px-8 py-3 mt-4">
-          Start for free
-        </Button>
+        
       </Container>
-
       <NumbersServed />
 
       <Features />
