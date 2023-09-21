@@ -105,6 +105,10 @@ function Features() {
               Want to limit the number of requests a user can make? Unkey allows you to issue
               limited keys, once the key reaches the limit we delete it for you.
             </ListItem>
+            <ListItem title="Realtime Analytics">
+              Every key and API has analytics to see how users use your product and drive your
+              business decisions.
+            </ListItem>
           </List>
         </div>
       </Container>
