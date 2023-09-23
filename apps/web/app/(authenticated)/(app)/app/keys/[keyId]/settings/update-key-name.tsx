@@ -42,7 +42,7 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
         }
         toast({
           title: "Success",
-          description: "Remaining uses updated",
+          description: "Name has been updated",
         });
       }}
     >
