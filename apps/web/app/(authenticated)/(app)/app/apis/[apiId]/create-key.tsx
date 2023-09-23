@@ -362,7 +362,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                           e.target.value = prettier;
                                           field.onChange(JSON.parse(e.target.value));
                                           form.clearErrors("meta");
-                                        } catch (_e) { }
+                                        } catch (_e) {}
                                       }}
                                       onChange={(e) => {
                                         try {

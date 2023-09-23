@@ -205,5 +205,5 @@ export const updateKeyName = serverAction({
       .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
-  }
+  },
 });

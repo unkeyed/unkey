@@ -7,9 +7,9 @@ import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
+import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
-import { UpdateKeyName } from "./update-key-name";
 export const revalidate = 0;
 
 type Props = {

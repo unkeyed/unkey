@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import React, { useState } from "react";
+import React from "react";
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
@@ -50,7 +50,7 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
         <CardHeader>
           <CardTitle>Name</CardTitle>
           <CardDescription>
-          To make it easier to identify a particular key, you can provide a name.
+            To make it easier to identify a particular key, you can provide a name.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-between item-center">
