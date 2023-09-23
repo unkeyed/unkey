@@ -54,13 +54,13 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col space-y-2")}>
+          <div className={cn("flex flex-col space-y-2 w-full ")}>
             <input type="hidden" name="keyId" value={apiKey.id} />
-            <Label htmlFor="remaining">Remaining</Label>
+            <Label htmlFor="remaining">Name</Label>
             <Input
               type="string"
               name="name"
-              className="max-w-sm"
+              className="max-w-sm h-8"
               defaultValue={apiKey.name ?? ""}
               autoComplete="off"
             />
