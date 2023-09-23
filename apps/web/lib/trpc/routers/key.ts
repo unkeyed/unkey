@@ -17,7 +17,7 @@ export const keyRouter = t.router({
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
-
+        name: z.string().optional(),
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),
@@ -47,6 +47,7 @@ export const keyRouter = t.router({
 
       const { error, result } = await unkeyScoped(newRootKey.result.key).keys.create({
         apiId: input.apiId,
+        name: input.name ?? undefined,
         prefix: input.prefix,
         byteLength: input.bytesLength,
         ownerId: input.ownerId ?? undefined,
