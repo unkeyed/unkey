@@ -9,6 +9,7 @@ import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
+import { UpdateKeyName } from "./update-key-name";
 export const revalidate = 0;
 
 type Props = {
@@ -36,6 +37,7 @@ export default async function SettingsPage(props: Props) {
       <UpdateKeyRatelimit apiKey={key} />
       <UpdateKeyExpiration apiKey={key} />
       <UpdateKeyMetadata apiKey={key} />
+      <UpdateKeyName apiKey={key} />
       <Card>
         <CardHeader>
           <CardTitle>Key ID</CardTitle>

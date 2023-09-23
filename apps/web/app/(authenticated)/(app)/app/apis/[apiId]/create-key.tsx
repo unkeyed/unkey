@@ -35,6 +35,7 @@ const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
+  name: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
   remaining: z.coerce.number().positive().optional(),
   expires: z
@@ -182,12 +183,12 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="flex gap-4 justify-evenly">
+                  <div className="flex flex-col md:flex-row gap-4 justify-evenly">
                     <FormField
                       control={form.control}
                       name="prefix"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="w-full md:w-1/4">
                           <FormLabel>Prefix</FormLabel>
                           <FormControl>
                             <Input {...field} />
@@ -206,7 +207,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       name="bytes"
                       rules={{ required: true }}
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="w-full md:w-1/4">
                           <FormLabel>Bytes</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} />
@@ -221,7 +222,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       control={form.control}
                       name="ownerId"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="w-full md:w-1/4">
                           <FormLabel>Owner</FormLabel>
                           <FormControl>
                             <Input {...field} />
@@ -229,6 +230,22 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <FormDescription>
                             This is the id of the user or workspace in your system, so you can
                             identify users from an API key.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem className="w-full md:w-1/4">
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            To make it easier to identify a particular key, you can provide a name.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -345,7 +362,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                           e.target.value = prettier;
                                           field.onChange(JSON.parse(e.target.value));
                                           form.clearErrors("meta");
-                                        } catch (_e) {}
+                                        } catch (_e) { }
                                       }}
                                       onChange={(e) => {
                                         try {

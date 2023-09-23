@@ -35,6 +35,7 @@ type Column = {
   createdAt: Date;
   expires: Date | null;
   ownerId: string | null;
+  name: string | null;
   ratelimitType: string | null;
   ratelimitLimit: number | null;
   ratelimitRefillRate: number | null;
@@ -145,6 +146,16 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) =>
         row.original.ownerId ? (
           <Badge variant="secondary">{row.original.ownerId}</Badge>
+        ) : (
+          <Minus className="w-4 h-4 text-gray-300" />
+        ),
+    },
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) =>
+        row.original.name ? (
+          <Badge variant="secondary">{row.original.name}</Badge>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),

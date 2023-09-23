@@ -180,3 +180,30 @@ export const updateMetadata = serverAction({
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
 });
+
+export const updateKeyName = serverAction({
+  input: z.object({
+    keyId: z.string(),
+    name: z.string().nullish(),
+  }),
+  handler: async ({ input, ctx }) => {
+    const key = await db.query.keys.findFirst({
+      where: eq(schema.keys.id, input.keyId),
+      with: {
+        workspace: true,
+      },
+    });
+    if (!key || key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+
+    await db
+      .update(schema.keys)
+      .set({
+        name: input.name ?? null,
+      })
+      .where(eq(schema.keys.id, input.keyId));
+
+    revalidatePath(`/apps/keys/${input.keyId}`);
+  }
+});
