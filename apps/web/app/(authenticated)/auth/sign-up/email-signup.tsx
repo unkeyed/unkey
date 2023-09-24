@@ -52,7 +52,12 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
     const first = new FormData(e.currentTarget).get("first");
     const last = new FormData(e.currentTarget).get("last");
 
-    if (!signUpLoaded || typeof email !== "string" || typeof first !== "string" || typeof last !== "string") {
+    if (
+      !signUpLoaded ||
+      typeof email !== "string" ||
+      typeof first !== "string" ||
+      typeof last !== "string"
+    ) {
       return null;
     }
     setIsLoading(true);
@@ -94,25 +99,25 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   return (
     <form className="grid gap-2" onSubmit={signUpWithCode}>
       <div className="grid gap-1">
-      <div className="flex flex-row gap-1 ">
-      <Input
-          name="first"
-          placeholder="Bruce"
-          type="text"
-          required
-          autoCapitalize="none"
-          autoCorrect="off"
-          className="bg-background"
-        />
-        <Input
-          name="last"
-          placeholder="Banner"
-          type="text"
-          required
-          autoCapitalize="none"
-          autoCorrect="off"
-          className="bg-background"
-        />
+        <div className="flex flex-row gap-1 ">
+          <Input
+            name="first"
+            placeholder="Bruce"
+            type="text"
+            required
+            autoCapitalize="none"
+            autoCorrect="off"
+            className="bg-background"
+          />
+          <Input
+            name="last"
+            placeholder="Banner"
+            type="text"
+            required
+            autoCapitalize="none"
+            autoCorrect="off"
+            className="bg-background"
+          />
         </div>
         <Input
           name="email"
