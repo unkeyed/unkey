@@ -48,6 +48,16 @@ npx shadcn-ui@latest add button input label card
 
 ```
 
+Make sure you include your Clerk secret key and publishable key in your `.env.local` file. You can find these in your Clerk dashboard. You will also need an Unkey root key and API ID. You can find these in your Unkey dashboard. 
+
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxx
+CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxxx
+UNKEY_API_ID=api_xxxxxxxxxxxxxx
+UNKEY_ROOT_KEY=unkey_xxxxxxxxxxxxxx
+```
+
 ### Clerk setup (optional)
 
 
@@ -451,10 +461,13 @@ The response from the API will look like this, and as you can see, we now associ
 ```json
 {
   "valid": true,
-  "name": "my awesome api key"
   "ownerId": "user_2Vi5Z5c9tcZd6dfbgV6tEWDQYVf"
 }
 ```
+
+In the dashboard for Unkey, you can see the key and the owner ID and the name associated with it
+
+![Unkey Dashboard](/images/blog-images/unkey-with-auth/dashboard-example.png)
 
 ## Conclusion
 
