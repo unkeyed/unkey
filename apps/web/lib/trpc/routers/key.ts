@@ -132,4 +132,43 @@ export const keyRouter = t.router({
       );
       return;
     }),
+  deleteRootKey: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        keyIds: z.array(z.string()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
+
+      const newRootKey = await unkeyRoot._internal.createRootKey({
+        forWorkspaceId: workspace.id,
+        name: "Dashboard",
+        expires: Date.now() + 60000, // expires in 1 minute
+      });
+      if (newRootKey.error) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+      }
+
+      const sdk = unkeyScoped(newRootKey.result.key);
+
+      await Promise.all(
+        input.keyIds.map(async (keyId) => {
+          const { error } = await sdk._internal.deleteRootKey({
+            keyId,
+          });
+          if (error) {
+            console.log(error);
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+          }
+        }),
+      );
+      return;
+    }),
 });
