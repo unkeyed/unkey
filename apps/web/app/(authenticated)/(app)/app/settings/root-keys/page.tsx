@@ -1,5 +1,5 @@
-import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { getTenantId } from "@/lib/auth";
 import { type Key, db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -50,7 +50,7 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
         description="Root keys are used to interact with the Unkey API."
         actions={[<CreateRootKeyButton key="create-root-key" apiId={props.params.apiId} />]}
       />
-      <ApiKeyTable data={keys} />
+      <RootKeyTable data={keys} />
     </div>
   );
 }
