@@ -101,8 +101,8 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
                         data-level={heading.level}
                         className={
                           heading.level === "two" || heading.level === "one"
-                            ? "font-semibold text-lg "
-                            : "ml-4"
+                            ? "font-semibold text-md"
+                            : "ml-4 text-sm"
                         }
                         href={`#${heading.slug}`}
                       >
