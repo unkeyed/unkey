@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { getTenantId } from "@/lib/auth";
 import { type Key, db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
-import { RootKeyTable } from "@/components/dashboard/root-key-table";
 
 export const revalidate = 0;
 

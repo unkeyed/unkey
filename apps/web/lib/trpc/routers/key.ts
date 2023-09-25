@@ -132,7 +132,7 @@ export const keyRouter = t.router({
       );
       return;
     }),
-deleteRootKey: t.procedure
+  deleteRootKey: t.procedure
     .use(auth)
     .input(
       z.object({
@@ -164,10 +164,11 @@ deleteRootKey: t.procedure
             keyId,
           });
           if (error) {
-            console.log(error)
+            console.log(error);
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
           }
         }),
       );
       return;
-    }),});
+    }),
+});

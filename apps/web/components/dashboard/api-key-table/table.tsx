@@ -109,7 +109,8 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                 <DialogHeader>
                   <DialogTitle>Revoke {Object.keys(rowSelection).length} keys</DialogTitle>
                   <DialogDescription className="text-alert">
-                    This action can not be undone. Your root key(s) will no longer be able to create resources
+                    This action can not be undone. Your root key(s) will no longer be able to create
+                    resources
                   </DialogDescription>
                 </DialogHeader>
 

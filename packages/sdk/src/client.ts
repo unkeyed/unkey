@@ -527,7 +527,7 @@ export class Unkey {
       },
       deleteRootKey: async (req: {
         /**
-         *  Used to create root keys from the frontend, please ignore 
+         *  Used to create root keys from the frontend, please ignore
          */
         keyId: string;
       }): Promise<Result<void>> => {

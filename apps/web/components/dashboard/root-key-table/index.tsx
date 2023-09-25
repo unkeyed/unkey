@@ -216,8 +216,8 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                       permanenty
                     </DialogDescription>
                     <Alert variant="alert">
-                      This action can not be undone. Your root key will no longer be able to
-                      create resources
+                      This action can not be undone. Your root key will no longer be able to create
+                      resources
                     </Alert>
                   </DialogHeader>
 
