@@ -525,6 +525,19 @@ export class Unkey {
           cache: "no-cache",
         });
       },
+      deleteRootKey: async (req: {
+        /**
+         *  Used to create root keys from the frontend, please ignore 
+         */
+        keyId: string;
+      }): Promise<Result<void>> => {
+        return await this.fetch<void>({
+          path: ["v1", "internal.removeRootKey"],
+          method: "POST",
+          body: req,
+          cache: "no-cache",
+        });
+      },
     };
   }
 }

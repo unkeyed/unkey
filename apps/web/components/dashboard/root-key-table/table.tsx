@@ -54,7 +54,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const router = useRouter();
-  const deleteKey = trpc.key.delete.useMutation({
+  const deleteKey = trpc.key.deleteRootKey.useMutation({
     onSuccess: (_data, variables) => {
       setRowSelection({});
       toast({
@@ -70,7 +70,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
       toast({
         title: `Could not delete key ${JSON.stringify(variables)}`,
         description: err.message,
-        variant: "alert",
+        variant: "default",
       });
     },
   });
@@ -109,7 +109,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                 <DialogHeader>
                   <DialogTitle>Revoke {Object.keys(rowSelection).length} keys</DialogTitle>
                   <DialogDescription className="text-alert">
-                    This action can not be undone. Your root key(s) will no longer be able to create resources
+                    This action can not be undone. Your root key(s) will no longer be able to create resources.
                   </DialogDescription>
                 </DialogHeader>
 
