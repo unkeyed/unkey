@@ -139,25 +139,12 @@ In milliseconds
 <RequestExample>
 
 ```ts
-const created = await unkey.keys.create({
-	apiId:"api_7oKUUscTZy22jmVf9THxDA",
-	prefix:"xyz",
-	byteLength:16,
-	ownerId:"chronark",
-	meta:{
-		hello: "world"
-	},
-	expires: 1686941966471,
-	ratelimit:{
-		type:"fast",
-		limit:10,
-		refillRate: 1,
-		refillInterval: 1000
-	}
-	remaining: 1000
+const listKeys = await unkey.apis.listKeys({
+  apiId: "api_QUGih1EMtBy9eSSf3vujmF",
+  limit: 100,
 })
 
-console.log(created)
+console.log(listKeys)
 
 ```
 
@@ -166,10 +153,24 @@ console.log(created)
 <ResponseExample>
 ```ts
 {
-  result: {
-    key: "xyz_AS5HDkXXPot2MMoPHD8jnL"
-    keyId: "key_YALWkHZaA4neUa1JJoXTAw"
-	}
+  "keys": [
+    {
+      "id": "key_HPnfviesBEKHnZBFFiY4fg",
+      "apiId": "api_QUGih1EMtBy9eSSf3vujmF",
+      "workspaceId": "ws_o17fS1LvwtRswPdncAcUM",
+      "start": "key_Crg",
+      "createdAt": 1687642066782,
+      "expires": null,
+      "ratelimit": {
+        "type": "fast",
+        "limit": 11,
+        "refillRate": 11,
+        "refillInterval": 11
+      }
+    },
+    ...
+  ],
+  "total": 4
 }
 ```
 
