@@ -28,13 +28,14 @@ const publicRoutes = [
   "/docs",
   "/docs(.*)",
   "/og",
+  "/oss-friends",
   "/og/(.*)",
   "/api/v1/stripe/webhooks",
   "/api/v1/cron/(.*)",
   "/api/v1/clerk/webhooks",
 ];
 
-export default async function (req: NextRequest, evt: NextFetchEvent) {
+export default async function(req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
 
