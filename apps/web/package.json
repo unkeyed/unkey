@@ -115,6 +115,7 @@
   },
   "devDependencies": {
     "@clerk/types": "^3.50.0",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/ms": "^0.7.31",
     "@types/node": "^20.5.7",
     "@types/react": "^18.2.21",

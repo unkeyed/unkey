@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
+import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
 export const revalidate = 0;
@@ -36,6 +37,7 @@ export default async function SettingsPage(props: Props) {
       <UpdateKeyRatelimit apiKey={key} />
       <UpdateKeyExpiration apiKey={key} />
       <UpdateKeyMetadata apiKey={key} />
+      <UpdateKeyName apiKey={key} />
       <Card>
         <CardHeader>
           <CardTitle>Key ID</CardTitle>

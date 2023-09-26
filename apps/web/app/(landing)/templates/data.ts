@@ -103,6 +103,16 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Next.js",
   },
+  "unkey-clerk": {
+    title: "Unkey and Clerk",
+    description: "A simple template that shows how to use Unkey with an authentication provider",
+    authors: ["perkinsjr"],
+    repository: "https://github.com/perkinsjr/unkey-clerk",
+    readmeUrl: "https://raw.githubusercontent.com/perkinsjr/unkey-clerk/main/README.md",
+    url: "https://github.com/perkinsjr/unkey-clerk",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   ocr: {
     title: "OCR as a Service",
     description: "OCR API as a Service using Unkey",

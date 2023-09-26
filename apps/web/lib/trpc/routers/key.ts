@@ -17,7 +17,7 @@ export const keyRouter = t.router({
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
-
+        name: z.string().optional(),
         ratelimit: z
           .object({
             type: z.enum(["consistent", "fast"]),
@@ -47,6 +47,7 @@ export const keyRouter = t.router({
 
       const { error, result } = await unkeyScoped(newRootKey.result.key).keys.create({
         apiId: input.apiId,
+        name: input.name ?? undefined,
         prefix: input.prefix,
         byteLength: input.bytesLength,
         ownerId: input.ownerId ?? undefined,
@@ -125,6 +126,45 @@ export const keyRouter = t.router({
             keyId,
           });
           if (error) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+          }
+        }),
+      );
+      return;
+    }),
+  deleteRootKey: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        keyIds: z.array(z.string()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
+
+      const newRootKey = await unkeyRoot._internal.createRootKey({
+        forWorkspaceId: workspace.id,
+        name: "Dashboard",
+        expires: Date.now() + 60000, // expires in 1 minute
+      });
+      if (newRootKey.error) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+      }
+
+      const sdk = unkeyScoped(newRootKey.result.key);
+
+      await Promise.all(
+        input.keyIds.map(async (keyId) => {
+          const { error } = await sdk._internal.deleteRootKey({
+            keyId,
+          });
+          if (error) {
+            console.log(error);
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
           }
         }),

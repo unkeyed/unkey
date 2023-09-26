@@ -47,13 +47,13 @@ type Props = {
   data: Column[];
 };
 
-export const ApiKeyTable: React.FC<Props> = ({ data }) => {
+export const RootKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
   const { toast } = useToast();
-  const deleteKey = trpc.key.delete.useMutation({
+  const deleteKey = trpc.key.deleteRootKey.useMutation({
     onSuccess: () => {
       toast({
-        title: "Key was deleted",
+        title: "Root Key was deleted",
       });
       router.refresh();
     },
@@ -61,7 +61,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       toast({
         title: `Could not delete key ${JSON.stringify(variables)}`,
         description: err.message,
-        variant: "default",
+        variant: "alert",
       });
       router.refresh();
     },
@@ -210,14 +210,14 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
-                    <DialogTitle>Revoke Api Key</DialogTitle>
+                    <DialogTitle>Revoke Root Key</DialogTitle>
                     <DialogDescription>
                       Delete the key <Badge variant="secondary">{row.original.start}...</Badge>{" "}
                       permanenty
                     </DialogDescription>
                     <Alert variant="alert">
-                      This action can not be undone. Your users will no longer be able to
-                      authenticate using this key.
+                      This action can not be undone. Your root key will no longer be able to create
+                      resources
                     </Alert>
                   </DialogHeader>
 
