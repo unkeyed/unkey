@@ -1,4 +1,3 @@
-
 ### Services
 
 There are a few 3rd party services that are required to run the app:
@@ -12,7 +11,7 @@ Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respecti
 
 ```sh-session
 cp apps/web/.env.example apps/web/.env
-cp apps/api/.env.example apps/api/.env
+cp apps/agent/.env.example apps/agent/.env
 ```
 
 ### 0. Install
@@ -29,6 +28,7 @@ Push the database schema to Planetscale:
 cd packages/db
 DRIZZLE_DATABASE_URL='mysql://{user}:{password}{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
 ```
+
 ### 2. Tinybird
 
 Download the Tinybird CLI from [here](https://www.tinybird.co/docs/cli.html) and run the following command after authenticating:
@@ -38,7 +38,6 @@ cd packages/tinybird
 tb push ./*.datasource
 tb push
 ```
-
 
 ### 3. Clerk
 
@@ -65,7 +64,6 @@ pnpm bootstrap
 
 This sets up the workspace and gets everything ready to run the app.
 
-
 ## Build
 
 ```sh-session
@@ -75,14 +73,15 @@ pnpm build
 ## Run API
 
 Add a `.env` file in `/apps/agent/.env` and populate the values from the services above.:
+
 ```sh-session
-cp apps/api/.env.example apps/api/.env
+cp apps/agent/.env.example apps/agent/.env
 ```
 
 Then run the api via docker compose:
 
 ```sh-session
-cd apps/api
+cd apps/agent
 docker compose up
 ```
 
@@ -91,7 +90,6 @@ docker compose up
 ```sh-session
 pnpm turbo run dev --filter=web
 ```
-
 
 ## Run api
 
