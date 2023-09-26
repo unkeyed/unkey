@@ -41,5 +41,4 @@ cmd = [
    "--analytics=tinybird",
    "--event-bus=kafka",
    "--enable-redis",
-   "--prewarm",
    ]
