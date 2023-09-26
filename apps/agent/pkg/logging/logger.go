@@ -38,7 +38,7 @@ type Config struct {
 	Writer []io.Writer
 }
 
-func New(config *Config) (Logger, error) {
+func New(config *Config) Logger {
 	if config == nil {
 		config = &Config{}
 	}
@@ -57,7 +57,7 @@ func New(config *Config) (Logger, error) {
 	} else {
 		logger = logger.Level(zerolog.InfoLevel)
 	}
-	return logger, nil
+	return logger
 }
 
 func NewNoopLogger() Logger {

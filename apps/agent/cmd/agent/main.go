@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	goredis "github.com/redis/go-redis/v9"
 	"log"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	analyticsMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/analytics/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
-	"github.com/unkeyed/unkey/apps/agent/pkg/boot"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
@@ -37,8 +37,8 @@ type features struct {
 	enableAxiom bool
 	analytics   string
 	eventBus    string
-	prewarm     bool
 	verbose     bool
+	enableRedis bool
 }
 
 var runtimeConfig features
@@ -47,7 +47,7 @@ func init() {
 	AgentCmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
 	AgentCmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
 	AgentCmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
-	AgentCmd.Flags().BoolVar(&runtimeConfig.prewarm, "prewarm", false, "Load all keys from the db to memory on boot")
+	AgentCmd.Flags().BoolVar(&runtimeConfig.enableRedis, "enable-redis", false, "Use redis as 2nd tier cache")
 	AgentCmd.Flags().BoolVarP(&runtimeConfig.verbose, "verbose", "v", false, "Print debug logs")
 }
 
@@ -62,13 +62,14 @@ var AgentCmd = &cobra.Command{
 				log.Fatalf("unable to load environment variable: %s", err.Error())
 			},
 		}
+		machineId := e.String("FLY_MACHINE_ID", "local")
+
 		logConfig := &logging.Config{
 			Debug: runtimeConfig.verbose,
 		}
 		if runtimeConfig.enableAxiom {
 			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
 				AxiomToken: e.String("AXIOM_TOKEN"),
-				AxiomOrgId: e.String("AXIOM_ORG_ID"),
 			})
 			if err != nil {
 				log.Fatalf("unable to create axiom writer: %s", err.Error())
@@ -76,10 +77,8 @@ var AgentCmd = &cobra.Command{
 			logConfig.Writer = append(logConfig.Writer, axiomWriter)
 		}
 
-		logger, err := logging.New(logConfig)
-		if err != nil {
-			log.Fatalf("unable to create logger: %s", err.Error())
-		}
+		logger := logging.New(logConfig)
+
 		logger = logger.With().Str("version", version.Version).Logger()
 
 		logger.Info().Any("runtimeConfig", runtimeConfig).Msg("Starting Unkey Agent")
@@ -91,10 +90,23 @@ var AgentCmd = &cobra.Command{
 			logger = logger.With().Str("allocId", allocId).Logger()
 		}
 
+		var redis *goredis.Client
+		if runtimeConfig.enableRedis {
+			opts, err := goredis.ParseURL(e.String("REDIS_URL"))
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to parse redis url")
+			}
+			redis = goredis.NewClient(opts)
+			err = redis.Ping(context.Background()).Err()
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to connect to redis")
+			}
+			defer redis.Close()
+		}
+
 		metrics := metricsPkg.NewNoop()
 		if runtimeConfig.enableAxiom {
 			realMetrics, err := metricsPkg.New(metricsPkg.Config{
-				AxiomOrgId: e.String("AXIOM_ORG_ID"),
 				AxiomToken: e.String("AXIOM_TOKEN"),
 				Logger:     logger.With().Str("pkg", "metrics").Logger(),
 				Region:     region,
@@ -187,17 +199,17 @@ var AgentCmd = &cobra.Command{
 
 		fastRatelimit := ratelimit.NewInMemory()
 		var consistentRatelimit ratelimit.Ratelimiter
-		redisUrl := e.String("REDIS_URL", "")
-		if redisUrl != "" {
-			consistentRatelimit, err = ratelimit.NewRedis(ratelimit.RedisConfig{
-				RedisUrl: redisUrl,
-			})
-			if err != nil {
-				logger.Fatal().Err(err).Msg("unable to start redis ratelimiting")
-			}
-		}
+		// redisUrl := e.String("REDIS_URL", "")
+		// if redisUrl != "" {
+		// 	consistentRatelimit, err = ratelimit.NewRedis(ratelimit.RedisConfig{
+		// 		RedisUrl: redisUrl,
+		// 	})
+		// 	if err != nil {
+		// 		logger.Fatal().Err(err).Msg("unable to start redis ratelimiting")
+		// 	}
+		// }
 
-		keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
+		keyCache := cache.NewMemory[entities.Key](cache.Config[entities.Key]{
 			Fresh:   time.Minute * 15,
 			Stale:   time.Minute * 60,
 			MaxSize: 1024 * 1024,
@@ -214,11 +226,11 @@ var AgentCmd = &cobra.Command{
 			Resource: "key",
 		})
 		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
-		keyCache = cacheMiddleware.WithMetrics[entities.Key](keyCache, metrics, "key")
+		keyCache = cacheMiddleware.WithMetrics[entities.Key](keyCache, metrics, "key", "memory")
 
-		apiByKeyAuthIdCache := cache.New[entities.Api](cache.Config[entities.Api]{
-			Fresh:   time.Minute * 5,
-			Stale:   time.Minute * 15,
+		apiByKeyAuthIdCache := cache.NewMemory[entities.Api](cache.Config[entities.Api]{
+			Fresh:   time.Minute * 15,
+			Stale:   time.Minute * 60,
 			MaxSize: 1024 * 1024,
 			RefreshFromOrigin: func(ctx context.Context, keyAuthId string) (entities.Api, bool) {
 				api, found, err := db.FindApiByKeyAuthId(ctx, keyAuthId)
@@ -233,7 +245,34 @@ var AgentCmd = &cobra.Command{
 			Resource: "api",
 		})
 		apiByKeyAuthIdCache = cacheMiddleware.WithTracing[entities.Api](apiByKeyAuthIdCache, tracer)
-		apiByKeyAuthIdCache = cacheMiddleware.WithMetrics[entities.Api](apiByKeyAuthIdCache, metrics, "api")
+		apiByKeyAuthIdCache = cacheMiddleware.WithMetrics[entities.Api](apiByKeyAuthIdCache, metrics, "api", "memory")
+
+		if redis != nil {
+			keyBuf, err := redis.Get(context.Background(), fmt.Sprintf("dump:keys:%s", machineId)).Result()
+			if err != nil {
+				if err != goredis.Nil {
+					logger.Info().Msg("no key cache dump found in redis")
+				}
+				logger.Err(err).Msg("unable to get key cache dump from redis")
+			}
+			err = keyCache.Restore(context.Background(), []byte(keyBuf))
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to restore key cache from redis")
+			}
+
+			apiBuf, err := redis.Get(context.Background(), fmt.Sprintf("dump:apis:%s", machineId)).Result()
+			if err != nil {
+				if err != goredis.Nil {
+					logger.Info().Msg("no api cache dump found in redis")
+				}
+				logger.Err(err).Msg("unable to get api cache dump from redis")
+			}
+			err = apiByKeyAuthIdCache.Restore(context.Background(), []byte(apiBuf))
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to restore api cache from redis")
+			}
+
+		}
 
 		eventBus.OnKeyEvent(func(ctx context.Context, e events.KeyEvent) error {
 
@@ -253,31 +292,16 @@ var AgentCmd = &cobra.Command{
 			}
 			logger.Debug().Str("keyAuthId", key.KeyAuthId).Msg("precaching api")
 
-			_, _, err = cache.WithCache(apiByKeyAuthIdCache, db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
+			api, found, err := db.FindApiByKeyAuthId(ctx, key.KeyAuthId)
 			if err != nil {
 				return fmt.Errorf("unable to find api by keyAuthId: %s: %w", key.KeyAuthId, err)
+			}
+			if found {
+				apiByKeyAuthIdCache.Set(ctx, key.KeyAuthId, api)
 			}
 
 			return nil
 		})
-
-		if runtimeConfig.prewarm {
-
-			cacheWarmer := boot.NewCacheWarmer(boot.Config{
-				KeyCache: keyCache,
-				ApiCache: apiByKeyAuthIdCache,
-				DB:       db,
-				Logger:   logger,
-			})
-			defer cacheWarmer.Stop()
-
-			go func() {
-				err := cacheWarmer.Run(context.Background())
-				if err != nil {
-					logger.Err(err).Msg("unable to warm cache")
-				}
-			}()
-		}
 
 		workspaceService := workspaces.New(
 			workspaces.Config{
@@ -329,5 +353,24 @@ var AgentCmd = &cobra.Command{
 		// wait for signal
 		sig := <-cShutdown
 		logger.Info().Any("sig", sig).Msg("Caught signal, shutting down")
+
+		if redis != nil {
+			keyBuf, err := keyCache.Dump(context.Background())
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to dump key cache")
+			}
+			apiBuf, err := apiByKeyAuthIdCache.Dump(context.Background())
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to dump api cache")
+			}
+
+			p := redis.Pipeline()
+			p.Set(context.Background(), fmt.Sprintf("dump:keys:%s", machineId), string(keyBuf), time.Hour)
+			p.Set(context.Background(), fmt.Sprintf("dump:apis:%s", machineId), string(apiBuf), time.Hour)
+			_, err = p.Exec(context.Background())
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to dump caches to redis")
+			}
+		}
 	},
 }

@@ -12,10 +12,11 @@ type metricsMiddleware[T any] struct {
 	next     cache.Cache[T]
 	metrics  metrics.Metrics
 	resource string
+	tier     string
 }
 
-func WithMetrics[T any](c cache.Cache[T], m metrics.Metrics, resource string) cache.Cache[T] {
-	return &metricsMiddleware[T]{next: c, metrics: m, resource: resource}
+func WithMetrics[T any](c cache.Cache[T], m metrics.Metrics, resource string, tier string) cache.Cache[T] {
+	return &metricsMiddleware[T]{next: c, metrics: m, resource: resource, tier: tier}
 }
 
 func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
@@ -26,6 +27,7 @@ func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, cache.C
 		Hit:      hit != cache.Miss,
 		Resource: mw.resource,
 		Latency:  time.Since(start).Milliseconds(),
+		Tier:     mw.tier,
 	})
 	return value, hit
 }
@@ -41,4 +43,12 @@ func (mw *metricsMiddleware[T]) Remove(ctx context.Context, key string) {
 
 	mw.next.Remove(ctx, key)
 
+}
+
+func (mw *metricsMiddleware[T]) Dump(ctx context.Context) ([]byte, error) {
+	return mw.next.Dump(ctx)
+}
+
+func (mw *metricsMiddleware[T]) Restore(ctx context.Context, data []byte) error {
+	return mw.next.Restore(ctx, data)
 }

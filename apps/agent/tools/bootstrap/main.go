@@ -14,10 +14,8 @@ import (
 
 func main() {
 	ctx := context.Background()
-	logger, err := logging.New(nil)
-	if err != nil {
-		panic(err)
-	}
+	logger := logging.New(nil)
+
 	e := env.Env{ErrorHandler: func(err error) { logger.Err(err).Msg("unable to load env") }}
 
 	seedDb, err := sql.Open("mysql", e.String("DATABASE_DSN"))
