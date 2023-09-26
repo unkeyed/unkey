@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { Globe } from "lucide-react";
 import Link from "next/link";
 
 // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
@@ -28,7 +29,7 @@ function GitHubIcon(props: any) {
 export const socialMediaProfiles = [
   { title: "Twitter", href: "https://twitter.com/unkeydev", icon: TwitterIcon },
   { title: "GitHub", href: "https://github.com/unkeyed", icon: GitHubIcon },
-  { title: "OSS Friends", href: "/oss-friends" },
+  { title: "OSS Friends", href: "/oss-friends", icon: Globe },
 ];
 
 export function SocialMedia({
