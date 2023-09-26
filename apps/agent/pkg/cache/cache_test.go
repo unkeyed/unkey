@@ -13,7 +13,7 @@ import (
 )
 
 func TestWriteRead(t *testing.T) {
-	c := cache.New[string](cache.Config[string]{
+	c := cache.NewMemory[string](cache.Config[string]{
 		Fresh: time.Minute,
 		Stale: time.Minute * 5,
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
@@ -28,7 +28,7 @@ func TestWriteRead(t *testing.T) {
 }
 
 func TestEviction(t *testing.T) {
-	c := cache.New[string](cache.Config[string]{
+	c := cache.NewMemory[string](cache.Config[string]{
 		Fresh: time.Second,
 		Stale: time.Second,
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
@@ -47,7 +47,7 @@ func TestRefresh(t *testing.T) {
 	// count how many times we refreshed from origin
 	refreshedFromOrigin := atomic.Int32{}
 
-	c := cache.New[string](cache.Config[string]{
+	c := cache.NewMemory[string](cache.Config[string]{
 		Fresh: time.Second * 2,
 		Stale: time.Minute * 5,
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
@@ -72,7 +72,7 @@ func TestRefresh(t *testing.T) {
 
 func TestNull(t *testing.T) {
 
-	c := cache.New[string](cache.Config[string]{
+	c := cache.NewMemory[string](cache.Config[string]{
 		Fresh:  time.Second * 1,
 		Stale:  time.Minute * 5,
 		Logger: logging.NewNoopLogger(),

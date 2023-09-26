@@ -17,6 +17,12 @@ type Cache[T any] interface {
 
 	// Removes the key from the cache.
 	Remove(ctx context.Context, key string)
+
+	// Dump returns a serialized representation of the cache.
+	Dump(ctx context.Context) ([]byte, error)
+
+	// Restore restores the cache from a serialized representation.
+	Restore(ctx context.Context, data []byte) error
 }
 
 type CacheHit int

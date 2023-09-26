@@ -25,7 +25,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	keyCache := cache.New[entities.Key](cache.Config[entities.Key]{
+	keyCache := cache.NewMemory[entities.Key](cache.Config[entities.Key]{
 		Fresh:   time.Minute * 15,
 		Stale:   time.Minute * 60,
 		MaxSize: 1024,
@@ -39,7 +39,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 		Logger: logger,
 	})
 
-	apiCache := cache.New[entities.Api](cache.Config[entities.Api]{
+	apiCache := cache.NewMemory[entities.Api](cache.Config[entities.Api]{
 		Fresh:   time.Minute * 5,
 		Stale:   time.Minute * 15,
 		MaxSize: 1024,
