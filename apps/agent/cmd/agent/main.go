@@ -2,10 +2,12 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	goredis "github.com/redis/go-redis/v9"
 	"log"
 	"time"
+
+	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
@@ -249,27 +251,25 @@ var AgentCmd = &cobra.Command{
 
 		if redis != nil {
 			keyBuf, err := redis.Get(context.Background(), fmt.Sprintf("dump:keys:%s", machineId)).Result()
-			if err != nil {
-				if err != goredis.Nil {
-					logger.Info().Msg("no key cache dump found in redis")
-				}
+			if err != nil && !errors.Is(err, goredis.Nil) {
 				logger.Err(err).Msg("unable to get key cache dump from redis")
 			}
-			err = keyCache.Restore(context.Background(), []byte(keyBuf))
-			if err != nil {
-				logger.Fatal().Err(err).Msg("unable to restore key cache from redis")
+			if !errors.Is(err, goredis.Nil) {
+				err = keyCache.Restore(context.Background(), []byte(keyBuf))
+				if err != nil {
+					logger.Fatal().Err(err).Msg("unable to restore key cache from redis")
+				}
 			}
 
 			apiBuf, err := redis.Get(context.Background(), fmt.Sprintf("dump:apis:%s", machineId)).Result()
-			if err != nil {
-				if err != goredis.Nil {
-					logger.Info().Msg("no api cache dump found in redis")
-				}
+			if err != nil && !errors.Is(err, goredis.Nil) {
 				logger.Err(err).Msg("unable to get api cache dump from redis")
 			}
-			err = apiByKeyAuthIdCache.Restore(context.Background(), []byte(apiBuf))
-			if err != nil {
-				logger.Fatal().Err(err).Msg("unable to restore api cache from redis")
+			if !errors.Is(err, goredis.Nil) {
+				err = apiByKeyAuthIdCache.Restore(context.Background(), []byte(apiBuf))
+				if err != nil {
+					logger.Fatal().Err(err).Msg("unable to restore api cache from redis")
+				}
 			}
 
 		}
