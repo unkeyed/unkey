@@ -35,7 +35,7 @@ const publicRoutes = [
   "/api/v1/clerk/webhooks",
 ];
 
-export default async function(req: NextRequest, evt: NextFetchEvent) {
+export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
 
