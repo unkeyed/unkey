@@ -28,6 +28,7 @@ const publicRoutes = [
   "/docs",
   "/docs(.*)",
   "/og",
+  "/oss-friends",
   "/og/(.*)",
   "/api/v1/stripe/webhooks",
   "/api/v1/cron/(.*)",
