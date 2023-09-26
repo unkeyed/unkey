@@ -107,7 +107,6 @@ export const templates: Record<string, Template> = {
     title: "Unkey and Clerk",
     description: "A simple template that shows how to use Unkey with an authentication provider",
     authors: ["perkinsjr"],
-    image: "/templates/unkey-clerk.png",
     repository: "https://github.com/perkinsjr/unkey-clerk",
     readmeUrl: "https://raw.githubusercontent.com/perkinsjr/unkey-clerk/main/README.md",
     url: "https://github.com/perkinsjr/unkey-clerk",
