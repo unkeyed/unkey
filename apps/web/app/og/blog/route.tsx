@@ -7,7 +7,7 @@ const truncate = (str: string | null, length: number) => {
   }
   return `${str.slice(0, length - 3)}...`;
 };
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     const title = searchParams.get("title") || "Blog";
     const author = searchParams.get("author");
     const image = searchParams.get("image");
+    // @ts-expect-error no idea why nextjs is complaining about this
     return new ImageResponse(
       <div
         style={{
