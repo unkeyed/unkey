@@ -26,7 +26,7 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}
