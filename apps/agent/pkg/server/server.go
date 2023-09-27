@@ -130,7 +130,7 @@ func New(config Config) *Server {
 		users := map[string]string{}
 		users[basicAuthUser] = basicAuthPassword
 
-		s.app.Use(basicauth.New(basicauth.Config{
+		s.app.All("/debug/*",basicauth.New(basicauth.Config{
 			Users: users,
 		}),
 			pprof.New(),
@@ -186,11 +186,15 @@ func New(config Config) *Server {
 			Str("traceId", traceId).
 			Logger()
 
-		if c.Response().StatusCode() >= 500 || (err != nil && !errors.Is(err, fiber.ErrMethodNotAllowed) && !errors.Is(err, fiber.ErrNotFound)) {
+		if c.Response().StatusCode() >= 500 ||
+
+			(err != nil &&
+				!errors.Is(err, fiber.ErrMethodNotAllowed) &&
+				!errors.Is(err, fiber.ErrNotFound)) {
 			log.Err(err).Msg("request failed")
 			span.RecordError(err)
 		} else {
-			log.Debug().Msg("request completed")
+			log.Info().Msg("request completed")
 		}
 		return err
 	})

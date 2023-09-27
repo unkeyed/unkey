@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -40,7 +41,7 @@ type features struct {
 	analytics   string
 	eventBus    string
 	verbose     bool
-	enableRedis bool
+	restoreCache bool
 }
 
 var runtimeConfig features
@@ -49,7 +50,7 @@ func init() {
 	AgentCmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
 	AgentCmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
 	AgentCmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
-	AgentCmd.Flags().BoolVar(&runtimeConfig.enableRedis, "enable-redis", false, "Use redis as 2nd tier cache")
+	AgentCmd.Flags().BoolVar(&runtimeConfig.restoreCache, "restore-cache", false, "Restore the cache from persistent storage")
 	AgentCmd.Flags().BoolVarP(&runtimeConfig.verbose, "verbose", "v", false, "Print debug logs")
 }
 
@@ -92,9 +93,10 @@ var AgentCmd = &cobra.Command{
 			logger = logger.With().Str("allocId", allocId).Logger()
 		}
 
+		redisUrl := e.String("REDIS_URL", "")
 		var redis *goredis.Client
-		if runtimeConfig.enableRedis {
-			opts, err := goredis.ParseURL(e.String("REDIS_URL"))
+		if redisUrl != "" {
+			opts, err := goredis.ParseURL(redisUrl)
 			if err != nil {
 				logger.Fatal().Err(err).Msg("unable to parse redis url")
 			}
@@ -249,24 +251,34 @@ var AgentCmd = &cobra.Command{
 		apiByKeyAuthIdCache = cacheMiddleware.WithTracing[entities.Api](apiByKeyAuthIdCache, tracer)
 		apiByKeyAuthIdCache = cacheMiddleware.WithMetrics[entities.Api](apiByKeyAuthIdCache, metrics, "api", "memory")
 
-		if redis != nil {
-			keyBuf, err := redis.Get(context.Background(), fmt.Sprintf("dump:keys:%s", machineId)).Result()
+		if redis != nil && runtimeConfig.restoreCache {
+			logger.Info().Msg("restoring caches from redis")
+			res, err := redis.Get(context.Background(), fmt.Sprintf("dump:keys:%s", machineId)).Result()
 			if err != nil && !errors.Is(err, goredis.Nil) {
-				logger.Err(err).Msg("unable to get key cache dump from redis")
+				logger.Fatal().Err(err).Msg("unable to get key cache dump from redis")
+
 			}
 			if !errors.Is(err, goredis.Nil) {
-				err = keyCache.Restore(context.Background(), []byte(keyBuf))
+				buf, err := base64.StdEncoding.DecodeString(res)
+				if err != nil {
+					logger.Fatal().Err(err).Msg("unable to decode key cache dump from redis")
+				}
+				err = keyCache.Restore(context.Background(), buf)
 				if err != nil {
 					logger.Fatal().Err(err).Msg("unable to restore key cache from redis")
 				}
 			}
 
-			apiBuf, err := redis.Get(context.Background(), fmt.Sprintf("dump:apis:%s", machineId)).Result()
+			res, err = redis.Get(context.Background(), fmt.Sprintf("dump:apis:%s", machineId)).Result()
 			if err != nil && !errors.Is(err, goredis.Nil) {
-				logger.Err(err).Msg("unable to get api cache dump from redis")
+				logger.Fatal().Err(err).Msg("unable to get api cache dump from redis")
 			}
 			if !errors.Is(err, goredis.Nil) {
-				err = apiByKeyAuthIdCache.Restore(context.Background(), []byte(apiBuf))
+				buf, err := base64.StdEncoding.DecodeString(res)
+				if err != nil {
+					logger.Fatal().Err(err).Msg("unable to decode api cache dump from redis")
+				}
+				err = apiByKeyAuthIdCache.Restore(context.Background(), buf)
 				if err != nil {
 					logger.Fatal().Err(err).Msg("unable to restore api cache from redis")
 				}
@@ -353,8 +365,8 @@ var AgentCmd = &cobra.Command{
 		// wait for signal
 		sig := <-cShutdown
 		logger.Info().Any("sig", sig).Msg("Caught signal, shutting down")
-
 		if redis != nil {
+			logger.Info().Msg("dumping caches to redis")
 			keyBuf, err := keyCache.Dump(context.Background())
 			if err != nil {
 				logger.Fatal().Err(err).Msg("unable to dump key cache")
@@ -365,8 +377,8 @@ var AgentCmd = &cobra.Command{
 			}
 
 			p := redis.Pipeline()
-			p.Set(context.Background(), fmt.Sprintf("dump:keys:%s", machineId), string(keyBuf), time.Hour)
-			p.Set(context.Background(), fmt.Sprintf("dump:apis:%s", machineId), string(apiBuf), time.Hour)
+			p.Set(context.Background(), fmt.Sprintf("dump:keys:%s", machineId), base64.StdEncoding.EncodeToString(keyBuf), time.Hour)
+			p.Set(context.Background(), fmt.Sprintf("dump:apis:%s", machineId), base64.StdEncoding.EncodeToString(apiBuf), time.Hour)
 			_, err = p.Exec(context.Background())
 			if err != nil {
 				logger.Fatal().Err(err).Msg("unable to dump caches to redis")
