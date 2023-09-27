@@ -1,4 +1,5 @@
 import { ColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -67,7 +68,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   return (
     <div className="flex flex-col gap-8">
       <Card>
-        <CardContent className="grid grid-cols-2 gap-px mx-auto md:grid-cols-5 md:divide-x ">
+        <CardContent className="grid grid-cols-2 gap-px mx-auto xl:divide-x md:grid-cols-3 xl:grid-cols-6 ">
           <Stat label="Usage 30 days" value={fmt(usage30Days)} />
           <Stat
             label="Expires"
@@ -81,19 +82,29 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
             label="LastUsed"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
+          <Stat label="Total Uses" value={fmt(totalUsage)} />
           <Stat
             label={
               <Tooltip>
                 <TooltipTrigger className="flex items-center gap-1">
-                  Total Uses <Info className="w-4 h-4" />
+                  Key ID <Info className="w-4 h-4" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  During the initial few weeks this might appear lower than the 30day usage, since
-                  this is a new metric starting at 0.
+                  This is not the secret key, but just a unique identifier used for interacting with
+                  our API.
                 </TooltipContent>
               </Tooltip>
             }
-            value={fmt(totalUsage)}
+            value={
+              <Badge
+                key="keyId"
+                variant="secondary"
+                className="flex justify-between font-mono font-medium "
+              >
+                <span className="truncate">{key.id}</span>
+                <CopyButton value={key.id} className="ml-2" />
+              </Badge>
+            }
           />
         </CardContent>
       </Card>

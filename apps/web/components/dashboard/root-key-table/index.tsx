@@ -165,9 +165,9 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       header: "Ratelimit",
       cell: ({ row }) =>
         row.original.ratelimitType &&
-          row.original.ratelimitLimit &&
-          row.original.ratelimitRefillInterval &&
-          row.original.ratelimitRefillRate ? (
+        row.original.ratelimitLimit &&
+        row.original.ratelimitRefillInterval &&
+        row.original.ratelimitRefillRate ? (
           <div>
             <span>{row.original.ratelimitRefillRate}</span> /{" "}
             <span>{ms(row.original.ratelimitRefillInterval)}</span>

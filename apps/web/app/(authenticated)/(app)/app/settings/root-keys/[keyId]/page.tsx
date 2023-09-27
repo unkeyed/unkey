@@ -1,6 +1,5 @@
-import { db, eq, schema } from "@/lib/db";
-import { notFound } from "next/navigation";
 import { ColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,11 +11,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { getDailyUsage, getLastUsed, getLatestVerifications, getTotalUsage } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
 import { Check, Info, Minus } from "lucide-react";
 import ms from "ms";
-import { getTenantId } from "@/lib/auth";
+import { notFound } from "next/navigation";
 export const revalidate = 0;
 
 export default async function Page(props: { params: { keyId: string } }) {
@@ -24,11 +26,6 @@ export default async function Page(props: { params: { keyId: string } }) {
 
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
-    with: {
-      apis: {
-        limit: 1,
-      },
-    },
   });
   if (!workspace) {
     return notFound();
@@ -37,22 +34,22 @@ export default async function Page(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  const apiKey = await db.query.keys.findFirst({
+  const key = await db.query.keys.findFirst({
     where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
   });
-  if (!apiKey) {
+  if (!key) {
     return notFound();
   }
 
   const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
     getDailyUsage({
-      workspaceId: workspace.id,
-      apiId: workspace.apis[0].id,
-      keyId: apiKey.id,
+      workspaceId: env.UNKEY_WORKSPACE_ID,
+      apiId: env.UNKEY_API_ID,
+      keyId: key.id,
     }),
-    getTotalUsage({ keyId: apiKey.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
-    getLatestVerifications({ keyId: apiKey.id }),
-    getLastUsed({ keyId: apiKey.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
+    getTotalUsage({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
+    getLatestVerifications({ keyId: key.id }),
+    getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
 
   const end = new Date().setUTCHours(0, 0, 0, 0);
@@ -72,25 +69,43 @@ export default async function Page(props: { params: { keyId: string } }) {
   return (
     <div className="flex flex-col gap-8">
       <Card>
-        <CardContent className="grid grid-cols-2 gap-px mx-auto md:grid-cols-5 md:divide-x ">
+        <CardContent className="grid grid-cols-2 gap-px mx-auto xl:divide-x md:grid-cols-3 xl:grid-cols-6 ">
           <Stat label="Usage 30 days" value={fmt(usage30Days)} />
+          <Stat
+            label="Expires"
+            value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
+          />
+          <Stat
+            label="Remaining"
+            value={key.remainingRequests ? fmt(key.remainingRequests) : <Minus />}
+          />
           <Stat
             label="LastUsed"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
+          <Stat label="Total Uses" value={fmt(totalUsage)} />
           <Stat
             label={
               <Tooltip>
                 <TooltipTrigger className="flex items-center gap-1">
-                  Total Uses <Info className="w-4 h-4" />
+                  Key ID <Info className="w-4 h-4" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  During the initial few weeks this might appear lower than the 30day usage, since
-                  this is a new metric starting at 0.
+                  This is not the secret key, but just a unique identifier used for interacting with
+                  our API.
                 </TooltipContent>
               </Tooltip>
             }
-            value={fmt(totalUsage)}
+            value={
+              <Badge
+                key="keyId"
+                variant="secondary"
+                className="flex justify-between font-mono font-medium "
+              >
+                <span className="truncate">{key.id}</span>
+                <CopyButton value={key.id} className="ml-2" />
+              </Badge>
+            }
           />
         </CardContent>
       </Card>
