@@ -37,10 +37,10 @@ import (
 )
 
 type features struct {
-	enableAxiom bool
-	analytics   string
-	eventBus    string
-	verbose     bool
+	enableAxiom  bool
+	analytics    string
+	eventBus     string
+	verbose      bool
 	restoreCache bool
 }
 

@@ -130,7 +130,7 @@ func New(config Config) *Server {
 		users := map[string]string{}
 		users[basicAuthUser] = basicAuthPassword
 
-		s.app.All("/debug/*",basicauth.New(basicauth.Config{
+		s.app.All("/debug/*", basicauth.New(basicauth.Config{
 			Users: users,
 		}),
 			pprof.New(),
