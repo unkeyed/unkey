@@ -33,6 +33,9 @@ primary_region = "iad"
     method = "get"
     path = "/v1/liveness"
 
+[restart]
+  policy = "on-failure"
+  max_retries = 5
 
 [experimental]
 cmd = [
@@ -41,5 +44,5 @@ cmd = [
    "--analytics=tinybird",
    "--event-bus=kafka",
    "--enable-axiom",
-   "--prewarm",
+   "--restore-cache"
    ]

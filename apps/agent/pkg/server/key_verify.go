@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/whitelist"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type VerifyKeyRequest struct {
@@ -54,6 +57,9 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 
 	}
 
+	// some experiment to test cloudflare
+	go testCf(req)
+
 	// ---------------------------------------------------------------------------------------------
 	// Get the key from either cache or db
 	// ---------------------------------------------------------------------------------------------
@@ -71,6 +77,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			Code:  errors.NOT_FOUND,
 		})
 	}
+
 	if hit == cache.Miss {
 		var found bool
 		key, found, err = s.db.FindKeyByHash(ctx, hash)
@@ -133,14 +140,16 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	// Start validation
 	// ---------------------------------------------------------------------------------------------
-
 	if s.metrics != nil {
+		var sp trace.Span
+		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.ReportKeyVerification")
 		s.metrics.ReportKeyVerification(metrics.KeyVerificationReport{
 			WorkspaceId: key.WorkspaceId,
 			ApiId:       api.Id,
 			KeyId:       key.Id,
 			KeyAuthId:   key.KeyAuthId,
 		})
+		sp.End()
 	}
 
 	res := VerifyKeyResponse{
@@ -189,7 +198,12 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			return c.JSON(res)
 		}
 
+		beforeKeyUpdate := time.Now()
 		keyAfterUpdate, err := s.db.DecrementRemainingKeyUsage(ctx, key.Id)
+		s.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
+			Query:   "DecrementRemainingKeyUsage",
+			Latency: time.Since(beforeKeyUpdate).Milliseconds(),
+		})
 		if err != nil {
 			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 		}
@@ -233,4 +247,18 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(res)
+}
+
+func testCf(req VerifyKeyRequest) {
+	r, err := http.NewRequest("POST", "https://api.unkey.app/v1/key.verifyKey", bytes.NewBufferString(fmt.Sprintf(`{"key":"%s"}`, req.Key)))
+	if err != nil {
+		return
+	}
+	r.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
 }

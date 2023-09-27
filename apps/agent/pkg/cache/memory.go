@@ -3,6 +3,8 @@ package cache
 import (
 	"container/list"
 	"context"
+	"encoding/json"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -12,18 +14,18 @@ import (
 )
 
 type swrEntry[T any] struct {
-	Value T
+	Value T `json:"value"`
 
-	Hit CacheHit
+	Hit CacheHit `json:"hit"`
 	// Before this time the entry is considered fresh and vaid
-	Fresh time.Time
+	Fresh time.Time `json:"fresh"`
 	// Before this time, the entry should be revalidated
 	// After this time, the entry must be discarded
-	Stale      time.Time
-	LruElement *list.Element
+	Stale      time.Time     `json:"stale"`
+	LruElement *list.Element `json:"-"`
 }
 
-type cache[T any] struct {
+type memory[T any] struct {
 	sync.RWMutex
 	data map[string]swrEntry[T]
 
@@ -61,9 +63,9 @@ type Config[T any] struct {
 	Resource string
 }
 
-func New[T any](config Config[T]) Cache[T] {
+func NewMemory[T any](config Config[T]) Cache[T] {
 
-	c := &cache[T]{
+	c := &memory[T]{
 		data:              make(map[string]swrEntry[T]),
 		fresh:             config.Fresh,
 		stale:             config.Stale,
@@ -84,7 +86,7 @@ func New[T any](config Config[T]) Cache[T] {
 	return c
 }
 
-func (c *cache[T]) runReporting() {
+func (c *memory[T]) runReporting() {
 	for range time.NewTicker(time.Minute).C {
 		c.RLock()
 		size := len(c.data)
@@ -97,6 +99,7 @@ func (c *cache[T]) runReporting() {
 			RefreshQueueSize: len(c.refreshC),
 			Utilization:      utilization,
 			Resource:         c.resource,
+			Tier:             "memory",
 		})
 
 		if size != c.lru.Len() {
@@ -107,10 +110,12 @@ func (c *cache[T]) runReporting() {
 	}
 }
 
-func (c *cache[T]) runEviction() {
+func (c *memory[T]) runEviction() {
 	for range time.NewTicker(time.Minute).C {
 		now := time.Now()
+
 		c.Lock()
+		c.logger.Debug().Msg("running evictions in the background")
 		for key, val := range c.data {
 			if now.After(val.Stale) {
 				c.logger.Info().Time("stale", val.Stale).Time("now", now).Str("key", key).Msg("evicting from cache")
@@ -123,7 +128,7 @@ func (c *cache[T]) runEviction() {
 
 }
 
-func (c *cache[T]) runRefreshing() {
+func (c *memory[T]) runRefreshing() {
 	for {
 		identifier := <-c.refreshC
 
@@ -138,7 +143,7 @@ func (c *cache[T]) runRefreshing() {
 
 }
 
-func (c *cache[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
+func (c *memory[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
 	c.RLock()
 	e, ok := c.data[key]
 	c.RUnlock()
@@ -171,18 +176,21 @@ func (c *cache[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) 
 
 }
 
-func (c *cache[T]) SetNull(ctx context.Context, key string) {
+func (c *memory[T]) SetNull(ctx context.Context, key string) {
 	c.set(ctx, key)
 }
 
-func (c *cache[T]) Set(ctx context.Context, key string, value T) {
+func (c *memory[T]) Set(ctx context.Context, key string, value T) {
 	c.set(ctx, key, value)
 }
-func (c *cache[T]) set(ctx context.Context, key string, value ...T) {
+func (c *memory[T]) set(ctx context.Context, key string, value ...T) {
 	now := time.Now()
 	c.Lock()
 	defer c.Unlock()
 
+	// Here's a little story:
+	// I removed this check and now we suddenly had to deal with syncing the lru list
+	// So I put it back and I'm happy about it
 	entry, exists := c.data[key]
 	if !exists {
 		// If the cache is already full, we evict first
@@ -209,7 +217,7 @@ func (c *cache[T]) set(ctx context.Context, key string, value ...T) {
 	c.data[key] = entry
 }
 
-func (c *cache[T]) Remove(ctx context.Context, key string) {
+func (c *memory[T]) Remove(ctx context.Context, key string) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -220,4 +228,31 @@ func (c *cache[T]) Remove(ctx context.Context, key string) {
 	c.lru.Remove(entry.LruElement)
 	delete(c.data, key)
 
+}
+
+func (c *memory[T]) Dump(ctx context.Context) ([]byte, error) {
+	c.RLock()
+	defer c.RUnlock()
+	c.logger.Info().Int("size", len(c.data)).Msg("dumping cache")
+	return json.Marshal(c.data)
+}
+
+func (c *memory[T]) Restore(ctx context.Context, b []byte) error {
+
+	data := make(map[string]swrEntry[T])
+	err := json.Unmarshal(b, &data)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal cache data: %w", err)
+	}
+	c.logger.Info().Int("size", len(data)).Msg("restoring cache")
+	now := time.Now()
+	for key, entry := range data {
+		if now.Before(entry.Fresh) {
+			c.Set(ctx, key, entry.Value)
+		} else if now.Before(entry.Stale) {
+			c.refreshC <- key
+		}
+		// If the entry is older than, we don't restore it
+	}
+	return nil
 }

@@ -27,14 +27,19 @@ export const UserButton: React.FC = () => {
         <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8">
             {user.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt={user.username ?? "Profile picture"} />
+              <AvatarImage
+                src={user.imageUrl}
+                alt={user.username ?? user.fullName ?? "Profile picture"}
+              />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm font-semibold">{user.username}</span>
+          <span className="text-sm font-semibold">
+            {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+          </span>
         </div>
         <ChevronRight className="w-4 h-4" />
       </DropdownMenuTrigger>

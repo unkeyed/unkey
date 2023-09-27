@@ -190,7 +190,7 @@ async function getUsers(tenantId: string): Promise<{ id: string; email: string; 
       }
       return {
         id: user.id,
-        name: user.firstName ?? user.username ?? "",
+        name: user.firstName ?? user.username ?? "there",
         email,
       };
     }),

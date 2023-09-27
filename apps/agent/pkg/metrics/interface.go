@@ -41,6 +41,7 @@ type CacheHitReport struct {
 	Hit      bool   `json:"hit"`
 	Resource string `json:"resource"`
 	Latency  int64  `json:"latency"`
+	Tier     string `json:"tier"`
 }
 
 type CacheHealthReport struct {
@@ -50,6 +51,7 @@ type CacheHealthReport struct {
 	RefreshQueueSize int     `json:"refreshQueueSize"`
 	Utilization      float64 `json:"utilization"`
 	Resource         string  `json:"resource"`
+	Tier             string  `json:"tier"`
 }
 
 type DatabaseLatencyReport struct {

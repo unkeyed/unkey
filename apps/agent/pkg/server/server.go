@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/gofiber/fiber/v2"
@@ -121,6 +124,18 @@ func New(config Config) *Server {
 		config.Logger.Error().Any("err", err).Bytes("stacktrace", buf).Msg("recovered from panic")
 	}}))
 
+	basicAuthUser := os.Getenv("BASIC_AUTH_USER")
+	basicAuthPassword := os.Getenv("BASIC_AUTH_PASSWORD")
+	if basicAuthUser != "" && basicAuthPassword != "" {
+		users := map[string]string{}
+		users[basicAuthUser] = basicAuthPassword
+
+		s.app.All("/debug/*",basicauth.New(basicauth.Config{
+			Users: users,
+		}),
+			pprof.New(),
+		)
+	}
 	s.app.Use(func(c *fiber.Ctx) error {
 		if c.Path() == "/v1/liveness" {
 			return c.Next()
@@ -171,11 +186,15 @@ func New(config Config) *Server {
 			Str("traceId", traceId).
 			Logger()
 
-		if c.Response().StatusCode() >= 500 || (err != nil && !errors.Is(err, fiber.ErrMethodNotAllowed)) {
+		if c.Response().StatusCode() >= 500 ||
+
+			(err != nil &&
+				!errors.Is(err, fiber.ErrMethodNotAllowed) &&
+				!errors.Is(err, fiber.ErrNotFound)) {
 			log.Err(err).Msg("request failed")
 			span.RecordError(err)
 		} else {
-			log.Debug().Msg("request completed")
+			log.Info().Msg("request completed")
 		}
 		return err
 	})
@@ -183,7 +202,8 @@ func New(config Config) *Server {
 	s.app.Get("/v1/liveness", s.liveness)
 
 	// Used internally only, not covered by versioning
-	s.app.Post("/v1/internal/rootkeys", s.createRootKey)
+	s.app.Post("/v1/internal.createRootKey", s.createRootKey)
+	s.app.Post("/v1/internal.removeRootKey", s.deleteRootKey)
 
 	// workspaceService
 	s.app.Post("/v1/workspace.createWorkspace", s.v1CreateWorkspace)
@@ -210,6 +230,8 @@ func New(config Config) *Server {
 
 	s.app.Get("/v1/apis/:apiId", s.getApi)
 	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)
+
+	s.app.Post("/v1/internal/rootkeys", s.createRootKey)
 
 	// experimental
 	s.app.Get("/vx/keys/:keyId/stats", s.getKeyStats)

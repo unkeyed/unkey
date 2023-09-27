@@ -1,49 +1,74 @@
 package logging
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"log"
 	"time"
 
-	ax "github.com/axiomhq/axiom-go/axiom"
+	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 )
 
 type AxiomWriter struct {
-	eventsC chan ax.Event
+	logsC chan<- map[string]any
 }
 
 type AxiomWriterConfig struct {
 	AxiomToken string
-	AxiomOrgId string
 }
 
 func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 
-	client, err := ax.NewClient(
-		ax.SetPersonalTokenConfig(config.AxiomToken, config.AxiomOrgId),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create axiom client")
-	}
-	a := &AxiomWriter{
-		eventsC: make(chan ax.Event),
-	}
+	dataset := "agent"
+	client := http.DefaultClient
 
-	go func() {
-		_, err := client.IngestChannel(context.Background(), "agent", a.eventsC)
+	logsC := batch.Process[map[string]any](func(ctx context.Context, batch []map[string]any) {
+		buf, err := json.Marshal(batch)
 		if err != nil {
-			log.Print("unable to ingest to axiom")
+			log.Printf("unable to marshal event: %s", err)
+			return
 		}
-	}()
 
+		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", dataset), bytes.NewBuffer(buf))
+		if err != nil {
+			log.Printf("unable to create request: %s", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.AxiomToken))
+
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("unable to create request: %s", err)
+			return
+		}
+		if resp.StatusCode != 200 {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("unable to read response: %s", err)
+				return
+			}
+			log.Printf("unable to ingest to axiom: %s", string(body))
+			return
+		}
+		resp.Body.Close()
+
+	}, 1000, time.Second)
+
+	a := &AxiomWriter{
+		logsC: logsC,
+	}
 	return a, nil
+
 }
 
 func (aw *AxiomWriter) Close() {
-	close(aw.eventsC)
+	close(aw.logsC)
 }
 
 func (aw *AxiomWriter) Write(p []byte) (int, error) {
@@ -55,6 +80,6 @@ func (aw *AxiomWriter) Write(p []byte) (int, error) {
 	}
 	e["_time"] = time.Now().UnixMilli()
 
-	aw.eventsC <- e
+	aw.logsC <- e
 	return len(p), nil
 }
