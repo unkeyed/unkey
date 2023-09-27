@@ -1,7 +1,6 @@
 package server
 
 import (
-	
 	"github.com/gofiber/fiber/v2"
 	httpErrors "github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
