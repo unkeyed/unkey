@@ -18,9 +18,11 @@ func Process[T any](flush func(ctx context.Context, batch []T), size int, interv
 	ticker := time.NewTicker(interval)
 
 	flushAndReset := func() {
-		flush(context.Background(), batch)
+		if len(batch) > 0 {
+			flush(context.Background(), batch)
+			batch = batch[:0]
+		}
 		ticker.Reset(interval)
-		batch = batch[:0]
 	}
 
 	go func() {
@@ -29,8 +31,8 @@ func Process[T any](flush func(ctx context.Context, batch []T), size int, interv
 			case e, ok := <-c:
 				if !ok {
 					// channel closed
-					flushAndReset()
-					continue
+					flush(context.Background(), batch)
+					break
 				}
 				batch = append(batch, e)
 				if len(batch) >= size {
