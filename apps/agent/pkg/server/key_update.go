@@ -68,7 +68,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}

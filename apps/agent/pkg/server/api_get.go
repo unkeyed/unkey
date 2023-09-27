@@ -31,7 +31,7 @@ func (s *Server) getApi(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get(authorizationHeader))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
 	}

@@ -43,5 +43,6 @@ cmd = [
   "agent",
    "--analytics=tinybird",
    "--event-bus=kafka",
-   "--enable-axiom"
+   "--enable-axiom",
+   "--restore-cache"
    ]

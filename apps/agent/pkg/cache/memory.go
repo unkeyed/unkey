@@ -115,7 +115,7 @@ func (c *memory[T]) runEviction() {
 		now := time.Now()
 
 		c.Lock()
-		c.logger.Info().Msg("running evictions in the background")
+		c.logger.Debug().Msg("running evictions in the background")
 		for key, val := range c.data {
 			if now.After(val.Stale) {
 				c.logger.Info().Time("stale", val.Stale).Time("now", now).Str("key", key).Msg("evicting from cache")
@@ -188,6 +188,9 @@ func (c *memory[T]) set(ctx context.Context, key string, value ...T) {
 	c.Lock()
 	defer c.Unlock()
 
+	// Here's a little story:
+	// I removed this check and now we suddenly had to deal with syncing the lru list
+	// So I put it back and I'm happy about it
 	entry, exists := c.data[key]
 	if !exists {
 		// If the cache is already full, we evict first
@@ -230,20 +233,26 @@ func (c *memory[T]) Remove(ctx context.Context, key string) {
 func (c *memory[T]) Dump(ctx context.Context) ([]byte, error) {
 	c.RLock()
 	defer c.RUnlock()
+	c.logger.Info().Int("size", len(c.data)).Msg("dumping cache")
 	return json.Marshal(c.data)
 }
 
 func (c *memory[T]) Restore(ctx context.Context, b []byte) error {
-	c.Lock()
-	defer c.Unlock()
+
 	data := make(map[string]swrEntry[T])
 	err := json.Unmarshal(b, &data)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal cache data: %w", err)
 	}
+	c.logger.Info().Int("size", len(data)).Msg("restoring cache")
+	now := time.Now()
 	for key, entry := range data {
-		entry.LruElement = c.lru.PushFront(key)
-		c.data[key] = entry
+		if now.Before(entry.Fresh) {
+			c.Set(ctx, key, entry.Value)
+		} else if now.Before(entry.Stale) {
+			c.refreshC <- key
+		}
+		// If the entry is older than, we don't restore it
 	}
 	return nil
 }
