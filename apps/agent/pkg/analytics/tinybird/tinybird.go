@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
@@ -18,8 +20,7 @@ type Tinybird struct {
 
 	client *http.Client
 
-	keyVerificationsC chan analytics.KeyVerificationEvent
-	closeC            chan struct{}
+	keyVerificationsC chan<- analytics.KeyVerificationEvent
 
 	logger logging.Logger
 }
@@ -36,71 +37,74 @@ type Config struct {
 func New(config Config) *Tinybird {
 
 	t := &Tinybird{
-		token:             config.Token,
-		client:            http.DefaultClient,
-		keyVerificationsC: make(chan analytics.KeyVerificationEvent),
-		closeC:            make(chan struct{}),
-		logger:            config.Logger,
+		token:  config.Token,
+		client: http.DefaultClient,
+		logger: config.Logger,
 	}
 
 	t.logger.Info().Msg("starting tinybird analytics")
-	go t.consume()
+
+	datasource := "key_verifications__v2"
+
+	t.keyVerificationsC = batch.Process[analytics.KeyVerificationEvent](func(ctx context.Context, batch []analytics.KeyVerificationEvent) {
+		items := make([]string, len(batch))
+		for i, e := range batch {
+			buf, err := json.Marshal(e)
+			if err != nil {
+				t.logger.Err(err).Msg("unable to marshal event")
+				return
+			}
+			items[i] = string(buf)
+		}
+
+		body := bytes.NewBufferString(strings.Join(items, "\n"))
+		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.tinybird.co/v0/events?name=%s", datasource), body)
+		if err != nil {
+			t.logger.Err(err).Msg("error creating request")
+			return
+		}
+
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.token))
+		req.Header.Add("Content-Type", "application/json")
+
+		resp, err := t.client.Do(req)
+		if err != nil {
+			t.logger.Err(err).Msg("error sending request")
+			return
+		}
+		t.logger.Debug().Int("status", resp.StatusCode).Msg("sent request")
+		defer resp.Body.Close()
+
+		// LEGACY we're also sending the event to the old datasource
+
+		req2, err := http.NewRequest("POST", fmt.Sprintf("https://api.tinybird.co/v0/events?name=%s", "key_verifications__v1"), body)
+		if err != nil {
+			t.logger.Err(err).Msg("error creating request")
+			return
+		}
+
+		req2.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.token))
+		req2.Header.Add("Content-Type", "application/json")
+
+		resp2, err := t.client.Do(req2)
+		if err != nil {
+			t.logger.Err(err).Msg("error sending request")
+			return
+		}
+		defer resp2.Body.Close()
+
+	}, 1000, time.Second)
+
 	return t
 }
 
-func (t *Tinybird) consume() {
-
-	for {
-		select {
-		case <-t.closeC:
-			return
-		case e := <-t.keyVerificationsC:
-			t.logger.Debug().Any("event", e).Msg("publishing event")
-			err := t.publishEvent("key_verifications__v1", e)
-			if err != nil {
-				t.logger.Err(err).Msg("unable to publish v1 event to tinybird")
-			}
-
-			err = t.publishEvent("key_verifications__v2", e)
-			if err != nil {
-				t.logger.Err(err).Msg("unable to publish event to tinybird")
-			}
-		}
-	}
-}
-
 func (t *Tinybird) Close() {
-	t.closeC <- struct{}{}
-
+	close(t.keyVerificationsC)
 }
 
 func (t *Tinybird) PublishKeyVerificationEvent(ctx context.Context, event analytics.KeyVerificationEvent) {
 	t.logger.Debug().Any("event", event).Msg("publishing event")
 	t.keyVerificationsC <- event
-}
-
-func (t *Tinybird) publishEvent(datasource string, event interface{}) error {
-	buf, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("error marshalling event: %w", err)
-	}
-
-	body := bytes.NewBuffer(buf)
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://api.tinybird.co/v0/events?name=%s", datasource), body)
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.token))
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := t.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("error sending request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	return nil
 }
 
 func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (analytics.KeyStats, error) {
