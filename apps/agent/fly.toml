@@ -40,4 +40,5 @@ cmd = [
   "agent",
    "--analytics=tinybird",
    "--event-bus=kafka",
+   "--restore-cache"
    ]
