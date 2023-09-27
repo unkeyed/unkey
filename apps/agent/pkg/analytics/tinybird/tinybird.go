@@ -43,6 +43,7 @@ func New(config Config) *Tinybird {
 		logger:            config.Logger,
 	}
 
+	t.logger.Info().Msg("starting tinybird analytics")
 	go t.consume()
 	return t
 }
@@ -54,7 +55,7 @@ func (t *Tinybird) consume() {
 		case <-t.closeC:
 			return
 		case e := <-t.keyVerificationsC:
-
+			t.logger.Debug().Any("event", e).Msg("publishing event")
 			err := t.publishEvent("key_verifications__v1", e)
 			if err != nil {
 				t.logger.Err(err).Msg("unable to publish v1 event to tinybird")

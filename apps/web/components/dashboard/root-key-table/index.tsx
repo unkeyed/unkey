@@ -194,7 +194,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/keys/${row.original.id}`} className="w-full">
+                  <Link href={`/app/settings/root-keys/${row.original.id}`} className="w-full">
                     Details
                   </Link>
                 </DropdownMenuItem>
