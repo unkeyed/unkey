@@ -462,6 +462,7 @@ export class Unkey {
           keys: {
             id: string;
             apiId: string;
+            ownerId?: string;
             workspaceId: string;
             start: string;
             createdAt: number;
