@@ -462,11 +462,14 @@ export class Unkey {
           keys: {
             id: string;
             apiId: string;
+            ownerId?: string;
             workspaceId: string;
             start: string;
             createdAt: number;
             name?: string;
             expires?: number;
+            remaining?: number;
+            meta?: unknown;
             ratelimit?: {
               type: "fast" | "consistent";
               limit: number;
