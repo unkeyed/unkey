@@ -468,6 +468,8 @@ export class Unkey {
             createdAt: number;
             name?: string;
             expires?: number;
+            remaining?: number;
+            meta?: unknown;
             ratelimit?: {
               type: "fast" | "consistent";
               limit: number;
