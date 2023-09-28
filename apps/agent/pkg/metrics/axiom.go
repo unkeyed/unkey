@@ -1,46 +1,73 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
-	ax "github.com/axiomhq/axiom-go/axiom"
+	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type axiom struct {
-	eventsC chan ax.Event
+	eventsC chan<- map[string]any
 	region  string
 }
 
 type Config struct {
 	AxiomToken string
-	AxiomOrgId string
 	Region     string
 	Logger     logging.Logger
 }
 
 func New(config Config) (Metrics, error) {
 
-	client, err := ax.NewClient(
-		ax.SetPersonalTokenConfig(config.AxiomToken, config.AxiomOrgId),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create axiom client")
-	}
-	a := &axiom{
-		region:  config.Region,
-		eventsC: make(chan ax.Event),
-	}
+	client := http.DefaultClient
+	dataset := "metrics"
 
-	go func() {
-		_, err := client.IngestChannel(context.Background(), "metrics", a.eventsC)
+	eventsC := batch.Process[map[string]any](func(ctx context.Context, events []map[string]any) {
+
+		buf, err := json.Marshal(events)
 		if err != nil {
-			config.Logger.Err(err).Msg("unable to ingest to axiom")
+			config.Logger.Err(err).Msg("failed to marshal events")
+			return
 		}
-	}()
+
+		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", dataset), bytes.NewBuffer(buf))
+		if err != nil {
+			config.Logger.Err(err).Msg("failed to create request")
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.AxiomToken))
+
+		resp, err := client.Do(req)
+		if err != nil {
+			config.Logger.Err(err).Msg("failed to send request")
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				config.Logger.Err(err).Msg("failed to read response body")
+				return
+			}
+			config.Logger.Error().Str("body", string(body)).Int("status", resp.StatusCode).Msg("failed to ingest events")
+			return
+		}
+
+	}, 1000, time.Second)
+
+	a := &axiom{
+		eventsC: eventsC,
+		region:  config.Region,
+	}
 
 	return a, nil
 }

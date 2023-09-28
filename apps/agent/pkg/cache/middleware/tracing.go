@@ -49,3 +49,17 @@ func (mw *tracingMiddleware[T]) Remove(ctx context.Context, key string) {
 	mw.next.Remove(ctx, key)
 
 }
+
+func (mw *tracingMiddleware[T]) Dump(ctx context.Context) ([]byte, error) {
+	ctx, span := mw.tracer.Start(ctx, "cache.Dump")
+	defer span.End()
+
+	return mw.next.Dump(ctx)
+}
+
+func (mw *tracingMiddleware[T]) Restore(ctx context.Context, data []byte) error {
+	ctx, span := mw.tracer.Start(ctx, "cache.Restore")
+	defer span.End()
+
+	return mw.next.Restore(ctx, data)
+}

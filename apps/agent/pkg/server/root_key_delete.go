@@ -10,18 +10,18 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type DeleteKeyRequest struct {
+type DeleteRootKeyRequest struct {
 	KeyId string `json:"keyId" validate:"required"`
 }
 
-type DeleteKeyResponse struct {
+type DeleteRootKeyResponse struct {
 }
 
-func (s *Server) deleteKey(c *fiber.Ctx) error {
+func (s *Server) deleteRootKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.deleteKey")
 	defer span.End()
-	req := DeleteKeyRequest{}
-	err := c.ParamsParser(&req)
+	req := DeleteRootKeyRequest{}
+	err := c.BodyParser(&req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
@@ -42,7 +42,7 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find key: %s", req.KeyId))
 	}
-	if key.WorkspaceId != authorizedWorkspaceId {
+	if key.ForWorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
@@ -59,5 +59,5 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 		},
 	})
 
-	return c.JSON(DeleteKeyResponse{})
+	return c.JSON(DeleteRootKeyResponse{})
 }

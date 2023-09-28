@@ -29,7 +29,7 @@ func (s *Server) v1CreateApi(c *fiber.Ctx) error {
 		return httpErrors.NewHttpError(c, httpErrors.BAD_REQUEST, err.Error())
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c.Get("Authorization"))
+	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
 	if err != nil {
 		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, err.Error())
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
@@ -461,6 +462,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 		Database:  resources.Database,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
+		Metrics:   metrics.NewNoop(),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{

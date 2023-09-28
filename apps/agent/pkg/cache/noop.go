@@ -15,6 +15,13 @@ func (c *noopCache[T]) SetNull(ctx context.Context, key string)      {}
 
 func (c *noopCache[T]) Remove(ctx context.Context, key string) {}
 
+func (c *noopCache[T]) Dump(ctx context.Context) ([]byte, error) {
+	return []byte{}, nil
+}
+func (c *noopCache[T]) Restore(ctx context.Context, data []byte) error {
+	return nil
+}
+
 func NewNoopCache[T any]() Cache[T] {
 	return &noopCache[T]{}
 }
