@@ -86,12 +86,12 @@ const Changelog = defineDocumentType(() => ({
     changes: {
       type: "number",
       description: "The number of changes",
-      required: true,
+      required: false,
     },
     features: {
       type: "string",
       description: "Yes or No",
-      required: true,
+      required: false,
     },
   },
   computedFields: {
