@@ -31,6 +31,28 @@ We just released root key analytics. The root key is the key to the kingdom, and
 
 ![Root analytics image](/images/changelog/sept-29/root-key-analytics.png)
 
+## `@unkey/hono`
+
+We are introducing `@unkey/hono` which offers a middleware authentication for Unkey. A minimal setup will read from the `Authorization` header and the result of the verification will be written to the context and can be access with `c.get("unkey")`
+
+```
+import { Hono } from "hono"
+import { UnkeyContext, unkey } from "@unkey/hono";
+
+const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+
+app.use("*", unkey());
+
+
+app.get("/somewhere", (c) => {
+  // access the unkey response here to get metadata of the key etc
+  const ... = c.get("unkey")
+
+  return c.text("yo")
+})
+```
+Check out the docs for all the features https://docs.unkey.dev/libraries/ts/hono
+
 ## James is full time
 
 Unkey is growing rapidly, and our usage doubled in August and 6X in September. When Unkey started, we knew its potential and the direction it could go. I am excited to begin working full-time on Unkey's overall direction and position.
