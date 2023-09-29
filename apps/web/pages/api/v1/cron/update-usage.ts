@@ -1,6 +1,9 @@
 import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
-import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
+import {
+  getActiveKeysPerHourForAllWorkspaces,
+  getVerificationsPerHourForAllWorkspaces,
+} from "@/lib/tinybird";
 import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
@@ -18,12 +21,14 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     const allWorkspaces = await db.query.workspaces.findMany();
 
     console.log("found %d workspaces", allWorkspaces.length);
+
+    const globalActiveKeys = (await getActiveKeysPerHourForAllWorkspaces({})).data;
+    const globalVerifications = (await getVerificationsPerHourForAllWorkspaces({})).data;
     while (allWorkspaces.length > 0) {
       const workspaces = allWorkspaces.splice(0, 20);
 
       await Promise.all(
         workspaces.map(async (ws) => {
-          console.warn("workspace with subscription: %s -> %s", ws.id, ws.stripeSubscriptionId);
           let [start, end] = getMonthStartAndEnd();
           let subscription: Stripe.Response<Stripe.Subscription> | null = null;
 
@@ -36,21 +41,35 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             start = subscription.current_period_start * 1000;
             end = subscription.current_period_end * 1000;
           }
+          let activeKeys = 0;
+          for (const d of globalActiveKeys) {
+            if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
+              activeKeys += d.usage;
+            }
+          }
 
-          const activeKeys = await getTotalActiveKeys({ workspaceId: ws.id, start, end }).then(
-            (res) => res.data.at(0)?.usage,
-          );
-          const verifications = await getTotalVerificationsForWorkspace({
-            workspaceId: ws.id,
-            start,
-            end,
-          }).then((res) => res.data.at(0)?.usage);
+          let verifications = 0;
+          for (const d of globalVerifications) {
+            if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
+              verifications += d.usage;
+            }
+          }
+          if (verifications > 0 || activeKeys > 0) {
+            console.log(
+              "%s did %d verifications with %d keys between %s and %s",
+              ws.id,
+              verifications,
+              activeKeys,
+              new Date(start).toDateString(),
+              new Date(end).toDateString(),
+            );
+          }
 
           await db
             .update(schema.workspaces)
             .set({
-              usageActiveKeys: activeKeys ?? 0,
-              usageVerifications: verifications ?? 0,
+              usageActiveKeys: activeKeys,
+              usageVerifications: verifications,
               lastUsageUpdate: new Date(),
             })
             .where(eq(schema.workspaces.id, ws.id));
