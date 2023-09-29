@@ -9,13 +9,16 @@ jobs:
   release-to-npm:
     strategy:
       matrix:
-        package:
-          [
-            { path: "./packages/sdk", name:"@unkey/api" },
-            { path: "./packages/next", name:"@unkey/next" },
-            { path: "./packages/hono", name:"@unkey/hono" },
-          ]
-    name: Release ${{matrix.package.name}}
+        package: ["@unkey/api", "@unkey/next", "@unkey/hono"]
+        path: ["./packages/sdk", "./packages/next", "./packages/hono"]
+        include:
+          - package: "@unkey/api"
+            path: "./packages/sdk"
+          - package: "@unkey/next"
+            path: "./packages/next"
+          - package: "@unkey/hono"
+            path: "./packages/hono"
+    name: Release ${{matrix.package}}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -49,23 +52,23 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Set package version
-        run: node ./scripts/set-version.js ${{matrix.package.path}} ${{ env.VERSION }}
+        run: node ./scripts/set-version.js ${{matrix.path}} ${{ env.VERSION }}
 
       - name: Install
         run: pnpm install -r
 
       - name: Build package
-        run: pnpm turbo run build --filter=${{matrix.package.name}}
+        run: pnpm turbo run build --filter=${{matrix.package}}
 
       - name: Authenticate Registry
         run: npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
 
       - name: Publish canary
         if: "github.event.release.prerelease"
-        working-directory: ${{matrix.package.path}}
+        working-directory: ${{matrix.path}}
         run: pnpm publish --access public --tag=canary --no-git-checks
 
       - name: Publish
         if: "!github.event.release.prerelease"
-        working-directory: ${{matrix.package.path}}
+        working-directory: ${{matrix.path}}
         run: pnpm publish --access public --no-git-checks
