@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -57,13 +55,12 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 
 	}
 
-	// some experiment to test cloudflare
-	go testCf(req)
-
 	// ---------------------------------------------------------------------------------------------
 	// Get the key from either cache or db
 	// ---------------------------------------------------------------------------------------------
+	ctx, hashSpan := s.tracer.Start(ctx, "server.verifyKey.GetKeyHash")
 	hash, err := getKeyHash(req.Key)
+	hashSpan.End()
 	if err != nil {
 		return c.JSON(VerifyKeyResponse{
 			Valid: false,
@@ -124,9 +121,11 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 
 	if len(api.IpWhitelist) > 0 {
+		var ipSpan trace.Span
+		ctx, ipSpan = s.tracer.Start(ctx, "server.verifyKey.checkIpWhitelist")
 		sourceIp := c.Get("Fly-Client-IP")
 		s.logger.Debug().Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("checking ip whitelist")
-
+		ipSpan.End()
 		if !whitelist.Ip(sourceIp, api.IpWhitelist) {
 			s.logger.Info().Str("workspaceId", api.WorkspaceId).Str("apiId", api.Id).Str("keyId", key.Id).Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("ip denied")
 			return c.JSON(VerifyKeyResponse{
@@ -190,6 +189,8 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	}
 
 	if key.Remaining != nil {
+		var sp trace.Span
+		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.CheckRemainingKeyUsage")
 		if *key.Remaining <= 0 {
 			res.Valid = false
 			res.Code = errors.KEY_USAGE_EXCEEDED
@@ -205,6 +206,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			Latency: time.Since(beforeKeyUpdate).Milliseconds(),
 		})
 		if err != nil {
+			sp.End()
 			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 		}
 		if *keyAfterUpdate.Remaining < 0 {
@@ -212,14 +214,18 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			zero := int32(0)
 			res.Remaining = &zero
 			res.Code = errors.KEY_USAGE_EXCEEDED
+			sp.End()
 			return c.JSON(res)
 		} else {
 			res.Remaining = keyAfterUpdate.Remaining
 		}
+		sp.End()
 
 	}
 
 	if key.Ratelimit != nil {
+		var sp trace.Span
+		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.CheckRatelimit")
 		var limiter ratelimit.Ratelimiter
 		switch key.Ratelimit.Type {
 		case "fast":
@@ -244,21 +250,9 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 				res.Code = errors.RATELIMITED
 			}
 		}
+		sp.End()
 	}
 
 	return c.JSON(res)
 }
 
-func testCf(req VerifyKeyRequest) {
-	r, err := http.NewRequest("POST", "https://api.unkey.app/v1/key.verifyKey", bytes.NewBufferString(fmt.Sprintf(`{"key":"%s"}`, req.Key)))
-	if err != nil {
-		return
-	}
-	r.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-}
