@@ -4,6 +4,8 @@ import { z } from "zod";
 
 const tb = new Tinybird({ token: env.TINYBIRD_TOKEN });
 
+const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
+
 export const publishKeyVerification = tb.buildIngestEndpoint({
   datasource: "key_verifications__v1",
   event: z.object({
@@ -23,7 +25,7 @@ export const getDailyUsage = tb.buildPipe({
     keyId: z.string().optional(),
   }),
   data: z.object({
-    time: z.string().transform((t) => new Date(t).getTime()),
+    time: datetimeToUnixMilli,
     usage: z.number(),
     ratelimited: z.number(),
   }),
@@ -40,7 +42,7 @@ export const getDailyVerifications = tb.buildPipe({
     keyId: z.string().optional(),
   }),
   data: z.object({
-    time: z.string().transform((t) => new Date(t).getTime()),
+    time: datetimeToUnixMilli,
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
@@ -137,6 +139,32 @@ export const getLastUsed = tb.buildPipe({
   }),
   data: z.object({
     lastUsed: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getActiveKeysPerHourForAllWorkspaces = tb.buildPipe({
+  pipe: "endpoint_billing_get_active_keys_per_workspace_per_hour__v1",
+
+  data: z.object({
+    usage: z.number(),
+    workspaceId: z.string(),
+    time: datetimeToUnixMilli,
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getVerificationsPerHourForAllWorkspaces = tb.buildPipe({
+  pipe: "endpoint_billing_get_verifications_per_workspace_per_hour__v1",
+
+  data: z.object({
+    usage: z.number(),
+    workspaceId: z.string(),
+    time: datetimeToUnixMilli,
   }),
   opts: {
     cache: "no-store",
