@@ -9,13 +9,11 @@ jobs:
   release-to-npm:
     strategy:
       matrix:
-        package: ["@unkey/api", "@unkey/next", "@unkey/hono"]
-        path: ["./packages/sdk", "./packages/next", "./packages/hono"]
         include:
           - package: "@unkey/api"
             path: "./packages/sdk"
-          - package: "@unkey/next"
-            path: "./packages/next"
+          - package: "@unkey/nextjs"
+            path: "./packages/nextjs"
           - package: "@unkey/hono"
             path: "./packages/hono"
     name: Release ${{matrix.package}}
