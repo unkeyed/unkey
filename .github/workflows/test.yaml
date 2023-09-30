@@ -66,4 +66,23 @@ jobs:
       - name: Format
         run: pnpm biome ci .
       
+  test-nuxt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: corepack enable
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install
+
+      - name: 🧪 Test project
+        run: pnpm turbo test --filter=@unkey/nuxt
+        env:
+          NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
+      
      
