@@ -31,11 +31,7 @@ jobs:
         run: pnpm install
 
       - name: Build the package
-        run: |
-            pnpm --dir=packages/api build
-            pnpm --dir=packages/nuxt build
-            pnpm --dir=packages/nextjs build
-            pnpm --dir=packages/hono build
+        run: pnpm build
 
       - name: Create Version PR or Publish to NPM
         id: changesets
