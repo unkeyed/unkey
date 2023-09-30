@@ -21,7 +21,7 @@ type Props = {
 export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
-  const key = await db().query.keys.findFirst({
+  const key = await db.query.keys.findFirst({
     where: eq(schema.keys.id, props.params.keyId),
     with: {
       workspace: true,

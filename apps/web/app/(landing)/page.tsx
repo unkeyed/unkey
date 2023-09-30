@@ -13,15 +13,15 @@ import Link from "next/link";
 export const revalidate = 60;
 
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
-  db()
+  db
     .select({ count: sql<number>`count(*)` })
     .from(schema.workspaces)
     .then((res) => res.at(0)?.count ?? 0),
-  db()
+  db
     .select({ count: sql<number>`count(*)` })
     .from(schema.apis)
     .then((res) => res.at(0)?.count ?? 0),
-  db()
+  db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
     .then((res) => res.at(0)?.count ?? 0),

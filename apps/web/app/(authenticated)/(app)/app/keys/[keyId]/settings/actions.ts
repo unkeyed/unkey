@@ -28,7 +28,7 @@ export const updateKeyRemaining = serverAction({
     remaining: stringToIntOrNull,
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db().query.keys.findFirst({
+    const key = await db.query.keys.findFirst({
       where: eq(schema.keys.id, input.keyId),
       with: {
         workspace: true,
@@ -42,7 +42,7 @@ export const updateKeyRemaining = serverAction({
       throw new Error("provide a number");
     }
 
-    await db()
+    await db
       .update(schema.keys)
       .set({
         remainingRequests: input.enableRemaining ? input.remaining : null,
@@ -63,7 +63,7 @@ export const updateKeyRatelimit = serverAction({
     ratelimitRefillInterval: stringToIntOrNull,
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db().query.keys.findFirst({
+    const key = await db.query.keys.findFirst({
       where: eq(schema.keys.id, input.keyId),
       with: {
         workspace: true,
@@ -99,7 +99,7 @@ export const updateKeyRatelimit = serverAction({
       ratelimitRefillInterval = input.ratelimitRefillInterval;
     }
 
-    await db()
+    await db
       .update(schema.keys)
       .set({
         ratelimitType,
@@ -120,7 +120,7 @@ export const updateExpiration = serverAction({
     expiration: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db().query.keys.findFirst({
+    const key = await db.query.keys.findFirst({
       where: eq(schema.keys.id, input.keyId),
       with: {
         workspace: true,
@@ -143,7 +143,7 @@ export const updateExpiration = serverAction({
       }
     }
 
-    await db()
+    await db
       .update(schema.keys)
       .set({
         expires,
@@ -160,7 +160,7 @@ export const updateMetadata = serverAction({
     metadata: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db().query.keys.findFirst({
+    const key = await db.query.keys.findFirst({
       where: eq(schema.keys.id, input.keyId),
       with: {
         workspace: true,
@@ -170,7 +170,7 @@ export const updateMetadata = serverAction({
       throw new Error("key not found");
     }
 
-    await db()
+    await db
       .update(schema.keys)
       .set({
         meta: input.metadata ?? null,
@@ -187,7 +187,7 @@ export const updateKeyName = serverAction({
     name: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db().query.keys.findFirst({
+    const key = await db.query.keys.findFirst({
       where: eq(schema.keys.id, input.keyId),
       with: {
         workspace: true,
@@ -197,7 +197,7 @@ export const updateKeyName = serverAction({
       throw new Error("key not found");
     }
 
-    await db()
+    await db
       .update(schema.keys)
       .set({
         name: input.name ?? null,

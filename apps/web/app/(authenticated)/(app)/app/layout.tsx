@@ -11,7 +11,7 @@ interface LayoutProps {
 export default async function Layout({ children }: LayoutProps) {
   const tenantId = getTenantId();
 
-  const workspace = await db().query.workspaces.findFirst({
+  const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: true,
