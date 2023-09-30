@@ -39,6 +39,8 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
+  apps/agent: {}
+
   apps/docs: {}
 
   apps/web:
@@ -414,8 +416,8 @@ importers:
         specifier: ^1.11.0
         version: 1.11.0
       mysql2:
-        specifier: ^3.6.0
-        version: 3.6.0
+        specifier: ^3.6.1
+        version: 3.6.1
     devDependencies:
       '@types/node':
         specifier: ^20.5.7
@@ -431,7 +433,7 @@ importers:
         version: 0.19.13
       drizzle-orm:
         specifier: ^0.28.5
-        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.0)
+        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.1)
       typescript:
         specifier: ^5.2.2
         version: 5.2.2
@@ -486,15 +488,15 @@ importers:
   packages/hono:
     dependencies:
       '@unkey/api':
-        specifier: workspace:*
-        version: link:../api
-      hono:
-        specifier: ^3.7.2
-        version: 3.7.2
+        specifier: ^0.9.9
+        version: 0.9.9
     devDependencies:
       '@types/node':
         specifier: ^20.5.7
         version: 20.5.7
+      hono:
+        specifier: ^3.7.2
+        version: 3.7.2
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(ts-node@10.9.1)(typescript@5.2.2)
@@ -508,8 +510,8 @@ importers:
   packages/nextjs:
     dependencies:
       '@unkey/api':
-        specifier: workspace:*
-        version: link:../api
+        specifier: ^0.9.9
+        version: 0.9.9
     devDependencies:
       '@types/node':
         specifier: ^20.5.7
@@ -533,8 +535,8 @@ importers:
         specifier: ^3.7.0
         version: 3.7.0(rollup@3.29.4)
       '@unkey/api':
-        specifier: workspace:*
-        version: link:../api
+        specifier: ^0.9.9
+        version: 0.9.9
       defu:
         specifier: ^6.1.2
         version: 6.1.2
@@ -601,10 +603,10 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.28.5
-        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.0)
+        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.1)
       mysql2:
-        specifier: ^3.6.0
-        version: 3.6.0
+        specifier: ^3.6.1
+        version: 3.6.1
       zod:
         specifier: ^3.22.2
         version: 3.22.2
@@ -650,10 +652,10 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.28.5
-        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.0)
+        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.1)
       mysql2:
-        specifier: ^3.6.0
-        version: 3.6.0
+        specifier: ^3.6.1
+        version: 3.6.1
       zod:
         specifier: ^3.22.2
         version: 3.22.2
@@ -3641,7 +3643,6 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
-      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -6098,6 +6099,10 @@ packages:
       unhead: 1.7.4
       vue: 3.3.4
     dev: true
+
+  /@unkey/api@0.9.9:
+    resolution: {integrity: sha512-yW87ZcL1oQXPMD7s/op5SjFM26cTSSdWqe3Gvd2Z0uCQIRoCtmpJEmr1EVQBu6ubTL5WTt0td4eDEoIhQGKKyA==}
+    dev: false
 
   /@upstash/core-analytics@0.0.6:
     resolution: {integrity: sha512-cpPSR0XJAJs4Ddz9nq3tINlPS5aLfWVCqhhtHnXt4p7qr5+/Znlt1Es736poB/9rnl1hAHrOsOvVj46NEXcVqA==}
@@ -8593,7 +8598,7 @@ packages:
       '@planetscale/database': 1.11.0
     dev: false
 
-  /drizzle-orm@0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.0):
+  /drizzle-orm@0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.1):
     resolution: {integrity: sha512-6r6Iw4c38NAmW6TiKH3TUpGUQ1YdlEoLJOQptn8XPx3Z63+vFNKfAiANqrIiYZiMjKR9+NYAL219nFrmo1duXA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -8656,7 +8661,7 @@ packages:
         optional: true
     dependencies:
       '@planetscale/database': 1.11.0
-      mysql2: 3.6.0
+      mysql2: 3.6.1
 
   /duplexer@0.1.2:
     resolution: {integrity: sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==}
@@ -10479,7 +10484,6 @@ packages:
   /hono@3.7.2:
     resolution: {integrity: sha512-5SWYrAQJlfjHggcDTnmKZd5zlUEXmoUiBjnmL6C1W8MX39/bUw6ZIvfEJZgpo7d7Z/vCJ5FRfkjIQPRH5yV/dQ==}
     engines: {node: '>=16.0.0'}
-    dev: false
 
   /hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
@@ -12754,8 +12758,8 @@ packages:
     resolution: {integrity: sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==}
     dev: true
 
-  /mysql2@3.6.0:
-    resolution: {integrity: sha512-EWUGAhv6SphezurlfI2Fpt0uJEWLmirrtQR7SkbTHFC+4/mJBrPiSzHESHKAWKG7ALVD6xaG/NBjjd1DGJGQQQ==}
+  /mysql2@3.6.1:
+    resolution: {integrity: sha512-O7FXjLtNkjcMBpLURwkXIhyVbX9i4lq4nNRCykPNOXfceq94kJ0miagmTEGCZieuO8JtwtXaZ41U6KT4eF9y3g==}
     engines: {node: '>= 8.0'}
     dependencies:
       denque: 2.1.0
@@ -12789,10 +12793,6 @@ packages:
     resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
     engines: {node: ^14 || ^16 || >=18}
     hasBin: true
-    dev: true
-
-  /napi-wasm@1.1.0:
-    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
     dev: true
 
   /natural-compare@1.4.0:
