@@ -13,15 +13,15 @@ import Link from "next/link";
 export const revalidate = 60;
 
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
-  db
+  db()
     .select({ count: sql<number>`count(*)` })
     .from(schema.workspaces)
     .then((res) => res.at(0)?.count ?? 0),
-  db
+  db()
     .select({ count: sql<number>`count(*)` })
     .from(schema.apis)
     .then((res) => res.at(0)?.count ?? 0),
-  db
+  db()
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
     .then((res) => res.at(0)?.count ?? 0),
@@ -30,7 +30,7 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
 
 function NumbersServed() {
   return (
-    <div className="mt-24 rounded-4xl sm:mt-32  lg:mt-32">
+    <div className="mt-24 rounded-4xl sm:mt-32 lg:mt-32">
       <Container className="">
         <FadeIn className="flex items-center gap-x-8">
           <h2 className="mb-8 text-2xl font-semibold tracking-wider text-center text-black font-display sm:text-left">
@@ -76,14 +76,14 @@ function Features() {
           has you covered.
         </p>
       </SectionIntro>
-      <Container className="mt-16 overflow-x-hidden	">
+      <Container className="mt-16 overflow-x-hidden ">
         <div className="lg:flex lg:items-center lg:justify-end">
           <div className="flex justify-center lg:w-1/2 lg:justify-end lg:pr-12">
             <FadeIn className="w-[33.75rem] flex-none lg:w-[45rem]">
               <StylizedImage
                 src={laptopImage}
                 sizes="(min-width: 1024px) 41rem, 31rem"
-                className="justify-center lg:justify-end w-full"
+                className="justify-center w-full lg:justify-end"
               />
             </FadeIn>
           </div>
@@ -144,7 +144,7 @@ export const metadata = {
 export default async function Home() {
   return (
     <>
-      <Container className="md:mb-8 mt-24 sm:mt-32 md:mt-56 lg:px-0">
+      <Container className="mt-24 md:mb-8 sm:mt-32 md:mt-56 lg:px-0">
         <FadeIn className="flex flex-col md:flex-row md:justify-stretch md:spacing-x-4">
           <div className="w-full">
             <h1 className="font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-7xl font-sans">
@@ -155,15 +155,15 @@ export default async function Home() {
               <span className="font-semibold">open source</span> API management platform that helps
               developers secure, manage, and scale their APIs.
             </p>
-            <div className="flex flex-col md:flex-row mt-4 md:space-x-8 space-y-4 md:space-y-0">
-              <Button size="xl" className="rounded-full text-sm font-semibold" asChild>
+            <div className="flex flex-col mt-4 space-y-4 md:flex-row md:space-x-8 md:space-y-0">
+              <Button size="xl" className="text-sm font-semibold rounded-full" asChild>
                 <Link className="flex-none" href="/app">
                   Start for free
                 </Link>
               </Button>
               <Button
                 size="xl"
-                className="rounded-full text-sm font-semibold"
+                className="text-sm font-semibold rounded-full"
                 variant="secondary"
                 asChild
               >
@@ -173,7 +173,7 @@ export default async function Home() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <Github className="mr-2 h-4 w-4" /> Star us on GitHub
+                  <Github className="w-4 h-4 mr-2" /> Star us on GitHub
                 </a>
               </Button>
             </div>

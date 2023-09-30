@@ -43,7 +43,7 @@ export default async function (props: Props) {
     );
   }
   if (props.searchParams.workspaceId) {
-    const workspace = await db.query.workspaces.findFirst({
+    const workspace = await db().query.workspaces.findFirst({
       where: eq(schema.workspaces.id, props.searchParams.workspaceId),
     });
     if (!workspace) {
@@ -70,7 +70,7 @@ export default async function (props: Props) {
     );
   }
 
-  const workspaces = await db.query.workspaces.findMany({
+  const workspaces = await db().query.workspaces.findMany({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   return (
