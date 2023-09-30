@@ -63,14 +63,14 @@ export const keyRouter = t.router({
     }),
   createInternalRootKey: t.procedure.use(auth).mutation(async ({ ctx }) => {
     const unkeyApi = await db.query.apis.findFirst({
-      where: eq(schema.apis.id, env.UNKEY_API_ID),
+      where: eq(schema.apis.id, env().UNKEY_API_ID),
       with: {
         workspace: true,
       },
     });
     if (!unkeyApi) {
-      console.error(`api ${env.UNKEY_API_ID} not found`);
-      throw new TRPCError({ code: "NOT_FOUND", message: `api ${env.UNKEY_API_ID} not found` });
+      console.error(`api ${env().UNKEY_API_ID} not found`);
+      throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
     }
 
     const workspace = await db.query.workspaces.findFirst({

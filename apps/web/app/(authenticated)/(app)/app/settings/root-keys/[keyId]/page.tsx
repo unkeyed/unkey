@@ -43,8 +43,8 @@ export default async function Page(props: { params: { keyId: string } }) {
 
   const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
     getDailyUsage({
-      workspaceId: env.UNKEY_WORKSPACE_ID,
-      apiId: env.UNKEY_API_ID,
+      workspaceId: env().UNKEY_WORKSPACE_ID,
+      apiId: env().UNKEY_API_ID,
       keyId: key.id,
     }),
     getTotalUsage({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),

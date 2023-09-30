@@ -10,11 +10,12 @@ import Stripe from "stripe";
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
   try {
-    if (!stripeEnv) {
+    const e = stripeEnv();
+    if (!e) {
       throw new Error("STRIPE_SECRET_KEY is missing");
     }
 
-    const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
+    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
       apiVersion: "2022-11-15",
     });
 
@@ -78,7 +79,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             for (const item of subscription.items.data) {
               console.log("handling item %s -> product %s", item.id, item.price.product);
               switch (item.price.product) {
-                case stripeEnv?.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+                case e.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
                   if (activeKeys) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),
@@ -89,7 +90,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
                   }
                   break;
                 }
-                case stripeEnv?.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+                case e.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
                   if (verifications) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),
@@ -108,8 +109,8 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     }
 
     // report success
-    if (env.UPTIME_CRON_URL_COLLECT_BILLING) {
-      await fetch(env.UPTIME_CRON_URL_COLLECT_BILLING);
+    if (env().UPTIME_CRON_URL_COLLECT_BILLING) {
+      await fetch(env().UPTIME_CRON_URL_COLLECT_BILLING!);
     }
 
     res.send("OK");
