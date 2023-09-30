@@ -1,4 +1,4 @@
-name: Create Changesets
+name: Prepare Release
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  release:
-    name: Release
+  pr:
+    name: Create PR
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -30,5 +30,8 @@ jobs:
 
       - name: Create Release Pull Request
         uses: changesets/action@v1
+        with:
+            publish: pnpm publish --dry-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
