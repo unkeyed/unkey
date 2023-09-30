@@ -1,4 +1,4 @@
-name: Release
+name: Create Changesets
 
 on:
   push:
@@ -20,6 +20,11 @@ jobs:
         with:
           node-version: 20
 
+      - uses: pnpm/action-setup@v2
+        with:
+            version: latest
+            run_install: false
+    
       - name: Install Dependencies
         run: pnpm install
 
