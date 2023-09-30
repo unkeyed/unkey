@@ -11,7 +11,7 @@ jobs:
       matrix:
         include:
           - package: "@unkey/api"
-            path: "./packages/sdk"
+            path: "./packages/api"
           - package: "@unkey/nextjs"
             path: "./packages/nextjs"
           - package: "@unkey/hono"
