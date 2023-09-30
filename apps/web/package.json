@@ -57,7 +57,6 @@
     "@unkey/db": "workspace:*",
     "@unkey/id": "workspace:*",
     "@unkey/loops": "workspace:*",
-    "@unkey/policies": "workspace:*",
     "@upstash/qstash": "^0.3.6",
     "@upstash/ratelimit": "^0.4.4",
     "@upstash/redis": "^1.22.0",
