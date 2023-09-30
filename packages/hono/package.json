@@ -31,7 +31,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@unkey/api": "^0.10.0"
+    "@unkey/api": "^0.9.9"
   },
   "peerDependencies": {
     "hono": "^3.7.2"
