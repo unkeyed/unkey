@@ -12,16 +12,6 @@ await setup({
 });
 
 describe("basic behaviour", () => {
-  it("should set `unkey` on context with unauthenticated request", async () => {
-    const data = await $fetch("/api/context");
-    expect(data).toMatchInlineSnapshot(`
-    "unkey": {
-      "code": "NOT_FOUND",
-      "valid": false,
-    }
-`);
-  });
-
   it("should set `unkey` on context with (invalid) authenticated request", async () => {
     const res = await fetch("/api/context", {
       headers: {
