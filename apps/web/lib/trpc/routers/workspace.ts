@@ -52,8 +52,9 @@ export const workspaceRouter = t.router({
       };
       await db.insert(schema.workspaces).values(workspace);
 
-      if (stripeEnv) {
-        const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
+      const e = stripeEnv();
+      if (e) {
+        const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
           apiVersion: "2022-11-15",
         });
 
@@ -75,16 +76,16 @@ export const workspaceRouter = t.router({
             items: [
               {
                 // base
-                price: stripeEnv.STRIPE_PRO_PLAN_PRICE_ID,
+                price: e.STRIPE_PRO_PLAN_PRICE_ID,
                 quantity: 1,
               },
               {
                 // additional keys
-                price: stripeEnv.STRIPE_ACTIVE_KEYS_PRICE_ID,
+                price: e.STRIPE_ACTIVE_KEYS_PRICE_ID,
               },
               {
                 // additional verifications
-                price: stripeEnv.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
+                price: e.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
               },
             ],
             trial_period_days: 14,

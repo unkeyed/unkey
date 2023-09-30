@@ -3,7 +3,7 @@ import { Tinybird } from "@chronark/zod-bird";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-const tb = new Tinybird({ token: env.TINYBIRD_TOKEN });
+const tb = new Tinybird({ token: env().TINYBIRD_TOKEN });
 
 export const ingestPageView = tb.buildIngestEndpoint({
   datasource: "pageviews__v1",
