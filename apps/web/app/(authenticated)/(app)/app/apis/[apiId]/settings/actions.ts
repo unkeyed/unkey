@@ -12,7 +12,7 @@ export const updateApiName = serverAction({
     workspaceId: z.string(),
   }),
   handler: async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
+    const ws = await db().query.workspaces.findFirst({
       where: eq(schema.workspaces.id, input.workspaceId),
       with: {
         apis: {
@@ -28,7 +28,7 @@ export const updateApiName = serverAction({
       throw new Error("api not found");
     }
 
-    await db
+    await db()
       .update(schema.apis)
       .set({
         name: input.name,
@@ -54,7 +54,7 @@ export const updateIpWhitelist = serverAction({
     workspaceId: z.string(),
   }),
   handler: async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
+    const ws = await db().query.workspaces.findFirst({
       where: eq(schema.workspaces.id, input.workspaceId),
       with: {
         apis: {
@@ -70,7 +70,7 @@ export const updateIpWhitelist = serverAction({
       throw new Error("api not found");
     }
 
-    await db
+    await db()
       .update(schema.apis)
       .set({
         ipWhitelist: input.ips.join(","),

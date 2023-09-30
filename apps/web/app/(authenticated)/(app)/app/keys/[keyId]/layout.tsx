@@ -13,7 +13,7 @@ export const revalidate = 0;
 export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
-  const key = await db.query.keys.findFirst({
+  const key = await db().query.keys.findFirst({
     where: eq(schema.keys.id, props.params.keyId),
     with: {
       workspace: true,
@@ -22,7 +22,7 @@ export default async function ApiPageLayout(props: Props) {
   if (!key || key.workspace.tenantId !== tenantId) {
     return notFound();
   }
-  const api = await db.query.apis.findFirst({
+  const api = await db().query.apis.findFirst({
     where: eq(schema.apis.keyAuthId, key.keyAuthId),
   });
   if (!api) {

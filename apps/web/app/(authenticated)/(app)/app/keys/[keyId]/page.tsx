@@ -23,7 +23,7 @@ export const revalidate = 0;
 export default async function KeyPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
-  const key = await db.query.keys.findFirst({
+  const key = await db().query.keys.findFirst({
     where: eq(schema.keys.id, props.params.keyId),
     with: {
       workspace: true,
@@ -32,7 +32,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   if (!key || key.workspace.tenantId !== tenantId) {
     return notFound();
   }
-  const api = await db.query.apis.findFirst({
+  const api = await db().query.apis.findFirst({
     where: eq(schema.apis.keyAuthId, key.keyAuthId),
   });
   if (!api) {

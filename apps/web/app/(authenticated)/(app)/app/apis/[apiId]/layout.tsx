@@ -18,7 +18,7 @@ export const revalidate = 0;
 export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
-  const api = await db.query.apis.findFirst({
+  const api = await db().query.apis.findFirst({
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,
