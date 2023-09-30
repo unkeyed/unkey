@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 export default async function TenantOverviewPage() {
   const tenantId = getTenantId();
-  const workspace = await db.query.workspaces.findFirst({
+  const workspace = await db().query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {

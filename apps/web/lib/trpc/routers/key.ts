@@ -29,7 +29,7 @@ export const keyRouter = t.router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const workspace = await db.query.workspaces.findFirst({
+      const workspace = await db().query.workspaces.findFirst({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
@@ -62,7 +62,7 @@ export const keyRouter = t.router({
       return result;
     }),
   createInternalRootKey: t.procedure.use(auth).mutation(async ({ ctx }) => {
-    const unkeyApi = await db.query.apis.findFirst({
+    const unkeyApi = await db().query.apis.findFirst({
       where: eq(schema.apis.id, env().UNKEY_API_ID),
       with: {
         workspace: true,
@@ -73,7 +73,7 @@ export const keyRouter = t.router({
       throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
     }
 
-    const workspace = await db.query.workspaces.findFirst({
+    const workspace = await db().query.workspaces.findFirst({
       where: eq(schema.workspaces.tenantId, ctx.tenant.id),
     });
     if (!workspace) {
@@ -102,7 +102,7 @@ export const keyRouter = t.router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const workspace = await db.query.workspaces.findFirst({
+      const workspace = await db().query.workspaces.findFirst({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
@@ -140,7 +140,7 @@ export const keyRouter = t.router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const workspace = await db.query.workspaces.findFirst({
+      const workspace = await db().query.workspaces.findFirst({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {

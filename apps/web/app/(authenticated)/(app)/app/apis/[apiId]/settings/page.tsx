@@ -18,7 +18,7 @@ type Props = {
 export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
-  const workspace = await db.query.workspaces.findFirst({
+  const workspace = await db().query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: {
