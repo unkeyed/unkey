@@ -50,7 +50,7 @@ export const workspaceRouter = t.router({
         billingPeriodEnd: null,
         trialEnds: null,
       };
-      await db.insert(schema.workspaces).values(workspace);
+      await db().insert(schema.workspaces).values(workspace);
 
       const e = stripeEnv();
       if (e) {
@@ -66,7 +66,7 @@ export const workspaceRouter = t.router({
             email: user.emailAddresses.at(0)?.emailAddress,
           });
           workspace.stripeCustomerId = customer.id;
-          await db
+          await db()
             .update(schema.workspaces)
             .set({ stripeCustomerId: customer.id })
             .where(eq(schema.workspaces.id, workspace.id));

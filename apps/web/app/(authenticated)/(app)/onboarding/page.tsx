@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 export default async function OnboardingPage() {
   const tenantId = getTenantId();
-  const workspaces = await db.query.workspaces.findMany({
+  const workspaces = await db().query.workspaces.findMany({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
 
