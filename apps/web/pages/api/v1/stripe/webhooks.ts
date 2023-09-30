@@ -29,7 +29,7 @@ const requestValidation = z.object({
     "stripe-signature": z.string(),
   }),
 });
-const loops = env.LOOPS_API_KEY ? new Loops({ apiKey: env.LOOPS_API_KEY }) : null;
+const loops = env().LOOPS_API_KEY ? new Loops({ apiKey: env().LOOPS_API_KEY! }) : null;
 
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -41,7 +41,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       throw new Error("stripe env variables are not set up");
     }
 
-    const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
+    const stripe = new Stripe(stripeEnv()!.STRIPE_SECRET_KEY, {
       apiVersion: "2022-11-15",
       typescript: true,
     });
@@ -49,7 +49,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     const event = stripe.webhooks.constructEvent(
       (await buffer(req)).toString(),
       signature,
-      stripeEnv.STRIPE_WEBHOOK_SECRET,
+      stripeEnv()!.STRIPE_WEBHOOK_SECRET,
     );
 
     switch (event.type) {
