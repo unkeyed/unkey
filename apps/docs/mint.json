@@ -33,6 +33,10 @@
     {
       "name": "Libraries",
       "url": "libraries"
+    },
+    {
+      "name": "Contributing",
+      "url": "contributing"
     }
   ],
   "anchors": [
@@ -184,6 +188,12 @@
       "group": "Rust",
       "icon": "code",
       "pages": ["libraries/rs/overview"]
+    },
+
+    {
+      "group": "Contributing",
+      "icon": "github",
+      "pages": ["contributing/versions"]
     }
   ],
   "footerSocials": {

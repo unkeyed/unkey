@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.7.0",
-    "@unkey/api": "workspace:*",
+    "@unkey/api": "^0.9.9",
     "defu": "^6.1.2"
   },
   "devDependencies": {
