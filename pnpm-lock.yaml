@@ -177,19 +177,16 @@ importers:
         version: 10.38.1
       '@unkey/api':
         specifier: workspace:*
-        version: link:../../packages/sdk
+        version: link:../../packages/api
       '@unkey/db':
         specifier: workspace:*
-        version: link:../../packages/db
+        version: link:../../internal/db
       '@unkey/id':
         specifier: workspace:*
-        version: link:../../packages/id
+        version: link:../../internal/id
       '@unkey/loops':
         specifier: workspace:*
-        version: link:../../packages/loops
-      '@unkey/policies':
-        specifier: workspace:*
-        version: link:../../packages/policies
+        version: link:../../internal/loops
       '@upstash/qstash':
         specifier: ^0.3.6
         version: 0.3.6
@@ -385,7 +382,7 @@ importers:
         version: 18.2.7
       '@unkey/api':
         specifier: workspace:^
-        version: link:../../packages/sdk
+        version: link:../../packages/api
       '@unkey/nextjs':
         specifier: workspace:0.0.0-canary.0
         version: link:../../packages/nextjs
@@ -411,7 +408,7 @@ importers:
         specifier: 5.2.2
         version: 5.2.2
 
-  packages/db:
+  internal/db:
     dependencies:
       '@planetscale/database':
         specifier: ^1.11.0
@@ -439,11 +436,58 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
+  internal/id:
+    dependencies:
+      base-x:
+        specifier: ^4.0.0
+        version: 4.0.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.5.7
+        version: 20.5.7
+      '@unkey/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.2.2
+        version: 5.2.2
+
+  internal/loops:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.5.7
+        version: 20.5.7
+      '@unkey/tsconfig':
+        specifier: workspace:^
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.2.2
+        version: 5.2.2
+
+  internal/tinybird: {}
+
+  internal/tsconfig: {}
+
+  packages/api:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.5.7
+        version: 20.5.7
+      tsup:
+        specifier: ^7.2.0
+        version: 7.2.0(ts-node@10.9.1)(typescript@5.2.2)
+      tsx:
+        specifier: ^3.12.8
+        version: 3.12.8
+      typescript:
+        specifier: ^5.2.2
+        version: 5.2.2
+
   packages/hono:
     dependencies:
       '@unkey/api':
         specifier: workspace:*
-        version: link:../sdk
+        version: link:../api
       hono:
         specifier: ^3.7.2
         version: 3.7.2
@@ -461,39 +505,11 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
-  packages/id:
-    dependencies:
-      base-x:
-        specifier: ^4.0.0
-        version: 4.0.0
-    devDependencies:
-      '@types/node':
-        specifier: ^20.5.7
-        version: 20.5.7
-      '@unkey/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
-
-  packages/loops:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.5.7
-        version: 20.5.7
-      '@unkey/tsconfig':
-        specifier: workspace:^
-        version: link:../tsconfig
-      typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
-
   packages/nextjs:
     dependencies:
       '@unkey/api':
         specifier: workspace:*
-        version: link:../sdk
+        version: link:../api
     devDependencies:
       '@types/node':
         specifier: ^20.5.7
@@ -518,7 +534,7 @@ importers:
         version: 3.7.0(rollup@3.29.4)
       '@unkey/api':
         specifier: workspace:*
-        version: link:../sdk
+        version: link:../api
       defu:
         specifier: ^6.1.2
         version: 6.1.2
@@ -569,44 +585,6 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4
 
-  packages/policies:
-    dependencies:
-      '@chronark/access-policies':
-        specifier: ^0.0.2
-        version: 0.0.2
-    devDependencies:
-      '@types/node':
-        specifier: ^20.5.7
-        version: 20.5.7
-      '@unkey/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      tsup:
-        specifier: ^7.2.0
-        version: 7.2.0(ts-node@10.9.1)(typescript@5.2.2)
-      typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
-
-  packages/sdk:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.5.7
-        version: 20.5.7
-      tsup:
-        specifier: ^7.2.0
-        version: 7.2.0(ts-node@10.9.1)(typescript@5.2.2)
-      tsx:
-        specifier: ^3.12.8
-        version: 3.12.8
-      typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
-
-  packages/tinybird: {}
-
-  packages/tsconfig: {}
-
   tools/bootstrap:
     dependencies:
       '@planetscale/database':
@@ -614,10 +592,10 @@ importers:
         version: 1.11.0
       '@unkey/db':
         specifier: workspace:^
-        version: link:../../packages/db
+        version: link:../../internal/db
       '@unkey/id':
         specifier: workspace:^
-        version: link:../../packages/id
+        version: link:../../internal/id
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
@@ -636,7 +614,7 @@ importers:
         version: 20.5.7
       '@unkey/tsconfig':
         specifier: workspace:^
-        version: link:../../packages/tsconfig
+        version: link:../../internal/tsconfig
       dotenv-cli:
         specifier: ^7.3.0
         version: 7.3.0
@@ -663,10 +641,10 @@ importers:
         version: 1.11.0
       '@unkey/db':
         specifier: workspace:^
-        version: link:../../packages/db
+        version: link:../../internal/db
       '@unkey/id':
         specifier: workspace:^
-        version: link:../../packages/id
+        version: link:../../internal/id
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
@@ -685,7 +663,7 @@ importers:
         version: 20.5.7
       '@unkey/tsconfig':
         specifier: workspace:^
-        version: link:../../packages/tsconfig
+        version: link:../../internal/tsconfig
       dotenv-cli:
         specifier: ^7.3.0
         version: 7.3.0
@@ -1495,10 +1473,6 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@chronark/access-policies@0.0.2:
-    resolution: {integrity: sha512-KNxuQFcjfKIekDVAMXCqR7FBUr0BPOpUZj11vCfsC9v2IRTS3WWYJgxRx1tiZ703sjz8BeLbBnZW9aj6IalUaQ==}
-    dev: false
-
   /@chronark/zod-bird@0.2.2:
     resolution: {integrity: sha512-0mmiiw4dny1aiEOmawsIJUaYW16vhWRuDGsDa62GfFhdD3F7hHrTi3lWNWYCVq2KsCS+CYwMj8nkdFuOnejCTA==}
     dependencies:
@@ -1519,11 +1493,10 @@ packages:
       tslib: 2.4.1
     dev: false
 
-  /@clerk/backend@0.30.0(react@18.2.0):
-    resolution: {integrity: sha512-P6Fr9ni9ZRnbdWpyqv4oLLpFYOETP4M7dIlrSZGSd08LZVpFm7CTEfTpaR6O0xOEmiVqiuoqVgmiwrdke2MyGg==}
+  /@clerk/backend@0.30.1:
+    resolution: {integrity: sha512-+769bWE89Ejdy4ddu4wF/yBZypGVA5G/vAerJsXv/sdos3rSFtSghLx5OMdatn/2XqZUnrZoQGLtUz5ZxzDJXg==}
     engines: {node: '>=14'}
     dependencies:
-      '@clerk/shared': 0.24.0(react@18.2.0)
       '@clerk/types': 3.53.0
       '@peculiar/webcrypto': 1.4.1
       '@types/node': 16.18.6
@@ -1532,27 +1505,25 @@ packages:
       node-fetch-native: 1.0.1
       snakecase-keys: 5.4.4
       tslib: 2.4.1
-    transitivePeerDependencies:
-      - react
     dev: false
 
-  /@clerk/clerk-react@4.26.0(react@18.2.0):
-    resolution: {integrity: sha512-MPdvYq1YKrsgfruUUKHdA2WSBYszGVgzML13AjWTnv4HuALL8xeLLMfbW8+Met/7ABFTtfBywNhRLf/3t5SBrg==}
+  /@clerk/clerk-react@4.26.1(react@18.2.0):
+    resolution: {integrity: sha512-jyBattl6XJcsnGsz8qrgMfd5JzwcvamuC3Pl9qxQQBMO9YxOki9S6YDIAtmFVRB65EOmyZSWlF07POW0ceOX7Q==}
     engines: {node: '>=14'}
     peerDependencies:
       react: '>=16'
     dependencies:
-      '@clerk/shared': 0.24.0(react@18.2.0)
+      '@clerk/shared': 0.24.1(react@18.2.0)
       '@clerk/types': 3.53.0
       react: 18.2.0
       tslib: 2.4.1
     dev: false
 
-  /@clerk/clerk-sdk-node@4.12.9(react@18.2.0):
-    resolution: {integrity: sha512-eM8+2djx54m6GDofW8WUhv0mytPmuSaUK46OvfXHg9oZCTrV/CjbuCODRmGIsivqa+GlAJgP6wOHQBTLxOhU6g==}
+  /@clerk/clerk-sdk-node@4.12.10:
+    resolution: {integrity: sha512-KgCEybHZJkkUULvkgpW7gZfIQYc6j0Rjig81lI7ounNwbvWy6xGCk5CHFcleU9OGqAdzEL6y+0pZ+yV9avlibg==}
     engines: {node: '>=14'}
     dependencies:
-      '@clerk/backend': 0.30.0(react@18.2.0)
+      '@clerk/backend': 0.30.1
       '@clerk/types': 3.53.0
       '@types/cookies': 0.7.7
       '@types/express': 4.17.14
@@ -1560,8 +1531,6 @@ packages:
       camelcase-keys: 6.2.2
       snakecase-keys: 3.2.1
       tslib: 2.4.1
-    transitivePeerDependencies:
-      - react
     dev: false
 
   /@clerk/nextjs@4.24.2(next@13.5.2)(react-dom@18.2.0)(react@18.2.0):
@@ -1573,8 +1542,8 @@ packages:
       react-dom: ^17.0.2 || ^18.0.0-0
     dependencies:
       '@clerk/backend': 0.29.3
-      '@clerk/clerk-react': 4.26.0(react@18.2.0)
-      '@clerk/clerk-sdk-node': 4.12.9(react@18.2.0)
+      '@clerk/clerk-react': 4.26.1(react@18.2.0)
+      '@clerk/clerk-sdk-node': 4.12.10
       '@clerk/types': 3.52.1
       next: 13.5.2(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       path-to-regexp: 6.2.1
@@ -1583,8 +1552,8 @@ packages:
       tslib: 2.4.1
     dev: false
 
-  /@clerk/shared@0.24.0(react@18.2.0):
-    resolution: {integrity: sha512-xdLQwz8hFoN7ebU3HCQzCC4Acx0+7EiFXMTN0ClCHXbsc5B4yFgGzzngOEDjVLOpvU2CvSKYcNLfzDUOnpFXXw==}
+  /@clerk/shared@0.24.1(react@18.2.0):
+    resolution: {integrity: sha512-xqRorkA7TRc7iWi5oxv3fcLnDiL7PR09UTerqJwTrg3Ci5eOcfUFnTUHqmLKRSLkKhdJa389vHYPh3o4rTLKSQ==}
     peerDependencies:
       react: '>=16'
     dependencies:
@@ -3672,6 +3641,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -12819,6 +12789,10 @@ packages:
     resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
     engines: {node: ^14 || ^16 || >=18}
     hasBin: true
+    dev: true
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
     dev: true
 
   /natural-compare@1.4.0:
