@@ -1,8 +1,32 @@
 ---
 title: Versioning
-description: 'Welcome to Unkey.dev docs!'
+description: 'How to release new versions of the repository.'
 ---
 
 # Repository Version
 
 The main version of the repository is only for the `agent`. Sdks and other libraries have their own independent versioning.
+
+
+## Workflow
+
+<Steps>
+    <Step>
+    A release coordinator (RC) calls to stop any merging to the base branch
+    </Step>
+    <Step>
+    The RC pulls down the base branch, runs `pnpm changeset version`, then makes a new PR with the versioning changes
+    </Step>
+    <Step>
+    The versioning changes are merged back into the base branch
+    </Step>
+    <Step>
+    The RC pulls the base branch again and runs changeset publish
+    </Step>
+    <Step>
+    The RC runs git push --follow-tags to push the release tags back
+    </Step>
+    <Step>
+    The RC unblocks merging to the base branch
+    </Step>
+</Steps>
