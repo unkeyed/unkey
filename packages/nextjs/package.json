@@ -32,6 +32,6 @@
     "@unkey/api": "^0.10.0"
   },
   "peerDependencies": {
-    "next": "^13.4.19"
+    "next": "^13.5.3"
   }
 }
