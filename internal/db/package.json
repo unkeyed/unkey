@@ -20,6 +20,6 @@
   },
   "dependencies": {
     "@planetscale/database": "^1.11.0",
-    "mysql2": "^3.6.0"
+    "mysql2": "^3.6.1"
   }
 }

@@ -29,7 +29,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@unkey/api": "workspace:*"
+    "@unkey/api": "^0.9.9"
   },
   "peerDependencies": {
     "next": "^13.4.19"
