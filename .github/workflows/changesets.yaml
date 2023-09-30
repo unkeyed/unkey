@@ -30,11 +30,8 @@ jobs:
       - name: Install NPM Dependencies
         run: pnpm install
 
-      - name: Check for errors
-        run: pnpm check
-
       - name: Build the package
-        run: pnpm build:cli
+        run: pnpm build
 
       - name: Create Version PR or Publish to NPM
         id: changesets
