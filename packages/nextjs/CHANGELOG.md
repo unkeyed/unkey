@@ -1,5 +1,11 @@
 # @unkey/nextjs
 
+## 0.11.0
+
+### Minor Changes
+
+- 0ea67b8: Add error and invalid callback
+
 ## 0.10.0
 
 ### Minor Changes
