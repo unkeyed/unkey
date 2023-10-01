@@ -5,7 +5,7 @@
 </div>
 
 <div align="center">
-  <a href="https://unkey.dev">unkey.dev</a>
+  Inspired by <a href="https://www.openstatus.dev/blog/secure-api-with-unkey">openstatus.dev/blog/secure-api-with-unkey</a>
 </div>
 <br/>
 
