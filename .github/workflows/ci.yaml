@@ -1,19 +1,15 @@
 name: CI
 
 on:
-   pull_request:
-
+  pull_request:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
-
-
-
 
 jobs:
   test_agent:
     name: Unit Test Agent
     runs-on: ubuntu-latest
-   
+
     services:
       mysql:
         image: mysql:latest
@@ -24,15 +20,12 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-
     steps:
       - uses: actions/checkout@v3
 
-
       - name: Load Schema into MySQL
-        run:  mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
+        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
 
-  
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
@@ -51,15 +44,13 @@ jobs:
         env:
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
-      
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-  
+
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
@@ -75,7 +66,7 @@ jobs:
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-    
+
       - uses: actions/cache@v3
         name: Setup pnpm cache
         with:
@@ -84,13 +75,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-
       - name: Install dependencies
         run: pnpm install
 
       - name: Format
         run: pnpm biome ci .
-      
+
   test_nuxt:
     name: Test Nuxt
     runs-on: ubuntu-latest
@@ -110,8 +100,6 @@ jobs:
         run: pnpm turbo test --filter=@unkey/nuxt
         env:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
-      
-     
 
   tinybird:
     name: Tinybird CI
@@ -119,5 +107,45 @@ jobs:
     with:
       data_project_dir: ./internal/tinybird
     secrets:
-      admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }}  # set admin token associated to an account in GitHub secrets
+      admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
       tb_host: https://api.tinybird.co
+
+  build_packages:
+    strategy:
+      matrix:
+        package: ["@unkey/api", "@unkey/nextjs", "@unkey/hono", "@unkey/nuxt"]
+    name: Build ${{matrix.package}}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: lts/*
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm turbo run build --filter=${{matrix.package}}
