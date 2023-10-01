@@ -143,7 +143,7 @@
           }
         },
         {
-          "name": "Verify Key",
+          "name": "Verify key again after removal",
           "http": {
             "url": "${{env.baseUrl}}/v1/keys.verifyKey",
             "method": "POST",
@@ -156,7 +156,7 @@
             "check": {
               "status": 404,
               "jsonpath": {
-                "$.valid": true
+                "$.valid": false
               }
             }
           }
