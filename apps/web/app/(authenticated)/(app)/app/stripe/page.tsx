@@ -1,6 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { currentUser } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -10,6 +11,7 @@ export default async function StripeRedirect() {
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }
+  const user = await currentUser();
 
   const ws = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
@@ -74,6 +76,7 @@ export default async function StripeRedirect() {
     currency: "USD",
     allow_promotion_codes: true,
     customer: ws.stripeCustomerId,
+    customer_email: user?.emailAddresses.at(0)?.emailAddress,
   });
 
   if (!session.url) {
