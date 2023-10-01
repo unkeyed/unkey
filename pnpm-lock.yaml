@@ -383,10 +383,10 @@ importers:
         specifier: 18.2.7
         version: 18.2.7
       '@unkey/api':
-        specifier: workspace:latest
+        specifier: 0.10.0
         version: link:../../packages/api
       '@unkey/nextjs':
-        specifier: workspace:latest
+        specifier: 0.10.0
         version: link:../../packages/nextjs
       autoprefixer:
         specifier: 10.4.15
