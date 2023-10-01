@@ -4,18 +4,12 @@ SQL >
     SELECT
         workspaceId,
         apiId,
-        keyId,
+        countState() AS count,
         toStartOfHour(fromUnixTimestamp64Milli(time)) AS time
     FROM key_verifications
     GROUP BY
         workspaceId,
         apiId,
-        keyId,
         time
 
-TYPE materialized
-DATASOURCE mv_billing_hourly_active_keys
-ENGINE "AggregatingMergeTree"
-ENGINE_PARTITION_KEY "toYYYYMM(time)"
-ENGINE_SORTING_KEY "workspaceId, apiId, time, keyId"
 

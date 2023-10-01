@@ -24,7 +24,7 @@ export const revalidate = 0;
 export default async function Page(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
-  const workspace = await db().query.workspaces.findFirst({
+  const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
@@ -34,7 +34,7 @@ export default async function Page(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  const key = await db().query.keys.findFirst({
+  const key = await db.query.keys.findFirst({
     where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
   });
   if (!key) {

@@ -44,20 +44,20 @@ async function main() {
     name: "Unkey",
     internal: true,
   };
-  await db().insert(schema.workspaces).values(workspace);
+  await db.insert(schema.workspaces).values(workspace);
   console.log(`Created workspace: ${workspace.name} with id: ${workspace.id}`);
 
   const keyAuth = {
     id: newId("key_auth"),
     workspaceId: workspace.id,
   };
-  await db().insert(schema.keyAuth).values(keyAuth);
+  await db.insert(schema.keyAuth).values(keyAuth);
 
   /**
    * Set up an api for production
    */
   const apiId = newId("api");
-  await db().insert(schema.apis).values({
+  await db.insert(schema.apis).values({
     id: apiId,
     name: "preview",
     workspaceId,

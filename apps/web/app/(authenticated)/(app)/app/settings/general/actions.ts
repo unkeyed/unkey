@@ -11,14 +11,14 @@ export const updateWorkspaceName = serverAction({
     workspaceId: z.string(),
   }),
   handler: async ({ input, ctx }) => {
-    const ws = await db().query.workspaces.findFirst({
+    const ws = await db.query.workspaces.findFirst({
       where: eq(schema.workspaces.id, input.workspaceId),
     });
     if (!ws || ws.tenantId !== ctx.tenantId) {
       throw new Error("workspace not found");
     }
 
-    await db()
+    await db
       .update(schema.workspaces)
       .set({
         name: input.name,

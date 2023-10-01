@@ -19,7 +19,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
       apiVersion: "2022-11-15",
     });
 
-    const allWorkspaces = await db().query.workspaces.findMany();
+    const allWorkspaces = await db.query.workspaces.findMany();
 
     console.log("found %d workspaces", allWorkspaces.length);
 
@@ -66,7 +66,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             );
           }
 
-          await db()
+          await db
             .update(schema.workspaces)
             .set({
               usageActiveKeys: activeKeys,

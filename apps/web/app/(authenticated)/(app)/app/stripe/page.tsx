@@ -11,7 +11,7 @@ export default async function StripeRedirect() {
     return redirect("/auth/sign-in");
   }
 
-  const ws = await db().query.workspaces.findFirst({
+  const ws = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!ws) {
@@ -44,7 +44,7 @@ export default async function StripeRedirect() {
     });
     ws.stripeCustomerId = customer.id;
 
-    await db()
+    await db
       .update(schema.workspaces)
       .set({ stripeCustomerId: customer.id })
       .where(eq(schema.workspaces.id, ws.id));

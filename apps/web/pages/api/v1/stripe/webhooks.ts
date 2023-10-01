@@ -56,7 +56,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
-        await db()
+        await db
           .update(schema.workspaces)
           .set({
             stripeCustomerId: sub.customer.toString(),
@@ -77,13 +77,13 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         console.log("subscription deleted", subscription.id);
-        const ws = await db().query.workspaces.findFirst({
+        const ws = await db.query.workspaces.findFirst({
           where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
         });
         if (!ws) {
           throw new Error("workspace does not exist");
         }
-        await db()
+        await db
           .update(schema.workspaces)
           .set({
             stripeCustomerId: subscription.customer.toString(),
@@ -112,7 +112,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           // no need to fetch everything if we don't use it
           break;
         }
-        const ws = await db().query.workspaces.findFirst({
+        const ws = await db.query.workspaces.findFirst({
           where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
         });
         if (!ws) {
@@ -136,7 +136,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         if (!loops) {
           break;
         }
-        const ws = await db().query.workspaces.findFirst({
+        const ws = await db.query.workspaces.findFirst({
           where: eq(schema.workspaces.stripeCustomerId, invoice.customer!.toString()),
         });
         if (!ws) {

@@ -31,14 +31,14 @@ async function main() {
     }),
     { schema },
   );
-  const keys = await db().query.keys.findMany({ where: isNull(schema.keys.keyAuthId) });
+  const keys = await db.query.keys.findMany({ where: isNull(schema.keys.keyAuthId) });
   let i = 0;
   for (const key of keys) {
     console.log("");
     console.log(++i, "/", keys.length);
     console.table(key);
 
-    const api = await db().query.apis.findFirst({ where: eq(schema.apis.id, key.apiId) });
+    const api = await db.query.apis.findFirst({ where: eq(schema.apis.id, key.apiId) });
     if (!api) {
       console.error("api doesn't exist", key);
       continue;
