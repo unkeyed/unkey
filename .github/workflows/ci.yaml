@@ -11,6 +11,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   test_agent:
+    name: Unit Test Agent
     runs-on: ubuntu-latest
    
     services:
@@ -48,11 +49,12 @@ jobs:
         run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
         working-directory: apps/agent
         env:
-          DATABASE_DSN: root@tcp(localhost:3306)/unkey"
+          DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
       
 
   lint:
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -90,6 +92,7 @@ jobs:
         run: pnpm biome ci .
       
   test_nuxt:
+    name: Test Nuxt
     runs-on: ubuntu-latest
 
     steps:
@@ -110,7 +113,8 @@ jobs:
       
      
 
-  tinybird: # ci using environments from workspace 'unkey'
+  tinybird:
+    name: Tinybird CI
     uses: tinybirdco/ci/.github/workflows/ci.yml@v1.1.8
     with:
       data_project_dir: ./internal/tinybird
