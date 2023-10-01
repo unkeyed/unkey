@@ -134,7 +134,7 @@
               "Content-Type": "application/json",
               "Authorization": "Bearer ${{secrets.rootKey}}"
             },
-            "params": {
+            "json": {
               "keyId": "${{captures.keyId}}"
             },
             "check": {
