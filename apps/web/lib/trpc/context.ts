@@ -49,7 +49,7 @@ async function getRootKey(
   if (rootKey) {
     return rootKey;
   }
-  const ws = await db().query.workspaces.findFirst({
+  const ws = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!ws) {

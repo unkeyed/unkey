@@ -6,7 +6,7 @@ import { CreateKey } from "../../create-key";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
-  const api = await db().query.apis.findFirst({
+  const api = await db.query.apis.findFirst({
     where: eq(schema.apis.id, props.params.apiId),
     with: {
       workspace: true,

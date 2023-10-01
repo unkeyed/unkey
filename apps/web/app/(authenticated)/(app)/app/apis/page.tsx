@@ -13,7 +13,7 @@ export const revalidate = 3;
 
 export default async function TenantOverviewPage() {
   const tenantId = getTenantId();
-  const workspace = await db().query.workspaces.findFirst({
+  const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: true,
@@ -28,7 +28,7 @@ export default async function TenantOverviewPage() {
     workspace.apis.map(async (api) => ({
       id: api.id,
       name: api.name,
-      keys: await db()
+      keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
         .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
