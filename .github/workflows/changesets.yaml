@@ -10,7 +10,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   pr:
-    name: Create PR
+    name: Create Release PR
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -32,6 +32,11 @@ jobs:
 
       - name: Build the package
         run: pnpm build
+        env:
+          DATABASE_HOST: ${{secrets.DATABASE_HOST}}
+          DATABASE_USERNAME: ${{secrets.DATABASE_USERNAME}}
+          DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+
 
       - name: Create Version PR or Publish to NPM
         id: changesets
