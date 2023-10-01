@@ -14,7 +14,8 @@
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
-    "commit": "cz"
+    "commit": "cz",
+    "bump-versions": "pnpm changeset version && pnpm install"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
