@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type VerifyKeyRequest struct {
+type VerifyKeyRequestV1 struct {
 	Key string `json:"key" validate:"required"`
 	X   struct {
 		Resource string `json:"resource,omitempty"`
@@ -28,7 +28,7 @@ type ratelimitResponse struct {
 	Reset     int64 `json:"reset"`
 }
 
-type VerifyKeyResponse struct {
+type VerifyKeyResponseV1 struct {
 	Valid     bool               `json:"valid"`
 	OwnerId   string             `json:"ownerId,omitempty"`
 	Meta      map[string]any     `json:"meta,omitempty"`
@@ -39,11 +39,11 @@ type VerifyKeyResponse struct {
 	Error     string             `json:"error,omitempty"`
 }
 
-func (s *Server) verifyKey(c *fiber.Ctx) error {
+func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.verifyKey")
 	defer span.End()
 
-	req := VerifyKeyRequest{}
+	req := VerifyKeyRequestV1{}
 	err := c.BodyParser(&req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
@@ -62,14 +62,14 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 	hash, err := getKeyHash(req.Key)
 	hashSpan.End()
 	if err != nil {
-		return c.JSON(VerifyKeyResponse{
+		return c.JSON(VerifyKeyResponseV1{
 			Valid: false,
 			Code:  errors.NOT_FOUND,
 		})
 	}
 	key, hit := s.keyCache.Get(ctx, hash)
 	if hit == cache.Null {
-		return c.JSON(VerifyKeyResponse{
+		return c.JSON(VerifyKeyResponseV1{
 			Valid: false,
 			Code:  errors.NOT_FOUND,
 		})
@@ -83,7 +83,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		}
 		if !found {
 			s.keyCache.SetNull(ctx, hash)
-			return c.JSON(VerifyKeyResponse{
+			return c.JSON(VerifyKeyResponseV1{
 				Valid: false,
 				Code:  errors.NOT_FOUND,
 			})
@@ -98,7 +98,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 		}
 
-		return c.JSON(VerifyKeyResponse{
+		return c.JSON(VerifyKeyResponseV1{
 			Valid: false,
 			Code:  errors.NOT_FOUND,
 		})
@@ -128,7 +128,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		ipSpan.End()
 		if !whitelist.Ip(sourceIp, api.IpWhitelist) {
 			s.logger.Info().Str("workspaceId", api.WorkspaceId).Str("apiId", api.Id).Str("keyId", key.Id).Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("ip denied")
-			return c.JSON(VerifyKeyResponse{
+			return c.JSON(VerifyKeyResponseV1{
 				Valid: false,
 				Code:  errors.FORBIDDEN,
 			})
@@ -151,7 +151,7 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 		sp.End()
 	}
 
-	res := VerifyKeyResponse{
+	res := VerifyKeyResponseV1{
 		Valid:   true,
 		OwnerId: key.OwnerId,
 		Meta:    key.Meta,
@@ -255,4 +255,3 @@ func (s *Server) verifyKey(c *fiber.Ctx) error {
 
 	return c.JSON(res)
 }
-

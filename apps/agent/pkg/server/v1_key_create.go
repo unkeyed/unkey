@@ -42,7 +42,7 @@ type CreateKeyResponse struct {
 	KeyId string `json:"keyId"`
 }
 
-func (s *Server) createKey(c *fiber.Ctx) error {
+func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.createKey")
 	defer span.End()
 
