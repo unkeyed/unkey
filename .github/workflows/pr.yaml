@@ -1,10 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+   pull_request:
 
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
@@ -90,3 +87,11 @@ jobs:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
       
      
+
+  tinybird: # ci using environments from workspace 'unkey'
+    uses: tinybirdco/ci/.github/workflows/ci.yml@v1.1.8
+    with:
+      data_project_dir: ./internal/tinybird
+    secrets:
+      admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }}  # set admin token associated to an account in GitHub secrets
+      tb_host: https://api.tinybird.co
