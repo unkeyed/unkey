@@ -145,7 +145,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install
-        run: pnpm install -r
+        run: pnpm install
 
-      - name: Build package
+      - name: Build packages
         run: pnpm turbo run build --filter=${{matrix.package}}
