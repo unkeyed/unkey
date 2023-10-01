@@ -105,7 +105,7 @@
           "name": "Get Key",
           "http": {
             "url": "${{env.baseUrl}}/v1/keys.findKey",
-            "method": "POST",
+            "method": "GET",
             "headers": {
               "Content-Type": "application/json",
               "Authorization": "Bearer ${{secrets.rootKey}}"
@@ -160,7 +160,7 @@
               }
             }
           }
-        },
+        }
       ]
     }
   }
