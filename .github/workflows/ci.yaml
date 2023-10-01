@@ -17,7 +17,7 @@ jobs:
       mysql:
         image: mysql:latest
         env:
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: unkey
         ports:
           - 3306:3306
@@ -29,7 +29,7 @@ jobs:
 
 
       - name: Load Schema into MySQL
-        run:  mysql -h localhost -u root -password root unkey < ./apps/agent/pkg/database/schema.sql
+        run:  mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
 
   
       - name: Setup Go
