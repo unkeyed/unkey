@@ -3,12 +3,17 @@
   "name": "Unkey Docs",
   "colors": {
     "primary": "#09090b",
-    "light": "#f4f4f5",
-    "dark": "#18181b"
+    "light": "#EAE6E0",
+    "dark": "#18181b",
+    "background": {
+      "light": "#fafaf9",
+      "dark": "#0c0a09"
+    }
   },
   "feedback": {
     "raiseIssue": true,
-    "suggestEdit": true
+    "suggestEdit": true,
+    "thumbsRating": true
   },
   "favicon": "/unkey.png",
   "topbarLinks": [
