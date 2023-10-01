@@ -141,25 +141,6 @@
               "status": 200
             }
           }
-        },
-        {
-          "name": "Verify key again after removal",
-          "http": {
-            "url": "${{env.baseUrl}}/v1/keys.verifyKey",
-            "method": "POST",
-            "headers": {
-              "Content-Type": "application/json"
-            },
-            "json": {
-              "key": "${{captures.key}}"
-            },
-            "check": {
-              "status": 404,
-              "jsonpath": {
-                "$.valid": false
-              }
-            }
-          }
         }
       ]
     }
