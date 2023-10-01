@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
-func KeyGetKey_Simple(t *testing.T) {
+func TestKeyFindV1_Simple(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
@@ -59,6 +60,11 @@ func KeyGetKey_Simple(t *testing.T) {
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
-	require.Equal(t, key, successResponse)
+	require.Equal(t, key.Id, successResponse.Id)
+	require.Equal(t, resources.UserApi.Id, successResponse.ApiId)
+	require.Equal(t, key.WorkspaceId, successResponse.WorkspaceId)
+	require.Equal(t, key.Name, successResponse.Name)
+	require.True(t, strings.HasPrefix(key.Hash, successResponse.Start))
+	require.WithinDuration(t, key.CreatedAt, time.UnixMilli(successResponse.CreatedAt), time.Second)
 
 }

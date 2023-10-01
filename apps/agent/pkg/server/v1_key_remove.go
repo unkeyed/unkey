@@ -10,15 +10,22 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func (s *Server) deleteKey(c *fiber.Ctx) error {
-	ctx, span := s.tracer.Start(c.UserContext(), "server.deleteKey")
+type RemoveKeyRequestV1 struct {
+	KeyId string `json:"keyId" validate:"required"`
+}
+
+type RemoveKeyResponseV1 struct {
+}
+
+func (s *Server) v1RemoveKey(c *fiber.Ctx) error {
+	ctx, span := s.tracer.Start(c.UserContext(), "server.v1RemoveKey")
 	defer span.End()
 	req := RemoveKeyRequestV1{}
-	err := c.ParamsParser(&req)
+
+	err := c.BodyParser(&req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
-
 	err = s.validator.Struct(req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())

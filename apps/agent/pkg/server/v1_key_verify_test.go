@@ -55,7 +55,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -67,7 +67,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	require.Equal(t, 200, res.StatusCode)
 
-	successResponse := VerifyKeyResponse{}
+	successResponse := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
@@ -103,7 +103,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 		"somethingelse":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -152,7 +152,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -163,7 +163,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res.StatusCode)
 
-	successResponse := VerifyKeyResponse{}
+	successResponse := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
@@ -180,7 +180,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, errorRes.StatusCode)
 
-	verifyKeyResponse := VerifyKeyResponse{}
+	verifyKeyResponse := VerifyKeyResponseV1{}
 	err = json.Unmarshal(errorBody, &verifyKeyResponse)
 	require.NoError(t, err)
 
@@ -222,7 +222,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 
 	// first request
@@ -235,7 +235,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res1.StatusCode)
 
-	verifyRes1 := VerifyKeyResponse{}
+	verifyRes1 := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body1, &verifyRes1)
 	require.NoError(t, err)
 
@@ -255,7 +255,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res2.StatusCode)
 
-	verifyRes2 := VerifyKeyResponse{}
+	verifyRes2 := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body2, &verifyRes2)
 	require.NoError(t, err)
 
@@ -275,7 +275,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res3.StatusCode)
 
-	verifyRes3 := VerifyKeyResponse{}
+	verifyRes3 := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body3, &verifyRes3)
 	require.NoError(t, err)
 
@@ -296,7 +296,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res4.StatusCode)
 
-	verifyRes4 := VerifyKeyResponse{}
+	verifyRes4 := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body4, &verifyRes4)
 	require.NoError(t, err)
 
@@ -353,7 +353,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Fly-Client-IP", "100.100.100.100")
 
@@ -365,7 +365,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res.StatusCode)
 
-	successResponse := VerifyKeyResponse{}
+	successResponse := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
@@ -418,7 +418,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Fly-Client-IP", "1.2.3.4")
 
@@ -430,7 +430,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res.StatusCode)
 
-	verifyKeyResponse := VerifyKeyResponse{}
+	verifyKeyResponse := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body, &verifyKeyResponse)
 	require.NoError(t, err)
 
@@ -469,7 +469,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 
 	// Use up 10 requests
@@ -483,7 +483,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
-		vr := VerifyKeyResponse{}
+		vr := VerifyKeyResponseV1{}
 		err = json.Unmarshal(body1, &vr)
 		require.NoError(t, err)
 
@@ -502,7 +502,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res2.StatusCode)
 
-	verifyRes2 := VerifyKeyResponse{}
+	verifyRes2 := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body2, &verifyRes2)
 	require.NoError(t, err)
 
@@ -553,7 +553,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 		"key":"%s"
 		}`, key))
 
-	req := httptest.NewRequest("POST", "/v1/keys/verify", buf)
+	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := srv.app.Test(req)
@@ -565,7 +565,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 
 	require.Equal(t, 200, res.StatusCode)
 
-	successResponse := VerifyKeyResponse{}
+	successResponse := VerifyKeyResponseV1{}
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
