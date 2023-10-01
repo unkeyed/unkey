@@ -1,14 +1,14 @@
 import { drizzle } from "drizzle-orm/planetscale-serverless";
 
-import { env } from "@/lib/env";
+import { dbEnv } from "@/lib/env";
 import { connect } from "@planetscale/database";
 import { schema } from "@unkey/db";
 
 export const db = drizzle(
   connect({
-    host: env().DATABASE_HOST,
-    username: env().DATABASE_USERNAME,
-    password: env().DATABASE_PASSWORD,
+    host: dbEnv().DATABASE_HOST,
+    username: dbEnv().DATABASE_USERNAME,
+    password: dbEnv().DATABASE_PASSWORD,
     // rome-ignore lint/suspicious/noExplicitAny: TODO
     fetch: (url: string, init: any) => {
       // rome-ignore lint/suspicious/noExplicitAny: TODO
