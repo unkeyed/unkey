@@ -466,8 +466,6 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
-  internal/tinybird: {}
-
   internal/tsconfig: {}
 
   packages/api:

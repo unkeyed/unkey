@@ -9,7 +9,7 @@ import Link from "next/link";
 export const UsageBanner: React.FC = async () => {
   const tenantId = getTenantId();
 
-  const workspace = await db().query.workspaces.findFirst({
+  const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: true,

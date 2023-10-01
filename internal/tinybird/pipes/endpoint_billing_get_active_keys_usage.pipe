@@ -1,6 +1,8 @@
 VERSION 2
 TOKEN "endpoint__billing_get_active_keys_usage__v1_endpoint_read_7945" READ
 
+TOKEN "endpoint_billing_get_active_keys_usage__v2_endpoint_read_9814" READ
+
 NODE get_usage
 SQL >
 

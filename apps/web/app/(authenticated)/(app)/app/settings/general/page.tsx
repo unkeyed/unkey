@@ -11,7 +11,7 @@ export const revalidate = 0;
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 
-  const workspace = await db().query.workspaces.findFirst({
+  const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {

@@ -1,17 +1,37 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+   pull_request:
+
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+
+
 
 jobs:
   test_agent:
+    name: Unit Test Agent
     runs-on: ubuntu-latest
+   
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: unkey
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
 
     steps:
       - uses: actions/checkout@v3
+
+
+      - name: Load Schema into MySQL
+        run:  mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
+
   
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -20,6 +40,7 @@ jobs:
 
       - name: Set up gotestfmt
         run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
       - name: Install dependencies
         run: go mod download
         working-directory: apps/agent
@@ -27,9 +48,13 @@ jobs:
       - name: Test
         run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
         working-directory: apps/agent
+        env:
+          DATABASE_DSN: root@tcp(localhost:3306)/unkey
+
       
 
   lint:
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -67,6 +92,7 @@ jobs:
         run: pnpm biome ci .
       
   test_nuxt:
+    name: Test Nuxt
     runs-on: ubuntu-latest
 
     steps:
@@ -86,3 +112,12 @@ jobs:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
       
      
+
+  tinybird:
+    name: Tinybird CI
+    uses: tinybirdco/ci/.github/workflows/ci.yml@v1.1.8
+    with:
+      data_project_dir: ./internal/tinybird
+    secrets:
+      admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }}  # set admin token associated to an account in GitHub secrets
+      tb_host: https://api.tinybird.co

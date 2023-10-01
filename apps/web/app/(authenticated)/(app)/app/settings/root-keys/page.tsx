@@ -10,7 +10,7 @@ export const revalidate = 0;
 export default async function SettingsKeysPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
-  const workspace = await db().query.workspaces.findFirst({
+  const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: {
@@ -22,7 +22,7 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
     return redirect("/onboarding");
   }
 
-  const found = await db().query.keys.findMany({
+  const found = await db.query.keys.findMany({
     where: eq(schema.keys.forWorkspaceId, workspace.id),
     limit: 100,
   });
@@ -40,7 +40,7 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
     }
   }
   if (expired.length > 0) {
-    await Promise.all(expired.map((k) => db().delete(schema.keys).where(eq(schema.keys.id, k.id))));
+    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
   }
 
   return (
