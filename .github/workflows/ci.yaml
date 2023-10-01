@@ -48,7 +48,7 @@ jobs:
         run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
         working-directory: apps/agent
         env:
-          DATABASE_DSN: root:root@tcp(localhost:3306)/unkey"
+          DATABASE_DSN: root@tcp(localhost:3306)/unkey"
 
       
 
