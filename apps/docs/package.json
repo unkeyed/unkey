@@ -1,6 +1,7 @@
 {
   "name": "@unkey/docs",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "dev": "npx mintlify dev --port 3333"
   },
