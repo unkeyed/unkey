@@ -27,10 +27,10 @@ jobs:
           node-version: 20
           cache: "pnpm"
 
-      - name: Install NPM Dependencies
+      - name: Install
         run: pnpm install
 
-      - name: Build the package
+      - name: Build packages
         run: pnpm turbo run build --filter='./packages/*' 
     
       - name: Create Version PR or Publish to NPM

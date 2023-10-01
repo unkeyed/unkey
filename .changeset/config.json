@@ -6,6 +6,5 @@
   "linked": [],
   "access": "restricted",
   "baseBranch": "main",
-  "updateInternalDependencies": "patch",
-  "ignore": ["@unkey/web", "@unkey/docs"]
+  "updateInternalDependencies": "patch"
 }
