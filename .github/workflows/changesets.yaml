@@ -10,7 +10,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   pr:
-    name: Create Release PR
+    name: Release Packages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
