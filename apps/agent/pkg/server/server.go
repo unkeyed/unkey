@@ -206,27 +206,27 @@ func New(config Config) *Server {
 	s.app.Post("/v1/internal.removeRootKey", s.deleteRootKey)
 
 	// workspaceService
-	s.app.Post("/v1/workspace.createWorkspace", s.v1CreateWorkspace)
+	s.app.Post("/v1/workspaces.createWorkspace", s.v1CreateWorkspace)
 
 	// apiService
-	s.app.Post("/v1/api.createApi", s.v1CreateApi)
-	s.app.Post("/v1/api.removeApi", s.v1RemoveApi)
-	s.app.Get("/v1/api.findApi", s.getApi)
-	s.app.Get("/v1/api.listKeys", s.listKeys)
+	s.app.Post("/v1/apis.createApi", s.v1CreateApi)
+	s.app.Post("/v1/apis.removeApi", s.v1RemoveApi)
+	s.app.Get("/v1/apis.findApi", s.getApi)
+	s.app.Get("/v1/apis.listKeys", s.listKeys)
 
 	// keyService
-	s.app.Post("/v1/key.createKey", s.createKey)
-	s.app.Post("/v1/key.verifyKey", s.verifyKey)
-	s.app.Post("/v1/key.removeKey", s.deleteKey)
-	s.app.Post("/v1/key.updateKey", s.updateKey)
-	s.app.Get("/v1/key.findKey", s.getKey)
+	s.app.Post("/v1/keys.createKey", s.v1CreateKey)
+	s.app.Post("/v1/keys.verifyKey", s.v1VerifyKey)
+	s.app.Post("/v1/keys.removeKey", s.v1RemoveKey)
+	s.app.Post("/v1/keys.updateKey", s.updateKey)
+	s.app.Get("/v1/keys.findKey", s.v1FindKey)
 
 	// legacy
-	s.app.Post("/v1/keys", s.createKey)
+	s.app.Post("/v1/keys", s.v1CreateKey)
 	s.app.Get("/v1/keys/:keyId", s.getKey)
 	s.app.Put("/v1/keys/:keyId", s.updateKey)
 	s.app.Delete("/v1/keys/:keyId", s.deleteKey)
-	s.app.Post("/v1/keys/verify", s.verifyKey)
+	s.app.Post("/v1/keys/verify", s.v1VerifyKey)
 
 	s.app.Get("/v1/apis/:apiId", s.getApi)
 	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)

@@ -38,7 +38,7 @@ func TestV1ApisCreate(t *testing.T) {
 	testutil.Json(t, srv.app, testutil.JsonRequest{
 		Debug:      true,
 		Method:     "POST",
-		Path:       "/v1/api.createApi",
+		Path:       "/v1/apis.createApi",
 		Bearer:     resources.UserRootKey,
 		Body:       `{ "name":"simple" }`,
 		Response:   &res,
@@ -80,7 +80,7 @@ func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
 	testutil.Json(t, srv.app, testutil.JsonRequest{
 		Debug:      true,
 		Method:     "POST",
-		Path:       "/v1/api.createApi",
+		Path:       "/v1/apis.createApi",
 		Bearer:     resources.UserRootKey,
 		Body:       `{ "name":"simple" }`,
 		Response:   &res,

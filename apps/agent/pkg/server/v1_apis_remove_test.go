@@ -37,7 +37,7 @@ func TestV1ApisRemove(t *testing.T) {
 	res := RemoveApiResponse{}
 	testutil.Json(t, srv.app, testutil.JsonRequest{
 		Method: "POST",
-		Path:   "/v1/api.removeApi",
+		Path:   "/v1/apis.removeApi",
 		Bearer: resources.UserRootKey,
 		Body: fmt.Sprintf(`{
 			"apiId":"%s"
