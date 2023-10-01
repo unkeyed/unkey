@@ -25,6 +25,7 @@ const publicRoutes = [
   "/policies/(.*)",
   "/templates",
   "/templates/(.*)",
+  "/meet",
   "/docs",
   "/docs(.*)",
   "/og",
