@@ -97,29 +97,6 @@ app.use(
 );
 ```
 
-To check for errors you use the `error` property, our errors are easy to read and provide a link to our documentation for more information.
-
-```ts
-import { verifyKey } from "@unkey/api";
-
-const { result, error } = await verifyKey("key_123");
-
-if (error) {
-  // handle potential network or bad request error
-  // a link to our docs will be in the `error.docs` field
-  console.error(error.message);
-  return;
-}
-
-if (!result.valid) {
-  // do not grant access
-  return;
-}
-
-// process request
-console.log(result);
-```
-
 ### Handle errors
 
 If omited, the middleware will throw an `HTTPException` like hono [recommends](https://hono.dev/api/exception)
