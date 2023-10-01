@@ -1,11 +1,14 @@
-NODE aggregate_daily
+VERSION 2
+NODE aggregate
 SQL >
 
     SELECT
         workspaceId,
         apiId,
         keyId,
-        countState() AS count,
+        countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
+        countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
+        countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded,
         toStartOfDay(fromUnixTimestamp64Milli(time)) AS time
     FROM key_verifications
     GROUP BY
@@ -15,7 +18,7 @@ SQL >
         time
 
 TYPE materialized
-DATASOURCE daily_usage
+DATASOURCE mv__daily_verifications
 ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(time)"
 ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"

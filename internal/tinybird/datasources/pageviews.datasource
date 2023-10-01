@@ -13,3 +13,4 @@ SCHEMA >
     `referrer` Nullable(String) `json:$.referrer`
 
 ENGINE "MergeTree"
+ENGINE_SORTING_KEY "sessionId, time, path"

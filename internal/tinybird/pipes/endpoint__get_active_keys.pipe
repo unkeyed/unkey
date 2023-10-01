@@ -1,7 +1,7 @@
 VERSION 1
-TOKEN "get_active_keys_endpoint_read_5876" READ
+TOKEN "endpoint__get_active_keys_endpoint_read_5876" READ
 
-NODE get_active_keys_0
+NODE endpoint__get_active_keys_0
 SQL >
 
     %
