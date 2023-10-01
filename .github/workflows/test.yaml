@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
 
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+
 jobs:
   test_agent:
     runs-on: ubuntu-latest

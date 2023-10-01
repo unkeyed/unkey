@@ -1,9 +1,8 @@
-import {  drizzle } from "drizzle-orm/planetscale-serverless";
+import { drizzle } from "drizzle-orm/planetscale-serverless";
 
 import { env } from "@/lib/env";
 import { connect } from "@planetscale/database";
 import { schema } from "@unkey/db";
-
 
 export const db = drizzle(
   connect({
