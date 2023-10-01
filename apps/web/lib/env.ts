@@ -8,9 +8,6 @@ export const env = () =>
         .optional()
         .default("development"),
       VERCEL_URL: z.string().optional(),
-      DATABASE_HOST: z.string(),
-      DATABASE_USERNAME: z.string(),
-      DATABASE_PASSWORD: z.string(),
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
@@ -27,6 +24,15 @@ export const env = () =>
       LOOPS_API_KEY: z.string().optional(),
 
       UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
+    })
+    .parse(process.env);
+
+export const dbEnv = () =>
+  z
+    .object({
+      DATABASE_HOST: z.string(),
+      DATABASE_USERNAME: z.string(),
+      DATABASE_PASSWORD: z.string(),
     })
     .parse(process.env);
 
