@@ -7,12 +7,30 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 
+
+
 jobs:
   test_agent:
     runs-on: ubuntu-latest
+   
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: unkey
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
 
     steps:
       - uses: actions/checkout@v3
+
+
+      - name: Load Schema into MySQL
+        run: cat ./apps/agent/pkg/database/schema.sql | mysql -h localhost -u root -password root unkey
+
   
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -21,6 +39,7 @@ jobs:
 
       - name: Set up gotestfmt
         run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
       - name: Install dependencies
         run: go mod download
         working-directory: apps/agent
@@ -28,6 +47,9 @@ jobs:
       - name: Test
         run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
         working-directory: apps/agent
+        env:
+          DATABASE_DSN: root:root@tcp(localhost:3306)/unkey"
+
       
 
   lint:
