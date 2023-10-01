@@ -387,7 +387,7 @@ importers:
         version: link:../../packages/api
       '@unkey/nextjs':
         specifier: 0.10.0
-        version: link:../../packages/nextjs
+        version: 0.10.0(next@13.5.3)
       autoprefixer:
         specifier: 10.4.15
         version: 10.4.15(postcss@8.4.29)
@@ -6088,6 +6088,19 @@ packages:
       unhead: 1.7.4
       vue: 3.3.4
     dev: true
+
+  /@unkey/api@0.10.0:
+    resolution: {integrity: sha512-ix1XQqZPuBlNkimQniqNjwpqduGb/hBm5LAFRgPfotY97IGUcsKGV3YGl7GAnqFB9wa31OeOT/yeSbEgXiQJWw==}
+    dev: false
+
+  /@unkey/nextjs@0.10.0(next@13.5.3):
+    resolution: {integrity: sha512-CNxuND4Ovgu7EePSdGelBqBhYHkMPfLDC15cFWkCdBhXeH4zp4Qs+YLkD+I8gDywHQBDul8YAeMLcRE92nnKJg==}
+    peerDependencies:
+      next: ^13.5.3
+    dependencies:
+      '@unkey/api': 0.10.0
+      next: 13.5.3(react-dom@18.2.0)(react@18.2.0)
+    dev: false
 
   /@upstash/core-analytics@0.0.6:
     resolution: {integrity: sha512-cpPSR0XJAJs4Ddz9nq3tINlPS5aLfWVCqhhtHnXt4p7qr5+/Znlt1Es736poB/9rnl1hAHrOsOvVj46NEXcVqA==}
