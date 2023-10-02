@@ -101,6 +101,7 @@
     "remark-gfm": "^3.0.1",
     "remark-rehype-wrap": "0.0.3",
     "remark-unwrap-images": "^3.0.1",
+    "sharp": "^0.32.6",
     "shiki": "^0.14.4",
     "stripe": "^12.18.0",
     "superjson": "^1.13.1",
