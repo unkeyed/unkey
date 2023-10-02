@@ -10,7 +10,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
+    "build": "pnpm turbo run build --filter=!./examples/*",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
