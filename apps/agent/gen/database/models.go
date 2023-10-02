@@ -53,6 +53,49 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type VercelBindingsEnvironment string
+
+const (
+	VercelBindingsEnvironmentDevelopment VercelBindingsEnvironment = "development"
+	VercelBindingsEnvironmentPreview     VercelBindingsEnvironment = "preview"
+	VercelBindingsEnvironmentProduction  VercelBindingsEnvironment = "production"
+)
+
+func (e *VercelBindingsEnvironment) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VercelBindingsEnvironment(s)
+	case string:
+		*e = VercelBindingsEnvironment(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VercelBindingsEnvironment: %T", src)
+	}
+	return nil
+}
+
+type NullVercelBindingsEnvironment struct {
+	VercelBindingsEnvironment VercelBindingsEnvironment
+	Valid                     bool // Valid is true if VercelBindingsEnvironment is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVercelBindingsEnvironment) Scan(value interface{}) error {
+	if value == nil {
+		ns.VercelBindingsEnvironment, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VercelBindingsEnvironment.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVercelBindingsEnvironment) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VercelBindingsEnvironment), nil
+}
+
 type WorkspacesPlan string
 
 const (
@@ -128,6 +171,21 @@ type Key struct {
 type KeyAuth struct {
 	ID          string
 	WorkspaceID string
+}
+
+type VercelBinding struct {
+	WorkspaceID    string
+	InstallationID string
+	TeamID         sql.NullString
+	ProjectID      string
+	Environment    VercelBindingsEnvironment
+	ApiID          string
+}
+
+type VercelIntegration struct {
+	InstallationID string
+	WorkspaceID    string
+	TeamID         sql.NullString
 }
 
 type Workspace struct {

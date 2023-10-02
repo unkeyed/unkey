@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
+import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable(
   "workspaces",
@@ -57,6 +58,6 @@ export const workspaces = mysqlTable(
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
   apis: many(apis),
   keys: many(keys),
-  // Keys required to authorize against unkey itself.
-  internalKeys: many(keys),
+  vercelIntegrations: many(vercelIntegrations),
+  vercelBindings: many(vercelBindings),
 }));

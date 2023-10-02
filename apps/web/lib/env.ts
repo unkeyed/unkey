@@ -24,6 +24,9 @@ export const env = () =>
       LOOPS_API_KEY: z.string().optional(),
 
       UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
+
+      VERCEL_INTEGRATION_CLIENT_ID: z.string(),
+      VERCEL_INTEGRATION_CLIENT_SECRET: z.string(),
     })
     .parse(process.env);
 
