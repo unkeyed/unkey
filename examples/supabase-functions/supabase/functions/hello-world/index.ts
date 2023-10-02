@@ -3,7 +3,6 @@ import { verifyKey } from "https://esm.sh/@unkey/api@0.10.0";
 
 serve(async (req) => {
   try {
-    console.log(req.headers);
     const token = req.headers.get("x-unkey-api-key");
     if (!token) {
       return new Response("No API Key provided", { status: 401 });
