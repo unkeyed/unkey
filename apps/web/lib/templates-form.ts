@@ -2,8 +2,8 @@ import { z } from "zod";
 import { isBrowser } from "./utils";
 
 /**
-* Form values for the templates page.
-*/
+ * Form values for the templates page.
+ */
 export const schema = z.object({
   search: z.string().optional(),
   frameworks: z.array(z.string()),
@@ -28,7 +28,7 @@ export const getDefaulTemplatesFormValues = () => {
   }
 
   const searchParams = new URLSearchParams(window.location.search);
-  
+
   const search = searchParams.get("search");
   const frameworks = searchParams.getAll("framework");
   const languages = searchParams.getAll("language");
@@ -38,8 +38,7 @@ export const getDefaulTemplatesFormValues = () => {
     frameworks: frameworks.length > 0 ? frameworks : [],
     languages: languages.length > 0 ? languages : [],
   };
-}
-
+};
 
 /**
  * Update URL query params from form values.
@@ -72,20 +71,23 @@ export const updateUrl = (values: TemplatesFormValues) => {
   }
 
   createUrl(searchParams);
-}
+};
 
 /**
  * Create a new URL with the given search params.
  */
 const createUrl = (searchParams: URLSearchParams) => {
-  const newUrl = searchParams.toString() ? `${window.location.pathname}?${searchParams.toString()}` : window.location.pathname;
+  const newUrl = searchParams.toString()
+    ? `${window.location.pathname}?${searchParams.toString()}`
+    : window.location.pathname;
 
-  window.history.replaceState({
-    ...window.history.state,
-    as: newUrl,
-    url: newUrl,
-  },
-  "",
-  newUrl)  
-}
-
+  window.history.replaceState(
+    {
+      ...window.history.state,
+      as: newUrl,
+      url: newUrl,
+    },
+    "",
+    newUrl,
+  );
+};
