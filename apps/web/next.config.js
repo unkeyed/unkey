@@ -17,6 +17,6 @@ const nextConfig = {
   },
 };
 
-let config = withContentlayer(nextConfig);
+const config = withContentlayer(nextConfig);
 
 module.exports = config;
