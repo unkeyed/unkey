@@ -40,7 +40,7 @@ export const MobileSideBar = ({ className }: Props) => {
                 </SheetClose>
               </Link>
 
-              <Link href="/app/keys">
+              <Link href="/app/settings/general">
                 <SheetClose asChild>
                   <Button variant="ghost" className="justify-start w-full border-t">
                     <Settings className="w-4 h-4 mr-2" />

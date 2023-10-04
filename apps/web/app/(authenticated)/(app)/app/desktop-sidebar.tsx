@@ -35,7 +35,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     },
     {
       icon: Settings,
-      href: "/app/settings",
+      href: "/app/settings/general",
       label: "Settings",
       active: segments.at(0) === "settings",
     },
