@@ -124,6 +124,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email: user.email,
             name: user.name,
+            workspace: ws.name,
             date: new Date(subscription.trial_end! * 1000),
           });
         }
@@ -147,6 +148,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email: user.email,
             name: user.name,
+            workspace: ws.name,
             date: invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date(),
           });
         }
