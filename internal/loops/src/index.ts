@@ -37,6 +37,7 @@ export class Loops {
         email: req.email,
         dataVariables: {
           name: req.name,
+          workspace: req.workspace,
           date: req.date.toDateString(),
         },
       },
