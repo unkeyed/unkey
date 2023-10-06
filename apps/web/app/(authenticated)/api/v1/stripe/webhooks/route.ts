@@ -31,7 +31,7 @@ const requestValidation = z.object({
 });
 const loops = env().LOOPS_API_KEY ? new Loops({ apiKey: env().LOOPS_API_KEY! }) : null;
 
-export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
+async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const {
       headers: { "stripe-signature": signature },
@@ -198,3 +198,5 @@ async function getUsers(tenantId: string): Promise<{ id: string; email: string; 
     }),
   );
 }
+
+export { webhookHandler as POST };

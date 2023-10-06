@@ -6,10 +6,7 @@ import { Webhook } from "svix";
 
 const webhookSecret: string | undefined = process.env.CLERK_WEBHOOK_SECRET;
 const loopsAPIKey: string | undefined = process.env.LOOPS_API_KEY;
-export default async function handler(
-  req: NextApiRequestWithSvixRequiredHeaders,
-  res: NextApiResponse,
-) {
+async function handler(req: NextApiRequestWithSvixRequiredHeaders, res: NextApiResponse) {
   const payload = JSON.stringify(req.body);
   const headers = req.headers;
   if (!(webhookSecret && loopsAPIKey)) {
@@ -60,3 +57,5 @@ export default async function handler(
 type NextApiRequestWithSvixRequiredHeaders = NextApiRequest & {
   headers: IncomingHttpHeaders & WebhookRequiredHeaders;
 };
+
+export { handler as POST };
