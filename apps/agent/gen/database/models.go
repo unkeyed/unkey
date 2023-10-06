@@ -96,6 +96,48 @@ func (ns NullVercelBindingsEnvironment) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsEnvironment), nil
 }
 
+type VercelBindingsResourceType string
+
+const (
+	VercelBindingsResourceTypeRootKey VercelBindingsResourceType = "rootKey"
+	VercelBindingsResourceTypeApiId   VercelBindingsResourceType = "apiId"
+)
+
+func (e *VercelBindingsResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VercelBindingsResourceType(s)
+	case string:
+		*e = VercelBindingsResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VercelBindingsResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullVercelBindingsResourceType struct {
+	VercelBindingsResourceType VercelBindingsResourceType
+	Valid                      bool // Valid is true if VercelBindingsResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVercelBindingsResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.VercelBindingsResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VercelBindingsResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VercelBindingsResourceType), nil
+}
+
 type WorkspacesPlan string
 
 const (
@@ -174,18 +216,24 @@ type KeyAuth struct {
 }
 
 type VercelBinding struct {
-	WorkspaceID    string
-	InstallationID string
-	TeamID         sql.NullString
-	ProjectID      string
-	Environment    VercelBindingsEnvironment
-	ApiID          string
+	WorkspaceID   string
+	IntegrationID string
+	ProjectID     string
+	Environment   VercelBindingsEnvironment
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	LastEditedBy  string
+	ID            string
+	ResourceID    string
+	ResourceType  VercelBindingsResourceType
+	VercelEnvID   string
 }
 
 type VercelIntegration struct {
-	InstallationID string
-	WorkspaceID    string
-	TeamID         sql.NullString
+	ID          string
+	WorkspaceID string
+	TeamID      sql.NullString
+	AccessToken string
 }
 
 type Workspace struct {

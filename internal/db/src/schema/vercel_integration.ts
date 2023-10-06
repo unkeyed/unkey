@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 // db.ts
-import { datetime, mysqlEnum, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
+import { datetime, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { workspaces } from "./workspaces";
 
@@ -8,24 +8,31 @@ export const vercelIntegrations = mysqlTable("vercel_integrations", {
   id: varchar("id", { length: 256 }).primaryKey(),
   workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   vercelTeamId: varchar("team_id", { length: 256 }),
+  accessToken: varchar("access_token", { length: 256 }).notNull(),
 });
 
 export const vercelBindings = mysqlTable(
   "vercel_bindings",
   {
+    id: varchar("id", { length: 256 }).primaryKey(),
     integrationId: varchar("integration_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
     environment: mysqlEnum("environment", ["development", "preview", "production"]).notNull(),
-    apiId: varchar("api_id", { length: 256 }).notNull(),
-    rootKeyId: varchar("root_key_id", { length: 256 }).notNull(),
+    resourceId: varchar("resource_id", { length: 256 }).notNull(),
+    resourceType: mysqlEnum("resource_type", ["rootKey", "apiId"]).notNull(),
+    vercelEnvId: varchar("vercel_env_id", { length: 256 }).notNull(),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(),
     updatedAt: datetime("updated_at", { fsp: 3 }).notNull(),
     // userId
     lastEditedBy: varchar("last_edited_by", { length: 256 }).notNull(),
   },
   (table) => ({
-    pk: primaryKey(table.projectId, table.environment),
+    uniqueProjectEnvironmentResourceIndex: uniqueIndex("project_environment_resource_type_idx").on(
+      table.projectId,
+      table.environment,
+      table.resourceType,
+    ),
   }),
 );
 

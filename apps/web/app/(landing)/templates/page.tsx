@@ -130,7 +130,6 @@ export default function Templates() {
                                 <Checkbox
                                   checked={field.value?.includes(language)}
                                   onCheckedChange={(checked) => {
-                                    console.log({ checked, field, language });
                                     return checked
                                       ? field.onChange([...field.value, language])
                                       : field.onChange(
@@ -177,7 +176,6 @@ export default function Templates() {
                                 <Checkbox
                                   checked={field.value?.includes(framework)}
                                   onCheckedChange={(checked) => {
-                                    console.log({ checked, field, framework });
                                     return checked
                                       ? field.onChange([...field.value, framework])
                                       : field.onChange(

@@ -1,11 +1,10 @@
-import { Accordion, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Result, result } from "@/lib/errors";
-import { AccordionContent } from "@radix-ui/react-accordion";
+import { redirect } from "next/navigation";
 import { z } from "zod";
-import { Client } from "./client";
+// import { Client } from "./client";
 
 type Props = {
   searchParams: {
@@ -41,27 +40,29 @@ export default async function Page(props: Props) {
       id: req.value.installationId,
       workspaceId: workspace.id,
       vercelTeamId: req.value.teamId,
+      accessToken: req.value.accessToken,
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }
+  return redirect(props.searchParams.next!);
+  // return redirect(`/app/settings/vercel?configurationId=${integration.id}`);
 
-  const projects = await getProjects(req.value.accessToken, req.value.teamId);
+  // const projects = await getProjects(req.value.accessToken, req.value.teamId);
 
-  if (projects.error) {
-    return <div>error: {JSON.stringify(projects.error, null, 2)}</div>;
-  }
-  if (projects.value.length === 0) {
-    return <div>no projects</div>;
-  }
-  return (
-    <Client
-      projects={projects.value}
-      apis={workspace.apis}
-      returnUrl={props.searchParams.next!}
-      integrationId={integration.id}
-      
-    />
-  );
+  // if (projects.error) {
+  //   return <div>error: {JSON.stringify(projects.error, null, 2)}</div>;
+  // }
+  // if (projects.value.length === 0) {
+  //   return <div>no projects</div>;
+  // }
+  // return (
+  //   <Client
+  //     projects={projects.value}
+  //     apis={workspace.apis}
+  //     returnUrl={props.searchParams.next!}
+  //     integrationId={integration.id}
+  //   />
+  // );
 }
 
 async function exchangeCode(code: string): Promise<
@@ -114,52 +115,6 @@ async function exchangeCode(code: string): Promise<
       userId: data.user_id,
       teamId: data.team_id,
     });
-  } catch (e) {
-    return result.fail({ message: (e as Error).message });
-  }
-}
-
-async function getProjects(
-  accessToken: string,
-  teamId: string | null,
-): Promise<
-  Result<
-    { id: string; name: string }[],
-    {
-      message: string;
-      status?: number;
-    }
-  >
-> {
-  try {
-    const url = new URL("https://api.vercel.com/v9/projects");
-    if (teamId) {
-      url.searchParams.append("teamId", teamId);
-    }
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    if (!res.ok) {
-      return result.fail({
-        message: `failed to fetch projects: ${await res.text()}`,
-        status: res.status,
-      });
-    }
-
-    const data = z
-      .object({
-        projects: z.array(
-          z.object({
-            id: z.string(),
-            name: z.string(),
-          }),
-        ),
-      })
-      .parse(await res.json());
-
-    return result.success(data.projects);
   } catch (e) {
     return result.fail({ message: (e as Error).message });
   }

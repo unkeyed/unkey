@@ -19,7 +19,6 @@ export default function Page() {
           <Switch
             checked={theme === "light"}
             onCheckedChange={(checked) => {
-              console.log({ checked });
               setTheme(checked ? "light" : "dark");
             }}
           />

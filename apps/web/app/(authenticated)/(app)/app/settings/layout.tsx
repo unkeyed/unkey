@@ -30,6 +30,11 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       segment: "usage",
     },
     {
+      label: "Vercel Integration",
+      href: "/app/settings/vercel",
+      segment: "vercel",
+    },
+    {
       label: "User",
       href: "/app/settings/user",
       segment: "user",

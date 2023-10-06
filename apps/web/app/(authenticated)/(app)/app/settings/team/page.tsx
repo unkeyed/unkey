@@ -239,7 +239,6 @@ const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> =
       if (!organization) {
         return;
       }
-      console.log("updating role for user %s to %s", member.id, role);
       await organization?.updateMember({ userId: member.id, role });
 
       setRole(role);
