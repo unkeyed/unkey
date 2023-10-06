@@ -68,13 +68,17 @@
     },
     {
       "group": "Features",
-      "icon": "bolt",
       "pages": [
         "features/ratelimiting",
         "features/temp-keys",
         "features/remaining",
         "features/analytics"
       ]
+    },
+    {
+      "group": "Integrations",
+      "icon": "bolt",
+      "pages": ["integrations/vercel"]
     },
     {
       "group": "API Documentation",

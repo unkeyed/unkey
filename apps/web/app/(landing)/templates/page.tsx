@@ -12,14 +12,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  TemplatesFormValues,
+  getDefaulTemplatesFormValues,
+  schema,
+  updateUrl,
+} from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink, VenetianMask } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Framework, Language, templates } from "./data";
-import { TemplatesFormValues, getDefaulTemplatesFormValues, schema, updateUrl } from "@/lib/templates-form";
 
 export default function Templates() {
   const form = useForm<TemplatesFormValues>({
@@ -51,8 +55,8 @@ export default function Templates() {
 
   useEffect(() => {
     updateUrl(fields);
-  }, [fields])
-  
+  }, [fields]);
+
   const filteredTemplates = useMemo(
     () =>
       Object.entries(templates).reduce((acc, [id, template]) => {
