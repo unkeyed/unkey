@@ -7,7 +7,7 @@ export const config = {
 };
 
 // export API handler
-export default async function handler(req: NextRequest) {
+async function handler(req: NextRequest) {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     router,
@@ -15,3 +15,5 @@ export default async function handler(req: NextRequest) {
     createContext,
   });
 }
+
+export { handler as GET, handler as POST };
