@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { NextRequest } from 'next/server'
  
-async function handler(req: NextRequest) {
+function handler(req: NextRequest) {
  
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
   const loopsAPIKey = process.env.LOOPS_API_KEY
