@@ -6,6 +6,13 @@ import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 
+const options = {
+  theme: "github-light",
+  defaultLang: {
+    block: "typescript",
+  },
+};
+
 const Post = defineDocumentType(() => ({
   name: "Post",
   filePathPattern: "blog/*.mdx",
@@ -131,6 +138,11 @@ export default makeSource({
   documentTypes: [Changelog, Policies, Post],
   mdx: {
     remarkPlugins: [remarkGfm],
-    rehypePlugins: [rehypePrettyCode, rehypeAutolinkHeadings, rehypeSlug, rehypeCodeTitles],
+    rehypePlugins: [
+      [rehypePrettyCode, options],
+      rehypeAutolinkHeadings,
+      rehypeSlug,
+      rehypeCodeTitles,
+    ],
   },
 });

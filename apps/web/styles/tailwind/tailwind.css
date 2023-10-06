@@ -1,3 +1,49 @@
 @import './base.css';
 @import './components.css';
 @import './utilities.css';
+
+
+[data-rehype-pretty-code-fragment]{
+  position: relative;
+  top: 1rem;
+}
+[data-rehype-pretty-code-title] {
+  position: absolute;
+  top:-1.75rem;
+  left:0;
+  width: 100%;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  background-color: white;
+  border: 1px solid hsl(24, 6%, 83%);
+  overflow-x: auto;
+  padding: 0.25rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-rehype-pretty-code-title] {
+    @apply -mb-5 font-mono text-sm;
+  }
+  
+  [data-rehype-pretty-code-fragment] code {
+    display: grid;
+    counter-reset: line;
+  }
+  
+  [data-rehype-pretty-code-fragment] code .line {
+    @apply border-l-2 border-transparent px-5 py-0;
+  }
+  
+  [data-rehype-pretty-code-fragment] code[data-line-numbers] .line::before {
+    counter-increment: line;
+    content: counter(line);
+    @apply mr-8 inline-block w-4 text-right text-gray-500;
+  }
+  
+  [data-rehype-pretty-code-fragment] code .word {
+    @apply rounded bg-gray-100/50 p-1;
+  }
+  
+  [data-rehype-pretty-code-fragment] code .highlighted {
+    @apply border-l-2 border-gray-500 bg-gray-100/25;
+  }
