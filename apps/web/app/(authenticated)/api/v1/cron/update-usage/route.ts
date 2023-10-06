@@ -8,7 +8,7 @@ import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
-async function handler(_req: NextApiRequest, res: NextApiResponse) {
+export async function POST(_req: NextApiRequest, res: NextApiResponse) {
   try {
     const e = stripeEnv();
     if (!e) {
