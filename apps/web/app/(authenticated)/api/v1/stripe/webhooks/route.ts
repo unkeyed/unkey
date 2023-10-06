@@ -8,13 +8,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { z } from "zod";
 
-// Stripe requires the raw body to construct the event.
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 async function buffer(readable: Readable) {
   const chunks = [];
   for await (const chunk of readable) {
