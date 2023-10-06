@@ -1,9 +1,8 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
-import { NextRequest } from 'next/server'
  
-function handler(req: NextRequest) {
+export async function POST(req: Request) {
  
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
   const loopsAPIKey = process.env.LOOPS_API_KEY
@@ -84,4 +83,3 @@ function handler(req: NextRequest) {
     }
   }
 }
-export { handler as POST };
