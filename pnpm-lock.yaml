@@ -194,7 +194,7 @@ importers:
         version: link:../../internal/result
       '@unkey/vercel':
         specifier: workspace:^
-        version: link:../../internal/vercel
+        version: link:../../internal/vercel-api
       '@upstash/qstash':
         specifier: ^0.3.6
         version: 0.3.6
@@ -564,7 +564,7 @@ importers:
 
   internal/tsconfig: {}
 
-  internal/vercel:
+  internal/vercel-api:
     dependencies:
       '@unkey/result':
         specifier: workspace:^
@@ -575,7 +575,7 @@ importers:
     devDependencies:
       '@types/node':
         specifier: ^20.2.1
-        version: 20.5.7
+        version: 20.8.0
       rome:
         specifier: ^12.1.2
         version: 12.1.2
@@ -1836,7 +1836,7 @@ packages:
       ts-pattern: 4.3.0
       unified: 10.1.2
       yaml: 2.3.2
-      zod: 3.22.2
+      zod: 3.22.4
     transitivePeerDependencies:
       - '@effect-ts/otel-node'
       - esbuild
@@ -19385,7 +19385,6 @@ packages:
 
   /zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-    dev: true
 
   /zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
