@@ -178,22 +178,22 @@ importers:
         specifier: ^10.38.1
         version: 10.38.1
       '@unkey/api':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/api
       '@unkey/db':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../internal/db
       '@unkey/id':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../internal/id
       '@unkey/loops':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../internal/loops
       '@unkey/result':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../internal/result
       '@unkey/vercel':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../internal/vercel
       '@upstash/qstash':
         specifier: ^0.3.6
@@ -7532,7 +7532,7 @@ packages:
     dependencies:
       pvtsutils: 1.3.5
       pvutils: 1.1.3
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /assert@2.1.0:
@@ -9210,7 +9210,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /dot-prop@6.0.1:
@@ -14229,7 +14229,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /node-abi@3.47.0:
