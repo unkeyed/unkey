@@ -3,6 +3,7 @@ import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { WorkspaceSwitcher } from "./workspace";
 
 type Props = {
   projects: { id: string; name: string }[];
@@ -74,7 +76,11 @@ export const Client: React.FC<Props> = ({
 
   return (
     <div className="container min-h-screen mx-auto mt-8">
-      <PageHeader title="Connect Vercel Project" description="You can add more projects later" />
+      <PageHeader
+        title="Connect Vercel Project"
+        description="You can add more projects later"
+        actions={[<WorkspaceSwitcher />]}
+      />
 
       <div className="flex flex-col flex-1 flex-grow gap-16">
         <div className="flex flex-col gap-2">
@@ -91,12 +97,14 @@ export const Client: React.FC<Props> = ({
                 placeholder="Select a connected project from Vercel"
               />
             </SelectTrigger>
-            <SelectContent className="max-h-96">
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
+            <SelectContent>
+              <ScrollArea className="max-h-64">
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </ScrollArea>
             </SelectContent>
           </Select>
         </div>
@@ -125,11 +133,13 @@ export const Client: React.FC<Props> = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {apis.map((api) => (
-                          <SelectItem key={api.id} value={api.id}>
-                            {api.name}
-                          </SelectItem>
-                        ))}
+                        <ScrollArea className="max-h-64">
+                          {apis.map((api) => (
+                            <SelectItem key={api.id} value={api.id}>
+                              {api.name}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
                       </SelectContent>
                     </Select>
                     <Button
