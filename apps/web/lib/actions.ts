@@ -15,7 +15,7 @@ export function serverAction<TInput, TOutput = void>(opts: {
   // rome-ignore lint/suspicious/noExplicitAny: wish I knew what to type here
   input: z.ZodSchema<TInput, any, any>;
   output?: z.ZodSchema<TOutput>;
-  handler: (args: { input: TInput; ctx: { tenantId: string } }) => Promise<TOutput>;
+  handler: (args: { input: TInput; ctx: { tenantId: string; userId: string } }) => Promise<TOutput>;
 }): (formData: FormData) => Promise<Result<TOutput>> {
   const { userId, orgId } = auth();
   const tenantId = orgId ?? userId;
@@ -37,7 +37,7 @@ export function serverAction<TInput, TOutput = void>(opts: {
     }
 
     try {
-      const result = await opts.handler({ input: input.data, ctx: { tenantId } });
+      const result = await opts.handler({ input: input.data, ctx: { tenantId, userId: userId! } });
       return { result };
     } catch (e) {
       return { error: (e as Error).message };
