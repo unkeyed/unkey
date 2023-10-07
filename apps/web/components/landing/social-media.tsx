@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { Globe } from "lucide-react";
 import Link from "next/link";
 
-// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
+// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function TwitterIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -12,7 +12,7 @@ function TwitterIcon(props: any) {
   );
 }
 
-// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
+// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function GitHubIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>

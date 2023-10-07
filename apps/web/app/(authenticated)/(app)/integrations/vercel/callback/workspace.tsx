@@ -16,9 +16,7 @@ import React, { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
-type Props = {};
-
-export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
+export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
   const { user } = useUser();
