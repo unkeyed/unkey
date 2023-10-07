@@ -76,7 +76,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
         </svg>
         <EmptyPlaceholder.Title>No connected projects found</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>Connect a Vercel project now</EmptyPlaceholder.Description>
-        <Link href="https://vercel.com/integrations/unkey-dev" target="_blank">
+        <Link href="https://vercel.com/integrations/unkey" target="_blank">
           <Button variant="link">Vercel Integration</Button>
         </Link>
       </EmptyPlaceholder>
