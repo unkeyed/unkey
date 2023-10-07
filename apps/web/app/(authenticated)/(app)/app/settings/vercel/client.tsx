@@ -165,7 +165,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                           </div>
                           <div className="flex justify-end w-full md:w-2/5">
                             <ConnectedResource
-                              type="Root Key"
+                              type="Root Key ID"
                               binding={binding?.rootKey}
                               rootKeys={rootKeys}
                               apis={apis}
@@ -189,7 +189,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
 };
 
 const ConnectedResource: React.FC<{
-  type: "API" | "Root Key";
+  type: "API" | "Root Key ID";
   projectId: string;
   integrationId: string;
   environment: VercelBinding["environment"];
@@ -341,12 +341,12 @@ const ConnectedResource: React.FC<{
                 }
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Go to {props.binding.resourceType === "apiId" ? "API" : "Root Key"}
+                Go to {props.binding.resourceType === "apiId" ? "API" : "Root Key ID"}
               </Link>
             </DropdownMenuItem>
           ) : null}
 
-          {props.type === "Root Key" ? (
+          {props.type === "Root Key ID" ? (
             <DropdownMenuItem
               disabled={unbind.isLoading}
               onClick={() => {
