@@ -24,9 +24,6 @@ export const env = () =>
       LOOPS_API_KEY: z.string().optional(),
 
       UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
-
-      VERCEL_INTEGRATION_CLIENT_ID: z.string(),
-      VERCEL_INTEGRATION_CLIENT_SECRET: z.string(),
     })
     .parse(process.env);
 
@@ -38,6 +35,15 @@ export const dbEnv = () =>
       DATABASE_PASSWORD: z.string(),
     })
     .parse(process.env);
+
+export const vercelIntegrationSchema = z.object({
+  VERCEL_INTEGRATION_CLIENT_ID: z.string(),
+  VERCEL_INTEGRATION_CLIENT_SECRET: z.string(),
+});
+
+const vercelIntegrationParsed = vercelIntegrationSchema.safeParse(process.env);
+export const vercelIntegrationEnv = () =>
+  vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),

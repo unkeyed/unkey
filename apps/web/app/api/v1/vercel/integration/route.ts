@@ -1,13 +1,16 @@
 import crypto from "crypto";
 import { db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { NextResponse } from "next/server";
+import { vercelIntegrationEnv } from "@/lib/env";
 import { z } from "zod";
 
 export async function GET(request: Request) {
+  const env = vercelIntegrationEnv();
+  if (!env) {
+    return new Response("setup env", { status: 500 });
+  }
   const rawBody = await request.text();
   const rawBodyBuffer = Buffer.from(rawBody, "utf-8");
-  const bodySignature = sha1(rawBodyBuffer, env().VERCEL_INTEGRATION_CLIENT_SECRET);
+  const bodySignature = sha1(rawBodyBuffer, env.VERCEL_INTEGRATION_CLIENT_SECRET);
 
   if (bodySignature !== request.headers.get("x-vercel-signature")) {
     return Response.json(

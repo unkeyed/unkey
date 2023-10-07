@@ -2,7 +2,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
+import { vercelIntegrationEnv } from "@/lib/env";
 import { Result, result } from "@unkey/result";
 import { Vercel } from "@unkey/vercel";
 import { z } from "zod";
@@ -16,6 +16,11 @@ type Props = {
   };
 };
 export default async function Page(props: Props) {
+  const vercelEnv = vercelIntegrationEnv();
+  if (!vercelEnv) {
+    return <div>Set up env</div>;
+  }
+
   if (!props.searchParams.code) {
     return <div>no code</div>;
   }
@@ -109,8 +114,8 @@ async function exchangeCode(code: string): Promise<
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        client_id: env().VERCEL_INTEGRATION_CLIENT_ID,
-        client_secret: env().VERCEL_INTEGRATION_CLIENT_SECRET,
+        client_id: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_ID,
+        client_secret: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_SECRET,
         code,
         redirect_uri: "http://localhost:3000/integrations/vercel/callback",
       }),
