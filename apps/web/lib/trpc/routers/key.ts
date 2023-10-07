@@ -174,7 +174,7 @@ export const keyRouter = t.router({
             keyId,
           });
           if (error) {
-            console.log(error);
+            console.error(error);
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
           }
         }),

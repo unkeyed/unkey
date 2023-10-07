@@ -1,9 +1,12 @@
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Result, result } from "@/lib/errors";
-import { redirect } from "next/navigation";
+import { Result, result } from "@unkey/result";
+import { Vercel } from "@unkey/vercel";
 import { z } from "zod";
+import { Client } from "./client";
 // import { Client } from "./client";
 
 type Props = {
@@ -44,25 +47,45 @@ export default async function Page(props: Props) {
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }
-  return redirect(props.searchParams.next!);
+  // return redirect(props.searchParams.next!);
   // return redirect(`/app/settings/vercel?configurationId=${integration.id}`);
 
-  // const projects = await getProjects(req.value.accessToken, req.value.teamId);
-
-  // if (projects.error) {
-  //   return <div>error: {JSON.stringify(projects.error, null, 2)}</div>;
-  // }
-  // if (projects.value.length === 0) {
-  //   return <div>no projects</div>;
-  // }
-  // return (
-  //   <Client
-  //     projects={projects.value}
-  //     apis={workspace.apis}
-  //     returnUrl={props.searchParams.next!}
-  //     integrationId={integration.id}
-  //   />
-  // );
+  const projects = await new Vercel({
+    teamId: req.value.teamId ?? undefined,
+    accessToken: req.value.accessToken,
+  }).listProjects();
+  if (projects.error) {
+    return (
+      <EmptyPlaceholder>
+        <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          We couldn't load your projects from Vercel. Please try again or contact support.
+        </EmptyPlaceholder.Description>
+        <Code className="text-left">{JSON.stringify(projects.error, null, 2)}</Code>
+      </EmptyPlaceholder>
+    );
+  }
+  if (projects.value.length === 0) {
+    return (
+      <EmptyPlaceholder>
+        <EmptyPlaceholder.Title>No Projects Found</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          You did not authorize any projects to be connected. Please go to your Vercel dashboard and
+          add a project to this integration.
+        </EmptyPlaceholder.Description>
+      </EmptyPlaceholder>
+    );
+  }
+  return (
+    <Client
+      projects={projects.value}
+      apis={workspace.apis}
+      returnUrl={props.searchParams.next!}
+      integrationId={integration.id}
+      accessToken={integration.accessToken}
+      vercelTeamId={integration.vercelTeamId}
+    />
+  );
 }
 
 async function exchangeCode(code: string): Promise<

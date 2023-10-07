@@ -27,7 +27,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Api, Key, VercelBinding } from "@unkey/db";
-import { ExternalLink, Link2, MoreHorizontal, RefreshCw, Trash, Unlink2 } from "lucide-react";
+import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,7 +60,7 @@ type Props = {
 };
 
 export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys }) => {
-  console.log("projects", projects);
+  projects.sort((a, b) => a.name.localeCompare(b.name));
 
   if (projects.length === 0) {
     return (
@@ -143,7 +143,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                             },
                           )}
                         >
-                          <div className="flex items-center w-1/5">
+                          <div className="flex items-center w-full md:w-1/5">
                             {binding ? (
                               <Link2 className="w-4 h-4 mr-2 text-primary shrink-0" />
                             ) : (
@@ -152,7 +152,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                             <span className="text-xs text-content">{envLabel}</span>
                           </div>
 
-                          <div className="flex justify-end w-2/5">
+                          <div className="flex justify-end w-full md:w-2/5">
                             <ConnectedResource
                               type="API"
                               binding={binding?.apiId}
@@ -163,7 +163,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                               environment={environment}
                             />
                           </div>
-                          <div className="flex justify-end w-2/5">
+                          <div className="flex justify-end w-full md:w-2/5">
                             <ConnectedResource
                               type="Root Key"
                               binding={binding?.rootKey}
@@ -205,7 +205,6 @@ const ConnectedResource: React.FC<{
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {
-  console.log("props", props, Date.now());
   const { toast } = useToast();
   const router = useRouter();
   const [selectedResourceId, setSelectedResourceId] = useState(props.binding?.resourceId);
@@ -265,7 +264,7 @@ const ConnectedResource: React.FC<{
 
   return (
     <div className="flex items-center w-full gap-2 ">
-      <Label className="shrink-0 whitespace-nowrap">{props.type}</Label>
+      <Label className="w-1/5 md:w-auto shrink-0 whitespace-nowrap">{props.type}</Label>
       {props.type === "API" ? (
         <Select
           value={selectedResourceId}
@@ -297,15 +296,16 @@ const ConnectedResource: React.FC<{
           </TooltipTrigger>
           <TooltipContent>
             Because we don't store the root key itself, you can not select a different existing key.
-            Use the "Reroll" button on the right to generate a new key and update the environment
-            variable in Vercel.
+            <br />
+            Use the button on the right to generate a new key and update the environment variable in
+            Vercel.
           </TooltipContent>
         </Tooltip>
       )}
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" size="icon" disabled={isLoading}>
+          <Button variant="ghost" size="icon">
             {isLoading ? <Loading className="w-4 h-4" /> : <MoreHorizontal className="w-4 h-4" />}
           </Button>
         </DropdownMenuTrigger>
@@ -326,6 +326,8 @@ const ConnectedResource: React.FC<{
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
             </>
+          ) : props.type === "API" ? (
+            <DropdownMenuLabel>Select an API to bind</DropdownMenuLabel>
           ) : null}
 
           {props.binding ? (
@@ -334,8 +336,8 @@ const ConnectedResource: React.FC<{
                 className="flex items-center"
                 href={
                   props.binding.resourceType === "apiId"
-                    ? `/apps/api/${props.binding.resourceId}`
-                    : `/apps/settings/root-keys/${props.binding.resourceId}`
+                    ? `/app/api/${props.binding.resourceId}`
+                    : `/app/settings/root-keys/${props.binding.resourceId}`
                 }
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
@@ -357,8 +359,17 @@ const ConnectedResource: React.FC<{
             >
               <Tooltip>
                 <TooltipTrigger className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4" />
-                  Reroll the key
+                  {props.binding ? (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Reroll the Key
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Generate new Key
+                    </>
+                  )}
                 </TooltipTrigger>
                 <TooltipContent>
                   This will generate a new key and update the environment variable in Vercel.

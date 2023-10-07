@@ -1,5 +1,6 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Button } from "@/components/ui/button";
+import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { Api, Key, VercelBinding, db, eq, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
@@ -51,6 +52,17 @@ export default async function Page(props: Props) {
   });
 
   const rawProjects = await vercel.listProjects();
+  if (rawProjects.error) {
+    return (
+      <EmptyPlaceholder>
+        <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          We couldn't load your projects from Vercel. Please try again or contact support.
+          <Code className="text-left">{JSON.stringify(rawProjects.error, null, 2)}</Code>
+        </EmptyPlaceholder.Description>
+      </EmptyPlaceholder>
+    );
+  }
 
   const apis = workspace.apis.reduce((acc, api) => {
     acc[api.id] = api;
@@ -83,7 +95,7 @@ export default async function Page(props: Props) {
   }, {} as Record<string, { id: string; name: string; image: string }>);
 
   const projects = await Promise.all(
-    rawProjects.map(async (p) => ({
+    rawProjects.value.map(async (p) => ({
       id: p.id,
       name: p.name,
       bindings: integration.vercelBindings
