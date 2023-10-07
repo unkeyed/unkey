@@ -159,10 +159,7 @@ export default async function PricingPage() {
                     </>
                   )}
                   <div className="flex flex-col justify-between grow">
-                    <ul
-                      role="list"
-                      className="mt-8 space-y-3 text-sm leading-6 text-gray-600 xl:mt-10"
-                    >
+                    <ul className="mt-8 space-y-3 text-sm leading-6 text-gray-600 xl:mt-10">
                       {tiers[tier].features.map((feature) => (
                         <li key={feature} className="flex gap-x-3">
                           <svg

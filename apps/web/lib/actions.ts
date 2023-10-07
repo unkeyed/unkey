@@ -12,7 +12,7 @@ type Result<TResult> =
     };
 
 export function serverAction<TInput, TOutput = void>(opts: {
-  // rome-ignore lint/suspicious/noExplicitAny: wish I knew what to type here
+  // biome-ignore lint/suspicious/noExplicitAny: wish I knew what to type here
   input: z.ZodSchema<TInput, any, any>;
   output?: z.ZodSchema<TOutput>;
   handler: (args: { input: TInput; ctx: { tenantId: string; userId: string } }) => Promise<TOutput>;

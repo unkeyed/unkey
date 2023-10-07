@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 import { Loading } from "../dashboard/loading";
 import { Button } from "../ui/button";
-// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
+// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function ArrowIcon(props: any) {
   return (
     <svg viewBox="0 0 16 6" aria-hidden="true" {...props}>

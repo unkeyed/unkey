@@ -38,13 +38,13 @@ const navigation = [
 function Navigation() {
   return (
     <nav>
-      <ul role="list" className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+      <ul className="grid grid-cols-2 gap-8 sm:grid-cols-3">
         {navigation.map((section) => (
           <li key={section.title}>
             <div className="text-sm font-semibold tracking-wider font-display text-gray-950">
               {section.title}
             </div>
-            <ul role="list" className="mt-4 text-sm text-gray-700">
+            <ul className="mt-4 text-sm text-gray-700">
               {section.links.map((link) => (
                 <li key={link.href} className="mt-4">
                   <Link href={link.href} className="transition hover:text-gray-950">

@@ -132,7 +132,7 @@ export default async function Page(props: { params: { keyId: string } }) {
         </TableHeader>
         <TableBody>
           {latestVerifications.data?.map((verification, i) => (
-            // rome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <TableRow key={i}>
               <TableCell className="flex flex-col">
                 <span className="text-content">{new Date(verification.time).toDateString()}</span>
