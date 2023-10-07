@@ -20,7 +20,7 @@ const UnkeyElements = () => {
   async function onCreate(formData: FormData) {
     const res = await create(formData);
     if (res) {
-      setKey(res.key?.key);
+      setKey(res.key?.key ?? "");
     }
   }
   const getData = async () => {
@@ -41,7 +41,7 @@ const UnkeyElements = () => {
         </CardHeader>
         <form action={onCreate}>
           <CardContent>
-            <div className="grid w-full items-center gap-4">
+            <div className="grid items-center w-full gap-4">
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="name">API Key Name</Label>
                 <Input name="name" placeholder="My Awesome API " />
@@ -61,7 +61,7 @@ const UnkeyElements = () => {
               <CardDescription>Here is your API key. Keep it safe!</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid w-full items-center gap-4">
+              <div className="grid items-center w-full gap-4">
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="name">API Key</Label>
                   <Input name="name" value={key} />
@@ -78,7 +78,7 @@ const UnkeyElements = () => {
               <Button onClick={getData} variant="outline">
                 Get Data
               </Button>
-              <div className="grid w-full items-center gap-4">
+              <div className="grid items-center w-full gap-4">
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="name">Secret Data</Label>
                   <Input name="name" value={JSON.stringify(secret)} />
