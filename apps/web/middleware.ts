@@ -37,8 +37,7 @@ const publicRoutes = [
   "/api/v1/stripe/webhooks",
   "/api/v1/cron/(.*)",
   "/api/v1/clerk/webhooks",
-  "/monitoring",
-  "/monitoring/(.*)",
+  "/monitoring(.*)",
 ];
 
 export default async function (req: NextRequest, evt: NextFetchEvent) {
