@@ -126,7 +126,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Code data-sentry-mask className="flex items-center justify-between w-full gap-4 my-8 ">
+              <Code
+                data-sentry-mask
+                className="flex items-center justify-between w-full gap-4 my-8 "
+              >
                 {showKey ? step.rootKey : maskKey(step.rootKey)}
                 <div className="flex items-start justify-between gap-4">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -137,7 +140,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
                 Try creating a new api key for your users:
               </p>
-              <Code data-sentry-mask className="flex items-start justify-between w-full gap-4 my-8 ">
+              <Code
+                data-sentry-mask
+                className="flex items-start justify-between w-full gap-4 my-8 "
+              >
                 {showKeyInSnippet
                   ? createKeySnippet
                   : createKeySnippet.replace(step.rootKey, maskKey(step.rootKey))}
@@ -169,7 +175,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
             </CardHeader>
             <CardContent>
               {step.key ? (
-                <Code data-sentry-mask className="flex items-center justify-between w-full gap-4 my-8 ">
+                <Code
+                  data-sentry-mask
+                  className="flex items-center justify-between w-full gap-4 my-8 "
+                >
                   {showKey ? step.key : maskKey(step.key)}
                   <div className="flex items-start justify-between gap-4">
                     <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -178,7 +187,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                 </Code>
               ) : null}
 
-              <Code data-sentry-mask className="flex items-start justify-between w-full gap-4 my-8 ">
+              <Code
+                data-sentry-mask
+                className="flex items-start justify-between w-full gap-4 my-8 "
+              >
                 {step.key
                   ? showKeyInSnippet
                     ? verifyKeySnippet
