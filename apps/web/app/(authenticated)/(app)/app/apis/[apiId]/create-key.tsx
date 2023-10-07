@@ -153,7 +153,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </Alert>
 
             <Code className="flex items-center justify-between w-full gap-4 my-8 ">
-              <pre>{showKey ? key.data.key : maskedKey}</pre>
+              <pre data-sentry-mask>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
@@ -163,7 +163,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
 
           <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
           <Code className="flex items-start justify-between w-full gap-4 my-8 ">
-            {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+            <pre data-sentry-mask>
+              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+            </pre>
             <div className="flex items-start justify-between gap-4">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
@@ -183,7 +185,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="flex flex-col md:flex-row gap-4 justify-evenly">
+                  <div className="flex flex-col gap-4 md:flex-row justify-evenly">
                     <FormField
                       control={form.control}
                       name="prefix"
