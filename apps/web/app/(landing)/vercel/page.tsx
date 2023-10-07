@@ -32,7 +32,7 @@ export default function Example() {
             </Link>
             <Link
               target="_blank"
-              href="https://docs.unkey.dev/docs/vercel-integration"
+              href="https://docs.unkey.dev/integrations/vercel"
               className="w-1/2"
             >
               <Button variant="secondary" size="lg" className="w-full whitespace-nowrap">
