@@ -38,7 +38,6 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   if (!api) {
     return notFound();
   }
-  console.log(key.workspaceId, api.id, key.id);
 
   const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
     getDailyUsage({
