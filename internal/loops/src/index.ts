@@ -28,7 +28,12 @@ export class Loops {
     throw new Error(`error from loops api: ${await res.text()}`);
   }
 
-  public async sendTrialEnds(req: { email: string; name: string; date: Date }): Promise<void> {
+  public async sendTrialEnds(req: {
+    email: string;
+    name: string;
+    workspace: string;
+    date: Date;
+  }): Promise<void> {
     await this.fetch({
       path: ["v1", "transactional"],
       method: "POST",
@@ -37,6 +42,7 @@ export class Loops {
         email: req.email,
         dataVariables: {
           name: req.name,
+          workspace: req.workspace,
           date: req.date.toDateString(),
         },
       },

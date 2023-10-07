@@ -83,7 +83,7 @@ export const UpdateUserName: React.FC = () => {
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Username</FormLabel>
                   <FormControl>
                     <Input {...field} className="max-w-sm" />
                   </FormControl>
