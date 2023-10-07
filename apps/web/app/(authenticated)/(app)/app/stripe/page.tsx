@@ -43,6 +43,7 @@ export default async function StripeRedirect() {
   if (!ws.stripeCustomerId) {
     const customer = await stripe.customers.create({
       name: ws.name,
+      email: user?.emailAddresses.at(0)?.emailAddress,
     });
     ws.stripeCustomerId = customer.id;
 
@@ -76,7 +77,6 @@ export default async function StripeRedirect() {
     currency: "USD",
     allow_promotion_codes: true,
     customer: ws.stripeCustomerId,
-    customer_email: user?.emailAddresses.at(0)?.emailAddress,
   });
 
   if (!session.url) {

@@ -13,6 +13,7 @@ type Props = {
   searchParams: {
     code?: string;
     next?: string;
+    configurationId: string;
   };
 };
 export default async function Page(props: Props) {
@@ -35,15 +36,16 @@ export default async function Page(props: Props) {
     return <div>no workspace</div>;
   }
 
-  const req = await exchangeCode(props.searchParams.code);
-  if (req.error) {
-    return <div>error: {JSON.stringify(req.error, null, 2)}</div>;
-  }
-
   let integration = await db.query.vercelIntegrations.findFirst({
-    where: eq(schema.vercelIntegrations.id, req.value.installationId),
+    where: eq(schema.vercelIntegrations.id, props.searchParams.configurationId),
   });
+
   if (!integration) {
+    const req = await exchangeCode(props.searchParams.code);
+    if (req.error) {
+      return <div>error: {JSON.stringify(req.error, null, 2)}</div>;
+    }
+
     integration = {
       id: req.value.installationId,
       workspaceId: workspace.id,
@@ -56,8 +58,8 @@ export default async function Page(props: Props) {
   // return redirect(`/app/settings/vercel?configurationId=${integration.id}`);
 
   const projects = await new Vercel({
-    teamId: req.value.teamId ?? undefined,
-    accessToken: req.value.accessToken,
+    teamId: integration.vercelTeamId ?? undefined,
+    accessToken: integration.accessToken,
   }).listProjects();
   if (projects.error) {
     return (

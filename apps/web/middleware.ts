@@ -33,6 +33,7 @@ const publicRoutes = [
   "/og",
   "/oss-friends",
   "/og/(.*)",
+  "/api/v1/vercel/integration",
   "/api/v1/stripe/webhooks",
   "/api/v1/cron/(.*)",
   "/api/v1/clerk/webhooks",

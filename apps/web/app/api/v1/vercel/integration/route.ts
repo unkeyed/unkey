@@ -3,7 +3,7 @@ import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { z } from "zod";
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   const env = vercelIntegrationEnv();
   if (!env) {
     return new Response("setup env", { status: 500 });
@@ -30,14 +30,14 @@ export async function GET(request: Request) {
 
   switch (p.data.type) {
     case "project.removed": {
-      console.log("removing project")
+      console.log("removing project");
       await db
         .delete(schema.vercelBindings)
         .where(eq(schema.vercelBindings.projectId, p.data.payload.project.id));
       break;
     }
     case "integration-configuration.removed": {
-      console.log("removing integration")
+      console.log("removing integration");
       await db
         .delete(schema.vercelBindings)
         .where(eq(schema.vercelBindings.integrationId, p.data.payload.configuration.id));
