@@ -53,10 +53,10 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
         <WorkspaceSwitcher />
       </div>
       <nav className="flex flex-col flex-1 flex-grow">
-        <ul role="list" className="flex flex-col flex-1 gap-y-7">
+        <ul className="flex flex-col flex-1 gap-y-7">
           <li>
             <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
-            <ul role="list" className="mt-2 -mx-2 space-y-1">
+            <ul className="mt-2 -mx-2 space-y-1">
               {navigation.map((item) => (
                 <li key={item.label}>
                   <NavLink item={item} />
@@ -66,7 +66,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
           </li>
           <li>
             <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
-            <ul role="list" className="mt-2 -mx-2 space-y-1">
+            <ul className="mt-2 -mx-2 space-y-1">
               {workspace.apis.map((api) => (
                 <li key={api.id}>
                   <NavLink

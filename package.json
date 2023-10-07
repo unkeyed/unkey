@@ -20,12 +20,11 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "^1.0.0",
+    "@biomejs/biome": "^1.2.2",
     "@changesets/cli": "^2.26.2",
-    "checkly": "^4.1.0",
     "cz-conventional-changelog": "^3.3.0",
     "ts-node": "^10.9.1",
-    "turbo": "^1.10.14",
+    "turbo": "^1.10.15",
     "typescript": "^5.2.2"
   },
   "pnpm": {

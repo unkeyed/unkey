@@ -14,7 +14,7 @@ interface Page {
   url: string;
 }
 
-// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
+// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function ArrowIcon(props: any) {
   return (
     <svg viewBox="0 0 24 6" aria-hidden="true" {...props}>

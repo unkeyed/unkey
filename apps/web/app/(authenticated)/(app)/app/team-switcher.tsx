@@ -19,9 +19,7 @@ import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
 import Link from "next/link";
 
-type Props = {};
-
-export const WorkspaceSwitcher: React.FC<Props> = (): JSX.Element => {
+export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();

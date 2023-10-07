@@ -12,7 +12,7 @@ function success<TValue>(value: TValue): Result<TValue> {
   return { value };
 }
 
-// rome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 function fail<TError extends { message: string }>(error: TError): Result<any, TError> {
   return { error };
 }

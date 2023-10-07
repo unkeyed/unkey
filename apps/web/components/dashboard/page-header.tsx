@@ -24,7 +24,7 @@ export const PageHeader: React.FC<Props> = ({ title, description, actions }) => 
           className="flex items-center justify-end gap-2 md:gap-4 flex-wrap md:flex-nowrap"
         >
           {row.map((action, i) => (
-            // rome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             <li key={i}>{action}</li>
           ))}
         </ul>
