@@ -70,7 +70,7 @@ export default async function Page(props: Props) {
       </EmptyPlaceholder>
     );
   }
-  
+
   if (projects.value.length === 0) {
     return (
       <EmptyPlaceholder className="m-8">

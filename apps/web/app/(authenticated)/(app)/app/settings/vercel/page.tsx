@@ -38,7 +38,7 @@ export default async function Page(props: Props) {
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Vercel is not connected to this workspace</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
-          <Link target="_blank" href="https://vercel.com/integrations/unkey-dev">
+          <Link target="_blank" href="https://vercel.com/integrations/unkey">
             <Button>Connect</Button>
           </Link>
         </EmptyPlaceholder.Description>
