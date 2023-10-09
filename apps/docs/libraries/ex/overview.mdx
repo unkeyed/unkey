@@ -25,12 +25,12 @@ In order to start this package we can either start it under a supervision tree (
 
 The GenServer takes a map with two properties.
 
-- token: Your [Unkey](https://unkey.dev) Access token used to make requests. You can create one [here](https://unkey.dev/app/keys) **required**
+- token: Your [Unkey](https://unkey.dev) root key used to make requests. You can create one [here](https://unkey.dev/app/settings/root-keys) **required**
 - base_url: The base URL endpoint you will be hitting i.e. `https://api.unkey.dev/v1/keys` (optional).
 
 ```elixir
  children = [
-      {UnkeyElixirSdk, %{token: "yourunkeyapitoken"}}
+      {UnkeyElixirSdk, %{token: "yourunkeyrootkey"}}
     ]
 
 
@@ -45,5 +45,5 @@ Supervisor.count_children(pid)
 You can also call the `start_link` function instead.
 
 ```elixir
-{:ok, _pid} = UnkeyElixirSdk.start_link(%{token: "yourunkeyapitoken", base_url: "https://api.unkey.dev/v1/keys"})
+{:ok, _pid} = UnkeyElixirSdk.start_link(%{token: "yourunkeyrootkey", base_url: "https://api.unkey.dev/v1/keys"})
 ```

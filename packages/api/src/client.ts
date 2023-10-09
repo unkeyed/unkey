@@ -1,15 +1,31 @@
 import { UnkeyError } from "./errors";
 
-export type UnkeyOptions = {
+export type UnkeyOptions = (
+  | {
+      token?: never;
+
+      /**
+       * The root key from unkey.dev.
+       *
+       * You can create/manage your root keys here:
+       * https://unkey.dev/app/settings/root-keys
+       */
+      rootKey: string;
+    }
+  | {
+      /**
+       * The workspace key from unkey.dev
+       *
+       * @deprecated Use `rootKey`
+       */
+      token: string;
+      rootKey?: never;
+    }
+) & {
   /**
    * @default https://api.unkey.dev
    */
   baseUrl?: string;
-
-  /**
-   * The workspace key from unkey.dev
-   */
-  token: string;
 
   /**
    * Retry on network errors
@@ -53,7 +69,7 @@ type Result<R> =
 
 export class Unkey {
   public readonly baseUrl: string;
-  private readonly token: string;
+  private readonly rootKey: string;
   public readonly retry: {
     attempts: number;
     backoff: (retryCount: number) => number;
@@ -61,13 +77,15 @@ export class Unkey {
 
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
+    this.rootKey = opts.rootKey ?? opts.token;
     /**
      * Even though typescript should prevent this, some people still pass undefined or empty strings
      */
-    if (!opts.token) {
-      throw new Error("Unkey token must not be empty");
+    if (!this.rootKey) {
+      throw new Error(
+        "Unkey root key must be set, maybe you passed in `undefined` or an empty string?",
+      );
     }
-    this.token = opts.token;
 
     this.retry = {
       attempts: opts.retry?.attempts ?? 5,
@@ -89,7 +107,7 @@ export class Unkey {
         method: req.method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.rootKey}`,
         },
         body: JSON.stringify(req.body),
         cache: req.cache,
