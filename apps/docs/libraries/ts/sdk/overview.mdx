@@ -30,18 +30,18 @@ If you prefer a typed experience over calling http endpoints directly, you can u
   </Tab>
 </Tabs>
 
-## Bearer Token
+## Unkey Root Key
 
-When creating, revoking or updating resources, you will need your access token — you can create a new one in the [settings](https://unkey.dev/app/keys).
+When creating, revoking or updating resources, you will need your root key — you can create a new one in the [settings](https://unkey.dev/app/settings/root-keys).
 Afterwards you need to provide it to the client:
 
 ```ts
 import { Unkey } from "@unkey/api";
 
-const unkey = new Unkey({ token: "<UNKEY_TOKEN>" });
+const unkey = new Unkey({ rootKey: "<UNKEY_ROOT_KEY>" });
 ```
 
-Always keep your token safe and reset it `if` you suspect it has been compromised.
+Always keep your root key safe and reset it `if` you suspect it has been compromised.
 
 ## Response format
 
