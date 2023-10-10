@@ -6,7 +6,6 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
 import {
   Dialog,
@@ -19,46 +18,14 @@ import {
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  BookOpen,
-  CalendarHeart,
-  DollarSign,
-  Github,
-  LayoutTemplate,
-  LogIn,
-  LucideIcon,
-  Mail,
-  MessagesSquare,
-  ScrollText,
-  Store,
-  Text,
-} from "lucide-react";
+import { BookOpen, LucideIcon, MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { set, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "../ui/use-toast";
 import { Loading } from "./loading";
@@ -141,7 +108,7 @@ const GenericLinkCommand: React.FC<{
   );
 };
 
-const Feedback: React.FC<{}> = (_props) => {
+const Feedback: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   const schema = z.object({
@@ -177,7 +144,7 @@ const Feedback: React.FC<{}> = (_props) => {
   });
 
   return (
-    <CommandItem>
+    <CommandItem onSelect={() => setOpen(true)}>
       <MessagesSquare className="w-4 h-4 mr-2" />
       <span>Feedback</span>
       <Dialog open={open} onOpenChange={setOpen}>

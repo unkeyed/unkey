@@ -42,8 +42,6 @@ export const plainRouter = t.router({
         });
       }
 
-      console.log({ user });
-
       const plainUser = await client.upsertCustomer({
         identifier: {
           externalId: user.id,
@@ -65,7 +63,6 @@ export const plainRouter = t.router({
         });
       }
 
-      console.log({ plainUser });
       const thread = await client.createThread({
         title: input.message,
         priority: severityToNumber[input.severity],
@@ -128,41 +125,41 @@ export function customTimelineEntryForBug(text: string, path: string | null) {
   };
 }
 
-function customTimelineEntryForFeatureRequest(text: string) {
-  return {
-    title: "Feature request",
-    components: [
-      {
-        componentText: {
-          text,
-        },
-      },
-    ],
-  };
-}
+// function customTimelineEntryForFeatureRequest(text: string) {
+//   return {
+//     title: "Feature request",
+//     components: [
+//       {
+//         componentText: {
+//           text,
+//         },
+//       },
+//     ],
+//   };
+// }
 
-function customTimelineEntryForQuestion(text: string) {
-  return {
-    title: "General question",
-    components: [
-      {
-        componentText: {
-          text,
-        },
-      },
-    ],
-  };
-}
+// function customTimelineEntryForQuestion(text: string) {
+//   return {
+//     title: "General question",
+//     components: [
+//       {
+//         componentText: {
+//           text,
+//         },
+//       },
+//     ],
+//   };
+// }
 
-function customTimelineEntryForSecurityReport(text: string) {
-  return {
-    title: "Security report",
-    components: [
-      {
-        componentText: {
-          text,
-        },
-      },
-    ],
-  };
-}
+// function customTimelineEntryForSecurityReport(text: string) {
+//   return {
+//     title: "Security report",
+//     components: [
+//       {
+//         componentText: {
+//           text,
+//         },
+//       },
+//     ],
+//   };
+// }
