@@ -44,6 +44,7 @@ export const useUnkey = <TOptions extends UnkeyPluginOptions>(
       }
 
       if (!result.valid) {
+        console.warn("Rate limit exceeded", result);
         throw new RateLimitError();
       }
       extendContext({

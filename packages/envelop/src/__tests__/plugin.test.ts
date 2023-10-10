@@ -1,5 +1,7 @@
 import { assertSingleExecutionValue, createTestkit } from "@envelop/testing";
 import { makeExecutableSchema } from "@graphql-tools/schema";
+import "dotenv/config";
+
 import { NetworkError, RateLimitError } from "../errors";
 import { useUnkey } from "../plugin";
 
@@ -45,6 +47,29 @@ describe("useUnkey", () => {
         await testkit.execute("query { foo }");
       } catch (e) {
         expect(e).toBeInstanceOf(NetworkError);
+      }
+    });
+
+    it("Should rate limit", async () => {
+      const token = process.env.RATE_LIMIT_5_PER_1_SECOND || "";
+      const testkit = createTestkit([useUnkey({ token })], schema);
+      try {
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        await testkit.execute("query { foo }");
+        const result = await testkit.execute("query { foo }");
+        assertSingleExecutionValue(result);
+        // Assert that the result is correct
+        expect(result.data).toBeUndefined();
+      } catch (e) {
+        expect(e).toBeInstanceOf(RateLimitError);
       }
     });
   });

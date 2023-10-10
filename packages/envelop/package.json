@@ -32,7 +32,8 @@
   },
   "dependencies": {
     "@envelop/core": "^4.0.3",
-    "@unkey/api": "^0.10.0"
+    "@unkey/api": "^0.10.0",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "@envelop/testing": "^6.0.3",
