@@ -1,25 +1,14 @@
 import { Plugin } from "@envelop/core";
-import { type UnkeyError, verifyKey } from "@unkey/api";
+import { verifyKey } from "@unkey/api";
+import { NetworkError, RateLimitError } from "./errors";
 
-export type UnkeyPluginOptions = { token: string; logger?: any };
+export type UnkeyPluginOptions = {
+  token: string;
+};
 
 /**
- * export type ErrorCode =
-  | "NOT_FOUND"
-  | "BAD_REQUEST"
-  | "UNAUTHORIZED"
-  | "INTERNAL_SERVER_ERROR"
-  | "RATELIMITED"
-  | "FORBIDDEN"
-  | "KEY_USAGE_EXCEEDED"
-  | "INVALID_KEY_TYPE"
-  | "NOT_UNIQUE"
-  | "FETCH_ERROR"; // not from unkey but returned when fetch fails
-
+ * A plugin that verifies the Unkey token before executing the query.
  */
-export class NetworkError extends Error {}
-export class RateLimitError extends Error {}
-
 export const useUnkey = <TOptions extends UnkeyPluginOptions>(
   options: TOptions
 ): Plugin => {
@@ -31,25 +20,35 @@ export const useUnkey = <TOptions extends UnkeyPluginOptions>(
       context: Record<string, any>;
       extendContext: (context: Record<string, any>) => void;
     }) {
-      try {
-        const { result, error } = await verifyKey(options.token);
+      console.debug("Verifying key...", options.token);
+      const { result, error: errorResponse } = await verifyKey(options.token);
 
-        if (error) {
-          // handle potential network or bad request error
-          // a link to our docs will be in the `error.docs` field
-          console.error(error.message, error.code, error.requestId);
-          throw new NetworkError(`Network error!`);
-        }
+      if (errorResponse) {
+        // handle potential network or bad request error
 
-        if (!result.valid) {
-          throw new RateLimitError(`Rate limit exceeded!`);
-        }
-        extendContext({
-          ["_unkey"]: result,
-        });
-      } catch (e) {
-        throw e;
+        // Possible errors codes:
+        // "NOT_FOUND"
+        // "BAD_REQUEST"
+        // "UNAUTHORIZED"
+        // "INTERNAL_SERVER_ERROR"
+        // "RATELIMITED"
+        // "FORBIDDEN"
+        // "KEY_USAGE_EXCEEDED"
+        // "INVALID_KEY_TYPE"
+        // "NOT_UNIQUE"
+        // "FETCH_ERROR"; // not from unkey but returned when fetch fails
+
+        // a link to our docs will be in the `error.docs` field
+        console.error(errorResponse.error.message, { ...errorResponse.error });
+        throw new NetworkError();
       }
+
+      if (!result.valid) {
+        throw new RateLimitError();
+      }
+      extendContext({
+        _unkey: result,
+      });
     },
   };
 };

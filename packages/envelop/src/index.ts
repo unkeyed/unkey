@@ -1,4 +1,2 @@
-// export * from "./client";
-// export * from "./verify";
-// export * from "./errors";
 export * from "./plugin";
+export * from "./errors";

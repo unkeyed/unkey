@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`useUnkey errors network errors A network error should have a custom message 1`] = `"Network error!: Custom message"`;
+
+exports[`useUnkey errors network errors A network error should have a default message 1`] = `"Network error!"`;
+
+exports[`useUnkey errors rate limit errors A rate limit error should have a custom message 1`] = `"Rate limit exceeded!: Custom message"`;
+
+exports[`useUnkey errors rate limit errors A rate limit error should have a default message 1`] = `"Rate limit exceeded!"`;
