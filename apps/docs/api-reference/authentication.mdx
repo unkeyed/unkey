@@ -7,11 +7,11 @@ You'll need to authenticate your requests to access some of the endpoints in the
 
 ## Bearer Token
 
-When requesting resources, you will need your access token — you will find it in the [Dashboard](#) in the settings when you click on your profile picture. Here's how to add the token to the request header using cURL:
+When requesting resources, you will need your root key — you will find it in the [Dashboard](https://unkey.dev/app/settings/root-keys). Here's how to add the root key to the request header using cURL:
 
 ```bash
 curl https://api.unkey.app/v1/... \
   -H "Authorization: Bearer unkey_xxx"
 ```
 
-Always keep your token safe and reset it if you suspect it has been compromised.
+Always keep your root key safe and reset it if you suspect it has been compromised.
