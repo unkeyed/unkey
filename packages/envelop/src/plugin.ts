@@ -39,12 +39,22 @@ export const useUnkey = <TOptions extends UnkeyPluginOptions>(
         // "FETCH_ERROR"; // not from unkey but returned when fetch fails
 
         // a link to our docs will be in the `error.docs` field
-        console.error(errorResponse.error.message, { ...errorResponse.error });
+        console.error(errorResponse.error.message, {
+          ...errorResponse.error,
+        });
+
+        // could log the actual datetime of the reset
+        // ratelimit: { limit: 5, remaining: 0, reset: 1696942548734 },
         throw new NetworkError();
       }
 
       if (!result.valid) {
-        console.warn("Rate limit exceeded", result);
+        console.warn("Rate limit exceeded", {
+          ...result,
+          resetsAt:
+            result.ratelimit?.reset &&
+            new Date(result.ratelimit.reset).toISOString(),
+        });
         throw new RateLimitError();
       }
       extendContext({
