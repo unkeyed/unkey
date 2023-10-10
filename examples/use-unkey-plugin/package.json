@@ -1,0 +1,18 @@
+{
+  "name": "examples-use-unkey-plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "check": "exit 0",
+    "start": "node index.js"
+  },
+  "private": true,
+  "dependencies": {
+    "@graphql-yoga/render-graphiql": "4.0.5",
+    "graphql": "16.6.0",
+    "graphql-yoga": "4.0.5"
+  },
+  "keywords": [],
+  "author": "A. David Thyresson"
+}
