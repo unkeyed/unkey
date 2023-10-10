@@ -39,3 +39,9 @@ as the example UnKey token of "123" is invalid and will throw:
 Verifying key... 123
 ERR RateLimitError: Rate limit exceeded!
 ```
+
+To test out rate limiting, replace "123" with a valid token and try out repeated queries until you exceed the rate limit settings for the token:
+
+```
+  plugins: [useUnkey({ token: MY_REAL_UNKEY_TOKEN })],
+```
