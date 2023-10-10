@@ -1,0 +1,50 @@
+{
+  "name": "@unkey/envelop",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "MIT",
+  "private": false,
+  "keywords": [
+    "unkey",
+    "client",
+    "api",
+    "graphql",
+    "yoga",
+    "envelop"
+  ],
+  "bugs": {
+    "url": "https://github.com/unkeyed/unkey/issues"
+  },
+  "homepage": "https://github.com/unkeyed/unkey#readme",
+  "files": [
+    "./dist/**"
+  ],
+  "authors": [
+    "A. David Thyresson <dthyresson@gmail.com>",
+    "Andreas Thomas <andreas@chronark.com>"
+  ],
+  "scripts": {
+    "dev": "pnpm build && pnpm jest",
+    "build": "tsup",
+    "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@envelop/core": "^4.0.3",
+    "@unkey/api": "^0.10.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@envelop/testing": "^6.0.3",
+    "@graphql-tools/schema": "^10.0.0",
+    "@types/jest": "^29.5.5",
+    "@types/node": "^20.5.7",
+    "graphql": "^16.8.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "tsup": "^7.2.0",
+    "tsx": "^3.12.8",
+    "typescript": "^5.2.2"
+  }
+}
