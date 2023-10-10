@@ -14,13 +14,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, LucideIcon, MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
@@ -110,6 +109,15 @@ const GenericLinkCommand: React.FC<{
 
 const Feedback: React.FC = () => {
   const [open, setOpen] = useState(false);
+  /**
+   * This was necessary cause otherwise the dialog would not close when you're clicking outside of it
+   */
+  const [selected, setSelected] = useState(false);
+  useEffect(() => {
+    if (selected) {
+      setOpen(true);
+    }
+  }, [selected]);
 
   const schema = z.object({
     severity: z.enum(["p0", "p1", "p2", "p3"]),
@@ -144,13 +152,17 @@ const Feedback: React.FC = () => {
   });
 
   return (
-    <CommandItem onSelect={() => setOpen(true)}>
+    <CommandItem
+      onSelect={(v) => {
+        setSelected(true);
+        console.log({ v });
+      }}
+    >
       <MessagesSquare className="w-4 h-4 mr-2" />
-      <span>Feedback</span>
+      Feedback
       <Dialog open={open} onOpenChange={setOpen}>
         <Form {...form}>
           <form>
-            <DialogTrigger>Open</DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Report an issue</DialogTitle>

@@ -1,9 +1,6 @@
 import { env } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
-import { PlainClient } from "@team-plain/typescript-sdk";
-import { ComponentSpacerSize } from "@team-plain/typescript-sdk";
-import { ComponentTextSize } from "@team-plain/typescript-sdk";
-import { ComponentTextColor } from "@team-plain/typescript-sdk";
+import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../trpc";
@@ -42,18 +39,27 @@ export const plainRouter = t.router({
         });
       }
 
+      const email = user.emailAddresses.at(0)!.emailAddress;
+
       const plainUser = await client.upsertCustomer({
         identifier: {
-          externalId: user.id,
+          emailAddress: email,
         },
         onCreate: {
+          externalId: user.id,
           email: {
-            email: user.emailAddresses.at(0)?.emailAddress ?? "",
+            email: email,
             isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
           },
           fullName: user.username ?? "",
         },
-        onUpdate: {},
+        onUpdate: {
+          email: {
+            email: email,
+            isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
+          },
+          fullName: { value: user.username ?? "" },
+        },
       });
       if (plainUser.error) {
         console.error(plainUser.error);
@@ -64,17 +70,26 @@ export const plainRouter = t.router({
       }
 
       const thread = await client.createThread({
-        title: input.message,
+        title: `${input.severity} - ${input.issueType}`,
         priority: severityToNumber[input.severity],
         customerIdentifier: {
-          externalId: user.id,
+          emailAddress: email,
         },
-        components: [],
+        components: [
+          uiComponent.plainText({ text: input.message }),
+          uiComponent.spacer({ spacingSize: "M" }),
+          uiComponent.row({
+            mainContent: [uiComponent.plainText({ text: ctx.tenant.id, color: "MUTED" })],
+            asideContent: [
+              uiComponent.copyButton({ value: ctx.tenant.id, tooltip: "Copy Tenant Id" }),
+            ],
+          }),
+        ],
         labelTypeIds: [issueToId[input.issueType]],
       });
 
       if (thread.error) {
-        console.error(thread.error.message);
+        console.error(thread.error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: thread.error.message,
@@ -99,67 +114,3 @@ const severityToNumber: Record<z.infer<typeof severity>, number> = {
   p2: 2,
   p3: 3,
 };
-
-export function customTimelineEntryForBug(text: string, path: string | null) {
-  return {
-    title: "Bug report",
-    components: [
-      {
-        componentText: {
-          text,
-        },
-      },
-      {
-        componentSpacer: {
-          spacerSize: ComponentSpacerSize.S,
-        },
-      },
-      {
-        componentText: {
-          text: `Reported on ${path}`,
-          textSize: ComponentTextSize.S,
-          textColor: ComponentTextColor.Muted,
-        },
-      },
-    ],
-  };
-}
-
-// function customTimelineEntryForFeatureRequest(text: string) {
-//   return {
-//     title: "Feature request",
-//     components: [
-//       {
-//         componentText: {
-//           text,
-//         },
-//       },
-//     ],
-//   };
-// }
-
-// function customTimelineEntryForQuestion(text: string) {
-//   return {
-//     title: "General question",
-//     components: [
-//       {
-//         componentText: {
-//           text,
-//         },
-//       },
-//     ],
-//   };
-// }
-
-// function customTimelineEntryForSecurityReport(text: string) {
-//   return {
-//     title: "Security report",
-//     components: [
-//       {
-//         componentText: {
-//           text,
-//         },
-//       },
-//     ],
-//   };
-// }
