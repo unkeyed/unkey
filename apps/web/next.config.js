@@ -16,6 +16,16 @@ let nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  rewrites: () => [
+    {
+      source: "/docs",
+      destination: "https://unkey.mintlify.dev/docs",
+    },
+    {
+      source: "/docs/:match*",
+      destination: "https://unkey.mintlify.dev/docs/:match*",
+    },
+  ],
 };
 
 nextConfig = withContentlayer(nextConfig);

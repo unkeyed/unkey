@@ -199,7 +199,7 @@ function Navigation() {
     <nav className="mt-px text-5xl font-medium tracking-tight text-white font-display">
       <NavigationRow>
         <NavigationItem href="/pricing">Pricing</NavigationItem>
-        <NavigationItem href="https://docs.unkey.dev">Docs</NavigationItem>
+        <NavigationItem href="https://unkey.dev/docs">Docs</NavigationItem>
       </NavigationRow>
       <NavigationRow>
         <NavigationItem href="/blog">Blog</NavigationItem>

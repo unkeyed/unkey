@@ -17,23 +17,6 @@ export const publishKeyVerification = tb.buildIngestEndpoint({
   }),
 });
 
-export const getDailyUsage = tb.buildPipe({
-  pipe: "endpoint_get_usage__v3",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string().optional(),
-    keyId: z.string().optional(),
-  }),
-  data: z.object({
-    time: datetimeToUnixMilli,
-    usage: z.number(),
-    ratelimited: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const getDailyVerifications = tb.buildPipe({
   pipe: "endpoint__get_daily_verifications__v1",
   parameters: z.object({
@@ -94,7 +77,7 @@ export const getTotalActiveKeys = tb.buildPipe({
 
 export const getTotalVerifications = tb.buildPipe({
   pipe: "all_verifications__v1",
-  data: z.object({ totalUsage: z.number() }),
+  data: z.object({ "count()": z.number() }),
   opts: {
     cache: "no-store",
   },

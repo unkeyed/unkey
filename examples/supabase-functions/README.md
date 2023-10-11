@@ -19,4 +19,4 @@ supabase functions serve
 curl -XPOST -H 'Authorization: Bearer <SUPABASE_FUNCTION_JWT' -H 'x-unkey-api-key: <API_KEY_FROM_UNKEY' -H "Content-type: application/json" 'http://localhost:54321/functions/v1/hello-world'
 ```
 
-- [Getting Started](https://docs.unkey.dev/quickstart) - A quickstart guide to Unkey
+- [Getting Started](https://unkey.dev/docs/quickstart) - A quickstart guide to Unkey

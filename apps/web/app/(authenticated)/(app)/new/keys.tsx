@@ -208,7 +208,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </Code>
             </CardContent>
             <CardFooter className="justify-between">
-              <Link href="https://docs.unkey.dev" target="_blank">
+              <Link href="https://unkey.dev/docs" target="_blank">
                 <Button size="sm" variant="link">
                   Read more
                 </Button>
