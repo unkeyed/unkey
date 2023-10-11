@@ -16,7 +16,7 @@ body:
       description: Please make sure that you verify each checkbox and follow the instructions for them.
       options:
         - label: |
-            I have reviewed the documentation: https://docs.unkey.dev
+            I have reviewed the documentation: https://unkey.dev/docs
           required: true
         - label: |
             I have searched for existing issues: https://github.com/unkeyed/unkey/issues

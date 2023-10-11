@@ -36,6 +36,6 @@ func NewHttpError(c *fiber.Ctx, code ErrorCode, message string) error {
 	if ok {
 		res.Error.RequestId = requestId
 	}
-	res.Error.Docs = fmt.Sprintf("https://docs.unkey.dev/api-reference/errors/code/%s", code)
+	res.Error.Docs = fmt.Sprintf("https://unkey.dev/docs/api-reference/errors/code/%s", code)
 	return c.Status(status).JSON(res)
 }

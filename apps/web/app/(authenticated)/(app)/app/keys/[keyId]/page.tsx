@@ -1,4 +1,4 @@
-import { ColumnChart } from "@/components/dashboard/charts";
+import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import {
-  getDailyUsage,
+  getDailyVerifications,
   getLastUsed,
   getLatestVerifications,
   getTotalVerificationsForKey,
@@ -45,7 +45,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   }
 
   const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
-    getDailyUsage({
+    getDailyVerifications({
       workspaceId: key.workspaceId,
       apiId: api.id,
       keyId: key.id,
@@ -58,17 +58,39 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   const end = new Date().setUTCHours(0, 0, 0, 0);
   const start = end - 30 * 24 * 60 * 60 * 1000;
 
-  const usageOverTime = fillRange(
-    usage.data.map(({ time, usage }) => ({ value: usage, time })),
-    start,
-    end,
-  ).map(({ value, time }) => ({
+  const usageOverTime = [
+    ...fillRange(
+      usage.data.map(({ time, success }) => ({ value: success, time })),
+      start,
+      end,
+    ).map((x) => ({ ...x, category: "Success" })),
+    ...fillRange(
+      usage.data.map(({ time, rateLimited }) => ({
+        value: rateLimited,
+        time,
+      })),
+      start,
+      end,
+    ).map((x) => ({ ...x, category: "Rate Limited" })),
+    ...fillRange(
+      usage.data.map(({ time, usageExceeded }) => ({
+        value: usageExceeded,
+        time,
+      })),
+      start,
+      end,
+    ).map((x) => ({ ...x, category: "Usage Exceeded" })),
+  ].map(({ value, time, category }) => ({
+    category,
     x: new Date(time).toUTCString(),
     y: value,
   }));
 
   const fmt = new Intl.NumberFormat("en-US", { notation: "compact" }).format;
-  const usage30Days = usage.data.reduce((acc, { usage }) => acc + usage, 0);
+  const usage30Days = usage.data.reduce(
+    (acc, { success, rateLimited, usageExceeded }) => acc + success + rateLimited + usageExceeded,
+    0,
+  );
   return (
     <div className="flex flex-col gap-8">
       <Card>
@@ -80,10 +102,12 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
           />
           <Stat
             label="Remaining"
-            value={key.remainingRequests ? fmt(key.remainingRequests) : <Minus />}
+            value={
+              typeof key.remainingRequests === "number" ? fmt(key.remainingRequests) : <Minus />
+            }
           />
           <Stat
-            label="LastUsed"
+            label="Last Used"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
           <Stat label="Total Uses" value={fmt(totalUsage)} />
@@ -118,7 +142,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
           <CardDescription>See when this key was verified</CardDescription>
         </CardHeader>
         <CardContent className="h-64">
-          <ColumnChart data={usageOverTime} />
+          <StackedColumnChart data={usageOverTime} />
         </CardContent>
       </Card>
 

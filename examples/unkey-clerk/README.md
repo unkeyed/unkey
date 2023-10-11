@@ -21,4 +21,4 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Learn More
 
 - [Blog Post](https://unkey.dev/blog/using-unkey-with-auth) - learn about how this project works
-- [Getting Started](https://docs.unkey.dev/quickstart) - A quickstart guide to Unkey
+- [Getting Started](https://unkey.dev/docs/quickstart) - A quickstart guide to Unkey
