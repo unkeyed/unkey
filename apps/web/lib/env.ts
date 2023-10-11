@@ -24,6 +24,7 @@ export const env = () =>
       LOOPS_API_KEY: z.string().optional(),
 
       UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
+      PLAIN_API_KEY: z.string().optional(),
     })
     .parse(process.env);
 
