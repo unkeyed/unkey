@@ -41,13 +41,12 @@ export default async function Page(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
+  const [usage, latestVerifications, lastUsed] = await Promise.all([
     getDailyUsage({
       workspaceId: env().UNKEY_WORKSPACE_ID,
       apiId: env().UNKEY_API_ID,
       keyId: key.id,
     }),
-    getTotalUsage({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
     getLatestVerifications({ keyId: key.id }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
@@ -83,7 +82,7 @@ export default async function Page(props: { params: { keyId: string } }) {
             label="LastUsed"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
-          <Stat label="Total Uses" value={fmt(totalUsage)} />
+          <Stat label="Total Uses" value={fmt(0)} />
           <Stat
             label={
               <Tooltip>

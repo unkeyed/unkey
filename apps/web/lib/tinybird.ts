@@ -124,9 +124,7 @@ export const getTotalUsage = tb.buildPipe({
   parameters: z.object({
     keyId: z.string(),
   }),
-  data: z.object({
-    totalUsage: z.number(),
-  }),
+  data: z.object({ "count()": z.number() }),
   opts: {
     cache: "no-store",
   },
