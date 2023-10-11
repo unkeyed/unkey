@@ -1,0 +1,52 @@
+{
+  "name": "@unkey/redwoodjs",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "MIT",
+  "private": false,
+  "keywords": [
+    "unkey",
+    "redwoodjs",
+    "cli"
+  ],
+  "bugs": {
+    "url": "https://github.com/unkeyed/unkey/issues"
+  },
+  "homepage": "https://github.com/unkeyed/unkey#readme",
+  "files": [
+    "./dist/**"
+  ],
+  "authors": [
+    "A. David Thyresson <dthyresson@gmail.com>",
+    "Andreas Thomas <andreas@chronark.com>"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe "
+  },
+  "peerDependencies": {},
+  "dependencies": {
+    "@redwoodjs/cli-helpers": ">= 6",
+    "findup-sync": "^5.0.0",
+    "listr2": "^7.0.1",
+    "yargs": "^17.7.2",
+    "yargs-parser": "^21.1.1"
+  },
+  "devDependencies": {
+    "@types/findup-sync": "^4.0.2",
+    "@types/fs-extra": "^11.0.1",
+    "@types/node": "^20.5.7",
+    "@types/yargs": "^17.0.24",
+    "@types/yargs-parser": "^21.0.0",
+    "tsup": "^7.2.0",
+    "tsx": "^3.12.8",
+    "typescript": "^5.2.2"
+  },
+  "bin": {
+    "setup": "./dist/setup.js"
+  },
+  "engines": {
+    "redwoodjs": ">= 6"
+  }
+}
