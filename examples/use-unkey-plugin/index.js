@@ -28,7 +28,7 @@ const yoga = createYoga({
   },
   renderGraphiQL,
   // Important: set your valid token here
-  plugins: [useUnkey({ token: "3ZbRaASsqXAnhz542DGJqVNC" })],
+  plugins: [useUnkey({ token: "123" })],
 });
 
 const server = createServer(yoga);
