@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
-export function EmailSignIn(props: { verification: (value: boolean) => void }) {
+export function EmailSignIn(props: { verification: (value: boolean) => void, dialog: (value: boolean) => void, email: (value: string) => void }) {
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
   const { toast } = useToast();
   const param = "__clerk_ticket";
-
+  const [showDialog,setShowDialog] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   React.useEffect(() => {
@@ -75,11 +76,8 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
       .catch((err) => {
         setIsLoading(false);
         if (err.errors[0].code === "form_identifier_not_found") {
-          toast({
-            title: "Error",
-            description: "Sorry, We couldn't find your account. Please use sign up",
-            variant: "alert",
-          });
+          props.dialog(true);
+          props.email(email);
         } else {
           toast({
             title: "Error",
@@ -89,8 +87,8 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
         }
       });
   };
-
-  return (
+    return(
+      <>
     <form className="grid gap-2" onSubmit={signInWithCode}>
       <div className="grid gap-1">
         <Input
@@ -108,5 +106,6 @@ export function EmailSignIn(props: { verification: (value: boolean) => void }) {
         Sign In with Email
       </Button>
     </form>
-  );
+      </>
+    )
 }

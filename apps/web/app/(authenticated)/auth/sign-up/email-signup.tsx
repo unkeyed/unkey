@@ -8,24 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { FadeIn } from "@/components/landing/fade-in";
+import { set } from "zod";
 
 export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
   const { toast } = useToast();
-  const param = "__clerk_ticket";
+  
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
 
   React.useEffect(() => {
+    setIsLoading(true);
     const signUpOrgUser = async () => {
-      const ticket = new URL(window.location.href).searchParams.get(param);
+      const ticket = new URL(window.location.href).searchParams.get("__clerk_ticket");
       if (!signUpLoaded) {
         return;
       }
       if (!ticket) {
         return;
       }
-      setIsLoading(true);
       await signUp
         .create({
           strategy: "ticket",
@@ -43,6 +45,38 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
           console.error(err);
         });
     };
+    const addUserEmail = async () => {
+      const emailParam = new URL(window.location.href).searchParams.get("email");
+      if (!signUpLoaded) {
+        return;
+      }
+      if (!emailParam) {
+        return;
+      }
+      await signUp
+        .create({
+          emailAddress: emailParam,
+        })
+        .then(async () => {
+          await signUp.prepareEmailAddressVerification();
+          // set verification to true so we can show the code input
+          props.verification(true);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          setIsLoading(false);
+          if (err.errors[0].code === "form_identifier_exists") {
+            toast({
+              title: "Error",
+              description: "Sorry, it looks like you have an account. Please use sign in",
+              variant: "alert",
+            });
+          } else {
+            console.log("Supress error")
+          }
+        });
+    }
+    addUserEmail();
     signUpOrgUser();
   }, [signUpLoaded]);
 
@@ -60,7 +94,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
     ) {
       return null;
     }
-    setIsLoading(true);
+    
     try {
       await signUp
         .create({
@@ -97,6 +131,8 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   };
 
   return (
+    <FadeIn>
+    {!isLoading && (
     <form className="grid gap-2" onSubmit={signUpWithCode}>
       <div className="grid gap-1">
         <div className="flex flex-row gap-1 ">
@@ -135,5 +171,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
         Sign Up with Email
       </Button>
     </form>
+    )}
+    </FadeIn>
   );
 }
