@@ -22,7 +22,7 @@ export default function Home() {
 
       <div className="grid mb-32 text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
         <a
-          href="https://docs.unkey.dev"
+          href="https://unkey.dev/docs"
           className="px-5 py-4 transition-colors border border-transparent rounded-lg group hover:border-gray-300 hover:bg-gray-100 hover:dark:border-gray-700 hover:dark:bg-gray-800/30"
           target="_blank"
           rel="noopener noreferrer"

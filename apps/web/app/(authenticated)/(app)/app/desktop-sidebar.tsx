@@ -41,7 +41,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     },
     {
       icon: BookOpen,
-      href: "https://docs.unkey.dev",
+      href: "https://unkey.dev/docs",
       external: true,
       label: "Docs",
     },

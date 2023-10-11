@@ -159,8 +159,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-// export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
-export default handler;
+export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
 /**
  *
  * return utc start and end time of the month as unix milliseconds timestamps

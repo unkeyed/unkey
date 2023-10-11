@@ -201,7 +201,7 @@ export class Unkey {
         /**
          * Unkey comes with per-key ratelimiting out of the box.
          *
-         * @see https://docs.unkey.dev/features/ratelimiting
+         * @see https://unkey.dev/docs/features/ratelimiting
          */
         ratelimit?: {
           type: "fast" | "consistent";
@@ -225,7 +225,7 @@ export class Unkey {
         /**
          * Unkey allows you to set/update usage limits on individual keys
          *
-         * @see https://docs.unkey.dev/features/remaining
+         * @see https://unkey.dev/docs/features/remaining
          */
         remaining?: number;
       }): Promise<Result<{ key: string; keyId: string }>> => {
@@ -273,7 +273,7 @@ export class Unkey {
         /**
          * Update the ratelimit
          *
-         * @see https://docs.unkey.dev/features/ratelimiting
+         * @see https://unkey.dev/docs/features/ratelimiting
          */
         ratelimit?: {
           type: "fast" | "consistent";
@@ -297,7 +297,7 @@ export class Unkey {
         /**
          * Update the remaining verifications.
          *
-         * @see https://docs.unkey.dev/features/remaining
+         * @see https://unkey.dev/docs/features/remaining
          */
         remaining?: number | null;
       }): Promise<Result<{ key: string; keyId: string }>> => {
