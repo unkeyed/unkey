@@ -1,6 +1,14 @@
 import { Plugin } from "@envelop/core";
 import { verifyKey } from "@unkey/api";
-import { NetworkError, RateLimitError } from "./errors";
+import type { GraphQLError } from "graphql";
+import { createRateLimitError, createUnkeyError } from "./errors";
+
+const UNKEY_CONTEXT_KEY = "_unkey";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface UnkeyResult {
+  [key: string]: any;
+}
 
 export type UnkeyPluginOptions = {
   token: string;
@@ -12,54 +20,74 @@ export type UnkeyPluginOptions = {
 export const useUnkey = <TOptions extends UnkeyPluginOptions>(
   options: TOptions
 ): Plugin => {
+  const token = options.token;
+
   return {
-    async onContextBuilding({
-      context,
+    onContextBuilding({
+      // context,
       extendContext,
     }: {
-      context: Record<string, any>;
-      extendContext: (context: Record<string, any>) => void;
+      // context: Record<string, any>;
+      extendContext: (
+        context: Record<string, string | number | boolean>
+      ) => void;
     }) {
-      console.debug("Verifying key...", options.token);
-      const { result, error: errorResponse } = await verifyKey(options.token);
+      // here we  stash the Unkey API token on the context
+      // for potential later use in the execute phase
 
-      if (errorResponse) {
-        // handle potential network or bad request error
-
-        // Possible errors codes:
-        // "NOT_FOUND"
-        // "BAD_REQUEST"
-        // "UNAUTHORIZED"
-        // "INTERNAL_SERVER_ERROR"
-        // "RATELIMITED"
-        // "FORBIDDEN"
-        // "KEY_USAGE_EXCEEDED"
-        // "INVALID_KEY_TYPE"
-        // "NOT_UNIQUE"
-        // "FETCH_ERROR"; // not from unkey but returned when fetch fails
-
-        // a link to our docs will be in the `error.docs` field
-        console.error(errorResponse.error.message, {
-          ...errorResponse.error,
-        });
-
-        // could log the actual datetime of the reset
-        // ratelimit: { limit: 5, remaining: 0, reset: 1696942548734 },
-        throw new NetworkError();
-      }
-
-      if (!result.valid) {
-        console.warn("Rate limit exceeded", {
-          ...result,
-          resetsAt:
-            result.ratelimit?.reset &&
-            new Date(result.ratelimit.reset).toISOString(),
-        });
-        throw new RateLimitError();
-      }
+      // We could also extract the token from the headers here
+      // for a per user/session authorization check later
       extendContext({
-        _unkey: result,
+        [UNKEY_CONTEXT_KEY]: token,
       });
+    },
+    async onExecute({
+      //args,
+      setResultAndStopExecution,
+    }) {
+      const errors: GraphQLError[] = [];
+
+      // Note: Can fetch the the stashes session token from the context here
+      // with args and contextValue in future
+      if (!token) {
+        errors.push(
+          createUnkeyError({
+            errorResponse: {
+              error: {
+                message: "Missing Unkey Token",
+                code: "INVALID_KEY_TYPE",
+              },
+              result: {
+                valid: false,
+              },
+            },
+          })
+        );
+      }
+
+      // we have a token, so we can verify it
+      if (errors.length === 0) {
+        console.debug("Verifying key ...", token);
+
+        const { result, error: errorResponse } = await verifyKey(token);
+
+        // handle potential network or bad request error
+        if (errorResponse) {
+          errors.push(createUnkeyError({ errorResponse }));
+        }
+
+        // handle rate limit error
+        if (!result.valid) {
+          errors.push(createRateLimitError({ result }));
+        }
+      }
+
+      if (errors.length > 0) {
+        setResultAndStopExecution({
+          data: null,
+          errors,
+        });
+      }
     },
   };
 };
