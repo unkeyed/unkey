@@ -2,7 +2,7 @@ VERSION 1
 NODE all_verifications_in_v2
 SQL >
 
-    SELECT count(*)
+    SELECT count(*) as totalUsage
     FROM key_verifications__v2
     where
         time > toUnixTimestamp64Milli(toDateTime64('2023-09-07 07:00:00', 3))
@@ -15,7 +15,7 @@ SQL >
 NODE all_verifications_in_v1
 SQL >
 
-    SELECT count(*)
+    SELECT count(*) as totalUsage
     FROM key_verifications__v1
     where
         time < toUnixTimestamp64Milli(toDateTime64('2023-09-07 07:00:00', 3))
