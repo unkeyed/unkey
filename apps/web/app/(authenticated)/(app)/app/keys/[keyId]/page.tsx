@@ -13,7 +13,12 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { getDailyUsage, getLastUsed, getLatestVerifications, getTotalUsage } from "@/lib/tinybird";
+import {
+  getDailyUsage,
+  getLastUsed,
+  getLatestVerifications,
+  getTotalVerificationsForKey,
+} from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
 import { Check, Info, Minus } from "lucide-react";
 import ms from "ms";
@@ -39,12 +44,13 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
     return notFound();
   }
 
-  const [usage, latestVerifications, lastUsed] = await Promise.all([
+  const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
     getDailyUsage({
       workspaceId: key.workspaceId,
       apiId: api.id,
       keyId: key.id,
     }),
+    getTotalVerificationsForKey({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
     getLatestVerifications({ keyId: key.id }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
@@ -80,7 +86,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
             label="LastUsed"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
-          <Stat label="Total Uses" value={fmt(0)} />
+          <Stat label="Total Uses" value={fmt(totalUsage)} />
           <Stat
             label={
               <Tooltip>

@@ -25,7 +25,7 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
     .then((res) => res.at(0)?.count ?? 0),
-  getTotalVerifications({}).then((res) => res.data.reduce((acc, curr) => acc + curr["count()"], 0)),
+  getTotalVerifications({}).then((res) => res.data.reduce((acc, curr) => acc + curr.totalUsage, 0)),
 ]);
 
 function NumbersServed() {
