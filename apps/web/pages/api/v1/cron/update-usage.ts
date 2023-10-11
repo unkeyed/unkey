@@ -8,6 +8,9 @@ import * as Sentry from "@sentry/nextjs";
 import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
+export const config = {
+  maxDuration: 300,
+};
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
   const checkInId = Sentry.captureCheckIn({
@@ -33,84 +36,82 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     while (allWorkspaces.length > 0) {
       const workspaces = allWorkspaces.splice(0, 20);
 
-      await Promise.all(
-        workspaces.map(async (ws) => {
-          let [start, end] = getMonthStartAndEnd();
-          let subscription: Stripe.Response<Stripe.Subscription> | null = null;
+      for await (const ws of workspaces) {
+        let [start, end] = getMonthStartAndEnd();
+        let subscription: Stripe.Response<Stripe.Subscription> | null = null;
 
-          if (ws.stripeSubscriptionId) {
-            console.log("fetching subscription %s", ws.stripeSubscriptionId);
-            subscription = await stripe.subscriptions.retrieve(ws.stripeSubscriptionId);
-            if (!subscription) {
-              throw new Error(`subscription not found: ${ws.stripeSubscriptionId}`);
-            }
-            start = subscription.current_period_start * 1000;
-            end = subscription.current_period_end * 1000;
+        if (ws.stripeSubscriptionId) {
+          console.log("fetching subscription %s", ws.stripeSubscriptionId);
+          subscription = await stripe.subscriptions.retrieve(ws.stripeSubscriptionId);
+          if (!subscription) {
+            throw new Error(`subscription not found: ${ws.stripeSubscriptionId}`);
           }
-          let activeKeys = 0;
-          for (const d of globalActiveKeys) {
-            if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
-              activeKeys += d.usage;
-            }
+          start = subscription.current_period_start * 1000;
+          end = subscription.current_period_end * 1000;
+        }
+        let activeKeys = 0;
+        for (const d of globalActiveKeys) {
+          if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
+            activeKeys += d.usage;
           }
+        }
 
-          let verifications = 0;
-          for (const d of globalVerifications) {
-            if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
-              verifications += d.usage;
-            }
+        let verifications = 0;
+        for (const d of globalVerifications) {
+          if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
+            verifications += d.usage;
           }
-          if (verifications > 0 || activeKeys > 0) {
-            console.log(
-              "%s did %d verifications with %d keys between %s and %s",
-              ws.id,
-              verifications,
-              activeKeys,
-              new Date(start).toDateString(),
-              new Date(end).toDateString(),
-            );
-          }
+        }
+        if (verifications > 0 || activeKeys > 0) {
+          console.log(
+            "%s did %d verifications with %d keys between %s and %s",
+            ws.id,
+            verifications,
+            activeKeys,
+            new Date(start).toDateString(),
+            new Date(end).toDateString(),
+          );
+        }
 
-          await db
-            .update(schema.workspaces)
-            .set({
-              usageActiveKeys: activeKeys,
-              usageVerifications: verifications,
-              lastUsageUpdate: new Date(),
-            })
-            .where(eq(schema.workspaces.id, ws.id));
+        await db
+          .update(schema.workspaces)
+          .set({
+            usageActiveKeys: activeKeys,
+            usageVerifications: verifications,
+            lastUsageUpdate: new Date(),
+          })
+          .where(eq(schema.workspaces.id, ws.id));
 
-          if (subscription) {
-            for (const item of subscription.items.data) {
-              console.log("handling item %s -> product %s", item.id, item.price.product);
-              switch (item.price.product) {
-                case e.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
-                  if (activeKeys) {
-                    await stripe.subscriptionItems.createUsageRecord(item.id, {
-                      timestamp: Math.floor(Date.now() / 1000),
-                      action: "set",
-                      quantity: activeKeys,
-                    });
-                    console.log("updated active keys for %s: %d", item.id, activeKeys);
-                  }
-                  break;
+        if (subscription) {
+          for (const item of subscription.items.data) {
+            console.log("handling item %s -> product %s", item.id, item.price.product);
+            switch (item.price.product) {
+              case e.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+                if (activeKeys) {
+                  await stripe.subscriptionItems.createUsageRecord(item.id, {
+                    timestamp: Math.floor(Date.now() / 1000),
+                    action: "set",
+                    quantity: activeKeys,
+                  });
+                  console.log("updated active keys for %s: %d", item.id, activeKeys);
                 }
-                case e.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
-                  if (verifications) {
-                    await stripe.subscriptionItems.createUsageRecord(item.id, {
-                      timestamp: Math.floor(Date.now() / 1000),
-                      action: "set",
-                      quantity: verifications,
-                    });
-                    console.log("updated verifications for %s: %d", item.id, verifications);
-                  }
-                  break;
+                break;
+              }
+              case e.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+                if (verifications) {
+                  await stripe.subscriptionItems.createUsageRecord(item.id, {
+                    timestamp: Math.floor(Date.now() / 1000),
+                    action: "set",
+                    quantity: verifications,
+                  });
+                  console.log("updated verifications for %s: %d", item.id, verifications);
                 }
+                break;
               }
             }
           }
-        }),
-      );
+        }
+      }
     }
 
     // report success
