@@ -1,7 +1,10 @@
 {
   "name": "@unkey/nuxt",
   "version": "1.0.1",
-  "private": true,
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Nuxt integration for unkey",
   "repository": "unkeyed/unkey",
   "license": "ISC",
