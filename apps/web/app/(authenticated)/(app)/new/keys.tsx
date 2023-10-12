@@ -154,8 +154,13 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </Code>
             </CardContent>
             <CardFooter className="justify-between">
-              <Button size="sm" variant="link" onClick={() => key.mutate({ apiId })}>
-                Or click here to create a key
+              <Button
+                size="sm"
+                variant="link"
+                disabled={key.isLoading}
+                onClick={() => key.mutate({ apiId })}
+              >
+                {key.isLoading ? <Loading /> : "Or click here to create a key"}
               </Button>
               <Button
                 size="sm"
