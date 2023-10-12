@@ -4,7 +4,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
-  "private": false,
+  "private":false,
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "unkey",
     "client",
