@@ -1,3 +1,3 @@
-import { exampleCommand } from "./commands/example";
+import { setRootKeyCommand } from "./commands/setRootKey";
 
-export const commands = [exampleCommand];
+export const commands = [setRootKeyCommand];

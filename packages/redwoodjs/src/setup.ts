@@ -8,7 +8,13 @@ import { hideBin } from "yargs/helpers";
 import { addApiPackages, writeFile, getPaths } from "@redwoodjs/cli-helpers";
 import { Listr } from "listr2";
 import { execa } from "execa";
-import { prettifyTemplate, updateTomlConfig } from "./utils";
+import {
+  addEnvironmentVariablesToEnvFile,
+  prettifyTemplate,
+  updateTomlConfig,
+} from "./utils";
+
+import type { EnvVar } from "./utils";
 
 // We take in yargs because we want to allow `--cwd` to be passed in, similar to the redwood cli itself.
 let { cwd, help } = Parser(hideBin(process.argv));
@@ -50,7 +56,7 @@ try {
 process.env["RWJS_CWD"] = cwd;
 
 // Run run the setup function
-async function setup() {
+const setup = async () => {
   const tasks = new Listr([
     // Adds the Unkey sdk to the RedwoodJS api side
     addApiPackages(["@unkey/api"]),
@@ -78,7 +84,17 @@ async function setup() {
     {
       title: 'Updating redwood.toml to include "@unkey/redwoodjs" as a plugin',
       task: () => {
-        updateTomlConfig();
+        updateTomlConfig("@unkey/redwoodjs");
+      },
+    },
+    {
+      title: "Adds Unkey envars to .env file ...",
+      task: () => {
+        const newEnvVariables: EnvVar[] = [
+          { key: "UNKEY_ROOT_KEY", value: "your-root-key", overwrite: false },
+        ];
+
+        addEnvironmentVariablesToEnvFile(newEnvVariables);
       },
     },
     {
@@ -89,14 +105,11 @@ async function setup() {
         //     cwd: getPaths().base,
         //     stdio: "inherit",
         //   });
-
-        // then case use as:
-        // yarn rw @unkey example blah blah
       },
     },
   ]);
 
   await tasks.run();
-}
+};
 
 setup();
