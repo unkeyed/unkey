@@ -26,7 +26,6 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
     .from(schema.keys)
     .then((res) => res.at(0)?.count ?? 0),
   getTotalVerifications({}).then((res) => {
-    console.log({ res });
     return res.data.reduce((acc, curr) => acc + curr["count()"], 0);
   }),
 ]);

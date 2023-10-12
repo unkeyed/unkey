@@ -5,7 +5,7 @@ DESCRIPTION >
 
 SCHEMA >
     `workspaceId` String,
-    `count` AggregateFunction(count),
+    `verifications` AggregateFunction(count),
     `time` DateTime
 
 ENGINE "AggregatingMergeTree"

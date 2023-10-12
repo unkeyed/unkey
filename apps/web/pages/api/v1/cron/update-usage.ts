@@ -5,7 +5,7 @@ import {
   getVerificationsPerHourForAllWorkspaces,
 } from "@/lib/tinybird";
 import * as Sentry from "@sentry/nextjs";
-import { verifySignature } from "@upstash/qstash/nextjs";
+// import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 export const config = {
@@ -158,8 +158,8 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     res.end();
   }
 }
-
-export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
+export default handler;
+// export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
 /**
  *
  * return utc start and end time of the month as unix milliseconds timestamps
