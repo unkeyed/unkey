@@ -8,7 +8,7 @@ import { hideBin } from "yargs/helpers";
 import { addApiPackages, writeFile, getPaths } from "@redwoodjs/cli-helpers";
 import { Listr } from "listr2";
 import { execa } from "execa";
-import { format } from "prettier";
+import { prettifyTemplate, updateTomlConfig } from "./utils";
 
 // We take in yargs because we want to allow `--cwd` to be passed in, similar to the redwood cli itself.
 let { cwd, help } = Parser(hideBin(process.argv));
@@ -16,6 +16,7 @@ let { cwd, help } = Parser(hideBin(process.argv));
 // Redwood must set the `RWJS_CWD` env var to the project's root directory so that the internal libraries
 // know where to look for files.
 cwd ??= process.env["RWJS_CWD"];
+
 try {
   if (cwd) {
     // `cwd` was set by the `--cwd` option or the `RWJS_CWD` env var. In this case,
@@ -62,18 +63,9 @@ async function setup() {
           "utf-8"
         );
 
-        // Use prettier to format the template according to the RedwoodJS style
-        const prettifiedTemplate = await format(template, {
-          trailingComma: "es5",
-          bracketSpacing: true,
-          tabWidth: 2,
-          semi: false,
-          singleQuote: true,
-          arrowParens: "always",
-          parser: "typescript",
-        });
-
         // Write the template to the file system and replace any existing
+        const prettifiedTemplate = await prettifyTemplate(template);
+
         writeFile(
           path.join(getPaths().api.lib, "unkey.ts"),
           prettifiedTemplate,
@@ -83,22 +75,25 @@ async function setup() {
         );
       },
     },
-    // {
-    //   title: "Adding @unkey/redwoodjs to the redwood CLI",
-    //   task: async () => {
-    //     await execa("yarn", ["add", "@unkey/redwoodjs", "-D"], {
-    //       cwd: getPaths().base,
-    //       stdio: "inherit",
-    //     });
-    //     // Edit the toml to add as a registered plugin
-    // [experimental.cli]
-    //   autoInstall = true
-    //   [[experimental.cli.plugins]]
-    //     package = "@unkey/redwoodjs"
-    //   },
-    // },
-    // yarn rw @unkey example blah blah
-    //
+    {
+      title: 'Updating redwood.toml to include "@unkey/redwoodjs" as a plugin',
+      task: () => {
+        updateTomlConfig();
+      },
+    },
+    {
+      title: "Adding @unkey/redwoodjs to the RedwoodJS CLI",
+      task: async () => {
+        console.log("Adding @unkey/redwoodjs to the redwood CLI [TODO]");
+        //   await execa("yarn", ["add", "@unkey/redwoodjs", "-D"], {
+        //     cwd: getPaths().base,
+        //     stdio: "inherit",
+        //   });
+
+        // then case use as:
+        // yarn rw @unkey example blah blah
+      },
+    },
   ]);
 
   await tasks.run();

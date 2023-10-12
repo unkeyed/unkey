@@ -708,6 +708,9 @@ importers:
       '@redwoodjs/cli-helpers':
         specifier: '>= 6'
         version: 6.3.2
+      '@redwoodjs/project-config':
+        specifier: ^6.3.2
+        version: 6.3.2
       execa:
         specifier: ^8.0.1
         version: 8.0.1
