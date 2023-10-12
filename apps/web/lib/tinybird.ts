@@ -6,17 +6,6 @@ const tb = new Tinybird({ token: env().TINYBIRD_TOKEN });
 
 const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
-export const publishKeyVerification = tb.buildIngestEndpoint({
-  datasource: "key_verifications__v1",
-  event: z.object({
-    keyId: z.string(),
-    apiId: z.string(),
-    workspaceId: z.string(),
-    time: z.number(),
-    ratelimited: z.boolean(),
-  }),
-});
-
 export const getDailyVerifications = tb.buildPipe({
   pipe: "endpoint__get_daily_verifications__v1",
   parameters: z.object({
@@ -140,10 +129,10 @@ export const getActiveKeysPerHourForAllWorkspaces = tb.buildPipe({
 });
 
 export const getVerificationsPerHourForAllWorkspaces = tb.buildPipe({
-  pipe: "endpoint_billing_get_verifications_per_workspace_per_hour__v1",
+  pipe: "endpoint__billing_verifications_per_hour__v1",
 
   data: z.object({
-    usage: z.number(),
+    verifications: z.number(),
     workspaceId: z.string(),
     time: datetimeToUnixMilli,
   }),

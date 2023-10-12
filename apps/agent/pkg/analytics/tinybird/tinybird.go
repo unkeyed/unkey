@@ -75,24 +75,8 @@ func New(config Config) *Tinybird {
 		t.logger.Debug().Int("status", resp.StatusCode).Msg("sent request")
 		defer resp.Body.Close()
 
-		// LEGACY we're also sending the event to the old datasource
 
-		req2, err := http.NewRequest("POST", fmt.Sprintf("https://api.tinybird.co/v0/events?name=%s", "key_verifications__v1"), body)
-		if err != nil {
-			t.logger.Err(err).Msg("error creating request")
-			return
-		}
-
-		req2.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.token))
-		req2.Header.Add("Content-Type", "application/json")
-
-		resp2, err := t.client.Do(req2)
-		if err != nil {
-			t.logger.Err(err).Msg("error sending request")
-			return
-		}
-		defer resp2.Body.Close()
-
+	
 	}, 1000, time.Second)
 
 	return t

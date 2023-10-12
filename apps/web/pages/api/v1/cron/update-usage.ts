@@ -5,7 +5,7 @@ import {
   getVerificationsPerHourForAllWorkspaces,
 } from "@/lib/tinybird";
 import * as Sentry from "@sentry/nextjs";
-// import { verifySignature } from "@upstash/qstash/nextjs";
+import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 export const config = {
@@ -28,14 +28,6 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     });
 
     const allWorkspaces = await db.query.workspaces.findMany();
-
-    const changed: {
-      workspaceId: string;
-      activeKeys: number;
-      verifications: number;
-      start: number;
-      end: number;
-    }[] = [];
 
     console.log("found %d workspaces", allWorkspaces.length);
 
@@ -73,7 +65,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
           let verifications = 0;
           for (const d of globalVerifications) {
             if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
-              verifications += d.usage;
+              verifications += d.verifications;
             }
           }
           if (verifications > 0 || activeKeys > 0) {
@@ -86,7 +78,6 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
               new Date(end).toDateString(),
             );
           }
-          changed.push({ workspaceId: ws.id, verifications, activeKeys, start, end });
 
           await db
             .update(schema.workspaces)
@@ -140,7 +131,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
       monitorSlug: "usage-updates",
       status: "ok",
     });
-    res.json({ changed, globalVerifications, globalActiveKeys, ...getMonthStartAndEnd() });
+    res.send("OK");
   } catch (err) {
     res.status(500);
     Sentry.captureCheckIn({
@@ -158,8 +149,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     res.end();
   }
 }
-export default handler;
-// export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
+export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
 /**
  *
  * return utc start and end time of the month as unix milliseconds timestamps
