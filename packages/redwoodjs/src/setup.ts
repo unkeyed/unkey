@@ -7,6 +7,8 @@ import Parser from "yargs-parser";
 import { hideBin } from "yargs/helpers";
 import { addApiPackages, writeFile, getPaths } from "@redwoodjs/cli-helpers";
 import { Listr } from "listr2";
+import { execa } from "execa";
+import { format } from "prettier";
 
 // We take in yargs because we want to allow `--cwd` to be passed in, similar to the redwood cli itself.
 let { cwd, help } = Parser(hideBin(process.argv));
@@ -49,27 +51,57 @@ process.env["RWJS_CWD"] = cwd;
 // Run run the setup function
 async function setup() {
   const tasks = new Listr([
-    // add the unkey sdk
+    // Adds the Unkey sdk to the RedwoodJS api side
     addApiPackages(["@unkey/api"]),
     {
-      title: "Adding unkey.ts",
+      title: "Adding unkey.ts to your api/lib directory ...",
       task: async () => {
+        // Grab template
         const template = fs.readFileSync(
           path.resolve(__dirname, "templates", "unkey.ts.template"),
           "utf-8"
         );
 
-        writeFile(path.join(getPaths().api.lib, "unkey.ts"), template, {
-          existingFiles: "OVERWRITE",
+        // Use prettier to format the template according to the RedwoodJS style
+        const prettifiedTemplate = await format(template, {
+          trailingComma: "es5",
+          bracketSpacing: true,
+          tabWidth: 2,
+          semi: false,
+          singleQuote: true,
+          arrowParens: "always",
+          parser: "typescript",
         });
 
-        // Format the file with prettier?
+        // Write the template to the file system and replace any existing
+        writeFile(
+          path.join(getPaths().api.lib, "unkey.ts"),
+          prettifiedTemplate,
+          {
+            existingFiles: "OVERWRITE",
+          }
+        );
       },
     },
+    // {
+    //   title: "Adding @unkey/redwoodjs to the redwood CLI",
+    //   task: async () => {
+    //     await execa("yarn", ["add", "@unkey/redwoodjs", "-D"], {
+    //       cwd: getPaths().base,
+    //       stdio: "inherit",
+    //     });
+    //     // Edit the toml to add as a registered plugin
+    // [experimental.cli]
+    //   autoInstall = true
+    //   [[experimental.cli.plugins]]
+    //     package = "@unkey/redwoodjs"
+    //   },
+    // },
+    // yarn rw @unkey example blah blah
+    //
   ]);
 
   await tasks.run();
 }
-setup();
 
-// copy over lb/unkey.ts template
+setup();

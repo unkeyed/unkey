@@ -25,11 +25,12 @@
     "build": "tsup",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe "
   },
-  "peerDependencies": {},
   "dependencies": {
     "@redwoodjs/cli-helpers": ">= 6",
+    "execa": "^8.0.1",
     "findup-sync": "^5.0.0",
     "listr2": "^7.0.1",
+    "prettier": "^3.0.3",
     "yargs": "^17.7.2",
     "yargs-parser": "^21.1.1"
   },

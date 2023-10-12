@@ -1,11 +1,3 @@
-// export * from "./setup";
+import { exampleCommand } from "./commands/example";
 
-// import { tokenCommand } from './commands/token'
-
-export const commands = [
-  // yargs command go here....
-  // tokenCommand
-  { fake: true },
-];
-
-console.log("index");
+export const commands = [exampleCommand];
