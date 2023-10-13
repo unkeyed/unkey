@@ -7,6 +7,7 @@ package database
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -51,6 +52,134 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ApisAuthType), nil
+}
+
+type AuditLogsAction string
+
+const (
+	AuditLogsActionCreated AuditLogsAction = "created"
+	AuditLogsActionUpdated AuditLogsAction = "updated"
+	AuditLogsActionDeleted AuditLogsAction = "deleted"
+)
+
+func (e *AuditLogsAction) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditLogsAction(s)
+	case string:
+		*e = AuditLogsAction(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditLogsAction: %T", src)
+	}
+	return nil
+}
+
+type NullAuditLogsAction struct {
+	AuditLogsAction AuditLogsAction
+	Valid           bool // Valid is true if AuditLogsAction is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuditLogsAction) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuditLogsAction, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuditLogsAction.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuditLogsAction) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuditLogsAction), nil
+}
+
+type AuditLogsActorType string
+
+const (
+	AuditLogsActorTypeUser AuditLogsActorType = "user"
+	AuditLogsActorTypeKey  AuditLogsActorType = "key"
+)
+
+func (e *AuditLogsActorType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditLogsActorType(s)
+	case string:
+		*e = AuditLogsActorType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditLogsActorType: %T", src)
+	}
+	return nil
+}
+
+type NullAuditLogsActorType struct {
+	AuditLogsActorType AuditLogsActorType
+	Valid              bool // Valid is true if AuditLogsActorType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuditLogsActorType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuditLogsActorType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuditLogsActorType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuditLogsActorType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuditLogsActorType), nil
+}
+
+type AuditLogsResourceType string
+
+const (
+	AuditLogsResourceTypeKey       AuditLogsResourceType = "key"
+	AuditLogsResourceTypeApi       AuditLogsResourceType = "api"
+	AuditLogsResourceTypeWorkspace AuditLogsResourceType = "workspace"
+)
+
+func (e *AuditLogsResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditLogsResourceType(s)
+	case string:
+		*e = AuditLogsResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditLogsResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullAuditLogsResourceType struct {
+	AuditLogsResourceType AuditLogsResourceType
+	Valid                 bool // Valid is true if AuditLogsResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuditLogsResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuditLogsResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuditLogsResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuditLogsResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuditLogsResourceType), nil
 }
 
 type VercelBindingsEnvironment string
@@ -190,6 +319,26 @@ type Api struct {
 	KeyAuthID   sql.NullString
 }
 
+type AuditLog struct {
+	ID           string
+	WorkspaceID  string
+	Action       AuditLogsAction
+	Description  string
+	Time         time.Time
+	ActorType    AuditLogsActorType
+	ActorID      string
+	ResourceType AuditLogsResourceType
+	ResourceID   string
+	Tags         json.RawMessage
+}
+
+type AuditLogChange struct {
+	AuditLogID string
+	Field      string
+	Old        sql.NullString
+	New        sql.NullString
+}
+
 type Key struct {
 	ID                      string
 	Hash                    string
@@ -208,6 +357,7 @@ type Key struct {
 	RemainingRequests       sql.NullInt32
 	KeyAuthID               string
 	TotalUses               sql.NullInt64
+	DeletedAt               sql.NullTime
 }
 
 type KeyAuth struct {
@@ -216,17 +366,17 @@ type KeyAuth struct {
 }
 
 type VercelBinding struct {
-	WorkspaceID   string
+	ID            string
 	IntegrationID string
+	WorkspaceID   string
 	ProjectID     string
 	Environment   VercelBindingsEnvironment
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	LastEditedBy  string
-	ID            string
 	ResourceID    string
 	ResourceType  VercelBindingsResourceType
 	VercelEnvID   string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	LastEditedBy  string
 }
 
 type VercelIntegration struct {
@@ -241,7 +391,6 @@ type Workspace struct {
 	Name                  string
 	Slug                  sql.NullString
 	TenantID              string
-	Internal              bool
 	StripeCustomerID      sql.NullString
 	StripeSubscriptionID  sql.NullString
 	Plan                  NullWorkspacesPlan
@@ -253,4 +402,5 @@ type Workspace struct {
 	BillingPeriodStart    sql.NullTime
 	BillingPeriodEnd      sql.NullTime
 	TrialEnds             sql.NullTime
+	Features              json.RawMessage
 }

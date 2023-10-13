@@ -1,15 +1,15 @@
 import { relations } from "drizzle-orm";
-// db.ts
 import {
-  boolean,
   datetime,
   int,
+  json,
   mysqlEnum,
   mysqlTable,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { auditLogs } from "./audit";
 import { keys } from "./keys";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
@@ -22,11 +22,6 @@ export const workspaces = mysqlTable(
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }),
-    // Internal workspaces are used to manage the unkey app itself
-    internal: boolean("internal").notNull().default(false),
-
-    // idk, some kind of feature flag was useful
-    // enableBetaFeatures: boolean("enable_beta_features").default(false),
 
     // different plans, this should only be used for visualisations in the ui
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
@@ -48,6 +43,15 @@ export const workspaces = mysqlTable(
     maxVerifications: int("quota_max_verifications"),
     usageVerifications: int("usage_verifications"),
     lastUsageUpdate: datetime("last_usage_update", { fsp: 3 }),
+
+    /**
+     * feature flags
+     */
+    features: json("features")
+      .$type<{
+        auditLog?: boolean;
+      }>()
+      .default({}),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
@@ -60,4 +64,5 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   keys: many(keys),
   vercelIntegrations: many(vercelIntegrations),
   vercelBindings: many(vercelBindings),
+  auditLogs: many(auditLogs),
 }));

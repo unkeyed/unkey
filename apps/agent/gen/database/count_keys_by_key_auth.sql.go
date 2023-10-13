@@ -15,7 +15,7 @@ SELECT
 FROM
     ` + "`" + `keys` + "`" + `
 WHERE
-    key_auth_id = ?
+    key_auth_id = ? and deleted_at IS NULL
 `
 
 func (q *Queries) CountKeysByKeyAuth(ctx context.Context, keyAuthID string) (int64, error) {

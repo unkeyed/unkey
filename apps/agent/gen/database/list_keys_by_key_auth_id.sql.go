@@ -11,11 +11,12 @@ import (
 
 const listKeysByKeyAuthId = `-- name: ListKeysByKeyAuthId :many
 SELECT
-    id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests, key_auth_id, total_uses
+    id, hash, start, owner_id, meta, created_at, expires, ratelimit_type, ratelimit_limit, ratelimit_refill_rate, ratelimit_refill_interval, workspace_id, for_workspace_id, name, remaining_requests, key_auth_id, total_uses, deleted_at
 FROM
     ` + "`" + `keys` + "`" + `
 WHERE
     key_auth_id = ?
+    AND deleted_at IS NULL
 ORDER BY
     created_at ASC
 LIMIT
@@ -55,6 +56,7 @@ func (q *Queries) ListKeysByKeyAuthId(ctx context.Context, arg ListKeysByKeyAuth
 			&i.RemainingRequests,
 			&i.KeyAuthID,
 			&i.TotalUses,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
