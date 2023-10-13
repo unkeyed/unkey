@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency: ${{ github.workflow }} - ${{ github.ref }}
 
 jobs:
   test_agent:
@@ -103,6 +103,7 @@ jobs:
 
   tinybird:
     name: Tinybird CI
+    concurrency: tinybird
     uses: tinybirdco/ci/.github/workflows/ci.yml@v1.1.8
     with:
       data_project_dir: ./internal/tinybird

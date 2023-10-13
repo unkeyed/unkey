@@ -1,6 +1,6 @@
 name: Tinybird - CD Workflow
 
-concurrency: tinybird-envs
+concurrency: tinybird
 
 on:
   workflow_dispatch:
