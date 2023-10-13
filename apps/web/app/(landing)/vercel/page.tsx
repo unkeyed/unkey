@@ -44,7 +44,7 @@ export default function Example() {
         </div>
 
         <div className="w-full border-gray-100 lg:border-l lg:pl-8 lg:w-3/5">
-        <div className="hidden lg:block lg:ml-12">
+          <div className="hidden lg:block lg:ml-12">
             <iframe
               width="560"
               height="315"
