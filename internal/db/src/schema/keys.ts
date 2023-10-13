@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { auditLogs } from "./audit";
 import { keyAuth } from "./keyAuth";
 import { workspaces } from "./workspaces";
 
@@ -40,6 +41,14 @@ export const keys = mysqlTable(
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix,
     /**
+     * When a key is revoked, we set this time field to mark it as deleted.
+     *
+     * All places where we show keys, should filter by this field.
+     *
+     * `deletedAt == null` means the key is active.
+     */
+    deletedAt: datetime("deleted_at", { fsp: 3 }),
+    /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
     remainingRequests: int("remaining_requests"),
@@ -56,7 +65,7 @@ export const keys = mysqlTable(
   }),
 );
 
-export const keysRelations = relations(keys, ({ one }) => ({
+export const keysRelations = relations(keys, ({ one, many }) => ({
   keyAuth: one(keyAuth, {
     fields: [keys.keyAuthId],
     references: [keyAuth.id],
@@ -69,4 +78,5 @@ export const keysRelations = relations(keys, ({ one }) => ({
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
   }),
+  auditLog: many(auditLogs),
 }));

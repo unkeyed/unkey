@@ -22,6 +22,8 @@ type CreateRootKeyRequest struct {
 	// ForWorkspaceId is used internally when the frontend wants to create a new root key.
 	// Therefore we might not want to add this field to our docs.
 	ForWorkspaceId string `json:"forWorkspaceId" validate:"required"`
+
+	OwnerId string `json:"ownerId"`
 }
 
 type CreateRootKeyResponse struct {
@@ -64,6 +66,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 		Id:          uid.Key(),
 		KeyAuthId:   s.unkeyKeyAuthId,
 		WorkspaceId: s.unkeyWorkspaceId,
+		OwnerId:     req.OwnerId,
 		Name:        req.Name,
 		Hash:        keyHash,
 		Start:       keyValue[0 : separatorIndex+4],

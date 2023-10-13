@@ -75,8 +75,6 @@ func New(config Config) *Tinybird {
 		t.logger.Debug().Int("status", resp.StatusCode).Msg("sent request")
 		defer resp.Body.Close()
 
-
-	
 	}, 1000, time.Second)
 
 	return t

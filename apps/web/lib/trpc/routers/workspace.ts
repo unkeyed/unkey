@@ -31,7 +31,7 @@ export const workspaceRouter = t.router({
         });
         organizationId = org.id;
       }
-      // TODO:
+
       const workspace: Workspace = {
         id: newId("workspace"),
         slug: null,
@@ -40,7 +40,6 @@ export const workspaceRouter = t.router({
         plan: input.plan,
         stripeCustomerId: null,
         stripeSubscriptionId: null,
-        internal: false,
         maxActiveKeys: QUOTA[input.plan].maxActiveKeys,
         maxVerifications: QUOTA[input.plan].maxVerifications,
         usageActiveKeys: null,
@@ -49,6 +48,8 @@ export const workspaceRouter = t.router({
         billingPeriodStart: null,
         billingPeriodEnd: null,
         trialEnds: null,
+        features: {},
+        betaFeatures: {},
       };
       await db.insert(schema.workspaces).values(workspace);
 
