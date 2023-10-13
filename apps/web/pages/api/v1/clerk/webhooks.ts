@@ -89,6 +89,17 @@ async function alertSlack(email: string): Promise<void> {
     },
     body: JSON.stringify({
       text: `${email} signed up`,
+      blocks: [
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `<https://${domain}>`,
+            },
+          ],
+        },
+      ],
     }),
   }).catch((err: Error) => {
     console.error(err);

@@ -19,7 +19,6 @@ func (db *database) FindWorkspace(ctx context.Context, workspaceId string) (enti
 		if errors.Is(err, sql.ErrNoRows) {
 			return entities.Workspace{}, false, nil
 		}
-		fmt.Println("BBBB")
 		return entities.Workspace{}, false, fmt.Errorf("unable to find workspace: %w", err)
 	}
 
