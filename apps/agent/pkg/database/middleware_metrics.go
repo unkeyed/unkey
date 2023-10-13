@@ -140,15 +140,15 @@ func (mw *metricsMiddleware) UpdateKey(ctx context.Context, key entities.Key) (e
 	}()
 	return mw.next.UpdateKey(ctx, key)
 }
-func (mw *metricsMiddleware) DeleteKey(ctx context.Context, keyId string) (err error) {
+func (mw *metricsMiddleware) SoftDeleteKey(ctx context.Context, keyId string) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
-			Query:   "DeleteKey",
+			Query:   "SoftDeleteKey",
 			Latency: time.Since(start).Milliseconds(),
 		})
 	}()
-	return mw.next.DeleteKey(ctx, keyId)
+	return mw.next.SoftDeleteKey(ctx, keyId)
 
 }
 func (mw *metricsMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error) {

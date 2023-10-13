@@ -1,7 +1,7 @@
 "use server";
 
 import { serverAction } from "@/lib/actions";
-import { db, eq, schema } from "@/lib/db";
+import { unkeyScoped } from "@/lib/api";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -28,26 +28,17 @@ export const updateKeyRemaining = serverAction({
     remaining: stringToIntOrNull,
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db.query.keys.findFirst({
-      where: eq(schema.keys.id, input.keyId),
-      with: {
-        workspace: true,
-      },
-    });
-    if (!key || key.workspace.tenantId !== ctx.tenantId) {
-      throw new Error("key not found");
-    }
-
     if (input.enableRemaining && typeof input.remaining !== "number") {
       throw new Error("provide a number");
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        remainingRequests: input.enableRemaining ? input.remaining : null,
-      })
-      .where(eq(schema.keys.id, input.keyId));
+    const res = await unkeyScoped(ctx.rootKey).keys.update({
+      keyId: input.keyId,
+      remaining: input.enableRemaining ? input.remaining : null,
+    });
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -63,16 +54,6 @@ export const updateKeyRatelimit = serverAction({
     ratelimitRefillInterval: stringToIntOrNull,
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db.query.keys.findFirst({
-      where: eq(schema.keys.id, input.keyId),
-      with: {
-        workspace: true,
-      },
-    });
-    if (!key || key.workspace.tenantId !== ctx.tenantId) {
-      throw new Error("key not found");
-    }
-
     let ratelimitType: "fast" | null = null;
     let ratelimitLimit: number | null = null;
     let ratelimitRefillRate: number | null = null;
@@ -99,15 +80,21 @@ export const updateKeyRatelimit = serverAction({
       ratelimitRefillInterval = input.ratelimitRefillInterval;
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        ratelimitType,
-        ratelimitLimit,
-        ratelimitRefillRate,
-        ratelimitRefillInterval,
-      })
-      .where(eq(schema.keys.id, input.keyId));
+    const res = await unkeyScoped(ctx.rootKey).keys.update({
+      keyId: input.keyId,
+      ratelimit:
+        ratelimitType && ratelimitLimit && ratelimitRefillRate && ratelimitRefillInterval
+          ? {
+              type: ratelimitType,
+              limit: ratelimitLimit,
+              refillRate: ratelimitRefillRate,
+              refillInterval: ratelimitRefillInterval,
+            }
+          : null,
+    });
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -120,16 +107,6 @@ export const updateExpiration = serverAction({
     expiration: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db.query.keys.findFirst({
-      where: eq(schema.keys.id, input.keyId),
-      with: {
-        workspace: true,
-      },
-    });
-    if (!key || key.workspace.tenantId !== ctx.tenantId) {
-      throw new Error("key not found");
-    }
-
     let expires: Date | null = null;
     if (input.enableExpiration) {
       if (!input.expiration) {
@@ -143,12 +120,13 @@ export const updateExpiration = serverAction({
       }
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        expires,
-      })
-      .where(eq(schema.keys.id, input.keyId));
+    const res = await unkeyScoped(ctx.rootKey).keys.update({
+      keyId: input.keyId,
+      expires: expires?.getTime() ?? null,
+    });
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -157,25 +135,26 @@ export const updateExpiration = serverAction({
 export const updateMetadata = serverAction({
   input: z.object({
     keyId: z.string(),
-    metadata: z.string().nullish(),
+    metadata: z.string().nullable(),
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db.query.keys.findFirst({
-      where: eq(schema.keys.id, input.keyId),
-      with: {
-        workspace: true,
-      },
-    });
-    if (!key || key.workspace.tenantId !== ctx.tenantId) {
-      throw new Error("key not found");
+    let meta: unknown | null = null;
+
+    if (input.metadata !== null) {
+      try {
+        meta = JSON.parse(input.metadata);
+      } catch (e) {
+        throw new Error(`Metadata is not valid json: ${(e as Error).message}`);
+      }
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        meta: input.metadata ?? null,
-      })
-      .where(eq(schema.keys.id, input.keyId));
+    const res = await unkeyScoped(ctx.rootKey).keys.update({
+      keyId: input.keyId,
+      meta: meta,
+    });
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -187,22 +166,31 @@ export const updateKeyName = serverAction({
     name: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const key = await db.query.keys.findFirst({
-      where: eq(schema.keys.id, input.keyId),
-      with: {
-        workspace: true,
-      },
+    const res = await unkeyScoped(ctx.rootKey).keys.update({
+      keyId: input.keyId,
+      name: input.name ?? null,
     });
-    if (!key || key.workspace.tenantId !== ctx.tenantId) {
-      throw new Error("key not found");
+    if (res.error) {
+      throw new Error(res.error.message);
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        name: input.name ?? null,
-      })
-      .where(eq(schema.keys.id, input.keyId));
+    revalidatePath(`/apps/keys/${input.keyId}`);
+  },
+});
+
+export const updateKeyOwnerId = serverAction({
+  input: z.object({
+    keyId: z.string(),
+    ownerId: z.string().nullish(),
+  }),
+  handler: async ({ input, ctx }) => {
+    const res = await unkeyScoped(ctx.rootKey).keys.update({
+      keyId: input.keyId,
+      ownerId: input.ownerId ?? null,
+    });
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },

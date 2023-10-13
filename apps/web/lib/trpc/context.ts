@@ -58,7 +58,7 @@ async function getRootKey(
   }
   const created = await unkeyRoot._internal.createRootKey({
     name: "tRPC",
-    expires: Date.now() + 60_000,
+    expires: Date.now() + 5 * 60 * 1000,
     forWorkspaceId: ws.id,
   });
   if (created.error) {

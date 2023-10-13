@@ -46,7 +46,7 @@ func (s *Server) v1RemoveKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
-	err = s.db.DeleteKey(ctx, key.Id)
+	err = s.db.SoftDeleteKey(ctx, key.Id)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to delete key: %s", err.Error()))
 	}

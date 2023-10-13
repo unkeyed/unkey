@@ -2,12 +2,13 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, isNull, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
 import { UpdateKeyName } from "./update-key-name";
+import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
 export const revalidate = 0;
@@ -22,7 +23,8 @@ export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: eq(schema.keys.id, props.params.keyId),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
+
     with: {
       workspace: true,
     },
@@ -38,6 +40,8 @@ export default async function SettingsPage(props: Props) {
       <UpdateKeyExpiration apiKey={key} />
       <UpdateKeyMetadata apiKey={key} />
       <UpdateKeyName apiKey={key} />
+      <UpdateKeyOwnerId apiKey={key} />
+
       <Card>
         <CardHeader>
           <CardTitle>Key ID</CardTitle>
