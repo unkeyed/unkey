@@ -73,7 +73,7 @@ export const getTotalVerifications = tb.buildPipe({
 });
 
 export const getLatestVerifications = tb.buildPipe({
-  pipe: "endpoint__get_latest_verifications__v1",
+  pipe: "endpoint__get_latest_verifications__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
