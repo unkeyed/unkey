@@ -44,7 +44,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
       keyId: key.id,
     }),
     getTotalVerificationsForKey({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
-    getLatestVerifications({ keyId: key.id }),
+    getLatestVerifications({ workspaceId: key.workspaceId, apiId: api.id, keyId: key.id }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
 

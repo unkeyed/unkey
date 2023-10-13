@@ -34,6 +34,9 @@ export default async function Page(props: { params: { keyId: string } }) {
 
   const key = await db.query.keys.findFirst({
     where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
+    with: {
+      keyAuth: true,
+    },
   });
   if (!key) {
     return notFound();
@@ -46,7 +49,11 @@ export default async function Page(props: { params: { keyId: string } }) {
       keyId: key.id,
     }),
     getTotalVerificationsForKey({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
-    getLatestVerifications({ keyId: key.id }),
+    getLatestVerifications({
+      workspaceId: env().UNKEY_WORKSPACE_ID,
+      apiId: env().UNKEY_API_ID,
+      keyId: key.id,
+    }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
 
