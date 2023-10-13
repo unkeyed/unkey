@@ -62,7 +62,7 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
             <TableCell>{verification.requestedResource}</TableCell>
             <TableCell className="max-w-sm truncate">{verification.userAgent}</TableCell>
             <TableCell className="font-mono">
-              {showIp ? verification.ipAddress : verification.ipAddress.replace(/\d/g, "*")}
+              {showIp ? verification.ipAddress : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
             </TableCell>
             <TableCell>{verification.region}</TableCell>
             <TableCell>
