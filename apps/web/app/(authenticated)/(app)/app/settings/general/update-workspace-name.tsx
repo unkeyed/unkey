@@ -29,7 +29,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         if (res.error) {
           toast({
             title: "Error",
-            description: res.error,
+            description: res.error.message,
             variant: "alert",
           });
           return;

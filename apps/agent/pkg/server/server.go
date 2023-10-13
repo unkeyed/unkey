@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
@@ -123,6 +124,8 @@ func New(config Config) *Server {
 		buf = buf[:runtime.Stack(buf, false)]
 		config.Logger.Error().Any("err", err).Bytes("stacktrace", buf).Msg("recovered from panic")
 	}}))
+
+	s.app.Use(cors.New())
 
 	basicAuthUser := os.Getenv("BASIC_AUTH_USER")
 	basicAuthPassword := os.Getenv("BASIC_AUTH_PASSWORD")

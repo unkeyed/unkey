@@ -1,9 +1,7 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
-import { Loading } from "@/components/dashboard/loading";
+import { SubmitButton } from "@/components/dashboard/submit-button";
 import {
   Card,
   CardContent,
@@ -28,7 +26,6 @@ type Props = {
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   const [enabled, setEnabled] = useState(apiKey.remainingRequests !== null);
   return (
@@ -38,7 +35,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
         if (res.error) {
           toast({
             title: "Error",
-            description: res.error,
+            description: res.error.message,
             variant: "alert",
           });
           return;
@@ -78,9 +75,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
             <Switch id="enableRemaining" checked={enabled} onCheckedChange={setEnabled} />
             <Label htmlFor="enableRemaining">{enabled ? "Enabled" : "Disabled"}</Label>
           </div>
-          <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
-            {pending ? <Loading /> : "Save"}
-          </Button>
+          <SubmitButton label="Save" />
         </CardFooter>
       </Card>
     </form>

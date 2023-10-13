@@ -30,7 +30,7 @@ type Database interface {
 	FindKeyById(ctx context.Context, keyId string) (key entities.Key, found bool, err error)
 	FindKeyByHash(ctx context.Context, hash string) (key entities.Key, found bool, err error)
 	UpdateKey(ctx context.Context, key entities.Key) error
-	DeleteKey(ctx context.Context, keyId string) error
+	SoftDeleteKey(ctx context.Context, keyId string) error
 	DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error)
 	CountKeys(ctx context.Context, keyAuthId string) (int64, error)
 	ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error)

@@ -18,6 +18,7 @@ export const env = () =>
       TINYBIRD_TOKEN: z.string(),
 
       UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
+      NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
       UNKEY_APP_AUTH_TOKEN: z.string(),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),

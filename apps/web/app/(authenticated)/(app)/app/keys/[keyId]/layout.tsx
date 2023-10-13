@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/dashboard/navbar";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, isNull, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { PropsWithChildren } from "react";
 
@@ -14,7 +14,7 @@ export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: eq(schema.keys.id, props.params.keyId),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
       workspace: true,
     },
