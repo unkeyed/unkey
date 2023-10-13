@@ -46,7 +46,12 @@ export const workspaces = mysqlTable(
 
     /**
      * feature flags
+     *
+     * betaFeatures may be toggled by the user for early access
      */
+    betaFeatures: json("beta_features").$type<{
+      auditLog?: boolean;
+    }>(),
     features: json("features").$type<{
       auditLog?: boolean;
     }>(),

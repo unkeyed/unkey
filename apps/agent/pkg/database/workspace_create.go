@@ -12,10 +12,12 @@ import (
 func (db *database) InsertWorkspace(ctx context.Context, ws entities.Workspace) error {
 
 	err := db.write().InsertWorkspace(ctx, gen.InsertWorkspaceParams{
-		ID:       ws.Id,
-		Name:     ws.Name,
-		TenantID: ws.TenantId,
-		Plan:     gen.NullWorkspacesPlan{WorkspacesPlan: gen.WorkspacesPlan(ws.Plan), Valid: ws.Plan != ""},
+		ID:           ws.Id,
+		Name:         ws.Name,
+		TenantID:     ws.TenantId,
+		Plan:         gen.NullWorkspacesPlan{WorkspacesPlan: gen.WorkspacesPlan(ws.Plan), Valid: ws.Plan != ""},
+		Features:     []byte("{}"),
+		BetaFeatures: []byte("{}"),
 	})
 	if err != nil {
 		var mysqlErr *mysql.MySQLError

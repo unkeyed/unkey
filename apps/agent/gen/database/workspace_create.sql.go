@@ -8,6 +8,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const insertWorkspace = `-- name: InsertWorkspace :exec
@@ -17,10 +18,14 @@ INSERT INTO
         name,
         slug,
         tenant_id,
-        plan
+        plan,
+        features,
+        beta_features
     )
 VALUES
     (
+        ?,
+        ?,
         ?,
         ?,
         ?,
@@ -30,11 +35,13 @@ VALUES
 `
 
 type InsertWorkspaceParams struct {
-	ID       string
-	Name     string
-	Slug     sql.NullString
-	TenantID string
-	Plan     NullWorkspacesPlan
+	ID           string
+	Name         string
+	Slug         sql.NullString
+	TenantID     string
+	Plan         NullWorkspacesPlan
+	Features     json.RawMessage
+	BetaFeatures json.RawMessage
 }
 
 func (q *Queries) InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error {
@@ -44,6 +51,8 @@ func (q *Queries) InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams
 		arg.Slug,
 		arg.TenantID,
 		arg.Plan,
+		arg.Features,
+		arg.BetaFeatures,
 	)
 	return err
 }

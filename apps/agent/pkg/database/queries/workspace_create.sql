@@ -5,7 +5,9 @@ INSERT INTO
         name,
         slug,
         tenant_id,
-        plan
+        plan,
+        features,
+        beta_features
     )
 VALUES
     (
@@ -13,5 +15,7 @@ VALUES
         sqlc.arg("name"),
         sqlc.arg("slug"),
         sqlc.arg("tenant_id"),
-        sqlc.arg("plan")
+        sqlc.arg("plan"),
+        sqlc.arg("features"),
+        sqlc.arg("beta_features")
     );

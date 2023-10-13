@@ -403,4 +403,5 @@ type Workspace struct {
 	BillingPeriodEnd      sql.NullTime
 	TrialEnds             sql.NullTime
 	Features              json.RawMessage
+	BetaFeatures          json.RawMessage
 }
