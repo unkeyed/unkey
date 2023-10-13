@@ -386,6 +386,16 @@ importers:
         specifier: ^18.2.7
         version: 18.2.7
 
+  examples/bun-server:
+    dependencies:
+      '@unkey/api':
+        specifier: ^0.10.2
+        version: link:../../packages/api
+    devDependencies:
+      bun-types:
+        specifier: ^1.0.6
+        version: 1.0.6
+
   examples/nextjs:
     dependencies:
       '@types/node':
@@ -6796,6 +6806,10 @@ packages:
     resolution: {integrity: sha512-ix1XQqZPuBlNkimQniqNjwpqduGb/hBm5LAFRgPfotY97IGUcsKGV3YGl7GAnqFB9wa31OeOT/yeSbEgXiQJWw==}
     dev: false
 
+  /@unkey/api@0.10.2:
+    resolution: {integrity: sha512-e8+gLrH0C6Sbrrtbq1SzEbVI6KD8oDITcHASz29XPCQYBKwPNo7o/3sl6RuwkmnTMKwsLivwtjWvQO3KjIQJzg==}
+    dev: false
+
   /@unkey/api@0.8.0:
     resolution: {integrity: sha512-sodjMqcTVBuBMhm8XF8UHL2Uh+47Wtb6j43OmL7aPZmFKj0OJCMv8BB3E8kXOvbdlPmodgTS8eqqaSFEc2VauA==}
     dev: false
@@ -6805,7 +6819,7 @@ packages:
     peerDependencies:
       next: ^13.5.3
     dependencies:
-      '@unkey/api': 0.10.0
+      '@unkey/api': 0.10.2
       next: 13.5.3(react-dom@18.2.0)(react@18.2.0)
     dev: false
 
@@ -7808,6 +7822,10 @@ packages:
     resolution: {integrity: sha512-qwVpFEHNfhYJIzNRBvd2C1kyo6jz3ZSMPyyuR47OPdiKWlbYnZNyDWuyR175qDnAJLiCo5fBBqPb3RiXgWlkOQ==}
     dependencies:
       semver: 7.5.4
+    dev: true
+
+  /bun-types@1.0.6:
+    resolution: {integrity: sha512-5QwynfXiRCRxPW3ZnC0Dv+sHHmctP4SHIuzsRKOWYO0HF/qUpsxQVexoviaxpmwDsF1hoVDDFdc4xUuafOzx1g==}
     dev: true
 
   /bundle-name@3.0.0:

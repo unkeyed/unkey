@@ -1,0 +1,16 @@
+{
+  "name": "bun-server",
+  "version": "1.0.0",
+  "description": "Bun server with unkey.dev",
+  "scripts": {
+    "dev": "bun run ./index.ts"
+  },
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "bun-types": "^1.0.6"
+  },
+  "dependencies": {
+    "@unkey/api": "^0.10.2"
+  }
+}
