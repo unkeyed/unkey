@@ -36,6 +36,9 @@ jobs:
         run: go mod download
         working-directory: apps/agent
 
+      - name: Load Schema into MySQL
+        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
+        
       - name: Test
         run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
         working-directory: apps/agent
