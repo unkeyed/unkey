@@ -1,9 +1,6 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import React from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
-import { Loading } from "@/components/dashboard/loading";
 import { SubmitButton } from "@/components/dashboard/submit-button";
 import {
   Card,
@@ -28,7 +25,6 @@ type Props = {
 
 export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-  const { pending } = useFormStatus();
   return (
     <form
       action={async (formData: FormData) => {

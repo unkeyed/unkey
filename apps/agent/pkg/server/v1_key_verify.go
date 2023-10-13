@@ -93,7 +93,7 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 	}
 	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
 		s.keyCache.Remove(ctx, hash)
-		err := s.db.DeleteKey(ctx, key.Id)
+		err := s.db.SoftDeleteKey(ctx, key.Id)
 		if err != nil {
 			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 		}

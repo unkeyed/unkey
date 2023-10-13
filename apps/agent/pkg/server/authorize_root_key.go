@@ -57,7 +57,7 @@ func (s *Server) authorizeRootKey(ctx context.Context, c *fiber.Ctx) (authorized
 
 	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
 		s.keyCache.Remove(ctx, h)
-		err := s.db.DeleteKey(ctx, key.Id)
+		err := s.db.SoftDeleteKey(ctx, key.Id)
 		if err != nil {
 			return "", err
 		}

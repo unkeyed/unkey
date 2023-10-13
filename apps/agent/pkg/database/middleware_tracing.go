@@ -134,11 +134,11 @@ func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) (e
 	}
 	return err
 }
-func (mw *tracingMiddleware) DeleteKey(ctx context.Context, keyId string) (err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "DeleteKey"))
+func (mw *tracingMiddleware) SoftDeleteKey(ctx context.Context, keyId string) (err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "SoftDeleteKey"))
 	defer span.End()
 
-	err = mw.next.DeleteKey(ctx, keyId)
+	err = mw.next.SoftDeleteKey(ctx, keyId)
 	if err != nil {
 		span.RecordError(err)
 	}

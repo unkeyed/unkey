@@ -1,9 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React, { useState } from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
-
-import { Loading } from "@/components/dashboard/loading";
 import { SubmitButton } from "@/components/dashboard/submit-button";
 import {
   Card,
@@ -19,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { Key } from "@unkey/db";
+import React, { useState } from "react";
 import { updateKeyRatelimit } from "./actions";
 type Props = {
   apiKey: {
@@ -33,7 +29,6 @@ type Props = {
 
 export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   const [enabled, setEnabled] = useState(apiKey.ratelimitType !== null);
   return (
