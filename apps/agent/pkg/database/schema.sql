@@ -111,7 +111,7 @@ CREATE TABLE `workspaces` (
     `billing_period_start` datetime(3) NULL,
     `billing_period_end` datetime(3) NULL,
     `trial_ends` datetime(3) NULL,
-    `features` json NULL DEFAULT '{}',
+    `features` json NULL,
     PRIMARY KEY (`id`),
     UNIQUE INDEX `slug_idx` (`slug`),
     UNIQUE INDEX `tenant_id_idx` (`tenant_id`)

@@ -47,11 +47,9 @@ export const workspaces = mysqlTable(
     /**
      * feature flags
      */
-    features: json("features")
-      .$type<{
-        auditLog?: boolean;
-      }>()
-      .default({}),
+    features: json("features").$type<{
+      auditLog?: boolean;
+    }>(),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
