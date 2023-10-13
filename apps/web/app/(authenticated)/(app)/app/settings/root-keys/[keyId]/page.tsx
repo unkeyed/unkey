@@ -2,14 +2,6 @@ import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
@@ -21,9 +13,10 @@ import {
   getTotalVerificationsForKey,
 } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
-import { Check, Info, Minus } from "lucide-react";
+import { Info, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
+import { AccessTable } from "./access-table";
 export const revalidate = 0;
 
 export default async function Page(props: { params: { keyId: string } }) {
@@ -149,44 +142,7 @@ export default async function Page(props: { params: { keyId: string } }) {
         </CardContent>
       </Card>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Time</TableHead>
-            <TableHead>Resource</TableHead>
-            <TableHead>User Agent</TableHead>
-            <TableHead>IP Address</TableHead>
-            <TableHead>Region</TableHead>
-            <TableHead>Valid</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {latestVerifications.data?.map((verification, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-            <TableRow key={i}>
-              <TableCell className="flex flex-col">
-                <span className="text-content">{new Date(verification.time).toDateString()}</span>
-                <span className="text-xs text-content-subtle">
-                  {new Date(verification.time).toTimeString().split("(").at(0)}
-                </span>
-              </TableCell>
-              <TableCell>{verification.requestedResource}</TableCell>
-              <TableCell className="max-w-sm truncate">{verification.userAgent}</TableCell>
-              <TableCell>{verification.ipAddress}</TableCell>
-              <TableCell>{verification.region}</TableCell>
-              <TableCell>
-                {verification.usageExceeded ? (
-                  <Badge>Usage Exceede</Badge>
-                ) : verification.ratelimited ? (
-                  <Badge>Ratelimited</Badge>
-                ) : (
-                  <Check />
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <AccessTable verifications={latestVerifications.data} />
     </div>
   );
 }
