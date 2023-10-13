@@ -1,10 +1,16 @@
-VERSION 1
+VERSION 2
 TOKEN "endpoint__get_latest_verifications_endpoint_read_5933" READ
 
 NODE endpoint
 SQL >
 
     %
-    SELECT time,requestedResource, ratelimited, region, ipAddress, usageExceeded, userAgent FROM key_verifications where keyId = {{String(keyId, required=True)}} order by time desc limit 20
+    SELECT time,requestedResource, ratelimited, region, ipAddress, usageExceeded, userAgent 
+    FROM key_verifications 
+    where 
+    workspaceId = {{String(workspaceId, required=True)}} 
+   and apiId = {{String(apiId, required=True)}} 
+    and keyId = {{String(keyId, required=True)}} 
+    order by time desc limit 20
 
 
