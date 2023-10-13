@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, isNull, schema } from "@/lib/db";
 import {
   getDailyVerifications,
   getLastUsed,
@@ -29,7 +29,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: eq(schema.keys.id, props.params.keyId),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
       workspace: true,
     },

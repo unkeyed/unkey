@@ -2,25 +2,25 @@ import { UnkeyError } from "./errors";
 
 export type UnkeyOptions = (
   | {
-      token?: never;
+    token?: never;
 
-      /**
-       * The root key from unkey.dev.
-       *
-       * You can create/manage your root keys here:
-       * https://unkey.dev/app/settings/root-keys
-       */
-      rootKey: string;
-    }
+    /**
+     * The root key from unkey.dev.
+     *
+     * You can create/manage your root keys here:
+     * https://unkey.dev/app/settings/root-keys
+     */
+    rootKey: string;
+  }
   | {
-      /**
-       * The workspace key from unkey.dev
-       *
-       * @deprecated Use `rootKey`
-       */
-      token: string;
-      rootKey?: never;
-    }
+    /**
+     * The workspace key from unkey.dev
+     *
+     * @deprecated Use `rootKey`
+     */
+    token: string;
+    rootKey?: never;
+  }
 ) & {
   /**
    * @default https://api.unkey.dev
@@ -59,13 +59,13 @@ type ApiRequest = {
 
 type Result<R> =
   | {
-      result: R;
-      error?: never;
-    }
+    result: R;
+    error?: never;
+  }
   | {
-      result?: never;
-      error: UnkeyError;
-    };
+    result?: never;
+    error: UnkeyError;
+  };
 
 export class Unkey {
   public readonly baseUrl: string;

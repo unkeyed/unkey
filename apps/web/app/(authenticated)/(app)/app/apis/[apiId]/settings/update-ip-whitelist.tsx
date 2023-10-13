@@ -45,7 +45,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         if (res.error) {
           toast({
             title: "Error",
-            description: res.error,
+            description: res.error.message,
             variant: "alert",
           });
           return;

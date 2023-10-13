@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
+import { SubmitButton } from "@/components/dashboard/submit-button";
 import {
   Card,
   CardContent,
@@ -42,7 +43,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
         if (res.error) {
           toast({
             title: "Error",
-            description: res.error,
+            description: res.error.message,
             variant: "alert",
           });
           return;
@@ -120,9 +121,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             <Switch id="enabled" checked={enabled} onCheckedChange={setEnabled} />
             <Label htmlFor="enabled">{enabled ? "Enabled" : "Disabled"}</Label>
           </div>
-          <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
-            {pending ? <Loading /> : "Save"}
-          </Button>
+          <SubmitButton label="Save" />
         </CardFooter>
       </Card>
     </form>
