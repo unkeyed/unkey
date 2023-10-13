@@ -4,5 +4,48 @@ description: Zero Config API Authenciation on Vercel
 ---
 
 
-<Card icon="helmet-safety" title="Coming soon"/>
+## Prerequisites
 
+- [Create a workspace](/quickstart/onboarding#2-create-your-first-workspace)
+- [Create an API](/quickstart/onboarding#2-create-your-first-api)
+- [Vercel account](https://vercel.com/signup)
+
+
+## Adding Vercel Integration
+
+Prefer a video? Checkout this video that walks through the steps below.
+<div class="flex justify-center align-center">
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/fDKkicMZiCc?si=ksblX5j1-OUvNLpf&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+<Steps >
+<Step titleSize="h3" title="Install" stepNumber={1}>
+
+The first step is to install the Vercel integration from the [Marketplace](https://vercel.com/integrations/unkey) or you can install it from the [Unkey Dashboard](https://unkey.dev/app/settings/vercel).
+<Frame caption="Add integration">
+  <img src="./images/add-integration.png" alt="Add your integration"/>
+</Frame>
+</Step>
+<Step titleSize="h3" title="Select project" stepNumber={2}>
+ Next you need to select your project in Vercel that you want to use with Unkey's integration.
+<Frame caption="Select project">
+  <img src="./images/select-project.png" alt="Select project"/>
+</Frame>
+</Step>
+<Step titleSize="h3" title="Select API" stepNumber={3}>
+ Now you can set the Unkey API you want to use for each environment in Vercel.
+<Frame caption="Select API">
+  <img src="./images/select-api.png" alt="Select API"/>
+</Frame>
+</Step>
+<Step titleSize="h3" title="Integration complete" stepNumber={4}>
+That's it! You can now use Unkey's API authentication with your Vercel project. You will see that if you navigate to your Vercel project's environment variables, you will see we have added them.
+</Step>
+</Steps>
+
+## How to update a root key
+
+Our integration uses Vercel's sensitive environment variable for the `UNKEY_ROOT_KEY`. To reissue a new root key, you can simply navigate to the Vercel integration settings and click the 3 dot menu and select "Reroll the key"
+
+<Frame caption="Update your root key">
+  <img src="./images/reroll-key.png" alt="Update your root key"/>
+</Frame>
