@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider } from "@clerk/nextjs";
-
+import { ClerkProvider, auth } from "@clerk/nextjs";
+import * as Sentry from "@sentry/nextjs";
 export default function AuthenticatedLayout({
   children,
 }: {
@@ -20,6 +20,7 @@ export default function AuthenticatedLayout({
             },
           }}
         >
+          <SetUserInSentry />
           {children}
         </ClerkProvider>
       </TooltipProvider>
@@ -27,3 +28,15 @@ export default function AuthenticatedLayout({
     </>
   );
 }
+
+const SetUserInSentry: React.FC = () => {
+  const { userId } = auth();
+  if (!userId) {
+    Sentry.setUser(null);
+  } else {
+    Sentry.setUser({
+      id: userId,
+    });
+  }
+  return null;
+};

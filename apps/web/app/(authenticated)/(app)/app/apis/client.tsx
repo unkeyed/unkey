@@ -45,7 +45,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         <CreateApiButton key="createApi" />
       </section>
       {apis.length ? (
-        <ul role="list" className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3">
           {localData.map((api) => (
             <Link key={api.id} href={`/app/apis/${api.id}`}>
               <Card className="relative overflow-hidden duration-500 hover:border-primary/50 group ">

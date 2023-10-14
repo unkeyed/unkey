@@ -10,17 +10,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type DeleteKeyRequest struct {
-	KeyId string `json:"keyId" validate:"required"`
-}
-
-type DeleteKeyResponse struct {
-}
-
 func (s *Server) deleteKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.deleteKey")
 	defer span.End()
-	req := DeleteKeyRequest{}
+	req := RemoveKeyRequestV1{}
 	err := c.ParamsParser(&req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
@@ -46,7 +39,7 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
-	err = s.db.DeleteKey(ctx, key.Id)
+	err = s.db.SoftDeleteKey(ctx, key.Id)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to delete key: %s", err.Error()))
 	}
@@ -59,5 +52,5 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 		},
 	})
 
-	return c.JSON(DeleteKeyResponse{})
+	return c.JSON(RemoveKeyResponseV1{})
 }

@@ -39,7 +39,7 @@ Supervisor.count_children(pid)
 #=> %{active: 1, specs: 1, supervisors: 0, workers: 1}
 ```
 
-> **NOTE** In order to run this project either create a `config/dev.secret.exs` file with the key `unkey_elixir_sdk_example` and values specified in `.env.example` ([token](<(https://unkey.dev/app/keys)>) & [apiId](https://docs.unkey.dev/quickstart#4-create-your-first-api-key)) OR directly use the environment variables in code (not recommended).
+> **NOTE** In order to run this project either create a `config/dev.secret.exs` file with the key `unkey_elixir_sdk_example` and values specified in `.env.example` ([token](<(https://unkey.dev/app/keys)>) & [apiId](https://unkey.dev/docs/quickstart#4-create-your-first-api-key)) OR directly use the environment variables in code (not recommended).
 
 ## Run the project
 

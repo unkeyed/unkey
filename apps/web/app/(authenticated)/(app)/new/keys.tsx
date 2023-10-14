@@ -126,7 +126,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Code className="flex items-center justify-between w-full gap-4 my-8 ">
+              <Code
+                data-sentry-mask
+                className="flex items-center justify-between w-full gap-4 my-8 "
+              >
                 {showKey ? step.rootKey : maskKey(step.rootKey)}
                 <div className="flex items-start justify-between gap-4">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -137,7 +140,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
                 Try creating a new api key for your users:
               </p>
-              <Code className="flex items-start justify-between w-full gap-4 my-8 ">
+              <Code
+                data-sentry-mask
+                className="flex items-start justify-between w-full gap-4 my-8 "
+              >
                 {showKeyInSnippet
                   ? createKeySnippet
                   : createKeySnippet.replace(step.rootKey, maskKey(step.rootKey))}
@@ -148,8 +154,13 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </Code>
             </CardContent>
             <CardFooter className="justify-between">
-              <Button size="sm" variant="link" onClick={() => key.mutate({ apiId })}>
-                Or click here to create a key
+              <Button
+                size="sm"
+                variant="link"
+                disabled={key.isLoading}
+                onClick={() => key.mutate({ apiId })}
+              >
+                {key.isLoading ? <Loading /> : "Or click here to create a key"}
               </Button>
               <Button
                 size="sm"
@@ -169,7 +180,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
             </CardHeader>
             <CardContent>
               {step.key ? (
-                <Code className="flex items-center justify-between w-full gap-4 my-8 ">
+                <Code
+                  data-sentry-mask
+                  className="flex items-center justify-between w-full gap-4 my-8 "
+                >
                   {showKey ? step.key : maskKey(step.key)}
                   <div className="flex items-start justify-between gap-4">
                     <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -178,7 +192,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                 </Code>
               ) : null}
 
-              <Code className="flex items-start justify-between w-full gap-4 my-8 ">
+              <Code
+                data-sentry-mask
+                className="flex items-start justify-between w-full gap-4 my-8 "
+              >
                 {step.key
                   ? showKeyInSnippet
                     ? verifyKeySnippet
@@ -196,7 +213,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </Code>
             </CardContent>
             <CardFooter className="justify-between">
-              <Link href="https://docs.unkey.dev" target="_blank">
+              <Link href="https://unkey.dev/docs" target="_blank">
                 <Button size="sm" variant="link">
                   Read more
                 </Button>

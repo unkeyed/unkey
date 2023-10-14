@@ -11,7 +11,7 @@ const tiers = {
       "100 Monthly Active Keys",
       "2500 Verifications per month",
       "Discord Support",
-      "7 Day Data Retention",
+      "7 Days Analytics Retention",
     ],
     footnotes: [],
   },
@@ -27,7 +27,7 @@ const tiers = {
       "10,000 Verifications included *",
       "Workspaces with team members",
       "Priority Support",
-      "Data retention for 90 days",
+      "90 Days Analatics Retention",
     ],
     footnotes: [
       " * Additonal active keys are billed at $0.10",
@@ -45,7 +45,7 @@ const tiers = {
       "Custom Verification Limits",
       "Custom Active Key Limits",
       "Pricing based on your needs",
-      "Custom data retention",
+      "Custom Analytics Retention",
       "Dedicated support contract",
       "Whitelist IP per API",
     ],
@@ -159,10 +159,7 @@ export default async function PricingPage() {
                     </>
                   )}
                   <div className="flex flex-col justify-between grow">
-                    <ul
-                      role="list"
-                      className="mt-8 space-y-3 text-sm leading-6 text-gray-600 xl:mt-10"
-                    >
+                    <ul className="mt-8 space-y-3 text-sm leading-6 text-gray-600 xl:mt-10">
                       {tiers[tier].features.map((feature) => (
                         <li key={feature} className="flex gap-x-3">
                           <svg
@@ -205,7 +202,7 @@ export default async function PricingPage() {
           <div>
             <div className="text-center">
               <p className="text-gray-900 text-md sm:text-lg">
-                Volume pricing is available on request,{" "}
+                Volume discounts are available on request,{" "}
                 <a className="text-gray-600 underline" href="mailto:james@unkey.dev">
                   contact us
                 </a>{" "}

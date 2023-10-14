@@ -3,12 +3,17 @@
   "name": "Unkey Docs",
   "colors": {
     "primary": "#09090b",
-    "light": "#f4f4f5",
-    "dark": "#18181b"
+    "light": "#EAE6E0",
+    "dark": "#18181b",
+    "background": {
+      "light": "#fafaf9",
+      "dark": "#0c0a09"
+    }
   },
   "feedback": {
     "raiseIssue": true,
-    "suggestEdit": true
+    "suggestEdit": true,
+    "thumbsRating": true
   },
   "favicon": "/unkey.png",
   "topbarLinks": [
@@ -33,6 +38,10 @@
     {
       "name": "Libraries",
       "url": "libraries"
+    },
+    {
+      "name": "Contributing",
+      "url": "contributing"
     }
   ],
   "anchors": [
@@ -55,17 +64,34 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": ["introduction", "quickstart", "security"]
+      "pages": [
+        "introduction",
+        {
+          "group": "Quickstart",
+          "pages": [
+            "quickstart/onboarding",
+            {
+              "group": "Typescript",
+              "pages": ["quickstart/typescript/bun"]
+            }
+          ]
+        },
+        "security"
+      ]
     },
     {
       "group": "Features",
-      "icon": "bolt",
       "pages": [
         "features/ratelimiting",
         "features/temp-keys",
         "features/remaining",
         "features/analytics"
       ]
+    },
+    {
+      "group": "Integrations",
+      "icon": "bolt",
+      "pages": ["integrations/vercel"]
     },
     {
       "group": "API Documentation",
@@ -106,20 +132,26 @@
       "group": "Typescript",
       "icon": "code",
       "pages": [
-        "libraries/js/overview",
         {
-          "group": "Keys",
+          "group": "@unkey/api",
           "pages": [
-            "libraries/js/keys/create",
-            "libraries/js/keys/verify",
-            "libraries/js/keys/update",
-            "libraries/js/keys/revoke"
+            "libraries/ts/sdk/overview",
+            {
+              "group": "Keys",
+              "pages": [
+                "libraries/ts/sdk/keys/create",
+                "libraries/ts/sdk/keys/verify",
+                "libraries/ts/sdk/keys/update",
+                "libraries/ts/sdk/keys/revoke"
+              ]
+            },
+            {
+              "group": "APIs",
+              "pages": ["libraries/ts/sdk/apis/get", "libraries/ts/sdk/apis/list-keys"]
+            }
           ]
         },
-        {
-          "group": "APIs",
-          "pages": ["libraries/js/apis/get", "libraries/js/apis/list-keys"]
-        }
+        "libraries/ts/hono"
       ]
     },
     {
@@ -178,6 +210,11 @@
       "group": "Rust",
       "icon": "code",
       "pages": ["libraries/rs/overview"]
+    },
+    {
+      "group": "Contributing",
+      "icon": "github",
+      "pages": ["contributing/versions"]
     }
   ],
   "footerSocials": {

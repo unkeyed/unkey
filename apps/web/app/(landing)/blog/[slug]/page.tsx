@@ -76,7 +76,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               {post.title}
             </h2>
             <p className="text-gray-500 text-center my-8 border-">{post.description}</p>
-            <div className="w-full mx-auto prose lg:prose-md ">
+            <div className="w-full mx-auto prose prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border">
               <Content />
             </div>
           </div>
@@ -159,7 +159,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
             <div className="relative mt-16 h-80 lg:mt-8">
               <img
                 className="absolute left-0 top-0 w-[57rem] max-w-none rounded-md g-white/5 ring-1 ring-white/10"
-                src="/images/landing/app.png"
+                src="/images/blog-images/admin-dashboard-new.png"
                 alt="App screenshot"
                 width={1824}
                 height={1080}

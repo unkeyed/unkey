@@ -40,7 +40,7 @@ export const MobileSideBar = ({ className }: Props) => {
                 </SheetClose>
               </Link>
 
-              <Link href="/app/keys">
+              <Link href="/app/settings/general">
                 <SheetClose asChild>
                   <Button variant="ghost" className="justify-start w-full border-t">
                     <Settings className="w-4 h-4 mr-2" />
@@ -49,7 +49,7 @@ export const MobileSideBar = ({ className }: Props) => {
                 </SheetClose>
               </Link>
 
-              <Link href="https://docs.unkey.dev" target="_blank">
+              <Link href="https://unkey.dev/docs" target="_blank">
                 <Button variant="ghost" className="justify-start w-full py-2 border-t">
                   <BookOpen className="w-4 h-4 mr-2" />
                   Docs

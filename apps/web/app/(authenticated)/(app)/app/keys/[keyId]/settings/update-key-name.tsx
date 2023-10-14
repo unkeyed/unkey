@@ -1,9 +1,7 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import React from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
-import { Loading } from "@/components/dashboard/loading";
+import { SubmitButton } from "@/components/dashboard/submit-button";
 import {
   Card,
   CardContent,
@@ -27,7 +25,6 @@ type Props = {
 
 export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-  const { pending } = useFormStatus();
   return (
     <form
       action={async (formData: FormData) => {
@@ -35,7 +32,7 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
         if (res.error) {
           toast({
             title: "Error",
-            description: res.error,
+            description: res.error.message,
             variant: "alert",
           });
           return;
@@ -60,16 +57,14 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
             <Input
               type="string"
               name="name"
-              className="max-w-sm h-8"
+              className="h-8 max-w-sm"
               defaultValue={apiKey.name ?? ""}
               autoComplete="off"
             />
           </div>
         </CardContent>
-        <CardFooter className="justify-between">
-          <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
-            {pending ? <Loading /> : "Save"}
-          </Button>
+        <CardFooter className="justify-end">
+          <SubmitButton label="Save" />
         </CardFooter>
       </Card>
     </form>

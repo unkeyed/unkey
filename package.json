@@ -10,21 +10,21 @@
   "main": "index.js",
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
+    "build": "pnpm turbo run build --filter=!./examples/*",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
-    "commit": "cz"
+    "commit": "cz",
+    "bump-versions": "pnpm changeset version && pnpm install"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "^1.0.0",
+    "@biomejs/biome": "^1.2.2",
     "@changesets/cli": "^2.26.2",
-    "checkly": "^4.1.0",
     "cz-conventional-changelog": "^3.3.0",
     "ts-node": "^10.9.1",
-    "turbo": "^1.10.13",
+    "turbo": "^1.10.15",
     "typescript": "^5.2.2"
   },
   "pnpm": {

@@ -8,9 +8,20 @@ on:
 concurrency: deploy
 
 jobs:
+  
   test:
     name: Test Agent
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: unkey
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+  
     steps:
       - uses: actions/checkout@v3
 
@@ -25,9 +36,14 @@ jobs:
         run: go mod download
         working-directory: apps/agent
 
+      - name: Load Schema into MySQL
+        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
+        
       - name: Test
         run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
         working-directory: apps/agent
+        env:
+          DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
   build:
     name: Build Agent

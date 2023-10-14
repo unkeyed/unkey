@@ -51,7 +51,7 @@ export const UserButton: React.FC = () => {
               <span>Onboarding</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="https://docs.unkey.dev" target="_blank">
+          <Link href="https://unkey.dev/docs" target="_blank">
             <DropdownMenuItem className="cursor-pointer">
               <Book className="w-4 h-4 mr-2" />
               <span>Docs</span>

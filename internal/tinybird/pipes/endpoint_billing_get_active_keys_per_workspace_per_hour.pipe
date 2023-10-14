@@ -1,0 +1,13 @@
+VERSION 2
+TOKEN "endpoint_billing_get_active_keys_per_workspace_per_day__v1_endpoint_read_0857" READ
+
+NODE get_usage
+SQL >
+
+    %
+    SELECT count(DISTINCT keyId) as usage, workspaceId, toStartOfHour(fromUnixTimestamp64Milli(time)) as time
+    FROM key_verifications__v2
+    where time > now() - INTERVAL 32 DAY and time <= now()
+    group by workspaceId, time
+
+

@@ -1,30 +1,28 @@
-import { ColumnChart } from "@/components/dashboard/charts";
+import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
-import { getDailyUsage, getLastUsed, getLatestVerifications, getTotalUsage } from "@/lib/tinybird";
+import { and, db, eq, isNull, schema } from "@/lib/db";
+import {
+  getDailyVerifications,
+  getLastUsed,
+  getLatestVerifications,
+  getTotalVerificationsForKey,
+} from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
-import { Check, Info, Minus } from "lucide-react";
+import { Info, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
+import { AccessTable } from "./table";
 export const revalidate = 0;
 
 export default async function KeyPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: eq(schema.keys.id, props.params.keyId),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
       workspace: true,
     },
@@ -38,33 +36,55 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
   if (!api) {
     return notFound();
   }
-  console.log(key.workspaceId, api.id, key.id);
 
   const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
-    getDailyUsage({
+    getDailyVerifications({
       workspaceId: key.workspaceId,
       apiId: api.id,
       keyId: key.id,
     }),
-    getTotalUsage({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
-    getLatestVerifications({ keyId: key.id }),
+    getTotalVerificationsForKey({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
+    getLatestVerifications({ workspaceId: key.workspaceId, apiId: api.id, keyId: key.id }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
 
   const end = new Date().setUTCHours(0, 0, 0, 0);
   const start = end - 30 * 24 * 60 * 60 * 1000;
 
-  const usageOverTime = fillRange(
-    usage.data.map(({ time, usage }) => ({ value: usage, time })),
-    start,
-    end,
-  ).map(({ value, time }) => ({
+  const usageOverTime = [
+    ...fillRange(
+      usage.data.map(({ time, success }) => ({ value: success, time })),
+      start,
+      end,
+    ).map((x) => ({ ...x, category: "Success" })),
+    ...fillRange(
+      usage.data.map(({ time, rateLimited }) => ({
+        value: rateLimited,
+        time,
+      })),
+      start,
+      end,
+    ).map((x) => ({ ...x, category: "Rate Limited" })),
+    ...fillRange(
+      usage.data.map(({ time, usageExceeded }) => ({
+        value: usageExceeded,
+        time,
+      })),
+      start,
+      end,
+    ).map((x) => ({ ...x, category: "Usage Exceeded" })),
+  ].map(({ value, time, category }) => ({
+    category,
     x: new Date(time).toUTCString(),
     y: value,
   }));
 
   const fmt = new Intl.NumberFormat("en-US", { notation: "compact" }).format;
-  const usage30Days = usage.data.reduce((acc, { usage }) => acc + usage, 0);
+  const usage30Days = usage.data.reduce(
+    (acc, { success, rateLimited, usageExceeded }) => acc + success + rateLimited + usageExceeded,
+    0,
+  );
+
   return (
     <div className="flex flex-col gap-8">
       <Card>
@@ -76,10 +96,12 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
           />
           <Stat
             label="Remaining"
-            value={key.remainingRequests ? fmt(key.remainingRequests) : <Minus />}
+            value={
+              typeof key.remainingRequests === "number" ? fmt(key.remainingRequests) : <Minus />
+            }
           />
           <Stat
-            label="LastUsed"
+            label="Last Used"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
           <Stat label="Total Uses" value={fmt(totalUsage)} />
@@ -114,48 +136,11 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
           <CardDescription>See when this key was verified</CardDescription>
         </CardHeader>
         <CardContent className="h-64">
-          <ColumnChart data={usageOverTime} />
+          <StackedColumnChart data={usageOverTime} />
         </CardContent>
       </Card>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Time</TableHead>
-            <TableHead>Resource</TableHead>
-            <TableHead>User Agent</TableHead>
-            <TableHead>IP Address</TableHead>
-            <TableHead>Region</TableHead>
-            <TableHead>Valid</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {latestVerifications.data?.map((verification, i) => (
-            // rome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-            <TableRow key={i}>
-              <TableCell className="flex flex-col">
-                <span className="text-content">{new Date(verification.time).toDateString()}</span>
-                <span className="text-xs text-content-subtle">
-                  {new Date(verification.time).toTimeString().split("(").at(0)}
-                </span>
-              </TableCell>
-              <TableCell>{verification.requestedResource}</TableCell>
-              <TableCell className="max-w-sm truncate">{verification.userAgent}</TableCell>
-              <TableCell>{verification.ipAddress}</TableCell>
-              <TableCell>{verification.region}</TableCell>
-              <TableCell>
-                {verification.usageExceeded ? (
-                  <Badge>Usage Exceede</Badge>
-                ) : verification.ratelimited ? (
-                  <Badge>Ratelimited</Badge>
-                ) : (
-                  <Check />
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <AccessTable verifications={latestVerifications.data} />
     </div>
   );
 }

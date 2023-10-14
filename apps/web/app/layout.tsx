@@ -54,7 +54,7 @@ export default function RootLayout({
           defer
           data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
           src="https://plausible.io/js/script.exclusions.js"
-          data-exclude="/app/api*, /app/api*/*"
+          data-exclude="/app/apis*, /app/apis*/*, /app/keys*/*, /app/keys*"
         />
       </head>
       <body>{children}</body>

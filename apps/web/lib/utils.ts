@@ -48,3 +48,5 @@ export function cumulative(
     };
   });
 }
+
+export const isBrowser = typeof window !== "undefined";

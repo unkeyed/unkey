@@ -54,12 +54,10 @@ const (
 )
 
 type Workspace struct {
-	Id                 string
-	Name               string
-	TenantId           string
-	Internal           bool
-	EnableBetaFeatures bool
-	Plan               Plan
+	Id       string
+	Name     string
+	TenantId string
+	Plan     Plan
 }
 
 type KeyAuth struct {

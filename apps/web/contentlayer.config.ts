@@ -6,6 +6,13 @@ import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 
+const options = {
+  theme: "github-light",
+  defaultLang: {
+    block: "typescript",
+  },
+};
+
 const Post = defineDocumentType(() => ({
   name: "Post",
   filePathPattern: "blog/*.mdx",
@@ -86,12 +93,12 @@ const Changelog = defineDocumentType(() => ({
     changes: {
       type: "number",
       description: "The number of changes",
-      required: true,
+      required: false,
     },
     features: {
       type: "string",
       description: "Yes or No",
-      required: true,
+      required: false,
     },
   },
   computedFields: {
@@ -131,6 +138,11 @@ export default makeSource({
   documentTypes: [Changelog, Policies, Post],
   mdx: {
     remarkPlugins: [remarkGfm],
-    rehypePlugins: [rehypePrettyCode, rehypeAutolinkHeadings, rehypeSlug, rehypeCodeTitles],
+    rehypePlugins: [
+      [rehypePrettyCode, options],
+      rehypeAutolinkHeadings,
+      rehypeSlug,
+      rehypeCodeTitles,
+    ],
   },
 });

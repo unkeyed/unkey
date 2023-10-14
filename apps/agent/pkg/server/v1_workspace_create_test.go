@@ -38,7 +38,7 @@ func TestCreateWorkspace_Simple(t *testing.T) {
 	testutil.Json(t, srv.app, testutil.JsonRequest{
 		Debug:  true,
 		Method: "POST",
-		Path:   "/v1/workspace.createWorkspace",
+		Path:   "/v1/workspaces.createWorkspace",
 		Body: fmt.Sprintf(`{
 			"name":"simple",
 			"tenantId": "%s"

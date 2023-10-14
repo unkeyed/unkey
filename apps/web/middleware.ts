@@ -17,6 +17,7 @@ const publicRoutes = [
   "/discord",
   "/pricing",
   "/about",
+  "/vercel",
   "/blog",
   "/blog/(.*)",
   "/changelog",
@@ -25,14 +26,18 @@ const publicRoutes = [
   "/policies/(.*)",
   "/templates",
   "/templates/(.*)",
+  "/meet",
   "/docs",
   "/docs(.*)",
+  "/devtools.fm",
   "/og",
   "/oss-friends",
   "/og/(.*)",
+  "/api/v1/vercel/integration",
   "/api/v1/stripe/webhooks",
   "/api/v1/cron/(.*)",
   "/api/v1/clerk/webhooks",
+  "/monitoring(.*)",
 ];
 
 export default async function (req: NextRequest, evt: NextFetchEvent) {

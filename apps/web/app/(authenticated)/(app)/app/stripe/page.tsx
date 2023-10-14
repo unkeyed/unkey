@@ -1,6 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { currentUser } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -10,6 +11,7 @@ export default async function StripeRedirect() {
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }
+  const user = await currentUser();
 
   const ws = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
@@ -22,7 +24,7 @@ export default async function StripeRedirect() {
     return <div>Stripe is not enabled</div>;
   }
 
-  const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
+  const stripe = new Stripe(stripeEnv()!.STRIPE_SECRET_KEY, {
     apiVersion: "2022-11-15",
     typescript: true,
   });
@@ -41,6 +43,7 @@ export default async function StripeRedirect() {
   if (!ws.stripeCustomerId) {
     const customer = await stripe.customers.create({
       name: ws.name,
+      email: user?.emailAddresses.at(0)?.emailAddress,
     });
     ws.stripeCustomerId = customer.id;
 
@@ -56,16 +59,16 @@ export default async function StripeRedirect() {
     line_items: [
       {
         // base
-        price: stripeEnv.STRIPE_PRO_PLAN_PRICE_ID,
+        price: stripeEnv()!.STRIPE_PRO_PLAN_PRICE_ID,
         quantity: 1,
       },
       {
         // additional keys
-        price: stripeEnv.STRIPE_ACTIVE_KEYS_PRICE_ID,
+        price: stripeEnv()!.STRIPE_ACTIVE_KEYS_PRICE_ID,
       },
       {
         // additional verifications
-        price: stripeEnv.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
+        price: stripeEnv()!.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
       },
     ],
     mode: "subscription",

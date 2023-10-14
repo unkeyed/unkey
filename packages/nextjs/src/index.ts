@@ -1,4 +1,4 @@
-import { verifyKey } from "@unkey/api";
+import { type UnkeyError, verifyKey } from "@unkey/api";
 import { type NextFetchEvent, NextRequest, NextResponse } from "next/server";
 
 export type WithUnkeyConfig = {
@@ -13,6 +13,19 @@ export type WithUnkeyConfig = {
    * @default `req.headers.get("Authorization")?.replace("Bearer ", "") ?? null`
    */
   getKey?: (req: NextRequest) => string | null | NextResponse;
+
+  /**
+   * Automatically return a custom response when a key is invalid
+   */
+  handleInvalidKey?: (
+    req: NextRequest,
+    result: UnkeyContext,
+  ) => NextResponse | Promise<NextResponse>;
+
+  /**
+   * What to do if things go wrong
+   */
+  onError?: (req: NextRequest, err: UnkeyError) => NextResponse | Promise<NextResponse>;
 };
 
 export type UnkeyContext = {
@@ -51,24 +64,23 @@ export function unstable__withUnkey(
       return key;
     }
 
-    const verified = await verifyKey(key);
-    if (verified.error) {
+    const res = await verifyKey(key);
+    if (res.error) {
+      if (config?.onError) {
+        return config.onError(req, res.error);
+      }
       console.error(
-        "unkey error: [CODE: %s] - [TRACE: %s] - %s - read more at %s",
-        verified.error.code,
-        verified.error.requestId,
-        verified.error.message,
-        verified.error.docs,
+        `unkey error: [CODE: ${res.error.code}] - [TRACE: ${res.error.requestId}] - ${res.error.message} - read more at ${res.error.docs}`,
       );
       return new NextResponse("Internal Server Error", { status: 500 });
     }
 
-    const unkeyContext: UnkeyContext = {
-      ...verified.result,
-    };
+    if (config?.handleInvalidKey && !res.result.valid) {
+      return config.handleInvalidKey(req, res.result);
+    }
 
     // @ts-ignore
-    req.unkey = unkeyContext;
+    req.unkey = res.result;
 
     return handler(req as NextRequestWithUnkeyContext, nfe);
   };

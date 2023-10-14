@@ -12,27 +12,23 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  TemplatesFormValues,
+  getDefaulTemplatesFormValues,
+  schema,
+  updateUrl,
+} from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink, VenetianMask } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Framework, Language, templates } from "./data";
 
-const schema = z.object({
-  search: z.string().optional(),
-  frameworks: z.array(z.string()),
-  languages: z.array(z.string()),
-});
-
 export default function Templates() {
-  const form = useForm<z.infer<typeof schema>>({
+  const form = useForm<TemplatesFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      frameworks: [],
-      languages: [],
-    },
+    defaultValues: getDefaulTemplatesFormValues(),
     reValidateMode: "onChange",
   });
 
@@ -56,6 +52,11 @@ export default function Templates() {
   }, {} as Record<Framework, number>);
 
   const fields = form.watch();
+
+  useEffect(() => {
+    updateUrl(fields);
+  }, [fields]);
+
   const filteredTemplates = useMemo(
     () =>
       Object.entries(templates).reduce((acc, [id, template]) => {
@@ -130,7 +131,6 @@ export default function Templates() {
                                 <Checkbox
                                   checked={field.value?.includes(language)}
                                   onCheckedChange={(checked) => {
-                                    console.log({ checked, field, language });
                                     return checked
                                       ? field.onChange([...field.value, language])
                                       : field.onChange(
@@ -177,7 +177,6 @@ export default function Templates() {
                                 <Checkbox
                                   checked={field.value?.includes(framework)}
                                   onCheckedChange={(checked) => {
-                                    console.log({ checked, field, framework });
                                     return checked
                                       ? field.onChange([...field.value, framework])
                                       : field.onChange(

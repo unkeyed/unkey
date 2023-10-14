@@ -6,9 +6,9 @@ import { useRef } from "react";
 
 const MotionImage = motion(Image);
 
-// rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
+// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 export function GrayscaleTransitionImage(props: any) {
-  // rome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
+  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   const ref = useRef() as any;
   const { scrollYProgress } = useScroll({
     target: ref,

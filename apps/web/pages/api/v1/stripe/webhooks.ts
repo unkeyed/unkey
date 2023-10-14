@@ -29,7 +29,7 @@ const requestValidation = z.object({
     "stripe-signature": z.string(),
   }),
 });
-const loops = env.LOOPS_API_KEY ? new Loops({ apiKey: env.LOOPS_API_KEY }) : null;
+const loops = env().LOOPS_API_KEY ? new Loops({ apiKey: env().LOOPS_API_KEY! }) : null;
 
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -41,7 +41,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       throw new Error("stripe env variables are not set up");
     }
 
-    const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
+    const stripe = new Stripe(stripeEnv()!.STRIPE_SECRET_KEY, {
       apiVersion: "2022-11-15",
       typescript: true,
     });
@@ -49,7 +49,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     const event = stripe.webhooks.constructEvent(
       (await buffer(req)).toString(),
       signature,
-      stripeEnv.STRIPE_WEBHOOK_SECRET,
+      stripeEnv()!.STRIPE_WEBHOOK_SECRET,
     );
 
     switch (event.type) {
@@ -76,7 +76,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log("subscription deleted", subscription);
+        console.log("subscription deleted", subscription.id);
         const ws = await db.query.workspaces.findFirst({
           where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
         });
@@ -107,7 +107,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       }
       case "customer.subscription.trial_will_end": {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log("subscription will end", subscription);
+        console.log("subscription will end", subscription.id);
         if (!loops) {
           // no need to fetch everything if we don't use it
           break;
@@ -124,6 +124,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email: user.email,
             name: user.name,
+            workspace: ws.name,
             date: new Date(subscription.trial_end! * 1000),
           });
         }
@@ -132,7 +133,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       }
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        console.log("invoice failed", invoice);
+        console.log("invoice failed", invoice.id);
         if (!loops) {
           break;
         }
@@ -147,6 +148,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           await loops.sendTrialEnds({
             email: user.email,
             name: user.name,
+            workspace: ws.name,
             date: invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date(),
           });
         }

@@ -28,7 +28,7 @@
         {
           "name": "Create Key",
           "http": {
-            "url": "${{env.baseUrl}}/v1/keys",
+            "url": "${{env.baseUrl}}/v1/keys.createKey",
             "method": "POST",
             "headers": {
               "Content-Type": "application/json",
@@ -38,10 +38,18 @@
               "apiId": "${{env.apiId}}"
             },
             "check": {
-              "status": "/^20/",
+              "status": 200,
               "jsonpath": {
-                "$.keyId": [{ "isString": true }],
-                "$.key": [{ "isString": true }]
+                "$.keyId": [
+                  {
+                    "isString": true
+                  }
+                ],
+                "$.key": [
+                  {
+                    "isString": true
+                  }
+                ]
               }
             },
             "captures": {
@@ -57,7 +65,7 @@
         {
           "name": "Verify Key",
           "http": {
-            "url": "${{env.baseUrl}}/v1/keys/verify",
+            "url": "${{env.baseUrl}}/v1/keys.verifyKey",
             "method": "POST",
             "headers": {
               "Content-Type": "application/json"
@@ -66,7 +74,7 @@
               "key": "${{captures.key}}"
             },
             "check": {
-              "status": "/^20/",
+              "status": 200,
               "jsonpath": {
                 "$.valid": true
               }
@@ -90,6 +98,47 @@
                 "$.valid": false,
                 "$.code": "NOT_FOUND"
               }
+            }
+          }
+        },
+        {
+          "name": "Get Key",
+          "http": {
+            "url": "${{env.baseUrl}}/v1/keys.findKey",
+            "method": "GET",
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer ${{secrets.rootKey}}"
+            },
+            "params": {
+              "keyId": "${{captures.keyId}}"
+            },
+            "check": {
+              "status": 200,
+              "jsonpath": {
+                "$.id": [
+                  {
+                    "isString": true
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove Key",
+          "http": {
+            "url": "${{env.baseUrl}}/v1/keys.removeKey",
+            "method": "POST",
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer ${{secrets.rootKey}}"
+            },
+            "json": {
+              "keyId": "${{captures.keyId}}"
+            },
+            "check": {
+              "status": 200
             }
           }
         }

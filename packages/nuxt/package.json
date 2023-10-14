@@ -1,7 +1,10 @@
 {
   "name": "@unkey/nuxt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Nuxt integration for unkey",
   "repository": "unkeyed/unkey",
   "license": "ISC",
@@ -36,7 +39,7 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.7.0",
-    "@unkey/api": "workspace:*",
+    "@unkey/api": "^0.10.0",
     "defu": "^6.1.2"
   },
   "devDependencies": {

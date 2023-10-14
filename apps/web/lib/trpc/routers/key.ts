@@ -61,39 +61,49 @@ export const keyRouter = t.router({
       }
       return result;
     }),
-  createInternalRootKey: t.procedure.use(auth).mutation(async ({ ctx }) => {
-    const unkeyApi = await db.query.apis.findFirst({
-      where: eq(schema.apis.id, env.UNKEY_API_ID),
-      with: {
-        workspace: true,
-      },
-    });
-    if (!unkeyApi) {
-      console.error(`api ${env.UNKEY_API_ID} not found`);
-      throw new TRPCError({ code: "NOT_FOUND", message: `api ${env.UNKEY_API_ID} not found` });
-    }
-
-    const workspace = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.tenantId, ctx.tenant.id),
-    });
-    if (!workspace) {
-      console.error(`workspace for tenant ${ctx.tenant.id} not found`);
-      throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
-    }
-
-    const { error, result } = await unkeyRoot._internal.createRootKey({
-      forWorkspaceId: workspace.id,
-    });
-
-    if (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: `unable to create root key: ${error.message}`,
+  createInternalRootKey: t.procedure
+    .use(auth)
+    .input(
+      z
+        .object({
+          name: z.string().optional(),
+        })
+        .optional(),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const unkeyApi = await db.query.apis.findFirst({
+        where: eq(schema.apis.id, env().UNKEY_API_ID),
+        with: {
+          workspace: true,
+        },
       });
-    }
+      if (!unkeyApi) {
+        console.error(`api ${env().UNKEY_API_ID} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
+      }
 
-    return result;
-  }),
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        console.error(`workspace for tenant ${ctx.tenant.id} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
+
+      const { error, result } = await unkeyRoot._internal.createRootKey({
+        forWorkspaceId: workspace.id,
+        name: input?.name,
+      });
+
+      if (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `unable to create root key: ${error.message}`,
+        });
+      }
+
+      return result;
+    }),
   delete: t.procedure
     .use(auth)
     .input(
@@ -164,7 +174,7 @@ export const keyRouter = t.router({
             keyId,
           });
           if (error) {
-            console.log(error);
+            console.error(error);
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
           }
         }),

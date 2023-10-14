@@ -128,7 +128,7 @@ export const UpdateWorkspaceImage: React.FC = () => {
                 e.preventDefault();
                 e.stopPropagation();
                 setDragActive(false);
-                // rome-ignore lint/complexity/useOptionalChain: <explanation>
+                // biome-ignore lint/complexity/useOptionalChain: <explanation>
                 const file = e.dataTransfer.files && e.dataTransfer.files[0];
                 if (file) {
                   if (file.size / 1024 / 1024 > 2) {

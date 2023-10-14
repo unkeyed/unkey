@@ -6,7 +6,7 @@ import { unkeyRoot } from "../api";
 import { db, eq, schema } from "../db";
 
 export async function createContext({ req, resHeaders }: FetchCreateContextFnOptions) {
-  // rome-ignore lint/suspicious/noExplicitAny: TODO
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   const { userId, orgId, orgRole } = getAuth(req as any);
 
   const tenantId = orgId ?? userId;
@@ -58,7 +58,7 @@ async function getRootKey(
   }
   const created = await unkeyRoot._internal.createRootKey({
     name: "tRPC",
-    expires: Date.now() + 60_000,
+    expires: Date.now() + 5 * 60 * 1000,
     forWorkspaceId: ws.id,
   });
   if (created.error) {

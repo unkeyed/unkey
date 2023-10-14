@@ -1,29 +1,43 @@
 import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
-import { getTotalActiveKeys, getTotalVerificationsForWorkspace } from "@/lib/tinybird";
+import {
+  getActiveKeysPerHourForAllWorkspaces,
+  getVerificationsPerHourForAllWorkspaces,
+} from "@/lib/tinybird";
+import * as Sentry from "@sentry/nextjs";
 import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
+export const config = {
+  maxDuration: 300,
+};
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
+  const checkInId = Sentry.captureCheckIn({
+    monitorSlug: "usage-updates",
+    status: "in_progress",
+  });
   try {
-    if (!stripeEnv) {
+    const e = stripeEnv();
+    if (!e) {
       throw new Error("STRIPE_SECRET_KEY is missing");
     }
 
-    const stripe = new Stripe(stripeEnv.STRIPE_SECRET_KEY, {
+    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
       apiVersion: "2022-11-15",
     });
 
     const allWorkspaces = await db.query.workspaces.findMany();
 
     console.log("found %d workspaces", allWorkspaces.length);
+
+    const globalActiveKeys = (await getActiveKeysPerHourForAllWorkspaces({})).data;
+    const globalVerifications = (await getVerificationsPerHourForAllWorkspaces({})).data;
     while (allWorkspaces.length > 0) {
       const workspaces = allWorkspaces.splice(0, 20);
 
       await Promise.all(
         workspaces.map(async (ws) => {
-          console.warn("workspace with subscription: %s -> %s", ws.id, ws.stripeSubscriptionId);
           let [start, end] = getMonthStartAndEnd();
           let subscription: Stripe.Response<Stripe.Subscription> | null = null;
 
@@ -36,21 +50,40 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             start = subscription.current_period_start * 1000;
             end = subscription.current_period_end * 1000;
           }
+          let activeKeys = 0;
+          for (const d of globalActiveKeys) {
+            if (
+              d.workspaceId === ws.id &&
+              d.time > start &&
+              d.time <= end &&
+              d.usage > activeKeys
+            ) {
+              activeKeys = d.usage;
+            }
+          }
 
-          const activeKeys = await getTotalActiveKeys({ workspaceId: ws.id, start, end }).then(
-            (res) => res.data.at(0)?.usage,
-          );
-          const verifications = await getTotalVerificationsForWorkspace({
-            workspaceId: ws.id,
-            start,
-            end,
-          }).then((res) => res.data.at(0)?.usage);
+          let verifications = 0;
+          for (const d of globalVerifications) {
+            if (d.workspaceId === ws.id && d.time > start && d.time <= end) {
+              verifications += d.verifications;
+            }
+          }
+          if (verifications > 0 || activeKeys > 0) {
+            console.log(
+              "%s did %d verifications with %d keys between %s and %s",
+              ws.id,
+              verifications,
+              activeKeys,
+              new Date(start).toDateString(),
+              new Date(end).toDateString(),
+            );
+          }
 
           await db
             .update(schema.workspaces)
             .set({
-              usageActiveKeys: activeKeys ?? 0,
-              usageVerifications: verifications ?? 0,
+              usageActiveKeys: activeKeys,
+              usageVerifications: verifications,
               lastUsageUpdate: new Date(),
             })
             .where(eq(schema.workspaces.id, ws.id));
@@ -59,7 +92,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             for (const item of subscription.items.data) {
               console.log("handling item %s -> product %s", item.id, item.price.product);
               switch (item.price.product) {
-                case stripeEnv?.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+                case e.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
                   if (activeKeys) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),
@@ -70,7 +103,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
                   }
                   break;
                 }
-                case stripeEnv?.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+                case e.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
                   if (verifications) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),
@@ -89,13 +122,23 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     }
 
     // report success
-    if (env.UPTIME_CRON_URL_COLLECT_BILLING) {
-      await fetch(env.UPTIME_CRON_URL_COLLECT_BILLING);
+    if (env().UPTIME_CRON_URL_COLLECT_BILLING) {
+      await fetch(env().UPTIME_CRON_URL_COLLECT_BILLING!);
     }
 
+    Sentry.captureCheckIn({
+      checkInId,
+      monitorSlug: "usage-updates",
+      status: "ok",
+    });
     res.send("OK");
   } catch (err) {
     res.status(500);
+    Sentry.captureCheckIn({
+      checkInId,
+      monitorSlug: "usage-updates",
+      status: "error",
+    });
     if (err instanceof Error) {
       console.error(err.message);
       res.send(err.message);
@@ -106,9 +149,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     res.end();
   }
 }
-
 export default process.env.NODE_ENV === "production" ? verifySignature(handler) : handler;
-
 /**
  *
  * return utc start and end time of the month as unix milliseconds timestamps
