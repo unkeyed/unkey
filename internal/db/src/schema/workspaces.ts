@@ -49,12 +49,16 @@ export const workspaces = mysqlTable(
      *
      * betaFeatures may be toggled by the user for early access
      */
-    betaFeatures: json("beta_features").$type<{
-      auditLog?: boolean;
-    }>(),
-    features: json("features").$type<{
-      auditLog?: boolean;
-    }>(),
+    betaFeatures: json("beta_features")
+      .$type<{
+        auditLog?: boolean;
+      }>()
+      .notNull(),
+    features: json("features")
+      .$type<{
+        auditLog?: boolean;
+      }>()
+      .notNull(),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
