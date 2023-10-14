@@ -515,8 +515,8 @@ github.com/ashanbrown/forbidigo v1.5.1 h1:WXhzLjOlnuDYPYQo/eFlcFMi8X/kLfvWLYu6CS
 github.com/ashanbrown/forbidigo v1.5.1/go.mod h1:Y8j9jy9ZYAEHXdu723cUlraTqbzjKF1MUyfOKL+AjcU=
 github.com/ashanbrown/makezero v1.1.1 h1:iCQ87C0V0vSyO+M9E/FZYbu65auqH0lnsOkf5FcB28s=
 github.com/ashanbrown/makezero v1.1.1/go.mod h1:i1bJLCRSCHOcOa9Y6MyF2FTfMZMFdHvxKHxgO5Z1axI=
-github.com/axiomhq/axiom-go v0.15.0 h1:LtxLqRSCa4Xll6aDxrpRMcSRuIw8vycNIz4BqXrYLiU=
-github.com/axiomhq/axiom-go v0.15.0/go.mod h1:X3CWTM2pFGTB7Qwo6VrMpky5SIKJkhvjpnOw0AFSRuY=
+github.com/axiomhq/axiom-go v0.17.0 h1:R+OPFrvXJ+Lr9X8x+X7ZtBapdBLKmJxKGFTOUzJw9Hw=
+github.com/axiomhq/axiom-go v0.17.0/go.mod h1:NZwmoM/3nCYpIzLFCBf4hsJZ0t8l8vzypKpb1FnXeUM=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
