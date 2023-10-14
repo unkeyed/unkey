@@ -409,7 +409,7 @@ export class Unkey {
         }>
       > => {
         return await this.fetch({
-          path: ["v1", "api.createApi"],
+          path: ["v1", "apis.createApi"],
           method: "POST",
           body: req,
           cache: "no-cache",
@@ -431,7 +431,7 @@ export class Unkey {
         }>
       > => {
         return await this.fetch({
-          path: ["v1", "api.removeApi"],
+          path: ["v1", "apis.removeApi"],
           method: "POST",
           body: req,
           cache: "no-cache",
