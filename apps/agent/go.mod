@@ -3,7 +3,7 @@ module github.com/unkeyed/unkey/apps/agent
 go 1.20
 
 require (
-	github.com/axiomhq/axiom-go v0.15.0
+	github.com/axiomhq/axiom-go v0.17.0
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/go-redis/redis/v8 v8.11.5
