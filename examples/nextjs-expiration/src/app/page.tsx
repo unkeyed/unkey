@@ -10,12 +10,6 @@ export default function Home() {
       </h2>
       <form action={createKey}>
         <div className="flex flex-col gap-1">
-          <input
-            className="border border-black rounded px-2 py-1 focus:outline-none"
-            type="text"
-            placeholder="Key name"
-            name="name"
-          />
           <button
             type="submit"
             className="bg-black px-2 py-1 text-white rounded"
@@ -27,8 +21,7 @@ export default function Home() {
       <ul className="flex flex-col gap-1 pt-2">
         {keys.map((key) => (
           <li className="border-black border rounded p-2" key={key.keyId}>
-            <p className="font-bold">{key.name}</p>
-            <p>Key: {key.key}</p>
+            <p className="font-bold">Key: {key.key}</p>
             <p className="text-gray-600 text-sm">
               Expires on {new Date(key.expires).toString()}
             </p>

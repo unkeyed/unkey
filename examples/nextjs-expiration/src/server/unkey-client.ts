@@ -3,7 +3,6 @@ import { Unkey } from "@unkey/api";
 type Key = {
   key: string;
   keyId: string;
-  name: string;
   expires: number;
 };
 
@@ -21,11 +20,10 @@ function getApiId() {
 
 export const unkey = new Unkey({ token: UNKEY_ROOT_KEY });
 
-export async function createApiKey(args: { name: string; expires: number }) {
+export async function createApiKey(args: { expires: number }) {
   const res = await unkey.keys.create({
     apiId: getApiId(),
     prefix: "forecast",
-    name: args.name,
     expires: args.expires,
   });
 
@@ -38,7 +36,6 @@ export async function createApiKey(args: { name: string; expires: number }) {
     key: res.result.key,
     keyId: res.result.keyId,
     expires: args.expires,
-    name: args.name,
   });
 
   return res;
