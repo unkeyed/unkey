@@ -1,6 +1,15 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This example is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app). The example has a single page at the root to generate api keys that expire in one minute and an api route at `/api/forecast` to retrieve a fake 7 day weather forecast.
 
-## Getting Started
+## Environment Variables
+
+The examples only requires two environment variables.
+
+- `UNKEY_ROOT_KEY` - One can be created at [here](`https://unkey.dev/app/settings/root-keys`).
+- `UNKEY_API_ID` - One can be created at [here](`https://unkey.dev/app/apis`). After selecting the api the id can be found in the top right.
+
+Configure these environments variables in a `.env` file.
+
+## Walkthrough
 
 First, run the development server:
 
@@ -14,23 +23,12 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then navigate to [http://localhost:3000](http://localhost:3000) to generate an api key. The key will expire in one minute. The key will appear underneath the `Create Key` button.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Then using your favorite http client make a GET request to http://localhost:3000/api/forecast with the Authorization header set to `Bearer <NEW_API_KEY>`. Continue making requests. After a minute you should see a 401 response due to the key expiring.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Code
 
-## Learn More
+The code for creating apis keys is in `src/server/unkey-client.ts`. There is a function called `createApiKey` that accepts a name and expiration time in milliseconds. It uses the unkey client to create a new key and returns the key.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+The verification of the key happens in the Nextjs middleware at `src/middleware.ts`. It matches any route starting with `/api` It simple checks for the Authorization header and checks if the key is valid using `verifyKey`. All the logic of checking the expiration time is handled by unkey.

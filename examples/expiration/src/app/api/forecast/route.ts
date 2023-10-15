@@ -65,25 +65,7 @@ function generateForecast() {
   return sevenDayForcast;
 }
 
-export async function GET(request: Request) {
-  const authHeader = request.headers.get("Authorization");
-
-  if (!authHeader) return new Response("Unauthorized", { status: 401 });
-
-  const key = authHeader.split(" ")[1];
-
-  if (!key) return new Response("Unauthorized", { status: 401 });
-
-  const { result, error } = await verifyKey(authHeader);
-
-  if (error) {
-    return new Response(error.message, { status: 500 });
-  }
-
-  if (!result.valid) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
+export async function GET() {
   const forecast = generateForecast();
 
   return Response.json(forecast, { status: 200 });
