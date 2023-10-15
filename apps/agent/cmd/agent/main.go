@@ -96,7 +96,6 @@ var AgentCmd = &cobra.Command{
 		redisUrl := e.String("REDIS_URL", "")
 		var redis *goredis.Client
 		if redisUrl != "" {
-
 			opts, err := goredis.ParseURL(redisUrl)
 			if err != nil {
 				logger.Fatal().Err(err).Msg("unable to parse redis url")
