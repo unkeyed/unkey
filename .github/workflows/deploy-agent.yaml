@@ -115,12 +115,15 @@ jobs:
       - deploy_preview
     steps:
       - uses: actions/checkout@v3
-      - name: Step CI Action
-        uses: stepci/stepci@main
+      - name: Setup Go
+        uses: actions/setup-go@v2
         with:
-          workflow: "apps/agent/e2e/workflow.json"
-          envs: "baseUrl=${{ vars.PREVIEW_BASE_URL }} apiId=${{vars.PREVIEW_API_ID}}"
-          secrets: "rootKey=${{ secrets.PREVIEW_ROOT_KEY }}"
+          go-version: ^1.20.0
+      - name: Test Scenarios
+        run: go run . e2e --base-url=${{ vars.PREVIEW_BASE_URL }}
+        env:
+          UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
+
 
 
   deploy_production:
@@ -166,9 +169,11 @@ jobs:
       - deploy_production
     steps:
       - uses: actions/checkout@v3
-      - name: Step CI Action
-        uses: stepci/stepci@main
+      - name: Setup Go
+        uses: actions/setup-go@v2
         with:
-          workflow: "apps/agent/e2e/workflow.json"
-          envs: "baseUrl=${{ vars.PRODUCTION_BASE_URL }} apiId=${{vars.PRODUCTION_API_ID}}"
-          secrets: "rootKey=${{ secrets.PRODUCTION_ROOT_KEY }}"
+          go-version: ^1.20.0
+      - name: Test Scenarios
+        run: go run . e2e --base-url=${{ vars.PRODUCTION_BASE_URL }}
+        env:
+          UNKEY_ROOT_KEY: ${{ secrets.PRODUCTION_ROOT_KEY }}

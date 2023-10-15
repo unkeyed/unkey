@@ -9,7 +9,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
-	"github.com/unkeyed/unkey/apps/agent/cmd/agent"
 	"github.com/unkeyed/unkey/apps/agent/pkg/version"
 )
 
@@ -61,7 +60,6 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.AddCommand(agent.AgentCmd)
 
 	rootCmd.PersistentFlags().StringVarP(&dotEnvPath, "env", "e", "", "Path to a .env file")
 }
