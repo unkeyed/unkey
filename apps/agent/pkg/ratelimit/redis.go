@@ -3,20 +3,21 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	goredis "github.com/go-redis/redis/v8"
-	"go.uber.org/zap"
 	"time"
+
+	goredis "github.com/go-redis/redis/v8"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
 type redisRateLimiter struct {
 	redis  *goredis.Client
 	script *goredis.Script
-	logger *zap.Logger
+	logger logging.Logger
 }
 
 type RedisConfig struct {
 	RedisUrl string
-	Logger   *zap.Logger
+	Logger   logging.Logger
 }
 
 func NewRedis(config RedisConfig) (*redisRateLimiter, error) {
@@ -35,47 +36,46 @@ func NewRedis(config RedisConfig) (*redisRateLimiter, error) {
 		redis:  r,
 		logger: config.Logger,
 		script: goredis.NewScript(`
-	 local key             = KEYS[1]           -- identifier including prefixes
-    local maxTokens       = tonumber(ARGV[1]) -- maximum number of tokens
-    local interval        = tonumber(ARGV[2]) -- size of the window in milliseconds
-    local refillRate      = tonumber(ARGV[3]) -- how many tokens are refilled after each interval
-    local now             = tonumber(ARGV[4]) -- current timestamp in milliseconds
-    local requestedTokens = tonumber(ARGV[5]) -- how many tokens are requested for this operation
-    local remaining   = 0
+			local key             = KEYS[1]           -- identifier including prefixes
+			local maxTokens       = tonumber(ARGV[1]) -- maximum number of tokens
+			local interval        = tonumber(ARGV[2]) -- size of the window in milliseconds
+			local refillRate      = tonumber(ARGV[3]) -- how many tokens are refilled after each interval
+			local now             = tonumber(ARGV[4]) -- current timestamp in milliseconds
+			local requestedTokens = tonumber(ARGV[5]) -- how many tokens are requested for this operation
+			local remaining       = 0
 
-    local bucket = redis.call("HMGET", key, "updatedAt", "tokens")
+			local bucket = redis.call("HMGET", key, "updatedAt", "tokens")
+			if bucket[1] == false then
+				-- The bucket does not exist yet, so we create it.
+				remaining = maxTokens - requestedTokens
 
-    if bucket[1] == false then
-      -- The bucket does not exist yet, so we create it.
-      remaining = maxTokens - requestedTokens
+				redis.call("HMSET", key, "updatedAt", now, "tokens", remaining)
 
-      redis.call("HMSET", key, "updatedAt", now, "tokens", remaining)
+				return {remaining, now + interval}
+			end
 
-      return {remaining, now + interval}
-    end
+			local updatedAt = tonumber(bucket[1])
+			local tokens = tonumber(bucket[2])
 
-    local updatedAt = tonumber(bucket[1])
-    local tokens = tonumber(bucket[2])
+			if now >= updatedAt + interval then
+				local numberOfRefills = math.floor((now - updatedAt)/interval)
 
-    if now >= updatedAt + interval then
-      local numberOfRefills = math.floor((now - updatedAt)/interval)
+				if tokens <= 0 then
+				-- No more tokens were left before the refill.
+					remaining = math.min(maxTokens, numberOfRefills * refillRate) - requestedTokens
+				else
+					remaining = math.min(maxTokens, tokens + numberOfRefills * refillRate) - requestedTokens
+				end
 
-      if tokens <= 0 then
-        -- No more tokens were left before the refill.
-        remaining = math.min(maxTokens, numberOfRefills * refillRate) - requestedTokens
-      else
-        remaining = math.min(maxTokens, tokens + numberOfRefills * refillRate) - requestedTokens
-      end
+				local lastRefill = updatedAt + numberOfRefills * interval
 
-      local lastRefill = updatedAt + numberOfRefills * interval
+				redis.call("HMSET", key, "updatedAt", lastRefill, "tokens", remaining)
+				return {remaining, lastRefill + interval}
+			end
 
-      redis.call("HMSET", key, "updatedAt", lastRefill, "tokens", remaining)
-      return {remaining, lastRefill + interval}
-    end
-
-  remaining = tokens - requestedTokens
-  redis.call("HSET", key, "tokens", remaining)
-  return {remaining, updatedAt + interval}
+			remaining = tokens - requestedTokens
+			redis.call("HMSET", key, "updatedAt", now, "tokens", remaining)
+			return {remaining, updatedAt + interval}
 
 
 		`),
@@ -85,18 +85,18 @@ func NewRedis(config RedisConfig) (*redisRateLimiter, error) {
 
 func (r *redisRateLimiter) Take(req RatelimitRequest) RatelimitResponse {
 
-	rawResponse, err := r.script.EvalSha(context.Background(), r.redis, []string{
+	rawResponse, err := r.script.Run(context.Background(), r.redis, []string{
 		req.Identifier,
 	},
 		req.Max,
 		req.RefillInterval,
 		req.RefillRate,
-		time.Now(),
+		time.Now().UnixMilli(),
 		1,
 	).Result()
 
 	if err != nil {
-		r.logger.Error("unable to eval sha", zap.Error(err))
+		r.logger.Error().Err(err).Msg("unable to run script")
 		return RatelimitResponse{
 			Pass:      false,
 			Limit:     -1,
@@ -105,21 +105,50 @@ func (r *redisRateLimiter) Take(req RatelimitRequest) RatelimitResponse {
 		}
 	}
 
-	res, ok := rawResponse.([]int64)
+	iArrCast, ok := rawResponse.([]interface{})
 	if !ok {
+		r.logger.Error().Msgf("unable to cast script response: %#v\n", rawResponse)
 		return RatelimitResponse{
 			Pass:      false,
 			Limit:     -1,
 			Remaining: -1,
 			Reset:     time.Now().UnixMilli(),
 		}
+	}
+
+	remaining, ok := iArrCast[0].(int64)
+	if !ok {
+		r.logger.Error().Msgf("unable to cast 'remaining' to int64 response: %#v\n", iArrCast[0])
+
+		return RatelimitResponse{
+			Pass:      false,
+			Limit:     -1,
+			Remaining: -1,
+			Reset:     time.Now().UnixMilli(),
+		}
+
+	}
+
+	reset, ok := iArrCast[1].(int64)
+	if !ok {
+		r.logger.Error().Msgf("unable to cast 'reset' to int64 response: %#v\n", iArrCast[1])
+		return RatelimitResponse{
+			Pass:      false,
+			Limit:     -1,
+			Remaining: -1,
+			Reset:     time.Now().UnixMilli(),
+		}
+	}
+	pass := remaining >= 0
+	if remaining < 0 {
+		remaining = 0
 	}
 
 	return RatelimitResponse{
-		Pass:      res[0] > 0,
+		Pass:      pass,
 		Limit:     req.Max,
-		Remaining: int32(res[0]),
-		Reset:     res[1],
+		Remaining: int32(remaining),
+		Reset:     reset,
 	}
 
 }
