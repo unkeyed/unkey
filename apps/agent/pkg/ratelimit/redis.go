@@ -42,40 +42,43 @@ func NewRedis(config RedisConfig) (*redisRateLimiter, error) {
 			local refillRate      = tonumber(ARGV[3]) -- how many tokens are refilled after each interval
 			local now             = tonumber(ARGV[4]) -- current timestamp in milliseconds
 			local requestedTokens = tonumber(ARGV[5]) -- how many tokens are requested for this operation
-			local remaining       = 0
 
 			local bucket = redis.call("HMGET", key, "updatedAt", "tokens")
 			if bucket[1] == false then
 				-- The bucket does not exist yet, so we create it.
-				remaining = maxTokens - requestedTokens
+				local remaining = maxTokens - requestedTokens
 
 				redis.call("HMSET", key, "updatedAt", now, "tokens", remaining)
+				redis.call("PEXPIRE", key, 2 * interval)
 
 				return {remaining, now + interval}
 			end
 
-			local updatedAt = tonumber(bucket[1])
+			local lastUpdatedAt = tonumber(bucket[1])
+			local newUpdatedAt = now
 			local tokens = tonumber(bucket[2])
+			local reset = lastUpdatedAt + interval
+			local remaining = tokens - requestedTokens
 
-			if now >= updatedAt + interval then
-				local numberOfRefills = math.floor((now - updatedAt)/interval)
+			-- if we have entered a new interval, we need to refill the bucket
+			if now >= lastUpdatedAt + interval then
+				local numberOfRefills = math.floor((now - lastUpdatedAt)/interval)
 
-				if tokens <= 0 then
-				-- No more tokens were left before the refill.
-					remaining = math.min(maxTokens, numberOfRefills * refillRate) - requestedTokens
-				else
-					remaining = math.min(maxTokens, tokens + numberOfRefills * refillRate) - requestedTokens
-				end
-
-				local lastRefill = updatedAt + numberOfRefills * interval
-
-				redis.call("HMSET", key, "updatedAt", lastRefill, "tokens", remaining)
-				return {remaining, lastRefill + interval}
+				remaining = math.min(maxTokens, math.max(0,tokens) + numberOfRefills * refillRate) - requestedTokens
+			
+				newUpdatedAt = lastUpdatedAt + numberOfRefills * interval
+				reset = lastUpdatedAt + interval 
 			end
 
-			remaining = tokens - requestedTokens
-			redis.call("HMSET", key, "updatedAt", now, "tokens", remaining)
-			return {remaining, updatedAt + interval}
+			-- return early if we are already out of tokens
+			if remaining < 0 then
+				return {remaining, reset}
+			end
+
+			redis.call("HMSET", key, "updatedAt", newUpdatedAt, "tokens", remaining)
+			redis.call("PEXPIRE", key, 2 * interval) -- extend the expiration
+
+			return {remaining, reset}
 
 
 		`),
