@@ -125,15 +125,16 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 		ctx, ipSpan = s.tracer.Start(ctx, "server.verifyKey.checkIpWhitelist")
 		sourceIp := c.Get("Fly-Client-IP")
 		s.logger.Debug().Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("checking ip whitelist")
-		ipSpan.End()
 		if !whitelist.Ip(sourceIp, api.IpWhitelist) {
 			s.logger.Info().Str("workspaceId", api.WorkspaceId).Str("apiId", api.Id).Str("keyId", key.Id).Str("sourceIp", sourceIp).Strs("whitelist", api.IpWhitelist).Msg("ip denied")
+			ipSpan.End()
 			return c.JSON(VerifyKeyResponseV1{
 				Valid: false,
 				Code:  errors.FORBIDDEN,
 			})
 
 		}
+		ipSpan.End()
 	}
 
 	// ---------------------------------------------------------------------------------------------
