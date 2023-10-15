@@ -11,7 +11,7 @@ export default function Home() {
       <form action={createKey}>
         <div className="flex flex-col gap-1">
           <input
-            className="border-2 border-black rounded px-2 py-1 focus:outline-none"
+            className="border border-black rounded px-2 py-1 focus:outline-none"
             type="text"
             placeholder="Key name"
             name="name"
