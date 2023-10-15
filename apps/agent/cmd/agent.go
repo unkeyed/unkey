@@ -1,4 +1,4 @@
-package agent
+package cmd
 
 import (
 	"context"
@@ -47,6 +47,8 @@ type features struct {
 var runtimeConfig features
 
 func init() {
+	rootCmd.AddCommand(AgentCmd)
+
 	AgentCmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
 	AgentCmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
 	AgentCmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")

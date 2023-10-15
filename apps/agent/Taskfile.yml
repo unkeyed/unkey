@@ -42,7 +42,6 @@ tasks:
   test:
     - go test -p 4 -v -json -shuffle=on -race -cover ./... | gotestfmt
 
-
   deploy:
     cmds:
       - docker build --platform=linux/amd64 -t {{.IMAGE}}:{{.VERSION}} -t {{.IMAGE}}:latest .
