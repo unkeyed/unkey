@@ -19,9 +19,10 @@ var UpdateRemaining = newScenario(
 			Body: map[string]any{
 				"name": "scenario-test-pls-delete",
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
-				AssertBodyExists("apiId"),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertBodyExists("apiId"),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 
@@ -36,8 +37,9 @@ var UpdateRemaining = newScenario(
 			Body: map[string]any{
 				"apiId": createApiResponse["apiId"],
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 
@@ -53,10 +55,11 @@ var UpdateRemaining = newScenario(
 				"apiId":     createApiResponse["apiId"],
 				"remaining": 5,
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
-				AssertBodyExists("key"),
-				AssertBodyExists("keyId"),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertBodyExists("key"),
+				assertBodyExists("keyId"),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 
@@ -73,10 +76,11 @@ var UpdateRemaining = newScenario(
 				Body: map[string]any{
 					"key": keyResponse["key"],
 				},
-				Assertions: []Asserter{
-					AssertStatus(200),
-					AssertBody("valid", true),
-					AssertBody("remaining", float64(i)),
+				Assertions: []assertion{
+					assertStatus(200),
+					assertBody("valid", true),
+					assertBody("remaining", float64(i)),
+					assertHeaderExists("Unkey-Trace-Id"),
 				},
 			}.Run(ctx, make(map[string]any))
 		}
@@ -90,11 +94,12 @@ var UpdateRemaining = newScenario(
 			Body: map[string]any{
 				"key": keyResponse["key"],
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
-				AssertBody("valid", false),
-				AssertBody("code", "KEY_USAGE_EXCEEDED"),
-				AssertBody("remaining", float64(0)),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertBody("valid", false),
+				assertBody("code", "KEY_USAGE_EXCEEDED"),
+				assertBody("remaining", float64(0)),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 
@@ -111,8 +116,9 @@ var UpdateRemaining = newScenario(
 				"keyId":     keyResponse["keyId"],
 				"remaining": 5,
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 
@@ -127,10 +133,11 @@ var UpdateRemaining = newScenario(
 			Body: map[string]any{
 				"key": keyResponse["key"],
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
-				AssertBody("valid", true),
-				AssertBody("remaining", float64(4)),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertBody("valid", true),
+				assertBody("remaining", float64(4)),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 
@@ -146,8 +153,9 @@ var UpdateRemaining = newScenario(
 			Body: map[string]any{
 				"keyId": keyResponse["keyId"],
 			},
-			Assertions: []Asserter{
-				AssertStatus(200),
+			Assertions: []assertion{
+				assertStatus(200),
+				assertHeaderExists("Unkey-Trace-Id"),
 			},
 		}.Run(ctx, make(map[string]any))
 

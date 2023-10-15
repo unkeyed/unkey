@@ -19,7 +19,7 @@ type Step[T any] struct {
 	Method string
 	Header map[string]string
 
-	Assertions []Asserter
+	Assertions []assertion
 }
 
 func (s Step[T]) fail(format string, a ...any) {

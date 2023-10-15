@@ -45,6 +45,7 @@ var e2eCmd = &cobra.Command{
 		scenarios := []integration.Scenario{
 			integration.CreateVerifyDeleteKeys,
 			integration.UpdateRemaining,
+			integration.ListKeys,
 		}
 		// shuffle
 		rand.Shuffle(len(scenarios), func(i, j int) {

@@ -15,9 +15,9 @@ type AssertRequest struct {
 	Body   string
 }
 
-type Asserter func(ctx context.Context, req AssertRequest) error
+type assertion func(ctx context.Context, req AssertRequest) error
 
-func AssertHeaderExists(key string) Asserter {
+func assertHeaderExists(key string) assertion {
 	return func(ctx context.Context, req AssertRequest) error {
 		if req.Header.Get(key) == "" {
 			return fmt.Errorf("header %s does not exist", key)
@@ -26,16 +26,7 @@ func AssertHeaderExists(key string) Asserter {
 	}
 }
 
-func AssertHeaderEquals(key, value string) Asserter {
-	return func(ctx context.Context, req AssertRequest) error {
-		if req.Header.Get(key) != value {
-			return fmt.Errorf("header %s does not equal %s", key, value)
-		}
-		return nil
-	}
-}
-
-func AssertStatus(status int) Asserter {
+func assertStatus(status int) assertion {
 	return func(ctx context.Context, req AssertRequest) error {
 		if req.Status != status {
 			return fmt.Errorf("status %d does not match %d", req.Status, status)
@@ -44,7 +35,7 @@ func AssertStatus(status int) Asserter {
 	}
 }
 
-func AssertBody[T comparable](expr string, value T) Asserter {
+func assertBody[T comparable](expr string, value T) assertion {
 	return func(ctx context.Context, req AssertRequest) error {
 		var data interface{}
 		err := json.Unmarshal([]byte(req.Body), &data)
@@ -64,7 +55,7 @@ func AssertBody[T comparable](expr string, value T) Asserter {
 	}
 }
 
-func AssertBodyExists(expr string) Asserter {
+func assertBodyExists(expr string) assertion {
 	return func(ctx context.Context, req AssertRequest) error {
 		var data interface{}
 		err := json.Unmarshal([]byte(req.Body), &data)
