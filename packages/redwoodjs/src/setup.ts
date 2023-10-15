@@ -5,16 +5,16 @@ import path from "path";
 import findup from "findup-sync";
 import Parser from "yargs-parser";
 import { hideBin } from "yargs/helpers";
-import { addApiPackages, writeFile, getPaths } from "@redwoodjs/cli-helpers";
+import {
+  addApiPackages,
+  addEnvVarTask,
+  writeFile,
+  getPaths,
+  prettify,
+} from "@redwoodjs/cli-helpers";
 import { Listr } from "listr2";
 import { execa } from "execa";
-import {
-  addEnvironmentVariablesToEnvFile,
-  prettifyTemplate,
-  updateTomlConfig,
-} from "./utils";
-
-import type { EnvVar } from "./utils";
+import { updateTomlConfig } from "./utils";
 
 // We take in yargs because we want to allow `--cwd` to be passed in, similar to the redwood cli itself.
 let { cwd, help } = Parser(hideBin(process.argv));
@@ -62,7 +62,7 @@ const setup = async () => {
     addApiPackages(["@unkey/api"]),
     {
       title: "Adding unkey.ts to your api/lib directory ...",
-      task: async () => {
+      task: () => {
         // Grab template
         const template = fs.readFileSync(
           path.resolve(__dirname, "templates", "unkey.ts.template"),
@@ -70,7 +70,7 @@ const setup = async () => {
         );
 
         // Write the template to the file system and replace any existing
-        const prettifiedTemplate = await prettifyTemplate(template);
+        const prettifiedTemplate = prettify("unkey.ts.template", template);
 
         writeFile(
           path.join(getPaths().api.lib, "unkey.ts"),
@@ -87,16 +87,11 @@ const setup = async () => {
         updateTomlConfig("@unkey/redwoodjs");
       },
     },
-    {
-      title: "Adds Unkey envars to .env file ...",
-      task: () => {
-        const newEnvVariables: EnvVar[] = [
-          { key: "UNKEY_ROOT_KEY", value: "your-root-key", overwrite: false },
-        ];
-
-        addEnvironmentVariablesToEnvFile(newEnvVariables);
-      },
-    },
+    addEnvVarTask(
+      "UNKEY_ROOT_KEY",
+      "your-root-key",
+      "Your Unkey Root Key. See: https://unkey.dev/docs/glossary#unkey-api-key-root-key"
+    ),
     {
       title: "Adding @unkey/redwoodjs to the RedwoodJS CLI",
       task: async () => {

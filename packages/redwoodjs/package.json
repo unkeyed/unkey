@@ -28,11 +28,10 @@
   "dependencies": {
     "@redwoodjs/cli-helpers": ">= 6",
     "@redwoodjs/project-config": ">= 6",
-    "dotenv": "^16.3.1",
     "execa": "^8.0.1",
     "findup-sync": "^5.0.0",
     "listr2": "^7.0.1",
-    "prettier": "^3.0.3",
+    "toml": "^3.0.0",
     "yargs": "^17.7.2",
     "yargs-parser": "^21.1.1"
   },
