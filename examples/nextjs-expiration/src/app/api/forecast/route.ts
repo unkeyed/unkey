@@ -42,9 +42,7 @@ function generateForecast() {
       cloudiness < 10 ? "sunny" : cloudiness < 50 ? "partly cloudy" : "cloudy";
 
     const summary = `It's a ${cloudinessDescriptor} day today with a high of ${tempHigh} and a low of ${tempLow}. There is a ${chanceOfPrecipitation}% chance of ${
-      typeof precipitationKind === "string"
-        ? precipitationKind
-        : "precipitation"
+      typeof precipitationKind === "string" ? precipitationKind : "precipitation"
     } and a humidity of ${humidity}%.`;
 
     const date = new Date(today);

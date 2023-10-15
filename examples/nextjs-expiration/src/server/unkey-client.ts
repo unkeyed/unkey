@@ -9,11 +9,15 @@ type Key = {
 export const keys: Key[] = [];
 
 const UNKEY_ROOT_KEY = process.env.UNKEY_ROOT_KEY;
-if (!UNKEY_ROOT_KEY) throw new Error("UNKEY_ROOT_KEY is not defined");
+if (!UNKEY_ROOT_KEY) {
+  throw new Error("UNKEY_ROOT_KEY is not defined");
+}
 
 function getApiId() {
   const UNKEY_API_ID = process.env.UNKEY_API_ID;
-  if (!UNKEY_API_ID) throw new Error("UNKEY_API_ID is not defined");
+  if (!UNKEY_API_ID) {
+    throw new Error("UNKEY_API_ID is not defined");
+  }
 
   return UNKEY_API_ID;
 }
