@@ -4,12 +4,14 @@ import { Area, Column } from "@ant-design/plots";
 import { useTheme } from "next-themes";
 
 const useColors = () => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   return {
-    color: theme === "dark" ? "#f1efef" : "#1c1917",
+    color: resolvedTheme === "dark" ? "#f1efef" : "#1c1917",
     palette:
-      theme === "dark" ? ["#f1efef", "#FFE41C", "#FF7568"] : ["#1c1917", "#BA7901", "#A01649"],
-    axisColor: theme === "dark" ? "#1b1918" : "#e8e5e3",
+      resolvedTheme === "dark"
+        ? ["#f1efef", "#FFE41C", "#FF7568"]
+        : ["#1c1917", "#BA7901", "#A01649"],
+    axisColor: resolvedTheme === "dark" ? "#1b1918" : "#e8e5e3",
   };
 };
 
