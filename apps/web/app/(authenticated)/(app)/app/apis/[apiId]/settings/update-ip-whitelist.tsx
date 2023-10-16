@@ -87,7 +87,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
                   IP whitelists are only available on the enterprise plan.
                 </AlertDescription>
               </div>
-              <Link href="mailto:andreas@unkey.dev">
+              <Link href="mailto:support@unkey.dev">
                 <Button>Upgrade</Button>
               </Link>
             </Alert>

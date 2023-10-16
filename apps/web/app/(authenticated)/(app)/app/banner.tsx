@@ -54,7 +54,7 @@ export const UsageBanner: React.FC = async () => {
             Upgrade your plan
           </Link>{" "}
           or{" "}
-          <Link href="mailto:andreas@unkey.dev" className="underline">
+          <Link href="mailto:support@unkey.dev" className="underline">
             contact us.
           </Link>
         </p>
@@ -77,7 +77,7 @@ export const UsageBanner: React.FC = async () => {
             Upgrade your plan
           </Link>{" "}
           or{" "}
-          <Link href="mailto:andreas@unkey.dev" className="underline">
+          <Link href="mailto:support@unkey.dev" className="underline">
             contact us.
           </Link>
         </p>
