@@ -48,6 +48,7 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 			if err != nil {
 				return fmt.Errorf("unable to create request: %s", err)
 			}
+			defer resp.Body.Close()
 			if resp.StatusCode != 200 {
 				body, err := io.ReadAll(resp.Body)
 				if err != nil {
@@ -55,7 +56,6 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 				}
 				return fmt.Errorf("axiom response status: %d: %s", resp.StatusCode, string(body))
 			}
-			resp.Body.Close()
 			return nil
 		})
 		if err != nil {
