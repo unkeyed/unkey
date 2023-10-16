@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type Tinybird struct {
@@ -46,34 +47,41 @@ func New(config Config) *Tinybird {
 
 	datasource := "key_verifications__v2"
 
-	t.keyVerificationsC = batch.Process[analytics.KeyVerificationEvent](func(ctx context.Context, batch []analytics.KeyVerificationEvent) {
-		items := make([]string, len(batch))
-		for i, e := range batch {
-			buf, err := json.Marshal(e)
-			if err != nil {
-				t.logger.Err(err).Msg("unable to marshal event")
-				return
+	t.keyVerificationsC = batch.Process[analytics.KeyVerificationEvent](func(ctx context.Context, b []analytics.KeyVerificationEvent) {
+
+		err := util.Retry(func() error {
+			items := make([]string, len(b))
+			for i, e := range b {
+				buf, err := json.Marshal(e)
+				if err != nil {
+					return fmt.Errorf("unable to marshal event: %w", err)
+				}
+				items[i] = string(buf)
 			}
-			items[i] = string(buf)
-		}
 
-		body := bytes.NewBufferString(strings.Join(items, "\n"))
-		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.tinybird.co/v0/events?name=%s", datasource), body)
+			body := bytes.NewBufferString(strings.Join(items, "\n"))
+			req, err := http.NewRequest("POST", fmt.Sprintf("https://api.tinybird.co/v0/events?name=%s", datasource), body)
+			if err != nil {
+				return fmt.Errorf("error creating request: %w", err)
+
+			}
+
+			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.token))
+			req.Header.Add("Content-Type", "application/json")
+
+			resp, err := t.client.Do(req)
+			if err != nil {
+				return fmt.Errorf("error sending request: %w", err)
+
+			}
+			defer resp.Body.Close()
+			t.logger.Debug().Int("status", resp.StatusCode).Msg("sent request")
+			return nil
+
+		})
 		if err != nil {
-			t.logger.Err(err).Msg("error creating request")
-			return
+			t.logger.Error().Err(err).Msg("unable to send events to tinybird")
 		}
-
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.token))
-		req.Header.Add("Content-Type", "application/json")
-
-		resp, err := t.client.Do(req)
-		if err != nil {
-			t.logger.Err(err).Msg("error sending request")
-			return
-		}
-		t.logger.Debug().Int("status", resp.StatusCode).Msg("sent request")
-		defer resp.Body.Close()
 
 	}, 1000, time.Second)
 
