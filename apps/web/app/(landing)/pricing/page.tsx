@@ -203,7 +203,7 @@ export default async function PricingPage() {
             <div className="text-center">
               <p className="text-gray-900 text-md sm:text-lg">
                 Volume discounts are available on request,{" "}
-                <a className="text-gray-600 underline" href="mailto:james@unkey.dev">
+                <a className="text-gray-600 underline" href="mailto:support@unkey.dev">
                   contact us
                 </a>{" "}
                 for more information.
