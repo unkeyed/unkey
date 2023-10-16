@@ -124,7 +124,7 @@ export const templates: Record<string, Template> = {
     framework: "Express",
   },
   yoga: {
-    title: "Protect graphql apis with Unkey",
+    title: "Protect GraphQL APIs with Unkey",
     description: "GraphQL Yoga Plugin system to protect your API",
     authors: ["notrab"],
     repository: "https://github.com/graphqlwtf/91-protect-graphql-apis-with-unkey",
