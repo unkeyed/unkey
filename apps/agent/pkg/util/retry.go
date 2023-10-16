@@ -29,7 +29,6 @@ func Retry(fn func() error) error {
 		sleep = min(cap, base+rand.Int63n(sleep*3-base))
 
 		return time.Duration(sleep) * time.Millisecond
-
 	}
 
 	var err error
