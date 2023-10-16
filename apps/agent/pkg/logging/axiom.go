@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type AxiomWriter struct {
@@ -27,36 +28,39 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 	dataset := "agent"
 	client := http.DefaultClient
 
-	logsC := batch.Process[map[string]any](func(ctx context.Context, batch []map[string]any) {
-		buf, err := json.Marshal(batch)
-		if err != nil {
-			log.Printf("unable to marshal event: %s", err)
-			return
-		}
+	logsC := batch.Process[map[string]any](func(ctx context.Context, b []map[string]any) {
 
-		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", dataset), bytes.NewBuffer(buf))
-		if err != nil {
-			log.Printf("unable to create request: %s", err)
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.AxiomToken))
+		err := util.Retry(func() error {
 
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Printf("unable to create request: %s", err)
-			return
-		}
-		if resp.StatusCode != 200 {
-			body, err := io.ReadAll(resp.Body)
+			buf, err := json.Marshal(b)
 			if err != nil {
-				log.Printf("unable to read response: %s", err)
-				return
+				return fmt.Errorf("unable to marshal event: %s", err)
 			}
-			log.Printf("unable to ingest to axiom: %s", string(body))
-			return
+
+			req, err := http.NewRequest("POST", fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", dataset), bytes.NewBuffer(buf))
+			if err != nil {
+				return fmt.Errorf("unable to create request: %s", err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.AxiomToken))
+
+			resp, err := client.Do(req)
+			if err != nil {
+				return fmt.Errorf("unable to create request: %s", err)
+			}
+			if resp.StatusCode != 200 {
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return fmt.Errorf("unable to read response: %s", err)
+				}
+				return fmt.Errorf("axiom response status: %d: %s", resp.StatusCode, string(body))
+			}
+			resp.Body.Close()
+			return nil
+		})
+		if err != nil {
+			log.Printf("unable to ingest to axiom: %s", err)
 		}
-		resp.Body.Close()
 
 	}, 1000, time.Second)
 
