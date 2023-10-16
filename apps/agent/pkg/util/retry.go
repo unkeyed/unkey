@@ -15,7 +15,7 @@ func min(x, y int64) int64 {
 
 // Retry a function with exponential backoff and jitter
 //
-// Much smarkter people than me came up with this
+// Much smarter people than me came up with this
 // https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
 func Retry(fn func() error) error {
 	retries := 5
