@@ -32,10 +32,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-
-// create a variable for todays date 
+// create a variable for todays date
 const today = new Date().toISOString().slice(0, 10);
-
 
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
@@ -47,8 +45,8 @@ const formSchema = z.object({
   expires: z
     .string()
     .refine((date) => new Date(date) >= new Date(), {
-      message: 'Please select a date and time in the future',
-  })
+      message: "Please select a date and time in the future",
+    })
     .transform((s) => new Date(s) >= new Date())
     .optional(),
   ratelimit: z
