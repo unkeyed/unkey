@@ -128,7 +128,7 @@ export const templates: Record<string, Template> = {
     description: "GraphQL Yoga Plugin system to protect your API",
     authors: ["notrab"],
     repository: "https://github.com/graphqlwtf/91-protect-graphql-apis-with-unkey",
-    image: "/templates/graphql-yoga.jpg",
+    image: "/templates/graphql-yoga.png",
     readmeUrl:
       "https://raw.githubusercontent.com/graphqlwtf/91-protect-graphql-apis-with-unkey/main/README.md",
     language: "Typescript",
