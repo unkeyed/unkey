@@ -100,3 +100,67 @@ if (!result.valid) {
 // process request
 console.log(result);
 ```
+
+
+## Options 
+
+The constructor accepts some options to customize the behavior:
+
+
+### Base Url
+
+Run all requests agaisnt your own instance of unkey hosted on your own infrastructure.
+
+<ParamField body="baseUrl" type="string" default="https://api.unkey.dev">
+  The age of the user. Cannot be less than 0
+</ParamField>
+```ts
+const unkey = new Unkey({
+  //...
+  baseUrl: "https://my.domain"
+})
+```
+
+### Retries
+
+By default the client will retry on network errors, you can customize this behavior:
+
+
+<ParamField body="retry">
+  <Expandable defaultOpen>
+    <ParamField body="attempts" type="integer">
+      How often to retry
+    </ParamField> 
+    <ParamField body="backoff" type="(retryCount: number) => number">
+      A function that returns how many milliseconds to wait until the next attempt is made.
+    </ParamField> 
+  </Expandable>
+</ParamField>
+
+```ts
+const unkey = new Unkey({
+  // ...
+  retry: {
+    attempts: 3,
+    backoff: (retryCount) => retryCount * 1000
+  }
+})
+```
+
+### Cache
+
+The `fetch` cache behavior
+
+<ParamField body="cache" type="string">
+  Available options are: `default`, `force-cache`, `no-cache`, `no-store`, `only-if-cached` or `reload`.
+ </ParamField>
+
+```ts
+const unkey = new Unkey({
+  // ...
+  cache: "no-cache"
+})
+```
+
+
+
