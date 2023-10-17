@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.11.0
+
+### Minor Changes
+
+- 4cb0267: allow configuration of cache behavior
+
 ## 0.10.2
 
 ### Patch Changes
