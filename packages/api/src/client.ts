@@ -46,6 +46,10 @@ export type UnkeyOptions = (
      */
     backoff?: (retryCount: number) => number;
   };
+  /**
+   * Customize the `fetch` cache behaviour
+   */
+  cache?: RequestCache;
   // some change
 };
 
@@ -54,7 +58,6 @@ type ApiRequest = {
   method: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   query?: Record<string, string>;
-  cache?: RequestCache;
 };
 
 type Result<R> =
@@ -70,6 +73,8 @@ type Result<R> =
 export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
+  private readonly cache?: RequestCache;
+
   public readonly retry: {
     attempts: number;
     backoff: (retryCount: number) => number;
@@ -78,6 +83,8 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
+
+    this.cache = opts.cache;
     /**
      * Even though typescript should prevent this, some people still pass undefined or empty strings
      */
@@ -109,8 +116,8 @@ export class Unkey {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.rootKey}`,
         },
+        cache: this.cache,
         body: JSON.stringify(req.body),
-        cache: req.cache,
       }).catch((e: Error) => {
         err = e;
         return null; // set `res` to `null`
@@ -233,7 +240,6 @@ export class Unkey {
           path: ["v1", "keys"],
           method: "POST",
           body: req,
-          cache: "no-cache",
         });
       },
       update: async (req: {
@@ -305,7 +311,6 @@ export class Unkey {
           path: ["v1", "keys", req.keyId],
           method: "PUT",
           body: req,
-          cache: "no-cache",
         });
       },
       verify: async (req: { key: string }): Promise<
@@ -379,14 +384,12 @@ export class Unkey {
           path: ["v1", "keys", "verify"],
           method: "POST",
           body: req,
-          cache: "no-cache",
         });
       },
       revoke: async (req: { keyId: string }): Promise<Result<void>> => {
         return await this.fetch<void>({
           path: ["v1", "keys", req.keyId],
           method: "DELETE",
-          cache: "no-cache",
         });
       },
     };
@@ -412,7 +415,6 @@ export class Unkey {
           path: ["v1", "apis.createApi"],
           method: "POST",
           body: req,
-          cache: "no-cache",
         });
       },
       remove: async (req: {
@@ -434,7 +436,6 @@ export class Unkey {
           path: ["v1", "apis.removeApi"],
           method: "POST",
           body: req,
-          cache: "no-cache",
         });
       },
       get: async (req: {
@@ -446,7 +447,6 @@ export class Unkey {
         return await this.fetch({
           path: ["v1", "apis", req.apiId],
           method: "GET",
-          cache: "no-cache",
         });
       },
 
@@ -514,7 +514,6 @@ export class Unkey {
           path: ["v1", "apis", req.apiId, "keys"],
           method: "GET",
           query,
-          cache: "no-cache",
         });
       },
     };
@@ -544,7 +543,6 @@ export class Unkey {
           path: ["v1", "internal", "rootkeys"],
           method: "POST",
           body: req,
-          cache: "no-cache",
         });
       },
       deleteRootKey: async (req: {
@@ -557,7 +555,6 @@ export class Unkey {
           path: ["v1", "internal.removeRootKey"],
           method: "POST",
           body: req,
-          cache: "no-cache",
         });
       },
     };
