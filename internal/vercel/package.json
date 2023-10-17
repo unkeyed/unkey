@@ -16,6 +16,6 @@
   },
   "dependencies": {
     "@unkey/result": "workspace:^",
-    "zod": "^3.22.2"
+    "zod": "^3.22.3"
   }
 }

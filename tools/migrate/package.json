@@ -14,7 +14,7 @@
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.28.5",
     "mysql2": "^3.6.1",
-    "zod": "^3.22.2"
+    "zod": "^3.22.3"
   },
   "devDependencies": {
     "@types/node": "20.5.7",
