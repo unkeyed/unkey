@@ -31,6 +31,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+
+// create a variable for todays date 
+const today = new Date().toISOString().slice(0, 10);
+
+
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
@@ -40,7 +46,10 @@ const formSchema = z.object({
   remaining: z.coerce.number().positive().optional(),
   expires: z
     .string()
-    .transform((s) => new Date(s).getTime())
+    .refine((date) => new Date(date) >= new Date(), {
+      message: 'Please select a date and time in the future',
+  })
+    .transform((s) => new Date(s) >= new Date())
     .optional(),
   ratelimit: z
     .object({
@@ -400,7 +409,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem>
                                   <FormLabel>Expiry Date</FormLabel>
                                   <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input min={today} type="datetime-local" {...field} />
                                   </FormControl>
                                   <FormDescription>
                                     This api key will automatically be revoked after the given date.
