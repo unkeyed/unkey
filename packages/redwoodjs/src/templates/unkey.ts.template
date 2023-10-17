@@ -1,4 +1,3 @@
 import { Unkey } from "@unkey/api";
 
-// Note: In versions 0.11.0 and above, use `rootKey` instead of `token`
-export const unkey = new Unkey({ token: "<UNKEY_ROOT_KEY>" });
+export const unkey = new Unkey({ rootKey: "<UNKEY_ROOT_KEY>" });
