@@ -1,30 +1,44 @@
 "use client";
 import { FadeIn } from "@/components/landing/fade-in";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
-
 export const runtime = "edge";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = React.useState(false);
+  const [showDialog, setShowDialog] = React.useState(false);
+  const [email, setEmail] = React.useState("");
   const { isLoaded } = useAuth();
-
+  const router = useRouter();
   if (!isLoaded) {
     return null;
   }
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-6 md:px-0 sm:w-[500px]">
-      {!verify && (
+      {!verify && !showDialog && (
         <>
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-3xl font-semibold tracking-tight">Sign In to Unkey</h1>
             <p className="text-md text-content-subtle">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
-            <EmailSignIn verification={setVerify} />
+            <EmailSignIn
+              verification={setVerify}
+              dialog={setShowDialog}
+              email={setEmail}
+              emailValue={email}
+            />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -55,6 +69,22 @@ export default function AuthenticationPage() {
           </div>
         </FadeIn>
       )}
+      <AlertDialog open={showDialog}>
+        <AlertDialogContent>
+          <div>
+            We didn't detect an account associated with{" "}
+            <span className="font-semibold">{email}</span>. Did you mean to sign up?
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDialog(false)}>No</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => router.push(`/auth/sign-up?email=${encodeURIComponent(email)}`)}
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { FadeIn } from "@/components/landing/fade-in";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 
@@ -27,7 +28,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
     return redirect("/app/apis");
   }
   return (
-    <>
+    <FadeIn>
       <div className="relative grid min-h-screen grid-cols-1 overflow-hidden md:grid-cols-3 lg:grid-cols-2">
         <div className="absolute inset-0 bg-gradient-to-t from-background to-background/60 md:hidden" />
         <div className="container absolute flex items-center col-span-1 -translate-y-1/2 top-1/2 md:static md:top-0 md:col-span-2 md:flex md:translate-y-0 lg:col-span-1">
@@ -171,6 +172,6 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
-    </>
+    </FadeIn>
   );
 }
