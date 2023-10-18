@@ -46,7 +46,7 @@ export type UnkeyContext = {
 
 export type NextRequestWithUnkeyContext = NextRequest & { unkey: UnkeyContext };
 
-export function unstable__withUnkey(
+export function withUnkey(
   handler: (
     req: NextRequestWithUnkeyContext,
     nfe?: NextFetchEvent,
