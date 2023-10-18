@@ -1,5 +1,11 @@
 # @unkey/nextjs
 
+## 0.12.0
+
+### Minor Changes
+
+- fce7720: remove unstable prefix
+
 ## 0.11.1
 
 ### Patch Changes
