@@ -1,0 +1,129 @@
+---
+title: Next.js
+description: API Authentication in Next.js
+---
+
+## Prerequisites
+
+- [Create a workspace](/quickstart/onboarding#2-create-your-first-workspace)
+- [Create an API](/quickstart/onboarding#2-create-your-first-api)
+
+<Card>
+  We also have a [Next.js example](https://github.com/unkeyed/unkey/tree/main/examples/nextjs) ready to deploy on Vercel.
+
+    [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Funkeyed%2Funkey%2Ftree%2Fmain%2Fexamples%2Fnextjs&project-name=unkey-with-nextjs&repository-name=unkey-with-nextjs&integration-ids=oac_D84Ib6K2pS6CDQXxQbzsYxsh)
+
+</Card>
+
+If you don't have a Next.js app yet, you can quickly create one with the following command:
+
+```bash
+npm create next-app@latest
+```
+
+<Steps titleSize="h3">
+<Step  title="Install">
+
+Now install the `@unkey/api` package
+
+<Tabs>
+  <Tab title="bun">
+  ```bash
+    bun install @unkey/api
+    ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+    pnpm add @unkey/api
+    ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+    yarn add @unkey/api
+    ```
+  </Tab>
+  <Tab title="npm">
+  ```bash
+    npm install @unkey/api
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step  title="Creating a protected route">
+
+Create a new route and add the following code
+
+```ts /app/protected/route.ts
+import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
+import { NextResponse } from "next/server";
+
+export const POST = withUnkey(async (req) => {
+  if (!req.unkey.valid) {
+    return new NextResponse("unauthorized", { status: 403 });
+  }
+
+  // Process the request here
+  // You have access to the verification response using `req.unkey`
+  console.log(req.unkey);
+  return new NextResponse("Your API key is valid!");
+});
+```
+
+</Step>
+
+<Step title="Running it">
+
+```bash
+npm run dev
+```
+
+</Step>
+
+<Step  title="Try it out">
+
+Go to https://unkey.dev/app and create a new key. Then verify it with our new server:
+
+```bash
+curl -XPOST 'http://localhost:3000/protected' \
+  -H "Authorization: Bearer <KEY>"
+```
+
+It should return `"Your API key is valid!"` and log more information about the key, depending on what you set up in the dashboard.
+
+</Step>
+
+</Steps>
+
+## Options
+
+The `withUnkey` wrapper takes a configuration object sa second optional argument to configure the request handling.
+These are optional and the defaults should be fine for most use cases.
+
+```ts
+export const POST = withUnkey(handler, {
+  getKey: ...,
+  handleInvalidKey: ...,
+  onError: ...,
+})
+```
+
+
+<ParamField body="getKey" type="(NextRequest) => string | null | NextResponse">
+  How to get the key from the request.
+  Usually the key is provided in an `Authorization` header, but you can do what you want.
+   
+  Return the key as string, or null if it doesn't exist.
+  You can also directly return a `NextResponse` which will be sent to the client without invoking the handler function.
+   
+  Defaults to: `req => req.headers.get("Authorization")?.replace("Bearer ", "") ?? null`
+</ParamField>
+
+<ParamField body="handleInvalidKey" type="(NextRequest, UnkeyContext) => NextResponse | Promise<NextResponse>)">
+  Return a custom response when a key is invalid.
+</ParamField>
+
+<ParamField body="onError" type="(NextRequest, UnkeyError) => NextResponse | Promise<NextResponse>">
+ What to do if things go wrong. This could be a network error for example.
+ The SDK will automatically retry the request up to 5 times, but if it still fails, this function will be called.
+</ParamField>
