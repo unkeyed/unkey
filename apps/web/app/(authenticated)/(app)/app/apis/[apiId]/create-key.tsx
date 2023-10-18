@@ -31,6 +31,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+const currentTime = new Date();
+const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
   bytes: z.coerce.number().positive(),
   prefix: z.string().max(8).optional(),
@@ -38,10 +41,7 @@ const formSchema = z.object({
   name: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
   remaining: z.coerce.number().positive().optional(),
-  expires: z
-    .string()
-    .transform((s) => new Date(s).getTime())
-    .optional(),
+  expires: z.coerce.date().min(new Date(oneMinute)).optional(),
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
@@ -116,11 +116,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
-
     await key.mutateAsync({
       apiId,
       ...values,
-      expires: values.expires ?? undefined,
+      expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
     });
   }
@@ -400,7 +399,11 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem>
                                   <FormLabel>Expiry Date</FormLabel>
                                   <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input
+                                      type="datetime-local"
+                                      {...field}
+                                      value={field.value?.toLocaleString()}
+                                    />
                                   </FormControl>
                                   <FormDescription>
                                     This api key will automatically be revoked after the given date.

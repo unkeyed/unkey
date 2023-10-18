@@ -110,7 +110,7 @@ export const UpdateUserImage: React.FC = () => {
                 e.stopPropagation();
                 setDragActive(false);
                 // biome-ignore lint/complexity/useOptionalChain: <explanation>
-                const file = e.dataTransfer.files && e.dataTransfer.files[0];
+                const file = e.dataTransfer.files?.[0];
                 if (file) {
                   if (file.size / 1024 / 1024 > 2) {
                     toast({ description: "File size too big (max 2MB)" });
