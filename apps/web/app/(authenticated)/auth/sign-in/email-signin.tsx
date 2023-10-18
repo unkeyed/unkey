@@ -10,11 +10,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
-export function EmailSignIn(props: { verification: (value: boolean) => void, dialog: (value: boolean) => void, email: (value: string) => void }) {
+export function EmailSignIn(props: { verification: (value: boolean) => void, dialog: (value: boolean) => void, email: (value: string) => void, emailValue: string }) {
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
   const { toast } = useToast();
   const param = "__clerk_ticket";
-  const [showDialog,setShowDialog] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   React.useEffect(() => {
@@ -87,25 +86,26 @@ export function EmailSignIn(props: { verification: (value: boolean) => void, dia
         }
       });
   };
-    return(
-      <>
-    <form className="grid gap-2" onSubmit={signInWithCode}>
-      <div className="grid gap-1">
-        <Input
-          name="email"
-          placeholder="name@example.com"
-          type="email"
-          autoCapitalize="none"
-          autoComplete="email"
-          autoCorrect="off"
-          className="bg-background"
-        />
-      </div>
-      <Button disabled={isLoading}>
-        {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
-        Sign In with Email
-      </Button>
-    </form>
-      </>
-    )
+  return (
+    <>
+      <form className="grid gap-2" onSubmit={signInWithCode}>
+        <div className="grid gap-1">
+          <Input
+            name="email"
+            placeholder="name@example.com"
+            type="email"
+            defaultValue={props.emailValue}
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect="off"
+            className="bg-background"
+          />
+        </div>
+        <Button disabled={isLoading}>
+          {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
+          Sign In with Email
+        </Button>
+      </form>
+    </>
+  )
 }

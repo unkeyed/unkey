@@ -7,13 +7,12 @@ import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 export const runtime = "edge";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = React.useState(false);
-  const [showDialog,setShowDialog] = React.useState(false);
-  const [email,setEmail] = React.useState("");
+  const [showDialog, setShowDialog] = React.useState(false);
+  const [email, setEmail] = React.useState("");
   const { isLoaded } = useAuth();
   const router = useRouter();
   if (!isLoaded) {
@@ -28,7 +27,7 @@ export default function AuthenticationPage() {
             <p className="text-md text-content-subtle">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
-            <EmailSignIn verification={setVerify} dialog={setShowDialog} email={setEmail} />
+            <EmailSignIn verification={setVerify} dialog={setShowDialog} email={setEmail} emailValue={email} />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -59,15 +58,15 @@ export default function AuthenticationPage() {
           </div>
         </FadeIn>
       )}
-        <AlertDialog open={showDialog}>
-          <AlertDialogContent>
-            <div>We didn't detect an account associated with <span className="font-semibold">{email}</span>. Did you mean to sign up?</div>
-            <AlertDialogFooter>
-          <AlertDialogCancel>No</AlertDialogCancel>
-          <AlertDialogAction onClick={() => router.push(`/auth/sign-up?email=${email}`)}>Yes</AlertDialogAction>
-        </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      <AlertDialog open={showDialog}>
+        <AlertDialogContent>
+          <div>We didn't detect an account associated with <span className="font-semibold">{email}</span>. Did you mean to sign up?</div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDialog(false)}>No</AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push(`/auth/sign-up?email=${encodeURIComponent(email)}`)}>Yes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
