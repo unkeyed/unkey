@@ -149,7 +149,11 @@ const unkey = new Unkey({
 
 ### Cache
 
-The `fetch` cache behavior
+Configure the `fetch` cache behavior.
+
+<Warning>
+As of October 2023, the `cache` option is not yet implemented in cloudflare workers and will throw an error if used.
+</Warning>
 
 <ParamField body="cache" type="string">
   Available options are: `default`, `force-cache`, `no-cache`, `no-store`, `only-if-cached` or `reload`.
