@@ -31,4 +31,4 @@ Then using your favorite http client make a GET request to http://localhost:3000
 
 The code for creating apis keys is in `src/server/unkey-client.ts`. There is a function called `createApiKey` that accepts a name and expiration time in milliseconds. It uses the unkey client to create a new key and returns the key.
 
-The verification of the key happens in the Nextjs middleware at `src/middleware.ts`. It matches any route starting with `/api` It simple checks for the Authorization header and checks if the key is valid using `verifyKey`. All the logic of checking the expiration time is handled by unkey.
+The verification happens in the route handler at `/app/api/forecast/route.ts`. It simple checks for the Authorization header and checks if the key is valid using `verifyKey`. All the logic of checking the expiration time is handled by unkey.

@@ -1,5 +1,6 @@
 import { verifyKey } from "@unkey/api";
 
+import { headers } from "next/headers";
 type Forcast = {
   date: string;
   tempHigh: number;
@@ -64,6 +65,20 @@ function generateForecast() {
 }
 
 export async function GET() {
+  const authHeader = headers().get("Authorization");
+  if (!authHeader) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const key = authHeader.replace("Bearer ", "");
+  const { result, error } = await verifyKey(key);
+  if (error) {
+    console.error(error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
+  if (!result.valid) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const forecast = generateForecast();
 
   return Response.json(forecast, { status: 200 });

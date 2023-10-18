@@ -2,6 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider, auth } from "@clerk/nextjs";
 import * as Sentry from "@sentry/nextjs";
+
+export const dynamic = "force-dynamic";
+
 export default function AuthenticatedLayout({
   children,
 }: {
