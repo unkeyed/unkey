@@ -4,11 +4,11 @@ import { useSignUp } from "@clerk/nextjs";
 import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
+import { FadeInStagger } from "@/components/landing/fade-in";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-import { FadeInStagger } from "@/components/landing/fade-in";
 
 export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
@@ -25,10 +25,11 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
         return;
       }
       if (ticket) {
-        await signUp?.create({
-          strategy: "ticket",
-          ticket,
-        })
+        await signUp
+          ?.create({
+            strategy: "ticket",
+            ticket,
+          })
           .then((result) => {
             if (result.status === "complete" && result.createdSessionId) {
               setActive({ session: result.createdSessionId }).then(() => {
@@ -44,9 +45,10 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
 
       if (emailParam) {
         props.verification(true);
-        await signUp?.create({
-          emailAddress: emailParam,
-        })
+        await signUp
+          ?.create({
+            emailAddress: emailParam,
+          })
           .then(async () => {
             await signUp.prepareEmailAddressVerification();
             // set verification to true so we can show the code input
@@ -62,7 +64,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
                 variant: "alert",
               });
             } else {
-              console.log("Supress error")
+              console.log("Supress error");
             }
           });
       }

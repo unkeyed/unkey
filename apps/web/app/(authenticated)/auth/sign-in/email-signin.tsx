@@ -1,16 +1,19 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
-import * as React from "react";
-
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import * as React from "react";
 
-export function EmailSignIn(props: { verification: (value: boolean) => void, dialog: (value: boolean) => void, email: (value: string) => void, emailValue: string }) {
+export function EmailSignIn(props: {
+  verification: (value: boolean) => void;
+  dialog: (value: boolean) => void;
+  email: (value: string) => void;
+  emailValue: string;
+}) {
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
   const { toast } = useToast();
   const param = "__clerk_ticket";
@@ -107,5 +110,5 @@ export function EmailSignIn(props: { verification: (value: boolean) => void, dia
         </Button>
       </form>
     </>
-  )
+  );
 }

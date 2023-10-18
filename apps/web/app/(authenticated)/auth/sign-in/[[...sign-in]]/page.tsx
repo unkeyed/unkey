@@ -1,12 +1,18 @@
 "use client";
 import { FadeIn } from "@/components/landing/fade-in";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
 export const runtime = "edge";
 
 export default function AuthenticationPage() {
@@ -27,7 +33,12 @@ export default function AuthenticationPage() {
             <p className="text-md text-content-subtle">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
-            <EmailSignIn verification={setVerify} dialog={setShowDialog} email={setEmail} emailValue={email} />
+            <EmailSignIn
+              verification={setVerify}
+              dialog={setShowDialog}
+              email={setEmail}
+              emailValue={email}
+            />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -60,10 +71,17 @@ export default function AuthenticationPage() {
       )}
       <AlertDialog open={showDialog}>
         <AlertDialogContent>
-          <div>We didn't detect an account associated with <span className="font-semibold">{email}</span>. Did you mean to sign up?</div>
+          <div>
+            We didn't detect an account associated with{" "}
+            <span className="font-semibold">{email}</span>. Did you mean to sign up?
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowDialog(false)}>No</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push(`/auth/sign-up?email=${encodeURIComponent(email)}`)}>Yes</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => router.push(`/auth/sign-up?email=${encodeURIComponent(email)}`)}
+            >
+              Yes
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
