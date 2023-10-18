@@ -51,7 +51,7 @@ export default function Example() {
               src="https://www.youtube-nocookie.com/embed/fDKkicMZiCc?si=ksblX5j1-OUvNLpf&amp;controls=0"
               title="Unkey in Five minutes - YouTube"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullscreen
+              allowFullScreen
             />
           </div>
           <div className="mt-4 aspect-w-16 aspect-h-9 lg:hidden">
@@ -59,7 +59,7 @@ export default function Example() {
               src="https://www.youtube-nocookie.com/embed/fDKkicMZiCc?si=ksblX5j1-OUvNLpf&amp;controls=0"
               title="Unkey in Five minutes - YouTube"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullscreen
+              allowFullScreen
             />
           </div>
           <div className="flex flex-col max-w-2xl mx-auto mt-16">
