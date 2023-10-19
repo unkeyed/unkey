@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Minus, MoreHorizontal, Trash } from "lucide-react";
+import { ArrowUpDown, FileClock, Minus, MoreHorizontal, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -125,7 +125,24 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       header: "Expires",
       cell: ({ row }) =>
         row.original.expires ? (
-          <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+          row.original.expires.getTime() < Date.now() ? (
+            <Tooltip>
+              <TooltipTrigger className="flex items-center text-content-subtle">
+                Expired <FileClock className="w-4 h-4 ml-2" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  This key expired {ms(Date.now() - row.original.expires.getTime(), { long: true })}{" "}
+                  ago.
+                  <Link href={`/app/keys/${row.original.id}/settings`} className="ml-2">
+                    <Button variant="ghost">Update Key</Button>
+                  </Link>
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+          )
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),

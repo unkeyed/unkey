@@ -22,26 +22,12 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
     return redirect("/onboarding");
   }
 
-  const found = await db.query.keys.findMany({
+  const _found = await db.query.keys.findMany({
     where: eq(schema.keys.forWorkspaceId, workspace.id),
     limit: 100,
   });
 
   const keys: Key[] = [];
-  const expired: Key[] = [];
-
-  for (const k of found) {
-    if (k.expires && k.expires.getTime() < Date.now()) {
-      expired.push(k);
-    }
-    // remove temp keys from the list of keys.
-    if (!k.expires) {
-      keys.push(k);
-    }
-  }
-  if (expired.length > 0) {
-    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
-  }
 
   return (
     <div className="min-h-screen">
