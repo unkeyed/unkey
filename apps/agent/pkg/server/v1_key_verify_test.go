@@ -545,7 +545,7 @@ type mockAnalytics struct {
 func (m *mockAnalytics) PublishKeyVerificationEvent(ctx context.Context, event analytics.KeyVerificationEvent) {
 	m.calledPublish.Add(1)
 }
-func (m *mockAnalytics) GetKeyStats(ctx context.Context, keyId string) (analytics.KeyStats, error) {
+func (m *mockAnalytics) GetKeyStats(ctx context.Context, workspaceId, apiId, keyId string) (analytics.KeyStats, error) {
 	return analytics.KeyStats{}, fmt.Errorf("Implement me")
 }
 

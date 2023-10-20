@@ -97,9 +97,10 @@ func (t *Tinybird) PublishKeyVerificationEvent(ctx context.Context, event analyt
 	t.keyVerificationsC <- event
 }
 
-func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (analytics.KeyStats, error) {
+func (t *Tinybird) GetKeyStats(ctx context.Context, workspaceId, apiId, keyId string) (analytics.KeyStats, error) {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.tinybird.co/v0/pipes/x__endpoint_get_daily_key_stats.json?keyId=%s&token=%s", keyId, t.token), nil)
+	url := fmt.Sprintf("https://api.tinybird.co/v0/pipes/endpoint__get_daily_verifications__v1.json?workspaceId=%s&apiId=%s&keyId=%s&token=%s", workspaceId, apiId, keyId, t.token)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return analytics.KeyStats{}, fmt.Errorf("unable to prepare request: %w", err)
 	}
@@ -115,8 +116,10 @@ func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (analytics.Key
 
 	type tinybirdResponse struct {
 		Data []struct {
-			Time  string `json:"time"`
-			Usage int64  `json:"usage"`
+			Time          string `json:"time"`
+			Success       int64  `json:"success"`
+			RateLimited   int64  `json:"rateLimited"`
+			UsageExceeded int64  `json:"usageExceeded"`
 		} `json:"data"`
 	}
 
@@ -132,16 +135,18 @@ func (t *Tinybird) GetKeyStats(ctx context.Context, keyId string) (analytics.Key
 	}
 
 	stats := analytics.KeyStats{
-		Usage: make([]analytics.ValueAtTime, len(tr.Data)),
+		Usage: make([]analytics.KeyUsage, len(tr.Data)),
 	}
 	for i, day := range tr.Data {
 		t, err := time.Parse(time.DateTime, day.Time)
 		if err != nil {
 			return analytics.KeyStats{}, fmt.Errorf("unable to parse time %s: %w", day.Time, err)
 		}
-		stats.Usage[i] = analytics.ValueAtTime{
-			Time:  t.UnixMilli(),
-			Value: day.Usage,
+		stats.Usage[i] = analytics.KeyUsage{
+			Time:          t.UnixMilli(),
+			Success:       day.Success,
+			RateLimited:   day.RateLimited,
+			UsageExceeded: day.UsageExceeded,
 		}
 	}
 

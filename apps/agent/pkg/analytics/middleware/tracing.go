@@ -24,11 +24,11 @@ func (mw *tracingMiddleware) PublishKeyVerificationEvent(ctx context.Context, ev
 	mw.next.PublishKeyVerificationEvent(ctx, event)
 
 }
-func (mw *tracingMiddleware) GetKeyStats(ctx context.Context, keyId string) (analytics.KeyStats, error) {
+func (mw *tracingMiddleware) GetKeyStats(ctx context.Context, workspaceId, apiId, keyId string) (analytics.KeyStats, error) {
 	ctx, span := mw.tracer.Start(ctx, "analytics.GetKeyStats", trace.WithAttributes(attribute.String("keyId", keyId)))
 	defer span.End()
 
-	stats, err := mw.next.GetKeyStats(ctx, keyId)
+	stats, err := mw.next.GetKeyStats(ctx, workspaceId, apiId, keyId)
 	if err != nil {
 		span.RecordError(err)
 	}

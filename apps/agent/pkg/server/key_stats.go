@@ -13,8 +13,10 @@ type GetKeyStatsRequest struct {
 }
 
 type usageRecord struct {
-	Time  int64 `json:"time"`
-	Value int64 `json:"value"`
+	Time          int64 `json:"time"`
+	Success       int64 `json:"success"`
+	RateLimited   int64 `json:"rateLimited"`
+	UsageExceeded int64 `json:"usageExceeded"`
 }
 
 type GetKeyStatsResponse struct {
@@ -47,8 +49,15 @@ func (s *Server) getKeyStats(c *fiber.Ctx) error {
 	if key.WorkspaceId != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
 	}
+	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
+	if err != nil {
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+	}
+	if !found {
+		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("api %s not found", key.KeyAuthId))
+	}
 
-	keyStats, err := s.analytics.GetKeyStats(ctx, key.Id)
+	keyStats, err := s.analytics.GetKeyStats(ctx, key.WorkspaceId, api.Id, key.Id)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, "unable to load stats")
 	}
@@ -58,8 +67,10 @@ func (s *Server) getKeyStats(c *fiber.Ctx) error {
 	}
 	for i, day := range keyStats.Usage {
 		res.Usage[i] = usageRecord{
-			Time:  day.Time,
-			Value: day.Value,
+			Time:          day.Time,
+			Success:       day.Success,
+			RateLimited:   day.RateLimited,
+			UsageExceeded: day.UsageExceeded,
 		}
 	}
 

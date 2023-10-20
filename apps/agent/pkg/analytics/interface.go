@@ -4,7 +4,7 @@ import "context"
 
 type Analytics interface {
 	PublishKeyVerificationEvent(ctx context.Context, event KeyVerificationEvent)
-	GetKeyStats(ctx context.Context, keyId string) (KeyStats, error)
+	GetKeyStats(ctx context.Context, workspaceId, apiId, keyId string) (KeyStats, error)
 }
 
 type KeyVerificationV1Event struct {
@@ -44,10 +44,12 @@ type KeyVerificationEvent struct {
 	RequestedResource string `json:"requestedResource"`
 }
 
-type ValueAtTime struct {
-	Time  int64
-	Value int64
+type KeyUsage struct {
+	Time          int64 `json:"time"`
+	Success       int64 `json:"success"`
+	RateLimited   int64 `json:"rateLimited"`
+	UsageExceeded int64 `json:"usageExceeded"`
 }
 type KeyStats struct {
-	Usage []ValueAtTime
+	Usage []KeyUsage
 }
