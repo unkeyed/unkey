@@ -1,4 +1,4 @@
-import { NextRequestWithUnkeyContext, unstable__withUnkey } from "@unkey/nextjs";
+import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 import { NextResponse } from "next/server";
 
 async function handler(req: NextRequestWithUnkeyContext) {
@@ -11,7 +11,7 @@ async function handler(req: NextRequestWithUnkeyContext) {
 ${JSON.stringify(req.unkey, null, 2)}`);
 }
 
-export const GET = unstable__withUnkey(handler, {
+export const GET = withUnkey(handler, {
   /**
    * Just for this demo we're passing the key in searchparams,
    * by default it is loaded from the `Authorization` header

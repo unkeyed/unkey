@@ -4,26 +4,20 @@ import { keys } from "@/server/keys";
 import { Unkey } from "@unkey/api";
 import { revalidatePath } from "next/cache";
 
-const UNKEY_ROOT_KEY = process.env.UNKEY_ROOT_KEY;
-if (!UNKEY_ROOT_KEY) {
-  throw new Error("UNKEY_ROOT_KEY is not defined");
-}
+export async function createKey(_formDate: FormData) {
+  const rootKey = process.env.UNKEY_ROOT_KEY;
+  if (!rootKey) {
+    throw new Error("UNKEY_ROOT_KEY is not defined");
+  }
+  const unkey = new Unkey({ rootKey });
 
-function getApiId() {
-  const UNKEY_API_ID = process.env.UNKEY_API_ID;
-  if (!UNKEY_API_ID) {
+  const apiId = process.env.UNKEY_API_ID;
+  if (!apiId) {
     throw new Error("UNKEY_API_ID is not defined");
   }
-
-  return UNKEY_API_ID;
-}
-
-const unkey = new Unkey({ token: UNKEY_ROOT_KEY });
-
-export async function createKey(_formDate: FormData) {
   const expires = new Date().getTime() + 1000 * 60;
   const res = await unkey.keys.create({
-    apiId: getApiId(),
+    apiId,
     prefix: "forecast",
     expires,
   });
@@ -38,6 +32,5 @@ export async function createKey(_formDate: FormData) {
     keyId: res.result.keyId,
     expires,
   });
-
   revalidatePath("/");
 }
