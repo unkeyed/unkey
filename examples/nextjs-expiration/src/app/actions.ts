@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { Unkey } from "@unkey/api";
 import { keys } from "@/server/keys";
+import { Unkey } from "@unkey/api";
+import { revalidatePath } from "next/cache";
 
 const UNKEY_ROOT_KEY = process.env.UNKEY_ROOT_KEY;
 if (!UNKEY_ROOT_KEY) {
