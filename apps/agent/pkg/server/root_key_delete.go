@@ -42,7 +42,7 @@ func (s *Server) deleteRootKey(c *fiber.Ctx) error {
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find key: %s", req.KeyId))
 	}
-	if key.ForWorkspaceId != authorizedWorkspaceId {
+	if key.ForWorkspaceId == nil || key.GetForWorkspaceId() != authorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 

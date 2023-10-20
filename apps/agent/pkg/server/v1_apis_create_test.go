@@ -5,11 +5,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
@@ -23,7 +26,7 @@ func TestV1ApisCreate(t *testing.T) {
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[entities.Key](),
+		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:          cache.NewNoopCache[entities.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
@@ -32,6 +35,10 @@ func TestV1ApisCreate(t *testing.T) {
 		UnkeyAppAuthToken: "supersecret",
 		WorkspaceService:  workspaces.New(workspaces.Config{Database: resources.Database}),
 		ApiService:        apis.New(apis.Config{Database: resources.Database}),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	res := CreateApiResponse{}
@@ -64,7 +71,7 @@ func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[entities.Key](),
+		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:          cache.NewNoopCache[entities.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
@@ -75,7 +82,6 @@ func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
 		ApiService:        apis.New(apis.Config{Database: resources.Database}),
 	})
 
-	t.Logf("%+v", resources)
 	res := errors.ErrorResponse{}
 	testutil.Json(t, srv.app, testutil.JsonRequest{
 		Debug:      true,

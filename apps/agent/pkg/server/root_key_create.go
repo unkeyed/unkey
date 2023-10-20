@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
-	"github.com/unkeyed/unkey/apps/agent/pkg/keys"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys/keygen"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type CreateRootKeyRequest struct {
@@ -55,32 +56,32 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
-	keyValue, err := keys.NewV1Key("unkey", 16)
+	keyValue, err := keygen.NewV1Key("unkey", 16)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
 	separatorIndex := strings.Index(keyValue, "_")
 	keyHash := hash.Sha256(keyValue)
 
-	newKey := entities.Key{
+	newKey := &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   s.unkeyKeyAuthId,
 		WorkspaceId: s.unkeyWorkspaceId,
-		OwnerId:     req.OwnerId,
-		Name:        req.Name,
+		OwnerId:     util.Pointer(req.OwnerId),
+		Name:        util.Pointer(req.Name),
 		Hash:        keyHash,
 		Start:       keyValue[0 : separatorIndex+4],
-		CreatedAt:   time.Now(),
-		Ratelimit: &entities.Ratelimit{
-			Type:           "fast",
+		CreatedAt:   time.Now().UnixMilli(),
+		Ratelimit: &keysv1.Ratelimit{
+			Type:           keysv1.RatelimitType_RATELIMIT_TYPE_FAST,
 			Limit:          100,
 			RefillRate:     10,
 			RefillInterval: 1000,
 		},
-		ForWorkspaceId: req.ForWorkspaceId,
+		ForWorkspaceId: util.Pointer(req.ForWorkspaceId),
 	}
 	if req.Expires > 0 {
-		newKey.Expires = time.UnixMilli(req.Expires)
+		newKey.Expires = util.Pointer(req.Expires)
 	}
 
 	err = s.db.InsertKey(ctx, newKey)

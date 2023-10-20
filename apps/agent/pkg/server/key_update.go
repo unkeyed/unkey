@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 // nullish is a wrapper to allow a value to be optional or null
@@ -88,41 +89,51 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 
 	if req.Name.Defined {
 		if req.Name.Value != nil {
-			key.Name = *req.Name.Value
+			key.Name = req.Name.Value
 		} else {
-			key.Name = ""
+			key.Name = nil
 		}
 	}
 
 	if req.OwnerId.Defined {
 		if req.OwnerId.Value != nil {
-			key.OwnerId = *req.OwnerId.Value
+			key.OwnerId = req.OwnerId.Value
 		} else {
-			key.OwnerId = ""
+			key.OwnerId = nil
 		}
 	}
 	if req.Meta.Defined {
 		if req.Meta.Value != nil {
-			key.Meta = *req.Meta.Value
+			s, err := json.Marshal(*req.Meta.Value)
+			if err != nil {
+				return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to marshal meta: %s", err.Error()))
+			}
+			key.Meta = util.Pointer(string(s))
 		} else {
 			key.Meta = nil
 		}
 	}
 	if req.Expires.Defined {
 		if req.Expires.Value != nil {
-			key.Expires = time.UnixMilli(*req.Expires.Value)
+			key.Expires = req.Expires.Value
 		} else {
-			key.Expires = time.Time{}
+			key.Expires = nil
 		}
 	}
 	if req.Ratelimit.Defined {
 		if req.Ratelimit.Value != nil {
-			key.Ratelimit = &entities.Ratelimit{
-				Type:           req.Ratelimit.Value.Type,
+			key.Ratelimit = &keysv1.Ratelimit{
 				Limit:          req.Ratelimit.Value.Limit,
 				RefillRate:     req.Ratelimit.Value.RefillRate,
 				RefillInterval: req.Ratelimit.Value.RefillInterval,
 			}
+			switch req.Ratelimit.Value.Type {
+			case "fast":
+				key.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_FAST
+			case "consistent":
+				key.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
+			}
+
 		} else {
 			key.Ratelimit = nil
 		}

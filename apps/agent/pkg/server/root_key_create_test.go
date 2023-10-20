@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -27,7 +28,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[entities.Key](),
+		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:          cache.NewNoopCache[entities.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
@@ -76,7 +77,7 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 
 	srv := New(Config{
 		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[entities.Key](),
+		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:          cache.NewNoopCache[entities.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
@@ -117,9 +118,9 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 	require.Equal(t, createRootKeyResponse.KeyId, foundKey.Id)
 	require.GreaterOrEqual(t, len(createRootKeyResponse.Key), 30)
 	require.True(t, strings.HasPrefix(createRootKeyResponse.Key, "unkey_"))
-	require.True(t, foundKey.Expires.After(time.Now()))
+	require.True(t, time.UnixMilli(foundKey.GetExpires()).After(time.Now()))
 
-	require.Equal(t, "fast", foundKey.Ratelimit.Type)
+	require.Equal(t, keysv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
 	require.Equal(t, int32(100), foundKey.Ratelimit.Limit)
 	require.Equal(t, int32(10), foundKey.Ratelimit.RefillRate)
 	require.Equal(t, int32(1000), foundKey.Ratelimit.RefillInterval)

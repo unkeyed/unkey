@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 )
@@ -99,7 +100,7 @@ func (mw *metricsMiddleware) DeleteKeyAuth(ctx context.Context, keyAuthId string
 	return mw.next.DeleteKeyAuth(ctx, keyAuthId)
 
 }
-func (mw *metricsMiddleware) InsertKey(ctx context.Context, newKey entities.Key) (err error) {
+func (mw *metricsMiddleware) InsertKey(ctx context.Context, newKey *keysv1.Key) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -110,7 +111,7 @@ func (mw *metricsMiddleware) InsertKey(ctx context.Context, newKey entities.Key)
 	return mw.next.InsertKey(ctx, newKey)
 
 }
-func (mw *metricsMiddleware) FindKeyById(ctx context.Context, keyId string) (key entities.Key, found bool, err error) {
+func (mw *metricsMiddleware) FindKeyById(ctx context.Context, keyId string) (key *keysv1.Key, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -120,7 +121,7 @@ func (mw *metricsMiddleware) FindKeyById(ctx context.Context, keyId string) (key
 	}()
 	return mw.next.FindKeyById(ctx, keyId)
 }
-func (mw *metricsMiddleware) FindKeyByHash(ctx context.Context, hash string) (key entities.Key, found bool, err error) {
+func (mw *metricsMiddleware) FindKeyByHash(ctx context.Context, hash string) (key *keysv1.Key, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -130,7 +131,7 @@ func (mw *metricsMiddleware) FindKeyByHash(ctx context.Context, hash string) (ke
 	}()
 	return mw.next.FindKeyByHash(ctx, hash)
 }
-func (mw *metricsMiddleware) UpdateKey(ctx context.Context, key entities.Key) (err error) {
+func (mw *metricsMiddleware) UpdateKey(ctx context.Context, key *keysv1.Key) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -151,7 +152,7 @@ func (mw *metricsMiddleware) SoftDeleteKey(ctx context.Context, keyId string) (e
 	return mw.next.SoftDeleteKey(ctx, keyId)
 
 }
-func (mw *metricsMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error) {
+func (mw *metricsMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key *keysv1.Key, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -171,7 +172,7 @@ func (mw *metricsMiddleware) CountKeys(ctx context.Context, keyAuthId string) (c
 	}()
 	return mw.next.CountKeys(ctx, keyAuthId)
 }
-func (mw *metricsMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error) {
+func (mw *metricsMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]*keysv1.Key, error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{

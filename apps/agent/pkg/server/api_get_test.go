@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
@@ -25,7 +26,7 @@ func TestGetApi_Exists(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
@@ -58,7 +59,7 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
@@ -94,7 +95,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),

@@ -8,10 +8,10 @@ import (
 	"errors"
 
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 )
 
-func (db *database) ListKeys(ctx context.Context, keyAuthId string, ownerId string, offset, limit int) ([]entities.Key, error) {
+func (db *database) ListKeys(ctx context.Context, keyAuthId string, ownerId string, offset, limit int) ([]*keysv1.Key, error) {
 	var (
 		models []gen.Key
 		err    error
@@ -32,16 +32,16 @@ func (db *database) ListKeys(ctx context.Context, keyAuthId string, ownerId stri
 	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []entities.Key{}, nil
+			return nil, nil
 		}
-		return []entities.Key{}, fmt.Errorf("unable to find keys: %w", err)
+		return nil, fmt.Errorf("unable to find keys: %w", err)
 	}
 
-	keys := make([]entities.Key, len(models))
+	keys := make([]*keysv1.Key, len(models))
 	for i, model := range models {
 		keys[i], err = transformKeyModelToEntity(model)
 		if err != nil {
-			return []entities.Key{}, fmt.Errorf("unable to transform model to key: %w", err)
+			return nil, fmt.Errorf("unable to transform model to key: %w", err)
 		}
 	}
 

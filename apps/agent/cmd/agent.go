@@ -11,6 +11,7 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/spf13/cobra"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	analyticsMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/analytics/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
@@ -23,6 +24,7 @@ import (
 	metricsPkg "github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 
 	"os"
@@ -215,15 +217,15 @@ var AgentCmd = &cobra.Command{
 			logger.Info().Msg("consistent ratelimiting enabled")
 		}
 
-		keyCache := cache.NewMemory[entities.Key](cache.Config[entities.Key]{
+		keyCache := cache.NewMemory[*keysv1.Key](cache.Config[*keysv1.Key]{
 			Fresh:   time.Minute * 15,
 			Stale:   time.Minute * 60,
 			MaxSize: 1024 * 1024,
-			RefreshFromOrigin: func(ctx context.Context, keyHash string) (entities.Key, bool) {
+			RefreshFromOrigin: func(ctx context.Context, keyHash string) (*keysv1.Key, bool) {
 				key, found, err := db.FindKeyByHash(ctx, keyHash)
 				if err != nil {
 					logger.Err(err).Msg("unable to refresh key by hash")
-					return entities.Key{}, false
+					return nil, false
 				}
 				return key, found
 			},
@@ -231,8 +233,8 @@ var AgentCmd = &cobra.Command{
 			Metrics:  metrics,
 			Resource: "key",
 		})
-		keyCache = cacheMiddleware.WithTracing[entities.Key](keyCache, tracer)
-		keyCache = cacheMiddleware.WithMetrics[entities.Key](keyCache, metrics, "key", "memory")
+		keyCache = cacheMiddleware.WithTracing[*keysv1.Key](keyCache, tracer)
+		keyCache = cacheMiddleware.WithMetrics[*keysv1.Key](keyCache, metrics, "key", "memory")
 
 		apiByKeyAuthIdCache := cache.NewMemory[entities.Api](cache.Config[entities.Api]{
 			Fresh:   time.Minute * 15,
@@ -332,6 +334,10 @@ var AgentCmd = &cobra.Command{
 			apis.WithTracing(tracer),
 		)
 
+		keyService := keys.New(keys.Config{
+			Database: db,
+			Events:   eventBus,
+		})
 		srv := server.New(server.Config{
 			Logger:            logger,
 			KeyCache:          keyCache,
@@ -350,6 +356,7 @@ var AgentCmd = &cobra.Command{
 			Version:           version.Version,
 			WorkspaceService:  workspaceService,
 			ApiService:        apiService,
+			KeyService:        keyService,
 			Metrics:           metrics,
 		})
 

@@ -1,24 +1,23 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/events"
-	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
-	"github.com/unkeyed/unkey/apps/agent/pkg/keys"
-	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type CreateKeyRequest struct {
 	ApiId      string         `json:"apiId" validate:"required"`
 	Prefix     string         `json:"prefix"`
 	Name       string         `json:"name"`
-	ByteLength int            `json:"byteLength"`
+	ByteLength int32          `json:"byteLength"`
 	OwnerId    string         `json:"ownerId"`
 	Meta       map[string]any `json:"meta"`
 	Expires    int64          `json:"expires"`
@@ -86,57 +85,60 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 
 	}
 
-	keyValue, err := keys.NewV1Key(req.Prefix, req.ByteLength)
-	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to create new key: %s", err.Error()))
-
-	}
-	// how many chars to store, this includes the prefix, delimiter and the first 4 characters of the key
-	startLength := len(req.Prefix) + 5
-	keyHash := hash.Sha256(keyValue)
-
-	newKey := entities.Key{
-		Id:          uid.Key(),
+	createKeyReq := &keysv1.CreateKeyRequest{
+		WorkspaceId: api.WorkspaceId,
 		KeyAuthId:   api.KeyAuthId,
-		WorkspaceId: authorizedWorkspaceId,
-		Name:        req.Name,
-		Hash:        keyHash,
-		Start:       keyValue[:startLength],
-		OwnerId:     req.OwnerId,
-		Meta:        req.Meta,
-		CreatedAt:   time.Now(),
 	}
 	if req.Expires > 0 {
-		newKey.Expires = time.UnixMilli(req.Expires)
+		createKeyReq.Expires = &req.Expires
 	}
-	if req.Remaining > 0 {
-		remaining := req.Remaining
-		newKey.Remaining = &remaining
+	if req.ByteLength > 0 {
+		createKeyReq.ByteLength = util.Pointer(req.ByteLength)
+	}
+	if req.Name != "" {
+		createKeyReq.Name = util.Pointer(req.Name)
+	}
+	if req.OwnerId != "" {
+		createKeyReq.OwnerId = util.Pointer(req.OwnerId)
+	}
+	if req.Prefix != "" {
+		createKeyReq.Prefix = util.Pointer(req.Prefix)
+	}
+	if req.Meta != nil {
+		b, err := json.Marshal(req.Meta)
+		if err != nil {
+			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to marshal meta: %s", err.Error()))
+		}
+		createKeyReq.Meta = util.Pointer(string(b))
 	}
 	if req.Ratelimit != nil {
-		newKey.Ratelimit = &entities.Ratelimit{
-			Type:           req.Ratelimit.Type,
+		createKeyReq.Ratelimit = &keysv1.Ratelimit{
 			Limit:          req.Ratelimit.Limit,
 			RefillRate:     req.Ratelimit.RefillRate,
 			RefillInterval: req.Ratelimit.RefillInterval,
 		}
+		switch req.Ratelimit.Type {
+		case "fast":
+			createKeyReq.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_FAST
+		case "consistent":
+			createKeyReq.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
+		}
+	}
+	if req.Remaining > 0 {
+		createKeyReq.Remaining = util.Pointer(req.Remaining)
+	}
+	if req.Expires > 0 {
+		createKeyReq.Expires = util.Pointer(req.Expires)
 	}
 
-	err = s.db.InsertKey(ctx, newKey)
+	s.logger.Info().Interface("req", createKeyReq).Msg("calling keyService.CreateKey")
+	key, err := s.keyService.CreateKey(ctx, createKeyReq)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to store key: %s", err.Error()))
-	}
-	if s.events != nil {
-		e := events.KeyEvent{}
-		e.Type = events.KeyCreated
-		e.Key.Id = newKey.Id
-		e.Key.Hash = newKey.Hash
-		s.events.EmitKeyEvent(ctx, e)
-
+		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to create key: %s", err.Error()))
 	}
 
 	return c.JSON(CreateKeyResponse{
-		Key:   keyValue,
-		KeyId: newKey.Id,
+		Key:   key.Key,
+		KeyId: key.KeyId,
 	})
 }

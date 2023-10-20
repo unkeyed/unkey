@@ -48,5 +48,5 @@ tasks:
       - docker push ghcr.io/chronark/{{.IMAGE}}:{{.VERSION}}
 
   debug:
-    - go test -v -shuffle=on --race ./... -run TestVerifyKey_WithRemaining
+    - go test -v -shuffle=on --race ./... -run TestCreateKey_WithRemanining
   

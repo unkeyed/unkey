@@ -5,10 +5,12 @@ import (
 	"log"
 	"time"
 
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type externalKey struct {
@@ -64,16 +66,16 @@ func main() {
 		startLength := 4
 		keyHash := hash.Sha256(key.value)
 
-		newKey := entities.Key{
+		newKey := &keysv1.Key{
 			Id:          uid.Key(),
 			KeyAuthId:   api.KeyAuthId,
 			WorkspaceId: WORKSPACE_ID,
-			Name:        key.name,
+			Name:        util.Pointer(key.name),
 			Hash:        keyHash,
 			Start:       key.value[:startLength],
-			OwnerId:     key.ownerId,
+			OwnerId:     util.Pointer(key.ownerId),
 			// Meta:        req.Meta,
-			CreatedAt: time.Now(),
+			CreatedAt: time.Now().UnixMilli(),
 		}
 		// if req.Expires > 0 {
 		// 	newKey.Expires = time.UnixMilli(req.Expires)

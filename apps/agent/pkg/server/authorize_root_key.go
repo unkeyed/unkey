@@ -55,7 +55,7 @@ func (s *Server) authorizeRootKey(ctx context.Context, c *fiber.Ctx) (authorized
 		})
 	}()
 
-	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
+	if key.Expires != nil && time.UnixMilli(key.GetExpires()).Before(time.Now()) {
 		s.keyCache.Remove(ctx, h)
 		err := s.db.SoftDeleteKey(ctx, key.Id)
 		if err != nil {
@@ -66,10 +66,10 @@ func (s *Server) authorizeRootKey(ctx context.Context, c *fiber.Ctx) (authorized
 
 	}
 
-	if key.ForWorkspaceId == "" {
+	if key.ForWorkspaceId == nil {
 		return "", fmt.Errorf("wrong key")
 	}
 
-	return key.ForWorkspaceId, nil
+	return key.GetForWorkspaceId(), nil
 
 }

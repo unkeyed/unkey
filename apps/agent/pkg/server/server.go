@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/go-playground/validator/v10"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
@@ -26,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -33,7 +35,7 @@ import (
 
 type Config struct {
 	Logger   logging.Logger
-	KeyCache cache.Cache[entities.Key]
+	KeyCache cache.Cache[*keysv1.Key]
 	// The ApiCache uses the KeyAuthId as cache key, not an apiId
 	ApiCache          cache.Cache[entities.Api]
 	Database          database.Database
@@ -50,6 +52,7 @@ type Config struct {
 	Version           string
 	WorkspaceService  workspaces.WorkspaceService
 	ApiService        apis.ApiService
+	KeyService        keys.KeyService
 	Metrics           metrics.Metrics
 }
 
@@ -58,7 +61,7 @@ type Server struct {
 	logger          logging.Logger
 	validator       *validator.Validate
 	db              database.Database
-	keyCache        cache.Cache[entities.Key]
+	keyCache        cache.Cache[*keysv1.Key]
 	apiCache        cache.Cache[entities.Api]
 	ratelimit       ratelimit.Ratelimiter
 	globalRatelimit ratelimit.Ratelimiter
@@ -81,6 +84,7 @@ type Server struct {
 
 	workspaceService workspaces.WorkspaceService
 	apiService       apis.ApiService
+	keyService       keys.KeyService
 }
 
 func New(config Config) *Server {
@@ -109,6 +113,7 @@ func New(config Config) *Server {
 		version:           config.Version,
 		workspaceService:  config.WorkspaceService,
 		apiService:        config.ApiService,
+		keyService:        config.KeyService,
 
 		metrics: config.Metrics,
 	}
@@ -122,7 +127,7 @@ func New(config Config) *Server {
 	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
 		buf := make([]byte, 2048)
 		buf = buf[:runtime.Stack(buf, false)]
-		config.Logger.Error().Any("err", err).Bytes("stacktrace", buf).Msg("recovered from panic")
+		config.Logger.Error().Any("err", err).Msg(string(buf))
 	}}))
 
 	s.app.Use(cors.New())

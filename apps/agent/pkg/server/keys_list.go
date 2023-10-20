@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
@@ -95,22 +97,32 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 			Id:             k.Id,
 			ApiId:          api.Id,
 			WorkspaceId:    k.WorkspaceId,
-			Name:           k.Name,
+			Name:           k.GetName(),
 			Start:          k.Start,
-			OwnerId:        k.OwnerId,
-			Meta:           k.Meta,
-			CreatedAt:      k.CreatedAt.UnixMilli(),
-			ForWorkspaceId: k.ForWorkspaceId,
+			OwnerId:        k.GetOwnerId(),
+			CreatedAt:      k.CreatedAt,
+			ForWorkspaceId: k.GetForWorkspaceId(),
 		}
-		if !k.Expires.IsZero() {
-			res.Keys[i].Expires = k.Expires.UnixMilli()
+		if k.Meta != nil {
+			err = json.Unmarshal([]byte(k.GetMeta()), &res.Keys[i].Meta)
+			if err != nil {
+				return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to unmarshal meta: %s", err.Error()))
+			}
+		}
+		if k.Expires != nil {
+			res.Keys[i].Expires = *k.Expires
 		}
 		if k.Ratelimit != nil {
 			res.Keys[i].Ratelimit = &ratelimitSettng{
-				Type:           k.Ratelimit.Type,
 				Limit:          k.Ratelimit.Limit,
 				RefillRate:     k.Ratelimit.RefillRate,
 				RefillInterval: k.Ratelimit.RefillInterval,
+			}
+			switch k.Ratelimit.Type {
+			case keysv1.RatelimitType_RATELIMIT_TYPE_FAST:
+				res.Keys[i].Ratelimit.Type = "fast"
+			case keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
+				res.Keys[i].Ratelimit.Type = "consistent"
 			}
 		}
 		if k.Remaining != nil {

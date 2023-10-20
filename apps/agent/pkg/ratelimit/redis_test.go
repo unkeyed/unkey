@@ -17,7 +17,7 @@ func TestRedisRateLimiter(t *testing.T) {
 
 	config := ratelimit.RedisConfig{
 		RedisUrl: redisUrl,
-		Logger:   logging.New(nil),
+		Logger:   logging.NewNoopLogger(),
 	}
 
 	rl, err := ratelimit.NewRedis(config)
@@ -58,7 +58,6 @@ func TestRedisRateLimiter(t *testing.T) {
 
 	for i := refillRate; i > 0; i-- {
 		res := rl.Take(req)
-		t.Log(i, res)
 		require.True(t, res.Pass)
 		require.Equal(t, maxTokens, res.Limit)
 		require.Equal(t, int32(i-1), res.Remaining)

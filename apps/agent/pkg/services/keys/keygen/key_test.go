@@ -1,4 +1,4 @@
-package keys
+package keygen
 
 import (
 	"github.com/stretchr/testify/require"

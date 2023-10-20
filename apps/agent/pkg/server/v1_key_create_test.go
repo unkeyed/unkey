@@ -12,10 +12,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -28,10 +31,14 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -48,7 +55,6 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-
 	require.Equal(t, res.StatusCode, 200)
 
 	createKeyResponse := CreateKeyResponse{}
@@ -71,7 +77,7 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
@@ -113,10 +119,14 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -161,10 +171,14 @@ func TestCreateKey_WithCustom(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -207,10 +221,11 @@ func TestCreateKey_WithCustom(t *testing.T) {
 	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
 	require.GreaterOrEqual(t, len(createKeyResponse.Key), 30)
 	require.True(t, strings.HasPrefix(createKeyResponse.Key, "test_"))
-	require.Equal(t, "chronark", foundKey.OwnerId)
-	require.True(t, foundKey.Expires.After(time.Now()))
+	require.Equal(t, "chronark", *foundKey.OwnerId)
+	require.True(t, time.UnixMilli(foundKey.GetExpires()).After(time.Now()))
 
-	require.Equal(t, "fast", foundKey.Ratelimit.Type)
+	require.NotNil(t, foundKey.Ratelimit)
+	require.Equal(t, keysv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
 	require.Equal(t, int32(10), foundKey.Ratelimit.Limit)
 	require.Equal(t, int32(10), foundKey.Ratelimit.RefillRate)
 	require.Equal(t, int32(1000), foundKey.Ratelimit.RefillInterval)
@@ -225,10 +240,14 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{

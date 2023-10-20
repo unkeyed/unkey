@@ -24,7 +24,7 @@ message Ratelimit {
 }
 message CreateKeyRequest {
   string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
-  string api_id = 2 [(buf.validate.field).string.min_len = 1];
+  string key_auth_id = 2 [(buf.validate.field).string.min_len = 1];
 
   optional string prefix = 3;
   optional string name = 4;
@@ -44,9 +44,25 @@ message CreateKeyRequest {
 
   // How often this key may be used
   // `undefined`, `0` or negative to disable
-  optional int32 remaining_uses = 11;
+  optional int32 remaining = 11;
 }
 message CreateKeyResponse {
   string key_id = 1;
   string key = 2;
+}
+
+message Key {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  string key_auth_id = 2 [(buf.validate.field).string.min_len = 1];
+  string workspace_id = 3 [(buf.validate.field).string.min_len = 1];
+  optional string name = 4;
+  string hash = 5;
+  string start = 6;
+  optional string owner_id = 7;
+  optional string meta = 8;
+  int64 created_at = 9;
+  optional int64 expires = 10;
+  optional Ratelimit ratelimit = 11;
+  optional string for_workspace_id = 12;
+  optional int32 remaining = 13;
 }

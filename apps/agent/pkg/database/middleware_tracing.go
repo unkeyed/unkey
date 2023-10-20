@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -93,7 +94,7 @@ func (mw *tracingMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId s
 	}
 	return api, found, err
 }
-func (mw *tracingMiddleware) InsertKey(ctx context.Context, newKey entities.Key) (err error) {
+func (mw *tracingMiddleware) InsertKey(ctx context.Context, newKey *keysv1.Key) (err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "InsertKey"))
 	defer span.End()
 
@@ -103,7 +104,7 @@ func (mw *tracingMiddleware) InsertKey(ctx context.Context, newKey entities.Key)
 	}
 	return err
 }
-func (mw *tracingMiddleware) FindKeyById(ctx context.Context, keyId string) (key entities.Key, found bool, err error) {
+func (mw *tracingMiddleware) FindKeyById(ctx context.Context, keyId string) (key *keysv1.Key, found bool, err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindKeyById"))
 	defer span.End()
 
@@ -113,7 +114,7 @@ func (mw *tracingMiddleware) FindKeyById(ctx context.Context, keyId string) (key
 	}
 	return key, found, err
 }
-func (mw *tracingMiddleware) FindKeyByHash(ctx context.Context, hash string) (key entities.Key, found bool, err error) {
+func (mw *tracingMiddleware) FindKeyByHash(ctx context.Context, hash string) (key *keysv1.Key, found bool, err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "FindKeyByHash"))
 	defer span.End()
 
@@ -124,7 +125,7 @@ func (mw *tracingMiddleware) FindKeyByHash(ctx context.Context, hash string) (ke
 	return key, found, err
 }
 
-func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key entities.Key) (err error) {
+func (mw *tracingMiddleware) UpdateKey(ctx context.Context, key *keysv1.Key) (err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "UpdateKey"))
 	defer span.End()
 
@@ -144,7 +145,7 @@ func (mw *tracingMiddleware) SoftDeleteKey(ctx context.Context, keyId string) (e
 	}
 	return err
 }
-func (mw *tracingMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key entities.Key, err error) {
+func (mw *tracingMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key *keysv1.Key, err error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "DecrementRemainingKeyUsage"))
 	defer span.End()
 
@@ -164,7 +165,7 @@ func (mw *tracingMiddleware) CountKeys(ctx context.Context, keyAuthId string) (c
 	}
 	return count, err
 }
-func (mw *tracingMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]entities.Key, error) {
+func (mw *tracingMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]*keysv1.Key, error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("database", "ListKeys"))
 	defer span.End()
 

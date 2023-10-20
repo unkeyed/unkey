@@ -1,25 +1,5 @@
 package entities
 
-import "time"
-
-type Key struct {
-	Id             string
-	KeyAuthId      string
-	WorkspaceId    string
-	Name           string
-	Hash           string
-	Start          string
-	OwnerId        string
-	Meta           map[string]any
-	CreatedAt      time.Time
-	Expires        time.Time
-	Ratelimit      *Ratelimit
-	ForWorkspaceId string
-	// How many more times this key may be verified
-	// nil == disabled
-	Remaining *int32
-}
-
 type Ratelimit struct {
 	Type           string
 	Limit          int32

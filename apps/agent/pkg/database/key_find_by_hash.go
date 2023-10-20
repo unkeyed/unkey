@@ -7,22 +7,22 @@ import (
 
 	"errors"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 )
 
-func (db *database) FindKeyByHash(ctx context.Context, hash string) (entities.Key, bool, error) {
+func (db *database) FindKeyByHash(ctx context.Context, hash string) (*keysv1.Key, bool, error) {
 
 	model, err := db.read().FindKeyByHash(ctx, hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return entities.Key{}, false, nil
+			return nil, false, nil
 		}
-		return entities.Key{}, false, fmt.Errorf("unable to find key: %w", err)
+		return nil, false, fmt.Errorf("unable to find key: %w", err)
 	}
 
-	api, err := transformKeyModelToEntity(model)
+	key, err := transformKeyModelToEntity(model)
 	if err != nil {
-		return entities.Key{}, true, fmt.Errorf("unable to transform key model to entity: %w", err)
+		return nil, true, fmt.Errorf("unable to transform key model to entity: %w", err)
 	}
-	return api, true, nil
+	return key, true, nil
 }

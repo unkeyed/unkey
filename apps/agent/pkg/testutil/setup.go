@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type resources struct {
@@ -94,13 +96,13 @@ func SetupResources(t *testing.T) resources {
 
 	r.UserRootKey = uid.New(16, string(uid.UnkeyPrefix))
 
-	rootKey := entities.Key{
+	rootKey := &keysv1.Key{
 		Id:             uid.Key(),
 		KeyAuthId:      r.UnkeyKeyAuth.Id,
 		WorkspaceId:    r.UnkeyWorkspace.Id,
-		ForWorkspaceId: r.UserWorkspace.Id,
+		ForWorkspaceId: util.Pointer(r.UserWorkspace.Id),
 		Hash:           hash.Sha256(r.UserRootKey),
-		CreatedAt:      time.Now(),
+		CreatedAt:      time.Now().UnixMilli(),
 	}
 
 	require.NoError(t, db.InsertKey(ctx, rootKey))

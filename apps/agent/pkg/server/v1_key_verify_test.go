@@ -11,11 +11,14 @@ import (
 	"testing"
 	"time"
 
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 
@@ -34,21 +37,25 @@ func TestVerifyKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -82,21 +89,25 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -130,22 +141,26 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
-		Expires:     time.Now().Add(time.Second * 5),
+		CreatedAt:   time.Now().UnixMilli(),
+		Expires:     util.Pointer(time.Now().Add(time.Second * 5).UnixMilli()),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -194,14 +209,14 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
-		Ratelimit: &entities.Ratelimit{
-			Type:           "fast",
+		CreatedAt:   time.Now().UnixMilli(),
+		Ratelimit: &keysv1.Ratelimit{
+			Type:           keysv1.RatelimitType_RATELIMIT_TYPE_FAST,
 			Limit:          2,
 			RefillRate:     1,
 			RefillInterval: 10000,
@@ -211,11 +226,15 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	srv := New(Config{
 		Logger:    logging.NewNoopLogger(),
-		KeyCache:  cache.NewNoopCache[entities.Key](),
+		KeyCache:  cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  resources.Database,
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -332,21 +351,25 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = resources.Database.InsertKey(ctx, entities.Key{
+	err = resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -397,21 +420,25 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = resources.Database.InsertKey(ctx, entities.Key{
+	err = resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   keyAuth.Id,
 		WorkspaceId: api.WorkspaceId,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -445,19 +472,19 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 
 	key := uid.New(16, "test")
 	remaining := int32(10)
-	err := resources.Database.InsertKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 		Remaining:   &remaining,
 	})
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:    logging.NewNoopLogger(),
-		KeyCache:  cache.NewNoopCache[entities.Key](),
+		KeyCache:  cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  resources.Database,
 		Tracer:    tracing.NewNoop(),
@@ -529,12 +556,12 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, entities.Key{
+	err := resources.Database.InsertKey(ctx, &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(key),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 		Remaining:   util.Pointer(int32(0)),
 	})
 	require.NoError(t, err)
@@ -542,11 +569,15 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	a := &mockAnalytics{}
 	srv := New(Config{
 		Logger:    logging.NewNoopLogger(),
-		KeyCache:  cache.NewNoopCache[entities.Key](),
+		KeyCache:  cache.NewNoopCache[*keysv1.Key](),
 		ApiCache:  cache.NewNoopCache[entities.Api](),
 		Database:  resources.Database,
 		Tracer:    tracing.NewNoop(),
 		Analytics: a,
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{

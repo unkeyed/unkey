@@ -6,10 +6,13 @@ import (
 	"testing"
 	"time"
 
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 
@@ -23,22 +26,26 @@ func TestV1RemoveKey(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	key := entities.Key{
+	key := &keysv1.Key{
 		Id:          uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.Id,
 		WorkspaceId: resources.UserWorkspace.Id,
 		Hash:        hash.Sha256(uid.New(16, "test")),
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UnixMilli(),
 	}
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 
 	srv := New(Config{
 		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[entities.Key](),
+		KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		ApiCache: cache.NewNoopCache[entities.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	res := RemoveKeyResponseV1{}

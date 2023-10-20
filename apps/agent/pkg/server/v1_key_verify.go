@@ -1,10 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
@@ -91,7 +93,7 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 			s.keyCache.Set(ctx, hash, key)
 		}
 	}
-	if !key.Expires.IsZero() && key.Expires.Before(time.Now()) {
+	if key.Expires != nil && time.UnixMilli(key.GetExpires()).Before(time.Now()) {
 		s.keyCache.Remove(ctx, hash)
 		err := s.db.SoftDeleteKey(ctx, key.Id)
 		if err != nil {
@@ -154,8 +156,13 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 
 	res := VerifyKeyResponseV1{
 		Valid:   true,
-		OwnerId: key.OwnerId,
-		Meta:    key.Meta,
+		OwnerId: key.GetOwnerId(),
+	}
+	if key.Meta != nil {
+		err = json.Unmarshal([]byte(key.GetMeta()), &res.Meta)
+		if err != nil {
+			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		}
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -185,8 +192,8 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 		})
 	}()
 
-	if !key.Expires.IsZero() {
-		res.Expires = key.Expires.UnixMilli()
+	if key.Expires != nil {
+		res.Expires = key.GetExpires()
 	}
 
 	if key.Remaining != nil {
@@ -229,9 +236,9 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.CheckRatelimit")
 		var limiter ratelimit.Ratelimiter
 		switch key.Ratelimit.Type {
-		case "fast":
+		case keysv1.RatelimitType_RATELIMIT_TYPE_FAST:
 			limiter = s.ratelimit
-		case "consistent":
+		case keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
 			limiter = s.globalRatelimit
 		}
 		if limiter != nil {

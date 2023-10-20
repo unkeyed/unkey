@@ -10,9 +10,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -25,14 +28,14 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	keyCache := cache.NewMemory[entities.Key](cache.Config[entities.Key]{
+	keyCache := cache.NewMemory[*keysv1.Key](cache.Config[*keysv1.Key]{
 		Fresh:   time.Minute * 15,
 		Stale:   time.Minute * 60,
 		MaxSize: 1024,
-		RefreshFromOrigin: func(ctx context.Context, keyHash string) (entities.Key, bool) {
+		RefreshFromOrigin: func(ctx context.Context, keyHash string) (*keysv1.Key, bool) {
 			key, found, err := resources.Database.FindKeyByHash(ctx, keyHash)
 			if err != nil {
-				return entities.Key{}, false
+				return nil, false
 			}
 			return key, found
 		},
@@ -58,6 +61,10 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 		ApiCache: apiCache,
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database: resources.Database,
+			Events:   events.NewNoop(),
+		}),
 	})
 
 	// Step 1: Create key with owner
@@ -78,12 +85,10 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	err = json.NewDecoder(createKeyResponse.Body).Decode(&createdKey)
 	require.NoError(t, err)
 
-	t.Logf("%+v\n", createdKey)
-
 	foundKey, found, err := resources.Database.FindKeyById(ctx, createdKey.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, "test_owner", foundKey.OwnerId)
+	require.Equal(t, "test_owner", *foundKey.OwnerId)
 
 	// Step 2: Update ownerId to null
 
@@ -101,7 +106,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	foundKeyAfterRemovingOwnerId, found, err := resources.Database.FindKeyById(ctx, createdKey.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, "", foundKeyAfterRemovingOwnerId.OwnerId)
+	require.Nil(t, foundKeyAfterRemovingOwnerId.OwnerId)
 
 	// Step 3: Add a name to the key
 
@@ -118,9 +123,9 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	foundKeyAfterUpdatingName, found, err := resources.Database.FindKeyById(ctx, createdKey.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, "test_name", foundKeyAfterUpdatingName.Name)
+	require.Equal(t, "test_name", *foundKeyAfterUpdatingName.Name)
 	// The ownerId should still be empty
-	require.Equal(t, "", foundKeyAfterUpdatingName.OwnerId)
+	require.Nil(t, foundKeyAfterUpdatingName.OwnerId)
 }
 
 // unkey_3ZK8htHnoACeYjWkLHGcB3bH
