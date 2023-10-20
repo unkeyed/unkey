@@ -1,0 +1,96 @@
+---
+title: Express
+description: Authentication for your Express server
+---
+
+## Prerequisites
+
+- [Create a workspace](/quickstart/onboarding#2-create-your-first-workspace)
+- [Create an API](/quickstart/onboarding#2-create-your-first-api)
+
+## Creating an express server
+
+<Steps titleSize="h3">
+<Step  title="Install">
+
+For ExpressJS installation, refer to their [documentation](https://expressjs.com/en/starter/installing.html)
+
+Now install the `@unkey/api` package
+
+```bash
+npm install @unkey/api
+```
+
+</Step>
+
+<Step title="Creating the server">
+
+Create a file called `server.ts` and add the following code
+
+```ts server.ts
+import express, { Request, Response, Application } from 'express';
+import dotenv from 'dotenv';
+import { verifyKey } from '@unkey/api';
+//For env File
+dotenv.config();
+
+const app: Application = express();
+const port = process.env.PORT || 8000;
+
+app.get('/', (req: Request, res: Response) => {
+  res.send('Welcome to Express & TypeScript Server');
+});
+
+// This endpoint is protected by Unkey
+app.get('/secret', async (req: Request, res: Response) => {
+  const authHeader = req.headers["authorization"]
+  const key = authHeader?.toString().replace("Bearer ", "");
+  if (!key) {
+    return res.status(401).send("Unauthorized")
+  }
+
+  const { result, error } = await verifyKey(key);
+  if (error) {
+    // This may happen on network errors
+    // We already retry the request 5 times, but if it still fails, we return an error
+    console.error(error);
+    res.status(500);
+    return res.status(500).send("Internal Server Error")
+  }
+
+  if (!result.valid) {
+    res.status(401);
+    return res.status(401).send("Unauthorized")
+  }
+
+  return res.status(200).send(JSON.stringify(result));
+})
+app.listen(port, () => {
+  console.log(`Server is listening at http://localhost:${port}`);
+});
+```
+
+</Step>
+
+<Step  title="Running the server">
+
+```bash
+npm run start
+```
+
+</Step>
+
+<Step  title="Try it out">
+
+Go to https://unkey.dev/app and create a new key. Then verify it with our new server:
+
+```bash
+curl 'http://localhost:8000/secret' \
+  -H 'Authorization:Bearer <YOUR_KEY>'
+```
+
+It should return `{ "valid": true }` and potentially more information about the key, depending on what you set up in the dashboard.
+
+</Step>
+
+</Steps>
