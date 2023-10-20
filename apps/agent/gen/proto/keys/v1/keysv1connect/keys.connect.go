@@ -28,6 +28,7 @@ const (
 // KeysServiceClient is a client for the proto.keys.v1.KeysService service.
 type KeysServiceClient interface {
 	CreateKey(context.Context, *connect_go.Request[v1.CreateKeyRequest]) (*connect_go.Response[v1.CreateKeyResponse], error)
+	SoftDeleteKey(context.Context, *connect_go.Request[v1.SoftDeleteKeyRequest]) (*connect_go.Response[v1.SoftDeleteKeyResponse], error)
 }
 
 // NewKeysServiceClient constructs a client for the proto.keys.v1.KeysService service. By default,
@@ -45,12 +46,18 @@ func NewKeysServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts
 			baseURL+"/proto.keys.v1.KeysService/CreateKey",
 			opts...,
 		),
+		softDeleteKey: connect_go.NewClient[v1.SoftDeleteKeyRequest, v1.SoftDeleteKeyResponse](
+			httpClient,
+			baseURL+"/proto.keys.v1.KeysService/SoftDeleteKey",
+			opts...,
+		),
 	}
 }
 
 // keysServiceClient implements KeysServiceClient.
 type keysServiceClient struct {
-	createKey *connect_go.Client[v1.CreateKeyRequest, v1.CreateKeyResponse]
+	createKey     *connect_go.Client[v1.CreateKeyRequest, v1.CreateKeyResponse]
+	softDeleteKey *connect_go.Client[v1.SoftDeleteKeyRequest, v1.SoftDeleteKeyResponse]
 }
 
 // CreateKey calls proto.keys.v1.KeysService.CreateKey.
@@ -58,9 +65,15 @@ func (c *keysServiceClient) CreateKey(ctx context.Context, req *connect_go.Reque
 	return c.createKey.CallUnary(ctx, req)
 }
 
+// SoftDeleteKey calls proto.keys.v1.KeysService.SoftDeleteKey.
+func (c *keysServiceClient) SoftDeleteKey(ctx context.Context, req *connect_go.Request[v1.SoftDeleteKeyRequest]) (*connect_go.Response[v1.SoftDeleteKeyResponse], error) {
+	return c.softDeleteKey.CallUnary(ctx, req)
+}
+
 // KeysServiceHandler is an implementation of the proto.keys.v1.KeysService service.
 type KeysServiceHandler interface {
 	CreateKey(context.Context, *connect_go.Request[v1.CreateKeyRequest]) (*connect_go.Response[v1.CreateKeyResponse], error)
+	SoftDeleteKey(context.Context, *connect_go.Request[v1.SoftDeleteKeyRequest]) (*connect_go.Response[v1.SoftDeleteKeyResponse], error)
 }
 
 // NewKeysServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -75,6 +88,11 @@ func NewKeysServiceHandler(svc KeysServiceHandler, opts ...connect_go.HandlerOpt
 		svc.CreateKey,
 		opts...,
 	))
+	mux.Handle("/proto.keys.v1.KeysService/SoftDeleteKey", connect_go.NewUnaryHandler(
+		"/proto.keys.v1.KeysService/SoftDeleteKey",
+		svc.SoftDeleteKey,
+		opts...,
+	))
 	return "/proto.keys.v1.KeysService/", mux
 }
 
@@ -83,4 +101,8 @@ type UnimplementedKeysServiceHandler struct{}
 
 func (UnimplementedKeysServiceHandler) CreateKey(context.Context, *connect_go.Request[v1.CreateKeyRequest]) (*connect_go.Response[v1.CreateKeyResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("proto.keys.v1.KeysService.CreateKey is not implemented"))
+}
+
+func (UnimplementedKeysServiceHandler) SoftDeleteKey(context.Context, *connect_go.Request[v1.SoftDeleteKeyRequest]) (*connect_go.Response[v1.SoftDeleteKeyResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("proto.keys.v1.KeysService.SoftDeleteKey is not implemented"))
 }

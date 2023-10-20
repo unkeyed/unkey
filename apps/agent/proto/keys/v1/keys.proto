@@ -8,6 +8,7 @@ option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1;keysv
 
 service KeysService {
   rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse) {}
+  rpc SoftDeleteKey(SoftDeleteKeyRequest) returns (SoftDeleteKeyResponse) {}
 }
 
 enum RatelimitType {
@@ -65,4 +66,11 @@ message Key {
   optional Ratelimit ratelimit = 11;
   optional string for_workspace_id = 12;
   optional int32 remaining = 13;
+  optional int64 deleted_at = 14;
 }
+
+message SoftDeleteKeyRequest {
+  string key_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message SoftDeleteKeyResponse {}

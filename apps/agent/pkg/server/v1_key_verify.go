@@ -93,6 +93,14 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 			s.keyCache.Set(ctx, hash, key)
 		}
 	}
+
+	if key.DeletedAt != nil {
+		return c.JSON(VerifyKeyResponseV1{
+			Valid: false,
+			Code:  errors.NOT_FOUND,
+		})
+	}
+
 	if key.Expires != nil && time.UnixMilli(key.GetExpires()).Before(time.Now()) {
 		s.keyCache.Remove(ctx, hash)
 		err := s.db.SoftDeleteKey(ctx, key.Id)

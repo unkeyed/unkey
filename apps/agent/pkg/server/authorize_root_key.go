@@ -32,6 +32,9 @@ func (s *Server) authorizeRootKey(ctx context.Context, c *fiber.Ctx) (authorized
 	if !found {
 		return "", fmt.Errorf("key not found")
 	}
+	if key.DeletedAt != nil {
+		return "", fmt.Errorf("key not found")
+	}
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
 	if err != nil {
 		return "", err

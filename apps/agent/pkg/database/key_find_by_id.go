@@ -80,5 +80,9 @@ func transformKeyModelToEntity(m gen.Key) (*keysv1.Key, error) {
 		key.Remaining = &remaining
 	}
 
+	if m.DeletedAt.Valid {
+		key.DeletedAt = util.Pointer(m.DeletedAt.Time.UnixMilli())
+	}
+
 	return key, nil
 }

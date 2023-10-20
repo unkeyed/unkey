@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 
+	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -46,18 +46,12 @@ func (s *Server) v1RemoveKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
-	err = s.db.SoftDeleteKey(ctx, key.Id)
+	_, err = s.keyService.SoftDeleteKey(ctx, &keysv1.SoftDeleteKeyRequest{
+		KeyId: key.Id,
+	})
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to delete key: %s", err.Error()))
 	}
-
-	s.events.EmitKeyEvent(ctx, events.KeyEvent{
-		Type: events.KeyDeleted,
-		Key: events.Key{
-			Id:   key.Id,
-			Hash: key.Hash,
-		},
-	})
 
 	return c.JSON(RemoveKeyResponseV1{})
 }

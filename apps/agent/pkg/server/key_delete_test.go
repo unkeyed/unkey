@@ -56,7 +56,8 @@ func TestDeleteKey(t *testing.T) {
 
 	require.Equal(t, 200, res.StatusCode)
 
-	_, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	key, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
-	require.False(t, found)
+	require.True(t, found)
+	require.NotNil(t, key.DeletedAt)
 }

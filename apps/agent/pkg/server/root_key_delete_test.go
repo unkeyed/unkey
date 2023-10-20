@@ -53,7 +53,8 @@ func TestDeleteRootKey(t *testing.T) {
 		StatusCode: 200,
 	})
 
-	_, found, err := resources.Database.FindKeyById(ctx, rootKey.Id)
+	key, found, err := resources.Database.FindKeyById(ctx, rootKey.Id)
 	require.NoError(t, err)
-	require.False(t, found)
+	require.True(t, found)
+	require.NotNil(t, key.DeletedAt)
 }

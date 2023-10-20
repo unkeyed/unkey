@@ -16,7 +16,6 @@ FROM
     ` + "`" + `keys` + "`" + `
 WHERE
     id = ?
-AND deleted_at IS NULL
 `
 
 func (q *Queries) FindKeyById(ctx context.Context, id string) (Key, error) {

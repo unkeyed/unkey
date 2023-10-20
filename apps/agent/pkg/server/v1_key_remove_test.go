@@ -45,6 +45,7 @@ func TestV1RemoveKey(t *testing.T) {
 		KeyService: keys.New(keys.Config{
 			Database: resources.Database,
 			Events:   events.NewNoop(),
+			KeyCache: cache.NewNoopCache[*keysv1.Key](),
 		}),
 	})
 
@@ -58,7 +59,8 @@ func TestV1RemoveKey(t *testing.T) {
 		StatusCode: 200,
 	})
 
-	_, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	key, found, err := resources.Database.FindKeyById(ctx, key.Id)
 	require.NoError(t, err)
-	require.False(t, found)
+	require.True(t, found)
+	require.NotNil(t, key.DeletedAt)
 }

@@ -4,5 +4,4 @@ SELECT
 FROM
     `keys`
 WHERE
-    hash = sqlc.arg("hash")
-AND deleted_at IS NULL
+    hash = sqlc.arg("hash");
