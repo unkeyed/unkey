@@ -2,84 +2,58 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
-	"time"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-type Step[T any] struct {
+type Step[R any] struct {
 	Name   string
 	Body   map[string]any
 	Url    string
 	Method string
 	Header map[string]string
-
-	Assertions []assertion
 }
 
-func (s Step[T]) fail(format string, a ...any) {
-	msg := fmt.Sprintf(format, a...)
-	log.Println()
-	log.Println()
-	log.Printf("Step: %s failed: %s\n", s.Name, msg)
-	os.Exit(1)
+type StepResponse[R any] struct {
+	Status int
+	Header http.Header
+	Body   R
 }
 
-func (s Step[T]) Run(ctx context.Context, res T) T {
-	id := getStepId()
+func (s Step[R]) Run(t *testing.T) StepResponse[R] {
+	t.Helper()
 
-	start := time.Now()
-	log.Printf("[%03d] - Step: %s ...", id, s.Name)
-	if len(s.Assertions) == 0 {
-		log.Printf(" no assertions ...")
-	}
-	defer func() {
-		log.Printf("        done (%s)\n", time.Since(start).Round(time.Millisecond))
-	}()
-	requestBody, err := json.Marshal(s.Body)
-	if err != nil {
-		s.fail("unable to marshal body", err)
-	}
-	req, err := http.NewRequest(s.Method, s.Url, bytes.NewBuffer(requestBody))
-	if err != nil {
-		s.fail("unable to create request", err)
-	}
-	for k, v := range s.Header {
-		req.Header.Set(k, v)
-	}
+	var res StepResponse[R]
 
-	httpResponse, err := http.DefaultClient.Do(req)
-	if err != nil {
-		s.fail("unable to make request", err)
-	}
-	defer httpResponse.Body.Close()
+	t.Run(s.Name, func(t *testing.T) {
 
-	body, err := io.ReadAll(httpResponse.Body)
-	if err != nil {
-		s.fail("unable to read response body", err)
-	}
+		requestBody, err := json.Marshal(s.Body)
+		require.NoError(t, err)
 
-	for _, assertion := range s.Assertions {
-		err := assertion(ctx, AssertRequest{
-			Status: httpResponse.StatusCode,
-			Header: httpResponse.Header,
-			Body:   string(body),
-		})
-		if err != nil {
-			s.fail("An assertion failed for request %s %s: %w. Got status: %d - %s", s.Method, s.Url, err, httpResponse.StatusCode, string(body))
+		req, err := http.NewRequest(s.Method, s.Url, bytes.NewBuffer(requestBody))
+		require.NoError(t, err)
+
+		for k, v := range s.Header {
+			req.Header.Set(k, v)
 		}
-	}
 
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		s.fail("unable to unmarshal response: %w", err)
-	}
+		httpResponse, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
 
+		defer httpResponse.Body.Close()
+		res.Status = httpResponse.StatusCode
+		res.Header = httpResponse.Header.Clone()
+
+		body, err := io.ReadAll(httpResponse.Body)
+		require.NoError(t, err)
+
+		err = json.Unmarshal(body, &res.Body)
+		require.NoError(t, err)
+
+	})
 	return res
-
 }

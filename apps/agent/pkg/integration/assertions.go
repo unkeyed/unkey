@@ -1,12 +1,12 @@
 package integration
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"testing"
 
 	"github.com/PaesslerAG/gval"
+	"github.com/stretchr/testify/require"
 )
 
 type AssertRequest struct {
@@ -15,62 +15,51 @@ type AssertRequest struct {
 	Body   string
 }
 
-type assertion func(ctx context.Context, req AssertRequest) error
+type Assertion func(req AssertRequest)
 
-func assertHeaderExists(key string) assertion {
-	return func(ctx context.Context, req AssertRequest) error {
-		if req.Header.Get(key) == "" {
-			return fmt.Errorf("header %s does not exist", key)
-		}
-		return nil
+func AssertHeaderExists(t *testing.T, key string) Assertion {
+	return func(req AssertRequest) {
+		t.Helper()
+		require.NotEmpty(t, req.Header.Get(key), "header %s does not exist", key)
+
 	}
 }
 
-func assertStatus(status int) assertion {
-	return func(ctx context.Context, req AssertRequest) error {
-		if req.Status != status {
-			return fmt.Errorf("status %d does not match %d", req.Status, status)
-		}
-		return nil
+func AssertStatus(t *testing.T, status int) Assertion {
+	return func(req AssertRequest) {
+		t.Helper()
+		require.Equal(t, status, req.Status, "status %d does not match %d", req.Status, status)
+
 	}
 }
 
-func assertBody[T comparable](expr string, value T) assertion {
-	return func(ctx context.Context, req AssertRequest) error {
+func AssertBody[T comparable](t *testing.T, expr string, value T) Assertion {
+	return func(req AssertRequest) {
+		t.Helper()
 		var data interface{}
 		err := json.Unmarshal([]byte(req.Body), &data)
-		if err != nil {
-			return fmt.Errorf("unable to unmarshal json: %w", err)
-		}
+		require.NoError(t, err)
 
 		actual, err := gval.Evaluate(expr, data)
 		if err != nil {
-			return fmt.Errorf("unable to evaluate expression %s: %w", expr, err)
+			t.Logf("expr: %s", expr)
+			t.Logf("body: %s", req.Body)
 		}
+		require.NoError(t, err, "data: %s", req.Body)
+		require.Equal(t, value, actual)
 
-		if actual != value {
-			return fmt.Errorf("expr %s does not equal (%T:%#v), got: (%T:%#v)", expr, value, value, actual, actual)
-		}
-		return nil
 	}
 }
 
-func assertBodyExists(expr string) assertion {
-	return func(ctx context.Context, req AssertRequest) error {
+func AssertBodyExists(t *testing.T, expr string) Assertion {
+	return func(req AssertRequest) {
+		t.Helper()
 		var data interface{}
 		err := json.Unmarshal([]byte(req.Body), &data)
-		if err != nil {
-			return fmt.Errorf("unable to unmarshal json: %w", err)
-		}
+		require.NoError(t, err)
 		actual, err := gval.Evaluate(expr, data)
-		if err != nil {
-			return fmt.Errorf("unable to evaluate expression %s: %w", expr, err)
-		}
+		require.NoError(t, err)
 
-		if actual == nil {
-			return fmt.Errorf("expr %s does not exist", expr)
-		}
-
-		return nil
+		require.NotNil(t, actual, "expr %s does not exist", expr)
 	}
 }
