@@ -1,8 +1,8 @@
-import type React from "react";
-import type {Metadata} from "next";
 import "@/styles/tailwind/tailwind.css";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
+import type React from "react";
 
 const inter = Inter({
   subsets: ["latin"],
