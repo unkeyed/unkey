@@ -1,3 +1,5 @@
+import type React from "react";
+import type {Metadata} from "next";
 import "@/styles/tailwind/tailwind.css";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
@@ -11,6 +13,7 @@ const pangea = localFont({
   src: "../public/fonts/PangeaAfrikanTrial-Medium.woff2",
   variable: "--font-pangea",
 });
+
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),
   title: "Open Source API Key Management",
@@ -20,12 +23,12 @@ export const metadata = {
     description: "Accelerate your API development",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
-    image: "https://unkey.dev/og.png",
+    images: ["https://unkey.dev/og.png"],
   },
   twitter: {
     title: "Unkey",
     card: "summary_large_image",
-    image: "https://unkey.dev/og.png",
+    images: ["https://unkey.dev/og.png"],
   },
   robots: {
     index: true,
@@ -40,7 +43,7 @@ export const metadata = {
       "max-snippet": -1,
     },
   },
-};
+} satisfies Metadata;
 
 export default function RootLayout({
   children,
