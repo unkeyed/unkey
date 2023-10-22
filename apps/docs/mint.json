@@ -69,11 +69,7 @@
         "onboarding",
         {
           "group": "Quickstart",
-          "pages": [
-            "quickstart/bun",
-            "quickstart/nextjs",
-            "quickstart/express"
-          ]
+          "pages": ["quickstart/bun", "quickstart/nextjs", "quickstart/express"]
         },
         "security"
       ]
@@ -90,9 +86,7 @@
     {
       "group": "Integrations",
       "icon": "bolt",
-      "pages": [
-        "integrations/vercel"
-      ]
+      "pages": ["integrations/vercel"]
     },
     {
       "group": "API Documentation",
@@ -125,10 +119,7 @@
         },
         {
           "group": "APIs",
-          "pages": [
-            "api-reference/apis/get",
-            "api-reference/apis/list-keys"
-          ]
+          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
         }
       ]
     },
@@ -151,10 +142,7 @@
             },
             {
               "group": "APIs",
-              "pages": [
-                "libraries/ts/sdk/apis/get",
-                "libraries/ts/sdk/apis/list-keys"
-              ]
+              "pages": ["libraries/ts/sdk/apis/get", "libraries/ts/sdk/apis/list-keys"]
             }
           ]
         },
@@ -168,10 +156,7 @@
         "libraries/py/overview",
         {
           "group": "Services",
-          "pages": [
-            "libraries/py/services/keys",
-            "libraries/py/services/apis"
-          ]
+          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
         }
       ]
     },
@@ -207,33 +192,24 @@
         },
         {
           "group": "API",
-          "pages": [
-            "libraries/go/api/list",
-            "libraries/go/api/get"
-          ]
+          "pages": ["libraries/go/api/list", "libraries/go/api/get"]
         }
       ]
     },
     {
       "group": "Nuxt",
       "icon": "code",
-      "pages": [
-        "libraries/nuxt/overview"
-      ]
+      "pages": ["libraries/nuxt/overview"]
     },
     {
       "group": "Rust",
       "icon": "code",
-      "pages": [
-        "libraries/rs/overview"
-      ]
+      "pages": ["libraries/rs/overview"]
     },
     {
       "group": "Contributing",
       "icon": "github",
-      "pages": [
-        "contributing/versions"
-      ]
+      "pages": ["contributing/versions"]
     }
   ],
   "footerSocials": {

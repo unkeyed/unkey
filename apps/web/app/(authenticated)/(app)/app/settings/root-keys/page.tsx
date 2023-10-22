@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { getTenantId } from "@/lib/auth";
-import { type Key, db, eq, schema } from "@/lib/db";
+import { Key, db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
@@ -22,7 +22,7 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
     return redirect("/onboarding");
   }
 
-  const found = await db.query.keys.findMany({
+  const allKeys = await db.query.keys.findMany({
     where: eq(schema.keys.forWorkspaceId, workspace.id),
     limit: 100,
   });
@@ -30,7 +30,7 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
   const keys: Key[] = [];
   const expired: Key[] = [];
 
-  for (const k of found) {
+  for (const k of allKeys) {
     if (k.expires && k.expires.getTime() < Date.now()) {
       expired.push(k);
     }
