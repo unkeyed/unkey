@@ -238,8 +238,8 @@ importers:
         specifier: ^0.3.4
         version: 0.3.4(esbuild@0.19.5)
       drizzle-orm:
-        specifier: ^0.28.5
-        version: 0.28.5(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)
+        specifier: ^0.28.6
+        version: 0.28.6(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)
       escape-string-regexp:
         specifier: ^5.0.0
         version: 5.0.0
@@ -627,8 +627,8 @@ importers:
         specifier: ^0.19.13
         version: 0.19.13
       drizzle-orm:
-        specifier: ^0.28.5
-        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.2)
+        specifier: ^0.28.6
+        version: 0.28.6(@planetscale/database@1.11.0)(mysql2@3.6.2)
       typescript:
         specifier: ^5.2.2
         version: 5.2.2
@@ -835,8 +835,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: ^0.28.5
-        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.2)
+        specifier: ^0.28.6
+        version: 0.28.6(@planetscale/database@1.11.0)(mysql2@3.6.2)
       mysql2:
         specifier: ^3.6.2
         version: 3.6.2
@@ -884,8 +884,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: ^0.28.5
-        version: 0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.2)
+        specifier: ^0.28.6
+        version: 0.28.6(@planetscale/database@1.11.0)(mysql2@3.6.2)
       mysql2:
         specifier: ^3.6.2
         version: 3.6.2
@@ -9701,8 +9701,8 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.28.5(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0):
-    resolution: {integrity: sha512-6r6Iw4c38NAmW6TiKH3TUpGUQ1YdlEoLJOQptn8XPx3Z63+vFNKfAiANqrIiYZiMjKR9+NYAL219nFrmo1duXA==}
+  /drizzle-orm@0.28.6(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0):
+    resolution: {integrity: sha512-yBe+F9htrlYER7uXgDJUQsTHFoIrI5yMm5A0bg0GiZ/kY5jNXTWoEy4KQtg35cE27sw1VbgzoMWHAgCckUUUww==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -9767,8 +9767,8 @@ packages:
       '@planetscale/database': 1.11.0
     dev: false
 
-  /drizzle-orm@0.28.5(@planetscale/database@1.11.0)(mysql2@3.6.2):
-    resolution: {integrity: sha512-6r6Iw4c38NAmW6TiKH3TUpGUQ1YdlEoLJOQptn8XPx3Z63+vFNKfAiANqrIiYZiMjKR9+NYAL219nFrmo1duXA==}
+  /drizzle-orm@0.28.6(@planetscale/database@1.11.0)(mysql2@3.6.2):
+    resolution: {integrity: sha512-yBe+F9htrlYER7uXgDJUQsTHFoIrI5yMm5A0bg0GiZ/kY5jNXTWoEy4KQtg35cE27sw1VbgzoMWHAgCckUUUww==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
