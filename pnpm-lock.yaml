@@ -666,9 +666,6 @@ importers:
       '@types/node':
         specifier: ^20.8.7
         version: 20.8.7
-      rome:
-        specifier: ^12.1.2
-        version: 12.1.2
       tsup:
         specifier: ^6.7.0
         version: 6.7.0(ts-node@10.9.1)(typescript@5.2.2)
