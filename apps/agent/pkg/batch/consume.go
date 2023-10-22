@@ -32,7 +32,7 @@ func Process[T any](flush func(ctx context.Context, batch []T), size int, interv
 				if !ok {
 					// channel closed
 					flush(context.Background(), batch)
-					break
+					return
 				}
 				batch = append(batch, e)
 				if len(batch) >= size {
