@@ -125,7 +125,11 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       header: "Expires",
       cell: ({ row }) =>
         row.original.expires ? (
-          <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+          row.original.expires.getTime() < Date.now() ? (
+            <span>Expired</span>
+          ) : (
+            <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
+          )
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),
