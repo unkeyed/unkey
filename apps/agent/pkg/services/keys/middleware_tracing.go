@@ -42,3 +42,14 @@ func (mw *tracingMiddleware) SoftDeleteKey(ctx context.Context, req *keysv1.Soft
 	}
 	return res, err
 }
+
+func (mw *tracingMiddleware) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest) (*keysv1.VerifyKeyResponse, error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("workspaces", "VerifyKey"))
+	defer span.End()
+
+	res, err := mw.next.VerifyKey(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}

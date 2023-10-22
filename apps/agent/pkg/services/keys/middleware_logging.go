@@ -39,3 +39,12 @@ func (mw *loggingMiddleware) SoftDeleteKey(ctx context.Context, req *keysv1.Soft
 	mw.logger.Info().Str("method", "SoftDeleteKey").Err(err).Int64("latency", time.Since(start).Milliseconds()).Msg("mw.KeyService")
 	return res, err
 }
+
+func (mw *loggingMiddleware) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest) (*keysv1.VerifyKeyResponse, error) {
+	mw.logger.Info().Str("method", "VerifyKey").Msg("called")
+	start := time.Now()
+
+	res, err := mw.next.VerifyKey(ctx, req)
+	mw.logger.Info().Str("method", "VerifyKey").Err(err).Int64("latency", time.Since(start).Milliseconds()).Msg("mw.KeyService")
+	return res, err
+}

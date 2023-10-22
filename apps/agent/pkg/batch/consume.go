@@ -2,6 +2,7 @@ package batch
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -12,17 +13,20 @@ import (
 // Process returns a channel that can be used to send items to be batched.
 func Process[T any](flush func(ctx context.Context, batch []T), size int, interval time.Duration) chan<- T {
 
+	lock := sync.Mutex{}
 	c := make(chan T)
 
 	batch := make([]T, 0, size)
 	ticker := time.NewTicker(interval)
 
-	flushAndReset := func() {
+	f := func() {
+		lock.Lock()
+		defer lock.Unlock()
 		if len(batch) > 0 {
 			flush(context.Background(), batch)
 			batch = batch[:0]
 		}
-		ticker.Reset(interval)
+
 	}
 
 	go func() {
@@ -31,16 +35,18 @@ func Process[T any](flush func(ctx context.Context, batch []T), size int, interv
 			case e, ok := <-c:
 				if !ok {
 					// channel closed
-					flush(context.Background(), batch)
+					f()
 					return
 				}
 				batch = append(batch, e)
 				if len(batch) >= size {
-					flushAndReset()
+					f()
+					ticker.Reset(interval)
 
 				}
 			case <-ticker.C:
-				flushAndReset()
+				f()
+				ticker.Reset(interval)
 			}
 		}
 	}()

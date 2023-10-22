@@ -9,6 +9,7 @@ option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1;keysv
 service KeysService {
   rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse) {}
   rpc SoftDeleteKey(SoftDeleteKeyRequest) returns (SoftDeleteKeyResponse) {}
+  rpc VerifyKey(VerifyKeyRequest) returns (VerifyKeyResponse) {}
 }
 
 enum RatelimitType {
@@ -74,3 +75,35 @@ message SoftDeleteKeyRequest {
 }
 
 message SoftDeleteKeyResponse {}
+
+message VerifyKeyRequest {
+  string key = 1 [(buf.validate.field).string.min_len = 1];
+  string source_ip = 2;
+  string region = 3;
+  optional string edge_region = 4;
+  optional string user_agent = 5;
+  optional string resource = 6;
+}
+
+enum VerifyKeyResponseCode {
+  VERIFY_KEY_RESPONSE_CODE_UNSPECIFIED = 0;
+  VERIFY_KEY_RESPONSE_CODE_NOT_FOUND = 1;
+}
+
+message VerifyKeyResponse {
+  bool valid = 1;
+  optional string owner_id = 2;
+  optional string meta = 3;
+  optional int64 expires = 4;
+  optional int32 remaining = 5;
+  optional RatelimitResponse ratelimit = 6;
+  // Machine readable error code if invalid
+  string code = 7;
+  // Human readable error message
+  optional string error = 8;
+}
+message RatelimitResponse {
+  int32 limit = 1 [(buf.validate.field).int32.gte = 1];
+  int32 remaining = 2 [(buf.validate.field).int32.gte = 1];
+  int64 reset_at = 3 [(buf.validate.field).int64.gte = 1];
+}

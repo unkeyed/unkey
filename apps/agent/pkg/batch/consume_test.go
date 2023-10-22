@@ -2,20 +2,29 @@ package batch_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
-	"golang.org/x/exp/slices"
 )
 
 func TestProcess(t *testing.T) {
-	// Define a flush function that just appends the batch to a slice
+	lock := sync.Mutex{}
 	handled := make([]int, 0)
 	flushed := 0
 
+	// if we don't make a copy under a lock, we get some nasty race conditions in the test
+	copy := func() []int {
+		lock.Lock()
+		defer lock.Unlock()
+		return append([]int{}, handled...)
+	}
+
 	flush := func(ctx context.Context, batch []int) {
+		lock.Lock()
+		defer lock.Unlock()
 		flushed++
 		handled = append(handled, batch...)
 	}
@@ -39,29 +48,30 @@ func TestProcess(t *testing.T) {
 	time.Sleep(interval)
 
 	// Check that the batches were flushed correctly
-	require.Contains(t, handled, 1)
-	require.Contains(t, handled, 2)
-	require.Contains(t, handled, 3)
+
+	require.Contains(t, copy(), 1)
+	require.Contains(t, copy(), 2)
+	require.Contains(t, copy(), 3)
 	require.Equal(t, 1, flushed)
 
 	// Send some more elements to the channel
 	c <- 4
 	c <- 5
 
+	time.Sleep(interval)
 	// Check that the handled were flushed correctly
-	require.Eventually(t, func() bool {
-		return slices.Contains(handled, 4)
-	}, interval*2, interval/10)
-	require.Eventually(t, func() bool {
-		return slices.Contains(handled, 5)
-	}, interval*2, interval/10)
+
+	require.Contains(t, copy(), 4)
+	require.Contains(t, copy(), 5)
+	require.Equal(t, 2, flushed)
 
 	c <- 6
 	// Close the channel
 	close(c)
 
-	require.Eventually(t, func() bool {
-		return slices.Contains(handled, 6) && flushed == 3
-	}, interval*2, interval/10, "handled should contain 6 and flushed should be 3, but got %v and %v", handled, flushed)
+	time.Sleep(interval)
+
+	require.Contains(t, copy(), 6)
+	require.Equal(t, 3, flushed)
 
 }

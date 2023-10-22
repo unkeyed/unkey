@@ -335,9 +335,18 @@ var AgentCmd = &cobra.Command{
 		)
 
 		keyService := keys.New(keys.Config{
-			Database: db,
-			Events:   eventBus,
+			Database:           db,
+			Events:             eventBus,
+			KeyCache:           keyCache,
+			ApiCache:           apiByKeyAuthIdCache,
+			Logger:             logger,
+			Tracer:             tracer,
+			Metrics:            metrics,
+			Analytics:          a,
+			MemoryRatelimit:    fastRatelimit,
+			ConsitentRatelimit: consistentRatelimit,
 		})
+
 		srv := server.New(server.Config{
 			Logger:            logger,
 			KeyCache:          keyCache,
