@@ -11,7 +11,7 @@
     "push": "dotenv -e .env drizzle-kit push:mysql"
   },
   "devDependencies": {
-    "@types/node": "^20.5.7",
+    "@types/node": "^20.8.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.3.0",
     "drizzle-kit": "^0.19.13",

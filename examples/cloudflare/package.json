@@ -12,7 +12,7 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
-    "@unkey/api": "^0.11.0",
+    "@unkey/api": "workspace:^",
     "deploy": "^1.0.3",
     "pnpm": "^8.9.2",
     "run": "^1.4.0"
