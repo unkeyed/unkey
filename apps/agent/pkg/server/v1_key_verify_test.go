@@ -53,8 +53,16 @@ func TestVerifyKey_Simple(t *testing.T) {
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 
@@ -105,8 +113,16 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 
@@ -158,8 +174,16 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 
@@ -232,8 +256,16 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 
@@ -367,8 +399,16 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 
@@ -436,8 +476,16 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 
@@ -490,6 +538,18 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 		Tracer:    tracing.NewNoop(),
 		Ratelimit: ratelimit.NewInMemory(),
 		Metrics:   metrics.NewNoop(),
+		KeyService: keys.New(keys.Config{
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          analytics.NewNoop(),
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
+		}),
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
@@ -575,8 +635,16 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 		Tracer:    tracing.NewNoop(),
 		Analytics: a,
 		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
+			Database:           resources.Database,
+			Events:             events.NewNoop(),
+			Logger:             logging.NewNoopLogger(),
+			KeyCache:           cache.NewNoopCache[*keysv1.Key](),
+			ApiCache:           cache.NewNoopCache[entities.Api](),
+			Tracer:             tracing.NewNoop(),
+			Metrics:            metrics.NewNoop(),
+			Analytics:          a,
+			MemoryRatelimit:    ratelimit.NewInMemory(),
+			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
 	})
 

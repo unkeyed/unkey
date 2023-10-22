@@ -1,0 +1,6 @@
+FROM mysql:latest
+
+
+
+COPY ./pkg/database/schema.sql /docker-entrypoint-initdb.d/schema.sql
+

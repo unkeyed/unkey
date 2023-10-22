@@ -1,4 +1,4 @@
-package cmd
+package agent
 
 import (
 	"context"
@@ -49,17 +49,16 @@ type features struct {
 var runtimeConfig features
 
 func init() {
-	rootCmd.AddCommand(AgentCmd)
 
-	AgentCmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
-	AgentCmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
-	AgentCmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
-	AgentCmd.Flags().BoolVar(&runtimeConfig.restoreCache, "restore-cache", false, "Restore the cache from persistent storage")
-	AgentCmd.Flags().BoolVarP(&runtimeConfig.verbose, "verbose", "v", false, "Print debug logs")
+	Cmd.Flags().BoolVar(&runtimeConfig.enableAxiom, "enable-axiom", false, "Send logs and traces to axiom")
+	Cmd.Flags().StringVar(&runtimeConfig.analytics, "analytics", "", "Send analytics to a backend, available: ['tinybird']")
+	Cmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
+	Cmd.Flags().BoolVar(&runtimeConfig.restoreCache, "restore-cache", false, "Restore the cache from persistent storage")
+	Cmd.Flags().BoolVarP(&runtimeConfig.verbose, "verbose", "v", false, "Print debug logs")
 }
 
 // AgentCmd represents the agent command
-var AgentCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "agent",
 	Short: "Run the Unkey agent",
 	Long:  ``,
@@ -353,7 +352,6 @@ var AgentCmd = &cobra.Command{
 			ApiCache:          apiByKeyAuthIdCache,
 			Database:          db,
 			Ratelimit:         fastRatelimit,
-			GlobalRatelimit:   consistentRatelimit,
 			Tracer:            tracer,
 			Analytics:         a,
 			UnkeyAppAuthToken: e.String("UNKEY_APP_AUTH_TOKEN"),

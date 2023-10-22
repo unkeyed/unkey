@@ -40,7 +40,6 @@ type Config struct {
 	ApiCache          cache.Cache[entities.Api]
 	Database          database.Database
 	Ratelimit         ratelimit.Ratelimiter
-	GlobalRatelimit   ratelimit.Ratelimiter
 	Tracer            trace.Tracer
 	Analytics         analytics.Analytics
 	UnkeyAppAuthToken string
@@ -57,14 +56,13 @@ type Config struct {
 }
 
 type Server struct {
-	app             *fiber.App
-	logger          logging.Logger
-	validator       *validator.Validate
-	db              database.Database
-	keyCache        cache.Cache[*keysv1.Key]
-	apiCache        cache.Cache[entities.Api]
-	ratelimit       ratelimit.Ratelimiter
-	globalRatelimit ratelimit.Ratelimiter
+	app       *fiber.App
+	logger    logging.Logger
+	validator *validator.Validate
+	db        database.Database
+	keyCache  cache.Cache[*keysv1.Key]
+	apiCache  cache.Cache[entities.Api]
+	ratelimit ratelimit.Ratelimiter
 
 	// Not guaranteed to be available, always do a nil check first!
 	tracer trace.Tracer
