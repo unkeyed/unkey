@@ -10,12 +10,12 @@
   "devDependencies": {
     "@types/node": "^20.8.7",
     "rome": "^12.1.2",
-    "tsup": "^6.2.3",
-    "tsx": "^3.10.1",
+    "tsup": "^6.7.0",
+    "tsx": "^3.14.0",
     "typescript": "^5.0.4"
   },
   "dependencies": {
     "@unkey/result": "workspace:^",
-    "zod": "^3.22.2"
+    "zod": "^3.22.4"
   }
 }
