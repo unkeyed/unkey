@@ -30,8 +30,8 @@ const tiers = {
       "90 Days Analytics Retention",
     ],
     footnotes: [
-      " * Additonal active keys are billed at $0.10",
-      " * Additonal verifications are billed at $1 per 5000",
+      " * Additional active keys are billed at $0.10",
+      " * Additional verifications are billed at $1 per 5000",
     ],
   },
   custom: {
