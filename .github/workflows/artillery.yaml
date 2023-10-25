@@ -4,9 +4,6 @@ concurrency: artillery
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
   schedule:
     - cron: "0 0 * * *" # every day at midnight
 jobs:
@@ -56,10 +53,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
-
+      - name: Install Artillery
+        run: npm install -g artillery@latest
+      # Looks like we need to package the env variables to be bundled into the lambda
+      - name: Create .env
+        run: echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env.lambda
       - name: Run Artillery
-        run: npx artillery@latest run-lambda --region ${{ matrix.region }} ./tools/artillery/keys.verifyKey.yaml --record --key ${{ secrets.ARTILLERY_CLOUD_KEY }}
+        run: |
+          artillery run-lambda --region ${{ matrix.region }} ./tools/artillery/keys.verifyKey.yaml \
+          --record --key ${{ secrets.ARTILLERY_CLOUD_KEY }} \
+          --tags=platform:fly \
+          --dotenv .env.lambda
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          UNKEY_KEY: ${{ secrets.UNKEY_KEY }}
+       
