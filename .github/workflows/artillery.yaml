@@ -27,7 +27,7 @@ jobs:
           node-version: 20
     
       - name: Run Artillery
-        run: npx artillery@latest run-lambda --region ${{ matrix.region }} ./tools/artillery/script.yaml --record --key ${{ secrets.ARTILLERY_CLOUD_KEY }} 
+        run: npx artillery@latest run-lambda --region ${{ matrix.region }} ./tools/artillery/keys.verifyKey.yaml --record --key ${{ secrets.ARTILLERY_CLOUD_KEY }} 
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
