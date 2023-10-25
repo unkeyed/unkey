@@ -27,7 +27,7 @@ const tiers = {
       "10,000 Verifications included *",
       "Workspaces with team members",
       "Priority Support",
-      "90 Days Analatics Retention",
+      "90 Days Analytics Retention",
     ],
     footnotes: [
       " * Additonal active keys are billed at $0.10",
