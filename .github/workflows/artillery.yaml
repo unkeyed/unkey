@@ -1,0 +1,35 @@
+name: Artillery
+
+concurrency: artillery
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'  # every day at midnight
+jobs:
+
+  artillery:
+    name: Artillery
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        region: [us-east-1, us-east-2] #, us-west-1, us-west-2, ap-south-1, ap-northeast-2, ap-southeast-1, ap-southeast-2, ap-northeast-1, ca-central-1, eu-central-1, eu-west-1, eu-west-2, eu-west-3, eu-north-1, sa-east-1]
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+    
+      - name: Run Artillery
+        run: npx artillery@latest run-lambda --region ${{ matrix.region }} ./tools/artillery/script.yaml --record --key ${{ secrets.ARTILLERY_CLOUD_KEY }} 
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          UNKEY_KEY: ${{ secrets.UNKEY_KEY }}
+          
