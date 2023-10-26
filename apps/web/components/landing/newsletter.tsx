@@ -3,6 +3,7 @@
 import { addEmail } from "@/app/actions/addEmail";
 import { useToast } from "@/components/ui/use-toast";
 import { useRef } from "react";
+// @ts-expect-error
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 import { Loading } from "../dashboard/loading";
 import { Button } from "../ui/button";

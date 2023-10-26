@@ -1,5 +1,5 @@
 "use client";
-
+// @ts-expect-error
 import { experimental_useFormStatus } from "react-dom";
 import { Button, type ButtonProps } from "../ui/button";
 import { Loading } from "./loading";

@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import React from "react";
+// @ts-expect-error
 import { experimental_useFormStatus as useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
