@@ -4,13 +4,13 @@ import (
 	"context"
 
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 )
 
-func (db *database) InsertKeyAuth(ctx context.Context, keyAuth entities.KeyAuth) error {
+func (db *database) InsertKeyAuth(ctx context.Context, keyAuth *authenticationv1.KeyAuth) error {
 
 	return db.write().InsertKeyAuth(ctx, gen.InsertKeyAuthParams{
-		ID:          keyAuth.Id,
+		ID:          keyAuth.KeyAuthId,
 		WorkspaceID: keyAuth.WorkspaceId,
 	},
 	)

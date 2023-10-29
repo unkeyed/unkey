@@ -3,6 +3,7 @@ package ratelimit_test
 import (
 	"testing"
 	"time"
+
 	// "time"
 
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,7 @@ func TestRedisRateLimiter(t *testing.T) {
 
 	config := ratelimit.RedisConfig{
 		RedisUrl: redisUrl,
-		Logger:   logging.NewNoopLogger(),
+		Logger:   logging.NewNoop(),
 	}
 
 	rl, err := ratelimit.NewRedis(config)

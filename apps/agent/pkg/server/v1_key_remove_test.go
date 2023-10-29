@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -26,10 +26,10 @@ func TestV1RemoveKey(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 	}
@@ -37,15 +37,15 @@ func TestV1RemoveKey(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
 			Database: resources.Database,
 			Events:   events.NewNoop(),
-			KeyCache: cache.NewNoopCache[*keysv1.Key](),
+			KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
 		}),
 	})
 
@@ -53,13 +53,13 @@ func TestV1RemoveKey(t *testing.T) {
 	testutil.Json(t, srv.app, testutil.JsonRequest{
 		Method:     "POST",
 		Path:       "/v1/keys.removeKey",
-		Body:       fmt.Sprintf(`{"keyId": "%s"}`, key.Id),
+		Body:       fmt.Sprintf(`{"keyId": "%s"}`, key.KeyId),
 		Bearer:     resources.UserRootKey,
 		Response:   &res,
 		StatusCode: 200,
 	})
 
-	key, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	key, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.NotNil(t, key.DeletedAt)

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 )
 
-func (db *database) UpdateKey(ctx context.Context, key *keysv1.Key) error {
+func (db *database) UpdateKey(ctx context.Context, key *authenticationv1.Key) error {
 	params, err := transformKeyEntitytoUpdateKeyParams(key)
 	if err != nil {
 		return fmt.Errorf("unable to transform key entity to UpdateKeyParams")
@@ -19,9 +19,9 @@ func (db *database) UpdateKey(ctx context.Context, key *keysv1.Key) error {
 	return db.write().UpdateKey(ctx, params)
 }
 
-func transformKeyEntitytoUpdateKeyParams(key *keysv1.Key) (gen.UpdateKeyParams, error) {
+func transformKeyEntitytoUpdateKeyParams(key *authenticationv1.Key) (gen.UpdateKeyParams, error) {
 	params := gen.UpdateKeyParams{
-		ID:        key.Id,
+		ID:        key.KeyId,
 		Hash:      key.Hash,
 		Start:     key.Start,
 		OwnerID:   sql.NullString{String: key.GetOwnerId(), Valid: key.OwnerId != nil},
@@ -40,9 +40,9 @@ func transformKeyEntitytoUpdateKeyParams(key *keysv1.Key) (gen.UpdateKeyParams, 
 
 	if key.Ratelimit != nil {
 		switch key.Ratelimit.Type {
-		case keysv1.RatelimitType_RATELIMIT_TYPE_FAST:
+		case authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST:
 			params.RatelimitType = sql.NullString{String: "fast", Valid: true}
-		case keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
+		case authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
 			params.RatelimitType = sql.NullString{String: "consistent", Valid: true}
 		}
 

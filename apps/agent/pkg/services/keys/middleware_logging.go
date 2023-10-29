@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
@@ -22,7 +22,7 @@ func WithLogging(logger logging.Logger) Middleware {
 	}
 }
 
-func (mw *loggingMiddleware) CreateKey(ctx context.Context, req *keysv1.CreateKeyRequest) (*keysv1.CreateKeyResponse, error) {
+func (mw *loggingMiddleware) CreateKey(ctx context.Context, req *authenticationv1.CreateKeyRequest) (*authenticationv1.CreateKeyResponse, error) {
 	mw.logger.Info().Str("method", "CreateKey").Msg("called")
 	start := time.Now()
 
@@ -31,7 +31,7 @@ func (mw *loggingMiddleware) CreateKey(ctx context.Context, req *keysv1.CreateKe
 	return res, err
 }
 
-func (mw *loggingMiddleware) SoftDeleteKey(ctx context.Context, req *keysv1.SoftDeleteKeyRequest) (*keysv1.SoftDeleteKeyResponse, error) {
+func (mw *loggingMiddleware) SoftDeleteKey(ctx context.Context, req *authenticationv1.SoftDeleteKeyRequest) (*authenticationv1.SoftDeleteKeyResponse, error) {
 	mw.logger.Info().Str("method", "SoftDeleteKey").Msg("called")
 	start := time.Now()
 
@@ -40,7 +40,7 @@ func (mw *loggingMiddleware) SoftDeleteKey(ctx context.Context, req *keysv1.Soft
 	return res, err
 }
 
-func (mw *loggingMiddleware) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest) (*keysv1.VerifyKeyResponse, error) {
+func (mw *loggingMiddleware) VerifyKey(ctx context.Context, req *authenticationv1.VerifyKeyRequest) (*authenticationv1.VerifyKeyResponse, error) {
 	mw.logger.Info().Str("method", "VerifyKey").Msg("called")
 	start := time.Now()
 

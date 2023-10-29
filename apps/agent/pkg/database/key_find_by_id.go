@@ -9,11 +9,11 @@ import (
 	"errors"
 
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func (db *database) FindKeyById(ctx context.Context, keyId string) (*keysv1.Key, bool, error) {
+func (db *database) FindKeyById(ctx context.Context, keyId string) (*authenticationv1.Key, bool, error) {
 
 	model, err := db.read().FindKeyById(ctx, keyId)
 	if err != nil {
@@ -30,10 +30,10 @@ func (db *database) FindKeyById(ctx context.Context, keyId string) (*keysv1.Key,
 	return api, true, nil
 }
 
-func transformKeyModelToEntity(m gen.Key) (*keysv1.Key, error) {
+func transformKeyModelToEntity(m gen.Key) (*authenticationv1.Key, error) {
 
-	key := &keysv1.Key{
-		Id:          m.ID,
+	key := &authenticationv1.Key{
+		KeyId:       m.ID,
 		KeyAuthId:   m.KeyAuthID,
 		WorkspaceId: m.WorkspaceID,
 		Hash:        m.Hash,
@@ -59,16 +59,16 @@ func transformKeyModelToEntity(m gen.Key) (*keysv1.Key, error) {
 		key.Expires = util.Pointer(m.Expires.Time.UnixMilli())
 	}
 	if m.RatelimitType.Valid {
-		key.Ratelimit = &keysv1.Ratelimit{
+		key.Ratelimit = &authenticationv1.Ratelimit{
 			Limit:          m.RatelimitLimit.Int32,
 			RefillRate:     m.RatelimitRefillRate.Int32,
 			RefillInterval: m.RatelimitRefillInterval.Int32,
 		}
 		switch m.RatelimitType.String {
 		case "fast":
-			key.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_FAST
+			key.Ratelimit.Type = authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST
 		case "consistent":
-			key.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
+			key.Ratelimit.Type = authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
 		}
 
 	}

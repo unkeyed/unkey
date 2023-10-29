@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
@@ -122,16 +122,16 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	}
 	if req.Ratelimit.Defined {
 		if req.Ratelimit.Value != nil {
-			key.Ratelimit = &keysv1.Ratelimit{
+			key.Ratelimit = &authenticationv1.Ratelimit{
 				Limit:          req.Ratelimit.Value.Limit,
 				RefillRate:     req.Ratelimit.Value.RefillRate,
 				RefillInterval: req.Ratelimit.Value.RefillInterval,
 			}
 			switch req.Ratelimit.Value.Type {
 			case "fast":
-				key.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_FAST
+				key.Ratelimit.Type = authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST
 			case "consistent":
-				key.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
+				key.Ratelimit.Type = authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
 			}
 
 		} else {
@@ -155,7 +155,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	s.events.EmitKeyEvent(ctx, events.KeyEvent{
 		Type: events.KeyUpdated,
 		Key: events.Key{
-			Id:   key.Id,
+			Id:   key.KeyId,
 			Hash: key.Hash,
 		},
 	})

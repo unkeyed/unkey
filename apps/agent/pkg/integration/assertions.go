@@ -41,10 +41,6 @@ func AssertBody[T comparable](t *testing.T, expr string, value T) Assertion {
 		require.NoError(t, err)
 
 		actual, err := gval.Evaluate(expr, data)
-		if err != nil {
-			t.Logf("expr: %s", expr)
-			t.Logf("body: %s", req.Body)
-		}
 		require.NoError(t, err, "data: %s", req.Body)
 		require.Equal(t, value, actual)
 

@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
@@ -24,15 +25,15 @@ import (
 func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	logger := logging.NewNoopLogger()
+	logger := logging.NewNoop()
 
 	resources := testutil.SetupResources(t)
 
-	keyCache := cache.NewMemory[*keysv1.Key](cache.Config[*keysv1.Key]{
+	keyCache := cache.NewMemory[*authenticationv1.Key](cache.Config[*authenticationv1.Key]{
 		Fresh:   time.Minute * 15,
 		Stale:   time.Minute * 60,
 		MaxSize: 1024,
-		RefreshFromOrigin: func(ctx context.Context, keyHash string) (*keysv1.Key, bool) {
+		RefreshFromOrigin: func(ctx context.Context, keyHash string) (*authenticationv1.Key, bool) {
 			key, found, err := resources.Database.FindKeyByHash(ctx, keyHash)
 			if err != nil {
 				return nil, false
@@ -42,14 +43,14 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 		Logger: logger,
 	})
 
-	apiCache := cache.NewMemory[entities.Api](cache.Config[entities.Api]{
+	apiCache := cache.NewMemory[*apisv1.Api](cache.Config[*apisv1.Api]{
 		Fresh:   time.Minute * 5,
 		Stale:   time.Minute * 15,
 		MaxSize: 1024,
-		RefreshFromOrigin: func(ctx context.Context, apiId string) (entities.Api, bool) {
+		RefreshFromOrigin: func(ctx context.Context, apiId string) (*apisv1.Api, bool) {
 			key, found, err := resources.Database.FindApi(ctx, apiId)
 			if err != nil {
-				return entities.Api{}, false
+				return nil, false
 			}
 			return key, found
 		},
@@ -72,7 +73,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	createKeyRequest := httptest.NewRequest("POST", "/v1/keys", bytes.NewBufferString(fmt.Sprintf(`{
 		"apiId": "%s",
 		"ownerId": "test_owner"
-	}`, resources.UserApi.Id)))
+	}`, resources.UserApi.ApiId)))
 	createKeyRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	createKeyRequest.Header.Set("Content-Type", "application/json")
 

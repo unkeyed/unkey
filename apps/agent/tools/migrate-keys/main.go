@@ -5,9 +5,10 @@ import (
 	"log"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
@@ -55,7 +56,7 @@ func main() {
 		log.Fatal("api not found")
 	}
 
-	if api.AuthType != entities.AuthTypeKey || api.KeyAuthId == "" {
+	if api.AuthType != apisv1.AuthType_AUTH_TYPE_KEY || api.KeyAuthId == nil {
 		log.Fatal("api is not setup to handle api keys")
 
 	}
@@ -66,9 +67,9 @@ func main() {
 		startLength := 4
 		keyHash := hash.Sha256(key.value)
 
-		newKey := &keysv1.Key{
-			Id:          uid.Key(),
-			KeyAuthId:   api.KeyAuthId,
+		newKey := &authenticationv1.Key{
+			KeyId:       uid.Key(),
+			KeyAuthId:   api.GetKeyAuthId(),
 			WorkspaceId: WORKSPACE_ID,
 			Name:        util.Pointer(key.name),
 			Hash:        keyHash,

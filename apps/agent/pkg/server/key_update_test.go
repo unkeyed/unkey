@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -27,17 +28,17 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 	}
@@ -57,7 +58,7 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 		"remaining": 0
 	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -67,13 +68,13 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, "newName", *foundKey.Name)
 	require.Equal(t, "newOwnerId", *foundKey.OwnerId)
 	require.Equal(t, "{\"new\":\"meta\"}", *foundKey.Meta)
-	require.Equal(t, keysv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
+	require.Equal(t, authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
 	require.Equal(t, int32(10), foundKey.Ratelimit.Limit)
 	require.Equal(t, int32(5), foundKey.Ratelimit.RefillRate)
 	require.Equal(t, int32(1000), foundKey.Ratelimit.RefillInterval)
@@ -87,17 +88,17 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 		Name:        util.Pointer("original"),
@@ -113,7 +114,7 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 		}
 	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -123,13 +124,13 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, key.Name, foundKey.Name)
 	require.Equal(t, key.OwnerId, foundKey.OwnerId)
 	require.Equal(t, key.Meta, foundKey.Meta)
-	require.Equal(t, keysv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
+	require.Equal(t, authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
 	require.Equal(t, int32(10), foundKey.Ratelimit.Limit)
 	require.Equal(t, int32(5), foundKey.Ratelimit.RefillRate)
 	require.Equal(t, int32(1000), foundKey.Ratelimit.RefillInterval)
@@ -143,17 +144,17 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 		Expires:     util.Pointer(time.Now().Add(time.Hour).UnixMilli()),
@@ -165,7 +166,7 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 		"expires": null
 	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -175,7 +176,7 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, key.Name, foundKey.Name)
@@ -191,17 +192,17 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 	}
@@ -214,7 +215,7 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 		"remaining": null
 	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -224,7 +225,7 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 
@@ -242,17 +243,17 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 		Name:        util.Pointer("name"),
@@ -265,7 +266,7 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 		"ownerId": "newOwnerId"
 	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.Id), buf)
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -275,7 +276,7 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 
 	require.Equal(t, res.StatusCode, 200)
 
-	foundKey, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.EqualValues(t, key.Name, foundKey.Name)

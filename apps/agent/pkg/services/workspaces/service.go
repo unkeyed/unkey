@@ -3,13 +3,14 @@ package workspaces
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 )
 
 type database interface {
-	FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error)
-	InsertWorkspace(ctx context.Context, newWorkspace entities.Workspace) error
-	UpdateWorkspace(ctx context.Context, workspace entities.Workspace) error
+	InsertWorkspace(ctx context.Context, workspace *workspacesv1.Workspace) error
+	FindWorkspace(ctx context.Context, workspaceId string) (*workspacesv1.Workspace, bool, error)
+	DeleteWorkspace(ctx context.Context, workspaceId string) error
+	UpdateWorkspace(ctx context.Context, workspace *workspacesv1.Workspace) error
 }
 
 type service struct {

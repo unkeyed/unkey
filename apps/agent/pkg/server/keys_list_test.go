@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -27,30 +28,30 @@ func TestListKeys_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
-		key := &keysv1.Key{
-			Id:          uid.Key(),
-			KeyAuthId:   resources.UserKeyAuth.Id,
+		key := &authenticationv1.Key{
+			KeyId:       uid.Key(),
+			KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
 			Name:        util.Pointer(fmt.Sprintf("test-%d", i)),
-			WorkspaceId: resources.UserWorkspace.Id,
+			WorkspaceId: resources.UserWorkspace.WorkspaceId,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now().UnixMilli(),
 		}
 		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
-		createdKeyIds[i] = key.Id
+		createdKeyIds[i] = key.KeyId
 
 	}
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.Id), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
@@ -78,19 +79,19 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
-		key := &keysv1.Key{
-			Id:          uid.Key(),
-			KeyAuthId:   resources.UserKeyAuth.Id,
-			WorkspaceId: resources.UserWorkspace.Id,
+		key := &authenticationv1.Key{
+			KeyId:       uid.Key(),
+			KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+			WorkspaceId: resources.UserWorkspace.WorkspaceId,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now().UnixMilli(),
 		}
@@ -100,11 +101,11 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 		}
 		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
-		createdKeyIds[i] = key.Id
+		createdKeyIds[i] = key.KeyId
 
 	}
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.Id), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.ApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
@@ -136,29 +137,29 @@ func TestListKeys_WithLimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
-		key := &keysv1.Key{
-			Id:          uid.Key(),
-			KeyAuthId:   resources.UserKeyAuth.Id,
-			WorkspaceId: resources.UserWorkspace.Id,
+		key := &authenticationv1.Key{
+			KeyId:       uid.Key(),
+			KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+			WorkspaceId: resources.UserWorkspace.WorkspaceId,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now().UnixMilli(),
 		}
 		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
-		createdKeyIds[i] = key.Id
+		createdKeyIds[i] = key.KeyId
 
 	}
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.Id), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.ApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
@@ -184,29 +185,29 @@ func TestListKeys_WithOffset(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
-		key := &keysv1.Key{
-			Id:          uid.Key(),
-			KeyAuthId:   resources.UserKeyAuth.Id,
-			WorkspaceId: resources.UserWorkspace.Id,
+		key := &authenticationv1.Key{
+			KeyId:       uid.Key(),
+			KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+			WorkspaceId: resources.UserWorkspace.WorkspaceId,
 			Hash:        hash.Sha256(uid.New(16, "test")),
 			CreatedAt:   time.Now().UnixMilli(),
 		}
 		err := resources.Database.InsertKey(ctx, key)
 		require.NoError(t, err)
-		createdKeyIds[i] = key.Id
+		createdKeyIds[i] = key.KeyId
 
 	}
 
-	req1 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.Id), nil)
+	req1 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId), nil)
 	req1.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res1, err := srv.app.Test(req1)
@@ -224,7 +225,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 	require.GreaterOrEqual(t, successResponse1.Total, int64(len(createdKeyIds)))
 	require.GreaterOrEqual(t, 10, len(successResponse1.Keys))
 
-	req2 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.Id), nil)
+	req2 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.ApiId), nil)
 	req2.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res2, err := srv.app.Test(req2)

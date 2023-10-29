@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	httpErrors "github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 )
 
 type CreateWorkspaceRequestV1 struct {
@@ -39,10 +39,10 @@ func (s *Server) v1CreateWorkspace(c *fiber.Ctx) error {
 		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, err.Error())
 	}
 
-	ws, err := s.workspaceService.CreateWorkspace(ctx, workspaces.CreateWorkspaceRequest{
+	ws, err := s.workspaceService.CreateWorkspace(ctx, &workspacesv1.CreateWorkspaceRequest{
 		Name:     req.Name,
 		TenantId: req.TenantId,
-		Plan:     entities.FreePlan,
+		Plan:     workspacesv1.Plan_PLAN_FREE,
 	})
 	if err != nil {
 		if errors.Is(err, database.ErrNotUnique) {
@@ -53,6 +53,6 @@ func (s *Server) v1CreateWorkspace(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(CreateWorkspaceResponseV1{
-		Id: ws.Id,
+		Id: ws.WorkspaceId,
 	})
 }

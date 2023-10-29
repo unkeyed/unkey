@@ -25,6 +25,10 @@ type JsonRequest struct {
 
 func Json(t *testing.T, app *fiber.App, r JsonRequest) {
 	t.Helper()
+	if r.Debug {
+		t.Logf("Request: %s %s", r.Method, r.Path)
+		t.Logf("Body: %s", r.Body)
+	}
 	req := httptest.NewRequest(r.Method, r.Path, bytes.NewBufferString(r.Body))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.Bearer))
 	req.Header.Set("Content-Type", "application/json")

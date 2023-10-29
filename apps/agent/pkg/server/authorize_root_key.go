@@ -46,8 +46,8 @@ func (s *Server) authorizeRootKey(ctx context.Context, c *fiber.Ctx) (authorized
 	defer func() {
 		s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
 			WorkspaceId:       key.WorkspaceId,
-			ApiId:             api.Id,
-			KeyId:             key.Id,
+			ApiId:             api.ApiId,
+			KeyId:             key.KeyId,
 			Denied:            "",
 			Time:              time.Now().UnixMilli(),
 			Region:            s.region,
@@ -60,7 +60,7 @@ func (s *Server) authorizeRootKey(ctx context.Context, c *fiber.Ctx) (authorized
 
 	if key.Expires != nil && time.UnixMilli(key.GetExpires()).Before(time.Now()) {
 		s.keyCache.Remove(ctx, h)
-		err := s.db.SoftDeleteKey(ctx, key.Id)
+		err := s.db.SoftDeleteKey(ctx, key.KeyId)
 		if err != nil {
 			return "", err
 		}

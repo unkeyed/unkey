@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"os"
 
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
@@ -44,23 +47,23 @@ func main() {
 		logger.Fatal().Err(err).Msg("unable to connect to databae")
 	}
 
-	workspace := entities.Workspace{
-		Id:       e.String("UNKEY_WORKSPACE_ID", uid.Workspace()),
-		Name:     "Unkey",
-		TenantId: e.String("TENANT_ID", uid.New(16, "fake")),
-		Plan:     entities.EnterprisePlan,
+	workspace := &workspacesv1.Workspace{
+		WorkspaceId: e.String("UNKEY_WORKSPACE_ID", uid.Workspace()),
+		Name:        "Unkey",
+		TenantId:    e.String("TENANT_ID", uid.New(16, "fake")),
+		Plan:        workspacesv1.Plan_PLAN_ENTERPRISE,
 	}
-	keyAuth := entities.KeyAuth{
-		Id:          uid.KeyAuth(),
-		WorkspaceId: workspace.Id,
+	keyAuth := &authenticationv1.KeyAuth{
+		KeyAuthId:   uid.KeyAuth(),
+		WorkspaceId: workspace.WorkspaceId,
 	}
-	api := entities.Api{
-		Id:          e.String("UNKEY_API_ID", uid.Api()),
+	api := &apisv1.Api{
+		ApiId:       e.String("UNKEY_API_ID", uid.Api()),
 		Name:        "api.unkey.dev",
-		WorkspaceId: workspace.Id,
+		WorkspaceId: workspace.WorkspaceId,
 		IpWhitelist: []string{},
-		AuthType:    entities.AuthTypeKey,
-		KeyAuthId:   keyAuth.Id,
+		AuthType:    apisv1.AuthType_AUTH_TYPE_KEY,
+		KeyAuthId:   &keyAuth.KeyAuthId,
 	}
 
 	err = db.InsertWorkspace(ctx, workspace)

@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
@@ -32,10 +33,10 @@ func TestVerifyKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -44,9 +45,9 @@ func TestVerifyKey_Simple(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -54,7 +55,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	res, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -70,10 +71,10 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -82,9 +83,9 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -92,7 +93,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	_, err = svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	_, err = svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: "",
 	})
 	require.Error(t, err)
@@ -106,10 +107,10 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
 		Expires:     util.Pointer(time.Now().Add(time.Second * 5).UnixMilli()),
@@ -119,9 +120,9 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -129,7 +130,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	res, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -139,7 +140,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	// wait until key expires
 	time.Sleep(time.Second * 5)
 
-	errorRes, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	errorRes, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -154,14 +155,14 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
-		Ratelimit: &keysv1.Ratelimit{
-			Type:           keysv1.RatelimitType_RATELIMIT_TYPE_FAST,
+		Ratelimit: &authenticationv1.Ratelimit{
+			Type:           authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST,
 			Limit:          2,
 			RefillRate:     1,
 			RefillInterval: 10000,
@@ -172,9 +173,9 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -182,7 +183,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	res1, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res1, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -195,7 +196,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	// second request
 
-	res2, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res2, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -208,7 +209,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	// third request
 
-	res3, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res3, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -222,7 +223,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	// wait and try again in the next window
 	time.Sleep(time.Until(time.UnixMilli(res3.Ratelimit.GetResetAt())))
 
-	res4, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res4, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -240,28 +241,28 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	keyAuth := entities.KeyAuth{
-		Id:          uid.KeyAuth(),
-		WorkspaceId: resources.UserWorkspace.Id,
+	keyAuth := &authenticationv1.KeyAuth{
+		KeyAuthId:   uid.KeyAuth(),
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 	}
 	err := resources.Database.InsertKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
-	api := entities.Api{
-		Id:          uid.Api(),
+	api := &apisv1.Api{
+		ApiId:       uid.Api(),
 		Name:        "test",
-		WorkspaceId: resources.UserWorkspace.Id,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		IpWhitelist: []string{"100.100.100.100"},
-		AuthType:    entities.AuthTypeKey,
-		KeyAuthId:   keyAuth.Id,
+		AuthType:    apisv1.AuthType_AUTH_TYPE_KEY,
+		KeyAuthId:   &keyAuth.KeyAuthId,
 	}
 	err = resources.Database.InsertApi(ctx, api)
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
+	err = resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
 		WorkspaceId: api.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
@@ -271,9 +272,9 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -281,7 +282,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	res, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key:      key,
 		SourceIp: "100.100.100.100",
 	})
@@ -296,28 +297,28 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	keyAuth := entities.KeyAuth{
-		Id:          uid.KeyAuth(),
-		WorkspaceId: resources.UserWorkspace.Id,
+	keyAuth := &authenticationv1.KeyAuth{
+		KeyAuthId:   uid.KeyAuth(),
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 	}
 	err := resources.Database.InsertKeyAuth(ctx, keyAuth)
 	require.NoError(t, err)
 
-	api := entities.Api{
-		Id:          uid.Api(),
-		KeyAuthId:   keyAuth.Id,
-		AuthType:    entities.AuthTypeKey,
+	api := &apisv1.Api{
+		ApiId:       uid.Api(),
+		KeyAuthId:   &keyAuth.KeyAuthId,
+		AuthType:    apisv1.AuthType_AUTH_TYPE_KEY,
 		Name:        "test",
-		WorkspaceId: resources.UserWorkspace.Id,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		IpWhitelist: []string{"100.100.100.100"},
 	}
 	err = resources.Database.InsertApi(ctx, api)
 	require.NoError(t, err)
 
 	key := uid.New(16, "test")
-	err = resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   keyAuth.Id,
+	err = resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   keyAuth.KeyAuthId,
 		WorkspaceId: api.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
@@ -327,9 +328,9 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -337,7 +338,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	res, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key:      key,
 		SourceIp: "1.2.3.4",
 	})
@@ -355,10 +356,10 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 
 	key := uid.New(16, "test")
 	remaining := int32(10)
-	err := resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
 		Remaining:   &remaining,
@@ -368,9 +369,9 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          analytics.NewNoop(),
@@ -381,7 +382,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	// Use up 10 requests
 	for i := 9; i >= 0; i-- {
 
-		res, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+		res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 			Key: key,
 		})
 
@@ -393,7 +394,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 
 	// now it should be all used up and no longer valid
 
-	res2, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res2, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)
@@ -422,10 +423,10 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	key := uid.New(16, "test")
-	err := resources.Database.InsertKey(ctx, &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(key),
 		CreatedAt:   time.Now().UnixMilli(),
 		Remaining:   util.Pointer(int32(0)),
@@ -436,9 +437,9 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	svc := New(Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
-		Logger:             logging.NewNoopLogger(),
-		KeyCache:           cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:           cache.NewNoopCache[entities.Api](),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
 		Tracer:             tracing.NewNoop(),
 		Metrics:            metrics.NewNoop(),
 		Analytics:          a,
@@ -446,7 +447,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 		ConsitentRatelimit: ratelimit.NewInMemory(),
 	})
 
-	res, err := svc.VerifyKey(ctx, &keysv1.VerifyKeyRequest{
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
 		Key: key,
 	})
 	require.NoError(t, err)

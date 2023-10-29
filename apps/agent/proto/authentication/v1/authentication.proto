@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package proto.keys.v1;
+package proto.authentication.v1;
 
 import "buf/validate/validate.proto";
 
-option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1;keysv1";
+option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1;authenticationv1";
 
 service KeysService {
   rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse) {}
@@ -54,7 +54,7 @@ message CreateKeyResponse {
 }
 
 message Key {
-  string id = 1 [(buf.validate.field).string.min_len = 1];
+  string key_id = 1 [(buf.validate.field).string.min_len = 1];
   string key_auth_id = 2 [(buf.validate.field).string.min_len = 1];
   string workspace_id = 3 [(buf.validate.field).string.min_len = 1];
   optional string name = 4;
@@ -68,6 +68,11 @@ message Key {
   optional string for_workspace_id = 12;
   optional int32 remaining = 13;
   optional int64 deleted_at = 14;
+}
+
+message KeyAuth {
+  string key_auth_id = 1 [(buf.validate.field).string.min_len = 1];
+  string workspace_id = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message SoftDeleteKeyRequest {

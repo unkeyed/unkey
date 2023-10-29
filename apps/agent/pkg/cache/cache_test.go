@@ -19,7 +19,7 @@ func TestWriteRead(t *testing.T) {
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
 			return "hello", true
 		},
-		Logger: logging.NewNoopLogger(),
+		Logger: logging.NewNoop(),
 	})
 	c.Set(context.Background(), "key", "value")
 	value, hit := c.Get(context.Background(), "key")
@@ -34,7 +34,7 @@ func TestEviction(t *testing.T) {
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
 			return "hello", true
 		},
-		Logger: logging.NewNoopLogger(),
+		Logger: logging.NewNoop(),
 	})
 	c.Set(context.Background(), "key", "value")
 	time.Sleep(time.Second * 2)
@@ -54,7 +54,7 @@ func TestRefresh(t *testing.T) {
 			refreshedFromOrigin.Add(1)
 			return "hello", true
 		},
-		Logger: logging.NewNoopLogger(),
+		Logger: logging.NewNoop(),
 	})
 	c.Set(context.Background(), "key", "value")
 	time.Sleep(time.Second * 1)
@@ -75,7 +75,7 @@ func TestNull(t *testing.T) {
 	c := cache.NewMemory[string](cache.Config[string]{
 		Fresh:  time.Second * 1,
 		Stale:  time.Minute * 5,
-		Logger: logging.NewNoopLogger(),
+		Logger: logging.NewNoop(),
 	})
 	c.SetNull(context.Background(), "key")
 

@@ -11,7 +11,8 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/spf13/cobra"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	analyticsMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/analytics/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
@@ -31,7 +32,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events/kafka"
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
@@ -216,11 +216,11 @@ var Cmd = &cobra.Command{
 			logger.Info().Msg("consistent ratelimiting enabled")
 		}
 
-		keyCache := cache.NewMemory[*keysv1.Key](cache.Config[*keysv1.Key]{
+		keyCache := cache.NewMemory[*authenticationv1.Key](cache.Config[*authenticationv1.Key]{
 			Fresh:   time.Minute * 15,
 			Stale:   time.Minute * 60,
 			MaxSize: 1024 * 1024,
-			RefreshFromOrigin: func(ctx context.Context, keyHash string) (*keysv1.Key, bool) {
+			RefreshFromOrigin: func(ctx context.Context, keyHash string) (*authenticationv1.Key, bool) {
 				key, found, err := db.FindKeyByHash(ctx, keyHash)
 				if err != nil {
 					logger.Err(err).Msg("unable to refresh key by hash")
@@ -232,18 +232,18 @@ var Cmd = &cobra.Command{
 			Metrics:  metrics,
 			Resource: "key",
 		})
-		keyCache = cacheMiddleware.WithTracing[*keysv1.Key](keyCache, tracer)
-		keyCache = cacheMiddleware.WithMetrics[*keysv1.Key](keyCache, metrics, "key", "memory")
+		keyCache = cacheMiddleware.WithTracing[*authenticationv1.Key](keyCache, tracer)
+		keyCache = cacheMiddleware.WithMetrics[*authenticationv1.Key](keyCache, metrics, "key", "memory")
 
-		apiByKeyAuthIdCache := cache.NewMemory[entities.Api](cache.Config[entities.Api]{
+		apiByKeyAuthIdCache := cache.NewMemory[*apisv1.Api](cache.Config[*apisv1.Api]{
 			Fresh:   time.Minute * 15,
 			Stale:   time.Minute * 60,
 			MaxSize: 1024 * 1024,
-			RefreshFromOrigin: func(ctx context.Context, keyAuthId string) (entities.Api, bool) {
+			RefreshFromOrigin: func(ctx context.Context, keyAuthId string) (*apisv1.Api, bool) {
 				api, found, err := db.FindApiByKeyAuthId(ctx, keyAuthId)
 				if err != nil {
 					logger.Err(err).Msg("unable to refresh api by keyAuthId")
-					return entities.Api{}, false
+					return nil, false
 				}
 				return api, found
 			},
@@ -251,8 +251,8 @@ var Cmd = &cobra.Command{
 			Metrics:  metrics,
 			Resource: "api",
 		})
-		apiByKeyAuthIdCache = cacheMiddleware.WithTracing[entities.Api](apiByKeyAuthIdCache, tracer)
-		apiByKeyAuthIdCache = cacheMiddleware.WithMetrics[entities.Api](apiByKeyAuthIdCache, metrics, "api", "memory")
+		apiByKeyAuthIdCache = cacheMiddleware.WithTracing[*apisv1.Api](apiByKeyAuthIdCache, tracer)
+		apiByKeyAuthIdCache = cacheMiddleware.WithMetrics[*apisv1.Api](apiByKeyAuthIdCache, metrics, "api", "memory")
 
 		if redis != nil && runtimeConfig.restoreCache {
 			logger.Info().Msg("restoring caches from redis")

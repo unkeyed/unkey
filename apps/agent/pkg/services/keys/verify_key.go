@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
@@ -18,7 +18,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest) (*keysv1.VerifyKeyResponse, error) {
+func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.VerifyKeyRequest) (*authenticationv1.VerifyKeyResponse, error) {
 
 	if req.Key == "" {
 		return nil, errors.New(errors.ErrBadRequest, fmt.Errorf("key is required"))
@@ -27,7 +27,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 	keyHash := hash.Sha256(req.Key)
 	key, hit := s.keyCache.Get(ctx, keyHash)
 	if hit == cache.Null {
-		return &keysv1.VerifyKeyResponse{
+		return &authenticationv1.VerifyKeyResponse{
 			Valid: false,
 			Code:  errors.NOT_FOUND,
 		}, nil
@@ -49,7 +49,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 	}
 
 	if key.DeletedAt != nil {
-		return &keysv1.VerifyKeyResponse{
+		return &authenticationv1.VerifyKeyResponse{
 			Valid: false,
 			Code:  errors.NOT_FOUND,
 		}, nil
@@ -57,12 +57,12 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 
 	if key.Expires != nil && time.UnixMilli(key.GetExpires()).Before(time.Now()) {
 		s.keyCache.Remove(ctx, keyHash)
-		err := s.db.SoftDeleteKey(ctx, key.Id)
+		err := s.db.SoftDeleteKey(ctx, key.KeyId)
 		if err != nil {
 			return nil, errors.New(errors.ErrInternalServerError, err)
 		}
 
-		return &keysv1.VerifyKeyResponse{
+		return &authenticationv1.VerifyKeyResponse{
 			Valid: false,
 			Code:  errors.NOT_FOUND,
 		}, nil
@@ -89,9 +89,9 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 		ctx, ipSpan = s.tracer.Start(ctx, "server.verifyKey.checkIpWhitelist")
 		s.logger.Debug().Str("sourceIp", req.SourceIp).Strs("whitelist", api.IpWhitelist).Msg("checking ip whitelist")
 		if !whitelist.Ip(req.SourceIp, api.IpWhitelist) {
-			s.logger.Info().Str("workspaceId", api.WorkspaceId).Str("apiId", api.Id).Str("keyId", key.Id).Str("sourceIp", req.SourceIp).Strs("whitelist", api.IpWhitelist).Msg("ip denied")
+			s.logger.Info().Str("workspaceId", api.WorkspaceId).Str("apiId", api.ApiId).Str("keyId", key.KeyId).Str("sourceIp", req.SourceIp).Strs("whitelist", api.IpWhitelist).Msg("ip denied")
 			ipSpan.End()
-			return &keysv1.VerifyKeyResponse{
+			return &authenticationv1.VerifyKeyResponse{
 				Valid: false,
 				Code:  errors.FORBIDDEN,
 			}, nil
@@ -108,13 +108,13 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.ReportKeyVerification")
 		s.metrics.ReportKeyVerification(metrics.KeyVerificationReport{
 			WorkspaceId: key.WorkspaceId,
-			ApiId:       api.Id,
-			KeyId:       key.Id,
+			ApiId:       api.ApiId,
+			KeyId:       key.KeyId,
 			KeyAuthId:   key.KeyAuthId,
 		})
 		sp.End()
 	}
-	res := &keysv1.VerifyKeyResponse{
+	res := &authenticationv1.VerifyKeyResponse{
 		Valid:   true,
 		OwnerId: key.OwnerId,
 	}
@@ -141,8 +141,8 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 
 		s.analytics.PublishKeyVerificationEvent(ctx, analytics.KeyVerificationEvent{
 			WorkspaceId:       key.WorkspaceId,
-			ApiId:             api.Id,
-			KeyId:             key.Id,
+			ApiId:             api.ApiId,
+			KeyId:             key.KeyId,
 			Denied:            denied,
 			Time:              time.Now().UnixMilli(),
 			Region:            req.Region,
@@ -169,7 +169,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 		}
 
 		beforeKeyUpdate := time.Now()
-		keyAfterUpdate, err := s.db.DecrementRemainingKeyUsage(ctx, key.Id)
+		keyAfterUpdate, err := s.db.DecrementRemainingKeyUsage(ctx, key.KeyId)
 		s.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
 			Query:   "DecrementRemainingKeyUsage",
 			Latency: time.Since(beforeKeyUpdate).Milliseconds(),
@@ -196,9 +196,9 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.CheckRatelimit")
 		var limiter ratelimit.Ratelimiter
 		switch key.Ratelimit.Type {
-		case keysv1.RatelimitType_RATELIMIT_TYPE_FAST:
+		case authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST:
 			limiter = s.memoryRatelimit
-		case keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
+		case authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
 			limiter = s.consitentRatelimit
 		}
 		if limiter != nil {
@@ -208,7 +208,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *keysv1.VerifyKeyRequest
 				RefillRate:     key.Ratelimit.RefillRate,
 				RefillInterval: key.Ratelimit.RefillInterval,
 			})
-			res.Ratelimit = &keysv1.RatelimitResponse{
+			res.Ratelimit = &authenticationv1.RatelimitResponse{
 				Limit:     r.Limit,
 				Remaining: r.Remaining,
 				ResetAt:   r.Reset,

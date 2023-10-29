@@ -3,6 +3,7 @@ package apis
 import (
 	"context"
 
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
@@ -20,7 +21,7 @@ func WithTracing(tracer tracing.Tracer) Middleware {
 	}
 }
 
-func (mw *tracingMiddleware) CreateApi(ctx context.Context, req CreateApiRequest) (CreateApiResponse, error) {
+func (mw *tracingMiddleware) CreateApi(ctx context.Context, req *apisv1.CreateApiRequest) (*apisv1.CreateApiResponse, error) {
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("workspaces", "CreateApi"))
 	defer span.End()
 
@@ -31,11 +32,22 @@ func (mw *tracingMiddleware) CreateApi(ctx context.Context, req CreateApiRequest
 	return res, err
 }
 
-func (mw *tracingMiddleware) RemoveApi(ctx context.Context, req RemoveApiRequest) (RemoveApiResponse, error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("workspaces", "RemoveApi"))
+func (mw *tracingMiddleware) DeleteApi(ctx context.Context, req *apisv1.DeleteApiRequest) (*apisv1.DeleteApiResponse, error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("workspaces", "DeleteApi"))
 	defer span.End()
 
-	res, err := mw.next.RemoveApi(ctx, req)
+	res, err := mw.next.DeleteApi(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}
+
+func (mw *tracingMiddleware) FindApi(ctx context.Context, req *apisv1.FindApiRequest) (*apisv1.FindApiResponse, error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("workspaces", "FindApi"))
+	defer span.End()
+
+	res, err := mw.next.FindApi(ctx, req)
 	if err != nil {
 		span.RecordError(err)
 	}

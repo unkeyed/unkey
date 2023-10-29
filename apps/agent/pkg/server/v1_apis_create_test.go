@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -25,13 +25,13 @@ func TestV1ApisCreate(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:          cache.NewNoopCache[entities.Api](),
+		Logger:            logging.NewNoop(),
+		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
-		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
-		UnkeyApiId:        resources.UnkeyApi.Id,
+		UnkeyWorkspaceId:  resources.UnkeyWorkspace.WorkspaceId,
+		UnkeyApiId:        resources.UnkeyApi.ApiId,
 		UnkeyAppAuthToken: "supersecret",
 		WorkspaceService:  workspaces.New(workspaces.Config{Database: resources.Database}),
 		ApiService:        apis.New(apis.Config{Database: resources.Database}),
@@ -43,7 +43,6 @@ func TestV1ApisCreate(t *testing.T) {
 
 	res := CreateApiResponse{}
 	testutil.Json(t, srv.app, testutil.JsonRequest{
-		Debug:      true,
 		Method:     "POST",
 		Path:       "/v1/apis.createApi",
 		Bearer:     resources.UserRootKey,
@@ -58,25 +57,24 @@ func TestV1ApisCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 
-	require.Equal(t, res.ApiId, foundApi.Id)
+	require.Equal(t, res.ApiId, foundApi.ApiId)
 	require.Equal(t, "simple", foundApi.Name)
-	require.Equal(t, resources.UserWorkspace.Id, foundApi.WorkspaceId)
+	require.Equal(t, resources.UserWorkspace.WorkspaceId, foundApi.WorkspaceId)
 }
 
 func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
-	t.Skip("TODO: implement")
 	t.Parallel()
 
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:          cache.NewNoopCache[entities.Api](),
+		Logger:            logging.NewNoop(),
+		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
-		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
-		UnkeyApiId:        resources.UnkeyApi.Id,
+		UnkeyWorkspaceId:  resources.UnkeyWorkspace.WorkspaceId,
+		UnkeyApiId:        resources.UnkeyApi.ApiId,
 		UnkeyAppAuthToken: "supersecret",
 		WorkspaceService:  workspaces.New(workspaces.Config{Database: resources.Database}),
 		ApiService:        apis.New(apis.Config{Database: resources.Database}),
@@ -84,15 +82,14 @@ func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
 
 	res := errors.ErrorResponse{}
 	testutil.Json(t, srv.app, testutil.JsonRequest{
-		Debug:      true,
 		Method:     "POST",
 		Path:       "/v1/apis.createApi",
-		Bearer:     resources.UserRootKey,
+		Bearer:     "invalid_key",
 		Body:       `{ "name":"simple" }`,
 		Response:   &res,
-		StatusCode: 400,
+		StatusCode: 401,
 	})
 
-	require.Equal(t, "", res.Error)
+	require.Equal(t, "UNAUTHORIZED", res.Error.Code)
 
 }

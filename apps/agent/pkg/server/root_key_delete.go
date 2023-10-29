@@ -46,7 +46,7 @@ func (s *Server) deleteRootKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
 	}
 
-	err = s.db.SoftDeleteKey(ctx, key.Id)
+	err = s.db.SoftDeleteKey(ctx, key.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to delete key: %s", err.Error()))
 	}
@@ -54,7 +54,7 @@ func (s *Server) deleteRootKey(c *fiber.Ctx) error {
 	s.events.EmitKeyEvent(ctx, events.KeyEvent{
 		Type: events.KeyDeleted,
 		Key: events.Key{
-			Id:   key.Id,
+			Id:   key.KeyId,
 			Hash: key.Hash,
 		},
 	})

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
@@ -63,8 +63,8 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 	separatorIndex := strings.Index(keyValue, "_")
 	keyHash := hash.Sha256(keyValue)
 
-	newKey := &keysv1.Key{
-		Id:          uid.Key(),
+	newKey := &authenticationv1.Key{
+		KeyId:       uid.Key(),
 		KeyAuthId:   s.unkeyKeyAuthId,
 		WorkspaceId: s.unkeyWorkspaceId,
 		OwnerId:     util.Pointer(req.OwnerId),
@@ -72,8 +72,8 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 		Hash:        keyHash,
 		Start:       keyValue[0 : separatorIndex+4],
 		CreatedAt:   time.Now().UnixMilli(),
-		Ratelimit: &keysv1.Ratelimit{
-			Type:           keysv1.RatelimitType_RATELIMIT_TYPE_FAST,
+		Ratelimit: &authenticationv1.Ratelimit{
+			Type:           authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST,
 			Limit:          100,
 			RefillRate:     10,
 			RefillInterval: 1000,
@@ -91,13 +91,13 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 	if s.events != nil {
 		e := events.KeyEvent{}
 		e.Type = events.KeyCreated
-		e.Key.Id = newKey.Id
+		e.Key.Id = newKey.KeyId
 		e.Key.Hash = newKey.Hash
 		s.events.EmitKeyEvent(ctx, e)
 
 	}
 	return c.JSON(CreateRootKeyResponse{
 		Key:   keyValue,
-		KeyId: newKey.Id,
+		KeyId: newKey.KeyId,
 	})
 }

@@ -3,10 +3,11 @@ package keys
 import (
 	"context"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
@@ -15,25 +16,25 @@ import (
 )
 
 type KeyService interface {
-	VerifyKey(context.Context, *keysv1.VerifyKeyRequest) (*keysv1.VerifyKeyResponse, error)
-	CreateKey(context.Context, *keysv1.CreateKeyRequest) (*keysv1.CreateKeyResponse, error)
-	SoftDeleteKey(context.Context, *keysv1.SoftDeleteKeyRequest) (*keysv1.SoftDeleteKeyResponse, error)
+	VerifyKey(context.Context, *authenticationv1.VerifyKeyRequest) (*authenticationv1.VerifyKeyResponse, error)
+	CreateKey(context.Context, *authenticationv1.CreateKeyRequest) (*authenticationv1.CreateKeyResponse, error)
+	SoftDeleteKey(context.Context, *authenticationv1.SoftDeleteKeyRequest) (*authenticationv1.SoftDeleteKeyResponse, error)
 }
 
 type Database interface {
-	InsertKey(ctx context.Context, key *keysv1.Key) error
+	InsertKey(ctx context.Context, key *authenticationv1.Key) error
 	SoftDeleteKey(ctx context.Context, keyId string) error
-	FindKeyById(ctx context.Context, keyId string) (*keysv1.Key, bool, error)
-	FindKeyByHash(ctx context.Context, keyHash string) (*keysv1.Key, bool, error)
-	FindApiByKeyAuthId(ctx context.Context, keyAuthId string) (entities.Api, bool, error)
-	DecrementRemainingKeyUsage(ctx context.Context, keyId string) (*keysv1.Key, error)
+	FindKeyById(ctx context.Context, keyId string) (*authenticationv1.Key, bool, error)
+	FindKeyByHash(ctx context.Context, keyHash string) (*authenticationv1.Key, bool, error)
+	FindApiByKeyAuthId(ctx context.Context, keyAuthId string) (*apisv1.Api, bool, error)
+	DecrementRemainingKeyUsage(ctx context.Context, keyId string) (*authenticationv1.Key, error)
 }
 
 type Config struct {
 	Database Database
 	Events   events.EventBus
-	KeyCache cache.Cache[*keysv1.Key]
-	ApiCache cache.Cache[entities.Api]
+	KeyCache cache.Cache[*authenticationv1.Key]
+	ApiCache cache.Cache[*apisv1.Api]
 
 	Logger    logging.Logger
 	Tracer    tracing.Tracer
@@ -47,8 +48,8 @@ type Config struct {
 type keyService struct {
 	db       Database
 	events   events.EventBus
-	keyCache cache.Cache[*keysv1.Key]
-	apiCache cache.Cache[entities.Api]
+	keyCache cache.Cache[*authenticationv1.Key]
+	apiCache cache.Cache[*apisv1.Api]
 
 	logger    logging.Logger
 	tracer    tracing.Tracer
@@ -64,11 +65,11 @@ type Middleware func(KeyService) KeyService
 func New(config Config, mws ...Middleware) KeyService {
 	keyCache := config.KeyCache
 	if keyCache == nil {
-		keyCache = cache.NewNoopCache[*keysv1.Key]()
+		keyCache = cache.NewNoopCache[*authenticationv1.Key]()
 	}
 	apiCache := config.ApiCache
 	if apiCache == nil {
-		apiCache = cache.NewNoopCache[entities.Api]()
+		apiCache = cache.NewNoopCache[*apisv1.Api]()
 	}
 	var svc KeyService = &keyService{
 		db:                 config.Database,

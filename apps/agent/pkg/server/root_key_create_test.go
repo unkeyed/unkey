@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
@@ -27,20 +28,20 @@ func TestRootCreateKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:          cache.NewNoopCache[entities.Api](),
+		Logger:            logging.NewNoop(),
+		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
-		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
-		UnkeyApiId:        resources.UnkeyApi.Id,
+		UnkeyWorkspaceId:  resources.UnkeyWorkspace.WorkspaceId,
+		UnkeyApiId:        resources.UnkeyApi.ApiId,
 		UnkeyAppAuthToken: "supersecret",
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
 		"name":"simple",
 		"forWorkspaceId":"%s"
-		}`, resources.UserWorkspace.Id))
+		}`, resources.UserWorkspace.WorkspaceId))
 
 	req := httptest.NewRequest("POST", "/v1/internal/rootkeys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", srv.unkeyAppAuthToken))
@@ -66,7 +67,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 
-	require.Equal(t, createRootKeyResponse.KeyId, foundKey.Id)
+	require.Equal(t, createRootKeyResponse.KeyId, foundKey.KeyId)
 }
 
 func TestRootCreateKey_WithExpiry(t *testing.T) {
@@ -76,21 +77,21 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:            logging.NewNoopLogger(),
-		KeyCache:          cache.NewNoopCache[*keysv1.Key](),
-		ApiCache:          cache.NewNoopCache[entities.Api](),
+		Logger:            logging.NewNoop(),
+		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
 		Database:          resources.Database,
 		Tracer:            tracing.NewNoop(),
 		UnkeyAppAuthToken: "supersecret",
-		UnkeyWorkspaceId:  resources.UnkeyWorkspace.Id,
-		UnkeyApiId:        resources.UnkeyApi.Id,
+		UnkeyWorkspaceId:  resources.UnkeyWorkspace.WorkspaceId,
+		UnkeyApiId:        resources.UnkeyApi.ApiId,
 	})
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
 		"name":"simple",
 		"forWorkspaceId":"%s",
 		"expires": %d
-		}`, resources.UserWorkspace.Id, time.Now().Add(time.Hour).UnixMilli()))
+		}`, resources.UserWorkspace.WorkspaceId, time.Now().Add(time.Hour).UnixMilli()))
 
 	req := httptest.NewRequest("POST", "/v1/internal/rootkeys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", srv.unkeyAppAuthToken))
@@ -115,12 +116,12 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 	foundKey, found, err := resources.Database.FindKeyById(ctx, createRootKeyResponse.KeyId)
 	require.True(t, found)
 	require.NoError(t, err)
-	require.Equal(t, createRootKeyResponse.KeyId, foundKey.Id)
+	require.Equal(t, createRootKeyResponse.KeyId, foundKey.KeyId)
 	require.GreaterOrEqual(t, len(createRootKeyResponse.Key), 30)
 	require.True(t, strings.HasPrefix(createRootKeyResponse.Key, "unkey_"))
 	require.True(t, time.UnixMilli(foundKey.GetExpires()).After(time.Now()))
 
-	require.Equal(t, keysv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
+	require.Equal(t, authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
 	require.Equal(t, int32(100), foundKey.Ratelimit.Limit)
 	require.Equal(t, int32(10), foundKey.Ratelimit.RefillRate)
 	require.Equal(t, int32(1000), foundKey.Ratelimit.RefillInterval)

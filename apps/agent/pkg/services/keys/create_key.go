@@ -3,10 +3,9 @@ package keys
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
@@ -14,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
-func (s *keyService) CreateKey(ctx context.Context, req *keysv1.CreateKeyRequest) (*keysv1.CreateKeyResponse, error) {
+func (s *keyService) CreateKey(ctx context.Context, req *authenticationv1.CreateKeyRequest) (*authenticationv1.CreateKeyResponse, error) {
 	if req.Expires != nil && req.GetExpires() < time.Now().UnixMilli() {
 		return nil, errors.New(errors.ErrBadRequest, fmt.Errorf("'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?"))
 	}
@@ -41,8 +40,8 @@ func (s *keyService) CreateKey(ctx context.Context, req *keysv1.CreateKeyRequest
 	}
 	keyHash := hash.Sha256(keyValue)
 
-	newKey := &keysv1.Key{
-		Id:          uid.Key(),
+	newKey := &authenticationv1.Key{
+		KeyId:       uid.Key(),
 		KeyAuthId:   req.GetKeyAuthId(),
 		WorkspaceId: req.GetWorkspaceId(),
 		Name:        req.Name,
@@ -55,7 +54,6 @@ func (s *keyService) CreateKey(ctx context.Context, req *keysv1.CreateKeyRequest
 		Remaining:   req.Remaining,
 		Ratelimit:   req.Ratelimit,
 	}
-	log.Println("newKey", newKey)
 
 	err = s.db.InsertKey(ctx, newKey)
 	if err != nil {
@@ -64,14 +62,14 @@ func (s *keyService) CreateKey(ctx context.Context, req *keysv1.CreateKeyRequest
 	if s.events != nil {
 		e := events.KeyEvent{}
 		e.Type = events.KeyCreated
-		e.Key.Id = newKey.Id
+		e.Key.Id = newKey.KeyId
 		e.Key.Hash = newKey.Hash
 		s.events.EmitKeyEvent(ctx, e)
 
 	}
 
-	return &keysv1.CreateKeyResponse{
+	return &authenticationv1.CreateKeyResponse{
 		Key:   keyValue,
-		KeyId: newKey.Id,
+		KeyId: newKey.KeyId,
 	}, nil
 }

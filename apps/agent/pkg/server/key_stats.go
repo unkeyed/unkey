@@ -57,7 +57,7 @@ func (s *Server) getKeyStats(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("api %s not found", key.KeyAuthId))
 	}
 
-	keyStats, err := s.analytics.GetKeyStats(ctx, key.WorkspaceId, api.Id, key.Id)
+	keyStats, err := s.analytics.GetKeyStats(ctx, key.WorkspaceId, api.ApiId, key.KeyId)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, "unable to load stats")
 	}

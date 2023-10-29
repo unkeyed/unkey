@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -24,9 +24,9 @@ func Test_CreateKey_Minimal(t *testing.T) {
 
 	ctx := context.Background()
 
-	res, err := svc.CreateKey(ctx, &keysv1.CreateKeyRequest{
+	res, err := svc.CreateKey(ctx, &authenticationv1.CreateKeyRequest{
 		WorkspaceId: resources.UserApi.WorkspaceId,
-		KeyAuthId:   resources.UserApi.KeyAuthId,
+		KeyAuthId:   resources.UserApi.GetKeyAuthId(),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, res.Key)
@@ -35,9 +35,9 @@ func Test_CreateKey_Minimal(t *testing.T) {
 	key, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, res.KeyId, key.Id)
+	require.Equal(t, res.KeyId, key.KeyId)
 	require.Equal(t, resources.UserApi.WorkspaceId, key.WorkspaceId)
-	require.Equal(t, resources.UserApi.KeyAuthId, key.KeyAuthId)
+	require.Equal(t, resources.UserApi.GetKeyAuthId(), key.KeyAuthId)
 
 }
 
@@ -53,9 +53,9 @@ func Test_CreateKey_WithExpiration(t *testing.T) {
 	ctx := context.Background()
 
 	expires := time.Now().Add(time.Hour).UnixMilli()
-	res, err := svc.CreateKey(ctx, &keysv1.CreateKeyRequest{
+	res, err := svc.CreateKey(ctx, &authenticationv1.CreateKeyRequest{
 		WorkspaceId: resources.UserApi.WorkspaceId,
-		KeyAuthId:   resources.UserApi.KeyAuthId,
+		KeyAuthId:   resources.UserApi.GetKeyAuthId(),
 		Expires:     util.Pointer(expires),
 	})
 	require.NoError(t, err)
@@ -65,9 +65,9 @@ func Test_CreateKey_WithExpiration(t *testing.T) {
 	key, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, res.KeyId, key.Id)
+	require.Equal(t, res.KeyId, key.KeyId)
 	require.Equal(t, resources.UserApi.WorkspaceId, key.WorkspaceId)
-	require.Equal(t, resources.UserApi.KeyAuthId, key.KeyAuthId)
+	require.Equal(t, resources.UserApi.GetKeyAuthId(), key.KeyAuthId)
 	require.NotNil(t, key.Expires)
 	require.Equal(t, expires, *key.Expires)
 
@@ -80,14 +80,14 @@ func Test_CreateKey_WithRemaining(t *testing.T) {
 	svc := New(Config{
 		Database: resources.Database,
 		Events:   events.NewNoop(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
 	})
 
 	ctx := context.Background()
 
-	res, err := svc.CreateKey(ctx, &keysv1.CreateKeyRequest{
+	res, err := svc.CreateKey(ctx, &authenticationv1.CreateKeyRequest{
 		WorkspaceId: resources.UserApi.WorkspaceId,
-		KeyAuthId:   resources.UserApi.KeyAuthId,
+		KeyAuthId:   resources.UserApi.GetKeyAuthId(),
 		Remaining:   util.Pointer(int32(10)),
 	})
 	require.NoError(t, err)
@@ -97,9 +97,9 @@ func Test_CreateKey_WithRemaining(t *testing.T) {
 	key, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, res.KeyId, key.Id)
+	require.Equal(t, res.KeyId, key.KeyId)
 	require.Equal(t, resources.UserApi.WorkspaceId, key.WorkspaceId)
-	require.Equal(t, resources.UserApi.KeyAuthId, key.KeyAuthId)
+	require.Equal(t, resources.UserApi.GetKeyAuthId(), key.KeyAuthId)
 	require.NotNil(t, key.Remaining)
 	require.Equal(t, int32(10), *key.Remaining)
 

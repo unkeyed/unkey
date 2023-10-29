@@ -60,6 +60,6 @@ func New(config *Config) Logger {
 	return logger
 }
 
-func NewNoopLogger() Logger {
+func NewNoop() Logger {
 	return zerolog.Nop()
 }

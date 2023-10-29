@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
@@ -17,13 +19,13 @@ import (
 )
 
 type resources struct {
-	UnkeyWorkspace entities.Workspace
-	UnkeyApi       entities.Api
-	UnkeyKeyAuth   entities.KeyAuth
+	UnkeyWorkspace *workspacesv1.Workspace
+	UnkeyApi       *apisv1.Api
+	UnkeyKeyAuth   *authenticationv1.KeyAuth
 	UserRootKey    string
-	UserWorkspace  entities.Workspace
-	UserApi        entities.Api
-	UserKeyAuth    entities.KeyAuth
+	UserWorkspace  *workspacesv1.Workspace
+	UserApi        *apisv1.Api
+	UserKeyAuth    *authenticationv1.KeyAuth
 	Database       database.Database
 	DatabaseDSN    string
 }
@@ -40,7 +42,7 @@ func SetupResources(t *testing.T) resources {
 	}
 
 	db, err := database.New(database.Config{
-		Logger:    logging.NewNoopLogger(),
+		Logger:    logging.NewNoop(),
 		PrimaryUs: dsn,
 	})
 
@@ -51,40 +53,41 @@ func SetupResources(t *testing.T) resources {
 		DatabaseDSN: dsn,
 	}
 
-	r.UnkeyWorkspace = entities.Workspace{
-		Id:       uid.Workspace(),
-		Name:     "unkey",
-		TenantId: uid.New(16, "tenant"),
+	r.UnkeyWorkspace = &workspacesv1.Workspace{
+		WorkspaceId: uid.Workspace(),
+		Name:        "unkey",
+		TenantId:    uid.New(16, "tenant"),
+		Plan:        workspacesv1.Plan_PLAN_FREE,
 	}
 
-	r.UserWorkspace = entities.Workspace{
-		Id:       uid.Workspace(),
-		Name:     "user",
-		TenantId: uid.New(16, "tenant"),
+	r.UserWorkspace = &workspacesv1.Workspace{
+		WorkspaceId: uid.Workspace(),
+		Name:        "user",
+		TenantId:    uid.New(16, "tenant"),
 	}
 
-	r.UnkeyKeyAuth = entities.KeyAuth{
-		Id:          uid.KeyAuth(),
-		WorkspaceId: r.UnkeyWorkspace.Id,
+	r.UnkeyKeyAuth = &authenticationv1.KeyAuth{
+		KeyAuthId:   uid.KeyAuth(),
+		WorkspaceId: r.UnkeyWorkspace.WorkspaceId,
 	}
-	r.UserKeyAuth = entities.KeyAuth{
-		Id:          uid.KeyAuth(),
-		WorkspaceId: r.UserWorkspace.Id,
+	r.UserKeyAuth = &authenticationv1.KeyAuth{
+		KeyAuthId:   uid.KeyAuth(),
+		WorkspaceId: r.UserWorkspace.WorkspaceId,
 	}
 
-	r.UnkeyApi = entities.Api{
-		Id:          uid.Api(),
+	r.UnkeyApi = &apisv1.Api{
+		ApiId:       uid.Api(),
 		Name:        "name",
-		WorkspaceId: r.UnkeyWorkspace.Id,
-		AuthType:    entities.AuthTypeKey,
-		KeyAuthId:   r.UnkeyKeyAuth.Id,
+		WorkspaceId: r.UnkeyWorkspace.WorkspaceId,
+		AuthType:    apisv1.AuthType_AUTH_TYPE_KEY,
+		KeyAuthId:   &r.UnkeyKeyAuth.KeyAuthId,
 	}
-	r.UserApi = entities.Api{
-		Id:          uid.Api(),
+	r.UserApi = &apisv1.Api{
+		ApiId:       uid.Api(),
 		Name:        "name",
-		WorkspaceId: r.UserWorkspace.Id,
-		AuthType:    entities.AuthTypeKey,
-		KeyAuthId:   r.UserKeyAuth.Id,
+		WorkspaceId: r.UserWorkspace.WorkspaceId,
+		AuthType:    apisv1.AuthType_AUTH_TYPE_KEY,
+		KeyAuthId:   &r.UserKeyAuth.KeyAuthId,
 	}
 
 	require.NoError(t, db.InsertWorkspace(ctx, r.UnkeyWorkspace))
@@ -96,11 +99,11 @@ func SetupResources(t *testing.T) resources {
 
 	r.UserRootKey = uid.New(16, string(uid.UnkeyPrefix))
 
-	rootKey := &keysv1.Key{
-		Id:             uid.Key(),
-		KeyAuthId:      r.UnkeyKeyAuth.Id,
-		WorkspaceId:    r.UnkeyWorkspace.Id,
-		ForWorkspaceId: util.Pointer(r.UserWorkspace.Id),
+	rootKey := &authenticationv1.Key{
+		KeyId:          uid.Key(),
+		KeyAuthId:      r.UnkeyKeyAuth.KeyAuthId,
+		WorkspaceId:    r.UnkeyWorkspace.WorkspaceId,
+		ForWorkspaceId: util.Pointer(r.UserWorkspace.WorkspaceId),
 		Hash:           hash.Sha256(r.UserRootKey),
 		CreatedAt:      time.Now().UnixMilli(),
 	}

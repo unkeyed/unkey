@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -30,9 +31,9 @@ func TestCreateKey_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
@@ -43,7 +44,7 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
 		"apiId":"%s"
-		}`, resources.UserApi.Id))
+		}`, resources.UserApi.ApiId))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
@@ -67,7 +68,7 @@ func TestCreateKey_Simple(t *testing.T) {
 	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
+	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
 }
 
 func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
@@ -76,9 +77,9 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
@@ -88,7 +89,7 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 		"ratelimit": {
 			"type": "x"
 			}
-		}`, resources.UserApi.Id))
+		}`, resources.UserApi.ApiId))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
@@ -118,9 +119,9 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
@@ -133,7 +134,7 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 		"apiId":"%s",
 		"byteLength": 32,
 		"prefix": "test"
-		}`, resources.UserApi.Id))
+		}`, resources.UserApi.ApiId))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
@@ -158,7 +159,7 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
+	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
 	require.True(t, strings.HasPrefix(foundKey.Start, "test_"))
 
 }
@@ -170,9 +171,9 @@ func TestCreateKey_WithCustom(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
@@ -193,7 +194,7 @@ func TestCreateKey_WithCustom(t *testing.T) {
 			"refillRate":10,
 			"refillInterval":1000
 		}
-		}`, resources.UserApi.Id, time.Now().Add(time.Hour).UnixMilli()))
+		}`, resources.UserApi.ApiId, time.Now().Add(time.Hour).UnixMilli()))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
@@ -218,14 +219,14 @@ func TestCreateKey_WithCustom(t *testing.T) {
 	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
+	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
 	require.GreaterOrEqual(t, len(createKeyResponse.Key), 30)
 	require.True(t, strings.HasPrefix(createKeyResponse.Key, "test_"))
 	require.Equal(t, "chronark", *foundKey.OwnerId)
 	require.True(t, time.UnixMilli(foundKey.GetExpires()).After(time.Now()))
 
 	require.NotNil(t, foundKey.Ratelimit)
-	require.Equal(t, keysv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
+	require.Equal(t, authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)
 	require.Equal(t, int32(10), foundKey.Ratelimit.Limit)
 	require.Equal(t, int32(10), foundKey.Ratelimit.RefillRate)
 	require.Equal(t, int32(1000), foundKey.Ratelimit.RefillInterval)
@@ -239,9 +240,9 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
@@ -253,7 +254,7 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 	buf := bytes.NewBufferString(fmt.Sprintf(`{
 		"apiId":"%s",
 		"remaining":4
-		}`, resources.UserApi.Id))
+		}`, resources.UserApi.ApiId))
 
 	req := httptest.NewRequest("POST", "/v1/keys", buf)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
@@ -278,7 +279,7 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.Id)
+	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
 	require.NotNil(t, foundKey.Remaining)
 	require.Equal(t, int32(4), *foundKey.Remaining)
 

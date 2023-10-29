@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 )
 
-func (db *database) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (*keysv1.Key, error) {
+func (db *database) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (*authenticationv1.Key, error) {
 
 	tx, err := db.writeReplica.db.BeginTx(ctx, nil)
 	if err != nil {

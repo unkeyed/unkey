@@ -2,44 +2,38 @@ package apis
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func (s *service) CreateApi(ctx context.Context, req CreateApiRequest) (CreateApiResponse, error) {
+func (s *service) CreateApi(ctx context.Context, req *apisv1.CreateApiRequest) (*apisv1.CreateApiResponse, error) {
 
-	ws, found, err := s.database.FindWorkspace(ctx, req.WorkspaceId)
+	keyAuth := &authenticationv1.KeyAuth{
+		KeyAuthId:   uid.KeyAuth(),
+		WorkspaceId: req.WorkspaceId,
+	}
+
+	err := s.database.InsertKeyAuth(ctx, keyAuth)
 	if err != nil {
-		return CreateApiResponse{}, fmt.Errorf("unable to find workspace %s: %w", req.WorkspaceId, err)
-	}
-	if !found {
-		return CreateApiResponse{}, fmt.Errorf("workspace not found: %s", req.WorkspaceId)
+		return nil, errors.New(errors.ErrInternalServerError, err)
 	}
 
-	keyAuth := entities.KeyAuth{
-		Id:          uid.KeyAuth(),
-		WorkspaceId: ws.Id,
-	}
-
-	err = s.database.InsertKeyAuth(ctx, keyAuth)
-	if err != nil {
-		return CreateApiResponse{}, fmt.Errorf("unable to create key auth: %w", err)
-	}
-
-	api := entities.Api{
-		Id:          uid.Api(),
+	api := &apisv1.Api{
+		ApiId:       uid.Api(),
 		Name:        req.Name,
-		WorkspaceId: ws.Id,
+		WorkspaceId: req.WorkspaceId,
 		IpWhitelist: []string{},
-		AuthType:    entities.AuthTypeKey,
-		KeyAuthId:   keyAuth.Id,
+		AuthType:    apisv1.AuthType_AUTH_TYPE_KEY,
+		KeyAuthId:   util.Pointer(keyAuth.KeyAuthId),
 	}
 
 	err = s.database.InsertApi(ctx, api)
 	if err != nil {
-		return CreateApiResponse{}, fmt.Errorf("unable to create api: %w", err)
+		return nil, errors.New(errors.ErrInternalServerError, err)
 	}
-	return CreateApiResponse{ApiId: api.Id}, nil
+	return &apisv1.CreateApiResponse{ApiId: api.ApiId}, nil
 }

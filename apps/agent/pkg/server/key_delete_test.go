@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -26,10 +27,10 @@ func TestDeleteKey(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
 	}
@@ -37,14 +38,14 @@ func TestDeleteKey(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 	})
 
-	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/keys/%s", key.Id), nil)
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/keys/%s", key.KeyId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
@@ -56,7 +57,7 @@ func TestDeleteKey(t *testing.T) {
 
 	require.Equal(t, 200, res.StatusCode)
 
-	key, found, err := resources.Database.FindKeyById(ctx, key.Id)
+	key, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.NotNil(t, key.DeletedAt)

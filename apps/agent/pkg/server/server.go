@@ -17,11 +17,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/go-playground/validator/v10"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
@@ -35,9 +36,9 @@ import (
 
 type Config struct {
 	Logger   logging.Logger
-	KeyCache cache.Cache[*keysv1.Key]
+	KeyCache cache.Cache[*authenticationv1.Key]
 	// The ApiCache uses the KeyAuthId as cache key, not an apiId
-	ApiCache          cache.Cache[entities.Api]
+	ApiCache          cache.Cache[*apisv1.Api]
 	Database          database.Database
 	Ratelimit         ratelimit.Ratelimiter
 	Tracer            trace.Tracer
@@ -60,8 +61,8 @@ type Server struct {
 	logger    logging.Logger
 	validator *validator.Validate
 	db        database.Database
-	keyCache  cache.Cache[*keysv1.Key]
-	apiCache  cache.Cache[entities.Api]
+	keyCache  cache.Cache[*authenticationv1.Key]
+	apiCache  cache.Cache[*apisv1.Api]
 	ratelimit ratelimit.Ratelimiter
 
 	// Not guaranteed to be available, always do a nil check first!
@@ -216,7 +217,7 @@ func New(config Config) *Server {
 
 	// apiService
 	s.app.Post("/v1/apis.createApi", s.v1CreateApi)
-	s.app.Post("/v1/apis.removeApi", s.v1RemoveApi)
+	s.app.Post("/v1/apis.deleteApi", s.v1DeleteApi)
 	s.app.Get("/v1/apis.findApi", s.getApi)
 	s.app.Get("/v1/apis.listKeys", s.listKeys)
 

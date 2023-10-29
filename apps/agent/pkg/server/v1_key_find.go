@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
@@ -53,8 +53,8 @@ func (s *Server) v1FindKey(c *fiber.Ctx) error {
 	}
 
 	res := GetKeyResponse{
-		Id:             key.Id,
-		ApiId:          api.Id,
+		Id:             key.KeyId,
+		ApiId:          api.ApiId,
 		WorkspaceId:    key.WorkspaceId,
 		Name:           key.GetName(),
 		Start:          key.Start,
@@ -78,9 +78,9 @@ func (s *Server) v1FindKey(c *fiber.Ctx) error {
 			RefillInterval: key.Ratelimit.RefillInterval,
 		}
 		switch key.Ratelimit.Type {
-		case keysv1.RatelimitType_RATELIMIT_TYPE_FAST:
+		case authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST:
 			res.Ratelimit.Type = "fast"
-		case keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
+		case authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
 			res.Ratelimit.Type = "consistent"
 		}
 	}

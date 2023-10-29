@@ -7,10 +7,10 @@ import (
 
 	"errors"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 )
 
-func (db *database) FindKeyByHash(ctx context.Context, hash string) (*keysv1.Key, bool, error) {
+func (db *database) FindKeyByHash(ctx context.Context, hash string) (*authenticationv1.Key, bool, error) {
 
 	model, err := db.read().FindKeyByHash(ctx, hash)
 	if err != nil {

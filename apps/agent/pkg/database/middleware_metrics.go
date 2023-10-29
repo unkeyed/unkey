@@ -4,8 +4,10 @@ import (
 	"context"
 	"time"
 
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 )
 
@@ -21,7 +23,7 @@ type metricsMiddleware struct {
 	metrics metrics.Metrics
 }
 
-func (mw *metricsMiddleware) InsertWorkspace(ctx context.Context, newWorkspace entities.Workspace) error {
+func (mw *metricsMiddleware) InsertWorkspace(ctx context.Context, newWorkspace *workspacesv1.Workspace) error {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -32,7 +34,7 @@ func (mw *metricsMiddleware) InsertWorkspace(ctx context.Context, newWorkspace e
 	return mw.next.InsertWorkspace(ctx, newWorkspace)
 
 }
-func (mw *metricsMiddleware) InsertApi(ctx context.Context, api entities.Api) (err error) {
+func (mw *metricsMiddleware) InsertApi(ctx context.Context, api *apisv1.Api) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -43,7 +45,7 @@ func (mw *metricsMiddleware) InsertApi(ctx context.Context, api entities.Api) (e
 	return mw.next.InsertApi(ctx, api)
 }
 
-func (mw *metricsMiddleware) InsertKeyAuth(ctx context.Context, keyAuth entities.KeyAuth) (err error) {
+func (mw *metricsMiddleware) InsertKeyAuth(ctx context.Context, keyAuth *authenticationv1.KeyAuth) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -53,7 +55,7 @@ func (mw *metricsMiddleware) InsertKeyAuth(ctx context.Context, keyAuth entities
 	}()
 	return mw.next.InsertKeyAuth(ctx, keyAuth)
 }
-func (mw *metricsMiddleware) FindApi(ctx context.Context, apiId string) (api entities.Api, found bool, err error) {
+func (mw *metricsMiddleware) FindApi(ctx context.Context, apiId string) (api *apisv1.Api, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -76,7 +78,7 @@ func (mw *metricsMiddleware) DeleteApi(ctx context.Context, apiId string) (err e
 	return mw.next.DeleteApi(ctx, apiId)
 
 }
-func (mw *metricsMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId string) (entities.Api, bool, error) {
+func (mw *metricsMiddleware) FindApiByKeyAuthId(ctx context.Context, keyAuthId string) (*apisv1.Api, bool, error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -100,7 +102,7 @@ func (mw *metricsMiddleware) DeleteKeyAuth(ctx context.Context, keyAuthId string
 	return mw.next.DeleteKeyAuth(ctx, keyAuthId)
 
 }
-func (mw *metricsMiddleware) InsertKey(ctx context.Context, newKey *keysv1.Key) (err error) {
+func (mw *metricsMiddleware) InsertKey(ctx context.Context, newKey *authenticationv1.Key) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -111,7 +113,7 @@ func (mw *metricsMiddleware) InsertKey(ctx context.Context, newKey *keysv1.Key) 
 	return mw.next.InsertKey(ctx, newKey)
 
 }
-func (mw *metricsMiddleware) FindKeyById(ctx context.Context, keyId string) (key *keysv1.Key, found bool, err error) {
+func (mw *metricsMiddleware) FindKeyById(ctx context.Context, keyId string) (key *authenticationv1.Key, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -121,7 +123,7 @@ func (mw *metricsMiddleware) FindKeyById(ctx context.Context, keyId string) (key
 	}()
 	return mw.next.FindKeyById(ctx, keyId)
 }
-func (mw *metricsMiddleware) FindKeyByHash(ctx context.Context, hash string) (key *keysv1.Key, found bool, err error) {
+func (mw *metricsMiddleware) FindKeyByHash(ctx context.Context, hash string) (key *authenticationv1.Key, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -131,7 +133,7 @@ func (mw *metricsMiddleware) FindKeyByHash(ctx context.Context, hash string) (ke
 	}()
 	return mw.next.FindKeyByHash(ctx, hash)
 }
-func (mw *metricsMiddleware) UpdateKey(ctx context.Context, key *keysv1.Key) (err error) {
+func (mw *metricsMiddleware) UpdateKey(ctx context.Context, key *authenticationv1.Key) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -152,7 +154,7 @@ func (mw *metricsMiddleware) SoftDeleteKey(ctx context.Context, keyId string) (e
 	return mw.next.SoftDeleteKey(ctx, keyId)
 
 }
-func (mw *metricsMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key *keysv1.Key, err error) {
+func (mw *metricsMiddleware) DecrementRemainingKeyUsage(ctx context.Context, keyId string) (key *authenticationv1.Key, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -172,7 +174,7 @@ func (mw *metricsMiddleware) CountKeys(ctx context.Context, keyAuthId string) (c
 	}()
 	return mw.next.CountKeys(ctx, keyAuthId)
 }
-func (mw *metricsMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]*keysv1.Key, error) {
+func (mw *metricsMiddleware) ListKeys(ctx context.Context, keyAuthId string, ownerId string, limit int, offset int) ([]*authenticationv1.Key, error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -183,7 +185,7 @@ func (mw *metricsMiddleware) ListKeys(ctx context.Context, keyAuthId string, own
 	return mw.next.ListKeys(ctx, keyAuthId, ownerId, limit, offset)
 }
 
-func (mw *metricsMiddleware) ListAllApis(ctx context.Context, limit int, offset int) ([]entities.Api, error) {
+func (mw *metricsMiddleware) ListAllApis(ctx context.Context, limit int, offset int) ([]*apisv1.Api, error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -194,7 +196,7 @@ func (mw *metricsMiddleware) ListAllApis(ctx context.Context, limit int, offset 
 	return mw.next.ListAllApis(ctx, limit, offset)
 }
 
-func (mw *metricsMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) (keyAuth entities.KeyAuth, found bool, err error) {
+func (mw *metricsMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) (keyAuth *authenticationv1.KeyAuth, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -205,7 +207,7 @@ func (mw *metricsMiddleware) FindKeyAuth(ctx context.Context, keyAuthId string) 
 	return mw.next.FindKeyAuth(ctx, keyAuthId)
 }
 
-func (mw *metricsMiddleware) UpdateWorkspace(ctx context.Context, workspace entities.Workspace) (err error) {
+func (mw *metricsMiddleware) UpdateWorkspace(ctx context.Context, workspace *workspacesv1.Workspace) (err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -216,7 +218,7 @@ func (mw *metricsMiddleware) UpdateWorkspace(ctx context.Context, workspace enti
 	return mw.next.UpdateWorkspace(ctx, workspace)
 }
 
-func (mw *metricsMiddleware) FindWorkspace(ctx context.Context, workspaceId string) (workspace entities.Workspace, found bool, err error) {
+func (mw *metricsMiddleware) FindWorkspace(ctx context.Context, workspaceId string) (workspace *workspacesv1.Workspace, found bool, err error) {
 	start := time.Now()
 	defer func() {
 		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
@@ -225,6 +227,17 @@ func (mw *metricsMiddleware) FindWorkspace(ctx context.Context, workspaceId stri
 		})
 	}()
 	return mw.next.FindWorkspace(ctx, workspaceId)
+}
+
+func (mw *metricsMiddleware) DeleteWorkspace(ctx context.Context, workspaceId string) error {
+	start := time.Now()
+	defer func() {
+		mw.metrics.ReportDatabaseLatency(metrics.DatabaseLatencyReport{
+			Query:   "DeleteWorkspace",
+			Latency: time.Since(start).Milliseconds(),
+		})
+	}()
+	return mw.next.DeleteWorkspace(ctx, workspaceId)
 }
 
 func (mw *metricsMiddleware) Close() error {

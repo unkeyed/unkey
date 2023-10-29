@@ -3,14 +3,15 @@ package apis
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 )
 
 type database interface {
-	FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error)
-	InsertApi(ctx context.Context, newWorkspace entities.Api) error
+	FindApi(ctx context.Context, apiId string) (*apisv1.Api, bool, error)
+	InsertApi(ctx context.Context, newApi *apisv1.Api) error
 	DeleteApi(ctx context.Context, apiId string) error
-	InsertKeyAuth(ctx context.Context, workspace entities.KeyAuth) error
+	InsertKeyAuth(ctx context.Context, keyAuth *authenticationv1.KeyAuth) error
 }
 
 type service struct {

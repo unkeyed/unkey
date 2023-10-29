@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -30,9 +30,9 @@ func TestKeyFindV1_Simple(t *testing.T) {
 	resources := testutil.SetupResources(t)
 
 	srv := New(Config{
-		Logger:   logging.NewNoopLogger(),
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
-		ApiCache: cache.NewNoopCache[entities.Api](),
+		Logger:   logging.NewNoop(),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache: cache.NewNoopCache[*apisv1.Api](),
 		Database: resources.Database,
 		Tracer:   tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
@@ -41,10 +41,10 @@ func TestKeyFindV1_Simple(t *testing.T) {
 		}),
 	})
 
-	key := &keysv1.Key{
-		Id:          uid.Key(),
-		KeyAuthId:   resources.UserKeyAuth.Id,
-		WorkspaceId: resources.UserWorkspace.Id,
+	key := &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
 		Name:        util.Pointer("test"),
 		Hash:        hash.Sha256(uid.New(16, "test")),
 		CreatedAt:   time.Now().UnixMilli(),
@@ -52,7 +52,7 @@ func TestKeyFindV1_Simple(t *testing.T) {
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/keys/%s", key.Id), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/keys/%s", key.KeyId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
 	res, err := srv.app.Test(req)
@@ -68,8 +68,8 @@ func TestKeyFindV1_Simple(t *testing.T) {
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
-	require.Equal(t, key.Id, successResponse.Id)
-	require.Equal(t, resources.UserApi.Id, successResponse.ApiId)
+	require.Equal(t, key.KeyId, successResponse.Id)
+	require.Equal(t, resources.UserApi.ApiId, successResponse.ApiId)
 	require.Equal(t, key.WorkspaceId, successResponse.WorkspaceId)
 	require.Equal(t, *key.Name, successResponse.Name)
 	require.True(t, strings.HasPrefix(key.Hash, successResponse.Start))

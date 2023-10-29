@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
@@ -76,13 +76,13 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.FORBIDDEN, "workspace access denined")
 	}
 
-	keys, err := s.db.ListKeys(ctx, api.KeyAuthId, req.OwnerId, req.Limit, req.Offset)
+	keys, err := s.db.ListKeys(ctx, api.GetKeyAuthId(), req.OwnerId, req.Limit, req.Offset)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 
 	}
 
-	total, err := s.db.CountKeys(ctx, api.KeyAuthId)
+	total, err := s.db.CountKeys(ctx, api.GetKeyAuthId())
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
 	}
@@ -94,8 +94,8 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 
 	for i, k := range keys {
 		res.Keys[i] = keyResponse{
-			Id:             k.Id,
-			ApiId:          api.Id,
+			Id:             k.KeyId,
+			ApiId:          api.ApiId,
 			WorkspaceId:    k.WorkspaceId,
 			Name:           k.GetName(),
 			Start:          k.Start,
@@ -119,9 +119,9 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 				RefillInterval: k.Ratelimit.RefillInterval,
 			}
 			switch k.Ratelimit.Type {
-			case keysv1.RatelimitType_RATELIMIT_TYPE_FAST:
+			case authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST:
 				res.Keys[i].Ratelimit.Type = "fast"
-			case keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
+			case authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT:
 				res.Keys[i].Ratelimit.Type = "consistent"
 			}
 		}

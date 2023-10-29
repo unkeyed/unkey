@@ -7,22 +7,22 @@ import (
 
 	"errors"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 )
 
-func (db *database) FindApi(ctx context.Context, apiId string) (entities.Api, bool, error) {
+func (db *database) FindApi(ctx context.Context, apiId string) (*apisv1.Api, bool, error) {
 
 	model, err := db.read().FindApi(ctx, apiId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return entities.Api{}, false, nil
+			return nil, false, nil
 		}
-		return entities.Api{}, false, fmt.Errorf("unable to find api: %w", err)
+		return nil, false, fmt.Errorf("unable to find api: %w", err)
 	}
 
 	api, err := transformApiModelToEntity(model)
 	if err != nil {
-		return entities.Api{}, true, fmt.Errorf("unable to transform api model to entity: %w", err)
+		return nil, true, fmt.Errorf("unable to transform api model to entity: %w", err)
 	}
 	return api, true, nil
 }

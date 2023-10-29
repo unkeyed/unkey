@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -24,9 +24,9 @@ func Test_SoftDeleteKey_DeletionTimeIsSet(t *testing.T) {
 
 	ctx := context.Background()
 
-	res, err := svc.CreateKey(ctx, &keysv1.CreateKeyRequest{
+	res, err := svc.CreateKey(ctx, &authenticationv1.CreateKeyRequest{
 		WorkspaceId: resources.UserApi.WorkspaceId,
-		KeyAuthId:   resources.UserApi.KeyAuthId,
+		KeyAuthId:   resources.UserApi.GetKeyAuthId(),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, res.Key)
@@ -38,7 +38,7 @@ func Test_SoftDeleteKey_DeletionTimeIsSet(t *testing.T) {
 
 	require.Nil(t, key.DeletedAt)
 
-	_, err = svc.SoftDeleteKey(ctx, &keysv1.SoftDeleteKeyRequest{
+	_, err = svc.SoftDeleteKey(ctx, &authenticationv1.SoftDeleteKeyRequest{
 		KeyId: res.KeyId,
 	})
 	require.NoError(t, err)
@@ -71,14 +71,14 @@ func Test_SoftDeleteKey_EmitsEvent(t *testing.T) {
 	svc := New(Config{
 		Database: resources.Database,
 		Events:   e,
-		KeyCache: cache.NewNoopCache[*keysv1.Key](),
+		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
 	})
 
 	ctx := context.Background()
 
-	res, err := svc.CreateKey(ctx, &keysv1.CreateKeyRequest{
+	res, err := svc.CreateKey(ctx, &authenticationv1.CreateKeyRequest{
 		WorkspaceId: resources.UserApi.WorkspaceId,
-		KeyAuthId:   resources.UserApi.KeyAuthId,
+		KeyAuthId:   resources.UserApi.GetKeyAuthId(),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, res.Key)
@@ -90,7 +90,7 @@ func Test_SoftDeleteKey_EmitsEvent(t *testing.T) {
 
 	require.Nil(t, key.DeletedAt)
 
-	_, err = svc.SoftDeleteKey(ctx, &keysv1.SoftDeleteKeyRequest{
+	_, err = svc.SoftDeleteKey(ctx, &authenticationv1.SoftDeleteKeyRequest{
 		KeyId: res.KeyId,
 	})
 	require.NoError(t, err)

@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/gofiber/fiber/v2"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	httpErrors "github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
 )
 
 type CreateApiRequest struct {
@@ -34,7 +34,7 @@ func (s *Server) v1CreateApi(c *fiber.Ctx) error {
 		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, err.Error())
 	}
 
-	created, err := s.apiService.CreateApi(ctx, apis.CreateApiRequest{
+	created, err := s.apiService.CreateApi(ctx, &apisv1.CreateApiRequest{
 		Name:        req.Name,
 		WorkspaceId: authorizedWorkspaceId,
 	})

@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package proto.workspaces.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1;workspacesv1";
+
+service WorkspaceService {
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse) {}
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse) {}
+  rpc FindWorkspace(FindWorkspaceRequest) returns (FindWorkspaceResponse) {}
+  rpc RenameWorkspace(RenameWorkspaceRequest) returns (RenameWorkspaceResponse) {}
+  rpc ChangePlan(ChangePlanRequest) returns (ChangePlanResponse) {}
+}
+
+enum Plan {
+  PLAN_UNSPECIFIED = 0;
+  PLAN_FREE = 1;
+  PLAN_PRO = 2;
+  PLAN_ENTERPRISE = 3;
+}
+
+message Workspace {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+
+  int64 create_at = 3;
+  optional int64 deleted_at = 4;
+
+  Plan plan = 5;
+  string tenant_id = 6 [(buf.validate.field).string.min_len = 1];
+}
+
+message CreateWorkspaceRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  Plan plan = 2;
+  string tenant_id = 3 [(buf.validate.field).string.min_len = 1];
+}
+message CreateWorkspaceResponse {
+  string workspace_id = 1;
+}
+
+message DeleteWorkspaceRequest {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteWorkspaceResponse {}
+
+message FindWorkspaceRequest {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message FindWorkspaceResponse {
+  optional Workspace workspace = 1;
+}
+
+message RenameWorkspaceRequest {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message RenameWorkspaceResponse {}
+
+message ChangePlanRequest {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+  Plan plan = 2;
+}
+
+message ChangePlanResponse {}

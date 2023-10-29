@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 )
 
-func (db *database) InsertApi(ctx context.Context, api entities.Api) error {
+func (db *database) InsertApi(ctx context.Context, api *apisv1.Api) error {
 
 	req := gen.InsertApiParams{
-		ID:          api.Id,
+		ID:          api.ApiId,
 		WorkspaceID: api.WorkspaceId,
 		Name:        api.Name,
 	}
@@ -22,10 +22,10 @@ func (db *database) InsertApi(ctx context.Context, api entities.Api) error {
 		req.IpWhitelist = sql.NullString{String: strings.Join(api.IpWhitelist, ","), Valid: true}
 	}
 	switch api.AuthType {
-	case entities.AuthTypeKey:
+	case apisv1.AuthType_AUTH_TYPE_KEY:
 		req.AuthType = gen.NullApisAuthType{ApisAuthType: gen.ApisAuthTypeKey, Valid: true}
-		req.KeyAuthID = sql.NullString{String: api.KeyAuthId, Valid: true}
-	case entities.AuthTypeJWT:
+		req.KeyAuthID = sql.NullString{String: api.GetKeyAuthId(), Valid: true}
+	case apisv1.AuthType_AUTH_TYPE_JWT:
 		req.AuthType = gen.NullApisAuthType{ApisAuthType: gen.ApisAuthTypeJwt}
 		// TODO: add jwt id here once it exists
 	default:

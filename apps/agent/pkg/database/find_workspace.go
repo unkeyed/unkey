@@ -8,18 +8,17 @@ import (
 	"errors"
 
 	gen "github.com/unkeyed/unkey/apps/agent/gen/database"
-
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 )
 
-func (db *database) FindWorkspace(ctx context.Context, workspaceId string) (entities.Workspace, bool, error) {
+func (db *database) FindWorkspace(ctx context.Context, workspaceId string) (*workspacesv1.Workspace, bool, error) {
 
 	model, err := db.read().FindWorkspace(ctx, workspaceId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return entities.Workspace{}, false, nil
+			return nil, false, nil
 		}
-		return entities.Workspace{}, false, fmt.Errorf("unable to find workspace: %w", err)
+		return nil, false, fmt.Errorf("unable to find workspace: %w", err)
 	}
 
 	workspace := transformWorkspaceModelToEntity(model)
@@ -27,12 +26,22 @@ func (db *database) FindWorkspace(ctx context.Context, workspaceId string) (enti
 	return workspace, true, nil
 }
 
-func transformWorkspaceModelToEntity(m gen.Workspace) entities.Workspace {
-	return entities.Workspace{
-		Id:       m.ID,
-		Name:     m.Name,
-		TenantId: m.TenantID,
-		Plan:     entities.Plan(m.Plan.WorkspacesPlan),
+func transformWorkspaceModelToEntity(m gen.Workspace) *workspacesv1.Workspace {
+	ws := &workspacesv1.Workspace{
+		WorkspaceId: m.ID,
+		Name:        m.Name,
+		TenantId:    m.TenantID,
 	}
+	if m.Plan.Valid {
+		switch m.Plan.WorkspacesPlan {
+		case gen.WorkspacesPlanFree:
+			ws.Plan = workspacesv1.Plan_PLAN_FREE
+		case gen.WorkspacesPlanPro:
+			ws.Plan = workspacesv1.Plan_PLAN_PRO
+		case gen.WorkspacesPlanEnterprise:
+			ws.Plan = workspacesv1.Plan_PLAN_ENTERPRISE
+		}
+	}
+	return ws
 
 }

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package proto.apis.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1;apisv1";
+
+service ApiService {
+  rpc CreateApi(CreateApiRequest) returns (CreateApiResponse) {}
+  rpc DeleteApi(DeleteApiRequest) returns (DeleteApiResponse) {}
+  rpc FindApi(FindApiRequest) returns (FindApiResponse) {}
+  rpc ListApis(ListApisRequest) returns (ListApisResponse) {}
+}
+
+message CreateApiRequest {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+}
+message CreateApiResponse {
+  string api_id = 1;
+}
+
+enum AuthType {
+  AUTH_TYPE_UNSPECIFIED = 0;
+  AUTH_TYPE_KEY = 1;
+  AUTH_TYPE_JWT = 2;
+}
+
+message Api {
+  string api_id = 1 [(buf.validate.field).string.min_len = 1];
+  string workspace_id = 2 [(buf.validate.field).string.min_len = 1];
+  string name = 3;
+
+  int64 create_at = 4;
+  optional int64 deleted_at = 5;
+
+  repeated string ip_whitelist = 6;
+  AuthType auth_type = 7;
+  optional string key_auth_id = 8;
+  optional string jwt_auth_id = 9;
+}
+
+message DeleteApiRequest {
+  string api_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteApiResponse {}
+
+message FindApiRequest {
+  string api_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message FindApiResponse {
+  optional Api api = 1;
+}
+
+message ListApisRequest {
+  string workspace_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+message ListApisResponse {
+  repeated Api apis = 1;
+}

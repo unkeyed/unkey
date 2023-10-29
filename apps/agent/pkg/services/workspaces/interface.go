@@ -3,26 +3,13 @@ package workspaces
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 )
 
 type WorkspaceService interface {
-	CreateWorkspace(context.Context, CreateWorkspaceRequest) (CreateWorkspaceResponse, error)
-	ChangePlan(context.Context, ChangePlanRequest) (ChangePlanResponse, error)
+	CreateWorkspace(context.Context, *workspacesv1.CreateWorkspaceRequest) (*workspacesv1.CreateWorkspaceResponse, error)
+	FindWorkspace(context.Context, *workspacesv1.FindWorkspaceRequest) (*workspacesv1.FindWorkspaceResponse, error)
+	RenameWorkspace(context.Context, *workspacesv1.RenameWorkspaceRequest) (*workspacesv1.RenameWorkspaceResponse, error)
+	ChangePlan(context.Context, *workspacesv1.ChangePlanRequest) (*workspacesv1.ChangePlanResponse, error)
+	DeleteWorkspace(context.Context, *workspacesv1.DeleteWorkspaceRequest) (*workspacesv1.DeleteWorkspaceResponse, error)
 }
-
-type CreateWorkspaceRequest struct {
-	Name     string
-	TenantId string
-	Plan     entities.Plan
-}
-
-type CreateWorkspaceResponse struct {
-	entities.Workspace
-}
-
-type ChangePlanRequest struct {
-	WorkspaceId string
-	Plan        entities.Plan
-}
-type ChangePlanResponse struct{}

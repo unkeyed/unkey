@@ -49,7 +49,7 @@ func (s *Server) getApi(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(GetApiResponse{
-		Id:          api.Id,
+		Id:          api.ApiId,
 		Name:        api.Name,
 		WorkspaceId: api.WorkspaceId,
 		IpWhitelist: api.IpWhitelist,

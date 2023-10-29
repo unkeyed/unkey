@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	keysv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/keys/v1"
+	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/entities"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
@@ -80,14 +81,14 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 
 	}
 
-	if api.AuthType != entities.AuthTypeKey || api.KeyAuthId == "" {
+	if api.AuthType != apisv1.AuthType_AUTH_TYPE_KEY || api.KeyAuthId == nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "api is not setup to handle api keys")
 
 	}
 
-	createKeyReq := &keysv1.CreateKeyRequest{
+	createKeyReq := &authenticationv1.CreateKeyRequest{
 		WorkspaceId: api.WorkspaceId,
-		KeyAuthId:   api.KeyAuthId,
+		KeyAuthId:   api.GetKeyAuthId(),
 	}
 	if req.Expires > 0 {
 		createKeyReq.Expires = &req.Expires
@@ -112,16 +113,16 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 		createKeyReq.Meta = util.Pointer(string(b))
 	}
 	if req.Ratelimit != nil {
-		createKeyReq.Ratelimit = &keysv1.Ratelimit{
+		createKeyReq.Ratelimit = &authenticationv1.Ratelimit{
 			Limit:          req.Ratelimit.Limit,
 			RefillRate:     req.Ratelimit.RefillRate,
 			RefillInterval: req.Ratelimit.RefillInterval,
 		}
 		switch req.Ratelimit.Type {
 		case "fast":
-			createKeyReq.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_FAST
+			createKeyReq.Ratelimit.Type = authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST
 		case "consistent":
-			createKeyReq.Ratelimit.Type = keysv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
+			createKeyReq.Ratelimit.Type = authenticationv1.RatelimitType_RATELIMIT_TYPE_CONSISTENT
 		}
 	}
 	if req.Remaining > 0 {
