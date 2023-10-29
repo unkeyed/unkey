@@ -20,11 +20,13 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "^1.2.2",
+    "@biomejs/biome": "1.2.2",
     "@changesets/cli": "^2.26.2",
     "cz-conventional-changelog": "^3.3.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.0.2",
     "ts-node": "^10.9.1",
-    "turbo": "^1.10.15",
+    "turbo": "^1.10.16",
     "typescript": "^5.2.2"
   },
   "pnpm": {
@@ -42,5 +44,8 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": "biome format --write"
   }
 }

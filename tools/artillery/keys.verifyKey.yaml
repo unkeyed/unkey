@@ -1,0 +1,45 @@
+config:
+  
+  target: https://api.unkey.dev
+  phases:
+    - name: Warm up phase
+      duration: 60
+      arrivalRate: 1
+      rampTo: 5
+    - name: Ramp up Load
+      duration: 5m
+      arrivalRate: 5
+      rampTo: 200
+    - name: Sustain phase
+      duration: 5m
+      arrivalRate: 200
+      rampTo: 200
+  # Load & configure a couple of useful plugins
+  # https://docs.art/reference/extensions
+  plugins:
+    ensure: {}
+    expect: {}
+
+  ensure:
+      thresholds:
+        - http.response_time.p50: 100
+        - http.response_time.p99: 200
+
+scenarios:
+  - flow:
+      - post:
+          url: "/v1/keys.verifyKey"
+          json:
+            key: "{{ $env.UNKEY_KEY }}"
+          capture:
+            - json: "$.valid"
+              as: valid
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: valid
+            - equals:
+              - "true"
+              - "{{ valid }}"
+      
+      

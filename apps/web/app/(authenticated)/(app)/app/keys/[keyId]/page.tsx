@@ -91,7 +91,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
         <CardContent className="grid grid-cols-2 gap-px mx-auto xl:divide-x md:grid-cols-3 xl:grid-cols-6 ">
           <Stat label="Usage 30 days" value={fmt(usage30Days)} />
           <Stat
-            label="Expires"
+            label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires"}
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
           />
           <Stat
