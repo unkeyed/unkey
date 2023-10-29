@@ -14,7 +14,7 @@
   "dependencies": {
     "@unkey/api": "workspace:^",
     "deploy": "^1.0.3",
-    "pnpm": "^8.9.2",
+    "pnpm": "^8.10.0",
     "run": "^1.4.0"
   }
 }

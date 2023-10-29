@@ -12,7 +12,7 @@
     "@ant-design/plots": "^1.2.5",
     "@bufbuild/protobuf": "^1.3.3",
     "@chronark/zod-bird": "^0.2.2",
-    "@clerk/nextjs": "^4.25.6",
+    "@clerk/nextjs": "^4.26.1",
     "@hono/zod-validator": "^0.1.9",
     "@hookform/resolvers": "^3.3.2",
     "@leafac/rehype-shiki": "^2.2.1",
@@ -119,7 +119,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@clerk/types": "^3.56.1",
+    "@clerk/types": "^3.57.0",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/ms": "^0.7.33",
     "@types/node": "^20.8.7",

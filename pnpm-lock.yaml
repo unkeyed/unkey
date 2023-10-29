@@ -58,11 +58,11 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       '@clerk/nextjs':
-        specifier: ^4.25.6
-        version: 4.25.6(next@14.0.0)(react-dom@18.2.0)(react@18.2.0)
+        specifier: ^4.26.1
+        version: 4.26.1(next@14.0.0)(react-dom@18.2.0)(react@18.2.0)
       '@hono/zod-validator':
         specifier: ^0.1.9
-        version: 0.1.9(hono@3.8.3)(zod@3.22.4)
+        version: 0.1.9(hono@3.9.0)(zod@3.22.4)
       '@hookform/resolvers':
         specifier: ^3.3.2
         version: 3.3.2(react-hook-form@7.47.0)
@@ -374,8 +374,8 @@ importers:
         version: 3.22.4
     devDependencies:
       '@clerk/types':
-        specifier: ^3.56.1
-        version: 3.56.1
+        specifier: ^3.57.0
+        version: 3.57.0
       '@tailwindcss/aspect-ratio':
         specifier: ^0.4.2
         version: 0.4.2(tailwindcss@3.3.3)
@@ -407,8 +407,8 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       pnpm:
-        specifier: ^8.9.2
-        version: 8.9.2
+        specifier: ^8.10.0
+        version: 8.10.0
       run:
         specifier: ^1.4.0
         version: 1.4.0
@@ -539,8 +539,8 @@ importers:
   examples/unkey-clerk:
     dependencies:
       '@clerk/nextjs':
-        specifier: ^4.25.6
-        version: 4.25.6(next@13.5.4)(react-dom@18.2.0)(react@18.2.0)
+        specifier: ^4.26.1
+        version: 4.26.1(next@13.5.4)(react-dom@18.2.0)(react@18.2.0)
       '@radix-ui/react-label':
         specifier: ^2.0.2
         version: 2.0.2(@types/react-dom@18.2.13)(@types/react@18.2.28)(react-dom@18.2.0)(react@18.2.0)
@@ -1738,12 +1738,12 @@ packages:
       zod: 3.22.4
     dev: false
 
-  /@clerk/backend@0.31.2(react@18.2.0):
-    resolution: {integrity: sha512-9Nv4em2TghXlXqYxts/ofpmu6MAg+0NW3Y5r9mzTD/stCPf/62aIB681au8rDN6fuf8YDclRhD59T+vvmnimTw==}
+  /@clerk/backend@0.32.1(react@18.2.0):
+    resolution: {integrity: sha512-ZH3Mez3f9SZwjpRbC1oaw3+q1+jXkF02HpUB+3vH2+PNxdY+AJ0MW4ACtJhIMNqeY8zAEKzYKMpuGsI+3NVyOA==}
     engines: {node: '>=14'}
     dependencies:
-      '@clerk/shared': 0.24.5(react@18.2.0)
-      '@clerk/types': 3.56.1
+      '@clerk/shared': 1.0.1(react@18.2.0)
+      '@clerk/types': 3.57.0
       '@peculiar/webcrypto': 1.4.1
       '@types/node': 16.18.6
       cookie: 0.5.0
@@ -1755,25 +1755,25 @@ packages:
       - react
     dev: false
 
-  /@clerk/clerk-react@4.26.6(react@18.2.0):
-    resolution: {integrity: sha512-WYePQN0Q2fyzXxfMJES3U+RHHhkxITrfhqHr2GLZNjYs46Ks20PAgYXI4R6DPcJVqT8zxw7jnpgCh0nozBXXiQ==}
+  /@clerk/clerk-react@4.27.1(react@18.2.0):
+    resolution: {integrity: sha512-LAMcMFn6yLlzLKtyrixZtBYhtTNpjhEunbcPb1XxFAG6iNuN4dX5AAxWli4cstcZ+Q0C9O9zHIt0Qb6J3Arcng==}
     engines: {node: '>=14'}
     peerDependencies:
       react: '>=16'
     dependencies:
-      '@clerk/shared': 0.24.5(react@18.2.0)
-      '@clerk/types': 3.56.1
+      '@clerk/shared': 1.0.1(react@18.2.0)
+      '@clerk/types': 3.57.0
       react: 18.2.0
       tslib: 2.4.1
     dev: false
 
-  /@clerk/clerk-sdk-node@4.12.15(react@18.2.0):
-    resolution: {integrity: sha512-3g+Zn+utKJ6zWE7MLFQtCCsTpXdlQ2J/BK8X8Ko2gd9B6u1j/4x1AL2LwM6VK2WlQX/EAzbGCARX/Do7EQVmXw==}
+  /@clerk/clerk-sdk-node@4.12.18(react@18.2.0):
+    resolution: {integrity: sha512-uFmVLL1qFwY4habJD4gKfmSrqqE31T/ILkj+VbXWeg5hrnO4xrueQmUGanV8dcyNr5uM3q9TbqGOjbAI5Su0Ig==}
     engines: {node: '>=14'}
     dependencies:
-      '@clerk/backend': 0.31.2(react@18.2.0)
-      '@clerk/shared': 0.24.5(react@18.2.0)
-      '@clerk/types': 3.56.1
+      '@clerk/backend': 0.32.1(react@18.2.0)
+      '@clerk/shared': 1.0.1(react@18.2.0)
+      '@clerk/types': 3.57.0
       '@types/cookies': 0.7.7
       '@types/express': 4.17.14
       '@types/node-fetch': 2.6.2
@@ -1784,19 +1784,19 @@ packages:
       - react
     dev: false
 
-  /@clerk/nextjs@4.25.6(next@13.5.4)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-3dZX3pv+/L4JIVapmoLYbH/+LsgQBGFg2Y/BuUnkn5BTRj2rXI9bxgM2nRAObcC5vg1ipjeroOzSMtiZEvxKBQ==}
+  /@clerk/nextjs@4.26.1(next@13.5.4)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-2XCgH+H80uyIb3iBQMxBmCYUwH9Eij99aJcxd04p60fYCkzNYJjtxbAJTmX9evwSKRRGAKGCxa3ZwXoprDCROA==}
     engines: {node: '>=14'}
     peerDependencies:
       next: '>=10'
       react: ^17.0.2 || ^18.0.0-0
       react-dom: ^17.0.2 || ^18.0.0-0
     dependencies:
-      '@clerk/backend': 0.31.2(react@18.2.0)
-      '@clerk/clerk-react': 4.26.6(react@18.2.0)
-      '@clerk/clerk-sdk-node': 4.12.15(react@18.2.0)
-      '@clerk/shared': 0.24.5(react@18.2.0)
-      '@clerk/types': 3.56.1
+      '@clerk/backend': 0.32.1(react@18.2.0)
+      '@clerk/clerk-react': 4.27.1(react@18.2.0)
+      '@clerk/clerk-sdk-node': 4.12.18(react@18.2.0)
+      '@clerk/shared': 1.0.1(react@18.2.0)
+      '@clerk/types': 3.57.0
       next: 13.5.4(react-dom@18.2.0)(react@18.2.0)
       path-to-regexp: 6.2.1
       react: 18.2.0
@@ -1804,19 +1804,19 @@ packages:
       tslib: 2.4.1
     dev: false
 
-  /@clerk/nextjs@4.25.6(next@14.0.0)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-3dZX3pv+/L4JIVapmoLYbH/+LsgQBGFg2Y/BuUnkn5BTRj2rXI9bxgM2nRAObcC5vg1ipjeroOzSMtiZEvxKBQ==}
+  /@clerk/nextjs@4.26.1(next@14.0.0)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-2XCgH+H80uyIb3iBQMxBmCYUwH9Eij99aJcxd04p60fYCkzNYJjtxbAJTmX9evwSKRRGAKGCxa3ZwXoprDCROA==}
     engines: {node: '>=14'}
     peerDependencies:
       next: '>=10'
       react: ^17.0.2 || ^18.0.0-0
       react-dom: ^17.0.2 || ^18.0.0-0
     dependencies:
-      '@clerk/backend': 0.31.2(react@18.2.0)
-      '@clerk/clerk-react': 4.26.6(react@18.2.0)
-      '@clerk/clerk-sdk-node': 4.12.15(react@18.2.0)
-      '@clerk/shared': 0.24.5(react@18.2.0)
-      '@clerk/types': 3.56.1
+      '@clerk/backend': 0.32.1(react@18.2.0)
+      '@clerk/clerk-react': 4.27.1(react@18.2.0)
+      '@clerk/clerk-sdk-node': 4.12.18(react@18.2.0)
+      '@clerk/shared': 1.0.1(react@18.2.0)
+      '@clerk/types': 3.57.0
       next: 14.0.0(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       path-to-regexp: 6.2.1
       react: 18.2.0
@@ -1824,8 +1824,8 @@ packages:
       tslib: 2.4.1
     dev: false
 
-  /@clerk/shared@0.24.5(react@18.2.0):
-    resolution: {integrity: sha512-93ZNcAS0S3iH4s5lE9e+zroF3/Chc0pCsVm8P9kinA3y/IornidaGKhezMFgJLdJkCOxg7/QiWwdYbQpB8HVBw==}
+  /@clerk/shared@1.0.1(react@18.2.0):
+    resolution: {integrity: sha512-jUmDlU9FYJi1AhCDkyoI0alh3L/gXpw9HzuB49uiqtU8pdCtjJNLHE5EY7mfHoGP5DdCZlmApzC+HyCamyOUVA==}
     peerDependencies:
       react: '>=16'
     peerDependenciesMeta:
@@ -1838,8 +1838,8 @@ packages:
       swr: 2.2.0(react@18.2.0)
     dev: false
 
-  /@clerk/types@3.56.1:
-    resolution: {integrity: sha512-w/LKUH/PtB0nfQ6xtfh08/HyRLcIhvp1Vl3tx67Rvj7HdgDb5r2a2wbqsVanQZkdhE71WpIG36BRPhNWF4W2Bg==}
+  /@clerk/types@3.57.0:
+    resolution: {integrity: sha512-i+XqgqRbcMn5gMwWGiA3W6lCTSDYdonDAgoJgNyRemQg7Zesnbd4OoJZfqyW6vN3wvD9Bl+gMb7gQ3VquNWUOA==}
     engines: {node: '>=14'}
     dependencies:
       csstype: 3.1.1
@@ -2903,13 +2903,13 @@ packages:
       '@hapi/hoek': 9.3.0
     dev: true
 
-  /@hono/zod-validator@0.1.9(hono@3.8.3)(zod@3.22.4):
+  /@hono/zod-validator@0.1.9(hono@3.9.0)(zod@3.22.4):
     resolution: {integrity: sha512-qEG5xagKzyif283ldCKzp+aF9Aebclg0sfrgyRQQNAizmXpicZ3UGduST/Jp+a9bjt3mI+VyEXMftb4rogLxQA==}
     peerDependencies:
       hono: 3.*
       zod: ^3.19.1
     dependencies:
-      hono: 3.8.3
+      hono: 3.9.0
       zod: 3.22.4
     dev: false
 
@@ -6944,7 +6944,7 @@ packages:
     resolution: {integrity: sha512-h7BcvPUogWbKCzBR2lY4oqaZbO3jXZksexYJVFvkrFeLgbZjQkU4x8pRq6eg2MHXQhY0McQdqmmsxRWlVAHooA==}
     dependencies:
       '@types/connect': 3.4.37
-      '@types/express': 4.17.20
+      '@types/express': 4.17.14
       '@types/keygrip': 1.0.4
       '@types/node': 20.8.7
     dev: false
@@ -7012,6 +7012,7 @@ packages:
       '@types/express-serve-static-core': 4.17.39
       '@types/qs': 6.9.9
       '@types/serve-static': 1.15.4
+    dev: true
 
   /@types/hast@2.3.7:
     resolution: {integrity: sha512-EVLigw5zInURhzfXUM65eixfadfsHKomGKUakToXo84t8gGIJuTcD2xooM2See7GyQ7DRtYjhCHnSUQez8JaLw==}
@@ -7810,12 +7811,12 @@ packages:
       negotiator: 0.6.3
     dev: false
 
-  /acorn-import-assertions@1.9.0(acorn@8.10.0):
+  /acorn-import-assertions@1.9.0(acorn@8.11.2):
     resolution: {integrity: sha512-cmMwop9x+8KFhxvKrKfPYmN6/pKTYYHBqLa0DfvVZcKMJWNyWLnaqND7dx/qn66R7ewM1UX5XMaDVP5wlVTaVA==}
     peerDependencies:
       acorn: ^8
     dependencies:
-      acorn: 8.10.0
+      acorn: 8.11.2
     dev: false
 
   /acorn-jsx@5.3.2(acorn@8.10.0):
@@ -7833,6 +7834,12 @@ packages:
     resolution: {integrity: sha512-F0SAmZ8iUtS//m8DmCTA0jlh6TDKkHQyK6xc6V4KDTyZKA9dnvX9/3sRTVQrWm79glUAZbnmmNcdYwUIHWVybw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  /acorn@8.11.2:
+    resolution: {integrity: sha512-nc0Axzp/0FILLEVsm4fNwLCwMttvhEI263QtVPQcbpfZZ3ts0hLsZGOpE6czNlid7CJ9MlyH8reXkpsf3YUY4w==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+    dev: false
 
   /agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -11572,7 +11579,7 @@ packages:
       defu: 6.1.2
       https-proxy-agent: 7.0.2
       mri: 1.2.0
-      node-fetch-native: 1.4.0
+      node-fetch-native: 1.4.1
       pathe: 1.1.1
       tar: 6.2.0
     transitivePeerDependencies:
@@ -12111,6 +12118,12 @@ packages:
   /hono@3.8.3:
     resolution: {integrity: sha512-NLJgUCKKMvijBy+V+U1FQTsNwHk2bD1KGlWJA9+qaCNWgx5St9bhfQwxrpcTGvG2Gi2naemTWCzBavDNXOqO6Q==}
     engines: {node: '>=16.0.0'}
+    dev: true
+
+  /hono@3.9.0:
+    resolution: {integrity: sha512-MSGmerYD69jwDkBa631lY7y3xtEwbKFg2huFZ0TruzCdfJlmPd/rFzyvmMheePKsiA7CZp/KqL3mflBOzEmjLA==}
+    engines: {node: '>=16.0.0'}
+    dev: false
 
   /hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
@@ -14608,7 +14621,7 @@ packages:
       mime: 3.0.0
       mlly: 1.4.2
       mri: 1.2.0
-      node-fetch-native: 1.4.0
+      node-fetch-native: 1.4.1
       ofetch: 1.3.3
       ohash: 1.1.3
       openapi-typescript: 6.7.0
@@ -14650,7 +14663,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /node-abi@3.51.0:
@@ -14679,6 +14692,10 @@ packages:
 
   /node-fetch-native@1.4.0:
     resolution: {integrity: sha512-F5kfEj95kX8tkDhUCYdV8dg3/8Olx/94zB8+ZNthFs6Bz31UpUi8Xh40TN3thLwXgrwXry1pEg9lJ++tLWTcqA==}
+    dev: true
+
+  /node-fetch-native@1.4.1:
+    resolution: {integrity: sha512-NsXBU0UgBxo2rQLOeWNZqS3fvflWePMECr8CoSWoSTqCqGbVVsvl9vZu1HfQicYN0g5piV9Gh8RTEvo/uP752w==}
 
   /node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -15456,8 +15473,8 @@ packages:
       mlly: 1.4.2
       pathe: 1.1.1
 
-  /pnpm@8.9.2:
-    resolution: {integrity: sha512-udNf6RsqWFTa3EMDSj57LmdfpLVuIOjgnvB4+lU8GPiu1EBR57Nui43UNfl+sMRMT/O0T8fG+n0h4frBe75mHg==}
+  /pnpm@8.10.0:
+    resolution: {integrity: sha512-nCy4Pyts9qJdjFgwC/mRl8fvO+hM8+dm8pBUtAuDtC+Kq6b8wxSp7PJ8APfOgKdXu0xgiADnrb4tKdxccFb1vg==}
     engines: {node: '>=16.14'}
     hasBin: true
     dev: false
@@ -18734,7 +18751,7 @@ packages:
       listhen: 1.5.5
       lru-cache: 10.0.1
       mri: 1.2.0
-      node-fetch-native: 1.4.0
+      node-fetch-native: 1.4.1
       ofetch: 1.3.3
       ufo: 1.3.1
     transitivePeerDependencies:
@@ -19378,8 +19395,8 @@ packages:
       '@webassemblyjs/ast': 1.11.6
       '@webassemblyjs/wasm-edit': 1.11.6
       '@webassemblyjs/wasm-parser': 1.11.6
-      acorn: 8.10.0
-      acorn-import-assertions: 1.9.0(acorn@8.10.0)
+      acorn: 8.11.2
+      acorn-import-assertions: 1.9.0(acorn@8.11.2)
       browserslist: 4.22.1
       chrome-trace-event: 1.0.3
       enhanced-resolve: 5.15.0
