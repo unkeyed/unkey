@@ -154,7 +154,7 @@ export default async function Home() {
             </h1>
             <p className={"mt-6 text-xl text-gray-600 [text-wrap:balance]"}>
               Unkey is an{" "}
-              <span className="font-semibold">open source</span> API management platform. Create, manage and verify API Keys for your public APIs
+              <span className="font-semibold">open source</span> API management platform. Create, manage and verify API Keys for your user facing APIs.
             </p>
             <div className="flex flex-col mt-4 space-y-4 md:flex-row md:space-x-8 md:space-y-0">
               <Button size="xl" className="text-sm font-semibold rounded-full" asChild>
