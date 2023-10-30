@@ -155,7 +155,7 @@ export default async function Home() {
             <p className={"mt-6 text-xl text-gray-600 [text-wrap:balance]"}>
               Seriously fast and easy to use. Unkey is an{" "}
               <span className="font-semibold">open source</span> API management platform that helps
-              developers secure, manage, and scale their APIs.
+              developers secure, manage, and scale their APIs. Create and manage API keys for your users in seconds.
             </p>
             <div className="flex flex-col mt-4 space-y-4 md:flex-row md:space-x-8 md:space-y-0">
               <Button size="xl" className="text-sm font-semibold rounded-full" asChild>
