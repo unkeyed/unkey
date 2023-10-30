@@ -1,7 +1,6 @@
 import { Button } from "@/components/landing/button";
 import { RootLayout } from "@/components/landing/root-layout";
 
-
 export default function NotFound() {
   return (
     <RootLayout>
