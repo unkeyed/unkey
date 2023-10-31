@@ -153,9 +153,8 @@ const Feedback: React.FC = () => {
 
   return (
     <CommandItem
-      onSelect={(v) => {
+      onSelect={(_v) => {
         setSelected(true);
-        console.log({ v });
       }}
     >
       <MessagesSquare className="w-4 h-4 mr-2" />
