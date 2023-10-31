@@ -60,7 +60,7 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
         if (!workspace && req.nextUrl.pathname !== "/new") {
           console.error("Workspace not found for orgId", auth.orgId);
           await clerkClient.organizations.deleteOrganization(auth.orgId);
-          console.log("Deleted orgId", auth.orgId, " sending to create new workspace.");
+          console.info("Deleted orgId", auth.orgId, " sending to create new workspace.");
           return NextResponse.redirect(new URL("/new", req.url));
         }
         // this stops users if they haven't paid.
