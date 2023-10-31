@@ -39,7 +39,7 @@ const formSchema = z.object({
   prefix: z.string().max(8).optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
-  meta: z.record(z.unknown()).optional(),
+  meta: z.string().optional(),
   remaining: z.coerce.number().positive().optional(),
   expires: z.coerce.date().min(new Date(oneMinute)).optional(),
   ratelimit: z
@@ -108,6 +108,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const _metaVal = null;
     if (values.ratelimit?.limit === undefined) {
       // delete the value to stop the server from validating it
       // as it's not required
@@ -119,6 +120,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     await key.mutateAsync({
       apiId,
       ...values,
+      meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
     });
@@ -354,34 +356,35 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem>
                                   <FormControl>
                                     <Textarea
-                                      className="max-w-full m-4 border rounded-md shadow-sm w-96"
+                                      className="w-full m-4 border rounded-md shadow-sm mx-auto"
+                                      rows={3}
                                       placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
-                                      onBlur={(e) => {
-                                        try {
-                                          const value = JSON.parse(e.target.value);
-                                          const prettier = JSON.stringify(value, null, 2);
-                                          e.target.value = prettier;
-                                          field.onChange(JSON.parse(e.target.value));
-                                          form.clearErrors("meta");
-                                        } catch (_e) {}
-                                      }}
-                                      onChange={(e) => {
-                                        try {
-                                          field.onChange(JSON.parse(e.target.value));
-                                          form.clearErrors("meta");
-                                        } catch (_e) {
-                                          form.setError("meta", {
-                                            type: "manual",
-                                            message: "Invalid JSON",
-                                          });
-                                        }
-                                      }}
+                                      {...field}
                                     />
                                   </FormControl>
                                   <FormDescription>
                                     Enter custom metadata as a JSON object.
                                   </FormDescription>
                                   <FormMessage />
+                                  <Button
+                                    variant="secondary"
+                                    type="button"
+                                    onClick={(_e) => {
+                                      try {
+                                        if (field.value) {
+                                          const parsed = JSON.parse(field.value);
+                                          field.onChange(JSON.stringify(parsed, null, 2));
+                                        }
+                                      } catch (_e) {
+                                        form.setError("meta", {
+                                          type: "manual",
+                                          message: "Invalid JSON",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    Format Json
+                                  </Button>
                                 </FormItem>
                               )}
                             />
