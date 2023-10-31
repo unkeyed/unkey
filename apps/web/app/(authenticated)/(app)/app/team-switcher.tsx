@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
@@ -26,7 +26,6 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { user } = useUser();
   const _router = useRouter();
   const [isLoading, setLoading] = useState(false);
-  const [_isWorkspaceHover, _setWorkspaceHover] = useState(false);
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -75,24 +74,22 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           {!clerkLoaded || isLoading ? (
             <Loading />
           ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
-                  <span className="text-sm font-semibold overflow-hidden text-ellipsis">
-                    {currentOrg?.name ?? "Personal Workspace"}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span className="text-sm font-semibold">
-                    {currentOrg?.name ?? "Personal Workspace"}
-                  </span>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+                <span className="text-sm font-semibold overflow-hidden text-ellipsis">
+                  {currentOrg?.name ?? "Personal Workspace"}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span className="text-sm font-semibold">
+                  {currentOrg?.name ?? "Personal Workspace"}
+                </span>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
 
-        <ChevronsUpDown className="hidden w-3 h-3 md:block" />
+        <ChevronsUpDown className="hidden w-3 h-3 md:block shrink-0" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" className="w-96">
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
