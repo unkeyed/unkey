@@ -11,51 +11,23 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   return workspace;
 };
 
-const publicRoutes = [
-  "/",
-  "/auth(.*)",
-  "/discord",
-  "/pricing",
-  "/about",
-  "/vercel",
-  "/blog",
-  "/blog/(.*)",
-  "/changelog",
-  "/changelog/(.*)",
-  "/policies",
-  "/policies/(.*)",
-  "/templates",
-  "/templates/(.*)",
-  "/meet",
-  "/docs",
-  "/docs(.*)",
-  "/devtools.fm",
-  "/og",
-  "/oss-friends",
-  "/og/(.*)",
-  "/api/v1/vercel/integration",
-  "/api/v1/stripe/webhooks",
-  "/api/v1/cron/(.*)",
-  "/api/v1/clerk/webhooks",
-  "/monitoring(.*)",
-];
-
 export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
-
+  const privateMatch = "^/app/";
   const res = await authMiddleware({
-    publicRoutes,
-    signInUrl: "/auth/sign-in",
     debug: process.env.CLERK_DEBUG === "true",
-
     afterAuth: async (auth, req) => {
-      if (!(auth.userId || auth.isPublicRoute)) {
+      if (
+        !auth.userId &&
+        req.nextUrl.pathname !== "/" &&
+        privateMatch.match(req.nextUrl.pathname)
+      ) {
         return redirectToSignIn({ returnBackUrl: req.url });
       }
       userId = auth.userId ?? undefined;
       tenantId = auth.orgId ?? auth.userId ?? undefined;
-      if (auth.orgId && !auth.isPublicRoute) {
+      if (auth.orgId && privateMatch.match(req.nextUrl.pathname)) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
         if (!workspace && req.nextUrl.pathname !== "/new") {
           console.error("Workspace not found for orgId", auth.orgId);

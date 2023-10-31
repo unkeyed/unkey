@@ -153,7 +153,7 @@ const Feedback: React.FC = () => {
 
   return (
     <CommandItem
-      onSelect={(v) => {
+      onSelect={(_v) => {
         setSelected(true);
       }}
     >
