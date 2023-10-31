@@ -49,7 +49,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside className={cn("fixed  h-screen  inset-y-0 flex w-64 flex-col px-6 gap-y-5", className)}>
-      <div className="flex items-center h-16 mt-4 shrink-0">
+      <div className="flex items-center h-16 mt-4">
         <WorkspaceSwitcher />
       </div>
       <nav className="flex flex-col flex-1 flex-grow">
