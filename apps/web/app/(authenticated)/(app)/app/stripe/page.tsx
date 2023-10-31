@@ -1,3 +1,4 @@
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -19,12 +20,19 @@ export default async function StripeRedirect() {
   if (!ws) {
     return redirect("/onboarding");
   }
-
-  if (!stripeEnv) {
-    return <div>Stripe is not enabled</div>;
+  const e = stripeEnv();
+  if (!e) {
+    return (
+      <EmptyPlaceholder>
+        <EmptyPlaceholder.Title>Stripe is not configured</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
+        </EmptyPlaceholder.Description>
+      </EmptyPlaceholder>
+    );
   }
 
-  const stripe = new Stripe(stripeEnv()!.STRIPE_SECRET_KEY, {
+  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
     apiVersion: "2022-11-15",
     typescript: true,
   });
@@ -59,16 +67,16 @@ export default async function StripeRedirect() {
     line_items: [
       {
         // base
-        price: stripeEnv()!.STRIPE_PRO_PLAN_PRICE_ID,
+        price: e.STRIPE_PRO_PLAN_PRICE_ID,
         quantity: 1,
       },
       {
         // additional keys
-        price: stripeEnv()!.STRIPE_ACTIVE_KEYS_PRICE_ID,
+        price: e.STRIPE_ACTIVE_KEYS_PRICE_ID,
       },
       {
         // additional verifications
-        price: stripeEnv()!.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
+        price: e.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
       },
     ],
     mode: "subscription",
