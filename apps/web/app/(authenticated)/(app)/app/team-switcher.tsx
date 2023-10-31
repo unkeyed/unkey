@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
@@ -25,7 +26,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { user } = useUser();
   const _router = useRouter();
   const [isLoading, setLoading] = useState(false);
-
+  const [_isWorkspaceHover, _setWorkspaceHover] = useState(false);
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -51,10 +52,11 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       organization.name.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, organizationList])!;
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center justify-between w-full gap-2">
-        <div className="flex items-center gap-2">
+      <DropdownMenuTrigger className="flex items-center justify-between w-full gap-2 overflow-hidden whitespace-nowrap">
+        <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
           <Avatar className="w-6 h-6">
             {currentOrg?.imageUrl ? (
               <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
@@ -64,7 +66,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
                 alt={user?.username ?? user?.fullName ?? "Profile picture"}
               />
             ) : null}
-            <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
+            <AvatarFallback className="flex items-center justify-center w-8 h-8 text-gray-700 bg-gray-100 border border-gray-500 rounded">
               {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "")
                 .slice(0, 2)
                 .toUpperCase() ?? "P"}
@@ -73,11 +75,23 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           {!clerkLoaded || isLoading ? (
             <Loading />
           ) : (
-            <span className="text-sm font-semibold">
-              {currentOrg?.name ?? "Personal Workspace"}
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+                  <span className="text-sm font-semibold overflow-hidden text-ellipsis">
+                    {currentOrg?.name ?? "Personal Workspace"}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="text-sm font-semibold">
+                    {currentOrg?.name ?? "Personal Workspace"}
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
+
         <ChevronsUpDown className="hidden w-3 h-3 md:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" className="w-96">
