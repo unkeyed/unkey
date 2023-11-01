@@ -1,7 +1,0 @@
-{
-  "yaml.schemas": {
-    "https://www.artillery.io/schema.json": [
-      "file:///Users/andreasthomas/github/unkeyed/unkey/tools/artillery/keys.verifyKey.yaml"
-    ]
-  }
-}
