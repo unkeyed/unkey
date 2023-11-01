@@ -65,8 +65,8 @@ export const getTotalActiveKeys = tb.buildPipe({
 });
 
 export const getTotalVerifications = tb.buildPipe({
-  pipe: "all_verifications__v1",
-  data: z.object({ "count()": z.number() }),
+  pipe: "endpoint__all_verifications__v1",
+  data: z.object({ verifications: z.number() }),
   opts: {
     cache: "no-store",
   },
