@@ -21,7 +21,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
@@ -74,7 +73,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	require.NoError(t, err)
 
 	srv := testutil.NewServer(t, resources)
-	res := testutil.Json[errors.ErrorResponse](t, srv.App, testutil.JsonRequest{
+	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
 		Method:     "POST",
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"somethingelse":"%s"}`, key),
@@ -82,7 +81,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 		Bearer:     key,
 	})
 
-	require.Equal(t, errors.BAD_REQUEST, res.Error.Code)
+	require.Equal(t, "BAD_REQUEST", res.Error.Code)
 
 }
 
@@ -115,16 +114,17 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	require.True(t, successRes.Valid)
 
 	// wait until key expires
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 	errorRes := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
 		Method:     "POST",
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
-		StatusCode: 401,
+		StatusCode: 200,
 		Bearer:     key,
 	})
 	require.False(t, errorRes.Valid)
+	require.Equal(t, "NOT_FOUND", errorRes.Code)
 
 }
 
@@ -187,6 +187,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
+		Bearer:     key,
 	})
 	require.False(t, res3.Valid)
 	require.Equal(t, int32(2), res3.Ratelimit.Limit)
@@ -306,7 +307,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 		Bearer: key,
 	})
 
-	require.Equal(t, errors.FORBIDDEN, res.Code)
+	require.Equal(t, "FORBIDDEN", res.Code)
 
 }
 
@@ -351,6 +352,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
+		Bearer:     key,
 	})
 	require.False(t, res2.Valid)
 	require.Equal(t, int32(0), *res2.Remaining)
@@ -415,6 +417,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
+		Bearer:     key,
 	})
 
 	require.False(t, res.Valid)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type GetApiRequest struct {
@@ -28,31 +27,31 @@ func (s *Server) getApi(c *fiber.Ctx) error {
 
 	err := s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 
 	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 	if !auth.IsRootKey {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
+		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 
 	api, found, err := s.db.FindApi(ctx, req.ApiId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api: %s", req.ApiId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("unable to find api: %s", req.ApiId))
 	}
 
 	if api.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
+		return newHttpError(c, UNAUTHORIZED, "access to workspace denied")
 	}
 
 	return c.JSON(GetApiResponse{

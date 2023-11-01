@@ -6,8 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	workspacesv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/workspaces/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
-
-	httpErrors "github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type CreateWorkspaceRequestV1 struct {
@@ -26,17 +24,17 @@ func (s *Server) v1CreateWorkspace(c *fiber.Ctx) error {
 
 	err := c.BodyParser(&req)
 	if err != nil {
-		return httpErrors.NewHttpError(c, httpErrors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return httpErrors.NewHttpError(c, httpErrors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	err = s.authorizeStaticKey(ctx, c.Get("Authorization"))
 	if err != nil {
-		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 
 	ws, err := s.workspaceService.CreateWorkspace(ctx, &workspacesv1.CreateWorkspaceRequest{
@@ -46,10 +44,10 @@ func (s *Server) v1CreateWorkspace(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if errors.Is(err, database.ErrNotUnique) {
-			return httpErrors.NewHttpError(c, httpErrors.NOT_UNIQUE, err.Error())
+			return newHttpError(c, NOT_UNIQUE, err.Error())
 
 		}
-		return httpErrors.NewHttpError(c, httpErrors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 
 	return c.JSON(CreateWorkspaceResponseV1{

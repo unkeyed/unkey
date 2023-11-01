@@ -10,7 +10,6 @@ import (
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
@@ -52,40 +51,40 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 	}
 	err := c.BodyParser(&req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate body: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to validate body: %s", err.Error()))
 	}
 
 	if req.Expires > 0 && req.Expires < time.Now().UnixMilli() {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
+		return newHttpError(c, BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
 	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 	if !auth.IsRootKey {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
+		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api: %s", req.ApiId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("unable to find api: %s", req.ApiId))
 	}
 	if api.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "access to workspace denied")
+		return newHttpError(c, UNAUTHORIZED, "access to workspace denied")
 
 	}
 
 	if api.AuthType != apisv1.AuthType_AUTH_TYPE_KEY || api.KeyAuthId == nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, "api is not setup to handle api keys")
+		return newHttpError(c, BAD_REQUEST, "api is not setup to handle api keys")
 
 	}
 
@@ -111,7 +110,7 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 	if req.Meta != nil {
 		b, err := json.Marshal(req.Meta)
 		if err != nil {
-			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to marshal meta: %s", err.Error()))
+			return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to marshal meta: %s", err.Error()))
 		}
 		createKeyReq.Meta = util.Pointer(string(b))
 	}
@@ -138,7 +137,7 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 	s.logger.Info().Interface("req", createKeyReq).Msg("calling keyService.CreateKey")
 	key, err := s.keyService.CreateKey(ctx, createKeyReq)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to create key: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to create key: %s", err.Error()))
 	}
 
 	return c.JSON(CreateKeyResponse{

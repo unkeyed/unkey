@@ -8,7 +8,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys/keygen"
@@ -38,27 +37,27 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 
 	appToken := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
 	if subtle.ConstantTimeCompare([]byte(s.unkeyAppAuthToken), []byte(appToken)) == 0 {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "unauthorized")
+		return newHttpError(c, UNAUTHORIZED, "unauthorized")
 	}
 
 	req := CreateRootKeyRequest{}
 	err := c.BodyParser(&req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	if req.Expires > 0 && req.Expires < time.Now().UnixMilli() {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
+		return newHttpError(c, BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
 	keyValue, err := keygen.NewV1Key("unkey", 16)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 	separatorIndex := strings.Index(keyValue, "_")
 	keyHash := hash.Sha256(keyValue)
@@ -86,7 +85,7 @@ func (s *Server) createRootKey(c *fiber.Ctx) error {
 
 	err = s.db.InsertKey(ctx, newKey)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to store key: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to store key: %s", err.Error()))
 	}
 	if s.events != nil {
 		e := events.KeyEvent{}

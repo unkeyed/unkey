@@ -12,7 +12,6 @@ import (
 	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
@@ -54,24 +53,15 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	fakeApiId := uid.Api()
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", fakeApiId), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
+	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "GET",
+		Path:       fmt.Sprintf("/v1/apis/%s", fakeApiId),
+		Bearer:     resources.UserRootKey,
+		StatusCode: 404,
+	})
 
-	res, err := srv.App.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 404, res.StatusCode)
-
-	errorResponse := errors.ErrorResponse{}
-	err = json.Unmarshal(body, &errorResponse)
-	require.NoError(t, err)
-
-	require.Equal(t, errors.NOT_FOUND, errorResponse.Error.Code)
-	require.Equal(t, fmt.Sprintf("unable to find api: %s", fakeApiId), errorResponse.Error.Message)
+	require.Equal(t, "NOT_FOUND", res.Error.Code)
+	require.Equal(t, fmt.Sprintf("unable to find api: %s", fakeApiId), res.Error.Message)
 
 }
 

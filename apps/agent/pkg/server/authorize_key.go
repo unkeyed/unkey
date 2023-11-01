@@ -26,9 +26,8 @@ func (s *Server) authorizeKey(ctx context.Context, c *fiber.Ctx) (*authenticatio
 		return nil, fmt.Errorf("key should be in bearer format")
 	}
 
-	s.logger.Debug().Str("key", key).Str("header", header).Msg("Authorizing key")
 	return s.keyService.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
-		Key:        c.Get("Authorization"),
+		Key:        key,
 		SourceIp:   c.Get("Fly-Client-IP"),
 		Region:     s.region,
 		EdgeRegion: util.Pointer(c.Get("Fly-Region")),

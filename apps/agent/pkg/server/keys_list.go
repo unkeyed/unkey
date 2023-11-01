@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type ListKeysRequest struct {
@@ -57,37 +56,37 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
 	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 	if !auth.IsRootKey {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
+		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api %s", req.ApiId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("unable to find api %s", req.ApiId))
 
 	}
 	if api.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return errors.NewHttpError(c, errors.FORBIDDEN, "workspace access denined")
+		return newHttpError(c, FORBIDDEN, "workspace access denined")
 	}
 
 	keys, err := s.db.ListKeys(ctx, api.GetKeyAuthId(), req.OwnerId, req.Limit, req.Offset)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 
 	}
 
 	total, err := s.db.CountKeys(ctx, api.GetKeyAuthId())
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 
 	res := ListKeysResponse{
@@ -109,7 +108,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		if k.Meta != nil {
 			err = json.Unmarshal([]byte(k.GetMeta()), &res.Keys[i].Meta)
 			if err != nil {
-				return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to unmarshal meta: %s", err.Error()))
+				return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to unmarshal meta: %s", err.Error()))
 			}
 		}
 		if k.Expires != nil {

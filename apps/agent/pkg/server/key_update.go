@@ -7,7 +7,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
@@ -52,42 +51,42 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 
 	err := c.BodyParser(&req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
 	}
 
 	err = c.BodyParser(&req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate body: %s", err.Error()))
+		return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to validate body: %s", err.Error()))
 	}
 
 	if req.Expires.Defined && req.Expires.Value != nil && *req.Expires.Value > 0 && *req.Expires.Value < time.Now().UnixMilli() {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
+		return newHttpError(c, BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
 	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 	if !auth.IsRootKey {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
+		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 	// This is not cached on purpose
 	// In case you're updating the same key in rapid succession or your requests are handled by
 	// different machines, it was possible to overwrite the key with cached data
 	key, found, err := s.db.FindKeyById(ctx, req.KeyId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s does not exist", req.KeyId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("key %s does not exist", req.KeyId))
 	}
 	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return errors.NewHttpError(c, errors.FORBIDDEN, "access to workspace denied")
+		return newHttpError(c, FORBIDDEN, "access to workspace denied")
 	}
 
 	if req.Name.Defined {
@@ -109,7 +108,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		if req.Meta.Value != nil {
 			s, err := json.Marshal(*req.Meta.Value)
 			if err != nil {
-				return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to marshal meta: %s", err.Error()))
+				return newHttpError(c, BAD_REQUEST, fmt.Sprintf("unable to marshal meta: %s", err.Error()))
 			}
 			key.Meta = util.Pointer(string(s))
 		} else {
@@ -151,7 +150,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 
 	err = s.db.UpdateKey(ctx, key)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to write key: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to write key: %s", err.Error()))
 	}
 	s.keyCache.Set(ctx, key.Hash, key)
 

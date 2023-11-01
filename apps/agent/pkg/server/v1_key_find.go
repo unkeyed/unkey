@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type GetKeyRequestV1 struct {
@@ -25,34 +24,34 @@ func (s *Server) v1FindKey(c *fiber.Ctx) error {
 
 	err := s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 	if !auth.IsRootKey {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
+		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 
 	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
 	}
 	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
+		return newHttpError(c, UNAUTHORIZED, "workspace access denied")
 	}
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
 	if !found {
 
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api: %s", err.Error()))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("unable to find api: %s", err.Error()))
 	}
 
 	res := GetKeyResponse{
@@ -68,7 +67,7 @@ func (s *Server) v1FindKey(c *fiber.Ctx) error {
 	if key.Meta != nil {
 		err = json.Unmarshal([]byte(key.GetMeta()), &res.Meta)
 		if err != nil {
-			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to unmarshal meta: %s", err.Error()))
+			return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to unmarshal meta: %s", err.Error()))
 		}
 	}
 	if key.Expires != nil {

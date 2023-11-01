@@ -18,6 +18,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const (
+	NOT_FOUND          = "NOT_FOUND"
+	FORBIDDEN          = "FORBIDDEN"
+	KEY_USAGE_EXCEEDED = "KEY_USAGE_EXCEEDED"
+	RATELIMITED        = "RATELIMITED"
+)
+
 func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.VerifyKeyRequest) (*authenticationv1.VerifyKeyResponse, error) {
 	if req.Key == "" {
 		return nil, errors.New(errors.ErrBadRequest, fmt.Errorf("key is required"))
@@ -29,7 +36,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 	if hit == cache.Null {
 		return &authenticationv1.VerifyKeyResponse{
 			Valid: false,
-			Code:  errors.NOT_FOUND,
+			Code:  NOT_FOUND,
 		}, nil
 	}
 
@@ -52,7 +59,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 	if key.DeletedAt != nil {
 		return &authenticationv1.VerifyKeyResponse{
 			Valid: false,
-			Code:  errors.NOT_FOUND,
+			Code:  NOT_FOUND,
 		}, nil
 	}
 
@@ -65,7 +72,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 
 		return &authenticationv1.VerifyKeyResponse{
 			Valid: false,
-			Code:  errors.NOT_FOUND,
+			Code:  NOT_FOUND,
 		}, nil
 
 	}
@@ -94,7 +101,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 			ipSpan.End()
 			return &authenticationv1.VerifyKeyResponse{
 				Valid: false,
-				Code:  errors.FORBIDDEN,
+				Code:  FORBIDDEN,
 			}, nil
 
 		}
@@ -141,9 +148,9 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 	defer func() {
 		var denied analytics.DeniedReason
 		switch res.Code {
-		case errors.KEY_USAGE_EXCEEDED:
+		case KEY_USAGE_EXCEEDED:
 			denied = analytics.DeniedUsageExceeded
-		case errors.RATELIMITED:
+		case RATELIMITED:
 			denied = analytics.DeniedRateLimited
 		}
 
@@ -170,7 +177,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 		ctx, sp = s.tracer.Start(ctx, "server.verifyKey.CheckRemainingKeyUsage")
 		if *key.Remaining <= 0 {
 			res.Valid = false
-			res.Code = errors.KEY_USAGE_EXCEEDED
+			res.Code = KEY_USAGE_EXCEEDED
 			zero := int32(0)
 			res.Remaining = &zero
 			return res, nil
@@ -189,7 +196,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 		if *keyAfterUpdate.Remaining < 0 {
 			res.Valid = false
 			res.Remaining = util.Pointer(int32(0))
-			res.Code = errors.KEY_USAGE_EXCEEDED
+			res.Code = KEY_USAGE_EXCEEDED
 			sp.End()
 			return res, nil
 		} else {
@@ -223,7 +230,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 			}
 			res.Valid = r.Pass
 			if !r.Pass {
-				res.Code = errors.RATELIMITED
+				res.Code = RATELIMITED
 			}
 		}
 		sp.End()

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type VerifyKeyRequestV1 struct {
@@ -39,19 +38,20 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 	req := VerifyKeyRequestV1{}
 	err := c.BodyParser(&req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	err = s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 
 	}
 
 	svcRes, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
+	s.logger.Info().Msgf("svcRes: %+v", svcRes)
 
 	res := VerifyKeyResponseV1{
 		Valid:     svcRes.Valid,
@@ -64,7 +64,7 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 	if svcRes.Meta != nil {
 		err = json.Unmarshal([]byte(*svcRes.Meta), &res.Meta)
 		if err != nil {
-			return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+			return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 		}
 	}
 	if svcRes.Ratelimit != nil {

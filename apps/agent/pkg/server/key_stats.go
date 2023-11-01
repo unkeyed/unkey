@@ -5,7 +5,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type GetKeyStatsRequest struct {
@@ -32,37 +31,37 @@ func (s *Server) getKeyStats(c *fiber.Ctx) error {
 
 	err := s.validator.Struct(req)
 	if err != nil {
-		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
+		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
 
 	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+		return newHttpError(c, UNAUTHORIZED, err.Error())
 	}
 	if !auth.IsRootKey {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
+		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
 	}
 	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
+		return newHttpError(c, UNAUTHORIZED, "workspace access denied")
 	}
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}
 	if !found {
-		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("api %s not found", key.KeyAuthId))
+		return newHttpError(c, NOT_FOUND, fmt.Sprintf("api %s not found", key.KeyAuthId))
 	}
 
 	keyStats, err := s.analytics.GetKeyStats(ctx, key.WorkspaceId, api.ApiId, key.KeyId)
 	if err != nil {
-		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, "unable to load stats")
+		return newHttpError(c, INTERNAL_SERVER_ERROR, "unable to load stats")
 	}
 
 	res := GetKeyStatsResponse{

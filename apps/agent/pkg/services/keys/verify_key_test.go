@@ -19,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
@@ -346,7 +345,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	require.NoError(t, err)
 
 	require.False(t, res.Valid)
-	require.Equal(t, errors.FORBIDDEN, res.Code)
+	require.Equal(t, "FORBIDDEN", res.Code)
 
 }
 

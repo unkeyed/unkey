@@ -3,14 +3,14 @@ package server_test
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/require"
-	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/server"
-	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/server"
+	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 )
 
 func TestCreateKey_Simple(t *testing.T) {
@@ -45,7 +45,7 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 
-	res := testutil.Json[errors.ErrorResponse](t, srv.App, testutil.JsonRequest{
+	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
 		Method:     "POST",
 		Path:       "/v1/keys",
 		Bearer:     resources.UserRootKey,
@@ -145,7 +145,7 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 		Bearer: resources.UserRootKey,
 		Body: fmt.Sprintf(`{
 			"apiId":"%s",
-			"byteLength": 4
+			"remaining": 4
 		}`, resources.UserApi.ApiId),
 		StatusCode: 200,
 	})

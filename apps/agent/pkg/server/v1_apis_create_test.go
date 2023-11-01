@@ -2,11 +2,11 @@ package server_test
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"testing"
 )
 
 func TestV1ApisCreate(t *testing.T) {
@@ -43,7 +43,7 @@ func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 
-	res := testutil.Json[errors.ErrorResponse](t, srv.App, testutil.JsonRequest{
+	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
 		Method:     "POST",
 		Path:       "/v1/apis.createApi",
 		Bearer:     "invalid_key",

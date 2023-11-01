@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/workspaces"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
@@ -23,10 +24,13 @@ func NewServer(t *testing.T, r resources) *server.Server {
 		Database:          r.Database,
 		Tracer:            tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Logger:   logging.NewNoop(),
+			Logger:   logging.New(&logging.Config{Debug: true}),
 			Database: r.Database,
 		}),
 		ApiService: apis.New(apis.Config{
+			Database: r.Database,
+		}),
+		WorkspaceService: workspaces.New(workspaces.Config{
 			Database: r.Database,
 		}),
 	})
