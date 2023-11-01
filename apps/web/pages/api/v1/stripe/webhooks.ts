@@ -3,7 +3,7 @@ import { QUOTA } from "@/lib/constants/quotas";
 import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
-import { Loops } from "@unkey/loops";
+import { Resend } from "@unkey/resend";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -29,7 +29,7 @@ const requestValidation = z.object({
     "stripe-signature": z.string(),
   }),
 });
-const loops = env().LOOPS_API_KEY ? new Loops({ apiKey: env().LOOPS_API_KEY! }) : null;
+const email = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
 
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -94,10 +94,10 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           })
           .where(eq(schema.workspaces.id, ws.id));
 
-        if (loops) {
+        if (email) {
           const users = await getUsers(ws.tenantId);
           for await (const user of users) {
-            await loops.sendSubscriptionEnded({
+            await email.sendSubscriptionEnded({
               email: user.email,
               name: user.name,
             });
@@ -108,7 +108,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       case "customer.subscription.trial_will_end": {
         const subscription = event.data.object as Stripe.Subscription;
         console.log("subscription will end", subscription.id);
-        if (!loops) {
+        if (!email) {
           // no need to fetch everything if we don't use it
           break;
         }
@@ -121,7 +121,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
 
         const users = await getUsers(ws.tenantId);
         for await (const user of users) {
-          await loops.sendTrialEnds({
+          await email.sendTrialEnds({
             email: user.email,
             name: user.name,
             workspace: ws.name,
@@ -134,7 +134,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         console.log("invoice failed", invoice.id);
-        if (!loops) {
+        if (!email) {
           break;
         }
         const ws = await db.query.workspaces.findFirst({
@@ -145,7 +145,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         }
         const users = await getUsers(ws.tenantId);
         for await (const user of users) {
-          await loops.sendTrialEnds({
+          await email.sendTrialEnds({
             email: user.email,
             name: user.name,
             workspace: ws.name,

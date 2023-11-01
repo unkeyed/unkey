@@ -22,7 +22,8 @@ export const env = () =>
       UNKEY_APP_AUTH_TOKEN: z.string(),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),
-      LOOPS_API_KEY: z.string().optional(),
+      RESEND_API_KEY: z.string().optional(),
+      RESEND_AUDIENCE_ID: z.string().optional(),
 
       UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
       PLAIN_API_KEY: z.string().optional(),
