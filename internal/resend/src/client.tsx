@@ -6,7 +6,7 @@ import React from "react";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SubscriptionEnded } from "../emails/subscription_ended";
 import { TrialEndsIn3Days } from "../emails/trial_ends_in_3_days";
-
+import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   private readonly apiKey: string;
   private readonly baseUrl: string;
@@ -76,6 +76,20 @@ export class Resend {
       from: this.from,
       reply_to: this.replyTo,
       subject: "Your Unkey trial has ended",
+      html,
+    });
+  }
+
+  public async sendWelcomeEmail(req: {
+    email: string;
+  }): Promise<void> {
+    const html = render(<WelcomeEmail />);
+
+    await this.client.emails.send({
+      to: req.email,
+      from: this.from,
+      reply_to: this.replyTo,
+      subject: "Welcome to Unkey",
       html,
     });
   }

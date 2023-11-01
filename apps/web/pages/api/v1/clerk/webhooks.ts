@@ -42,7 +42,9 @@ export default async function handler(
         email,
         audienceId: RESEND_AUDIENCE_ID,
       });
-
+      await resend.sendWelcomeEmail({
+        email
+      });
       return res.status(200).json({});
     } catch (err) {
       return res.status(400).json({
