@@ -43,7 +43,7 @@ export default async function handler(
         audienceId: RESEND_AUDIENCE_ID,
       });
       await resend.sendWelcomeEmail({
-        email
+        email,
       });
       return res.status(200).json({});
     } catch (err) {

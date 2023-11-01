@@ -20,32 +20,41 @@ export function WelcomeEmail() {
         <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
-            <Heading className="font-sans text-2xl text-semibold">
-              Welcome to Unkey!
-            </Heading>
+            <Heading className="font-sans text-2xl text-semibold">Welcome to Unkey!</Heading>
             <Text>Hi there!</Text>
             <Text>
-            My name is James. I am one of the co-founders of Unkey. We believe that Unkey's API management platform makes it easy to secure, manage and scale your API.
+              My name is James. I am one of the co-founders of Unkey. We believe that Unkey's API
+              management platform makes it easy to secure, manage and scale your API.
             </Text>
             <Section>
               <Text className="font-semibold">
-              We know integrating a new system is overwhelming, so here are some resources to get you started:{" "}
+                We know integrating a new system is overwhelming, so here are some resources to get
+                you started:{" "}
               </Text>
               <Text>
-                <li> <Link href="https://unkey.dev/docs/onboarding">Unkey Quickstart Guide</Link></li>
-                <li><Link href="https://unkey.dev/docs/security"> Why is Unkey secure? </Link></li>
-                <li> <Link href="https://unkey.dev/discord">Unkey Community Discord </Link></li>
+                <li>
+                  {" "}
+                  <Link href="https://unkey.dev/docs/onboarding">Unkey Quickstart Guide</Link>
+                </li>
+                <li>
+                  <Link href="https://unkey.dev/docs/security"> Why is Unkey secure? </Link>
+                </li>
+                <li>
+                  {" "}
+                  <Link href="https://unkey.dev/discord">Unkey Community Discord </Link>
+                </li>
               </Text>
             </Section>
             <Text>
-                We love feedback, so feel free to respond to this email as you start using Unkey. We read and reply to every single one.
+              We love feedback, so feel free to respond to this email as you start using Unkey. We
+              read and reply to every single one.
             </Text>
             <Text>
               Cheers,
               <br />
               James
             </Text>
-            </Container>
+          </Container>
         </Section>
       </Html>
     </Tailwind>
