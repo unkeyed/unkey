@@ -199,7 +199,14 @@ function Navigation() {
     <nav className="mt-px text-5xl font-medium tracking-tight text-white font-display">
       <NavigationRow>
         <NavigationItem href="/pricing">Pricing</NavigationItem>
-        <NavigationItem href="https://unkey.dev/docs">Docs</NavigationItem>
+        <a
+          className="relative px-6 py-10 -mx-6 group isolate bg-gray-950 even:mt-px sm:mx-0 sm:px-0 sm:py-16 sm:odd:pr-16 sm:even:mt-0 sm:even:border-l sm:even:border-gray-800 sm:even:pl-16"
+          href="https://unkey.dev/docs"
+        >
+          {" "}
+          Docs
+          <span className="absolute inset-y-0 w-screen transition bg-gray-900 opacity-0 -z-10 group-odd:right-0 group-even:left-0 group-hover:opacity-100" />
+        </a>
       </NavigationRow>
       <NavigationRow>
         <NavigationItem href="/blog">Blog</NavigationItem>
