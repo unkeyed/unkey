@@ -60,9 +60,12 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to validate request: %s", err.Error()))
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
+	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+	}
+	if !auth.IsRootKey {
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
 	}
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
@@ -72,7 +75,7 @@ func (s *Server) listKeys(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("unable to find api %s", req.ApiId))
 
 	}
-	if api.WorkspaceId != authorizedWorkspaceId {
+	if api.WorkspaceId != auth.AuthorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.FORBIDDEN, "workspace access denined")
 	}
 

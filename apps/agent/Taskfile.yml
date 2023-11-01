@@ -52,5 +52,5 @@ tasks:
       - docker push ghcr.io/chronark/{{.IMAGE}}:{{.VERSION}}
 
   debug:
-    - go test -v -shuffle=on --race ./... -run TestCreateKey_WithRemanining
+    - go test -v -shuffle=on --race ./... -run TestUpdateKey_UpdateShouldNotAffectUndefinedFields
   

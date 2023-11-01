@@ -1,4 +1,4 @@
-package keys
+package keys_test
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
@@ -42,7 +43,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -80,7 +81,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -117,7 +118,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -170,7 +171,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -269,7 +270,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -325,7 +326,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -366,7 +367,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -434,7 +435,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	require.NoError(t, err)
 
 	a := &mockAnalytics{}
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database:           resources.Database,
 		Events:             events.NewNoop(),
 		Logger:             logging.NewNoop(),
@@ -454,5 +455,88 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 
 	require.False(t, res.Valid)
 	require.Equal(t, int32(1), a.calledPublish.Load())
+
+}
+
+func TestVerifyKey_ShouldReturnWorkspaceIdOfUser(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	key := uid.New(16, "test")
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:       uid.Key(),
+		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
+		WorkspaceId: resources.UserWorkspace.WorkspaceId,
+		Hash:        hash.Sha256(key),
+		CreatedAt:   time.Now().UnixMilli(),
+		Remaining:   util.Pointer(int32(0)),
+	})
+	require.NoError(t, err)
+
+	svc := keys.New(keys.Config{
+		Database:           resources.Database,
+		Events:             events.NewNoop(),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
+		Tracer:             tracing.NewNoop(),
+		Metrics:            metrics.NewNoop(),
+		Analytics:          analytics.NewNoop(),
+		MemoryRatelimit:    ratelimit.NewInMemory(),
+		ConsitentRatelimit: ratelimit.NewInMemory(),
+	})
+
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
+		Key: key,
+	})
+	require.NoError(t, err)
+
+	require.False(t, res.Valid)
+	require.Equal(t, resources.UserWorkspace.WorkspaceId, res.AuthorizedWorkspaceId)
+	require.False(t, res.IsRootKey)
+
+}
+
+func TestVerifyKey_ShouldReturnWhetherKeyIsRoot(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	resources := testutil.SetupResources(t)
+
+	key := uid.New(16, "test")
+	err := resources.Database.InsertKey(ctx, &authenticationv1.Key{
+		KeyId:          uid.Key(),
+		KeyAuthId:      resources.UnkeyKeyAuth.KeyAuthId,
+		ForWorkspaceId: &resources.UserWorkspace.WorkspaceId,
+		WorkspaceId:    resources.UnkeyWorkspace.WorkspaceId,
+		Hash:           hash.Sha256(key),
+		CreatedAt:      time.Now().UnixMilli(),
+		Remaining:      util.Pointer(int32(0)),
+	})
+	require.NoError(t, err)
+
+	svc := keys.New(keys.Config{
+		Database:           resources.Database,
+		Events:             events.NewNoop(),
+		Logger:             logging.NewNoop(),
+		KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
+		ApiCache:           cache.NewNoopCache[*apisv1.Api](),
+		Tracer:             tracing.NewNoop(),
+		Metrics:            metrics.NewNoop(),
+		Analytics:          analytics.NewNoop(),
+		MemoryRatelimit:    ratelimit.NewInMemory(),
+		ConsitentRatelimit: ratelimit.NewInMemory(),
+	})
+
+	res, err := svc.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
+		Key: key,
+	})
+	require.NoError(t, err)
+
+	require.False(t, res.Valid)
+	require.Equal(t, resources.UserWorkspace.WorkspaceId, res.AuthorizedWorkspaceId)
+	require.True(t, res.IsRootKey)
 
 }

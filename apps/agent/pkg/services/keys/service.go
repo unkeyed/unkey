@@ -63,19 +63,12 @@ type keyService struct {
 type Middleware func(KeyService) KeyService
 
 func New(config Config, mws ...Middleware) KeyService {
-	keyCache := config.KeyCache
-	if keyCache == nil {
-		keyCache = cache.NewNoopCache[*authenticationv1.Key]()
-	}
-	apiCache := config.ApiCache
-	if apiCache == nil {
-		apiCache = cache.NewNoopCache[*apisv1.Api]()
-	}
-	var svc KeyService = &keyService{
+
+	svc := &keyService{
 		db:                 config.Database,
 		events:             config.Events,
-		keyCache:           keyCache,
-		apiCache:           apiCache,
+		keyCache:           config.KeyCache,
+		apiCache:           config.ApiCache,
 		logger:             config.Logger.With().Str("svc", "keys").Logger(),
 		tracer:             config.Tracer,
 		metrics:            config.Metrics,
@@ -84,8 +77,34 @@ func New(config Config, mws ...Middleware) KeyService {
 		consitentRatelimit: config.ConsitentRatelimit,
 	}
 
-	for _, mw := range mws {
-		svc = mw(svc)
+	// set noop defaults for optional dependencies
+	if svc.events == nil {
+		svc.events = events.NewNoop()
 	}
-	return svc
+	if svc.tracer == nil {
+		svc.tracer = tracing.NewNoop()
+	}
+	if svc.metrics == nil {
+		svc.metrics = metrics.NewNoop()
+	}
+	if svc.analytics == nil {
+		svc.analytics = analytics.NewNoop()
+	}
+	if svc.memoryRatelimit == nil {
+		svc.memoryRatelimit = ratelimit.NewInMemory()
+	}
+	if svc.keyCache == nil {
+		svc.keyCache = cache.NewNoopCache[*authenticationv1.Key]()
+	}
+	if svc.apiCache == nil {
+		svc.apiCache = cache.NewNoopCache[*apisv1.Api]()
+	}
+
+	// casting the type to the interface
+	var s KeyService = svc
+
+	for _, mw := range mws {
+		s = mw(s)
+	}
+	return s
 }

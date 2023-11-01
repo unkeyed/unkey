@@ -1,4 +1,4 @@
-package server
+package server_test
 
 import (
 	"context"
@@ -11,12 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
@@ -25,18 +23,12 @@ func TestGetApi_Exists(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", resources.UserApi.ApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
-	res, err := srv.app.Test(req)
+	res, err := srv.App.Test(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -44,7 +36,7 @@ func TestGetApi_Exists(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res.StatusCode)
 
-	successResponse := GetApiResponse{}
+	successResponse := server.GetApiResponse{}
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 
@@ -58,20 +50,14 @@ func TestGetApi_NotFound(t *testing.T) {
 	t.Parallel()
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	fakeApiId := uid.Api()
 
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", fakeApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
-	res, err := srv.app.Test(req)
+	res, err := srv.App.Test(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -94,13 +80,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	keyAuth := &authenticationv1.KeyAuth{
 		KeyAuthId:   uid.KeyAuth(),
@@ -124,7 +104,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s", api.ApiId), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
 
-	res, err := srv.app.Test(req)
+	res, err := srv.App.Test(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -132,7 +112,7 @@ func TestGetApi_WithIpWhitelist(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, res.StatusCode)
 
-	successResponse := GetApiResponse{}
+	successResponse := server.GetApiResponse{}
 	err = json.Unmarshal(body, &successResponse)
 	require.NoError(t, err)
 

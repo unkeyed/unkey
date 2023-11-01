@@ -28,9 +28,12 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
+	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+	}
+	if !auth.IsRootKey {
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
 	}
 
 	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
@@ -40,7 +43,7 @@ func (s *Server) getKey(c *fiber.Ctx) error {
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
 	}
-	if key.WorkspaceId != authorizedWorkspaceId {
+	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, "workspace access denied")
 	}
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)

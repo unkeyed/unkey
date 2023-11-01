@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/gofiber/fiber/v2"
 	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 	httpErrors "github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
@@ -28,9 +29,12 @@ func (s *Server) v1DeleteApi(c *fiber.Ctx) error {
 		return httpErrors.NewHttpError(c, httpErrors.BAD_REQUEST, err.Error())
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
+	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
 		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, err.Error())
+	}
+	if !auth.IsRootKey {
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
 	}
 
 	api, found, err := s.db.FindApi(ctx, req.ApiId)
@@ -40,7 +44,7 @@ func (s *Server) v1DeleteApi(c *fiber.Ctx) error {
 	if !found {
 		return httpErrors.NewHttpError(c, httpErrors.NOT_FOUND, "api not found")
 	}
-	if api.WorkspaceId != authorizedWorkspaceId {
+	if api.WorkspaceId != auth.AuthorizedWorkspaceId {
 		return httpErrors.NewHttpError(c, httpErrors.UNAUTHORIZED, "access to workspace denied")
 	}
 	_, err = s.apiService.DeleteApi(ctx, &apisv1.DeleteApiRequest{ApiId: req.ApiId})

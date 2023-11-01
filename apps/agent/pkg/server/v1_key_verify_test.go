@@ -1,12 +1,8 @@
-package server
+package server_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,6 +14,8 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/server"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/apis"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
@@ -46,47 +44,16 @@ func TestVerifyKey_Simple(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
+	srv := testutil.NewServer(t, resources)
+	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		Bearer:     key,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
-
-	require.True(t, successResponse.Valid)
+	require.True(t, res.Valid)
 
 }
 
@@ -106,47 +73,16 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
+	srv := testutil.NewServer(t, resources)
+	res := testutil.Json[errors.ErrorResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"somethingelse":"%s"}`, key),
+		StatusCode: 400,
+		Bearer:     key,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"somethingelse":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 400, res.StatusCode)
-
-	errorResponse := errors.ErrorResponse{}
-	err = json.Unmarshal(body, &errorResponse)
-	require.NoError(t, err)
-
-	require.Equal(t, errors.BAD_REQUEST, errorResponse.Error.Code)
+	require.Equal(t, errors.BAD_REQUEST, res.Error.Code)
 
 }
 
@@ -167,63 +103,28 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
+	srv := testutil.NewServer(t, resources)
+	successRes := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		Bearer:     key,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
-
-	require.True(t, successResponse.Valid)
+	require.True(t, successRes.Valid)
 
 	// wait until key expires
 	time.Sleep(time.Second * 5)
 
-	errorRes, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	errorBody, err := io.ReadAll(errorRes.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, errorRes.StatusCode)
-
-	verifyKeyResponse := VerifyKeyResponseV1{}
-	err = json.Unmarshal(errorBody, &verifyKeyResponse)
-	require.NoError(t, err)
-
-	require.False(t, verifyKeyResponse.Valid)
+	errorRes := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 401,
+		Bearer:     key,
+	})
+	require.False(t, errorRes.Valid)
 
 }
 
@@ -248,114 +149,65 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:    logging.NewNoop(),
-		KeyCache:  cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache:  cache.NewNoopCache[*apisv1.Api](),
-		Database:  resources.Database,
-		Tracer:    tracing.NewNoop(),
-		Ratelimit: ratelimit.NewInMemory(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
+	srv := testutil.NewServer(t, resources)
+	res1 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		Bearer:     key,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-
-	// first request
-
-	res1, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res1.Body.Close()
-
-	body1, err := io.ReadAll(res1.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res1.StatusCode)
-
-	verifyRes1 := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body1, &verifyRes1)
-	require.NoError(t, err)
-
-	require.True(t, verifyRes1.Valid)
-	require.Equal(t, int32(2), verifyRes1.Ratelimit.Limit)
-	require.Equal(t, int32(1), verifyRes1.Ratelimit.Remaining)
-	require.GreaterOrEqual(t, verifyRes1.Ratelimit.Reset, int64(time.Now().UnixMilli()))
-	require.LessOrEqual(t, verifyRes1.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
+	require.True(t, res1.Valid)
+	require.Equal(t, int32(2), res1.Ratelimit.Limit)
+	require.Equal(t, int32(1), res1.Ratelimit.Remaining)
+	require.GreaterOrEqual(t, res1.Ratelimit.Reset, int64(time.Now().UnixMilli()))
+	require.LessOrEqual(t, res1.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
 
 	// second request
 
-	res2, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res2.Body.Close()
+	res2 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		Bearer:     key,
+	})
 
-	body2, err := io.ReadAll(res2.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res2.StatusCode)
-
-	verifyRes2 := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body2, &verifyRes2)
-	require.NoError(t, err)
-
-	require.True(t, verifyRes2.Valid)
-	require.Equal(t, int32(2), verifyRes2.Ratelimit.Limit)
-	require.Equal(t, int32(0), verifyRes2.Ratelimit.Remaining)
-	require.GreaterOrEqual(t, verifyRes2.Ratelimit.Reset, int64(time.Now().UnixMilli()))
-	require.LessOrEqual(t, verifyRes2.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
+	require.True(t, res2.Valid)
+	require.Equal(t, int32(2), res2.Ratelimit.Limit)
+	require.Equal(t, int32(0), res2.Ratelimit.Remaining)
+	require.GreaterOrEqual(t, res2.Ratelimit.Reset, int64(time.Now().UnixMilli()))
+	require.LessOrEqual(t, res2.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
 
 	// third request
 
-	res3, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res3.Body.Close()
-
-	body3, err := io.ReadAll(res3.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res3.StatusCode)
-
-	verifyRes3 := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body3, &verifyRes3)
-	require.NoError(t, err)
-
-	require.False(t, verifyRes3.Valid)
-	require.Equal(t, int32(2), verifyRes3.Ratelimit.Limit)
-	require.Equal(t, int32(0), verifyRes3.Ratelimit.Remaining)
-	require.GreaterOrEqual(t, verifyRes3.Ratelimit.Reset, int64(time.Now().UnixMilli()))
-	require.LessOrEqual(t, verifyRes3.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
+	res3 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+	})
+	require.False(t, res3.Valid)
+	require.Equal(t, int32(2), res3.Ratelimit.Limit)
+	require.Equal(t, int32(0), res3.Ratelimit.Remaining)
+	require.GreaterOrEqual(t, res3.Ratelimit.Reset, int64(time.Now().UnixMilli()))
+	require.LessOrEqual(t, res3.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
 
 	// wait and try again in the next window
-	time.Sleep(time.Until(time.UnixMilli(verifyRes3.Ratelimit.Reset)))
-
-	res4, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res4.Body.Close()
-
-	body4, err := io.ReadAll(res4.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res4.StatusCode)
-
-	verifyRes4 := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body4, &verifyRes4)
-	require.NoError(t, err)
-
-	require.True(t, verifyRes4.Valid)
-	require.Equal(t, int32(2), verifyRes4.Ratelimit.Limit)
-	require.Equal(t, int32(0), verifyRes4.Ratelimit.Remaining)
-	require.GreaterOrEqual(t, verifyRes4.Ratelimit.Reset, int64(time.Now().UnixMilli()))
-	require.LessOrEqual(t, verifyRes4.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
+	time.Sleep(time.Until(time.UnixMilli(res3.Ratelimit.Reset)))
+	res4 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		Bearer:     key,
+	})
+	require.True(t, res4.Valid)
+	require.Equal(t, int32(2), res4.Ratelimit.Limit)
+	require.Equal(t, int32(0), res4.Ratelimit.Remaining)
+	require.GreaterOrEqual(t, res4.Ratelimit.Reset, int64(time.Now().UnixMilli()))
+	require.LessOrEqual(t, res4.Ratelimit.Reset, int64(time.Now().Add(time.Second*10).UnixMilli()))
 
 }
 
@@ -392,47 +244,19 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		Bearer:     key,
+		RequestHeaders: map[string]string{
+			"Fly-Client-IP": "100.100.100.100",
+		},
 	})
-
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Fly-Client-IP", "100.100.100.100")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
-
-	require.True(t, successResponse.Valid)
+	require.True(t, res.Valid)
 
 }
 
@@ -469,47 +293,20 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+		RequestHeaders: map[string]string{
+			"Fly-Client-IP": "1.2.3.4",
+		},
+		Bearer: key,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Fly-Client-IP", "1.2.3.4")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res.StatusCode)
-
-	verifyKeyResponse := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body, &verifyKeyResponse)
-	require.NoError(t, err)
-
-	require.Equal(t, errors.FORBIDDEN, verifyKeyResponse.Code)
+	require.Equal(t, errors.FORBIDDEN, res.Code)
 
 }
 
@@ -530,71 +327,33 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:    logging.NewNoop(),
-		KeyCache:  cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache:  cache.NewNoopCache[*apisv1.Api](),
-		Database:  resources.Database,
-		Tracer:    tracing.NewNoop(),
-		Ratelimit: ratelimit.NewInMemory(),
-		Metrics:   metrics.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database:           resources.Database,
-			Events:             events.NewNoop(),
-			Logger:             logging.NewNoop(),
-			KeyCache:           cache.NewNoopCache[*authenticationv1.Key](),
-			ApiCache:           cache.NewNoopCache[*apisv1.Api](),
-			Tracer:             tracing.NewNoop(),
-			Metrics:            metrics.NewNoop(),
-			Analytics:          analytics.NewNoop(),
-			MemoryRatelimit:    ratelimit.NewInMemory(),
-			ConsitentRatelimit: ratelimit.NewInMemory(),
-		}),
-	})
-
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
-
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
+	srv := testutil.NewServer(t, resources)
 
 	// Use up 10 requests
 	for i := 9; i >= 0; i-- {
 
-		res, err := srv.app.Test(req)
-		require.NoError(t, err)
-		defer res.Body.Close()
-
-		body1, err := io.ReadAll(res.Body)
-		require.NoError(t, err)
-		require.Equal(t, 200, res.StatusCode)
-
-		vr := VerifyKeyResponseV1{}
-		err = json.Unmarshal(body1, &vr)
-		require.NoError(t, err)
-
-		require.True(t, vr.Valid)
-		require.NotNil(t, vr.Remaining)
-		require.Equal(t, int32(i), *vr.Remaining)
+		res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+			Method:     "POST",
+			Path:       "/v1/keys.verifyKey",
+			Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+			StatusCode: 200,
+			Bearer:     key,
+		})
+		require.True(t, res.Valid)
+		require.NotNil(t, res.Remaining)
+		require.Equal(t, int32(i), *res.Remaining)
 	}
 
 	// now it should be all used up and no longer valid
 
-	res2, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res2.Body.Close()
-
-	body2, err := io.ReadAll(res2.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res2.StatusCode)
-
-	verifyRes2 := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body2, &verifyRes2)
-	require.NoError(t, err)
-
-	require.False(t, verifyRes2.Valid)
-	require.Equal(t, int32(0), *verifyRes2.Remaining)
+	res2 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+	})
+	require.False(t, res2.Valid)
+	require.Equal(t, int32(0), *res2.Remaining)
 
 }
 
@@ -627,7 +386,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	require.NoError(t, err)
 
 	a := &mockAnalytics{}
-	srv := New(Config{
+	srv := server.New(server.Config{
 		Logger:    logging.NewNoop(),
 		KeyCache:  cache.NewNoopCache[*authenticationv1.Key](),
 		ApiCache:  cache.NewNoopCache[*apisv1.Api](),
@@ -646,29 +405,19 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 			MemoryRatelimit:    ratelimit.NewInMemory(),
 			ConsitentRatelimit: ratelimit.NewInMemory(),
 		}),
+		ApiService: apis.New(apis.Config{
+			Database: resources.Database,
+		}),
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"key":"%s"
-		}`, key))
+	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys.verifyKey",
+		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
+		StatusCode: 200,
+	})
 
-	req := httptest.NewRequest("POST", "/v1/keys.verifyKey", buf)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := VerifyKeyResponseV1{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
-
-	require.False(t, successResponse.Valid)
+	require.False(t, res.Valid)
 	require.Equal(t, int32(1), a.calledPublish.Load())
 
 }

@@ -19,15 +19,16 @@ import (
 )
 
 type resources struct {
-	UnkeyWorkspace *workspacesv1.Workspace
-	UnkeyApi       *apisv1.Api
-	UnkeyKeyAuth   *authenticationv1.KeyAuth
-	UserRootKey    string
-	UserWorkspace  *workspacesv1.Workspace
-	UserApi        *apisv1.Api
-	UserKeyAuth    *authenticationv1.KeyAuth
-	Database       database.Database
-	DatabaseDSN    string
+	UnkeyWorkspace    *workspacesv1.Workspace
+	UnkeyApi          *apisv1.Api
+	UnkeyKeyAuth      *authenticationv1.KeyAuth
+	UserRootKey       string
+	UserWorkspace     *workspacesv1.Workspace
+	UserApi           *apisv1.Api
+	UserKeyAuth       *authenticationv1.KeyAuth
+	Database          database.Database
+	DatabaseDSN       string
+	UnkeyAppAuthToken string
 }
 
 func SetupResources(t *testing.T) resources {
@@ -49,8 +50,9 @@ func SetupResources(t *testing.T) resources {
 	require.NoError(t, err)
 
 	r := resources{
-		Database:    db,
-		DatabaseDSN: dsn,
+		Database:          db,
+		DatabaseDSN:       dsn,
+		UnkeyAppAuthToken: uid.New(16, "app"),
 	}
 
 	r.UnkeyWorkspace = &workspacesv1.Workspace{

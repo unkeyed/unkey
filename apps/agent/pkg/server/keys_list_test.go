@@ -1,25 +1,17 @@
-package server
+package server_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http/httptest"
-	"testing"
-	"time"
-
 	"github.com/stretchr/testify/require"
-	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	"testing"
+	"time"
 )
 
 func TestListKeys_Simple(t *testing.T) {
@@ -27,13 +19,7 @@ func TestListKeys_Simple(t *testing.T) {
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
@@ -51,21 +37,12 @@ func TestListKeys_Simple(t *testing.T) {
 
 	}
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := ListKeysResponse{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
+	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "GET",
+		Path:       fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId),
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	require.GreaterOrEqual(t, successResponse.Total, int64(len(createdKeyIds)))
 	require.GreaterOrEqual(t, len(successResponse.Keys), len(createdKeyIds))
@@ -78,13 +55,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
@@ -105,21 +76,12 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 	}
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.ApiId), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := ListKeysResponse{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
+	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "GET",
+		Path:       fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.ApiId),
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	require.GreaterOrEqual(t, successResponse.Total, int64(len(createdKeyIds)))
 	require.Equal(t, 5, len(successResponse.Keys))
@@ -135,14 +97,7 @@ func TestListKeys_WithLimit(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
-
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
@@ -159,20 +114,12 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 	}
 
-	req := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.ApiId), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res.StatusCode)
-
-	successResponse := ListKeysResponse{}
-	err = json.Unmarshal(body, &successResponse)
-	require.NoError(t, err)
+	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "GET",
+		Path:       fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.ApiId),
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	require.GreaterOrEqual(t, successResponse.Total, int64(len(createdKeyIds)))
 	require.Equal(t, 2, len(successResponse.Keys))
@@ -184,13 +131,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	createdKeyIds := make([]string, 10)
 	for i := range createdKeyIds {
@@ -207,42 +148,26 @@ func TestListKeys_WithOffset(t *testing.T) {
 
 	}
 
-	req1 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId), nil)
-	req1.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
+	res1 := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "GET",
+		Path:       fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId),
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
-	res1, err := srv.app.Test(req1)
-	require.NoError(t, err)
-	defer res1.Body.Close()
+	require.GreaterOrEqual(t, res1.Total, int64(len(createdKeyIds)))
+	require.GreaterOrEqual(t, 10, len(res1.Keys))
 
-	body1, err := io.ReadAll(res1.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res1.StatusCode)
+	res2 := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "GET",
+		Path:       fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.ApiId),
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
-	successResponse1 := ListKeysResponse{}
-	err = json.Unmarshal(body1, &successResponse1)
-	require.NoError(t, err)
+	require.GreaterOrEqual(t, res2.Total, int64(len(createdKeyIds)))
+	require.GreaterOrEqual(t, len(res2.Keys), len(createdKeyIds)-2)
 
-	require.GreaterOrEqual(t, successResponse1.Total, int64(len(createdKeyIds)))
-	require.GreaterOrEqual(t, 10, len(successResponse1.Keys))
-
-	req2 := httptest.NewRequest("GET", fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.ApiId), nil)
-	req2.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-
-	res2, err := srv.app.Test(req2)
-	require.NoError(t, err)
-	defer res2.Body.Close()
-
-	body2, err := io.ReadAll(res2.Body)
-	require.NoError(t, err)
-	require.Equal(t, 200, res2.StatusCode)
-
-	successResponse2 := ListKeysResponse{}
-	err = json.Unmarshal(body2, &successResponse2)
-	require.NoError(t, err)
-
-	require.GreaterOrEqual(t, successResponse2.Total, int64(len(createdKeyIds)))
-	require.GreaterOrEqual(t, len(successResponse2.Keys), len(createdKeyIds)-2)
-
-	require.Equal(t, successResponse1.Keys[1].Id, successResponse2.Keys[0].Id)
+	require.Equal(t, res1.Keys[1].Id, res2.Keys[0].Id)
 
 }

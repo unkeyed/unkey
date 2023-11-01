@@ -1,27 +1,16 @@
-package server
+package server_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http/httptest"
+	"github.com/stretchr/testify/require"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
+	"github.com/unkeyed/unkey/apps/agent/pkg/server"
+	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
-	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
-	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-
-	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/events"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
-	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func TestCreateKey_Simple(t *testing.T) {
@@ -30,45 +19,23 @@ func TestCreateKey_Simple(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
-		}),
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys",
+		Bearer:     resources.UserRootKey,
+		Body:       fmt.Sprintf(`{"apiId":"%s"}`, resources.UserApi.ApiId),
+		StatusCode: 200,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"apiId":"%s"
-		}`, resources.UserApi.ApiId))
+	require.NotEmpty(t, res.Key)
+	require.NotEmpty(t, res.KeyId)
 
-	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	require.Equal(t, res.StatusCode, 200)
-
-	createKeyResponse := CreateKeyResponse{}
-	err = json.Unmarshal(body, &createKeyResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createKeyResponse.Key)
-	require.NotEmpty(t, createKeyResponse.KeyId)
-
-	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
+	require.Equal(t, res.KeyId, foundKey.KeyId)
 }
 
 func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
@@ -76,39 +43,17 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[errors.ErrorResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys",
+		Bearer:     resources.UserRootKey,
+		Body:       fmt.Sprintf(`{"apiId":"%s", "ratelimit": {"type": "x"}}`, resources.UserApi.ApiId),
+		StatusCode: 400,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"apiId":"%s",
-		"ratelimit": {
-			"type": "x"
-			}
-		}`, resources.UserApi.ApiId))
-
-	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, res.StatusCode, 400)
-
-	createKeyResponse := errors.ErrorResponse{}
-	err = json.Unmarshal(body, &createKeyResponse)
-	require.NoError(t, err)
-
-	require.Equal(t, "BAD_REQUEST", createKeyResponse.Error.Code)
+	require.Equal(t, "BAD_REQUEST", res.Error.Code)
 
 }
 
@@ -118,48 +63,22 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
-		}),
+	srv := testutil.NewServer(t, resources)
+	res := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/keys",
+		Bearer:     resources.UserRootKey,
+		Body:       fmt.Sprintf(`{"apiId":"%s", "byteLength": 32, "prefix": "test"}`, resources.UserApi.ApiId),
+		StatusCode: 200,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"apiId":"%s",
-		"byteLength": 32,
-		"prefix": "test"
-		}`, resources.UserApi.ApiId))
+	require.NotEmpty(t, res.Key)
+	require.NotEmpty(t, res.KeyId)
 
-	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	createKeyResponse := CreateKeyResponse{}
-	err = json.Unmarshal(body, &createKeyResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createKeyResponse.Key)
-	require.NotEmpty(t, createKeyResponse.KeyId)
-
-	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
+	require.Equal(t, res.KeyId, foundKey.KeyId)
 	require.True(t, strings.HasPrefix(foundKey.Start, "test_"))
 
 }
@@ -170,58 +89,37 @@ func TestCreateKey_WithCustom(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
-		}),
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
+		Method: "POST",
+		Path:   "/v1/keys",
+		Bearer: resources.UserRootKey,
+		Body: fmt.Sprintf(`{
+			"apiId":"%s",
+			"byteLength": 32,
+			"prefix": "test",
+			"ownerId": "chronark",
+			"expires": %d,
+			"ratelimit":{
+				"type":"fast",
+				"limit": 10,
+				"refillRate":10,
+				"refillInterval":1000
+			}
+			}`, resources.UserApi.ApiId, time.Now().Add(time.Hour).UnixMilli()),
+		StatusCode: 200,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"apiId":"%s",
-		"byteLength": 32,
-		"prefix": "test",
-		"ownerId": "chronark",
-		"expires": %d,
-		"ratelimit":{
-			"type":"fast",
-			"limit": 10,
-			"refillRate":10,
-			"refillInterval":1000
-		}
-		}`, resources.UserApi.ApiId, time.Now().Add(time.Hour).UnixMilli()))
+	require.NotEmpty(t, res.Key)
+	require.NotEmpty(t, res.KeyId)
 
-	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	createKeyResponse := CreateKeyResponse{}
-	err = json.Unmarshal(body, &createKeyResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createKeyResponse.Key)
-	require.NotEmpty(t, createKeyResponse.KeyId)
-
-	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
-	require.GreaterOrEqual(t, len(createKeyResponse.Key), 30)
-	require.True(t, strings.HasPrefix(createKeyResponse.Key, "test_"))
+	require.Equal(t, res.KeyId, foundKey.KeyId)
+	require.GreaterOrEqual(t, len(res.Key), 30)
+	require.True(t, strings.HasPrefix(res.Key, "test_"))
 	require.Equal(t, "chronark", *foundKey.OwnerId)
 	require.True(t, time.UnixMilli(foundKey.GetExpires()).After(time.Now()))
 
@@ -239,47 +137,26 @@ func TestCreateKey_WithRemanining(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-		KeyService: keys.New(keys.Config{
-			Database: resources.Database,
-			Events:   events.NewNoop(),
-		}),
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
+		Method: "POST",
+		Path:   "/v1/keys",
+		Bearer: resources.UserRootKey,
+		Body: fmt.Sprintf(`{
+			"apiId":"%s",
+			"byteLength": 4
+		}`, resources.UserApi.ApiId),
+		StatusCode: 200,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"apiId":"%s",
-		"remaining":4
-		}`, resources.UserApi.ApiId))
+	require.NotEmpty(t, res.Key)
+	require.NotEmpty(t, res.KeyId)
 
-	req := httptest.NewRequest("POST", "/v1/keys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	createKeyResponse := CreateKeyResponse{}
-	err = json.Unmarshal(body, &createKeyResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createKeyResponse.Key)
-	require.NotEmpty(t, createKeyResponse.KeyId)
-
-	foundKey, found, err := resources.Database.FindKeyById(ctx, createKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, createKeyResponse.KeyId, foundKey.KeyId)
+	require.Equal(t, res.KeyId, foundKey.KeyId)
 	require.NotNil(t, foundKey.Remaining)
 	require.Equal(t, int32(4), *foundKey.Remaining)
 

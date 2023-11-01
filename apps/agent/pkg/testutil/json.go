@@ -14,24 +14,30 @@ import (
 
 type JsonRequest struct {
 	// Prints stuff using t.Log
-	Debug      bool
-	Method     string
-	Path       string
-	Body       string
-	Bearer     string
-	Response   any
-	StatusCode int
+	Debug          bool
+	Method         string
+	Path           string
+	RequestHeaders map[string]string
+	Body           string
+	Bearer         string
+	StatusCode     int
 }
 
-func Json(t *testing.T, app *fiber.App, r JsonRequest) {
+func Json[TResponse any](t *testing.T, app *fiber.App, r JsonRequest) TResponse {
 	t.Helper()
 	if r.Debug {
 		t.Logf("Request: %s %s", r.Method, r.Path)
 		t.Logf("Body: %s", r.Body)
 	}
+	require.NotEmpty(t, r.Bearer, "I bet you forgot to set the bearer token")
 	req := httptest.NewRequest(r.Method, r.Path, bytes.NewBufferString(r.Body))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.Bearer))
 	req.Header.Set("Content-Type", "application/json")
+	if r.RequestHeaders != nil {
+		for k, v := range r.RequestHeaders {
+			req.Header.Set(k, v)
+		}
+	}
 
 	res, err := app.Test(req)
 	require.NoError(t, err)
@@ -47,10 +53,11 @@ func Json(t *testing.T, app *fiber.App, r JsonRequest) {
 	if r.StatusCode != 0 {
 		require.Equal(t, r.StatusCode, res.StatusCode, "status code must match")
 	}
-	if r.Response != nil {
 
-		err = json.Unmarshal(body, &r.Response)
-		require.NoError(t, err)
-	}
+	var response TResponse
+
+	err = json.Unmarshal(body, &response)
+	require.NoError(t, err)
+	return response
 
 }

@@ -1,22 +1,16 @@
-package server
+package server_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
@@ -27,13 +21,7 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	key := &authenticationv1.Key{
 		KeyId:       uid.Key(),
@@ -44,29 +32,14 @@ func TestUpdateKey_UpdateAll(t *testing.T) {
 	}
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
-	buf := bytes.NewBufferString(`{
-		"name":"newName",
-		"ownerId": "newOwnerId",
-		"expires": null,
-		"meta": {"new": "meta"},
-		"ratelimit": {
-			"type": "fast",
-			"limit": 10,
-			"refillRate": 5,
-			"refillInterval": 1000
-		},
-		"remaining": 0
-	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, res.StatusCode, 200)
+	testutil.Json[any](t, srv.App, testutil.JsonRequest{
+		Method:     "PUT",
+		Path:       fmt.Sprintf("/v1/keys/%s", key.KeyId),
+		Body:       `{"name":"newName","ownerId": "newOwnerId","expires": null,"meta": {"new": "meta"},"ratelimit": {"type": "fast","limit": 10,"refillRate": 5,"refillInterval": 1000},"remaining": 0}`,
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
@@ -87,13 +60,7 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	key := &authenticationv1.Key{
 		KeyId:       uid.Key(),
@@ -105,24 +72,14 @@ func TestUpdateKey_UpdateOnlyRatelimit(t *testing.T) {
 	}
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
-	buf := bytes.NewBufferString(`{
-		"ratelimit": {
-			"type": "fast",
-			"limit": 10,
-			"refillRate": 5,
-			"refillInterval": 1000
-		}
-	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, res.StatusCode, 200)
+	testutil.Json[any](t, srv.App, testutil.JsonRequest{
+		Method:     "PUT",
+		Path:       fmt.Sprintf("/v1/keys/%s", key.KeyId),
+		Body:       `{"ratelimit": {"type": "fast","limit": 10,"refillRate": 5,"refillInterval": 1000}}`,
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
@@ -143,13 +100,7 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	key := &authenticationv1.Key{
 		KeyId:       uid.Key(),
@@ -162,19 +113,14 @@ func TestUpdateKey_DeleteExpires(t *testing.T) {
 
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
-	buf := bytes.NewBufferString(`{
-		"expires": null
-	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, res.StatusCode, 200)
+	testutil.Json[any](t, srv.App, testutil.JsonRequest{
+		Method:     "PUT",
+		Path:       fmt.Sprintf("/v1/keys/%s", key.KeyId),
+		Body:       `{"expires": null}`,
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
@@ -191,13 +137,7 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
 	key := &authenticationv1.Key{
 		KeyId:       uid.Key(),
@@ -211,19 +151,14 @@ func TestUpdateKey_DeleteRemaining(t *testing.T) {
 
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
-	buf := bytes.NewBufferString(`{
-		"remaining": null
-	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, res.StatusCode, 200)
+	testutil.Json[any](t, srv.App, testutil.JsonRequest{
+		Method:     "PUT",
+		Path:       fmt.Sprintf("/v1/keys/%s", key.KeyId),
+		Body:       `{"remaining": null}`,
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)
@@ -242,14 +177,7 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
-
+	srv := testutil.NewServer(t, resources)
 	key := &authenticationv1.Key{
 		KeyId:       uid.Key(),
 		KeyAuthId:   resources.UserKeyAuth.KeyAuthId,
@@ -262,19 +190,16 @@ func TestUpdateKey_UpdateShouldNotAffectUndefinedFields(t *testing.T) {
 	}
 	err := resources.Database.InsertKey(ctx, key)
 	require.NoError(t, err)
-	buf := bytes.NewBufferString(`{
-		"ownerId": "newOwnerId"
-	}`)
 
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/v1/keys/%s", key.KeyId), buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", resources.UserRootKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, res.StatusCode, 200)
+	testutil.Json[any](t, srv.App, testutil.JsonRequest{
+		Method: "PUT",
+		Path:   fmt.Sprintf("/v1/keys/%s", key.KeyId),
+		Body: `{
+			"ownerId": "newOwnerId"
+		}`,
+		Bearer:     resources.UserRootKey,
+		StatusCode: 200,
+	})
 
 	foundKey, found, err := resources.Database.FindKeyById(ctx, key.KeyId)
 	require.NoError(t, err)

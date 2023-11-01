@@ -1,4 +1,4 @@
-package server
+package server_test
 
 import (
 	"context"
@@ -6,14 +6,10 @@ import (
 	"testing"
 	"time"
 
-	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/hash"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 
 	"github.com/stretchr/testify/require"
@@ -37,15 +33,9 @@ func TestDeleteRootKey(t *testing.T) {
 	err := resources.Database.InsertKey(ctx, rootKey)
 	require.NoError(t, err)
 
-	srv := New(Config{
-		Logger:   logging.NewNoop(),
-		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache: cache.NewNoopCache[*apisv1.Api](),
-		Database: resources.Database,
-		Tracer:   tracing.NewNoop(),
-	})
+	srv := testutil.NewServer(t, resources)
 
-	testutil.Json(t, srv.app, testutil.JsonRequest{
+	testutil.Json[any](t, srv.App, testutil.JsonRequest{
 		Method:     "POST",
 		Path:       "/v1/internal.removeRootKey",
 		Body:       fmt.Sprintf(`{"keyId": "%s"}`, rootKey.KeyId),

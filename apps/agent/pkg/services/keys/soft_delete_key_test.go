@@ -1,4 +1,4 @@
-package keys
+package keys_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/events"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/keys"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 )
 
@@ -17,7 +18,7 @@ func Test_SoftDeleteKey_DeletionTimeIsSet(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database: resources.Database,
 		Events:   events.NewNoop(),
 	})
@@ -68,7 +69,7 @@ func Test_SoftDeleteKey_EmitsEvent(t *testing.T) {
 
 	e := &eventsMock{}
 
-	svc := New(Config{
+	svc := keys.New(keys.Config{
 		Database: resources.Database,
 		Events:   e,
 		KeyCache: cache.NewNoopCache[*authenticationv1.Key](),

@@ -69,9 +69,12 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, "'expires' must be in the future, did you pass in a timestamp in seconds instead of milliseconds?")
 	}
 
-	authorizedWorkspaceId, err := s.authorizeRootKey(ctx, c)
+	auth, err := s.authorizeKey(ctx, c)
 	if err != nil {
 		return errors.NewHttpError(c, errors.UNAUTHORIZED, err.Error())
+	}
+	if !auth.IsRootKey {
+		return errors.NewHttpError(c, errors.UNAUTHORIZED, "root key required")
 	}
 	// This is not cached on purpose
 	// In case you're updating the same key in rapid succession or your requests are handled by
@@ -83,7 +86,7 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	if !found {
 		return errors.NewHttpError(c, errors.NOT_FOUND, fmt.Sprintf("key %s does not exist", req.KeyId))
 	}
-	if key.WorkspaceId != authorizedWorkspaceId {
+	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
 		return errors.NewHttpError(c, errors.FORBIDDEN, "access to workspace denied")
 	}
 

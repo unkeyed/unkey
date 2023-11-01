@@ -57,7 +57,7 @@ type Config struct {
 }
 
 type Server struct {
-	app       *fiber.App
+	App       *fiber.App
 	logger    logging.Logger
 	validator *validator.Validate
 	db        database.Database
@@ -86,6 +86,7 @@ type Server struct {
 	keyService       keys.KeyService
 }
 
+// New creates a new server
 func New(config Config) *Server {
 
 	appConfig := fiber.Config{
@@ -94,7 +95,7 @@ func New(config Config) *Server {
 	}
 
 	s := &Server{
-		app:               fiber.New(appConfig),
+		App:               fiber.New(appConfig),
 		events:            config.EventBus,
 		logger:            config.Logger,
 		validator:         validator.New(),
@@ -123,13 +124,13 @@ func New(config Config) *Server {
 		s.analytics = analytics.NewNoop()
 	}
 
-	s.app.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
+	s.App.Use(recover.New(recover.Config{EnableStackTrace: true, StackTraceHandler: func(c *fiber.Ctx, err interface{}) {
 		buf := make([]byte, 2048)
 		buf = buf[:runtime.Stack(buf, false)]
 		config.Logger.Error().Any("err", err).Msg(string(buf))
 	}}))
 
-	s.app.Use(cors.New())
+	s.App.Use(cors.New())
 
 	basicAuthUser := os.Getenv("BASIC_AUTH_USER")
 	basicAuthPassword := os.Getenv("BASIC_AUTH_PASSWORD")
@@ -137,13 +138,13 @@ func New(config Config) *Server {
 		users := map[string]string{}
 		users[basicAuthUser] = basicAuthPassword
 
-		s.app.All("/debug/*", basicauth.New(basicauth.Config{
+		s.App.All("/debug/*", basicauth.New(basicauth.Config{
 			Users: users,
 		}),
 			pprof.New(),
 		)
 	}
-	s.app.Use(func(c *fiber.Ctx) error {
+	s.App.Use(func(c *fiber.Ctx) error {
 		if c.Path() == "/v1/liveness" {
 			return c.Next()
 		}
@@ -206,49 +207,49 @@ func New(config Config) *Server {
 		return err
 	})
 
-	s.app.Get("/v1/liveness", s.liveness)
+	s.App.Get("/v1/liveness", s.liveness)
 
 	// Used internally only, not covered by versioning
-	s.app.Post("/v1/internal.createRootKey", s.createRootKey)
-	s.app.Post("/v1/internal.removeRootKey", s.deleteRootKey)
+	s.App.Post("/v1/internal.createRootKey", s.createRootKey)
+	s.App.Post("/v1/internal.removeRootKey", s.deleteRootKey)
 
 	// workspaceService
-	s.app.Post("/v1/workspaces.createWorkspace", s.v1CreateWorkspace)
+	s.App.Post("/v1/workspaces.createWorkspace", s.v1CreateWorkspace)
 
 	// apiService
-	s.app.Post("/v1/apis.createApi", s.v1CreateApi)
-	s.app.Post("/v1/apis.deleteApi", s.v1DeleteApi)
-	s.app.Get("/v1/apis.findApi", s.getApi)
-	s.app.Get("/v1/apis.listKeys", s.listKeys)
+	s.App.Post("/v1/apis.createApi", s.v1CreateApi)
+	s.App.Post("/v1/apis.deleteApi", s.v1DeleteApi)
+	s.App.Get("/v1/apis.findApi", s.getApi)
+	s.App.Get("/v1/apis.listKeys", s.listKeys)
 
 	// keyService
-	s.app.Post("/v1/keys.createKey", s.v1CreateKey)
-	s.app.Post("/v1/keys.verifyKey", s.v1VerifyKey)
-	s.app.Post("/v1/keys.removeKey", s.v1RemoveKey)
-	s.app.Post("/v1/keys.updateKey", s.updateKey)
-	s.app.Get("/v1/keys.findKey", s.v1FindKey)
+	s.App.Post("/v1/keys.createKey", s.v1CreateKey)
+	s.App.Post("/v1/keys.verifyKey", s.v1VerifyKey)
+	s.App.Post("/v1/keys.removeKey", s.v1RemoveKey)
+	s.App.Post("/v1/keys.updateKey", s.updateKey)
+	s.App.Get("/v1/keys.findKey", s.v1FindKey)
 
 	// legacy
-	s.app.Post("/v1/keys", s.v1CreateKey)
-	s.app.Get("/v1/keys/:keyId", s.getKey)
-	s.app.Put("/v1/keys/:keyId", s.updateKey)
-	s.app.Delete("/v1/keys/:keyId", s.deleteKey)
-	s.app.Post("/v1/keys/verify", s.v1VerifyKey)
+	s.App.Post("/v1/keys", s.v1CreateKey)
+	s.App.Get("/v1/keys/:keyId", s.getKey)
+	s.App.Put("/v1/keys/:keyId", s.updateKey)
+	s.App.Delete("/v1/keys/:keyId", s.deleteKey)
+	s.App.Post("/v1/keys/verify", s.v1VerifyKey)
 
-	s.app.Get("/v1/apis/:apiId", s.getApi)
-	s.app.Get("/v1/apis/:apiId/keys", s.listKeys)
+	s.App.Get("/v1/apis/:apiId", s.getApi)
+	s.App.Get("/v1/apis/:apiId/keys", s.listKeys)
 
-	s.app.Post("/v1/internal/rootkeys", s.createRootKey)
+	s.App.Post("/v1/internal/rootkeys", s.createRootKey)
 
 	// experimental
-	s.app.Get("/vx/keys/:keyId/stats", s.getKeyStats)
+	s.App.Get("/vx/keys/:keyId/stats", s.getKeyStats)
 
 	return s
 }
 
 func (s *Server) Start(addr string) error {
 	s.logger.Info().Str("addr", addr).Msg("listening")
-	err := s.app.Listen(addr)
+	err := s.App.Listen(addr)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("api server error: %s", err.Error())
 	}
@@ -260,5 +261,5 @@ func (s *Server) Close() error {
 	defer cancel()
 	s.logger.Info().Msg("stopping..")
 	defer s.logger.Info().Msg("stopped")
-	return s.app.Server().ShutdownWithContext(ctx)
+	return s.App.Server().ShutdownWithContext(ctx)
 }

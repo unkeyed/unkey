@@ -1,24 +1,15 @@
-package server
+package server_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http/httptest"
+	"github.com/stretchr/testify/require"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/server"
+	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
-	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
-	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func TestRootCreateKey_Simple(t *testing.T) {
@@ -27,47 +18,24 @@ func TestRootCreateKey_Simple(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:            logging.NewNoop(),
-		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
-		Database:          resources.Database,
-		Tracer:            tracing.NewNoop(),
-		UnkeyWorkspaceId:  resources.UnkeyWorkspace.WorkspaceId,
-		UnkeyApiId:        resources.UnkeyApi.ApiId,
-		UnkeyAppAuthToken: "supersecret",
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.CreateRootKeyResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/internal/rootkeys",
+		Bearer:     resources.UnkeyAppAuthToken,
+		Body:       fmt.Sprintf(`{"name":"simple","forWorkspaceId":"%s"}`, resources.UnkeyWorkspace.WorkspaceId),
+		StatusCode: 200,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"name":"simple",
-		"forWorkspaceId":"%s"
-		}`, resources.UserWorkspace.WorkspaceId))
+	require.NotEmpty(t, res.Key)
+	require.NotEmpty(t, res.KeyId)
 
-	req := httptest.NewRequest("POST", "/v1/internal/rootkeys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", srv.unkeyAppAuthToken))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, res.StatusCode, 200)
-
-	createRootKeyResponse := CreateRootKeyResponse{}
-	err = json.Unmarshal(body, &createRootKeyResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createRootKeyResponse.Key)
-	require.NotEmpty(t, createRootKeyResponse.KeyId)
-
-	foundKey, found, err := resources.Database.FindKeyById(ctx, createRootKeyResponse.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.NoError(t, err)
 	require.True(t, found)
 
-	require.Equal(t, createRootKeyResponse.KeyId, foundKey.KeyId)
+	require.Equal(t, res.KeyId, foundKey.KeyId)
 }
 
 func TestRootCreateKey_WithExpiry(t *testing.T) {
@@ -76,49 +44,24 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 
 	resources := testutil.SetupResources(t)
 
-	srv := New(Config{
-		Logger:            logging.NewNoop(),
-		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
-		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
-		Database:          resources.Database,
-		Tracer:            tracing.NewNoop(),
-		UnkeyAppAuthToken: "supersecret",
-		UnkeyWorkspaceId:  resources.UnkeyWorkspace.WorkspaceId,
-		UnkeyApiId:        resources.UnkeyApi.ApiId,
+	srv := testutil.NewServer(t, resources)
+
+	res := testutil.Json[server.CreateRootKeyResponse](t, srv.App, testutil.JsonRequest{
+		Method:     "POST",
+		Path:       "/v1/internal/rootkeys",
+		Bearer:     resources.UnkeyAppAuthToken,
+		Body:       fmt.Sprintf(`{"name":"simple","forWorkspaceId":"%s", "expires": %d}`, resources.UnkeyWorkspace.WorkspaceId, time.Now().Add(time.Hour).UnixMilli()),
+		StatusCode: 200,
 	})
 
-	buf := bytes.NewBufferString(fmt.Sprintf(`{
-		"name":"simple",
-		"forWorkspaceId":"%s",
-		"expires": %d
-		}`, resources.UserWorkspace.WorkspaceId, time.Now().Add(time.Hour).UnixMilli()))
-
-	req := httptest.NewRequest("POST", "/v1/internal/rootkeys", buf)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", srv.unkeyAppAuthToken))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := srv.app.Test(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	require.Equal(t, 200, res.StatusCode)
-
-	createRootKeyResponse := CreateRootKeyResponse{}
-	err = json.Unmarshal(body, &createRootKeyResponse)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, createRootKeyResponse.Key)
-	require.NotEmpty(t, createRootKeyResponse.KeyId)
-
-	foundKey, found, err := resources.Database.FindKeyById(ctx, createRootKeyResponse.KeyId)
+	require.NotEmpty(t, res.Key)
+	require.NotEmpty(t, res.KeyId)
+	foundKey, found, err := resources.Database.FindKeyById(ctx, res.KeyId)
 	require.True(t, found)
 	require.NoError(t, err)
-	require.Equal(t, createRootKeyResponse.KeyId, foundKey.KeyId)
-	require.GreaterOrEqual(t, len(createRootKeyResponse.Key), 30)
-	require.True(t, strings.HasPrefix(createRootKeyResponse.Key, "unkey_"))
+	require.Equal(t, res.KeyId, foundKey.KeyId)
+	require.GreaterOrEqual(t, len(res.Key), 30)
+	require.True(t, strings.HasPrefix(res.Key, "unkey_"))
 	require.True(t, time.UnixMilli(foundKey.GetExpires()).After(time.Now()))
 
 	require.Equal(t, authenticationv1.RatelimitType_RATELIMIT_TYPE_FAST, foundKey.Ratelimit.Type)

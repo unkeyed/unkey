@@ -106,6 +106,10 @@ message VerifyKeyResponse {
   string code = 7;
   // Human readable error message
   optional string error = 8;
+
+  bool is_root_key = 9;
+  // the workspace of the user, even if this is a root key
+  string authorized_workspace_id = 10;
 }
 message RatelimitResponse {
   int32 limit = 1 [(buf.validate.field).int32.gte = 1];

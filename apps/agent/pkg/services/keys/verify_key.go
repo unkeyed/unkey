@@ -19,11 +19,11 @@ import (
 )
 
 func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.VerifyKeyRequest) (*authenticationv1.VerifyKeyResponse, error) {
-
 	if req.Key == "" {
 		return nil, errors.New(errors.ErrBadRequest, fmt.Errorf("key is required"))
 	}
 
+	s.logger.Debug().Str("key", req.Key).Msg("verifying key")
 	keyHash := hash.Sha256(req.Key)
 	key, hit := s.keyCache.Get(ctx, keyHash)
 	if hit == cache.Null {
@@ -34,6 +34,7 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 	}
 
 	if hit == cache.Miss {
+		s.logger.Debug().Str("key", req.Key).Msg("key not found in cache, fetching from db")
 		var found bool
 		var err error
 		key, found, err = s.db.FindKeyByHash(ctx, keyHash)
@@ -115,8 +116,15 @@ func (s *keyService) VerifyKey(ctx context.Context, req *authenticationv1.Verify
 		sp.End()
 	}
 	res := &authenticationv1.VerifyKeyResponse{
-		Valid:   true,
-		OwnerId: key.OwnerId,
+		Valid:     true,
+		OwnerId:   key.OwnerId,
+		IsRootKey: key.ForWorkspaceId != nil,
+	}
+	// key.AuthorizedWorkspaceId must always be the user's workspace id, not ours
+	if res.IsRootKey {
+		res.AuthorizedWorkspaceId = key.GetForWorkspaceId()
+	} else {
+		res.AuthorizedWorkspaceId = key.GetWorkspaceId()
 	}
 
 	if key.Meta != nil {
