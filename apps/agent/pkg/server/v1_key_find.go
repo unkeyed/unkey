@@ -6,7 +6,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 )
 
 type GetKeyRequestV1 struct {
@@ -35,28 +34,16 @@ func (s *Server) v1GetKey(c *fiber.Ctx) error {
 		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 
-	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
+	keyRes, err := s.keyService.GetKey(ctx, &authenticationv1.GetKeyRequest{
+		KeyId: req.KeyId,
+	})
 	if err != nil {
-		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
+		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to get key: %s", err.Error()))
 	}
-	if !found {
-		return newHttpError(c, NOT_FOUND, fmt.Sprintf("key %s not found", req.KeyId))
-	}
-	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return newHttpError(c, UNAUTHORIZED, "workspace access denied")
-	}
-	api, found, err := cache.WithCache(s.apiCache, s.db.FindApiByKeyAuthId)(ctx, key.KeyAuthId)
-	if err != nil {
-		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find api: %s", err.Error()))
-	}
-	if !found {
+	key := keyRes.GetKey()
 
-		return newHttpError(c, NOT_FOUND, fmt.Sprintf("unable to find api: %s", err.Error()))
-	}
-
-	res := GetKeyResponse{
+	res := GetKeyResponseV1{
 		Id:             key.KeyId,
-		ApiId:          api.ApiId,
 		WorkspaceId:    key.WorkspaceId,
 		Name:           key.GetName(),
 		Start:          key.Start,

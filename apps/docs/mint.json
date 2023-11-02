@@ -113,6 +113,7 @@
           "pages": [
             "api-reference/keys/create",
             "api-reference/keys/verify",
+            "api-reference/keys/get",
             "api-reference/keys/update",
             "api-reference/keys/delete"
           ]

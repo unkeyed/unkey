@@ -1,97 +1,126 @@
 ---
-title: "Update Key"
-description: "Update the configuration of a key"
-api: "POST /v1/keys.updateKey"
+title: "Get Key"
+description: "Retrieve a key by its ID"
+api: "GET /v1/keys.getKey"
 authMethod: "bearer"
 ---
 
-You can update or change the configuration of a key even after it was created. Maybe you need to update the name or change the owner.
-Or even refill the remaining requests.
-
-All json fields are optional, so you can update only the fields you need.
-To delete a field, set it to `null`.
+Retrieve a key to get its current config and state.
 
 ## Request
 
-<ParamField body="keyId" type="string" required>
-  The ID of the key you want to revoke.
+<ParamField query="keyId" type="string" required>
+  The ID of the key you want to retrieve.
 </ParamField>
 
-<ParamField body="name" type="string | null">
+
+## Response
+
+<ResponseField name="id" type="string" required>
+  The unique ID of the key. This is not the key itself and can be stored or shared safely.
+</ResponseField>
+
+
+<ResponseField name="apiId" type="string" required>
+ The unique ID of the API this key is for.
+</ResponseField>
+
+
+<ResponseField name="workspaceId" type="string" required>
+ The unique ID of the workspace this key is for.
+</ResponseField>
+
+<ResponseField name="start" type="string" required>
+  The first few characters of the key to visually match it.
+</ResponseField>
+
+<ResponseField name="name" type="string">
   Update the name of the key.
-</ParamField>
+</ResponseField>
 
-<ParamField body="ownerId" type="string | null">
+<ResponseField name="ownerId" type="string">
   Update the owner id of the key.
-</ParamField>
+</ResponseField>
 
-<ParamField body="meta" type="JSON | null">
+<ResponseField name="meta" type="JSON">
   Update the metadata of a key. You will have to provide the full metadata
   object, not just the fields you want to update.
-</ParamField>
-
-<ParamField body="expires" type="int | null">
+</ResponseField>
+<ResponseField name="createdAt" type="int" requried>
+  A unix timestamp in milliseconds of when the key was created.
+</ResponseField>
+<ResponseField name="expires" type="int">
   Update the expire time of a key.
 
 The expire time is a unix timestamp in milliseconds.
 
-</ParamField>
+</ResponseField>
 
-<ParamField body="ratelimit" type="Object | null" >
+<ResponseField name="ratelimit" type="Object" >
 
 Unkey comes with per-key ratelimiting out of the box.
 
   <Expandable title="properties">
 
-  <ParamField body="type" type="string" required>
+  <ResponseField name="type" type="string" required>
   Either `fast` or `consistent`.
 
 Read more [here](/features/ratelimiting)
 
-  </ParamField>
-  <ParamField body="limit" type="int" required>
+  </ResponseField>
+  <ResponseField name="limit" type="int" required>
   The total amount of burstable requests.
 
-  </ParamField>
-  <ParamField body="refillRate" type="int" required>
+  </ResponseField>
+  <ResponseField name="refillRate" type="int" required>
   How many tokens to refill during each `refillInterval`
-  </ParamField>
-  <ParamField body="refillInterval" type="int" required>
+  </ResponseField>
+  <ResponseField name="refillInterval" type="int" required>
   Determines the speed at which tokens are refilled.
 
 In milliseconds
 
-  </ParamField>
+  </ResponseField>
  </Expandable>
-</ParamField>
+</ResponseField>
 
-<ParamField body="remaining" type="int | null">
-  Update the remaining usage of a key.
+<ResponseField name="remaining" type="int">
+  How many verifications are left for this key before it is invalidated.
+</ResponseField>
 
-</ParamField>
 
-## Response
-
-`200 OK`
 
 <RequestExample>
 
 ```sh
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.updateKey \
-  --header 'Authorization: Bearer <UNKEY>' \
-  --header 'Content-Type: application/json' \
-  -d '{
-    "keyId": "<KEY_ID>"
-    "name": "new name",
-  }'
+  --url https://api.unkey.dev/v1/keys.getKey?keyId=<KEY_ID> \
+  --header 'Authorization: Bearer <UNKEY>'
 ```
 
 </RequestExample>
 
 <ResponseExample>
-```
-OK
+```json 200
+{
+  "id": "key_123",
+  "apiId": "api_123",
+  "workspaceId": "workspace_123",
+  "name": "My Key",
+  "ownerId": "user_123",
+  "meta": {
+    "foo": "bar"
+  },
+  "createdAt": 1630483200000,
+  "expires": 1630483300000,
+  "ratelimit": {
+    "type": "fast",
+    "limit": 100,
+    "refillRate": 10,
+    "refillInterval": 1000
+  },
+  "remaining": 100
+}
 ```
 
 </ResponseExample>

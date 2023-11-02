@@ -1,21 +1,21 @@
 ---
 title: "List Keys"
 description: "Retrieve all keys belonging to an API"
-api: "GET /v1/apis/:apiId/keys"
+api: "GET /v1/apis.listKeys"
 authMethod: "bearer"
 ---
 
 ## Request
 
-<ParamField path="apiId" type="string" required>
+<ParamField query="apiId" type="string" required>
   The ID of the api you want to retrieve.
 </ParamField>
 
-<ParamField query="limit" type="int" default="100">
+<ParamField query="limit" type="int" default={100}>
   Limit the number of returned keys, the maximum is 100.
 </ParamField>
 
-<ParamField query="offset" type="int" default="0">
+<ParamField query="offset" type="int" default={0}>
 Specify an offset for pagination.
 
 _Example:_
@@ -137,11 +137,26 @@ In milliseconds
 
 <RequestExample>
 
-```sh
+```sh Basic
 curl \
-  --url https://api.unkey.dev/v1/apis/api_123/keys \
+  --url https://api.unkey.dev/v1/apis.listKeys?apiId=<API_ID> \
   --header 'Authorization: Bearer <UNKEY>'
 ```
+
+
+```sh Filter by ownerId
+curl \
+  --url https://api.unkey.dev/v1/apis.listKeys?apiId=<API_ID>&ownerId=<OWNER_ID> \
+  --header 'Authorization: Bearer <UNKEY>'
+```
+
+```sh Pagination
+curl \
+  --url https://api.unkey.dev/v1/apis.listKeys?apiId=<API_ID>&limit=10&offset=20 \
+  --header 'Authorization: Bearer <UNKEY>'
+```
+
+
 
 </RequestExample>
 

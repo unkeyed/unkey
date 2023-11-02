@@ -1,0 +1,97 @@
+---
+title: "Update Key"
+description: "Update the configuration of a key"
+api: "POST /v1/keys.updateKey"
+authMethod: "bearer"
+---
+
+You can update or change the configuration of a key even after it was created. Maybe you need to update the name or change the owner.
+Or even refill the remaining requests.
+
+All json fields are optional, so you can update only the fields you need.
+To delete a field, set it to `null`.
+
+## Request
+
+<ParamField body="keyId" type="string" required>
+  The ID of the key you want to revoke.
+</ParamField>
+
+<ParamField body="name" type="string | null">
+  Update the name of the key.
+</ParamField>
+
+<ParamField body="ownerId" type="string | null">
+  Update the owner id of the key.
+</ParamField>
+
+<ParamField body="meta" type="JSON | null">
+  Update the metadata of a key. You will have to provide the full metadata
+  object, not just the fields you want to update.
+</ParamField>
+
+<ParamField body="expires" type="int | null">
+  Update the expire time of a key.
+
+The expire time is a unix timestamp in milliseconds.
+
+</ParamField>
+
+<ParamField body="ratelimit" type="Object | null" >
+
+Unkey comes with per-key ratelimiting out of the box.
+
+  <Expandable title="properties">
+
+  <ParamField body="type" type="string" required>
+  Either `fast` or `consistent`.
+
+Read more [here](/features/ratelimiting)
+
+  </ParamField>
+  <ParamField body="limit" type="int" required>
+  The total amount of burstable requests.
+
+  </ParamField>
+  <ParamField body="refillRate" type="int" required>
+  How many tokens to refill during each `refillInterval`
+  </ParamField>
+  <ParamField body="refillInterval" type="int" required>
+  Determines the speed at which tokens are refilled.
+
+In milliseconds
+
+  </ParamField>
+ </Expandable>
+</ParamField>
+
+<ParamField body="remaining" type="int | null">
+  Update the remaining usage of a key.
+
+</ParamField>
+
+## Response
+
+`200 OK`
+
+<RequestExample>
+
+```sh
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateKey \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  -d '{
+    "keyId": "<KEY_ID>"
+    "name": "new name",
+  }'
+```
+
+</RequestExample>
+
+<ResponseExample>
+```
+OK
+```
+
+</ResponseExample>

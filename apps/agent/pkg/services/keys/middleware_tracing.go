@@ -53,3 +53,14 @@ func (mw *tracingMiddleware) VerifyKey(ctx context.Context, req *authenticationv
 	}
 	return res, err
 }
+
+func (mw *tracingMiddleware) GetKey(ctx context.Context, req *authenticationv1.GetKeyRequest) (*authenticationv1.GetKeyResponse, error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("workspaces", "GetKey"))
+	defer span.End()
+
+	res, err := mw.next.GetKey(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}

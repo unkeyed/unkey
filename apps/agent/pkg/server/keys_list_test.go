@@ -76,17 +76,17 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 	}
 
-	successResponse := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
+	res := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})
 
-	require.GreaterOrEqual(t, successResponse.Total, int64(len(createdKeyIds)))
-	require.Equal(t, 5, len(successResponse.Keys))
-	require.LessOrEqual(t, len(successResponse.Keys), 100) //  default page size
+	require.GreaterOrEqual(t, res.Total, int64(len(createdKeyIds)))
+	require.Equal(t, 5, len(res.Keys))
+	require.LessOrEqual(t, len(res.Keys), 100) //  default page size
 
-	for _, key := range successResponse.Keys {
+	for _, key := range res.Keys {
 		require.Equal(t, "chronark", key.OwnerId)
 	}
 

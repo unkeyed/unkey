@@ -1,13 +1,13 @@
 ---
 title: "Get API"
 description: "Retrieve information about an api"
-api: "GET /v1/apis/:apiId"
+api: "GET /v1/apis.getApi"
 authMethod: "bearer"
 ---
 
 ## Request
 
-<ParamField path="apiId" type="string" required>
+<ParamField query="apiId" type="string" required>
   The ID of the api you want to retrieve.
 </ParamField>
 
@@ -29,7 +29,7 @@ authMethod: "bearer"
 
 ```sh
 curl \
-  --url https://api.unkey.dev/v1/apis/api_123 \
+  --url https://api.unkey.dev/v1/apis.getApi?apiId=<API_ID> \
   --header 'Authorization: Bearer <UNKEY>'
 ```
 

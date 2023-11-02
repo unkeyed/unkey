@@ -48,3 +48,12 @@ func (mw *loggingMiddleware) VerifyKey(ctx context.Context, req *authenticationv
 	mw.logger.Info().Str("method", "VerifyKey").Err(err).Int64("latency", time.Since(start).Milliseconds()).Msg("mw.KeyService")
 	return res, err
 }
+
+func (mw *loggingMiddleware) GetKey(ctx context.Context, req *authenticationv1.GetKeyRequest) (*authenticationv1.GetKeyResponse, error) {
+	mw.logger.Info().Str("method", "GetKey").Msg("called")
+	start := time.Now()
+
+	res, err := mw.next.GetKey(ctx, req)
+	mw.logger.Info().Str("method", "VerifyKey").Err(err).Int64("latency", time.Since(start).Milliseconds()).Msg("mw.KeyService")
+	return res, err
+}

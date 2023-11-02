@@ -19,6 +19,7 @@ type KeyService interface {
 	VerifyKey(context.Context, *authenticationv1.VerifyKeyRequest) (*authenticationv1.VerifyKeyResponse, error)
 	CreateKey(context.Context, *authenticationv1.CreateKeyRequest) (*authenticationv1.CreateKeyResponse, error)
 	SoftDeleteKey(context.Context, *authenticationv1.SoftDeleteKeyRequest) (*authenticationv1.SoftDeleteKeyResponse, error)
+	GetKey(context.Context, *authenticationv1.GetKeyRequest) (*authenticationv1.GetKeyResponse, error)
 }
 
 type Database interface {

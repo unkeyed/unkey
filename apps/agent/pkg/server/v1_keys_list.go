@@ -64,6 +64,7 @@ func (s *Server) v1ListKeys(c *fiber.Ctx) error {
 	if !auth.IsRootKey {
 		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
+
 	api, found, err := cache.WithCache(s.apiCache, s.db.FindApi)(ctx, req.ApiId)
 	if err != nil {
 		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())

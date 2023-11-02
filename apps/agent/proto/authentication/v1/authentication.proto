@@ -117,3 +117,12 @@ message RatelimitResponse {
   int32 remaining = 2 [(buf.validate.field).int32.gte = 1];
   int64 reset_at = 3 [(buf.validate.field).int64.gte = 1];
 }
+
+message GetKeyRequest {
+  string key_id = 1 [(buf.validate.field).string.min_len = 1];
+  string authorized_workspace_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message GetKeyResponse {
+  Key key = 1;
+}
