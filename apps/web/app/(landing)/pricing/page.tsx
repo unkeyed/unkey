@@ -112,7 +112,7 @@ export default async function PricingPage() {
                       {tiers[tier].name}
                     </h1>
                   </div>
-                  <p className="mt-4 min-h-[3rem] text-sm leading-6 text-gray-600">
+                  <p className="mt-4 min-h-[3rem] text-sm leading-6 text-gray-600 tex">
                     {tiers[tier].description}
                   </p>
                   <p className="flex items-center mx-auto mt-6 gap-x-1">
