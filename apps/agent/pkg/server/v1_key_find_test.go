@@ -35,7 +35,7 @@ func TestKeyFindV1_Simple(t *testing.T) {
 	require.NoError(t, err)
 
 	res := testutil.Json[server.GetKeyResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "GET",
+
 		Path:       fmt.Sprintf("/v1/keys/%s", key.KeyId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,

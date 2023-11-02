@@ -36,7 +36,7 @@ func TestDeleteRootKey(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	testutil.Json[any](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/internal.removeRootKey",
 		Body:       fmt.Sprintf(`{"keyId": "%s"}`, rootKey.KeyId),
 		Bearer:     resources.UserRootKey,

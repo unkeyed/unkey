@@ -45,7 +45,7 @@ func TestVerifyKey_Simple(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -74,7 +74,7 @@ func TestVerifyKey_ReturnErrorForBadRequest(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"somethingelse":"%s"}`, key),
 		StatusCode: 400,
@@ -104,7 +104,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 	successRes := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -117,7 +117,7 @@ func TestVerifyKey_WithTemporaryKey(t *testing.T) {
 	time.Sleep(time.Second * 10)
 
 	errorRes := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -151,7 +151,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 	res1 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -167,7 +167,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	// second request
 
 	res2 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -183,7 +183,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	// third request
 
 	res3 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -198,7 +198,7 @@ func TestVerifyKey_WithRatelimit(t *testing.T) {
 	// wait and try again in the next window
 	time.Sleep(time.Until(time.UnixMilli(res3.Ratelimit.Reset)))
 	res4 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -248,7 +248,7 @@ func TestVerifyKey_WithIpWhitelist_Pass(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -297,7 +297,7 @@ func TestVerifyKey_WithIpWhitelist_Blocked(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -334,7 +334,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	for i := 9; i >= 0; i-- {
 
 		res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-			Method:     "POST",
+
 			Path:       "/v1/keys.verifyKey",
 			Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 			StatusCode: 200,
@@ -348,7 +348,7 @@ func TestVerifyKey_WithRemaining(t *testing.T) {
 	// now it should be all used up and no longer valid
 
 	res2 := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,
@@ -413,7 +413,7 @@ func TestVerifyKey_ShouldReportUsageWhenUsageExceeded(t *testing.T) {
 	})
 
 	res := testutil.Json[server.VerifyKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys.verifyKey",
 		Body:       fmt.Sprintf(`{"key":"%s"}`, key),
 		StatusCode: 200,

@@ -1,7 +1,7 @@
 ---
 title: "Verify Key"
 description: "Verify a key"
-api: "POST /v1/keys/verify"
+api: "POST /v1/keys.verifyKey"
 ---
 
 Verify a key from your users. Notice how this endpoint does not require an Unkey api key. You only need to send the api key from your user.
@@ -86,7 +86,7 @@ Example:
 
 ```sh
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys/verify \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
     "key":"xyz_AS5HDkXXPot2MMoPHD8jnL"

@@ -18,12 +18,7 @@ func (s *Server) v1CreateApi(c *fiber.Ctx) error {
 	defer span.End()
 	req := CreateApiRequest{}
 
-	err := c.BodyParser(&req)
-	if err != nil {
-		return newHttpError(c, BAD_REQUEST, err.Error())
-	}
-
-	err = s.validator.Struct(req)
+	err := s.parseAndValidate(c, &req)
 	if err != nil {
 		return newHttpError(c, BAD_REQUEST, err.Error())
 	}

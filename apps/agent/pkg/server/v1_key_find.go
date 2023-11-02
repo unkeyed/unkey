@@ -15,7 +15,7 @@ type GetKeyRequestV1 struct {
 
 type GetKeyResponseV1 = keyResponse
 
-func (s *Server) v1FindKey(c *fiber.Ctx) error {
+func (s *Server) v1GetKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.v1FindKey")
 	defer span.End()
 	req := GetKeyRequest{

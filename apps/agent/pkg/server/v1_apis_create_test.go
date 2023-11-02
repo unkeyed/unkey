@@ -18,7 +18,7 @@ func TestV1ApisCreate(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.CreateApiResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/apis.createApi",
 		Bearer:     resources.UserRootKey,
 		Body:       `{ "name":"simple" }`,
@@ -44,7 +44,7 @@ func TestV1ApisCreate_RejectsUnauthorized(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/apis.createApi",
 		Bearer:     "invalid_key",
 		Body:       `{ "name":"simple" }`,

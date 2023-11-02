@@ -1,10 +1,7 @@
 package server
 
 import (
-	"fmt"
-
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/events"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,7 +9,7 @@ import (
 func (s *Server) deleteKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.deleteKey")
 	defer span.End()
-	req := RemoveKeyRequestV1{}
+	req := DeleteKeyRequestV1{}
 	err := c.ParamsParser(&req)
 	if err != nil {
 		return newHttpError(c, BAD_REQUEST, err.Error())
@@ -30,29 +27,11 @@ func (s *Server) deleteKey(c *fiber.Ctx) error {
 	if !auth.IsRootKey {
 		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
-	key, found, err := cache.WithCache(s.keyCache, s.db.FindKeyById)(ctx, req.KeyId)
+
+	_, err = s.keyService.SoftDeleteKey(ctx, &authenticationv1.SoftDeleteKeyRequest{KeyId: req.KeyId, AuthorizedWorkspaceId: auth.AuthorizedWorkspaceId})
 	if err != nil {
-		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to find key: %s", err.Error()))
-	}
-	if !found {
-		return newHttpError(c, NOT_FOUND, fmt.Sprintf("unable to find key: %s", req.KeyId))
-	}
-	if key.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return newHttpError(c, UNAUTHORIZED, "access to workspace denied")
+		return fromServiceError(c, err)
 	}
 
-	err = s.db.SoftDeleteKey(ctx, key.KeyId)
-	if err != nil {
-		return newHttpError(c, INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to delete key: %s", err.Error()))
-	}
-
-	s.events.EmitKeyEvent(ctx, events.KeyEvent{
-		Type: events.KeyDeleted,
-		Key: events.Key{
-			Id:   key.KeyId,
-			Hash: key.Hash,
-		},
-	})
-
-	return c.JSON(RemoveKeyResponseV1{})
+	return c.JSON(DeleteKeyResponseV1{})
 }

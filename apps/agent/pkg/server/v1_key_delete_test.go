@@ -33,9 +33,9 @@ func TestV1RemoveKey(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 
-	testutil.Json[server.RemoveKeyResponseV1](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
-		Path:       "/v1/keys.removeKey",
+	testutil.Json[server.DeleteKeyResponseV1](t, srv.App, testutil.JsonRequest{
+
+		Path:       "/v1/keys.deleteKey",
 		Body:       fmt.Sprintf(`{"keyId": "%s"}`, key.KeyId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,

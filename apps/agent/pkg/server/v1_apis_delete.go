@@ -17,12 +17,7 @@ func (s *Server) v1DeleteApi(c *fiber.Ctx) error {
 	defer span.End()
 	req := DeleteApiRequest{}
 
-	err := c.BodyParser(&req)
-	if err != nil {
-		return newHttpError(c, BAD_REQUEST, err.Error())
-	}
-
-	err = s.validator.Struct(req)
+	err := s.parseAndValidate(c, &req)
 	if err != nil {
 		return newHttpError(c, BAD_REQUEST, err.Error())
 	}
@@ -35,17 +30,7 @@ func (s *Server) v1DeleteApi(c *fiber.Ctx) error {
 		return newHttpError(c, UNAUTHORIZED, "root key required")
 	}
 
-	api, found, err := s.db.FindApi(ctx, req.ApiId)
-	if err != nil {
-		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
-	}
-	if !found {
-		return newHttpError(c, NOT_FOUND, "api not found")
-	}
-	if api.WorkspaceId != auth.AuthorizedWorkspaceId {
-		return newHttpError(c, UNAUTHORIZED, "access to workspace denied")
-	}
-	_, err = s.apiService.DeleteApi(ctx, &apisv1.DeleteApiRequest{ApiId: req.ApiId})
+	_, err = s.apiService.DeleteApi(ctx, &apisv1.DeleteApiRequest{ApiId: req.ApiId, AuthorizedWorkspaceId: auth.AuthorizedWorkspaceId})
 	if err != nil {
 		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}

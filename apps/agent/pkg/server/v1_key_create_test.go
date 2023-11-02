@@ -22,7 +22,7 @@ func TestCreateKey_Simple(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys",
 		Bearer:     resources.UserRootKey,
 		Body:       fmt.Sprintf(`{"apiId":"%s"}`, resources.UserApi.ApiId),
@@ -46,7 +46,7 @@ func TestCreateKey_RejectInvalidRatelimitTypes(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys",
 		Bearer:     resources.UserRootKey,
 		Body:       fmt.Sprintf(`{"apiId":"%s", "ratelimit": {"type": "x"}}`, resources.UserApi.ApiId),
@@ -65,7 +65,7 @@ func TestCreateKey_StartIncludesPrefix(t *testing.T) {
 
 	srv := testutil.NewServer(t, resources)
 	res := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/keys",
 		Bearer:     resources.UserRootKey,
 		Body:       fmt.Sprintf(`{"apiId":"%s", "byteLength": 32, "prefix": "test"}`, resources.UserApi.ApiId),

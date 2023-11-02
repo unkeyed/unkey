@@ -219,15 +219,15 @@ func New(config Config) *Server {
 	// apiService
 	s.App.Post("/v1/apis.createApi", s.v1CreateApi)
 	s.App.Post("/v1/apis.deleteApi", s.v1DeleteApi)
-	s.App.Get("/v1/apis.findApi", s.getApi)
-	s.App.Get("/v1/apis.listKeys", s.listKeys)
+	s.App.Get("/v1/apis.getApi", s.v1FindApi)
+	s.App.Get("/v1/apis.listKeys", s.v1ListKeys)
 
 	// keyService
 	s.App.Post("/v1/keys.createKey", s.v1CreateKey)
 	s.App.Post("/v1/keys.verifyKey", s.v1VerifyKey)
-	s.App.Post("/v1/keys.removeKey", s.v1RemoveKey)
-	s.App.Post("/v1/keys.updateKey", s.updateKey)
-	s.App.Get("/v1/keys.findKey", s.v1FindKey)
+	s.App.Post("/v1/keys.deleteKey", s.v1DeleteKey)
+	s.App.Post("/v1/keys.updateKey", s.v1UpdateKey)
+	s.App.Get("/v1/keys.getKey", s.v1GetKey)
 
 	// legacy
 	s.App.Post("/v1/keys", s.v1CreateKey)

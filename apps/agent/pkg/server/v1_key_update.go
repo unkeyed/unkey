@@ -11,7 +11,37 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func (s *Server) updateKey(c *fiber.Ctx) error {
+// nullish is a wrapper to allow a value to be optional or null
+// It's optional if `Defined` is false. In that case you should not check `Value`
+// The idea is to represent the following typescript type `T | undefined | null`
+type nullish[T any] struct {
+	Defined bool
+	Value   *T
+}
+
+func (m *nullish[T]) UnmarshalJSON(data []byte) error {
+	m.Defined = true
+	return json.Unmarshal(data, &m.Value)
+}
+
+type UpdateKeyRequest struct {
+	KeyId     string                  `json:"keyId" validate:"required"`
+	Name      nullish[string]         `json:"name"`
+	OwnerId   nullish[string]         `json:"ownerId"`
+	Meta      nullish[map[string]any] `json:"meta"`
+	Expires   nullish[int64]          `json:"expires"`
+	Ratelimit nullish[struct {
+		Type           string `json:"type" validate:"required"`
+		Limit          int32  `json:"limit" validate:"required"`
+		RefillRate     int32  `json:"refillRate" validate:"required"`
+		RefillInterval int32  `json:"refillInterval" validate:"required"`
+	}] `json:"ratelimit"`
+	Remaining nullish[int32] `json:"remaining"`
+}
+
+type UpdateKeyResponse struct{}
+
+func (s *Server) v1UpdateKey(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.updateKey")
 	defer span.End()
 

@@ -1,7 +1,7 @@
 ---
 title: "Update Key"
 description: "Update the configuration of a key"
-api: "PUT /v1/keys/:keyId"
+api: "POST /v1/keys.updateKey"
 authMethod: "bearer"
 ---
 
@@ -13,7 +13,7 @@ To delete a field, set it to `null`.
 
 ## Request
 
-<ParamField path="keyId" type="string" required>
+<ParamField body="keyId" type="string" required>
   The ID of the key you want to revoke.
 </ParamField>
 
@@ -77,11 +77,12 @@ In milliseconds
 <RequestExample>
 
 ```sh
-curl --request PUT \
-  --url https://api.unkey.dev/v1/keys/key_123 \
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   -d '{
+    "keyId": "<KEY_ID>"
     "name": "new name",
   }'
 ```

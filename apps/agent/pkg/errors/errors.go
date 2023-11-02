@@ -26,19 +26,19 @@ var (
 	ErrNotUnique           = errors.New("NOT_UNIQUE")
 )
 
-type Error struct {
-	CodeError    error
-	ServiceError error
+type ServiceError struct {
+	Code    error
+	Message error
 }
 
-func (e Error) Error() string {
-	return errors.Join(e.CodeError, e.ServiceError).Error()
+func (e ServiceError) Error() string {
+	return errors.Join(e.Code, e.Message).Error()
 }
 
 func New(code error, service error) error {
-	return Error{
-		CodeError:    code,
-		ServiceError: service,
+	return ServiceError{
+		Code:    code,
+		Message: service,
 	}
 
 }

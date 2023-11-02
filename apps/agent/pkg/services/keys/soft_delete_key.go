@@ -20,6 +20,10 @@ func (s *keyService) SoftDeleteKey(ctx context.Context, req *authenticationv1.So
 		return nil, errors.New(errors.ErrNotFound, fmt.Errorf("key not found"))
 	}
 
+	if key.WorkspaceId != req.GetAuthorizedWorkspaceId() {
+		return nil, errors.New(errors.ErrUnauthorized, fmt.Errorf("access to workspace denied"))
+	}
+
 	err = s.db.SoftDeleteKey(ctx, key.KeyId)
 	if err != nil {
 		return nil, err

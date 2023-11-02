@@ -40,7 +40,8 @@ func Test_SoftDeleteKey_DeletionTimeIsSet(t *testing.T) {
 	require.Nil(t, key.DeletedAt)
 
 	_, err = svc.SoftDeleteKey(ctx, &authenticationv1.SoftDeleteKeyRequest{
-		KeyId: res.KeyId,
+		KeyId:                 res.KeyId,
+		AuthorizedWorkspaceId: resources.UserWorkspace.WorkspaceId,
 	})
 	require.NoError(t, err)
 
@@ -92,7 +93,8 @@ func Test_SoftDeleteKey_EmitsEvent(t *testing.T) {
 	require.Nil(t, key.DeletedAt)
 
 	_, err = svc.SoftDeleteKey(ctx, &authenticationv1.SoftDeleteKeyRequest{
-		KeyId: res.KeyId,
+		KeyId:                 res.KeyId,
+		AuthorizedWorkspaceId: resources.UserWorkspace.WorkspaceId,
 	})
 	require.NoError(t, err)
 

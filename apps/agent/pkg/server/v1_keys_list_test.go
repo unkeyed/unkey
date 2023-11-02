@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func TestListKeys_Simple(t *testing.T) {
+func TestV1ListKeys_Simple(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
@@ -40,7 +40,7 @@ func TestListKeys_Simple(t *testing.T) {
 
 	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
 
-		Path:       fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId),
+		Path:       fmt.Sprintf("/v1/apis.listKeys?apiId=%s", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})
@@ -51,7 +51,7 @@ func TestListKeys_Simple(t *testing.T) {
 
 }
 
-func TestListKeys_FilterOwnerId(t *testing.T) {
+func TestV1ListKeys_FilterOwnerId(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
@@ -79,7 +79,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
 
-		Path:       fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.ApiId),
+		Path:       fmt.Sprintf("/v1/apis.listKeys?apiId=%s", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})
@@ -94,7 +94,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 }
 
-func TestListKeys_WithLimit(t *testing.T) {
+func TestV1ListKeys_WithLimit(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
@@ -115,9 +115,8 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 	}
 
-	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
-		Path:       fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.ApiId),
+	successResponse := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
+		Path:       fmt.Sprintf("/v1/apis.listKeys?apiId=%s", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})
@@ -127,7 +126,7 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 }
 
-func TestListKeys_WithOffset(t *testing.T) {
+func TestV1ListKeys_WithOffset(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
@@ -149,9 +148,8 @@ func TestListKeys_WithOffset(t *testing.T) {
 
 	}
 
-	res1 := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
-		Path:       fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId),
+	res1 := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
+		Path:       fmt.Sprintf("/v1/apis.listKeys?apiId=%s", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})
@@ -159,9 +157,9 @@ func TestListKeys_WithOffset(t *testing.T) {
 	require.GreaterOrEqual(t, res1.Total, int64(len(createdKeyIds)))
 	require.GreaterOrEqual(t, 10, len(res1.Keys))
 
-	res2 := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
+	res2 := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 
-		Path:       fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.ApiId),
+		Path:       fmt.Sprintf("/v1/apis.listKeys?apiId=%s", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})

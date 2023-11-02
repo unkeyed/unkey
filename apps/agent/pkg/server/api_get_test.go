@@ -53,15 +53,14 @@ func TestGetApi_NotFound(t *testing.T) {
 
 	fakeApiId := uid.Api()
 
-	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "GET",
+	res := testutil.Get[server.ErrorResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s", fakeApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 404,
 	})
 
 	require.Equal(t, "NOT_FOUND", res.Error.Code)
-	require.Equal(t, fmt.Sprintf("unable to find api: %s", fakeApiId), res.Error.Message)
+	require.Equal(t, fmt.Sprintf("api %s does not exist", fakeApiId), res.Error.Message)
 
 }
 

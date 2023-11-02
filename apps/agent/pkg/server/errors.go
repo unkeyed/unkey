@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/errors"
 )
 
 type ErrorCode = string
@@ -76,4 +77,30 @@ func newHttpError(c *fiber.Ctx, code ErrorCode, message string) error {
 	}
 	res.Error.Docs = fmt.Sprintf("https://unkey.dev/docs/api-reference/errors/code/%s", code)
 	return c.Status(status).JSON(res)
+}
+
+func fromServiceError(c *fiber.Ctx, err error) error {
+	var svcErr errors.ServiceError
+	if errors.As(err, &svcErr) {
+		switch svcErr.Code {
+		case errors.ErrNotFound:
+			return newHttpError(c, NOT_FOUND, svcErr.Message.Error())
+		case errors.ErrBadRequest:
+			return newHttpError(c, BAD_REQUEST, svcErr.Message.Error())
+		case errors.ErrUnauthorized:
+			return newHttpError(c, UNAUTHORIZED, svcErr.Message.Error())
+		case errors.ErrForbidden:
+			return newHttpError(c, FORBIDDEN, svcErr.Message.Error())
+		case errors.ErrKeyUsageExceeded:
+			return newHttpError(c, KEY_USAGE_EXCEEDED, svcErr.Message.Error())
+		case errors.ErrRatelimited:
+			return newHttpError(c, RATELIMITED, svcErr.Message.Error())
+		case errors.ErrNotUnique:
+			return newHttpError(c, NOT_UNIQUE, svcErr.Message.Error())
+		default:
+			return newHttpError(c, INTERNAL_SERVER_ERROR, svcErr.Message.Error())
+		}
+	}
+
+	return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 }

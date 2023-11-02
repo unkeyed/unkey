@@ -7,22 +7,22 @@ import (
 	apisv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/apis/v1"
 )
 
-type GetApiRequest struct {
+type FindApiRequestV1 struct {
 	ApiId string `json:"apiId" validate:"required"`
 }
 
-type GetApiResponse struct {
+type GetApiResponseV1 struct {
 	Id          string   `json:"id"`
 	Name        string   `json:"name"`
 	WorkspaceId string   `json:"workspaceId"`
 	IpWhitelist []string `json:"ipWhitelist,omitempty"`
 }
 
-func (s *Server) getApi(c *fiber.Ctx) error {
+func (s *Server) v1FindApi(c *fiber.Ctx) error {
 	ctx, span := s.tracer.Start(c.UserContext(), "server.getApi")
 	defer span.End()
 
-	req := GetApiRequest{
+	req := FindApiRequestV1{
 		ApiId: c.Params("apiId"),
 	}
 
@@ -49,7 +49,7 @@ func (s *Server) getApi(c *fiber.Ctx) error {
 		return fromServiceError(c, err)
 	}
 
-	return c.JSON(GetApiResponse{
+	return c.JSON(GetApiResponseV1{
 		Id:          api.Api.ApiId,
 		Name:        api.Api.Name,
 		WorkspaceId: api.Api.WorkspaceId,

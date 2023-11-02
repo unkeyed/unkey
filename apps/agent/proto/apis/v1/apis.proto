@@ -43,6 +43,7 @@ message Api {
 
 message DeleteApiRequest {
   string api_id = 1 [(buf.validate.field).string.min_len = 1];
+  string authorized_workspace_id = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteApiResponse {}

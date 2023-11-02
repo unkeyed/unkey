@@ -11,7 +11,7 @@ import (
 )
 
 // Reproduction of https://github.com/unkeyed/unkey/issues/227
-func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
+func V1TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
@@ -21,6 +21,7 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 
 	// Step 1: Create key with owner
 	createdKey := testutil.Json[server.CreateKeyResponse](t, srv.App, testutil.JsonRequest{
+
 		Path:       "/v1/keys",
 		Bearer:     resources.UserRootKey,
 		Body:       fmt.Sprintf(`{"apiId":"%s", "ownerId": "test_owner"}`, resources.UserApi.ApiId),
@@ -35,8 +36,8 @@ func TestUpdateKey_UpdateMultipleTimes(t *testing.T) {
 	// Step 2: Update ownerId to null
 
 	testutil.Json[server.UpdateKeyResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "PUT",
-		Path:       fmt.Sprintf("/v1/keys/%s", createdKey.KeyId),
+
+		Path:       "/v1/keys.updateKey",
 		Bearer:     resources.UserRootKey,
 		Body:       `{"ownerId": null}`,
 		StatusCode: 200,

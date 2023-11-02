@@ -1,7 +1,7 @@
 ---
 title: "Create Key"
 description: "Create an api key for your users"
-api: "POST /v1/keys"
+api: "POST /v1/keys.createKey"
 authMethod: "bearer"
 ---
 
@@ -120,7 +120,7 @@ Use this to authorize a user, for details see [here](/api-reference/keys/verify)
 
 ```sh
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys \
+  --url https://api.unkey.dev/v1/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{

@@ -18,7 +18,6 @@ func TestV1ApisRemove(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	testutil.Json[any](t, srv.App, testutil.JsonRequest{
-		Method: "POST",
 		Path:   "/v1/apis.deleteApi",
 		Bearer: resources.UserRootKey,
 		Body: fmt.Sprintf(`{

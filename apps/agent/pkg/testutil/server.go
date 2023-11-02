@@ -18,13 +18,13 @@ func NewServer(t *testing.T, r resources) *server.Server {
 
 	return server.New(server.Config{
 		UnkeyAppAuthToken: r.UnkeyAppAuthToken,
-		Logger:            logging.New(&logging.Config{Debug: true}),
+		Logger:            logging.New(&logging.Config{Debug: false}),
 		KeyCache:          cache.NewNoopCache[*authenticationv1.Key](),
 		ApiCache:          cache.NewNoopCache[*apisv1.Api](),
 		Database:          r.Database,
 		Tracer:            tracing.NewNoop(),
 		KeyService: keys.New(keys.Config{
-			Logger:   logging.New(&logging.Config{Debug: true}),
+			Logger:   logging.New(&logging.Config{Debug: false}),
 			Database: r.Database,
 		}),
 		ApiService: apis.New(apis.Config{

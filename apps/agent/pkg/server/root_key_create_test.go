@@ -3,13 +3,14 @@ package server_test
 import (
 	"context"
 	"fmt"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/require"
 	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/server"
 	"github.com/unkeyed/unkey/apps/agent/pkg/testutil"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestRootCreateKey_Simple(t *testing.T) {
@@ -21,7 +22,7 @@ func TestRootCreateKey_Simple(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.CreateRootKeyResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/internal/rootkeys",
 		Bearer:     resources.UnkeyAppAuthToken,
 		Body:       fmt.Sprintf(`{"name":"simple","forWorkspaceId":"%s"}`, resources.UnkeyWorkspace.WorkspaceId),
@@ -47,7 +48,7 @@ func TestRootCreateKey_WithExpiry(t *testing.T) {
 	srv := testutil.NewServer(t, resources)
 
 	res := testutil.Json[server.CreateRootKeyResponse](t, srv.App, testutil.JsonRequest{
-		Method:     "POST",
+
 		Path:       "/v1/internal/rootkeys",
 		Bearer:     resources.UnkeyAppAuthToken,
 		Body:       fmt.Sprintf(`{"name":"simple","forWorkspaceId":"%s", "expires": %d}`, resources.UnkeyWorkspace.WorkspaceId, time.Now().Add(time.Hour).UnixMilli()),
