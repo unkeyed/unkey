@@ -11,7 +11,7 @@ export class Resend {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly client: Client;
-  private readonly from = "updates.unkey.dev";
+  private readonly domain = "updates.unkey.dev";
   private readonly replyTo = "support@unkey.dev";
 
   constructor(opts: { apiKey: string }) {
@@ -58,7 +58,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: this.from,
+      from: `andreas@${this.domain}`,
       reply_to: this.replyTo,
       subject: "Your Unkey trial ends in 3 days",
       html,
@@ -73,7 +73,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: this.from,
+      from: `andreas@${this.domain}`,
       reply_to: this.replyTo,
       subject: "Your Unkey trial has ended",
       html,
@@ -87,7 +87,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: this.from,
+      from: `james@${this.domain}`,
       reply_to: this.replyTo,
       subject: "Welcome to Unkey",
       html,
@@ -99,7 +99,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: this.from,
+      from: `andreas@${this.domain}`,
       reply_to: this.replyTo,
       subject: "There was an issue with your payment",
       html,
