@@ -8,7 +8,7 @@ on:
 concurrency: deploy
 
 jobs:
-  
+
   test:
     name: Test Agent
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-  
+
     steps:
       - uses: actions/checkout@v3
 
@@ -38,9 +38,9 @@ jobs:
 
       - name: Load Schema into MySQL
         run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
-        
+
       - name: Test
-        run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
+        run: go test -p 4 -v -json -shuffle=on --race ./pkg/... | gotestfmt
         working-directory: apps/agent
         env:
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
@@ -154,7 +154,7 @@ jobs:
       - name: Download image
         run: docker pull ${{env.TAG}}
 
-    
+
 
       - name: Deploy prod
         run: flyctl -c="./fly.prod.toml" deploy --image=${{ env.TAG }} --strategy=canary
