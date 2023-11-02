@@ -1,0 +1,30 @@
+---
+title: "Delete Key"
+description: "Invalidate and delete an api key"
+api: "POST /v1/keys.deleteKey"
+authMethod: "bearer"
+---
+
+## Request
+
+<ParamField body="keyId" type="string" required>
+  The ID of the key you want to revoke.
+</ParamField>
+
+## Response
+
+`200 OK`
+
+<RequestExample>
+
+```sh
+curl --request DELETE \
+  --url https://api.unkey.dev/v1/keys.deleteKey \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "keyId": "<KEY_ID>"
+  }'
+```
+
+</RequestExample>
