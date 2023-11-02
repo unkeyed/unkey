@@ -124,6 +124,9 @@ jobs:
         run: go mod download
         working-directory: apps/agent
 
+      - name: Set up gotestfmt
+        run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
       - name: Test Scenarios
         run: go test -json -shuffle=on ./tests/integration/... | gotestfmt
         working-directory: apps/agent
@@ -180,9 +183,14 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ^1.20.0
+
       - name: Install dependencies
         run: go mod download
         working-directory: apps/agent
+
+      - name: Set up gotestfmt
+        run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
       - name: Test Scenarios
         run: go test -json -shuffle=on ./tests/integration/... | gotestfmt
         working-directory: apps/agent
