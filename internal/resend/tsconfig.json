@@ -3,6 +3,7 @@
   "extends": "@unkey/tsconfig/base.json",
   "exclude": ["dist"],
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "jsx": "react"
   }
 }
