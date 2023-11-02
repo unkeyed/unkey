@@ -46,7 +46,7 @@ func (s *Server) v1UpdateKey(c *fiber.Ctx) error {
 	defer span.End()
 
 	req := UpdateKeyRequest{
-		KeyId: c.Params("keyId"),
+		KeyId: c.Query("keyId"),
 	}
 
 	err := c.BodyParser(&req)

@@ -38,16 +38,15 @@ func TestListKeys_Simple(t *testing.T) {
 
 	}
 
-	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
+	res := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
 	})
 
-	require.GreaterOrEqual(t, successResponse.Total, int64(len(createdKeyIds)))
-	require.GreaterOrEqual(t, len(successResponse.Keys), len(createdKeyIds))
-	require.LessOrEqual(t, len(successResponse.Keys), 100) //  default page size
+	require.GreaterOrEqual(t, res.Total, int64(len(createdKeyIds)))
+	require.GreaterOrEqual(t, len(res.Keys), len(createdKeyIds))
+	require.LessOrEqual(t, len(res.Keys), 100) //  default page size
 
 }
 
@@ -77,8 +76,7 @@ func TestListKeys_FilterOwnerId(t *testing.T) {
 
 	}
 
-	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
+	successResponse := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s/keys?ownerId=chronark", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
@@ -115,8 +113,7 @@ func TestListKeys_WithLimit(t *testing.T) {
 
 	}
 
-	successResponse := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
+	successResponse := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s/keys?limit=2", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
@@ -149,8 +146,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 
 	}
 
-	res1 := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
+	res1 := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s/keys", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
@@ -159,8 +155,7 @@ func TestListKeys_WithOffset(t *testing.T) {
 	require.GreaterOrEqual(t, res1.Total, int64(len(createdKeyIds)))
 	require.GreaterOrEqual(t, 10, len(res1.Keys))
 
-	res2 := testutil.Json[server.ListKeysResponse](t, srv.App, testutil.JsonRequest{
-
+	res2 := testutil.Get[server.ListKeysResponse](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis/%s/keys?offset=1", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,

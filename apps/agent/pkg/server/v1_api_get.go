@@ -23,7 +23,7 @@ func (s *Server) v1FindApi(c *fiber.Ctx) error {
 	defer span.End()
 
 	req := FindApiRequestV1{
-		ApiId: c.Params("apiId"),
+		ApiId: c.Query("apiId"),
 	}
 
 	err := s.validator.Struct(req)

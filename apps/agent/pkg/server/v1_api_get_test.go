@@ -14,15 +14,14 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
-func TestV1FindApi_Exists(t *testing.T) {
+func TestV1GetApi_Exists(t *testing.T) {
 	t.Parallel()
 
 	resources := testutil.SetupResources(t)
 
 	srv := testutil.NewServer(t, resources)
 
-	res := testutil.Json[server.GetApiResponseV1](t, srv.App, testutil.JsonRequest{
-
+	res := testutil.Get[server.GetApiResponseV1](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis.getApi?apiId=%s", resources.UserApi.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
@@ -34,7 +33,7 @@ func TestV1FindApi_Exists(t *testing.T) {
 
 }
 
-func TestV1FindApi_NotFound(t *testing.T) {
+func TestV1GetApi_NotFound(t *testing.T) {
 	t.Parallel()
 	resources := testutil.SetupResources(t)
 
@@ -42,9 +41,8 @@ func TestV1FindApi_NotFound(t *testing.T) {
 
 	fakeApiId := uid.Api()
 
-	res := testutil.Json[server.ErrorResponse](t, srv.App, testutil.JsonRequest{
-
-		Path:       fmt.Sprintf("/v1/apis?apiId=%s", fakeApiId),
+	res := testutil.Get[server.ErrorResponse](t, srv.App, testutil.GetRequest{
+		Path:       fmt.Sprintf("/v1/apis.getApi?apiId=%s", fakeApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 404,
 	})
@@ -54,7 +52,7 @@ func TestV1FindApi_NotFound(t *testing.T) {
 
 }
 
-func TestV1FindApi_WithIpWhitelist(t *testing.T) {
+func TestV1GetApi_WithIpWhitelist(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	resources := testutil.SetupResources(t)
@@ -80,8 +78,7 @@ func TestV1FindApi_WithIpWhitelist(t *testing.T) {
 	err = resources.Database.InsertApi(ctx, api)
 	require.NoError(t, err)
 
-	res := testutil.Json[server.GetApiResponseV1](t, srv.App, testutil.JsonRequest{
-
+	res := testutil.Get[server.GetApiResponseV1](t, srv.App, testutil.GetRequest{
 		Path:       fmt.Sprintf("/v1/apis.getApi?apiId=%s", api.ApiId),
 		Bearer:     resources.UserRootKey,
 		StatusCode: 200,
