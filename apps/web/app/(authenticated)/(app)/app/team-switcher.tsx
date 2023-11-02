@@ -37,6 +37,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       });
     } finally {
       setLoading(false);
+      _router.replace("/app");
     }
   }
   const [search, _setSearch] = useState("");
