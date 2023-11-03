@@ -49,6 +49,13 @@ jobs:
         env:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
+
+      - name: Debug
+        run: |
+          echo "select * from `keys`;" > ./select.sql
+          mysql -h 127.0.0.1 --port 3306 --user=user --password=password --database=unkey < .select.sql
+
+
       - name: Start Agent
         run: docker compose up -d agent && sleep 10
         working-directory: apps/agent
