@@ -56,6 +56,8 @@ jobs:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
           UNKEY_APP_AUTH_TOKEN: "not-used"
 
+      - name: Log Env
+        run: printenv
       - name: Test
         run: go test -v -json -shuffle=on --race ./tests/integration/... | gotestfmt
         working-directory: apps/agent
