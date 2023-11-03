@@ -39,7 +39,11 @@ jobs:
         run: mysql -h 127.0.0.1 --port 3306 --user=user --password=password --database=unkey < ./apps/agent/pkg/database/schema.sql
 
       - name: Bootstrap
-        run: go run . bootstrap --out=.env
+        run: |
+          go run . bootstrap --out=.env
+          for line in $(cat .env); do
+             echo line >> $GITHUB_ENV
+          done
         working-directory: apps/agent
         env:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
