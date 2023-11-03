@@ -41,12 +41,6 @@ jobs:
       - name: Load Schema into MySQL
         run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-
       - name: Bootstrap
         run: go run . bootstrap --out=.env
         working-directory: apps/agent
@@ -58,6 +52,7 @@ jobs:
         working-directory: apps/agent
         env:
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
+          UNKEY_APP_AUTH_TOKEN: "not-used"
 
       - name: Test
         run: go test -v -json -shuffle=on --race ./integration/... | gotestfmt
