@@ -12,7 +12,6 @@ services:
       - 8080:8080
     depends_on:
       - database
-      - redis
 
     environment:
       DATABASE_DSN: "user:password@tcp(database:3306)/unkey"
@@ -20,16 +19,9 @@ services:
       UNKEY_API_ID: "${UNKEY_API_ID}"
       UNKEY_APP_AUTH_TOKEN: "${UNKEY_APP_AUTH_TOKEN}"
       UNKEY_KEY_AUTH_ID: "${UNKEY_KEY_AUTH_ID}"
-      REDIS_URL: "redis://redis:6379"
 
-  redis:
-    image: redis:latest
-    ports:
-      - 6379:6379
   database:
-    build:
-      context: .
-      dockerfile: Dockerfile.mysql
+    image: mysql:latest
     environment:
       MYSQL_DATABASE: "unkey"
       MYSQL_USER: "user"
@@ -37,18 +29,3 @@ services:
       MYSQL_ROOT_PASSWORD: "password"
     ports:
       - 3306:3306
-
-  database_bootstrap:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
-    depends_on:
-      - database
-    restart: "no"
-    command:
-      [
-        "bash",
-        "-c",
-        "go run . bootstrap --database-dsn='user:password@tcp(database:3306)/unkey'",
-      ]

@@ -13,14 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
-        image: mysql:latest
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: unkey
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      # mysql:
+      #   image: mysql:latest
+      #   env:
+      #     MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      #     MYSQL_DATABASE: unkey
+      #   ports:
+      #     - 3306:3306
+      #   options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - uses: actions/checkout@v3
@@ -38,6 +38,10 @@ jobs:
         run: go mod download
         working-directory: apps/agent
 
+      - name: Start Database
+        run: docker-compose up -d database
+        working-directory: apps/agent
+
       - name: Load Schema into MySQL
         run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
 
@@ -47,8 +51,8 @@ jobs:
         env:
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
-      - name: Run Agent
-        run: go run . agent --env=.env & sleep 10
+      - name: Start Database
+        run: docker-compose up -d agent
         working-directory: apps/agent
         env:
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
@@ -58,4 +62,5 @@ jobs:
         run: go test -v -json -shuffle=on --race ./integration/... | gotestfmt
         working-directory: apps/agent
         env:
+          UNKEY_BASE_URL: http://localhost:8080
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
