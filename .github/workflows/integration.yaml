@@ -49,9 +49,6 @@ jobs:
         env:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
-      - name: Log Env
-        run: printenv
-
       - name: Start Agent
         run: docker compose up -d agent && sleep 10
         working-directory: apps/agent
@@ -66,7 +63,12 @@ jobs:
           UNKEY_BASE_URL: http://127.0.0.1:8080
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
+      - name: Agent Logs
+        if: always()
+        run: docker compose logs agent
+        working-directory: apps/agent
+
       - name: Stop containers
         if: always()
-        run: docker-compose down
+        run: docker compose down
         working-directory: apps/agent
