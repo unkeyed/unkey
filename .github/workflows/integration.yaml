@@ -63,7 +63,7 @@ jobs:
         run: go test -v -json -shuffle=on --race ./tests/integration/... | gotestfmt
         working-directory: apps/agent
         env:
-          UNKEY_BASE_URL: http://localhost:8080
+          UNKEY_BASE_URL: http://127.0.0.1:8080
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
       - name: Stop containers
