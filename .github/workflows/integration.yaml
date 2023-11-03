@@ -48,6 +48,9 @@ jobs:
         env:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
+      - name: Log Env
+        run: printenv
+
       - name: Start Agent
         run: docker compose up -d agent && sleep 10
         working-directory: apps/agent
