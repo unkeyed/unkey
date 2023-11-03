@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics"
 	analyticsMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/analytics/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/analytics/tinybird"
+	"github.com/unkeyed/unkey/apps/agent/pkg/bootstrap"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/database"
@@ -44,6 +45,7 @@ type features struct {
 	eventBus     string
 	verbose      bool
 	restoreCache bool
+	bootstrap    bool
 }
 
 var runtimeConfig features
@@ -55,6 +57,7 @@ func init() {
 	Cmd.Flags().StringVar(&runtimeConfig.eventBus, "event-bus", "", "Use a message bus for communication between nodes, available: ['kafka']")
 	Cmd.Flags().BoolVar(&runtimeConfig.restoreCache, "restore-cache", false, "Restore the cache from persistent storage")
 	Cmd.Flags().BoolVarP(&runtimeConfig.verbose, "verbose", "v", false, "Print debug logs")
+	Cmd.Flags().BoolVar(&runtimeConfig.bootstrap, "bootstrap", false, "Bootstrap the database with a workspace and static key")
 }
 
 // AgentCmd represents the agent command
@@ -94,6 +97,16 @@ var Cmd = &cobra.Command{
 		logger = logger.With().Str("region", region).Logger()
 		if allocId != "" {
 			logger = logger.With().Str("allocId", allocId).Logger()
+		}
+
+		if runtimeConfig.bootstrap {
+			outFile := ".env.bootstrapped"
+			b, err := bootstrap.BootstrapAgent(cmd.Context(), e.String("DATABASE_DSN"), outFile)
+			if err != nil {
+				logger.Fatal().Err(err).Msg("unable to bootstrap agent")
+			}
+			os.Setenv("UNKEY_APP_AUTH_TOKEN", b.StaticKey)
+			logger.Warn().Msgf("bootstrapped agent, see '%s'", outFile)
 		}
 
 		redisUrl := e.String("REDIS_URL", "")
