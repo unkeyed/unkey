@@ -52,7 +52,7 @@ jobs:
           UNKEY_APP_AUTH_TOKEN: "not-used"
 
       - name: Test
-        run: go test -v -json -shuffle=on --race ./integration/... | gotestfmt
+        run: go test -v -json -shuffle=on --race ./tests/integration/... | gotestfmt
         working-directory: apps/agent
         env:
           UNKEY_BASE_URL: http://localhost:8080
