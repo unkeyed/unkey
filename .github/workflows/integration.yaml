@@ -27,7 +27,7 @@ jobs:
         working-directory: apps/agent
 
       - name: Start Database
-        run: docker-compose up -d database
+        run: docker-compose up -d database && sleep 10
         working-directory: apps/agent
 
 
