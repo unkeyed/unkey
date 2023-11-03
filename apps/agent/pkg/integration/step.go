@@ -11,6 +11,7 @@ import (
 )
 
 type Step[R any] struct {
+	Debug  bool
 	Name   string
 	Body   map[string]any
 	Url    string
@@ -30,6 +31,9 @@ func (s Step[R]) Run(t *testing.T) StepResponse[R] {
 	var res StepResponse[R]
 
 	t.Run(s.Name, func(t *testing.T) {
+		if s.Debug {
+			t.Log("debugging enabled")
+		}
 
 		requestBody, err := json.Marshal(s.Body)
 		require.NoError(t, err)
@@ -40,7 +44,9 @@ func (s Step[R]) Run(t *testing.T) StepResponse[R] {
 		for k, v := range s.Header {
 			req.Header.Set(k, v)
 		}
-
+		if s.Debug {
+			t.Logf("request: %+v", req)
+		}
 		httpResponse, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 
@@ -50,7 +56,9 @@ func (s Step[R]) Run(t *testing.T) StepResponse[R] {
 
 		body, err := io.ReadAll(httpResponse.Body)
 		require.NoError(t, err)
-
+		if s.Debug {
+			t.Logf("response body: %s", string(body))
+		}
 		err = json.Unmarshal(body, &res.Body)
 		require.NoError(t, err)
 

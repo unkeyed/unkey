@@ -11,6 +11,7 @@ import (
 
 func TestCreateVerifyDeleteKeys(t *testing.T) {
 	createApiResponse := integration.Step[server.CreateApiResponse]{
+		Debug:  true,
 		Name:   "Create API",
 		Method: "POST",
 		Url:    fmt.Sprintf("%s/v1/apis.createApi", BASE_URL),
