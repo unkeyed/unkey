@@ -41,8 +41,9 @@ jobs:
       - name: Bootstrap
         run: |
           go run . bootstrap --out=.env
+          cat .env
           for line in $(cat .env); do
-             echo line >> $GITHUB_ENV
+             echo $line >> $GITHUB_ENV
           done
         working-directory: apps/agent
         env:
