@@ -30,7 +30,7 @@ func TestExceedUsage(t *testing.T) {
 		deleteApiResponse := integration.Step[map[string]any]{
 			Name:   "Delete API",
 			Method: "POST",
-			Url:    fmt.Sprintf("%s/v1/apis.removeApi", BASE_URL),
+			Url:    fmt.Sprintf("%s/v1/apis.deleteApi", BASE_URL),
 			Header: map[string]string{
 				"Content-Type":  "application/json",
 				"Authorization": fmt.Sprintf("Bearer %s", ROOT_KEY),

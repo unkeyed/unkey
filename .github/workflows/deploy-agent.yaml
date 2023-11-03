@@ -131,9 +131,9 @@ jobs:
         run: go test -json -shuffle=on ./tests/integration/... | gotestfmt
         working-directory: apps/agent
         env:
-          UNKEY_WORKSPACE_ID: ${{ secrets.PREVIEW_WORKSPACE_ID }}
-          UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
-          UNKEY_BASE_URL: ${{ vars.PREVIEW_BASE_URL }}
+          INTEGRATION_WORKSPACE_ID: ${{ secrets.PREVIEW_WORKSPACE_ID }}
+          INTEGRATION_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
+          INTEGRATION_BASE_URL: ${{ vars.PREVIEW_BASE_URL }}
 
 
 
@@ -196,6 +196,6 @@ jobs:
         run: go test -json -shuffle=on ./tests/integration/... | gotestfmt
         working-directory: apps/agent
         env:
-          UNKEY_WORKSPACE_ID: ${{ secrets.PRODUCTION_WORKSPACE_ID }}
-          UNKEY_ROOT_KEY: ${{ secrets.PRODUCTION_ROOT_KEY }}
-          UNKEY_BASE_URL: ${{ vars.PRODUCTION_BASE_URL }}
+          INTEGRATION_WORKSPACE_ID: ${{ secrets.PRODUCTION_WORKSPACE_ID }}
+          INTEGRATION_ROOT_KEY: ${{ secrets.PRODUCTION_ROOT_KEY }}
+          INTEGRATION_BASE_URL: ${{ vars.PRODUCTION_BASE_URL }}

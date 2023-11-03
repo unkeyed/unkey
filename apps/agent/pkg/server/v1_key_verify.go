@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
+	authenticationv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/authentication/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type VerifyKeyRequestV1 struct {
@@ -47,7 +49,14 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 
 	}
 
-	svcRes, err := s.authorizeKey(ctx, c)
+	svcRes, err := s.keyService.VerifyKey(ctx, &authenticationv1.VerifyKeyRequest{
+		Key:        req.Key,
+		SourceIp:   c.Get("Fly-Client-IP"),
+		Region:     s.region,
+		EdgeRegion: util.Pointer(c.Get("Fly-Region")),
+		UserAgent:  util.Pointer(c.Get("User-Agent")),
+		Resource:   util.Pointer(c.Path()),
+	})
 	if err != nil {
 		return newHttpError(c, INTERNAL_SERVER_ERROR, err.Error())
 	}

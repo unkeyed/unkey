@@ -52,7 +52,7 @@ func (s Step[R]) Run(t *testing.T) StepResponse[R] {
 		require.NoError(t, err)
 		t.Logf("response body: %s", string(body))
 		err = json.Unmarshal(body, &res.Body)
-		require.NoError(t, err)
+		require.NoError(t, err, "parsed body: %s", string(body))
 
 	})
 	return res

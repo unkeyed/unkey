@@ -23,10 +23,10 @@ func TestMain(m *testing.M) {
 		},
 	}
 
-	ROOT_KEY = e.String("UNKEY_ROOT_KEY")
-	BASE_URL = e.String("UNKEY_BASE_URL", "https://api.unkey.dev")
-	fmt.Println("BASE_URL: ", BASE_URL)
-	WORKSPACE_ID = e.String("UNKEY_WORKSPACE_ID")
+	ROOT_KEY = e.String("INTEGRATION_ROOT_KEY")
+	BASE_URL = e.String("INTEGRATION_BASE_URL", "https://api.unkey.dev")
+	fmt.Println("INTEGRATION_BASE_URL: ", BASE_URL)
+	WORKSPACE_ID = e.String("INTEGRATION_WORKSPACE_ID")
 
 	os.Exit(m.Run())
 
