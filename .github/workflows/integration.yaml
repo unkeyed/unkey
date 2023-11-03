@@ -38,7 +38,7 @@ jobs:
         run: go run . bootstrap --out=.env
         working-directory: apps/agent
         env:
-          DATABASE_DSN: root@tcp(localhost:3306)/unkey
+          DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
       - name: Start Database
         run: docker-compose up -d agent
@@ -52,7 +52,7 @@ jobs:
         working-directory: apps/agent
         env:
           UNKEY_BASE_URL: http://localhost:8080
-          DATABASE_DSN: root@tcp(localhost:3306)/unkey
+          DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
       - name: Stop containers
         if: always()
