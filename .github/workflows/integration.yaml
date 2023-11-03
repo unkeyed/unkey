@@ -64,3 +64,8 @@ jobs:
         env:
           UNKEY_BASE_URL: http://localhost:8080
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose down
+        working-directory: apps/agent
