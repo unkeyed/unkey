@@ -1,7 +1,8 @@
-name: CI
+name: Integration
 
 on:
   pull_request:
+
 
 concurrency: ${{ github.workflow }} - ${{ github.ref }}
 
