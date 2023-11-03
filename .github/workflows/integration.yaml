@@ -32,7 +32,7 @@ jobs:
         working-directory: apps/agent
 
       - name: Load Schema into MySQL
-        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
+        run: mysql -h 127.0.0.1 --port 3306 -uroot user < ./apps/agent/pkg/database/schema.sql
 
       - name: Bootstrap
         run: go run . bootstrap --out=.env
