@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"testing"
 
 	"os"
@@ -16,7 +17,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
 	e := env.Env{
 		ErrorHandler: func(err error) {
 			panic(err)
