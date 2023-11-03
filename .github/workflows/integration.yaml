@@ -4,7 +4,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" # every day at midnight
+    - cron: "0 12 * * *" # every day at noon UTC
 
 jobs:
 
@@ -26,8 +26,12 @@ jobs:
         run: go mod download
         working-directory: apps/agent
 
+      - name: Build
+        run: docker compose build
+        working-directory: apps/agent
+
       - name: Start Database
-        run: docker-compose up -d database && sleep 10
+        run: docker compose up -d database && sleep 10
         working-directory: apps/agent
 
 
@@ -40,8 +44,8 @@ jobs:
         env:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
 
-      - name: Start Database
-        run: docker-compose up -d agent
+      - name: Start Agent
+        run: docker compose up -d agent && sleep 10
         working-directory: apps/agent
         env:
           DATABASE_DSN: user:password@tcp(127.0.0.1:3306)/unkey
