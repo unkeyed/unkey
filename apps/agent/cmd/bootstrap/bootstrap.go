@@ -144,9 +144,7 @@ var Cmd = &cobra.Command{
 			logger.Fatal().Err(err).Msg("unable to create rootKey")
 		}
 
-		if outputFile == "" {
-			logger.Info().Str("workspaceId", workspaceId).Str("apiId", apiId).Str("tenantId", tenantId).Str("rootKey", rootKey).Msg("done")
-		} else {
+		if outputFile != "" {
 			logger.Info().Msgf("writing environment variables to %s", outputFile)
 			file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
@@ -157,6 +155,7 @@ var Cmd = &cobra.Command{
 			lines := []string{
 				fmt.Sprintf("UNKEY_WORKSPACE_ID=\"%s\"", userWorkspace.WorkspaceId),
 				fmt.Sprintf("UNKEY_API_ID=\"%s\"", userApi.ApiId),
+				fmt.Sprintf("UNKEY_KEY_AUTH_ID=\"%s\"", userKeyAuth.KeyAuthId),
 				fmt.Sprintf("UNKEY_ROOT_KEY=\"%s\"", rootKey),
 			}
 
