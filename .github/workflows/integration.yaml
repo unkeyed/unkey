@@ -53,7 +53,7 @@ jobs:
       - name: Debug
         run: |
           echo "select * from `keys`;" > ./select.sql
-          mysql -h 127.0.0.1 --port 3306 --user=user --password=password --database=unkey < .select.sql
+          mysql -h 127.0.0.1 --port 3306 --user=user --password=password --database=unkey < ./select.sql
 
 
       - name: Start Agent
