@@ -46,15 +46,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Build Container
-        uses: docker/build-push-action@v3
-        with:
-          context: apps/agent
-          push: false
-          tags: "latest"
 
       - name: Bootstrap
         run: go run . bootstrap --out=.env
+        working-directory: apps/agent
+        env:
+          DATABASE_DSN: root@tcp(localhost:3306)/unkey
+
+      - name: Run Agent
+        run: go run . agent --env=.env & sleep 10
         working-directory: apps/agent
         env:
           DATABASE_DSN: root@tcp(localhost:3306)/unkey
