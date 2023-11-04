@@ -150,11 +150,12 @@ export default async function Home() {
         <FadeIn className="flex flex-col md:flex-row md:justify-stretch md:spacing-x-4">
           <div className="w-full">
             <h1 className="font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-7xl font-sans">
-             Seriously Fast API Authentication
+              Seriously Fast API Authentication
             </h1>
             <p className={"mt-6 text-xl text-gray-600 [text-wrap:balance]"}>
-              Unkey is an{" "}
-              <span className="font-semibold">open source</span> API authentication and authorization platform for scaling user facing APIs. Create, verify and manage low latency API keys in seconds.
+              Unkey is an <span className="font-semibold">open source</span> API authentication and
+              authorization platform for scaling user facing APIs. Create, verify, and manage low
+              latency API keys in seconds.
             </p>
             <div className="flex flex-col mt-4 space-y-4 md:flex-row md:space-x-8 md:space-y-0">
               <Button size="xl" className="text-sm font-semibold rounded-full" asChild>
