@@ -11,6 +11,12 @@ Verify a key from your users.
   The key you want to verify.
 </ParamField>
 
+
+<ParamField body="apiId" type="string" >
+  The api this key belongs to. This will be required soon.
+</ParamField>
+
+
 ## Response
 
 <ResponseField name="result">
@@ -90,7 +96,7 @@ Example:
 ```ts
 import { verifyKey } from "@unkey/api";
 
-const { result, error } = await verifyKey("key_123");
+const { result, error } = await verifyKey({ key: "key_123", apiId: "api_123" });
 
 if (error) {
   // handle potential network or bad request error
