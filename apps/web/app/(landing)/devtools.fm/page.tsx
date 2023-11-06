@@ -20,9 +20,11 @@ export default function Example() {
             API authentication made easy
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            James sat down with Andrew Lisowski and Justin Bennett to talk about Unkey and the
-            future of API authentication. James provides insights into how Unkey works, how we made
-            it fast, and how it can help you build your next project.
+            James sat down with Andrew Lisowski and Justin Bennett to talk about Unkey. James
+            discusses his experiences at Clerk, his career transition to co-founding Unkey, and his
+            thoughts on the future direction of backend services. He shares the challenging reality
+            of balancing two programming jobs at once and underscores the necessity for strong
+            security practices in every tech startup.
           </p>
           <div className="flex items-center mt-10 gap-x-6">
             <Link
@@ -31,7 +33,10 @@ export default function Example() {
             >
               Sign up
             </Link>
-            <Link href="/todo" className="text-sm font-semibold leading-6 text-primary">
+            <Link
+              href="https://www.devtools.fm/episode/73"
+              className="text-sm font-semibold leading-6 text-primary"
+            >
               Listen to the episode <span aria-hidden="true">→</span>
             </Link>
           </div>
