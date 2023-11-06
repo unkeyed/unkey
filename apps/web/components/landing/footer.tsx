@@ -14,6 +14,7 @@ const navigation = [
       { title: "Changelog", href: "/changelog" },
       { title: "Analytics", href: "https://plausible.io/unkey.dev" },
       { title: "Source Code", href: "https://github.com/unkeyed/unkey" },
+      { title: "Documentation", href: "/docs" },
     ],
   },
   {
