@@ -15,8 +15,9 @@ import (
 )
 
 type VerifyKeyRequestV1 struct {
-	Key string `json:"key" validate:"required"`
-	X   struct {
+	Key   string `json:"key" validate:"required"`
+	ApiId string `json:"apiId"`
+	X     struct {
 		Resource string `json:"resource,omitempty"`
 	} `json:"x,omitempty"`
 }
@@ -119,6 +120,13 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 	// ---------------------------------------------------------------------------------------------
 	// Preflight checks
 	// ---------------------------------------------------------------------------------------------
+
+	if req.ApiId != "" && req.ApiId != api.Id {
+		return c.JSON(VerifyKeyResponseV1{
+			Valid: false,
+			Code:  errors.FORBIDDEN,
+		})
+	}
 
 	if len(api.IpWhitelist) > 0 {
 		var ipSpan trace.Span
