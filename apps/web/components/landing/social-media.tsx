@@ -3,11 +3,14 @@ import { Globe } from "lucide-react";
 import Link from "next/link";
 
 // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
-function TwitterIcon(props: any) {
+function XIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-      <title>Twitter</title>
-      <path d="M8.29 20.253c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0 0 22 5.922a8.19 8.19 0 0 1-2.357.646 4.118 4.118 0 0 0 1.804-2.27 8.224 8.224 0 0 1-2.605.996 4.107 4.107 0 0 0-6.993 3.743A11.65 11.65 0 0 1 3.392 4.75a4.106 4.106 0 0 0 1.27 5.477A4.072 4.072 0 0 1 2.8 9.715v.052a4.105 4.105 0 0 0 3.292 4.022 4.095 4.095 0 0 1-1.853.07 4.108 4.108 0 0 0 3.834 2.85A8.232 8.232 0 0 1 2 18.41a11.616 11.616 0 0 0 6.29 1.84" />
+      <title>X</title>
+      <path
+        d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z"
+        fill="white"
+      />
     </svg>
   );
 }
@@ -27,7 +30,7 @@ function GitHubIcon(props: any) {
 }
 
 export const socialMediaProfiles = [
-  { title: "Twitter", href: "https://twitter.com/unkeydev", icon: TwitterIcon },
+  { title: "X", href: "https://twitter.com/unkeydev", icon: XIcon },
   { title: "GitHub", href: "https://github.com/unkeyed", icon: GitHubIcon },
   { title: "OSS Friends", href: "/oss-friends", icon: Globe },
 ];
