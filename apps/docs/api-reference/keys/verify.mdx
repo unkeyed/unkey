@@ -12,6 +12,12 @@ Verify a key from your users. Notice how this endpoint does not require an Unkey
   The key you want to verify.
 </ParamField>
 
+
+<ParamField body="apiId" type="string">
+  The api this key belongs to. This will be required soon.
+</ParamField>
+
+
 ## Response
 
 <ResponseField name="valid" type="boolean" required>
@@ -89,7 +95,8 @@ curl --request POST \
   --url https://api.unkey.dev/v1/keys/verify \
   --header 'Content-Type: application/json' \
   --data '{
-    "key":"xyz_AS5HDkXXPot2MMoPHD8jnL"
+    "key":"xyz_AS5HDkXXPot2MMoPHD8jnL",
+    "apiId": "api_123"
   }'
 ```
 

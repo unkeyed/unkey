@@ -3,6 +3,12 @@ import { type NextFetchEvent, NextRequest, NextResponse } from "next/server";
 
 export type WithUnkeyConfig = {
   /**
+   * The apiId to verify against.
+   *
+   * This will be required soon.
+   */
+  apiId?: string;
+  /**
    * How to get the key from the request
    * Usually the key is provided in an `Authorization` header, but you can do what you want.
    *
@@ -64,7 +70,7 @@ export function withUnkey(
       return key;
     }
 
-    const res = await verifyKey(key);
+    const res = await verifyKey(config?.apiId ? { key, apiId: config.apiId } : key);
     if (res.error) {
       if (config?.onError) {
         return config.onError(req, res.error);

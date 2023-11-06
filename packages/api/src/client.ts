@@ -313,7 +313,19 @@ export class Unkey {
           body: req,
         });
       },
-      verify: async (req: { key: string }): Promise<
+      verify: async (req: {
+        /**
+         * The key to verify
+         */
+        key: string;
+
+        /**
+         * The api id to verify against
+         *
+         * This will be required soon.
+         */
+        apiId?: string;
+      }): Promise<
         Result<{
           /**
            * Whether or not this key is valid and has passed the ratelimit. If false you should not grant access to whatever the user is requesting
