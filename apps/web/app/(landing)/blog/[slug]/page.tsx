@@ -129,7 +129,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
               className="absolute left-1/2 top-1/2 -z-10 h-[64rem] w-[64rem] -translate-y-1/2 [mask-image:radial-gradient(closest-side,white,transparent)] sm:left-full sm:-ml-80 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2 lg:translate-y-0"
               aria-hidden="true"
             >
-              <title>svg</title>
+              
               <circle
                 cx={512}
                 cy={512}
