@@ -13,7 +13,6 @@ export function Loading({
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <title>loading</title>
       <circle cx="4" cy="12" r="3">
         <animate id="a" begin="0;b.end-0.25s" attributeName="r" dur={dur} values="3;.2;3" />
       </circle>
