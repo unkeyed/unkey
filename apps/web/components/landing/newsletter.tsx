@@ -10,7 +10,6 @@ import { Button } from "../ui/button";
 function ArrowIcon(props: any) {
   return (
     <svg viewBox="0 0 16 6" aria-hidden="true" {...props}>
-      <title>Arrow</title>
       <path
         fill="currentColor"
         fillRule="evenodd"
