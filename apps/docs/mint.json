@@ -54,11 +54,6 @@
       "name": "GitHub",
       "icon": "github",
       "url": "https://github.com/unkeyed/unkey"
-    },
-    {
-      "name": "Contributing",
-      "icon": "code-pull-request",
-      "url": "https://github.com/unkeyed/unkey/blob/main/.github/CONTRIBUTING.md"
     }
   ],
   "navigation": [
@@ -209,11 +204,11 @@
     {
       "group": "Contributing",
       "icon": "github",
-      "pages": ["contributing/versions"]
+      "pages": ["contributing/getting-started", "contributing/versions"]
     }
   ],
   "footerSocials": {
-    "twitter": "https://twitter.com/james_r_perkins",
+    "twitter": "https://twitter.com/unkey",
     "github": "https://github.com/unkeyed/unkey"
   }
 }

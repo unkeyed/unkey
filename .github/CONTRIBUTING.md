@@ -2,10 +2,19 @@
 
 There are a few 3rd party services that are required to run the app:
 
+Required
+
 - [Planetscale](https://planetscale.com?ref=unkey): Database
+- [Clerk](https://clerk.com?ref=unkey): Authentication
+
+Optional
+
 - [Tinybird](https://www.tinybird.co?ref=unkey): Time series database
 - [Upstash Kafka](https://upstash.com/kafka?ref=unkey): Cache invalidation
-- [Clerk](https://clerk.com?ref=unkey): Authentication
+
+### 0.1 Setup
+
+[Unkey Repo](https://github.com/unkeyed/unkey)
 
 Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respectively and populate the values from the services above.:
 
@@ -14,7 +23,7 @@ cp apps/web/.env.example apps/web/.env
 cp apps/agent/.env.example apps/agent/.env
 ```
 
-### 0. Install
+### 0.2 Install
 
 ```sh-session
 pnpm install
@@ -25,11 +34,11 @@ pnpm install
 Push the database schema to Planetscale:
 
 ```sh-session
-cd packages/db
-DRIZZLE_DATABASE_URL='mysql://{user}:{password}{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
+cd internal/db
+DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
 ```
 
-### 2. Tinybird
+### 2. Tinybird (Optionoal)
 
 Download the Tinybird CLI from [here](https://www.tinybird.co/docs/cli.html) and run the following command after authenticating:
 

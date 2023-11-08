@@ -49,7 +49,6 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
             }}
             className="hidden md:block"
           >
-            <title>bg</title>
             <rect
               x="113"
               width="113"

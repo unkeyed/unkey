@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
+import { connect } from "@planetscale/database";
 import { schema } from "@unkey/db";
-import { drizzle } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
+import { drizzle } from "drizzle-orm/planetscale-serverless";
 import { z } from "zod";
 
 import baseX from "base-x";
+
 const envSchema = z.object({
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
@@ -29,11 +30,20 @@ async function main() {
   const env = envSchema.parse(process.env);
 
   const db = drizzle(
-    await mysql.createConnection({
+    connect({
       host: env.DATABASE_HOST,
-      user: env.DATABASE_USERNAME,
+      username: env.DATABASE_USERNAME,
       password: env.DATABASE_PASSWORD,
+      // biome-ignore lint/suspicious/noExplicitAny: TODO
+      fetch: (url: string, init: any) => {
+        // biome-ignore lint/suspicious/noExplicitAny: TODO
+        (init as any).cache = undefined; // Remove cache header
+        return fetch(url, init);
+      },
     }),
+    {
+      schema,
+    },
   );
 
   const workspaceId = newId("ws");
@@ -43,6 +53,8 @@ async function main() {
     tenantId: env.TENANT_ID,
     name: "Unkey",
     internal: true,
+    betaFeatures: {},
+    features: {},
   };
   await db.insert(schema.workspaces).values(workspace);
   console.log(`Created workspace: ${workspace.name} with id: ${workspace.id}`);
