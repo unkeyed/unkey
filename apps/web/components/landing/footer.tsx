@@ -30,7 +30,7 @@ const navigation = [
       ...socialMediaProfiles,
       {
         title: <img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" />,
-        href: "https://cal.com/chronark/unkey?utm_source=banner&utm_campaign=oss",
+        href: "https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss",
       },
     ],
   },
