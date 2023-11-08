@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { schema } from "@unkey/db";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/planetscale-serverless";
+import { connect } from "@planetscale/database";
+
 import mysql from "mysql2/promise";
 import { z } from "zod";
 
@@ -29,11 +31,20 @@ async function main() {
   const env = envSchema.parse(process.env);
 
   const db = drizzle(
-    await mysql.createConnection({
-      host: env.DATABASE_HOST,
-      user: env.DATABASE_USERNAME,
-      password: env.DATABASE_PASSWORD,
+    connect({
+      host: process.env.DATABASE_HOST,
+      username: process.env.DATABASE_USERNAME,
+      password: process.env.DATABASE_PASSWORD,
+      // biome-ignore lint/suspicious/noExplicitAny: TODO
+      fetch: (url: string, init: any) => {
+        // biome-ignore lint/suspicious/noExplicitAny: TODO
+        (init as any).cache = undefined; // Remove cache header
+        return fetch(url, init);
+      },
     }),
+    {
+      schema,
+    },
   );
 
   const workspaceId = newId("ws");

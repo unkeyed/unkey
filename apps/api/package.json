@@ -1,0 +1,31 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "deploy": "pnpm build && wrangler deploy",
+    "dev": "pnpm build && wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20230419.0",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@axiomhq/js": "1.0.0-rc.1",
+    "@hono/zod-openapi": "^0.8.3",
+    "@hono/zod-validator": "^0.1.9",
+    "@planetscale/database": "^1.11.0",
+    "@unkey/db": "workspace:^",
+    "@unkey/result": "workspace:^",
+    "base-x": "^4.0.0",
+    "bun-types": "^1.0.10",
+    "drizzle-orm": "^0.28.6",
+    "hono": "^3.8.3",
+    "prefixed-api-key": "^1.1.1",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4",
+    "zod-error": "^1.5.0"
+  }
+}

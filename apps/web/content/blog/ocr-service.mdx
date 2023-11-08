@@ -68,7 +68,7 @@ const doOcr = async (image) => {
 ## Endpoints Explained
 
 1. `/signup`: Sign up for an API key. Returns a JSON object with the API key.
-    
+
 
 It validates the email and provisions and returns an API key. The key is then used to authenticate the OCR endpoints.
 
@@ -91,7 +91,7 @@ Returns:
 
 
 2. `/upload`: Upload an image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
-    
+
 
 Type: `POST`
 
@@ -115,7 +115,7 @@ Returns:
 | error | string, null | Error if any |
 
 3. `/uploadBase64`: Upload a base64 encoded image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
-    
+
 
 Type: `POST`
 
@@ -139,9 +139,9 @@ Returns:
 | text  | string, null | OCR Results  |
 | error | string, null | Error if any |
 
-4. `/upgradeUser`: Upgrade a user to a paid plan. It validates an imaginary transaction id and then upgrades the user.  
+4. `/upgradeUser`: Upgrade a user to a paid plan. It validates an imaginary transaction id and then upgrades the user.
     It increases the usage limit of the user based on the subscription the user has purchased.
-    
+
 
 Type: `POST`
 
@@ -228,27 +228,27 @@ Its params are explained in detail in the official [docs](https://unkey.dev/docs
 Following is a description of the params used in this example:
 
 * `apiId`: The API ID to create the key for. You create this API in the Unkey dashboard.
-    
+
 * `prefix`: The prefix to use for the key. Every key is prefixed with this. This is useful to identify the key's purpose. For eg. we can have prefixes like `user_`, `admin_`, `service_`, `staging_`, `trial_`, `production_` etc.
-    
+
 * `byteLength`: The byte length used to generate the key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes or 2^128 possible combinations.
-    
+
 * `ownerId`: This can be any string. In this example, we're using the user's email address as the id. By doing this we'll be able to verify the appropriate owner of the key.
-    
+
 * `meta`: Any metadata information we want to store with the key. In this example, we're storing the user's name and email.
-    
+
 * `expires`: Keys can be auto-expired by providing a UNIX timestamp in milliseconds. Once keys expire they will automatically be deleted and are no longer valid.
-    
+
 * `rateLimit`: Keys can be rate limited by certain parameters. This is extremely beneficial as it prevents abuse of our API. The rate limit is enforced on the edge, so it's extremely fast and efficient. The rate limit params we've used in this example are:
-    
+
     * `type`: Type of the rate limit. Read more [here](https://unkey.dev/docs/features/ratelimiting)
-        
+
     * `limit`: The number of requests allowed in the given time
-        
+
     * `refill`: The number of requests to refill in the given time
-        
+
     * `refillInterval`: The interval by which the requests are refilled
-        
+
 
 In the rate limit set in the `/signUp` route, the user is on a trial plan and is allowed 1 request every 10 seconds.
 
@@ -329,11 +329,11 @@ export default verifyApiKey;
 Let's understand the response in detail:
 
 * `valid`: This is either `true` or `false` telling us if the key is valid or not.
-    
+
 * `expires`: The UNIX timestamp in milliseconds when the key expires. Here, we've given the user a 30 days trial. So the key expires in 30 days.
-    
+
 * `ratelimit`: Currently, the user is limited to 1 request every 10 seconds. The `limit` param tells us how many more requests the user has left. The `reset` tells us the time when the requests will be refilled. We can use this to show the user how much time is left before they can make another request.
-    
+
 
 ---
 
@@ -358,7 +358,7 @@ app.post("/upgradeUser", async (req: Request, res: Response) => {
 
   // Imaginary transactionId and email validation.
   // Let's imagine the user upgraded to a paid plan.
-  // Now we have to increase the usage quota of the user. 
+  // Now we have to increase the usage quota of the user.
   // We can do that by updating the key.
 
   const myHeaders = new Headers();
