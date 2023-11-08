@@ -33,8 +33,5 @@
   },
   "dependencies": {
     "@unkey/api": "workspace:^"
-  },
-  "peerDependencies": {
-    "next": "^13.5.3"
   }
 }
