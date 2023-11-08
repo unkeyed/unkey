@@ -1,5 +1,16 @@
 # @unkey/nextjs
 
+## 0.13.0
+
+### Minor Changes
+
+- 8a6b040: accept apiId when verifying a key
+
+### Patch Changes
+
+- Updated dependencies [8a6b040]
+  - @unkey/api@0.12.0
+
 ## 0.12.0
 
 ### Minor Changes
