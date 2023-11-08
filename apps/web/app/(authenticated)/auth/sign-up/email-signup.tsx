@@ -68,9 +68,9 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
             }
           });
       }
-      setTransferLoading(false);
     };
     signUpFromParams();
+    setTransferLoading(false);
   }, [signUpLoaded]);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {

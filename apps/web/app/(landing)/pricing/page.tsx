@@ -168,7 +168,6 @@ export default async function PricingPage() {
                             className="flex-none w-5 h-6 text-gray-700"
                             aria-hidden="true"
                           >
-                            <title>Check</title>
                             <path
                               fill="currentColor"
                               fillRule="evenodd"
