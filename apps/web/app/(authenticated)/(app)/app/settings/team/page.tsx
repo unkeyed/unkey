@@ -33,7 +33,7 @@ type Member = {
   id: string;
   name: string;
   image: string;
-  role: "basic_member" | "admin" | "guest_member";
+  role: "basic_member" | "admin" | "guest_member" | (string & {});
   email?: string;
 };
 
@@ -43,7 +43,9 @@ export default function TeamPage() {
   if (!organization) {
     return (
       <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>This is a personal account</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Title>
+          This is a personal account
+        </EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
           You can only manage teams in paid workspaces.
         </EmptyPlaceholder.Description>
@@ -56,8 +58,9 @@ export default function TeamPage() {
   }
 
   const isAdmin =
-    user?.organizationMemberships.find((m) => m.organization.id === organization.id)?.role ===
-    "admin";
+    user?.organizationMemberships.find(
+      (m) => m.organization.id === organization.id,
+    )?.role === "admin";
 
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
@@ -81,7 +84,11 @@ export default function TeamPage() {
 
   return (
     <div>
-      <PageHeader title="Members" description="Manage your team members" actions={actions} />
+      <PageHeader
+        title="Members"
+        description="Manage your team members"
+        actions={actions}
+      />
 
       {tab === "members" ? <Members /> : <Invitations />}
     </div>
@@ -91,14 +98,15 @@ export default function TeamPage() {
 const Members: React.FC = () => {
   const { user } = useClerk();
 
-  const { isLoaded, membershipList, membership, organization } = useOrganization({
-    membershipList: { limit: 20, offset: 0 },
-  });
+  const { isLoaded, membershipList, membership, organization } =
+    useOrganization({
+      membershipList: { limit: 20, offset: 0 },
+    });
 
   if (!isLoaded) {
     return (
-      <div className="animate-in relative fade-in-50 flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
-        <div className="flex flex-col items-center justify-center mx-auto">
+      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
+        <div className="mx-auto flex flex-col items-center justify-center">
           <Loading />
         </div>
       </div>
@@ -119,14 +127,18 @@ const Members: React.FC = () => {
         {membershipList?.map(({ id, role, publicUserData }) => (
           <TableRow key={id}>
             <TableCell>
-              <div className="flex items-center flex-grow w-full gap-2">
+              <div className="flex w-full flex-grow items-center gap-2">
                 <Avatar>
                   <AvatarImage src={publicUserData.imageUrl} />
-                  <AvatarFallback>{publicUserData.identifier.slice(0, 2)}</AvatarFallback>
+                  <AvatarFallback>
+                    {publicUserData.identifier.slice(0, 2)}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
-                  <span className="font-medium text-content">{`${publicUserData.firstName} ${publicUserData.lastName}`}</span>
-                  <span className="text-xs text-content-subtle">{publicUserData.identifier}</span>
+                  <span className="text-content font-medium">{`${publicUserData.firstName} ${publicUserData.lastName}`}</span>
+                  <span className="text-content-subtle text-xs">
+                    {publicUserData.identifier}
+                  </span>
                 </div>
               </div>
             </TableCell>
@@ -134,7 +146,8 @@ const Members: React.FC = () => {
               <RoleSwitcher member={{ id: publicUserData.userId!, role }} />
             </TableCell>
             <TableCell>
-              {membership?.role === "admin" && publicUserData.userId !== user?.id ? (
+              {membership?.role === "admin" &&
+              publicUserData.userId !== user?.id ? (
                 <Confirm
                   variant="alert"
                   title="Remove member"
@@ -167,8 +180,8 @@ const Invitations: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="animate-in relative fade-in-50 flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
-        <div className="flex flex-col items-center justify-center mx-auto">
+      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
+        <div className="mx-auto flex flex-col items-center justify-center">
           <Loading />
         </div>
       </div>
@@ -179,7 +192,9 @@ const Invitations: React.FC = () => {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>No pending invitations</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>Invite members to your team</EmptyPlaceholder.Description>
+        <EmptyPlaceholder.Description>
+          Invite members to your team
+        </EmptyPlaceholder.Description>
         <InviteButton />
       </EmptyPlaceholder>
     );
@@ -199,7 +214,9 @@ const Invitations: React.FC = () => {
         {invitationList?.map((invitation) => (
           <TableRow key={invitation.id}>
             <TableCell>
-              <span className="font-medium text-content">{invitation.emailAddress}</span>
+              <span className="text-content font-medium">
+                {invitation.emailAddress}
+              </span>
             </TableCell>
             <TableCell>
               <StatusBadge status={invitation.status} />
@@ -227,7 +244,9 @@ const Invitations: React.FC = () => {
   );
 };
 
-const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> = ({ member }) => {
+const RoleSwitcher: React.FC<{
+  member: { id: string; role: Member["role"] };
+}> = ({ member }) => {
   const [role, setRole] = useState(member.role);
   const [isLoading, setLoading] = useState(false);
   const { organization } = useOrganization();
@@ -279,7 +298,9 @@ const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> =
   );
 };
 
-const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" }> = ({
+  status,
+}) => {
   switch (status) {
     case "pending":
       return <Badge variant="primary">Pending</Badge>;
