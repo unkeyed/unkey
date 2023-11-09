@@ -1,8 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import React from "react";
-// @ts-expect-error
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
 import {
@@ -70,7 +69,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <div className="flex flex-col space-y-2">
               <input type="hidden" name="workspaceId" value={api.workspaceId} />
               <input type="hidden" name="apiId" value={api.id} />
-              <label className="hidden sr-only">Name</label>
+              <label className="sr-only hidden">Name</label>
               <Textarea
                 name="ipWhitelist"
                 className="max-w-sm"
