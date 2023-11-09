@@ -1,5 +1,11 @@
 import { verifyKey } from "@unkey/api";
 
+const port = process.env.PORT || 8000;
+
+console.log(
+  `Launching Bun HTTP server on port: ${port}, url: http://0.0.0.0:${port} 🚀`
+);
+
 Bun.serve({
   async fetch(req) {
     const key = req.headers.get("Authorization")?.replace("Bearer ", "");
