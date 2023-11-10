@@ -13,6 +13,11 @@ export type Metric = {
     tier: string;
     resource: string;
   };
+  "metric.cache.purge": {
+    key: string;
+    tier: string;
+    resource: string;
+  }
   "metric.http.request": {
     path: string;
     method: string;
