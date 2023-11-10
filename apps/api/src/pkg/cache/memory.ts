@@ -1,44 +1,44 @@
-import { Cache, CacheConfig, Entry } from "./interface"
-import type { Context } from "hono"
+import type { Context } from "hono";
+import { Cache, CacheConfig, Entry } from "./interface";
 
-
-export class MemoryCache<TKey extends string, TValue> implements Cache<TKey, TValue>{
-  private readonly state: Map<TKey, Entry<TValue | null>>
-  private readonly config: CacheConfig
+export class MemoryCache<TKey extends string, TValue> implements Cache<TKey, TValue> {
+  private readonly state: Map<TKey, Entry<TValue>>;
+  private readonly config: CacheConfig;
 
   constructor(config: CacheConfig) {
-    this.state = new Map()
-    this.config = config
-
+    this.state = new Map();
+    this.config = config;
   }
 
-  public get(_c: Context, key: TKey): TValue | null | undefined {
-    const cached = this.state.get(key)
+  public get(_c: Context, key: TKey): [TValue | undefined, boolean] {
+
+    const cached = this.state.get(key);
     if (!cached) {
-      return undefined
+      return [undefined, false];
     }
-    const now = Date.now()
+    const now = Date.now();
 
-    if (now >= cached.expires) {
-      this.state.delete(key)
-      return undefined
+    if (now >= cached.staleUntil) {
+      this.state.delete(key);
+      return [undefined, false];
+    }
+    if (now >= cached.freshUntil) {
+      return [cached.value, true];
     }
 
-
-
-    return cached.value
-
-
+    return [cached.value, false];
   }
 
-  public set(_c: Context, key: TKey, value: TValue | null): void {
+  public set(_c: Context, key: TKey, value: TValue): void {
+    const now = Date.now();
     this.state.set(key, {
       value: value,
-      expires: Date.now() + this.config.ttl
-    })
+      freshUntil: now + this.config.fresh,
+      staleUntil: now + this.config.stale,
+    });
   }
 
   public remove(_c: Context, key: TKey): void {
-    this.state.delete(key)
+    this.state.delete(key);
   }
 }

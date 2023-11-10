@@ -1,11 +1,11 @@
-import { test, expect } from "bun:test";
-import { KeyV1 } from "../keys/v1";
 import { sha256 } from "./sha256";
-
+import { expect, test } from "bun:test";
 
 test("compatibility with resend's keys", async () => {
-  expect(sha256("MVgWNsyPmv6VthC9moCNAPwS")).resolves.toEqual('CptSN3vQ0shZLIsdT5c/tlpeFK/qqxY0R/aQNCfKhWs=')
-})
+  expect(sha256("MVgWNsyPmv6VthC9moCNAPwS")).resolves.toEqual(
+    "CptSN3vQ0shZLIsdT5c/tlpeFK/qqxY0R/aQNCfKhWs=",
+  );
+});
 
 test("hashes the string", async () => {
   // These hashes were generate using our old golang based sha256 implementation
@@ -109,11 +109,9 @@ test("hashes the string", async () => {
     "3Zm4bZt84WbaAK7M8xwoUL4W": "hWsVhss9mduM6GjVqMtClqJuHsGH1j2QxXLGNI2MKgQ=",
     "3Zm9xJrtvv1SbLxSVv9JC3Yh": "O+n9r4hz2nyG/YB75+yWmCRSdBLhOTkd6rLOWZ9Pdlo=",
     "3ZmXehZeiHqy3p7dY6mw18Dj": "m8Ox2Uc0DsG6PCPkwJ3GYWUSuvailqMyfUAE3xQSDO4=",
-    "3ZnJpPhMA2vD1u8HcfGYMV1i": "8HZdjYgurGRXpcbLb7aepGxC54lmAUHvO42demlojlQ="
-
-  }
+    "3ZnJpPhMA2vD1u8HcfGYMV1i": "8HZdjYgurGRXpcbLb7aepGxC54lmAUHvO42demlojlQ=",
+  };
   for (const [key, hash] of Object.entries(keysAndHashes)) {
-    expect(sha256(key)).resolves.toBe(hash)
+    expect(sha256(key)).resolves.toBe(hash);
   }
-
-})
+});

@@ -13,7 +13,6 @@ import { GridPattern } from "@/components/landing/grid-pattern";
 
 const RootLayoutContext = createContext({});
 
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function XIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -23,7 +22,6 @@ function XIcon(props: any) {
   );
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function MenuIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -42,12 +40,9 @@ function Header({
 }: {
   panelId: string;
   invert?: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   icon: any;
   expanded: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   onToggle: any;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   toggleRef: any;
 }) {
   return (

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -72,16 +73,19 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 			return
 		}
 		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("User-Agent", "unkey-agent")
 		resp, err := http.DefaultClient.Do(r)
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to send request to cloudflare")
 			return
 		}
-		err = resp.Body.Close()
+		defer resp.Body.Close()
+		resB, err := io.ReadAll(resp.Body)
 		if err != nil {
-			s.logger.Error().Err(err).Msg("failed to close response body from cloudflare")
+			s.logger.Error().Err(err).Msg("failed to read response body from cloudflare")
 			return
 		}
+		s.logger.Info().Int("status", resp.StatusCode).Str("body", string(resB)).Msg("sent request to cloudflare")
 
 	}()
 

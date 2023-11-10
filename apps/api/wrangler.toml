@@ -2,7 +2,6 @@ name = "api"
 main = "src/worker.ts"
 compatibility_date = "2023-11-06"
 
-
 # [durable_objects]
 # bindings = [
 #   {name = "RATELIMIT", class_name = "Ratelimit"}
@@ -16,7 +15,7 @@ compatibility_date = "2023-11-06"
 route = { pattern = "dev.api.unkey.app", custom_domain = true }
 
 
-vars = {ENVIRONMENT = "dev"}
+vars = {ENVIRONMENT = "development"}
 
 [env.preview]
 vars = {  ENVIRONMENT = "preview"}
@@ -26,3 +25,4 @@ route = { pattern = "preview.api.unkey.app", custom_domain = true }
 [env.production]
 vars = {  ENVIRONMENT = "production"}
 route = { pattern = "api.unkey.app", custom_domain = true }
+logpush = true

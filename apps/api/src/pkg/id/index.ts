@@ -6,8 +6,8 @@ const namespaces = {
   rootKey: "unkey",
   key: "key",
   keyAuth: "keyAuth", // not customer facing
-  request: "req"
-} as const
+  request: "req",
+} as const;
 
 export function newId(namespace: keyof typeof namespaces, byteLength = 8): string {
   const buf = new Uint8Array(byteLength);
