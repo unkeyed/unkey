@@ -392,6 +392,12 @@ importers:
         specifier: 18.2.8
         version: 18.2.8
 
+  examples/bun-koyeb:
+    dependencies:
+      '@unkey/api':
+        specifier: ^0.10.3
+        version: 0.10.3
+
   examples/bun-server:
     dependencies:
       '@unkey/api':
