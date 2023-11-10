@@ -1,4 +1,3 @@
 name = "cloudflare2"
 main = "src/worker.ts"
 compatibility_date = "2023-10-17"
-
