@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -86,7 +87,7 @@ func (s *Server) v1CreateKey(c *fiber.Ctx) error {
 
 	}
 
-	keyValue, err := keys.NewV1Key(req.Prefix, req.ByteLength)
+	keyValue, err := keys.NewV1Key(strings.TrimSuffix(req.Prefix, "_"), req.ByteLength)
 	if err != nil {
 		return errors.NewHttpError(c, errors.INTERNAL_SERVER_ERROR, fmt.Sprintf("unable to create new key: %s", err.Error()))
 
