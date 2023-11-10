@@ -1,5 +1,12 @@
 # @unkey/nextjs
 
+## 0.13.1
+
+### Patch Changes
+
+- c5f3cdb: Remove nextjs peer dependency
+- c5f3cdb: Do not bundle next
+
 ## 0.13.0
 
 ### Minor Changes
