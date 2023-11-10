@@ -1,7 +1,7 @@
 type StrArrayToUnion<TArr extends readonly string[]> = TArr[number];
 
 // sort these alphabetically
-export const frameworks = ["Django", "Next.js", "Svelte", "Express"] as const;
+export const frameworks = ["Django", "Next.js", "Svelte", "Express", "Bun"] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
@@ -40,6 +40,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "bun-koyeb": {
+    title: "Global API authentication with Unkey and Koyeb",
+    description: "Deploy and secure your API globally with Unkey and Koyeb.",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/unkey/tree/main/examples/bun-koyeb",
+    image: "/templates/placeholder.png",
+    readmeUrl: "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/bun-koyeb/README.md",
+    language: "Typescript",
+    framework: "Bun",
+    url: "https://www.koyeb.com/deploy/bunkey?ref=unkey",
+  },
   "nextjs-boilderplate": {
     title: "Next.js Boilerplate",
     description: "A simple Next.js app using Unkey to generate and verify API keys.",
