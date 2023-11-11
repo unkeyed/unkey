@@ -1,5 +1,11 @@
 # @unkey/nextjs
 
+## 0.13.2
+
+### Patch Changes
+
+- 5987377: default to loading authorization header
+
 ## 0.13.1
 
 ### Patch Changes
