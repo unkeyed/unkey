@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	m "net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"

@@ -36,6 +36,10 @@ The key will be verified against the api's configuration. If the key does not be
       content: {
         "application/json": {
           schema: z.object({
+            keyId: z.string().optional().openapi({
+              description: "The id of the key",
+              example: "key_1234",
+            }),
             valid: z.boolean().openapi({
               description: `Whether the key is valid or not.
 A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.`,
@@ -136,14 +140,17 @@ export const registerV1KeysVerifyKey = (app: App) =>
       return c.jsonT({
         valid: false,
         code: value.code,
+        rateLimit: value.ratelimit
       });
     }
 
     return c.jsonT({
+      keyId: value.keyId,
       valid: true,
       ownerId: value.ownerId,
       meta: value.meta,
       expiresAt: value.expires,
       remaining: value.remaining,
+      ratelimit: value.ratelimit,
     });
   });

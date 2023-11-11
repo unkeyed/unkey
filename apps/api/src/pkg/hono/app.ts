@@ -3,7 +3,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { handleZodError } from "../errors";
 import { GlobalContext } from "../context/global";
 
-type Variables = {
+export type Variables = {
   requestId: string;
   ctx: GlobalContext
 };

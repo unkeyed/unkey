@@ -22,12 +22,12 @@ export class DurableObjectRatelimiter {
 
   // Handle HTTP requests from clients.
   async fetch(request: Request) {
-    const req = (await request.json()) as { resets: number };
+    const req = (await request.json()) as { reset: number };
 
     this.memory.current += 1;
 
     if (!this.memory.alarmScheduled) {
-      this.memory.alarmScheduled = req.resets;
+      this.memory.alarmScheduled = req.reset;
       await this.state.storage.setAlarm(this.memory.alarmScheduled);
     }
 

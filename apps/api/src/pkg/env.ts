@@ -7,5 +7,7 @@ export type Env = {
     CLOUDFLARE_API_KEY: string;
     CLOUDFLARE_ZONE_ID: string;
     ENVIRONMENT: "development" | "preview" | "production";
+
+    DO_RATELIMIT: DurableObjectNamespace
   };
 };

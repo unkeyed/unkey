@@ -39,7 +39,6 @@ export type Metric = {
   "metric.ratelimit": {
     hit: boolean;
     keyId: string;
-    pass: boolean;
     latency: number;
     tier: "memory" | "durable";
   };

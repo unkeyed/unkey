@@ -7,7 +7,13 @@ export function withCache<TKey extends string, TValue>(c: Context, cache: Cache<
     const [cached, stale] = await cache.get(c, identifier);
     if (typeof cached !== "undefined") {
       if (stale) {
-        c.executionCtx.waitUntil(loadFromDatabase(identifier).then(value => cache.set(c, identifier, value)))
+        c.executionCtx.waitUntil(
+          loadFromDatabase(identifier)
+            .then(value => cache.set(c, identifier, value))
+            .catch((err) => {
+              console.error(err);
+            })
+        )
       }
       return cached;
     }

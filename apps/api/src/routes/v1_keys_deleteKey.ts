@@ -32,9 +32,14 @@ const route = createRoute({
     }
   },
   responses: {
-    204: {
+    200: {
 
       description: "The key was successfully revoked, it may take up to 30s for this to take effect in all regions",
+      content: {
+        "application/json": {
+          schema: z.object({})
+        }
+      }
     },
     ...openApiErrorResponses,
   },
@@ -42,7 +47,7 @@ const route = createRoute({
 
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyService, keyCache, db } = c.get("ctx")
+    const { keyService, keyCache, verificationCache, db } = c.get("ctx")
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
@@ -58,6 +63,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
     const { keyId } = c.req.valid("json");
 
 
+    console.log("XXXXXXX", keyId)
     const key = await withCache(c, keyCache, async (kid: KeyId) => {
       return await db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, kid),
@@ -76,6 +82,9 @@ export const registerV1KeysDeleteKey = (app: App) =>
       deletedAt: new Date(),
     }).where(eq(schema.keys.id, key.id))
 
-    c.status(204)
+    await keyCache.remove(c, keyId)
+    await verificationCache.remove(c, key.hash)
+
+    console.log("I GOT THIS FAR")
     return c.jsonT({})
   });

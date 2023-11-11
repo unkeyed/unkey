@@ -75,6 +75,8 @@ export class ZoneCache<TKey extends string, TValue> implements Cache<TKey, TValu
           files: [this.createCacheKey(key).toString()]
 
         })
+      }).then(async res => {
+        console.log("purged cache", res.status, await res.text())
       })
     ])
   }

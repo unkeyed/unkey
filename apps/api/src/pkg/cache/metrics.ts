@@ -54,6 +54,13 @@ export class CacheWithMetrics<TKey extends string, TValue> {
     this.cache.set(c, key, value);
   }
   remove(c: Context, key: TKey) {
+    if (this.metrics) {
+      this.metrics.emit("metric.cache.purge", {
+        tier: this.tier,
+        resource: this.resource,
+        key,
+      });
+    }
     this.cache.remove(c, key);
   }
 }

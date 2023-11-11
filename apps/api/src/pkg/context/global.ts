@@ -14,7 +14,7 @@ import { AxiomLogger } from "../logging/axiom";
 export type KeyHash = string;
 export type KeyId = string;
 
-const fresh = 15 * 60 * 1000; // 15 minutes
+const fresh = 1 * 60 * 1000; // 1 minute
 const stale = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
@@ -82,6 +82,7 @@ export class GlobalContext {
       logger: this.logger,
       db: this.db,
       metrics: this.metrics,
+      rl: opts.env.DO_RATELIMIT
     });
   }
 
