@@ -1,4 +1,4 @@
-import { GlobalContext, KeyId } from "@/pkg/context/global";
+import { keyService, keyCache, verificationCache, db, KeyId } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema, type Key } from "@unkey/db";
@@ -47,7 +47,6 @@ const route = createRoute({
 
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyService, keyCache, verificationCache, db } = c.get("ctx")
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {

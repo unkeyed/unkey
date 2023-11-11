@@ -1,7 +1,6 @@
-import { GlobalContext, KeyId } from "@/pkg/context/global";
+import { keyService, keyCache, db, KeyId } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import type { Key } from "@unkey/db";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { withCache } from "@/pkg/cache/with_cache";
@@ -94,7 +93,6 @@ const route = createRoute({
 
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyService, keyCache, db } = c.get("ctx")
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {

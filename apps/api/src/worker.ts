@@ -2,13 +2,13 @@ import { Env } from "@/pkg/env";
 import { handleError } from "@/pkg/errors/http";
 import { app } from "@/pkg/hono/app";
 import { prettyJSON } from "hono/pretty-json";
-import { GlobalContext } from "./pkg/context/global";
 import { newId } from "./pkg/id";
 import { Metric } from "./pkg/metrics";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
+import { init, logger, metrics } from "@/pkg/global";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object"
 
@@ -26,10 +26,7 @@ app.doc("/openapi.json", {
 
 
 app.use("*", async (c, next) => {
-  const ctx = GlobalContext.init({ env: c.env })
-  c.set("ctx", ctx)
-
-  ctx.logger.info("request", {
+  logger.info("request", {
     method: c.req.method,
     path: c.req.path,
   });
@@ -61,8 +58,8 @@ app.use("*", async (c, next) => {
     m.status = c.res.status;
     m.serviceLatency = performance.now() - start;
     c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
-    ctx.metrics.emit("metric.http.request", m);
-    c.executionCtx.waitUntil(Promise.all([ctx.metrics.flush(), ctx.logger.flush()]));
+    metrics.emit("metric.http.request", m);
+    c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
   }
 });
 
@@ -73,6 +70,9 @@ registerV1KeysVerifyKey(app);
 
 export default {
   fetch: (req: Request, env: Env["Bindings"], executionCtx: ExecutionContext) => {
+    init({ env })
+
+
     return app.fetch(req, env, executionCtx);
   },
 };

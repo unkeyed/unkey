@@ -1,6 +1,6 @@
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-
+import { metrics, logger } from "@/pkg/global"
 import { openApiErrorResponses } from "@/pkg/errors";
 
 const route = createRoute({
@@ -38,7 +38,6 @@ export const registerV1Liveness = (app: App) =>
   app.openapi(
     route,
     async (c) => {
-      const { metrics, logger } = c.get("ctx")
 
       return c.jsonT({
         status: "we're cooking",

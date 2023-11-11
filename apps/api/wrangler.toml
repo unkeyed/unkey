@@ -3,9 +3,11 @@ main = "src/worker.ts"
 compatibility_date = "2023-11-06"
 
 
- [[migrations]]
+[[migrations]]
  tag = "v1"
- new_classes = ["DurableObjectRatelimiter"]
+ new_classes = [
+  "DurableObjectRatelimiter"
+]
 
 [env.dev]
 route = { pattern = "dev.api.unkey.app", custom_domain = true }
@@ -14,26 +16,26 @@ vars = {ENVIRONMENT = "development"}
 
 [env.dev.durable_objects]
  bindings = [
- {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"}
- ]
+  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  }
+]
 
 [env.preview]
-vars = {  ENVIRONMENT = "preview"}
+vars = {  ENVIRONMENT = "preview" }
 route = { pattern = "preview.api.unkey.app", custom_domain = true }
 
 
 [env.preview.durable_objects]
  bindings = [
- {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"}
- ]
+  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"}
+]
 
 [env.production]
 vars = {  ENVIRONMENT = "production"}
-route = { pattern = "api.unkey.app", custom_domain = true }
+route = { pattern = "api.unkey.app", custom_domain = true}
 logpush = true
 
 
 [env.production.durable_objects]
  bindings = [
- {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"}
- ]
+  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  }
+]

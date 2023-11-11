@@ -1,6 +1,6 @@
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-
+import { keyService } from "@/pkg/global"
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 
 const route = createRoute({
@@ -129,10 +129,9 @@ Possible values are:
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const ctx = c.get("ctx")
     const { apiId, key } = c.req.valid("json");
 
-    const { value, error } = await ctx.keyService.verifyKey(c, { key, apiId });
+    const { value, error } = await keyService.verifyKey(c, { key, apiId });
     if (error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
     }
