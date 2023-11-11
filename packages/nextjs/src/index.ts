@@ -16,7 +16,7 @@ export type WithUnkeyConfig = {
    *
    * You can also override the response given to the caller by returning a `NextResponse`
    *
-   * @default `req.headers.get("Authorization")?.replace("Bearer ", "") ?? null`
+   * @default `req.headers.get("authorization")?.replace("Bearer ", "") ?? null`
    */
   getKey?: (req: NextRequest) => string | null | NextResponse;
 
@@ -41,12 +41,12 @@ export type UnkeyContext = {
   expires?: number | undefined;
   remaining?: number | undefined;
   ratelimit?:
-    | {
-        limit: number;
-        remaining: number;
-        reset: number;
-      }
-    | undefined;
+  | {
+    limit: number;
+    remaining: number;
+    reset: number;
+  }
+  | undefined;
   code?: "NOT_FOUND" | "RATELIMITED" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | undefined;
 };
 
@@ -63,7 +63,7 @@ export function withUnkey(
     /**
      * Get key from request and return a response early if not found
      */
-    const key = config?.getKey ? config.getKey(req) : null;
+    const key = config?.getKey ? config.getKey(req) : req.headers.get("authorization")?.replace("Bearer ", "") ?? null;
     if (key === null) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     } else if (typeof key !== "string") {
