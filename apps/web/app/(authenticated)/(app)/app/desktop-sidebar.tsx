@@ -72,9 +72,9 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
             <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
             <ul className="mt-2 -mx-2 space-y-1">
               {workspace.apis.map((api) => (
-                <Tooltip>
-                  <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
-                    <li key={api.id}>
+                <li key={api.id}>
+                  <Tooltip>
+                    <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
                       <NavLink
                         item={{
                           icon: Code,
@@ -83,12 +83,10 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
                           active: segments.includes(api.id),
                         }}
                       />
-                    </li>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <li key={api.id}>{api.name}</li>
-                  </TooltipContent>
-                </Tooltip>
+                    </TooltipTrigger>
+                    <TooltipContent>{api.name}</TooltipContent>
+                  </Tooltip>
+                </li>
               ))}
             </ul>
           </li>
