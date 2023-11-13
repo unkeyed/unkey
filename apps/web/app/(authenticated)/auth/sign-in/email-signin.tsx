@@ -61,9 +61,9 @@ export function EmailSignIn(props: {
         identifier: email,
       })
       .then(async () => {
-        const firstFactor = signIn.supportedFirstFactors.find((f) => f.strategy === "email_code") as
-          | { emailAddressId: string }
-          | undefined;
+        const firstFactor = signIn.supportedFirstFactors.find(
+          (f) => f.strategy === "email_code",
+        ) as { emailAddressId: string } | undefined;
 
         if (firstFactor) {
           await signIn.prepareFirstFactor({
@@ -83,7 +83,8 @@ export function EmailSignIn(props: {
         } else {
           toast({
             title: "Error",
-            description: "Sorry, We couldn't sign you in. Please try again later",
+            description:
+              "Sorry, We couldn't sign you in. Please try again later",
             variant: "alert",
           });
         }
@@ -101,11 +102,12 @@ export function EmailSignIn(props: {
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
+            required
             className="bg-background"
           />
         </div>
         <Button disabled={isLoading}>
-          {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
+          {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
           Sign In with Email
         </Button>
       </form>
