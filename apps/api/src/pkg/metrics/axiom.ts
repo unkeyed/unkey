@@ -1,28 +1,36 @@
+import { Axiom } from "@axiomhq/js";
+import { Env } from "../env";
 import { Metric, Metrics } from "./interface";
-
 export class AxiomMetrics implements Metrics {
   private readonly axiomDataset: string;
-  private readonly axiomToken: string;
+  private readonly ax: Axiom;
   private readonly defaultFields: Record<string, unknown>;
-  private buffer: unknown[] = [];
 
   /**
    * @param opts.axiomToken The token to use to authenticate with axiom
    * @param opts.defaultFields Any additional defaultFields to add to the metrics by default
    */
-  constructor(opts: { axiomToken: string; defaultFields?: Record<string, unknown> }) {
-    this.axiomDataset = "cf_api_metrics";
-    this.axiomToken = opts.axiomToken;
+  constructor(opts: {
+    axiomToken: string;
+    defaultFields?: Record<string, unknown>;
+    environment: Env["Bindings"]["ENVIRONMENT"];
+  }) {
+    this.axiomDataset = `cf_api_metrics_${opts.environment}`;
+    this.ax = new Axiom({
+      token: opts.axiomToken,
+    });
     this.defaultFields = opts.defaultFields ?? {};
   }
 
   public emit<TMetric extends keyof Metric>(metric: TMetric, e: Metric[TMetric]): void {
-    this.buffer.push({
-      _time: Date.now(),
-      ...this.defaultFields,
-      metric,
-      ...e,
-    });
+    this.ax.ingest(this.axiomDataset, [
+      {
+        _time: Date.now(),
+        ...this.defaultFields,
+        metric,
+        ...e,
+      },
+    ]);
   }
 
   /**
@@ -30,18 +38,10 @@ export class AxiomMetrics implements Metrics {
    *
    * Call this at the end of the request handler with .waitUntil()
    */
+
   public async flush(): Promise<void> {
-    const copy = this.buffer.slice();
-    this.buffer = [];
-    await fetch(`https://api.axiom.co/v1/datasets/${this.axiomDataset}/ingest`, {
-      method: "POST",
-      body: JSON.stringify(copy),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.axiomToken}`,
-      },
-    }).catch((err) => {
-      console.error("unable to ingest to axiom", err);
+    await this.ax.flush().catch((err) => {
+      console.error("unable to flush logs to axiom", err);
     });
   }
 }

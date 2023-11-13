@@ -35,7 +35,10 @@ export interface Cache<TKey extends string, TValue> {
    *
    * The second value is true if the entry is stale and should be refetched from the origin
    */
-  get: (c: Context, key: TKey) => [TValue | undefined, boolean] | Promise<[TValue | undefined, boolean]>;
+  get: (
+    c: Context,
+    key: TKey,
+  ) => [TValue | undefined, boolean] | Promise<[TValue | undefined, boolean]>;
 
   /**
    * Sets the value for the given key.
@@ -45,7 +48,5 @@ export interface Cache<TKey extends string, TValue> {
   /**
    * Removes the key from the cache.
    */
-  remove: (c: Context, key: TKey) => void
-
-
+  remove: (c: Context, key: TKey) => void;
 }

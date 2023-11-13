@@ -4,16 +4,18 @@ export class ConsoleLogger implements Logger {
   private readonly defaultFields?: Fields;
 
   constructor(opts?: { defaultFields?: Fields }) {
-    this.defaultFields = opts?.defaultFields
+    this.defaultFields = opts?.defaultFields;
   }
 
-
-  private buildMessage(message: string, fields?: Fields): [message?: any, ...optionalParams: any[]] {
+  private buildMessage(
+    message: string,
+    fields?: Fields,
+  ): [message?: any, ...optionalParams: any[]] {
     const f = { ...this.defaultFields, ...fields };
     if (Object.keys(f).length > 0) {
-      return [message, JSON.stringify(f)]
+      return [message, JSON.stringify(f)];
     }
-    return [message]
+    return [message];
   }
 
   public debug(message: string, fields?: Fields): void {

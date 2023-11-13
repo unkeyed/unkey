@@ -1,7 +1,7 @@
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { keyService } from "@/pkg/global";
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { keyService } from "@/pkg/global"
-import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 
 const route = createRoute({
   method: "post",
@@ -109,16 +109,19 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                 "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
               example: 1000,
             }),
-            code: z.enum(["NOT_FOUND", "FORBIDDEN", "KEY_USAGE_EXCEEDED", "RATELIMITED"]).optional().openapi({
-              description: `If the key is invalid this field will be set to the reason why it is invalid.
+            code: z
+              .enum(["NOT_FOUND", "FORBIDDEN", "KEY_USAGE_EXCEEDED", "RATELIMITED"])
+              .optional()
+              .openapi({
+                description: `If the key is invalid this field will be set to the reason why it is invalid.
 Possible values are:
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
 - KEY_USAGE_EXCEEDED: the key has exceeded its request limit
 - RATELIMITED: the key has been ratelimited,
 `,
-              example: "NOT_FOUND",
-            }),
+                example: "NOT_FOUND",
+              }),
           }),
         },
       },
@@ -139,7 +142,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       return c.jsonT({
         valid: false,
         code: value.code,
-        rateLimit: value.ratelimit
+        rateLimit: value.ratelimit,
       });
     }
 

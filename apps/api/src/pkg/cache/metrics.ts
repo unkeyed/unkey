@@ -28,7 +28,8 @@ export class CacheWithMetrics<TKey extends string, TValue> {
     const latency = performance.now() - start;
     c.res.headers.append(
       "Unkey-Latency",
-      `cache-${this.resource}-${this.tier}=${typeof cached !== "undefined" ? "hit" : "miss"
+      `cache-${this.resource}-${this.tier}=${
+        typeof cached !== "undefined" ? "hit" : "miss"
       }@${latency}ms`,
     );
     if (this.metrics) {
@@ -40,7 +41,7 @@ export class CacheWithMetrics<TKey extends string, TValue> {
         key,
       });
     }
-    return [cached, stale]
+    return [cached, stale];
   }
 
   set(c: Context, key: TKey, value: TValue): void {

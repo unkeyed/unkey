@@ -1,16 +1,17 @@
 import { Env } from "@/pkg/env";
 import { handleError } from "@/pkg/errors/http";
+import { init, logger, metrics } from "@/pkg/global";
 import { app } from "@/pkg/hono/app";
 import { prettyJSON } from "hono/pretty-json";
 import { newId } from "./pkg/id";
 import { Metric } from "./pkg/metrics";
+import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
-import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
-import { init, logger, metrics } from "@/pkg/global";
 
-export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object"
+export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
+export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 
 app.onError(handleError);
 app.use(prettyJSON());
@@ -22,8 +23,6 @@ app.doc("/openapi.json", {
     version: "1.0.0",
   },
 });
-
-
 
 app.use("*", async (c, next) => {
   logger.info("request", {
@@ -70,8 +69,7 @@ registerV1KeysVerifyKey(app);
 
 export default {
   fetch: (req: Request, env: Env["Bindings"], executionCtx: ExecutionContext) => {
-    init({ env })
-
+    init({ env });
 
     return app.fetch(req, env, executionCtx);
   },

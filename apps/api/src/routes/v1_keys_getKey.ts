@@ -1,9 +1,9 @@
-import { keyService, keyCache, db, KeyId } from "@/pkg/global";
+import { KeyId, db, keyCache, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { withCache } from "@/pkg/cache/with_cache";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 
 const route = createRoute({
   method: "get",
@@ -107,13 +107,13 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const { keyId } = c.req.query();
 
-
     const key = await withCache(c, keyCache, async (kid: KeyId) => {
-      return await db.query.keys.findFirst({
-        where: (table, { eq }) => eq(table.id, kid),
-      }) ?? null
-    })(keyId)
-
+      return (
+        (await db.query.keys.findFirst({
+          where: (table, { eq }) => eq(table.id, kid),
+        })) ?? null
+      );
+    })(keyId);
 
     if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });

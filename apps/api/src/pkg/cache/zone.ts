@@ -1,12 +1,13 @@
 import type { Context } from "hono";
 import { Cache, CacheConfig, Entry } from "./interface";
 
+
 export type ZoneCacheConfig = CacheConfig & {
   domain: string;
   zoneId: string;
   /**
- * This token must have at least
-  */
+   * This token must have at least
+   */
   cloudflareApiKey: string;
 };
 
@@ -19,11 +20,11 @@ export class ZoneCache<TKey extends string, TValue> implements Cache<TKey, TValu
 
   private createCacheKey(key: string, cacheBuster = "v0"): URL {
     return new URL(`https://${this.config.domain}/cache/${cacheBuster}/${key}`);
-
   }
 
   public async get(c: Context, key: TKey): Promise<[TValue | undefined, boolean]> {
     try {
+      // @ts-expect-error I don't know why this is not working
       const res = await caches.default.match(new Request(this.createCacheKey(key)));
       if (!res) {
         return [undefined, false];
@@ -53,31 +54,32 @@ export class ZoneCache<TKey extends string, TValue> implements Cache<TKey, TValu
       freshUntil: now + this.config.fresh,
       staleUntil: now + this.config.stale,
     };
-    const req = new Request(this.createCacheKey(key))
+    const req = new Request(this.createCacheKey(key));
     const res = new Response(JSON.stringify(entry), {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": `public, max-age=${Math.floor(entry.staleUntil / 1000)}`,
       },
     });
-    await caches.default.put(req, res)
+    // @ts-expect-error I don't know why this is not working
+    await caches.default.put(req, res);
   }
 
   public async remove(_c: Context, key: TKey): Promise<void> {
     await Promise.all([
+      // @ts-expect-error I don't know why this is not working
       caches.default.delete(this.createCacheKey(key)),
       fetch(`https://api.cloudflare.com/client/v4zones/${this.config.zoneId}/purge_cache`, {
         headers: {
-          "Authorization": `Bearer ${this.config.cloudflareApiKey}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${this.config.cloudflareApiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: [this.createCacheKey(key).toString()]
-
-        })
-      }).then(async res => {
-        console.log("purged cache", res.status, await res.text())
-      })
-    ])
+          files: [this.createCacheKey(key).toString()],
+        }),
+      }).then(async (res) => {
+        console.log("purged cache", res.status, await res.text());
+      }),
+    ]);
   }
 }

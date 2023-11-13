@@ -1,5 +1,3 @@
-import type { Env } from "../env";
-
 export type Metric = {
   "metric.cache.read": {
     key: string;
@@ -17,7 +15,7 @@ export type Metric = {
     key: string;
     tier: string;
     resource: string;
-  }
+  };
   "metric.http.request": {
     path: string;
     method: string;
@@ -37,11 +35,14 @@ export type Metric = {
     latency: number;
   };
   "metric.ratelimit": {
-    hit: boolean;
     keyId: string;
     latency: number;
-    tier: "memory" | "durable";
+    tier: "memory" | "durable" | "total";
   };
+  "metric.usagelimit": {
+    keyId: string;
+    latency: number;
+  }
 };
 
 export interface Metrics {

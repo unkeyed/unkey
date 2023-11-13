@@ -1,6 +1,5 @@
 import { check } from "k6";
 import http from "k6/http";
-import { createSourceFile } from "typescript";
 
 export const options = {
   stages: [
@@ -21,11 +20,11 @@ export const options = {
   },
 };
 
-export default function() {
+export default function () {
   const res = http.post(
-    "https://api.unkey.dev/v1/keys.verifyKey",
+    "https://api.unkey.app/v1/keys.verifyKey",
     JSON.stringify({
-      key: "cf_3ZMFNyDdiu2Nh7Ax4WfQY7nC",
+      key: "rl_3ZQQJ33EAjjLU1GgJPz6H9iy",
     }),
     {
       headers: {

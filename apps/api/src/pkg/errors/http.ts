@@ -18,7 +18,10 @@ const ErrorCode = z.enum([
 
 export const ErrorSchema = z.object({
   error: z.object({
-    code: ErrorCode.openapi({ description: "A machine readable error code.", example: "INTERNAL_SERVER_ERROR" }),
+    code: ErrorCode.openapi({
+      description: "A machine readable error code.",
+      example: "INTERNAL_SERVER_ERROR",
+    }),
     docs: z.string().openapi({
       description: "A link to our documentation with more details about this error code",
       example: "https://docs.unkey.dev/api-reference/errors/code/BAD_REQUEST",
@@ -66,13 +69,13 @@ export class UnkeyApiError extends HTTPException {
 export function handleZodError(
   result:
     | {
-      success: true;
-      data: any;
-    }
+        success: true;
+        data: any;
+      }
     | {
-      success: false;
-      error: ZodError;
-    },
+        success: false;
+        error: ZodError;
+      },
   c: Context,
 ) {
   if (!result.success) {
