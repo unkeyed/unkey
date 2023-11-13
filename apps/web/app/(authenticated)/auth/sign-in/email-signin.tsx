@@ -101,11 +101,12 @@ export function EmailSignIn(props: {
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
+            required
             className="bg-background"
           />
         </div>
         <Button disabled={isLoading}>
-          {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
+          {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
           Sign In with Email
         </Button>
       </form>
