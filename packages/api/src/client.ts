@@ -123,7 +123,7 @@ export class Unkey {
         return null; // set `res` to `null`
       });
       if (res?.ok) {
-        return { result: await res.json() };
+        return { result: (await res.json()) as TResult };
       }
       const backoff = this.retry.backoff(i);
       console.debug(
@@ -139,7 +139,7 @@ export class Unkey {
     }
 
     if (res) {
-      return { error: await res.json() };
+      return { error: (await res.json()) as UnkeyError };
     }
 
     return {
