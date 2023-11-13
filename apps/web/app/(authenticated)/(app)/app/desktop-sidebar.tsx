@@ -1,4 +1,6 @@
 "use client";
+import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
+import { TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { BookOpen, Code, LucideIcon, Settings } from "lucide-react";
@@ -48,7 +50,9 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   ];
 
   return (
-    <aside className={cn("fixed  h-screen  inset-y-0 flex w-64 flex-col px-6 gap-y-5", className)}>
+    <aside
+      className={cn("fixed  h-screen  inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10", className)}
+    >
       <div className="flex items-center h-16 mt-4">
         <WorkspaceSwitcher />
       </div>
@@ -69,14 +73,19 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
             <ul className="mt-2 -mx-2 space-y-1">
               {workspace.apis.map((api) => (
                 <li key={api.id}>
-                  <NavLink
-                    item={{
-                      icon: Code,
-                      href: `/app/apis/${api.id}`,
-                      label: api.name,
-                      active: segments.includes(api.id),
-                    }}
-                  />
+                  <Tooltip>
+                    <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+                      <NavLink
+                        item={{
+                          icon: Code,
+                          href: `/app/apis/${api.id}`,
+                          label: api.name,
+                          active: segments.includes(api.id),
+                        }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>{api.name}</TooltipContent>
+                  </Tooltip>
                 </li>
               ))}
             </ul>
