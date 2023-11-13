@@ -22,7 +22,9 @@
   ],
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage"
   },
   "devDependencies": {
     "@types/node": "^20.8.7",
