@@ -61,9 +61,9 @@ export function EmailSignIn(props: {
         identifier: email,
       })
       .then(async () => {
-        const firstFactor = signIn.supportedFirstFactors.find(
-          (f) => f.strategy === "email_code",
-        ) as { emailAddressId: string } | undefined;
+        const firstFactor = signIn.supportedFirstFactors.find((f) => f.strategy === "email_code") as
+          | { emailAddressId: string }
+          | undefined;
 
         if (firstFactor) {
           await signIn.prepareFirstFactor({
@@ -83,8 +83,7 @@ export function EmailSignIn(props: {
         } else {
           toast({
             title: "Error",
-            description:
-              "Sorry, We couldn't sign you in. Please try again later",
+            description: "Sorry, We couldn't sign you in. Please try again later",
             variant: "alert",
           });
         }
