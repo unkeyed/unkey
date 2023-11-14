@@ -67,9 +67,7 @@ export default async function ChangeLogLayout({
 
   const Content = getMDXComponent(changelog.body.code);
 
-  const moreChangelogs = allChangelogs
-    .filter((p) => p.date !== params.date)
-    .slice(0, 2);
+  const moreChangelogs = allChangelogs.filter((p) => p.date !== params.date).slice(0, 2);
 
   return (
     <>
