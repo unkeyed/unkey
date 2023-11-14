@@ -55,7 +55,6 @@ function Header({
       <div className="flex items-center justify-between">
         <Link href="/" aria-label="Home">
           <svg
-            className="h-12 w-12"
             width="75"
             height="75"
             viewBox="0 0 276 276"
