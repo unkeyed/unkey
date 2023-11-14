@@ -10,6 +10,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230419.0",
     "@stepci/runner": "^1.11.7",
+    "@testcontainers/mysql": "^10.2.2",
+    "testcontainers": "^10.2.2",
     "typescript": "^5.0.4",
     "wrangler": "^3.0.0"
   },

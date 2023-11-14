@@ -51,6 +51,8 @@ const route = createRoute({
   },
 });
 
+export type Route = typeof route;
+
 export const registerV1ApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
