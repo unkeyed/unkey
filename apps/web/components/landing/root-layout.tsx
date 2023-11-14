@@ -128,6 +128,9 @@ function Header({
           </svg>
         </Link>
         <div className="flex items-center gap-x-8">
+          <Button href="/careers" invert={invert}>
+            We're hiring
+          </Button>
           <Button href="/app" invert={invert}>
             Dashboard
           </Button>

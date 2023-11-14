@@ -113,6 +113,50 @@ const Changelog = defineDocumentType(() => ({
   },
 }));
 
+const Job = defineDocumentType(() => ({
+  name: "Job",
+  filePathPattern: "jobs/*.mdx",
+  contentType: "mdx",
+  type: "Job",
+  fields: {
+    title: {
+      type: "string",
+      description: "The title of the job",
+      required: true,
+    },
+    visible: {
+      type: "boolean",
+      description: "Whether or not the job is visible on the website",
+      required: true,
+    },
+    description: {
+      type: "string",
+      description: "The excerpt of the job",
+      required: true,
+    },
+    level: {
+      type: "string",
+      description: "The level of the job",
+      required: true,
+    },
+    salary: {
+      type: "string",
+      description: "The salary band of the job",
+      required: true,
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/careers/${doc._raw.sourceFileName.replace(".mdx", "")}`,
+    },
+    slug: {
+      type: "string",
+      resolve: (doc) => doc._raw.sourceFileName.replace(".mdx", ""),
+    },
+  },
+}));
+
 const Policies = defineDocumentType(() => ({
   name: "Policies",
   filePathPattern: "policies/*.mdx",
@@ -135,7 +179,7 @@ const Policies = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: "content",
-  documentTypes: [Changelog, Policies, Post],
+  documentTypes: [Changelog, Policies, Post, Job],
   mdx: {
     remarkPlugins: [remarkGfm],
     rehypePlugins: [

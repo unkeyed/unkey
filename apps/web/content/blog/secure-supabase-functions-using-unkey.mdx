@@ -9,7 +9,7 @@ author: {
   }
 ---
 
-Supabase offers [edge functions](https://supabase.com/docs/guides/functions) built upon Deno. They have a variety of uses for applications like OpenAI or working with their storage product. In this post, we will show you how to use Unkey to secure your function in just a few lines of code. 
+Supabase offers [edge functions](https://supabase.com/docs/guides/functions) built upon Deno. They have a variety of uses for applications like OpenAI or working with their storage product. In this post, we will show you how to use Unkey to secure your function in just a few lines of code.
 
 ## What is Unkey?
 
@@ -20,10 +20,10 @@ Unkey is an open source API management platform that helps developers secure, ma
 -   Time-based keys
 -   Per key analytics
 
-## Prerequisites 
+## Prerequisites
 
 1. Create a [Supabase account](https://supabase.com)
-2. Create a [Unkey account](https://unkey.dev) and follow our [Quickstart guide](https://unkey.dev/docs/quickstart). So you have an API key to verify. 
+2. Create a [Unkey account](https://unkey.dev) and follow our [Quickstart guide](https://unkey.dev/docs/quickstart). So you have an API key to verify.
 3. Setup [Supabase CLI](https://supabase.com/docs/guides/cli/local-development) for local development.
 
 ## Create our project
@@ -52,7 +52,7 @@ supabase start
 
 ### Create a Supabase function
 
-Now that Supabase is setup, we can create a Supabase function. This function will be where we secure it using Unkey. 
+Now that Supabase is setup, we can create a Supabase function. This function will be where we secure it using Unkey.
 
 ```bash
 supabase functions new hello-world
@@ -89,13 +89,13 @@ curl -i --location --request POST 'http://localhost:54321/functions/v1/' \
 ```
 After invoking your Edge Function, you should see the response `{ "message":"Hello Functions!" }`.
 
-> If you receive an error Invalid JWT, find the `ANON_KEY` of your project in the Dashboard under Settings > API. 
+> If you receive an error Invalid JWT, find the `ANON_KEY` of your project in the Dashboard under Settings > API.
 
 ## Add Unkey to secure our Supabase function
 
 ### Add `verifyKey` to our function
 
-Now that we have a function, we must add Unkey to secure the endpoint. Supabase uses Deno, so instead of installing our npm package, we will use ESM CDN to provide the `verifyKey` function we need. 
+Now that we have a function, we must add Unkey to secure the endpoint. Supabase uses Deno, so instead of installing our npm package, we will use ESM CDN to provide the `verifyKey` function we need.
 
 ```jsx {2} title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -120,18 +120,18 @@ Unkey's `verifykey` lets you verify a key from your end users. We will return a 
 
 ### Updating our Supabase function
 
-First, let's remove the boilerplate code from the function so we can work on adding Unkey. 
+First, let's remove the boilerplate code from the function so we can work on adding Unkey.
 
 ```jsx title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { verifyKey } from "https://esm.sh/@unkey/api";
 
 serve(async (req) => {
-  
+
 })
 ```
 
-Next, we will wrap the `serve` function inside a try-catch. Just in case something goes wrong, we can handle that. 
+Next, we will wrap the `serve` function inside a try-catch. Just in case something goes wrong, we can handle that.
 
 ```jsx title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -151,7 +151,7 @@ serve(async (req) => {
 
 #### Check headers for API Key
 
-Inside our try, we can look for a header containing the user's API Key. In this example we will use `x-unkey-api-key` but you could call the header whatever you want. If there is no header will immediately return 401.  
+Inside our try, we can look for a header containing the user's API Key. In this example we will use `x-unkey-api-key` but you could call the header whatever you want. If there is no header will immediately return 401.
 
 ```jsx title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -176,7 +176,7 @@ serve(async (req) => {
 
 The `verifyKey` function returns a `result` and `error`, making the logic easy to handle. Below is a simplified example of the verification flow.
 
-```tsx 
+```tsx
 const { result, error } = await verifyKey("key_123");
 if (error) {
   // handle potential network or bad request error
@@ -232,7 +232,7 @@ curl -XPOST -H 'Authorization: Bearer <SUPBASE_BEARER_TOKEN>' \
 
 ## Adding CORS for added security
 
-Adding CORS allows us to call our function from the frontend and decide what headers can be passed to our function. Inside your `functions` folder, add a file called `cors.ts`. Inside this cors file, we will tell the Supabase function which headers and origins are allowed. 
+Adding CORS allows us to call our function from the frontend and decide what headers can be passed to our function. Inside your `functions` folder, add a file called `cors.ts`. Inside this cors file, we will tell the Supabase function which headers and origins are allowed.
 
 ```tsx title="./functions/cors.ts"
 export const corsHeaders = {
