@@ -21,12 +21,14 @@ import { Tinybird } from "./tinybird";
 
 export type KeyHash = string;
 export type KeyId = string;
+export type ApiId = string;
 
 const fresh = 1 * 60 * 1000; // 1 minute
 const stale = 24 * 60 * 60 * 1000; // 24 hours
 
 export let verificationCache: TieredCache<KeyHash, { key: Key; api: Api } | null>;
 export let keyCache: TieredCache<KeyId, Key | null>;
+export let apiCache: TieredCache<ApiId, Api | null>;
 export let db: Database;
 export let metrics: Metrics;
 export let logger: Logger;
@@ -90,6 +92,26 @@ export function init(opts: { env: Env["Bindings"] }): void {
       metrics,
       tier: "zone",
       resource: "key",
+    }),
+  );
+  apiCache = new TieredCache(
+    new CacheWithMetrics({
+      cache: new MemoryCache({ fresh, stale }),
+      metrics,
+      tier: "memory",
+      resource: "api",
+    }),
+    new CacheWithMetrics({
+      cache: new ZoneCache({
+        domain: "unkey.app",
+        fresh,
+        stale,
+        zoneId: opts.env.CLOUDFLARE_ZONE_ID,
+        cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+      }),
+      metrics,
+      tier: "zone",
+      resource: "api",
     }),
   );
   db = createConnection({
