@@ -1,6 +1,6 @@
 {
   "name": "@unkey/api",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
