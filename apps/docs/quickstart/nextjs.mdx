@@ -112,10 +112,10 @@ export const POST = withUnkey(handler, {
 <ParamField body="getKey" type="(NextRequest) => string | null | NextResponse">
   How to get the key from the request.
   Usually the key is provided in an `Authorization` header, but you can do what you want.
-   
+
   Return the key as string, or null if it doesn't exist.
   You can also directly return a `NextResponse` which will be sent to the client without invoking the handler function.
-   
+
   Defaults to: `req => req.headers.get("Authorization")?.replace("Bearer ", "") ?? null`
 </ParamField>
 
