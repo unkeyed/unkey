@@ -67,7 +67,9 @@ export default async function ChangeLogLayout({
 
   const Content = getMDXComponent(changelog.body.code);
 
-  const moreChangelogs = allChangelogs.filter((p) => p.date !== params.date).slice(0, 2);
+  const moreChangelogs = allChangelogs
+    .filter((p) => p.date !== params.date)
+    .slice(0, 2);
 
   return (
     <>
@@ -80,7 +82,7 @@ export default async function ChangeLogLayout({
 
         <Container className="mt-24 sm:mt-32 lg:mt-40">
           <FadeIn>
-            <div className="max-w-5xl mx-auto prose lg:prose-md">
+            <div className="prose lg:prose-md mx-auto max-w-5xl">
               <Content />
             </div>
           </FadeIn>

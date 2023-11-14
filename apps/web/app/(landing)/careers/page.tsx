@@ -8,22 +8,24 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Jobs | Unkey",
-  description: "Stay up-to-date with the latest updates and changes to Unkey",
+  description:
+    "Join the team at Unkey and help us build the future of API auth.",
   openGraph: {
-    title: "Changelog | Unkey",
-    description: "Stay up-to-date with the latest updates and changes to Unkey",
-    url: "https://unkey.dev/changelog",
+    title: "Jobs | Unkey",
+    description:
+      "Join the team at Unkey and help us build the future of API auth.",
+    url: "https://unkey.dev/careers",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og/changelog",
+        url: "https://unkey.dev/og/career",
         width: 1200,
         height: 675,
       },
     ],
   },
   twitter: {
-    title: "Changelog | Unkey",
+    title: "Jobs | Unkey",
     card: "summary_large_image",
   },
   icons: {
@@ -42,16 +44,20 @@ export default async function JobsPage() {
 
       <Container className="mt-40">
         <FadeIn>
-          <h2 className="text-2xl font-semibold font-display text-gray-950">Open Positions</h2>
+          <h2 className="font-display text-2xl font-semibold text-gray-950">
+            Open Positions
+          </h2>
         </FadeIn>
         <div className="mt-10 space-y-20 sm:space-y-24 lg:space-y-32">
           {jobs.map((job) => (
             <FadeIn key={job.title}>
               <article>
-                <Border className="grid grid-cols-3 pt-16 gap-x-8 gap-y-8">
+                <Border className="grid grid-cols-3 gap-x-8 gap-y-8 pt-16">
                   <div className="col-span-full sm:flex sm:items-center sm:justify-between sm:gap-x-8 lg:col-span-1 lg:block">
                     <div className="sm:flex sm:items-center sm:gap-x-6 lg:block">
-                      <h3 className=" text-sm font-semibold text-neutral-950">{job.level}</h3>
+                      <h3 className=" text-sm font-semibold text-neutral-950">
+                        {job.level}
+                      </h3>
                     </div>
                     <div className="mt-1 flex gap-x-4 sm:mt-0 lg:block">
                       <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 after:content-['/'] lg:mt-2 lg:after:hidden">
@@ -60,12 +66,15 @@ export default async function JobsPage() {
                     </div>
                   </div>
                   <div className="col-span-full lg:col-span-2 lg:max-w-2xl">
-                    <p className="text-4xl font-medium font-display text-gray-950">
+                    <p className="font-display text-4xl font-medium text-gray-950">
                       <Link href={job.url}>{job.title}</Link>
                     </p>
 
-                    <div className="flex mt-8">
-                      <Button href={job.url} aria-label={`Read the description for ${job.title}`}>
+                    <div className="mt-8 flex">
+                      <Button
+                        href={job.url}
+                        aria-label={`Read the description for ${job.title}`}
+                      >
                         Read more
                       </Button>
                     </div>
