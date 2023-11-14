@@ -50,22 +50,15 @@ const Post = defineDocumentType(() => ({
       resolve: async (doc) => {
         const slugger = new GithubSlugger();
         const regXHeader = /\n(?<flag>#{1,6})\s+(?<content>.+)/g;
-        const headings = Array.from(doc.body.raw.matchAll(regXHeader)).map(
-          ({ groups }) => {
-            const flag = groups?.flag;
-            const content = groups?.content;
-            return {
-              level:
-                flag?.length === 1
-                  ? "one"
-                  : flag?.length === 2
-                    ? "two"
-                    : "three",
-              text: content,
-              slug: content ? slugger.slug(content) : undefined,
-            };
-          },
-        );
+        const headings = Array.from(doc.body.raw.matchAll(regXHeader)).map(({ groups }) => {
+          const flag = groups?.flag;
+          const content = groups?.content;
+          return {
+            level: flag?.length === 1 ? "one" : flag?.length === 2 ? "two" : "three",
+            text: content,
+            slug: content ? slugger.slug(content) : undefined,
+          };
+        });
         return headings;
       },
     },
@@ -111,8 +104,7 @@ const Changelog = defineDocumentType(() => ({
   computedFields: {
     url: {
       type: "string",
-      resolve: (doc) =>
-        `/changelog/${doc._raw.sourceFileName.replace(".mdx", "")}`,
+      resolve: (doc) => `/changelog/${doc._raw.sourceFileName.replace(".mdx", "")}`,
     },
     date: {
       type: "string",
@@ -156,8 +148,7 @@ const Job = defineDocumentType(() => ({
   computedFields: {
     url: {
       type: "string",
-      resolve: (doc) =>
-        `/careers/${doc._raw.sourceFileName.replace(".mdx", "")}`,
+      resolve: (doc) => `/careers/${doc._raw.sourceFileName.replace(".mdx", "")}`,
     },
     slug: {
       type: "string",

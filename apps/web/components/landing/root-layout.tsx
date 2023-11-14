@@ -93,15 +93,8 @@ function Header({
                 <feOffset dy="4" />
                 <feGaussianBlur stdDeviation="2" />
                 <feComposite in2="hardAlpha" operator="out" />
-                <feColorMatrix
-                  type="matrix"
-                  values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-                />
-                <feBlend
-                  mode="normal"
-                  in2="BackgroundImageFix"
-                  result="effect1_dropShadow_101_3"
-                />
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_101_3" />
                 <feBlend
                   mode="normal"
                   in="SourceGraphic"
@@ -220,9 +213,7 @@ function Navigation() {
         <NavigationItem href="/templates">Templates</NavigationItem>
       </NavigationRow>
       <NavigationRow>
-        <NavigationItem href="https://unkey.dev/discord">
-          Discord
-        </NavigationItem>
+        <NavigationItem href="https://unkey.dev/discord">Discord</NavigationItem>
         <NavigationItem href="mailto:support@unkey.dev">Support</NavigationItem>
       </NavigationRow>
     </nav>
@@ -268,10 +259,9 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
             expanded={expanded}
             onToggle={() => {
               setExpanded((expanded) => !expanded);
-              window.setTimeout(
-                () =>
-                  // @ts-expect-error
-                  closeRef.current?.focus({ preventScroll: true }),
+              window.setTimeout(() =>
+                // @ts-expect-error
+                closeRef.current?.focus({ preventScroll: true }),
               );
             }}
           />
@@ -300,10 +290,9 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
                 expanded={expanded}
                 onToggle={() => {
                   setExpanded((expanded) => !expanded);
-                  window.setTimeout(
-                    () =>
-                      // @ts-expect-error
-                      openRef.current?.focus({ preventScroll: true }),
+                  window.setTimeout(() =>
+                    // @ts-expect-error
+                    openRef.current?.focus({ preventScroll: true }),
                   );
                 }}
               />
@@ -318,10 +307,7 @@ function RootLayoutInner({ children }: { children: React.ReactNode }) {
         style={{ borderTopLeftRadius: 40, borderTopRightRadius: 40 }}
         className="relative flex flex-auto bg-white pt-14"
       >
-        <motion.div
-          layout
-          className="relative isolate flex w-full flex-col pt-9"
-        >
+        <motion.div layout className="relative isolate flex w-full flex-col pt-9">
           <GridPattern
             className="absolute inset-x-0 -top-14 -z-10 h-[1000px] w-full fill-gray-50 stroke-gray-950/5 [mask-image:linear-gradient(to_bottom_left,white_40%,transparent_50%)]"
             yOffset={-96}

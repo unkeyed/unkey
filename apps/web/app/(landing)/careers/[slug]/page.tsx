@@ -4,14 +4,7 @@ import { useMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
 import React from "react";
 
-import {
-  ArrowLeft,
-  Banknote,
-  BarChart,
-  Cake,
-  Globe,
-  LucideIcon,
-} from "lucide-react";
+import { ArrowLeft, Banknote, BarChart, Cake, Globe, LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -101,9 +94,7 @@ export default function JobPage({ params }: { params: { slug: string } }) {
           <dl className="mt-10 grid grid-cols-2 gap-6">
             {Object.entries(perks).map(([label, Icon]) => (
               <div key={label} className="flex items-center gap-2">
-                <dd className="text-sm text-gray-400">
-                  {<Icon className="h-4 w-4" />}
-                </dd>
+                <dd className="text-sm text-gray-400">{<Icon className="h-4 w-4" />}</dd>
                 <dt className="text-sm font-medium text-gray-900">{label}</dt>
               </div>
             ))}
