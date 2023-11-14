@@ -38,7 +38,7 @@ cd internal/db
 DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
 ```
 
-### 2. Tinybird (Optionoal)
+### 2. Tinybird (Optional)
 
 Download the Tinybird CLI from [here](https://www.tinybird.co/docs/cli.html) and run the following command after authenticating:
 
