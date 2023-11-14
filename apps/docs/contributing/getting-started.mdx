@@ -51,6 +51,14 @@ There are a few 3rd party services that are required to run the app:
     Alternatively, ask on our [discord](https://unkey.dev/discord) for temporary credentials.
 
     Afterwards, create a new organization in clerk and make a note of the organization ID, you'll need it in the next step.
+
+    If you want to use our custom flows you can update the .env to use
+
+    ```
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL=/auth/sign-in
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up  
+    ```
+
   </Step>
   <Step title="Bootstrap">
     Unkey uses itself to manage its own API keys. To bootstrap the app, run the following command:
