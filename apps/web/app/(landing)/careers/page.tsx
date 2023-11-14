@@ -54,7 +54,7 @@ export default async function JobsPage() {
                       <h3 className=" text-sm font-semibold text-neutral-950">{job.level}</h3>
                     </div>
                     <div className="mt-1 flex gap-x-4 sm:mt-0 lg:block">
-                      <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 after:content-['/'] lg:mt-2 lg:after:hidden">
+                      <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 lg:mt-2 lg:after:hidden">
                         {job.description}
                       </p>
                     </div>
