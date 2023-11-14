@@ -4,7 +4,14 @@ import { useMDXComponent } from "next-contentlayer/hooks";
 import { notFound } from "next/navigation";
 import React from "react";
 
-import { ArrowLeft, Banknote, BarChart, Cake, Globe, LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  BarChart,
+  Cake,
+  Globe,
+  LucideIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -50,11 +57,7 @@ export const generateStaticParams = async () =>
     slug: j.slug,
   }));
 
-export default function JobPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default function JobPage({ params }: { params: { slug: string } }) {
   const job = allJobs.find((j) => j.slug === params.slug && j.visible);
 
   if (!job) {
@@ -71,15 +74,15 @@ export default function JobPage({
 
   return (
     <Container>
-      <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0 ">
-        <div className="self-start w-full px-4 mx-auto lg:sticky top-32 h-max lg:w-2/5 sm:px-6 lg:px-8 ">
+      <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0 ">
+        <div className="top-32 mx-auto h-max w-full self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-8 ">
           <Link
-            href="/templates"
-            className="flex items-center gap-1 text-xs duration-200 text-content-subtle hover:text-foreground"
+            href="/careers"
+            className="text-content-subtle hover:text-foreground flex items-center gap-1 text-xs duration-200"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to all careers
+            <ArrowLeft className="h-4 w-4" /> Back to all careers
           </Link>
-          <div className="pb-10 mt-4">
+          <div className="mt-4 pb-10">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-6xl">
               {job.title}
             </h2>
@@ -88,24 +91,26 @@ export default function JobPage({
           <div className="flex items-center justify-between gap-4">
             <Link
               target="_blank"
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-gray-100 bg-gray-900 duration-150 border rounded-md border-gray-900 hover:bg-gray-100 hover:text-gray-900"
+              className="flex w-full items-center justify-center rounded-md border border-gray-900 bg-gray-900 px-4 py-2 text-center text-sm font-medium text-gray-100 duration-150 hover:bg-gray-100 hover:text-gray-900"
               href={"mailto:jobs@unkey.dev"}
             >
               Apply
             </Link>
           </div>
 
-          <dl className="grid grid-cols-2 gap-6 mt-10">
+          <dl className="mt-10 grid grid-cols-2 gap-6">
             {Object.entries(perks).map(([label, Icon]) => (
               <div key={label} className="flex items-center gap-2">
-                <dd className="text-sm text-gray-400">{<Icon className="w-4 h-4" />}</dd>
+                <dd className="text-sm text-gray-400">
+                  {<Icon className="h-4 w-4" />}
+                </dd>
                 <dt className="text-sm font-medium text-gray-900">{label}</dt>
               </div>
             ))}
           </dl>
         </div>
 
-        <div className="w-full border-gray-100 lg:border-l lg:pl-8 lg:w-3/5 prose lg:prose-md">
+        <div className="prose lg:prose-md w-full border-gray-100 lg:w-3/5 lg:border-l lg:pl-8">
           <Content />
         </div>
       </div>
