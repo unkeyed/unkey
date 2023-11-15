@@ -4,7 +4,7 @@ There are a few 3rd party services that are required to run the app:
 
 Required
 
-- [Planetscale](https://planetscale.com?ref=unkey): Database
+- [Planetscale](https://planetscale.com?ref=unkey) or Local MySQL (can be spun up using Docker Compose in the project's root directory): Database
 - [Clerk](https://clerk.com?ref=unkey): Authentication
 
 Optional
@@ -37,6 +37,15 @@ Push the database schema to Planetscale:
 cd internal/db
 DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
 ```
+
+If you're using a local MySQL database, use this command instead:
+
+```
+cd internal/db
+DRIZZLE_DATABASE_URL='mysql://user:password@localhost:3306/unkey' pnpm drizzle-kit push:mysql
+```
+
+Note: If you're utilizing a local database, remember to update the credentials in the environment files with the database credentials from the docker-compose.yml file.
 
 ### 2. Tinybird (Optional)
 
