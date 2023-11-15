@@ -15,9 +15,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
-  const post = allPosts.find(
-    (post) => post._raw.flattenedPath === `blog/${params.slug}`,
-  );
+  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
 
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -26,10 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ogUrl.searchParams.set("title", post?.title ?? "");
   ogUrl.searchParams.set("author", post?.author.name ?? "");
   if (post?.author.image?.src) {
-    ogUrl.searchParams.set(
-      "image",
-      new URL(post?.author.image.src, baseUrl).toString(),
-    );
+    ogUrl.searchParams.set("image", new URL(post?.author.image.src, baseUrl).toString());
   }
 
   return {
@@ -62,9 +57,7 @@ export const generateStaticParams = async () =>
   allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
 
 const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
-  const post = allPosts.find(
-    (post) => post._raw.flattenedPath === `blog/${params.slug}`,
-  );
+  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
   if (!post) {
     return notFound();
   }
@@ -83,9 +76,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
             <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-6xl">
               {post.title}
             </h2>
-            <p className="border- my-8 text-center text-gray-500">
-              {post.description}
-            </p>
+            <p className="border- my-8 text-center text-gray-500">{post.description}</p>
             <div className="prose prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto w-full">
               <Content />
             </div>
@@ -94,10 +85,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
           <div className="top-24 flex h-max w-full flex-col justify-end self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-8">
             <div className="mx-auto flex items-center justify-start gap-4 border-y-0 p-2 md:mx-0 md:border-b md:border-b-gray-200">
               <Avatar className="h-14 w-14 justify-items-start">
-                <AvatarImage
-                  src={post.author.image?.src}
-                  alt={post.author.name}
-                />
+                <AvatarImage src={post.author.image?.src} alt={post.author.name} />
               </Avatar>
               <div className="text-sm text-gray-950">
                 <div className="font-semibold">{post.author.name}</div>
@@ -173,10 +161,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
                 >
                   Get started
                 </Link>
-                <Link
-                  href="/docs"
-                  className="text-sm font-semibold leading-6 text-white"
-                >
+                <Link href="/docs" className="text-sm font-semibold leading-6 text-white">
                   Documentation <span aria-hidden="true">→</span>
                 </Link>
               </div>
