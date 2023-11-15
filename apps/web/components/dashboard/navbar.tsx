@@ -14,6 +14,7 @@ type Props = {
 
 export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, className }) => {
   const selectedSegment = useSelectedLayoutSegment();
+
   return (
     <nav className={cn("sticky top-0 bg-background z-20", className)}>
       <div className="flex overflow-x-auto items-center w-full gap-4 ">
@@ -21,6 +22,7 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, c
           const active = segment === selectedSegment;
           return (
             <li
+              key={label}
               className={cn("flex shrink-0 list-none border-b-2 border-transparent p-2 ", {
                 "border-primary ": active,
               })}
