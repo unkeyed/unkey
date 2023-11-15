@@ -15,5 +15,4 @@ dist
 .contentlayer
 
 .DS_Store
-.vscode
 .dev.vars
