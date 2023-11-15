@@ -53,7 +53,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   ];
 
   return (
-    <div className="fixed inset-y-0">
+    <div className="fixed inset-y-0 z-10">
       <aside
         className={cn(
           "fixed  max-h-[92vh]  inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10 overflow-scroll",
