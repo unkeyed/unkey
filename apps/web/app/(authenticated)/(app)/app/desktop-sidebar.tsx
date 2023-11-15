@@ -33,7 +33,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       icon: Code,
       href: "/app/apis",
       label: "APIs",
-      active: segments.at(0) === "apis",
+      active: segments.length === 1 && segments.at(0) === "apis",
     },
     {
       icon: Settings,
