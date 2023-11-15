@@ -93,11 +93,11 @@ Add a `.env` file in `/apps/agent/.env` and populate the values from the service
 cp apps/agent/.env.example apps/agent/.env
 ```
 
-Then run the api via docker compose:
+Then run the api via the agent:
 
 ```sh-session
 cd apps/agent
-docker compose up
+go run . agent --env ./.env
 ```
 
 ## Run app
