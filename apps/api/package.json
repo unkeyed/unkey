@@ -11,6 +11,7 @@
     "@cloudflare/workers-types": "^4.20230419.0",
     "@stepci/runner": "^1.11.7",
     "@testcontainers/mysql": "^10.2.2",
+    "rollup-plugin-node-builtins": "^2.1.2",
     "testcontainers": "^10.2.2",
     "typescript": "^5.0.4",
     "wrangler": "^3.0.0"
@@ -26,7 +27,6 @@
     "bun-types": "^1.0.10",
     "drizzle-orm": "^0.28.6",
     "hono": "^3.10.0",
-    "prefixed-api-key": "^1.1.1",
     "winston": "^3.11.0",
     "zod": "^3.22.4",
     "zod-error": "^1.5.0"

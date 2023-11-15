@@ -10,6 +10,7 @@ import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
+import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
@@ -68,6 +69,7 @@ registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);
 registerV1KeysVerifyKey(app);
 registerV1ApisGetApi(app);
+registerV1ApisCreateApi(app);
 
 export default {
   fetch: (req: Request, env: Env["Bindings"], executionCtx: ExecutionContext) => {
