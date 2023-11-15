@@ -57,13 +57,22 @@ async function main() {
     features: {},
   };
   await db.insert(schema.workspaces).values(workspace);
-  console.log(`Created workspace: ${workspace.name} with id: ${workspace.id}`);
+
+  console.log({
+    workspaceName: workspace.name,
+    workspaceId: workspace.id,
+  });
 
   const keyAuth = {
     id: newId("key_auth"),
     workspaceId: workspace.id,
   };
+
   await db.insert(schema.keyAuth).values(keyAuth);
+
+  console.log({
+    keyAuthId: keyAuth.id,
+  });
 
   /**
    * Set up an api for production
@@ -76,7 +85,10 @@ async function main() {
     authType: "key",
     keyAuthId: keyAuth.id,
   });
-  console.log(`Created API: ${apiId}`);
+
+  console.log({
+    apiId: apiId,
+  });
 }
 
 main();
