@@ -1,6 +1,9 @@
 "use client";
-import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
-import { TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { BookOpen, Code, LucideIcon, Settings } from "lucide-react";
@@ -50,51 +53,59 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   ];
 
   return (
-    <aside
-      className={cn("fixed  h-screen  inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10", className)}
-    >
-      <div className="flex items-center h-16 mt-4">
-        <WorkspaceSwitcher />
-      </div>
-      <nav className="flex flex-col flex-1 flex-grow">
-        <ul className="flex flex-col flex-1 gap-y-7">
-          <li>
-            <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
-            <ul className="mt-2 -mx-2 space-y-1">
-              {navigation.map((item) => (
-                <li key={item.label}>
-                  <NavLink item={item} />
-                </li>
-              ))}
-            </ul>
-          </li>
-          <li>
-            <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
-            <ul className="mt-2 -mx-2 space-y-1">
-              {workspace.apis.map((api) => (
-                <li key={api.id}>
-                  <Tooltip>
-                    <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
-                      <NavLink
-                        item={{
-                          icon: Code,
-                          href: `/app/apis/${api.id}`,
-                          label: api.name,
-                          active: segments.includes(api.id),
-                        }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{api.name}</TooltipContent>
-                  </Tooltip>
-                </li>
-              ))}
-            </ul>
-          </li>
-        </ul>
-      </nav>
-
+    <div className="fixed inset-y-0">
+      <aside
+        className={cn(
+          "fixed  max-h-[92vh]  inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10 overflow-scroll",
+          className
+        )}
+      >
+        <div className="flex items-center h-16 mt-4">
+          <WorkspaceSwitcher />
+        </div>
+        <nav className="flex flex-col flex-1 flex-grow">
+          <ul className="flex flex-col flex-1 gap-y-7">
+            <li>
+              <h3 className="text-xs font-semibold leading-6 text-content">
+                General
+              </h3>
+              <ul className="mt-2 -mx-2 space-y-1">
+                {navigation.map((item) => (
+                  <li key={item.label}>
+                    <NavLink item={item} />
+                  </li>
+                ))}
+              </ul>
+            </li>
+            <li>
+              <h3 className="text-xs font-semibold leading-6 text-content">
+                Your APIs
+              </h3>
+              <ul className="mt-2 max-h-[100%] overflow-x-hidden overflow-y-scroll -mx-2 space-y-1">
+                {workspace.apis.map((api) => (
+                  <li key={api.id}>
+                    <Tooltip>
+                      <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+                        <NavLink
+                          item={{
+                            icon: Code,
+                            href: `/app/apis/${api.id}`,
+                            label: api.name,
+                            active: segments.includes(api.id),
+                          }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{api.name}</TooltipContent>
+                    </Tooltip>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          </ul>
+        </nav>
+      </aside>
       <UserButton />
-    </aside>
+    </div>
   );
 };
 
@@ -107,7 +118,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
         "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 ",
         {
           "bg-gray-200 dark:bg-gray-800": item.active,
-        },
+        }
       )}
     >
       <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
