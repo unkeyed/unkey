@@ -55,8 +55,8 @@ importers:
         specifier: ^1.3.3
         version: 1.3.3
       '@chronark/zod-bird':
-        specifier: ^0.2.2
-        version: 0.2.2
+        specifier: ^0.3.0
+        version: 0.3.0
       '@clerk/nextjs':
         specifier: ^4.25.6
         version: 4.25.6(next@13.5.2)(react-dom@18.2.0)(react@18.2.0)
@@ -1787,8 +1787,8 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@chronark/zod-bird@0.2.2:
-    resolution: {integrity: sha512-0mmiiw4dny1aiEOmawsIJUaYW16vhWRuDGsDa62GfFhdD3F7hHrTi3lWNWYCVq2KsCS+CYwMj8nkdFuOnejCTA==}
+  /@chronark/zod-bird@0.3.0:
+    resolution: {integrity: sha512-l7eIZegnE88sWobKAhop0v7zHeu1d7/PhLuKXUXpuxYyr5TQyvpefLHl2YekPfNkqT8hGB6A0HGmG0DoZWlw8A==}
     dependencies:
       zod: 3.22.4
     dev: false
@@ -4807,6 +4807,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -15150,6 +15151,10 @@ packages:
   /napi-build-utils@1.0.2:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}

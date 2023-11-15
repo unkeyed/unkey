@@ -15,7 +15,7 @@ export const env = () =>
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
-      TINYBIRD_TOKEN: z.string(),
+      TINYBIRD_TOKEN: z.string().optional(),
 
       UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
       NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),

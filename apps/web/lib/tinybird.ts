@@ -1,8 +1,9 @@
 import { env } from "@/lib/env";
-import { Tinybird } from "@chronark/zod-bird";
+import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { z } from "zod";
 
-const tb = new Tinybird({ token: env().TINYBIRD_TOKEN });
+const token = env().TINYBIRD_TOKEN;
+const tb = token ? new Tinybird({ token }) : new NoopTinybird();
 
 const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
