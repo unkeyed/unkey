@@ -19,7 +19,7 @@ Unkey is an open source API management platform that helps developers secure, ma
 -   Time-based keys
 -   Per key analytics
 
-## Setting up our project  
+## Setting up our project
 
 We will use my favorite authentication provider, Clerk, in this example. The concepts described below are agnostic, so feel free to use whatever provider works for you. We will also use Next.js for demo purposes, but it isn't a requirement.
 
@@ -48,7 +48,7 @@ npx shadcn-ui@latest add button input label card
 
 ```
 
-Make sure you include your Clerk secret key and publishable key in your `.env.local` file. You can find these in your Clerk dashboard. You will also need an Unkey root key and API ID. You can find these in your Unkey dashboard. 
+Make sure you include your Clerk secret key and publishable key in your `.env.local` file. You can find these in your Clerk dashboard. You will also need an Unkey root key and API ID. You can find these in your Unkey dashboard.
 
 
 ```bash
@@ -98,7 +98,7 @@ export default function RootLayout({
 
 Then, you need to add middleware.ts to the root of the project. This protects all pages and routes except `/api/secret`. More on that later.
 
- 
+
 ```ts
 import { authMiddleware } from "@clerk/nextjs";
 
@@ -112,7 +112,7 @@ matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 
 ```
 
-## Creating a key associated with a user. 
+## Creating a key associated with a user.
 
 Unkey accepts an owner_id when creating a key that we can use to associate our auth provider's unique identifier, such as `user_id`. In our example application, we are going to use a server action to create the key.
 
@@ -135,7 +135,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 ```
 
-Now, we can create our component, which we will name `UnkeyElements` and use the card component to create an easy-to-use form. 
+Now, we can create our component, which we will name `UnkeyElements` and use the card component to create an easy-to-use form.
 
 ```tsx
 const UnkeyElements = () => {
@@ -176,7 +176,7 @@ Make sure to import this into your `page.tsx` file and add it to the page.
 import { UnkeyElements } from "./keys/client"
 
 export default function Home() {
-  
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div className="flex flex-col items-center justify-center">
@@ -261,7 +261,7 @@ const UnkeyElements = () => {
 
 When we submit the form, we will get a key back that we can use to make requests to our API. If you give this a test, you can log out the key in the console to see it.
 
-### Displaying the key to the user 
+### Displaying the key to the user
 
 In this demo, we can display the key to our user and then show a button to request our API. Let's update our component to do this. Underneath our original card, we will add a new card that will display the key to the user. So we can copy the card component and update the content.
 
@@ -314,11 +314,11 @@ export async function GET(request: Request) {
 }
 ```
 
-Unkey makes it easy to make business decisions. We can verify the key and then return a response based on the result. In this example, we will return a 401 if the key is invalid. If the key is valid, we are going to return the results. 
+Unkey makes it easy to make business decisions. We can verify the key and then return a response based on the result. In this example, we will return a 401 if the key is invalid. If the key is valid, we are going to return the results.
 
 ### Updating our client component
 
-Technically speaking, you could make a request from your favorite API client using `http://localhost:3000/api/secret` and add the Authorization header with the key. But we will add a button to our client component to make the request and display the response to keep everything in one place. 
+Technically speaking, you could make a request from your favorite API client using `http://localhost:3000/api/secret` and add the Authorization header with the key. But we will add a button to our client component to make the request and display the response to keep everything in one place.
 
 ```tsx
 <Card className="w-[350px] mt-8">
@@ -339,7 +339,7 @@ Technically speaking, you could make a request from your favorite API client usi
             </Card>
 ```
 
-We need a function called `getData` to request our API. We will use the fetch and add a state to hold the returned data. 
+We need a function called `getData` to request our API. We will use the fetch and add a state to hold the returned data.
 
 ```tsx
     const [key, setKey] = useState<string>('')
@@ -456,7 +456,7 @@ const UnkeyElements = () => {
 export { UnkeyElements }
 ```
 
-The response from the API will look like this, and as you can see, we now associate the API key to a user. 
+The response from the API will look like this, and as you can see, we now associate the API key to a user.
 
 ```json
 {
