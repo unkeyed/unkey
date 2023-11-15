@@ -11,7 +11,7 @@
   "dependencies": {
     "@ant-design/plots": "^1.2.5",
     "@bufbuild/protobuf": "^1.3.3",
-    "@chronark/zod-bird": "^0.2.2",
+    "@chronark/zod-bird": "^0.3.0",
     "@clerk/nextjs": "^4.25.6",
     "@hono/zod-validator": "^0.1.9",
     "@hookform/resolvers": "^3.3.2",
@@ -56,8 +56,8 @@
     "@trpc/server": "^10.41.0",
     "@unkey/api": "workspace:^",
     "@unkey/db": "workspace:^",
-    "@unkey/resend": "workspace:^",
     "@unkey/id": "workspace:^",
+    "@unkey/resend": "workspace:^",
     "@unkey/result": "workspace:^",
     "@unkey/vercel": "workspace:^",
     "@upstash/qstash": "^0.3.6",

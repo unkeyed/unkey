@@ -1,9 +1,10 @@
 import { env } from "@/lib/env";
-import { Tinybird } from "@chronark/zod-bird";
+import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-const tb = new Tinybird({ token: env().TINYBIRD_TOKEN });
+const token = env().TINYBIRD_TOKEN;
+const tb = token ? new Tinybird({ token }) : new NoopTinybird();
 
 export const ingestPageView = tb.buildIngestEndpoint({
   datasource: "pageviews__v1",
