@@ -9,6 +9,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prepare": "is-ci || husky install",
     "dev": "turbo run dev",
     "build": "pnpm turbo run build --filter=!./examples/*",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
@@ -24,6 +25,7 @@
     "@changesets/cli": "^2.26.2",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.3",
+    "is-ci": "^3.0.1",
     "lint-staged": "^15.0.2",
     "ts-node": "^10.9.1",
     "turbo": "^1.10.16",
