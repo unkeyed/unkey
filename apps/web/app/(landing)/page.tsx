@@ -12,25 +12,35 @@ import { Github } from "lucide-react";
 import Link from "next/link";
 export const revalidate = 60;
 
-const [workspaces, apis, keys, totalVerifications] = await Promise.all([
-  db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.workspaces)
-    .then((res) => res.at(0)?.count ?? 0),
-  db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.apis)
-    .then((res) => res.at(0)?.count ?? 0),
-  db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.keys)
-    .then((res) => res.at(0)?.count ?? 0),
-  getTotalVerifications({}).then((res) => {
-    return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
-  }),
-]);
+async function NumbersServed() {
+  let workspaces = 0;
+  let apis = 0;
+  let keys = 0;
+  let totalVerifications = 0;
 
-function NumbersServed() {
+  try {
+    const [workspaces_, apis_, keys_, totalVerifications_] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.workspaces)
+        .then((res) => res.at(0)?.count ?? 0),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.apis)
+        .then((res) => res.at(0)?.count ?? 0),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.keys)
+        .then((res) => res.at(0)?.count ?? 0),
+      getTotalVerifications({}).then((res) => {
+        return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
+      }),
+    ]);
+    workspaces = workspaces_;
+    apis = apis_;
+    keys = keys_;
+    totalVerifications = totalVerifications_;
+  } catch (error) {}
   return (
     <div className="mt-24 rounded-4xl sm:mt-32 lg:mt-32">
       <Container className="">
@@ -43,19 +53,27 @@ function NumbersServed() {
         <FadeInStagger faster>
           <StatList>
             <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
+              value={Intl.NumberFormat("en", { notation: "compact" }).format(
+                workspaces
+              )}
               label="Workspaces"
             />
             <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
+              value={Intl.NumberFormat("en", { notation: "compact" }).format(
+                apis
+              )}
               label="APIs"
             />
             <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
+              value={Intl.NumberFormat("en", { notation: "compact" }).format(
+                keys
+              )}
               label="Keys"
             />
             <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
+              value={Intl.NumberFormat("en", { notation: "compact" }).format(
+                totalVerifications
+              )}
               label="Verifications"
             />
           </StatList>
@@ -74,8 +92,8 @@ function Features() {
         className="mt-24 sm:mt-32 lg:mt-32"
       >
         <p>
-          Whether you are working on your latest side project or building the next big thing, Unkey
-          has you covered.
+          Whether you are working on your latest side project or building the
+          next big thing, Unkey has you covered.
         </p>
       </SectionIntro>
       <Container className="mt-16 overflow-x-hidden ">
@@ -91,25 +109,27 @@ function Features() {
           </div>
           <List className="mt-16 lg:mt-0 lg:w-1/2 lg:min-w-[33rem] lg:pl-4">
             <ListItem title="Keys where your users are">
-              Your users are everywhere and so is Unkey. Unkey stores keys globally, making each
-              request as fast possible regardless of your location.
+              Your users are everywhere and so is Unkey. Unkey stores keys
+              globally, making each request as fast possible regardless of your
+              location.
             </ListItem>
             <ListItem title="Per-key rate limiting">
-              We understand that each user is different, so Unkey gives you the ability to decide
-              the rate limits as you issue each key. Giving you complete control while protecting
-              your application.
+              We understand that each user is different, so Unkey gives you the
+              ability to decide the rate limits as you issue each key. Giving
+              you complete control while protecting your application.
             </ListItem>
             <ListItem title="Temporary Keys">
-              Want to add a free trial to your API? Unkey allows you to issue temporary keys, once
-              the key expires we delete it for you.
+              Want to add a free trial to your API? Unkey allows you to issue
+              temporary keys, once the key expires we delete it for you.
             </ListItem>
             <ListItem title="Limited Keys">
-              Want to limit the number of requests a user can make? Unkey allows you to issue
-              limited keys, once the key reaches the limit we delete it for you.
+              Want to limit the number of requests a user can make? Unkey allows
+              you to issue limited keys, once the key reaches the limit we
+              delete it for you.
             </ListItem>
             <ListItem title="Realtime Analytics">
-              Every key and API has analytics to see how users use your product and drive your
-              business decisions.
+              Every key and API has analytics to see how users use your product
+              and drive your business decisions.
             </ListItem>
           </List>
         </div>
@@ -153,12 +173,16 @@ export default async function Home() {
               Seriously Fast API Authentication
             </h1>
             <p className={"mt-6 text-xl text-gray-600 [text-wrap:balance]"}>
-              Unkey is an <span className="font-semibold">open source</span> API authentication and
-              authorization platform for scaling user facing APIs. Create, verify, and manage low
-              latency API keys in seconds.
+              Unkey is an <span className="font-semibold">open source</span> API
+              authentication and authorization platform for scaling user facing
+              APIs. Create, verify, and manage low latency API keys in seconds.
             </p>
             <div className="flex flex-col mt-4 space-y-4 md:flex-row md:space-x-8 md:space-y-0">
-              <Button size="xl" className="text-sm font-semibold rounded-full" asChild>
+              <Button
+                size="xl"
+                className="text-sm font-semibold rounded-full"
+                asChild
+              >
                 <Link className="flex-none" href="/app">
                   Start for free
                 </Link>
