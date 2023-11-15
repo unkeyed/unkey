@@ -48,6 +48,12 @@ tb push ./*.datasource
 tb push
 ```
 
+Add your auth token to the `.env` file in `/apps/agent/.env` and `/apps/web/.env` respectively:
+
+```sh-session
+TINYBIRD_TOKEN=
+```
+
 ### 3. Clerk
 
 Create a new app and set it up as described [here](https://clerk.com/docs/nextjs/get-started-with-nextjs).
