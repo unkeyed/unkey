@@ -1,43 +1,42 @@
 import { z } from "zod";
 
-export const env = () =>
-  z
-    .object({
-      VERCEL_ENV: z
-        .enum(["development", "preview", "production"])
-        .optional()
-        .default("development"),
-      VERCEL_URL: z.string().optional(),
+export const envSchema = z.object({
+  VERCEL_ENV: z.enum(["development", "preview", "production"]).optional().default("development"),
+  VERCEL_URL: z.string().optional(),
 
-      UNKEY_WORKSPACE_ID: z.string(),
-      UNKEY_API_ID: z.string(),
+  UNKEY_WORKSPACE_ID: z.string(),
+  UNKEY_API_ID: z.string(),
 
-      UPSTASH_REDIS_REST_URL: z.string().optional(),
-      UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
-      TINYBIRD_TOKEN: z.string().optional(),
+  TINYBIRD_TOKEN: z.string(),
 
-      UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
-      NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
-      UNKEY_APP_AUTH_TOKEN: z.string(),
+  // Clerk Org ID
+  TENANT_ID: z.string().min(1),
 
-      CLERK_WEBHOOK_SECRET: z.string().optional(),
-      RESEND_API_KEY: z.string().optional(),
-      RESEND_AUDIENCE_ID: z.string().optional(),
+  UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
+  NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
+  UNKEY_APP_AUTH_TOKEN: z.string(),
 
-      UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
-      PLAIN_API_KEY: z.string().optional(),
-    })
-    .parse(process.env);
+  CLERK_WEBHOOK_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_AUDIENCE_ID: z.string().optional(),
 
-export const dbEnv = () =>
-  z
-    .object({
-      DATABASE_HOST: z.string(),
-      DATABASE_USERNAME: z.string(),
-      DATABASE_PASSWORD: z.string(),
-    })
-    .parse(process.env);
+  UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
+  PLAIN_API_KEY: z.string().optional(),
+});
+
+export const dbSchema = z.object({
+  DATABASE_HOST: z.string().min(1),
+  DATABASE_USERNAME: z.string().min(1),
+  DATABASE_PASSWORD: z.string().min(1),
+  DATABASE_NAME: z.string().min(1),
+});
+
+export const env = () => envSchema.parse(process.env);
+
+export const dbEnv = () => dbSchema.parse(process.env);
 
 export const vercelIntegrationSchema = z.object({
   VERCEL_INTEGRATION_CLIENT_ID: z.string(),
