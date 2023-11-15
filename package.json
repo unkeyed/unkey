@@ -16,7 +16,8 @@
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
-    "bump-versions": "pnpm changeset version && pnpm install"
+    "bump-versions": "pnpm changeset version && pnpm install",
+    "setup": "tsx ./.scripts/fresh-setup.ts"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
@@ -29,7 +30,8 @@
     "lint-staged": "^15.0.2",
     "ts-node": "^10.9.1",
     "turbo": "^1.10.16",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "execa": "^8.0.1"
   },
   "pnpm": {
     "overrides": {
