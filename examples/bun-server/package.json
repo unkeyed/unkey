@@ -8,7 +8,7 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
-    "@unkey/api": "^0.10.3"
+    "@unkey/api": "^0.12.0"
   },
   "devDependencies": {
     "bun-types": "^1.0.11"
