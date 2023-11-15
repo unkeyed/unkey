@@ -157,7 +157,7 @@ const runDevSetup = async () => {
     });
   } catch (error) {
     /**
-     * If user already has bootstrapped Unkey, it will throw an error.
+     * If user already has bootstrapped Unkey, it will throw an error, but continue down.
      */
     console.warn(error);
   }
