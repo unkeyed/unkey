@@ -53,7 +53,7 @@ export default function AuthenticationPage() {
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-content-subtle">
               Not been here before? Just{" "}
-              <a className="text-black" href="/auth/sign-up">
+              <a className="text-black dark:text-white" href="/auth/sign-up">
                 Sign Up
               </a>
             </span>

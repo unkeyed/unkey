@@ -5,6 +5,8 @@ import * as Sentry from "@sentry/nextjs";
 
 export const dynamic = "force-dynamic";
 
+import { ThemeProvider } from "./theme-provider";
+
 export default function AuthenticatedLayout({
   children,
 }: {
@@ -12,22 +14,24 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <>
-      <TooltipProvider>
-        <ClerkProvider
-          afterSignInUrl="/app"
-          afterSignUpUrl="/onboarding"
-          appearance={{
-            variables: {
-              colorPrimary: "#5C36A3",
-              colorText: "#5C36A3",
-            },
-          }}
-        >
-          <SetUserInSentry />
-          {children}
-        </ClerkProvider>
-      </TooltipProvider>
-      <Toaster />
+      <ThemeProvider attribute="class">
+        <TooltipProvider>
+          <ClerkProvider
+            afterSignInUrl="/app"
+            afterSignUpUrl="/onboarding"
+            appearance={{
+              variables: {
+                colorPrimary: "#5C36A3",
+                colorText: "#5C36A3",
+              },
+            }}
+          >
+            <SetUserInSentry />
+            {children}
+          </ClerkProvider>
+        </TooltipProvider>
+        <Toaster />
+      </ThemeProvider>
     </>
   );
 }

@@ -10,7 +10,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
   }
   return (
     <FadeIn>
-      <div className="grid grid-cols-1  h-screen place-items-center bg-white">
+      <div className="grid grid-cols-1 h-screen place-items-center bg-white dark:bg-gray-950">
         <div className="container">{props.children}</div>
       </div>
     </FadeIn>
