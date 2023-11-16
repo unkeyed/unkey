@@ -403,6 +403,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormLabel>Expiry Date</FormLabel>
                                   <FormControl>
                                     <Input
+                                      min={new Date().toISOString().slice(0, -8)}
                                       type="datetime-local"
                                       {...field}
                                       value={field.value?.toLocaleString()}
