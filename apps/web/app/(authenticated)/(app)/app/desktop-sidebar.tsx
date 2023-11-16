@@ -54,7 +54,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside className={cn("fixed inset-y-0 w-64 px-6 z-10", className)}>
-      <div className="fixed  max-h-[92vh] no-scrollbar inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10 overflow-scroll">
+      <div className="max-h-[92vh] no-scrollbar flex flex-col px-6 gap-y-5 overflow-scroll">
         <div className="flex items-center h-16 mt-4">
           <WorkspaceSwitcher />
         </div>
