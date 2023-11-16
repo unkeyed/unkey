@@ -14,10 +14,28 @@ export function VisibleButton({
   setIsVisible,
   ...props
 }: VisibleButtonProps) {
+  const timeOutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   React.useEffect(() => {
-    setTimeout(() => {
-      setIsVisible(false);
-    }, 10000);
+    const clearVisibilityTimeout = () => {
+      if (timeOutRef.current) {
+        clearTimeout(timeOutRef.current);
+        timeOutRef.current = null;
+      }
+    };
+
+    clearVisibilityTimeout();
+
+    if (isVisible) {
+      const timeOutId = setTimeout(() => {
+        setIsVisible(false);
+      }, 10000);
+
+      timeOutRef.current = timeOutId;
+    }
+    return () => {
+      clearVisibilityTimeout();
+    };
   }, [isVisible]);
 
   return (
