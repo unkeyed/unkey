@@ -48,6 +48,12 @@ tb push ./*.datasource
 tb push
 ```
 
+Add your auth token to the `.env` file in `/apps/agent/.env` and `/apps/web/.env` respectively:
+
+```sh-session
+TINYBIRD_TOKEN=
+```
+
 ### 3. Clerk
 
 Create a new app and set it up as described [here](https://clerk.com/docs/nextjs/get-started-with-nextjs).
@@ -87,11 +93,11 @@ Add a `.env` file in `/apps/agent/.env` and populate the values from the service
 cp apps/agent/.env.example apps/agent/.env
 ```
 
-Then run the api via docker compose:
+Then run the api via the agent:
 
 ```sh-session
 cd apps/agent
-docker compose up
+go run . agent --env ./.env
 ```
 
 ## Run app

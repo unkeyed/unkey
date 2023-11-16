@@ -39,6 +39,11 @@ const Post = defineDocumentType(() => ({
       description: "The excerpt of the post",
       required: true,
     },
+    image: {
+      type: "string",
+      description: "Image of the post",
+      required: false,
+    },
   },
   computedFields: {
     url: {
