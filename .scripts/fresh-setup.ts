@@ -4,35 +4,9 @@ import fs from "fs";
 import path from "path";
 import kleur from "kleur";
 import { execa } from "execa";
+import { parseEnv } from "./utils";
+
 const __cwd = process.cwd();
-
-const parseEnv = (path: string) => {
-  const env = {};
-  const file = fs.readFileSync(path, "utf8");
-  file.split("\n").forEach((line) => {
-    const trimmedLine = line.trim();
-    if (!trimmedLine || trimmedLine.startsWith("#")) return;
-
-    const indexOfFirstEquals = trimmedLine.indexOf("=");
-    if (indexOfFirstEquals === -1) return;
-
-    const key = trimmedLine.substring(0, indexOfFirstEquals).trim();
-    let value = trimmedLine.substring(indexOfFirstEquals + 1).trim();
-
-    if (
-      (value.startsWith("'") && value.endsWith("'")) ||
-      (value.startsWith('"') && value.endsWith('"'))
-    ) {
-      value = value.substring(1, value.length - 1);
-    }
-
-    if (key) {
-      env[key] = value;
-    }
-  });
-
-  return env;
-};
 
 const runDevSetup = async () => {
   const root_node_modules = path.resolve(__cwd, "node_modules");
@@ -99,61 +73,51 @@ const runDevSetup = async () => {
   }
 
   try {
-    await execa("pnpm", ["bootstrap"], {
+    await execa("pnpm", ["run", "bootstrap"], {
       stdout: "pipe",
-      env: {
-        DATABASE_HOST: validatedWebEnv.data.DATABASE_HOST,
-        DATABASE_USERNAME: validatedWebEnv.data.DATABASE_USERNAME,
-        DATABASE_PASSWORD: validatedWebEnv.data.DATABASE_PASSWORD,
-        TENANT_ID: validatedWebEnv.data.TENANT_ID,
-      },
     }).then(({ stdout }) => {
-      const workspaceIdRegex = /workspaceId:\s*(\S+)/;
-      const keyAuthIdRegex = /keyAuthId:\s*(\S+)/;
-      const apiIdRegex = /apiId:\s*(\S+)/;
+      const regex = /workspaceId:\s+'(.*?)',\s+keyAuthId:\s+'(.*?)',\s+apiId:\s+'(.*?)'/;
+      const match = stdout.match(regex);
 
-      const workspaceIdMatch = stdout.match(workspaceIdRegex);
-      const keyAuthIdMatch = stdout.match(keyAuthIdRegex);
-      const apiIdMatch = stdout.match(apiIdRegex);
+      if (match) {
+        const [, workspaceId, keyAuthId, apiId] = match;
 
-      const workspaceId = workspaceIdMatch ? workspaceIdMatch[1].replace(/^['"]|['"]$/g, "") : null;
-      const keyAuthId = keyAuthIdMatch ? keyAuthIdMatch[1].replace(/^['"]|['"]$/g, "") : null;
-      const apiId = apiIdMatch ? apiIdMatch[1].replace(/^['"]|['"]$/g, "") : null;
+        const validatedBootstrapVars = z
+          .object({
+            workspaceId: z.string().min(1),
+            keyAuthId: z.string().min(1),
+            apiId: z.string().min(1),
+          })
+          .safeParse({ workspaceId, keyAuthId, apiId });
 
-      const validatedBootstrapVars = z
-        .object({
-          workspaceId: z.string().min(1),
-          keyAuthId: z.string().min(1),
-          apiId: z.string().min(1),
-        })
-        .safeParse({ workspaceId, keyAuthId, apiId });
+        if (!validatedBootstrapVars.success) {
+          console.error(validatedBootstrapVars.error.issues);
+          process.exit(0);
+        }
 
-      if (!validatedBootstrapVars.success) {
-        console.error(validatedBootstrapVars.error.issues);
+        const updatedEnvVariables: z.infer<typeof agentEnvSchema> = {
+          DATABASE_DSN: validatedAgentEnv.data.DATABASE_DSN,
+          UNKEY_APP_AUTH_TOKEN: validatedAgentEnv.data.UNKEY_APP_AUTH_TOKEN,
+          UNKEY_API_ID: validatedBootstrapVars.data.apiId,
+          UNKEY_WORKSPACE_ID: validatedBootstrapVars.data.workspaceId,
+          UNKEY_KEY_AUTH_ID: validatedBootstrapVars.data.keyAuthId,
+        };
+
+        const newAgentEnv = Object.entries(updatedEnvVariables)
+          .map(([key, value]) => `${key}="${value}"`)
+          .join("\n");
+
+        fs.writeFileSync(agent_env, newAgentEnv, "utf8");
+
+        console.log(kleur.yellow(`✔ Overwrote agent env with new variables.`));
+      } else {
+        console.error(
+          kleur.yellow(
+            `🚨 Error: Something went wrong. Couldn't find regex matches for variables.`,
+          ),
+        );
         process.exit(0);
       }
-
-      const updatedEnvVariables: z.infer<typeof agentEnvSchema> = {
-        DATABASE_DSN: validatedAgentEnv.data.DATABASE_DSN,
-        UNKEY_APP_AUTH_TOKEN: validatedAgentEnv.data.UNKEY_APP_AUTH_TOKEN,
-        UNKEY_API_ID: validatedBootstrapVars.data.apiId,
-        UNKEY_WORKSPACE_ID: validatedBootstrapVars.data.workspaceId,
-        UNKEY_KEY_AUTH_ID: validatedBootstrapVars.data.keyAuthId,
-      };
-
-      const newAgentEnv = Object.entries(updatedEnvVariables)
-        .map(([key, value]) => `${key}="${value}"`)
-        .join("\n");
-
-      /**
-       * Overwrites agent_env with bootstrapped variables
-       * If you have already bootstrapped Unkey, it will NOT update your env
-       * and you will have to do it manually by going into the DB and grabbing the
-       * correct vars.
-       *
-       * TODO: I will look into a good approach for the above ^
-       */
-      fs.writeFileSync(agent_env, newAgentEnv, "utf8");
     });
   } catch (error) {
     /**
@@ -172,7 +136,7 @@ const runDevSetup = async () => {
 
   console.log(
     kleur.yellow(`
-    Run the follow commands to spin up dev environments 
+    Run the follow commands to spin up dev environments
 
     ${kleur.cyan("pnpm -F agent start")}
 
