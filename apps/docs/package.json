@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npx mintlify@latest dev"
+    "dev": "pnpx mintlify@latest dev"
   },
   "keywords": [],
   "author": "Andreas Thomas & James Perkins"
