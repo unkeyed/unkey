@@ -29,7 +29,7 @@ export default function AuthenticationPage() {
       {!verify && !showDialog && (
         <>
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-3xl font-semibold tracking-tight">Sign In to Unkey</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-black">Sign In to Unkey</h1>
             <p className="text-md text-content-subtle">Enter your email below to sign in</p>
           </div>
           <div className="grid gap-6">
@@ -42,16 +42,16 @@ export default function AuthenticationPage() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-content-subtle">Or continue with</span>
+                <span className="bg-gray-50 px-2 text-content-subtle">Or continue with</span>
               </div>
             </div>
             <OAuthSignIn />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-content-subtle">
+            <span className="bg-gray-50 px-2 text-content-subtle">
               Not been here before? Just{" "}
               <a className="text-black" href="/auth/sign-up">
                 Sign Up
