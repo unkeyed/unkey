@@ -14,10 +14,10 @@
     "build": "pnpm turbo run build --filter=!./examples/*",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
-    "bootstrap": "turbo run bootstrap",
     "commit": "cz",
     "bump-versions": "pnpm changeset version && pnpm install",
-    "setup": "tsx ./.scripts/fresh-setup.ts"
+    "setup": "tsx ./.scripts/fresh-setup.ts",
+    "bootstrap": "tsx ./.scripts/bootstrap.ts"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
