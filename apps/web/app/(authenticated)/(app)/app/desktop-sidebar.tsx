@@ -115,7 +115,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       href={item.href}
       target={item.external ? "_blank" : undefined}
       className={cn(
-        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 ",
+        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800",
         {
           "bg-gray-200 dark:bg-gray-800": item.active,
         }
@@ -124,7 +124,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
         <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
       </span>
-      {item.label}
+      <p className="whitespace-nowrap truncate">{item.label}</p>
     </Link>
   );
 };
