@@ -15,7 +15,6 @@ const navigation = [
       { title: "Changelog", href: "/changelog" },
       { title: "Analytics", href: "https://plausible.io/unkey.dev" },
       { title: "Source Code", href: "https://github.com/unkeyed/unkey" },
-      { title: "Documentation", href: "/docs" },
     ],
   },
   {
@@ -54,6 +53,11 @@ function Navigation() {
                   </Link>
                 </li>
               ))}
+              <li className="mt-4">
+                <a href="/docs" className="transition hover:text-gray-950">
+                  Documentation
+                </a>
+              </li>
             </ul>
           </li>
         ))}
