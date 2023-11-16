@@ -11,34 +11,34 @@ import { durableUsageLimit } from "../usagelimit";
 
 type VerifyKeyResult =
   | {
-    valid: false;
-    code: string;
-    ratelimit?: {
-      remaining: number;
-      limit: number;
-      reset: number;
-    };
-  }
+      valid: false;
+      code: string;
+      ratelimit?: {
+        remaining: number;
+        limit: number;
+        reset: number;
+      };
+    }
   | {
-    keyId: string;
-    apiId?: string;
-    valid: true;
-    ownerId?: string;
-    meta?: Record<string, unknown>;
-    expires?: number;
-    remaining?: number;
-    ratelimit?: {
-      remaining: number;
-      limit: number;
-      reset: number;
-    };
+      keyId: string;
+      apiId?: string;
+      valid: true;
+      ownerId?: string;
+      meta?: Record<string, unknown>;
+      expires?: number;
+      remaining?: number;
+      ratelimit?: {
+        remaining: number;
+        limit: number;
+        reset: number;
+      };
 
-    isRootKey?: boolean;
-    /**
-     * the workspace of the user, even if this is a root key
-     */
-    authorizedWorkspaceId: string;
-  };
+      isRootKey?: boolean;
+      /**
+       * the workspace of the user, even if this is a root key
+       */
+      authorizedWorkspaceId: string;
+    };
 
 export class KeyService {
   private readonly verificationCache: Cache<KeyHash, { key: Key; api: Api } | null>;
@@ -150,8 +150,6 @@ export class KeyService {
     });
   }
 
-
-
   private async ratelimit(c: Context, key: Key): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
     if (
       !key.ratelimitType ||
@@ -238,7 +236,8 @@ export class KeyService {
         },
       ];
     } catch (e) {
-      this.logger.error("ratelimiting failed", { error: e });
+      console.error(e);
+      this.logger.error("ratelimiting failed", { error: e.message, ...e });
       return [false, undefined];
     } finally {
       this.metrics.emit("metric.ratelimit", {

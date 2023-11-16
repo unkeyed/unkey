@@ -1,8 +1,7 @@
-import { db, apiCache, keyService, ApiId } from "@/pkg/global";
+import { db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { newId } from "@/pkg/id";
 import { schema } from "@unkey/db";
@@ -28,10 +27,9 @@ const route = createRoute({
               example: "my-api",
             }),
           }),
-        }
-      }
-    }
-
+        },
+      },
+    },
   },
   responses: {
     200: {
@@ -43,7 +41,6 @@ const route = createRoute({
               description: "The id of the api",
               example: "api_134",
             }),
-
           }),
         },
       },
@@ -53,10 +50,14 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1ApisCreateApiRequest = z.infer<typeof route.request.body.content["application/json"]["schema"]>;
-export type V1ApisCreateApiResponse = z.infer<typeof route.responses[200]["content"]["application/json"]["schema"]>;
+export type V1ApisCreateApiRequest = z.infer<
+  typeof route.request.body.content["application/json"]["schema"]
+>;
+export type V1ApisCreateApiResponse = z.infer<
+  typeof route.responses[200]["content"]["application/json"]["schema"]
+>;
 
-export const registerV1ApisDeleteApi = (app: App) =>
+export const registerV1ApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
@@ -90,11 +91,8 @@ export const registerV1ApisDeleteApi = (app: App) =>
       keyAuthId: keyAuth.id,
     });
 
-    await db.insert(schema.apis).values(api)
-
     return c.jsonT({
-      id: apiId,
-      name
-
+      apiId,
+      name,
     });
   });

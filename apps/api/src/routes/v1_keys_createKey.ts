@@ -29,78 +29,103 @@ const route = createRoute({
               description: "Choose an `API` where this key should be created.",
               example: "api_123",
             }),
-            prefix: z.string().max(8).optional().openapi({
-              description: `To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
+            prefix: z
+              .string()
+              .max(8)
+              .optional()
+              .openapi({
+                description: `To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
 
 For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
 
 The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
-`
-            }),
+`,
+              }),
 
-            name: z.string().min(1).openapi({
+            name: z.string().optional().openapi({
               description: "The name for your Key. This is not customer facing.",
               example: "my key",
             }),
-            byteLength: z.number().int().min(16).max(255).default(16).openapi({
-              description: "The byte length used to generate your key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes, or 2^^128 possible combinations.",
-              default: 16
+            byteLength: z.number().int().min(16).max(255).optional().default(16).openapi({
+              description:
+                "The byte length used to generate your key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes, or 2^^128 possible combinations.",
+              default: 16,
             }),
-            ownerId: z.string().optional().openapi({
-              description: `Your user’s Id. This will provide a link between Unkey and your customer record.
+            ownerId: z
+              .string()
+              .optional()
+              .openapi({
+                description: `Your user’s Id. This will provide a link between Unkey and your customer record.
 When validating a key, we will return this back to you, so you can clearly identify your user from their api key.`,
-              example: "team_123"
-            }),
-            meta: z.record(z.unknown()).optional().openapi({
-              description: "This is a place for dynamic meta data, anything that feels useful for you should go here",
-              example: {
-                "billingTier": "PRO",
-                "trialEnds": "2023-06-16T17:16:37.161Z"
-              }
-            }),
+                example: "team_123",
+              }),
+            meta: z
+              .record(z.unknown())
+              .optional()
+              .openapi({
+                description:
+                  "This is a place for dynamic meta data, anything that feels useful for you should go here",
+                example: {
+                  billingTier: "PRO",
+                  trialEnds: "2023-06-16T17:16:37.161Z",
+                },
+              }),
             expires: z.number().int().optional().openapi({
-              description: "You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.",
-              example: 1623869797161
+              description:
+                "You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.",
+              example: 1623869797161,
             }),
-            remaining: z.number().int().optional().openapi({
-              description: "You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.",
-              example: 1000,
-              externalDocs: {
-                description: "Learn more",
-                url: "https://unkey.dev/docs/features/remaining"
-              }
-            }),
-            ratelimit: z.object({
-              type: z.enum(["fast", "consistent"]).default("fast").openapi({
-                description: "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+            remaining: z
+              .number()
+              .int()
+              .optional()
+              .openapi({
+                description:
+                  "You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.",
+                example: 1000,
                 externalDocs: {
                   description: "Learn more",
-                  url: "https://unkey.dev/docs/features/ratelimiting"
-                }
+                  url: "https://unkey.dev/docs/features/remaining",
+                },
               }),
-              limit: z.number().int().min(1).openapi({
-                description: "The total amount of burstable requests."
+            ratelimit: z
+              .object({
+                type: z
+                  .enum(["fast", "consistent"])
+                  .default("fast")
+                  .openapi({
+                    description:
+                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    externalDocs: {
+                      description: "Learn more",
+                      url: "https://unkey.dev/docs/features/ratelimiting",
+                    },
+                  }),
+                limit: z.number().int().min(1).openapi({
+                  description: "The total amount of burstable requests.",
+                }),
+                refillRate: z.number().int().min(1).openapi({
+                  description: "How many tokens to refill during each refillInterval.",
+                }),
+                refillInterval: z.number().int().min(1).openapi({
+                  description:
+                    "Determines the speed at which tokens are refilled, in milliseconds.",
+                }),
+              })
+              .optional()
+              .openapi({
+                description: "Unkey comes with per-key ratelimiting out of the box.",
+                example: {
+                  type: "fast",
+                  limit: 10,
+                  refillRate: 1,
+                  refillInterval: 60,
+                },
               }),
-              refillRate: z.number().int().min(1).openapi({
-                description: "How many tokens to refill during each refillInterval."
-              }),
-              refillInterval: z.number().int().min(1).openapi({
-                description: "Determines the speed at which tokens are refilled, in milliseconds."
-              }),
-            }).optional().openapi({
-              description: "Unkey comes with per-key ratelimiting out of the box.",
-              example: {
-                type: "fast",
-                limit: 10,
-                refillRate: 1,
-                refillInterval: 60
-              }
-            })
           }),
-        }
-      }
-    }
-
+        },
+      },
+    },
   },
   responses: {
     200: {
@@ -109,14 +134,15 @@ When validating a key, we will return this back to you, so you can clearly ident
         "application/json": {
           schema: z.object({
             keyId: z.string().openapi({
-              description: "The id of the key. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.",
+              description:
+                "The id of the key. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.",
               example: "key_123",
             }),
             key: z.string().openapi({
-              description: "The newly created api key, do not store this on your own system but pass it along to your user.",
+              description:
+                "The newly created api key, do not store this on your own system but pass it along to your user.",
               example: "prefix_xxxxxxxxx",
             }),
-
           }),
         },
       },
@@ -126,10 +152,14 @@ When validating a key, we will return this back to you, so you can clearly ident
 });
 
 export type Route = typeof route;
-export type V1ApisCreateKeyRequest = z.infer<typeof route.request.body.content["application/json"]["schema"]>;
-export type V1ApisCreateKeyResponse = z.infer<typeof route.responses[200]["content"]["application/json"]["schema"]>;
+export type V1KeysCreateKeyRequest = z.infer<
+  typeof route.request.body.content["application/json"]["schema"]
+>;
+export type V1KeysCreateKeyResponse = z.infer<
+  typeof route.responses[200]["content"]["application/json"]["schema"]
+>;
 
-export const registerV1ApisDeleteApi = (app: App) =>
+export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
@@ -143,7 +173,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
     }
 
-    const req = c.req.valid("json")
+    const req = c.req.valid("json");
 
     const api = await withCache(c, apiCache, async (id: ApiId) => {
       return (
@@ -153,19 +183,24 @@ export const registerV1ApisDeleteApi = (app: App) =>
       );
     })(req.apiId);
 
-
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
+      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });
     }
 
+    if (!api.keyAuthId) {
+      throw new UnkeyApiError({
+        code: "PRECONDITION_FAILED",
+        message: `api ${req.apiId} is not setup to handle keys`,
+      });
+    }
 
     /**
      * Set up an api for production
      */
-    const key = new KeyV1({ byteLength: req.byteLength, prefix: req.prefix }).toString()
-    const start = key.slice(0, (req.prefix?.length ?? 0) + 5)
-    const keyId = newId("key")
-    const hash = await sha256(key.toString())
+    const key = new KeyV1({ byteLength: req.byteLength, prefix: req.prefix }).toString();
+    const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
+    const keyId = newId("key");
+    const hash = await sha256(key.toString());
 
     await db.insert(schema.keys).values({
       id: keyId,
@@ -174,20 +209,22 @@ export const registerV1ApisDeleteApi = (app: App) =>
       hash,
       start,
       ownerId: req.ownerId,
-      meta: req.meta,
+      meta: JSON.stringify(req.meta ?? {}),
       workspaceId: rootKey.value.authorizedWorkspaceId,
-      expires: req.expires,
+      forWorkspaceId: null,
+      expires: req.expires ? new Date(req.expires) : null,
       createdAt: new Date(),
       ratelimitLimit: req.ratelimit?.limit,
       ratelimitRefillRate: req.ratelimit?.refillRate,
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
-      remaining: req.remaining,
+      remainingRequests: req.remaining,
+      totalUses: 0,
+      deletedAt: null,
     });
     // TODO: emit event to tinybird
     return c.jsonT({
       keyId,
-      key
-
+      key,
     });
   });

@@ -7,7 +7,7 @@ import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
 import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 
 const env = testEnv();
-test("create and list keys", async () => {
+test("update a key's remaining limit", async () => {
   const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,
     method: "POST",

@@ -8,9 +8,12 @@ import { Metric } from "./pkg/metrics";
 import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
+import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
+import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
+import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
@@ -24,6 +27,15 @@ app.doc("/openapi.json", {
     title: "Unkey Api",
     version: "1.0.0",
   },
+});
+
+app.get("/routes", (c) => {
+  return c.jsonT(
+    app.routes.map((r) => ({
+      method: r.method,
+      path: r.path,
+    })),
+  );
 });
 
 app.use("*", async (c, next) => {
@@ -64,12 +76,23 @@ app.use("*", async (c, next) => {
   }
 });
 
+/**
+ * Registering all route handlers
+ */
+
+// misc
 registerV1Liveness(app);
+// keys
 registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);
+registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
+
+// apis
 registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
+registerV1ApisListKeys(app);
+registerV1ApisDeleteApi(app);
 
 export default {
   fetch: (req: Request, env: Env["Bindings"], executionCtx: ExecutionContext) => {

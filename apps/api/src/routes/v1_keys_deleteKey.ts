@@ -7,7 +7,6 @@ import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { eq } from "drizzle-orm";
 
-
 const route = createRoute({
   method: "post",
   path: "/v1/keys.deleteKey",
@@ -45,6 +44,14 @@ const route = createRoute({
     ...openApiErrorResponses,
   },
 });
+
+export type Route = typeof route;
+export type V1KeysDeleteKeyRequest = z.infer<
+  typeof route.request.body.content["application/json"]["schema"]
+>;
+export type V1KeysDeleteKeyResponse = z.infer<
+  typeof route.responses[200]["content"]["application/json"]["schema"]
+>;
 
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {

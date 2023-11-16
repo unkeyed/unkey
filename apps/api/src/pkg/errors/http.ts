@@ -14,6 +14,7 @@ const ErrorCode = z.enum([
   "NOT_UNIQUE",
   "RATELIMITED",
   "UNAUTHORIZED",
+  "PRECONDITION_FAILED",
 ]);
 
 export const ErrorSchema = z.object({
@@ -40,6 +41,8 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): number {
       return 400;
     case "FORBIDDEN":
       return 403;
+    case "PRECONDITION_FAILED":
+      return 412;
     case "INVALID_KEY_TYPE":
       return 500;
     case "KEY_USAGE_EXCEEDED":

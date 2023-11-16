@@ -28,10 +28,9 @@ const route = createRoute({
               example: "api_1234",
             }),
           }),
-        }
-      }
-    }
-
+        },
+      },
+    },
   },
   responses: {
     200: {
@@ -48,6 +47,13 @@ const route = createRoute({
 });
 export type Route = typeof route;
 
+export type V1ApisDeleteApiRequest = z.infer<
+  typeof route.request.body.content["application/json"]["schema"]
+>;
+export type V1ApisDeleteApiResponse = z.infer<
+  typeof route.responses[200]["content"]["application/json"]["schema"]
+>;
+
 export const registerV1ApisDeleteApi = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
@@ -62,7 +68,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
     }
 
-    const { apiId } = c.req.valid("json")
+    const { apiId } = c.req.valid("json");
 
     const api = await withCache(c, apiCache, async (id: ApiId) => {
       return (
