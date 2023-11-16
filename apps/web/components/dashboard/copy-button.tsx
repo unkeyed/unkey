@@ -15,12 +15,30 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
 }
 
 export function CopyButton({ value, className, src, ...props }: CopyButtonProps) {
+  const timeOutRef = React.useRef<NodeJS.Timeout | null>(null);
   const [hasCopied, setHasCopied] = React.useState(false);
 
   React.useEffect(() => {
-    setTimeout(() => {
-      setHasCopied(false);
-    }, 2000);
+    const clearVisibilityTimeout = () => {
+      if (timeOutRef.current) {
+        clearTimeout(timeOutRef.current);
+        timeOutRef.current = null;
+      }
+    };
+
+    clearVisibilityTimeout();
+
+    if (hasCopied) {
+      const timeOutId = setTimeout(() => {
+        setHasCopied(false);
+      }, 2000);
+
+      timeOutRef.current = timeOutId;
+    }
+
+    return () => {
+      clearVisibilityTimeout();
+    };
   }, [hasCopied]);
 
   return (
