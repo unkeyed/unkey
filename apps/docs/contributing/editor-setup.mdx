@@ -1,0 +1,40 @@
+---
+title: Editor Setup (Optional)
+description: Editor setup to enhance your development experience
+---
+
+
+# Visual Studio Code
+
+Here is a list of recommended VS Code extensions:
+
+- [Biome](https://marketplace.visualstudio.com/items?itemName=biomejs.biome) - Linter and code formatter
+
+To configure Biome as the default formatter for supported files in this workspace, follow these steps:
+
+1. Open the `.vscode/settings.json` file.
+2. Add or update the settings to set Biome as the default formatter for various file types:
+
+```json
+{
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": true,
+    "quickfix.biome": true
+  }
+}
+
