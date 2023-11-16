@@ -37,8 +37,7 @@ export function OAuthSignIn() {
   return (
     <div className="flex flex-col gap-2">
       <Button
-        variant="secondary"
-        className="bg-background"
+        className="bg-gray-50 text-black border-gray-300 hover:bg-black hover:text-white"
         onClick={() => oauthSignIn("oauth_github")}
       >
         {isLoading === "oauth_github" ? (
@@ -49,8 +48,7 @@ export function OAuthSignIn() {
         GitHub
       </Button>
       <Button
-        variant="secondary"
-        className="bg-background"
+        className="bg-gray-50 text-black border-gray-300 hover:bg-black hover:text-white"
         onClick={() => oauthSignIn("oauth_google")}
       >
         {isLoading === "oauth_google" ? (
