@@ -16,6 +16,7 @@ Optional
 
 - [Docker](https://www.docker.com/?ref=unkey)
 - [pnpm](https://pnpm.io/installation/?ref=unkey)
+- [Go](https://go.dev/doc/install)
 
 ### Setup
 
@@ -78,7 +79,7 @@ export TENANT_ID=org_xxx
 pnpm bootstrap
 ```
 
-This sets up the workspace and gets everything ready to run the app.
+This sets up the workspace and gets everything ready to run the app. The logs output of `pnpm bootstrap` will contain the remaining Unkey environment variables to add to apps/web/.env and apps/agent/.env.
 
 ## Build
 
