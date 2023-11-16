@@ -5,18 +5,21 @@ import { FadeIn } from "@/components/landing/fade-in";
 import { NewsletterForm } from "@/components/landing/newsletter";
 import { socialMediaProfiles } from "@/components/landing/social-media";
 
+//Company navigation is rendered by itself so that the docs link can be added at the end.
+//The docs link needs to use the a tag instead of the Link component to avoid client side routing.
+const companyNavigation = {
+  title: "Company",
+  links: [
+    { title: "About", href: "/about" },
+    { title: "Blog", href: "/blog" },
+    { title: "Careers", href: "/careers" },
+    { title: "Changelog", href: "/changelog" },
+    { title: "Analytics", href: "https://plausible.io/unkey.dev" },
+    { title: "Source Code", href: "https://github.com/unkeyed/unkey" },
+  ],
+};
+
 const navigation = [
-  {
-    title: "Company",
-    links: [
-      { title: "About", href: "/about" },
-      { title: "Blog", href: "/blog" },
-      { title: "Careers", href: "/careers" },
-      { title: "Changelog", href: "/changelog" },
-      { title: "Analytics", href: "https://plausible.io/unkey.dev" },
-      { title: "Source Code", href: "https://github.com/unkeyed/unkey" },
-    ],
-  },
   {
     title: "Legal",
     links: [
@@ -40,6 +43,25 @@ function Navigation() {
   return (
     <nav>
       <ul className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+        <li>
+          <div className="text-sm font-semibold tracking-wider font-display text-gray-950">
+            {companyNavigation.title}
+          </div>
+          <ul className="mt-4 text-sm text-gray-700">
+            {companyNavigation.links.map((link) => (
+              <li key={link.href} className="mt-4">
+                <Link href={link.href} className="transition hover:text-gray-950">
+                  {link.title}
+                </Link>
+              </li>
+            ))}
+            <li className="mt-4">
+              <a href="/docs" className="transition hover:text-gray-950">
+                Documentation
+              </a>
+            </li>
+          </ul>
+        </li>
         {navigation.map((section) => (
           <li key={section.title}>
             <div className="text-sm font-semibold tracking-wider font-display text-gray-950">
@@ -53,11 +75,6 @@ function Navigation() {
                   </Link>
                 </li>
               ))}
-              <li className="mt-4">
-                <a href="/docs" className="transition hover:text-gray-950">
-                  Documentation
-                </a>
-              </li>
             </ul>
           </li>
         ))}
