@@ -36,6 +36,8 @@ export const dbEnv = () =>
       DATABASE_HOST: z.string(),
       DATABASE_USERNAME: z.string(),
       DATABASE_PASSWORD: z.string(),
+      DATABASE_ADAPTER: z.enum(["planet-scale", "mysql"]).default("planet-scale"),
+      DATABASE_NAME: z.string().optional(),
     })
     .parse(process.env);
 
