@@ -20,6 +20,14 @@ Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respecti
 
 ```sh-session
 cp apps/web/.env.example apps/web/.env
+
+Set the DATABASE values in your configuration file to:
+
+# Main db
+DATABASE_HOST=aws.connect.psdb.cloud
+DATABASE_USERNAME=...
+DATABASE_PASSWORD=pscale_pw_....
+
 cp apps/agent/.env.example apps/agent/.env
 ```
 
