@@ -269,7 +269,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem className="w-full">
                                   <FormLabel>Limit</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="10" type="number" {...field} />
+                                    <Input
+                                      placeholder="10"
+                                      type="number"
+                                      {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          //don't trigger validation if the field is empty
+                                          return;
+                                        }
+                                      }}
+                                    />
                                   </FormControl>
                                   <FormDescription>
                                     The maximum number of requests possible during a burst.
@@ -287,7 +297,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormItem className="w-full">
                                     <FormLabel>Refill Rate</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="5" type="number" {...field} />
+                                      <Input
+                                        placeholder="5"
+                                        type="number"
+                                        {...field}
+                                        onBlur={(e) => {
+                                          if (e.target.value === "") {
+                                            return;
+                                          }
+                                        }}
+                                      />
                                     </FormControl>
 
                                     <FormMessage />
@@ -301,7 +320,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormItem className="w-full">
                                     <FormLabel>Refill Interval (milliseconds)</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="1000" type="number" {...field} />
+                                      <Input
+                                        placeholder="1000"
+                                        type="number"
+                                        {...field}
+                                        onBlur={(e) => {
+                                          if (e.target.value === "") {
+                                            return;
+                                          }
+                                        }}
+                                      />
                                     </FormControl>
 
                                     <FormMessage />
