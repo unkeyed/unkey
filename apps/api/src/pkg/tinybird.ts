@@ -1,15 +1,11 @@
-import { Tinybird as Client } from "@chronark/zod-bird";
+import { Tinybird as Client, NoopTinybird } from "@chronark/zod-bird";
 import { z } from "zod";
 
-
-
-
 export class Tinybird {
-  private readonly tb: Client;
+  private readonly tb: Client | NoopTinybird;
 
-  constructor(opts: { token: string }) {
-    this.tb = new Client(opts);
-
+  constructor(token?: string) {
+    this.tb = token ? new Client({ token }) : new NoopTinybird();
   }
 
   public get ingestKeyVerification() {
@@ -24,8 +20,7 @@ export class Tinybird {
         ipAddress: z.string().optional(),
         userAgent: z.string().optional(),
         requestedResource: z.string().optional(),
-      })
-    })
+      }),
+    });
   }
-
 }

@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.1",
-    "@chronark/zod-bird": "^0.2.2",
+    "@chronark/zod-bird": "^0.3.0",
     "@hono/zod-openapi": "^0.8.3",
     "@planetscale/database": "^1.11.0",
     "@unkey/db": "workspace:^",

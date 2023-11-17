@@ -7,7 +7,7 @@ export type Env = {
     CLOUDFLARE_API_KEY: string;
     CLOUDFLARE_ZONE_ID: string;
     ENVIRONMENT: "development" | "preview" | "production";
-    TINYBIRD_TOKEN: string
+    TINYBIRD_TOKEN?: string;
 
     DO_RATELIMIT: DurableObjectNamespace;
     DO_USAGELIMIT: DurableObjectNamespace;

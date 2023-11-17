@@ -3,10 +3,12 @@ import { step } from "@/pkg/testutil/step";
 import { testEnv } from "./env";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
+import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
+import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 
 const env = testEnv();
-test("create, verify and delete a key", async () => {
+test("update a key's remaining limit", async () => {
   const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,
     method: "POST",
@@ -22,7 +24,7 @@ test("create, verify and delete a key", async () => {
   expect(createApiResponse.body.apiId).toBeDefined();
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
 
-  const key = await step<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+  const createKeyResponse = await step<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/keys.createKey`,
     method: "POST",
     headers: {
@@ -31,58 +33,63 @@ test("create, verify and delete a key", async () => {
     },
     body: {
       apiId: createApiResponse.body.apiId,
-      byteLength: 16,
+      byteLength: 32,
+      prefix: "test",
+      remaining: 5,
     },
   });
-  expect(key.status).toEqual(200);
-  expect(key.body.key).toBeDefined();
-  expect(key.body.keyId).toBeDefined();
+  expect(createKeyResponse.status).toEqual(200);
 
-  const valid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+  for (let i = 4; i >= 0; i--) {
+    const valid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: `${env.UNKEY_BASE_URL}/v1/keys.validKey`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      },
+      body: {
+        apiId: createApiResponse.body.apiId,
+        key: createKeyResponse.body.key,
+      },
+    });
+    expect(valid.status).toEqual(200);
+    expect(valid.body.valid).toBeTrue();
+    expect(valid.body.remaining).toEqual(i);
+  }
+
+  const invalid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: {
-      key: key.body.key,
-      apiId: createApiResponse.body.apiId,
-    },
-  });
-  expect(valid.status).toEqual(200);
-  expect(valid.body.valid).toEqual(true);
-
-  const revoked = await step<V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/keys.deleteKey`,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
     },
     body: {
-      keyId: key.body.keyId,
+      apiId: createApiResponse.body.apiId,
+      key: createKeyResponse.body.key,
     },
   });
-  expect(revoked.status).toEqual(200);
+  expect(invalid.status).toEqual(200);
+  expect(invalid.body.valid).toBeFalse();
+  expect(invalid.body.remaining).toEqual(0);
 
-  const validAfterRevoke = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-    method: "POST",
+  const updateKeyResponse = await step<never, V1ApisListKeysResponse>({
+    url: `${env.UNKEY_BASE_URL}/v1/apis.listKeys?apiId=${createApiResponse.body.apiId}`,
+    method: "GET",
     headers: {
       "Content-Type": "application/json",
-    },
-    body: {
-      key: key.body.key,
-      apiId: createApiResponse.body.apiId,
+      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
     },
   });
-  expect(validAfterRevoke.status).toEqual(200);
-  expect(validAfterRevoke.body.valid).toEqual(false);
+
+  expect(listKeysResponse.status).toEqual(200);
+  expect(listKeysResponse.body.keys).toHaveLength(5);
 
   /**
-   * Tear down
+   * Teardown
    */
-  const deleteApi = await step({
+  const deleteApi = await step<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/apis.deleteApi`,
     method: "POST",
     headers: {

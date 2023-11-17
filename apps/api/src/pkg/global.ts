@@ -49,9 +49,9 @@ export function init(opts: { env: Env["Bindings"] }): void {
 
   metrics = opts.env.AXIOM_TOKEN
     ? new AxiomMetrics({
-      axiomToken: opts.env.AXIOM_TOKEN,
-      environment: opts.env.ENVIRONMENT,
-    })
+        axiomToken: opts.env.AXIOM_TOKEN,
+        environment: opts.env.ENVIRONMENT,
+      })
     : new NoopMetrics();
 
   verificationCache = new TieredCache(
@@ -129,10 +129,10 @@ export function init(opts: { env: Env["Bindings"] }): void {
     db,
     metrics,
     rl: opts.env.DO_RATELIMIT,
-    ul: opts.env.DO_USAGELIMIT
+    ul: opts.env.DO_USAGELIMIT,
   });
 
-  tinybird = new Tinybird({ token: opts.env.TINYBIRD_TOKEN })
+  tinybird = new Tinybird(opts.env.TINYBIRD_TOKEN);
 
   initialized = true;
 }
