@@ -1,22 +1,8 @@
-import { UnkeyError, verifyKey } from "@unkey/api";
+import { type VerifyKeyResult, type UnkeyError, verifyKey } from "@unkey/api";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 
-export type UnkeyContext = {
-  valid: boolean;
-  ownerId?: string | undefined;
-  meta?: unknown;
-  expires?: number | undefined;
-  remaining?: number | undefined;
-  ratelimit?:
-    | {
-        limit: number;
-        remaining: number;
-        reset: number;
-      }
-    | undefined;
-  code?: "NOT_FOUND" | "RATELIMITED" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | undefined;
-};
+export type UnkeyContext = VerifyKeyResult;
 
 export type UnkeyConfig<TContext = Context> = {
   /**

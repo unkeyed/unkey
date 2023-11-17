@@ -1,4 +1,4 @@
-import type { ErrorResponse } from "./errors";
+import type { UnkeyError } from "./errors";
 
 type UnkeyRootKeyOptions = {
   /**
@@ -32,8 +32,7 @@ type UnkeyBaseOptions = {
   cache?: RequestCache;
 };
 
-export type UnkeyOptions = (UnkeyRootKeyOptions | UnkeyTokenOptions) &
-  UnkeyBaseOptions;
+export type UnkeyOptions = (UnkeyRootKeyOptions | UnkeyTokenOptions) & UnkeyBaseOptions;
 
 type Backoff = (retryCount: number) => number;
 type Retry = {
@@ -201,7 +200,7 @@ export type VerifyKeyPayload = {
    */
   apiId?: string;
 };
-type VerifyKeyResult = {
+export type VerifyKeyResult = {
   /**
    * Whether or not this key is valid and has passed the ratelimit. If false you should not grant access to whatever the user is requesting
    */
@@ -311,8 +310,15 @@ type DeleteRootKeyPayload = {
   keyId: string;
 };
 
-type SuccessResult<R> = Record<"result", R>;
-type Result<R> = SuccessResult<R> | ErrorResponse;
+type SuccessResult<R> = {
+  result: R;
+  error?: never;
+};
+type ErrorResult = {
+  result?: never;
+  error: UnkeyError;
+};
+export type Result<R> = SuccessResult<R> | ErrorResult;
 type ApiCall<P = unknown, R = unknown> = (payload: P) => Promise<Result<R>>;
 type ApiRequest = {
   path: string[];
@@ -349,9 +355,7 @@ export class Unkey {
     } satisfies Retry;
   }
 
-  private async fetch<TResult = unknown>(
-    req: ApiRequest,
-  ): Promise<Result<TResult>> {
+  private async fetch<TResult = unknown>(req: ApiRequest): Promise<Result<TResult>> {
     let res: Response | null = null;
     let err: Error | null = null;
 
@@ -365,10 +369,7 @@ export class Unkey {
 
     for (let i = 0; i <= this.retry.attempts; i++) {
       try {
-        const body =
-          req.method === "GET" || !req.body
-            ? undefined
-            : JSON.stringify(req.body);
+        const body = req.method === "GET" || !req.body ? undefined : JSON.stringify(req.body);
 
         res = await fetch(url, {
           method: req.method,
@@ -412,7 +413,7 @@ export class Unkey {
     }
 
     if (res) {
-      return { error: await res.json() } as ErrorResponse;
+      return { error: await res.json() } as ErrorResult;
     }
 
     return {
@@ -422,7 +423,7 @@ export class Unkey {
         docs: "https://developer.mozilla.org/en-US/docs/Web/API/fetch",
         requestId: "N/A",
       },
-    } satisfies ErrorResponse;
+    } satisfies ErrorResult;
   }
 
   public get keys(): {
