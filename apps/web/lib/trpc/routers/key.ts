@@ -33,7 +33,10 @@ export const keyRouter = t.router({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const newRootKey = await unkeyRoot._internal.createRootKey({
@@ -42,7 +45,10 @@ export const keyRouter = t.router({
         expires: Date.now() + 60000, // expires in 1 minute
       });
       if (newRootKey.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: newRootKey.error.message,
+        });
       }
 
       const { error, result } = await unkeyScoped(newRootKey.result.key).keys.create({
@@ -57,7 +63,10 @@ export const keyRouter = t.router({
         ratelimit: input.ratelimit,
       });
       if (error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error.message,
+        });
       }
       return result;
     }),
@@ -79,7 +88,10 @@ export const keyRouter = t.router({
       });
       if (!unkeyApi) {
         console.error(`api ${env().UNKEY_API_ID} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `api ${env().UNKEY_API_ID} not found`,
+        });
       }
 
       const workspace = await db.query.workspaces.findFirst({
@@ -87,7 +99,10 @@ export const keyRouter = t.router({
       });
       if (!workspace) {
         console.error(`workspace for tenant ${ctx.tenant.id} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const { error, result } = await unkeyRoot._internal.createRootKey({
@@ -116,7 +131,10 @@ export const keyRouter = t.router({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const newRootKey = await unkeyRoot._internal.createRootKey({
@@ -125,7 +143,10 @@ export const keyRouter = t.router({
         expires: Date.now() + 60000, // expires in 1 minute
       });
       if (newRootKey.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: newRootKey.error.message,
+        });
       }
 
       const sdk = unkeyScoped(newRootKey.result.key);
@@ -136,7 +157,10 @@ export const keyRouter = t.router({
             keyId,
           });
           if (error) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: error.message,
+            });
           }
         }),
       );
@@ -154,7 +178,10 @@ export const keyRouter = t.router({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const newRootKey = await unkeyRoot._internal.createRootKey({
@@ -163,7 +190,10 @@ export const keyRouter = t.router({
         expires: Date.now() + 60000, // expires in 1 minute
       });
       if (newRootKey.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: newRootKey.error.message,
+        });
       }
 
       const sdk = unkeyScoped(newRootKey.result.key);
@@ -175,7 +205,10 @@ export const keyRouter = t.router({
           });
           if (error) {
             console.error(error);
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: error.message,
+            });
           }
         }),
       );
