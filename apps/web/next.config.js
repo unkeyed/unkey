@@ -8,6 +8,7 @@ let nextConfig = {
   experimental: {
     serverActions: true,
     esmExternals: "loose",
+    instrumentationHook: true,
   },
 
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result"],
