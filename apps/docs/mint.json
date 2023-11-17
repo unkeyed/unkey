@@ -205,7 +205,11 @@
     {
       "group": "Contributing",
       "icon": "github",
-      "pages": ["contributing/getting-started", "contributing/versions"]
+      "pages": [
+        "contributing/getting-started",
+        "contributing/versions",
+        "contributing/editor-setup"
+      ]
     }
   ],
   "footerSocials": {

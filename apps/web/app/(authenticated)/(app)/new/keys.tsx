@@ -4,6 +4,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +17,7 @@ import {
 import { Code } from "@/components/ui/code";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
-import { KeyRound, Lock } from "lucide-react";
+import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -120,9 +121,15 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
         ) : step.step === "CREATE_KEY" ? (
           <Card>
             <CardHeader>
-              <CardTitle>Create a key for your users</CardTitle>
+              <CardTitle className="mb-4">Create a key for your users</CardTitle>
               <CardDescription>
-                This key is only shown once and can not be recovered.
+                <Alert>
+                  <AlertCircle className="w-4 h-4" />
+                  <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
+                  <AlertDescription>
+                    Please pass it on to your user or store it somewhere safe.
+                  </AlertDescription>
+                </Alert>
               </CardDescription>
             </CardHeader>
             <CardContent>

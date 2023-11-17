@@ -56,12 +56,12 @@ async function main() {
     features: {},
   };
   await db.insert(schema.workspaces).values(workspace);
-  console.log(`Created workspace: ${workspace.name} with id: ${workspace.id}`);
 
   const keyAuth = {
     id: newId("key_auth"),
     workspaceId: workspace.id,
   };
+
   await db.insert(schema.keyAuth).values(keyAuth);
 
   /**
@@ -75,7 +75,13 @@ async function main() {
     authType: "key",
     keyAuthId: keyAuth.id,
   });
-  console.log(`Created API: ${apiId}`);
+
+  console.log("Add these to /apps/agent/.env and /apps/web/.env");
+  console.log(`
+UNKEY_WORKSPACE_ID="${workspaceId}"
+UNKEY_API_ID="${apiId}"
+UNKEY_KEY_AUTH_ID="${keyAuth.id}"
+    `);
 }
 
 main();
