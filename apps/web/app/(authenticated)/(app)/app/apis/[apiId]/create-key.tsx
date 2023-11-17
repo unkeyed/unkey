@@ -139,6 +139,12 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       : "*".repeat(split.at(0)?.length ?? 0);
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
+
+  function getDatePlusTwoMinutes(): string {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + 2 * 60000);
+    return futureDate.toISOString().slice(0, -8);
+  }
   return (
     <>
       {key.data ? (
@@ -403,10 +409,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormLabel>Expiry Date</FormLabel>
                                   <FormControl>
                                     <Input
-                                      min={new Date().toISOString().slice(0, -8)}
+                                      min={getDatePlusTwoMinutes()}
                                       type="datetime-local"
                                       {...field}
-                                      value={field.value?.toLocaleString()}
+                                      value={getDatePlusTwoMinutes()}
                                     />
                                   </FormControl>
                                   <FormDescription>
