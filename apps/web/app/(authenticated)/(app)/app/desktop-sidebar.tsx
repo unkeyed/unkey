@@ -51,7 +51,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside
-      className={cn("fixed  h-screen  inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10", className)}
+      className={cn("fixed  h-screen inset-y-0 flex w-64 flex-col px-6 gap-y-5 z-10", className)}
     >
       <div className="flex items-center h-16 mt-4">
         <WorkspaceSwitcher />
@@ -70,11 +70,11 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
           </li>
           <li>
             <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
-            <ul className="mt-2 -mx-2 space-y-1">
+            <ul className="mt-2 -mx-2 space-y-1 max-h-72 overflow-y-auto">
               {workspace.apis.map((api) => (
                 <li key={api.id}>
                   <Tooltip>
-                    <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+                    <TooltipTrigger className="w-full text-ellipsis">
                       <NavLink
                         item={{
                           icon: Code,
