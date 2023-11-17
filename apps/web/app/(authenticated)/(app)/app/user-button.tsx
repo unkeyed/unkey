@@ -21,9 +21,10 @@ export const UserButton: React.FC = () => {
   if (!user) {
     return null;
   }
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer">
+      <DropdownMenuTrigger className="absolute inset-x-0 z-20 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer">
         <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8">
             {user.imageUrl ? (
@@ -37,7 +38,7 @@ export const UserButton: React.FC = () => {
             </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm font-semibold">
+          <span className="text-sm font-semibold min-w-full">
             {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
           </span>
         </div>
