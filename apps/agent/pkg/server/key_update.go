@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,6 +23,27 @@ type nullish[T any] struct {
 func (m *nullish[T]) UnmarshalJSON(data []byte) error {
 	m.Defined = true
 	return json.Unmarshal(data, &m.Value)
+}
+
+func validateUpdateKeyRequest(req UpdateKeyRequest) error {
+	expectedFields := map[string]bool{
+		"KeyId":     true,
+		"Name":      true,
+		"OwnerId":   true,
+		"Meta":      true,
+		"Expires":   true,
+		"Ratelimit": true,
+		"Remaining": true,
+	}
+
+	t := reflect.TypeOf(req)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i).Name
+		if !expectedFields[field] {
+			return fmt.Errorf("unexpected field '%s' in UpdateKeyRequest", field)
+		}
+	}
+	return nil
 }
 
 type UpdateKeyRequest struct {
@@ -57,6 +79,11 @@ func (s *Server) updateKey(c *fiber.Ctx) error {
 	err = c.BodyParser(&req)
 	if err != nil {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("unable to parse body: %s", err.Error()))
+	}
+
+	err = validateUpdateKeyRequest(req)
+	if err != nil {
+		return errors.NewHttpError(c, errors.BAD_REQUEST, fmt.Sprintf("invalid request: %s", err.Error()))
 	}
 
 	err = s.validator.Struct(req)
