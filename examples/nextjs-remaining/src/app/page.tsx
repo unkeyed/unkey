@@ -34,6 +34,10 @@ export default function Home() {
     fetchKeys();
   };
 
+  const onRefresh = async () => {
+    fetchKeys();
+  };
+
   return (
     <main className="flex flex-col justify-center items-center min-h-screen gap-1 p-24">
       <div className="flex flex-col gap-1 items-start w-full max-w-xl">
@@ -56,6 +60,14 @@ export default function Home() {
               disabled={loading}
             >
               {loading ? "Creating..." : "Create API Key"}
+            </button>
+
+            <button
+              type="button"
+              className="px-2 py-1 rounded border-black text-black border"
+              onClick={onRefresh}
+            >
+              Refresh keys
             </button>
           </div>
         </form>
