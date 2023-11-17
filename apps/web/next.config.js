@@ -1,15 +1,18 @@
 const { withContentlayer } = require("next-contentlayer");
 const { withSentryConfig } = require("@sentry/nextjs");
+const { version } = require("./package.json");
 
 /** @type {import('next').NextConfig} */
 let nextConfig = {
+  env: {
+    APP_VERSION: version,
+  },
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   productionBrowserSourceMaps: true, // we're open-source anyways
   experimental: {
     serverActions: true,
     esmExternals: "loose",
   },
-
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
