@@ -412,7 +412,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       min={getDatePlusTwoMinutes()}
                                       type="datetime-local"
                                       {...field}
-                                      value={getDatePlusTwoMinutes()}
+                                      defaultValue={getDatePlusTwoMinutes()}
+                                      value={field.value?.toLocaleString()}
                                     />
                                   </FormControl>
                                   <FormDescription>
