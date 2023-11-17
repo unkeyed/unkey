@@ -1,25 +1,15 @@
-function checkEnvironmentVariables(envs: string[]) {
-  envs.forEach((env) => {
-    if (!process.env[env]) {
-      throw new Error(`${env} is undefined`);
-    }
-  });
-}
+import { ZodError } from "zod";
+import { dbEnv, env } from "./lib/env";
 
 export function register() {
-  const requiredEnvs = [
-    // Clerk
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-    "CLERK_SECRET_KEY",
-    // Database
-    "DATABASE_HOST",
-    "DATABASE_USERNAME",
-    "DATABASE_PASSWORD",
-    // Unkey
-    "UNKEY_WORKSPACE_ID",
-    "UNKEY_API_ID",
-    "UNKEY_APP_AUTH_TOKEN",
-  ];
+  try {
+    env();
+    dbEnv();
+  } catch (e) {
+    if (e instanceof ZodError) {
+      throw new Error(e.message);
+    }
 
-  checkEnvironmentVariables(requiredEnvs);
+    throw new Error("Something went wrong");
+  }
 }

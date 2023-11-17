@@ -9,8 +9,8 @@ export const env = () =>
         .default("development"),
       VERCEL_URL: z.string().optional(),
 
-      UNKEY_WORKSPACE_ID: z.string(),
-      UNKEY_API_ID: z.string(),
+      UNKEY_WORKSPACE_ID: z.string().min(1),
+      UNKEY_API_ID: z.string().min(1),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -19,7 +19,7 @@ export const env = () =>
 
       UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
       NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
-      UNKEY_APP_AUTH_TOKEN: z.string(),
+      UNKEY_APP_AUTH_TOKEN: z.string().min(1),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),
       RESEND_API_KEY: z.string().optional(),
@@ -27,15 +27,18 @@ export const env = () =>
 
       UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
       PLAIN_API_KEY: z.string().optional(),
+
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+      CLERK_SECRET_KEY: z.string().min(1),
     })
     .parse(process.env);
 
 export const dbEnv = () =>
   z
     .object({
-      DATABASE_HOST: z.string(),
-      DATABASE_USERNAME: z.string(),
-      DATABASE_PASSWORD: z.string(),
+      DATABASE_HOST: z.string().min(1),
+      DATABASE_USERNAME: z.string().min(1),
+      DATABASE_PASSWORD: z.string().min(1),
     })
     .parse(process.env);
 
