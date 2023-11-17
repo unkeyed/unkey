@@ -70,11 +70,11 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
           </li>
           <li>
             <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
-            <ul className="mt-2 -mx-2 space-y-1">
+            <ul className="mt-2 -mx-2 space-y-1 overflow-y-auto max-h-96">
               {workspace.apis.map((api) => (
                 <li key={api.id}>
                   <Tooltip>
-                    <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+                    <TooltipTrigger className="w-full text-ellipsis">
                       <NavLink
                         item={{
                           icon: Code,
