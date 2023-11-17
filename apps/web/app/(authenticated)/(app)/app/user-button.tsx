@@ -21,6 +21,7 @@ export const UserButton: React.FC = () => {
   if (!user) {
     return null;
   }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="absolute inset-x-0 z-20 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer">
@@ -38,9 +39,7 @@ export const UserButton: React.FC = () => {
           </Avatar>
 
           <span className="text-sm font-semibold min-w-full">
-            {user.username ??
-              user.fullName ??
-              user.primaryEmailAddress?.emailAddress}
+            {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
           </span>
         </div>
         <ChevronRight className="w-4 h-4" />

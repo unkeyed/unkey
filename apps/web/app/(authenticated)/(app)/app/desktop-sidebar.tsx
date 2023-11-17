@@ -1,9 +1,5 @@
 "use client";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { BookOpen, Code, LucideIcon, Settings } from "lucide-react";
@@ -29,6 +25,7 @@ type NavItem = {
   label: string;
   active?: boolean;
 };
+
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   const segments = useSelectedLayoutSegments();
   const navigation: NavItem[] = [
@@ -61,9 +58,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
         <nav className="flex flex-col flex-1 flex-grow">
           <ul className="flex flex-col flex-1 gap-y-7">
             <li>
-              <h3 className="text-xs font-semibold leading-6 text-content">
-                General
-              </h3>
+              <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
               <ul className="mt-2 -mx-2 space-y-1">
                 {navigation.map((item) => (
                   <li key={item.label}>
@@ -73,9 +68,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
               </ul>
             </li>
             <li>
-              <h3 className="text-xs font-semibold leading-6 text-content">
-                Your APIs
-              </h3>
+              <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
               <ul className="mt-2 max-h-[100%] overflow-x-hidden overflow-y-scroll -mx-2 space-y-1">
                 {workspace.apis.map((api) => (
                   <li key={api.id}>
@@ -114,7 +107,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
         "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800",
         {
           "bg-gray-200 dark:bg-gray-800": item.active,
-        }
+        },
       )}
     >
       <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
