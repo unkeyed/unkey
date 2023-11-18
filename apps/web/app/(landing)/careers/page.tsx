@@ -45,6 +45,13 @@ export default async function JobsPage() {
           <h2 className="font-display text-2xl font-semibold text-gray-950">Open Positions</h2>
         </FadeIn>
         <div className="mt-10 space-y-20 sm:space-y-24 lg:space-y-32">
+          {jobs.length === 0 && (
+            <FadeIn>
+              <p className="text-lg text-neutral-950">
+                We don't have any open positions right now. Check back later!
+              </p>
+            </FadeIn>
+          )}
           {jobs.map((job) => (
             <FadeIn key={job.title}>
               <article>
