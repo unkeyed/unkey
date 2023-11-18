@@ -1,13 +1,12 @@
-import { type Api, type Database, type Key } from "@unkey/db";
+import { type Database, type Key } from "@unkey/db";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
-import type { Cache } from "@/pkg/cache/interface";
-import { withCache } from "@/pkg/cache/with_cache";
-import { KeyHash } from "@/pkg/global";
 import { sha256 } from "@/pkg/hash/sha256";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import { durableUsageLimit } from "../usagelimit";
+import { TieredCache } from "@/pkg/cache/tiered";
+import { CacheNamespaces } from "../global";
 
 type VerifyKeyResult =
   | {
@@ -42,7 +41,7 @@ type VerifyKeyResult =
     };
 
 export class KeyService {
-  private readonly verificationCache: Cache<KeyHash, { key: Key; api: Api } | null>;
+  private readonly cache: TieredCache<CacheNamespaces>;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
@@ -51,14 +50,14 @@ export class KeyService {
   private readonly rlCache: Map<string, number>;
 
   constructor(opts: {
-    verificationCache: Cache<KeyHash, { key: Key; api: Api } | null>;
+    cache: TieredCache<CacheNamespaces>;
     logger: Logger;
     metrics: Metrics;
     db: Database;
     ul: DurableObjectNamespace;
     rl: DurableObjectNamespace;
   }) {
-    this.verificationCache = opts.verificationCache;
+    this.cache = opts.cache;
     this.logger = opts.logger;
     this.db = opts.db;
     this.metrics = opts.metrics;
@@ -73,10 +72,10 @@ export class KeyService {
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
-    const data = await withCache(c, this.verificationCache, async (h: KeyHash) => {
+    const data = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
-        where: (table, { and, eq, isNull }) => and(eq(table.hash, h), isNull(table.deletedAt)),
+        where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
           keyAuth: {
             with: {
@@ -90,7 +89,7 @@ export class KeyService {
         latency: performance.now() - dbStart,
       });
       return dbRes ? { key: dbRes, api: dbRes.keyAuth.api } : null;
-    })(hash);
+    });
 
     if (!data) {
       return result.success({ valid: false, code: "NOT_FOUND" });
@@ -236,9 +235,10 @@ export class KeyService {
           reset,
         },
       ];
-    } catch (e) {
-      console.error(e);
-      this.logger.error("ratelimiting failed", { error: e.message, ...e });
+    } catch (e: unknown) {
+      const err = e as Error;
+      this.logger.error("ratelimiting failed", { error: err.message, ...err });
+
       return [false, undefined];
     } finally {
       this.metrics.emit("metric.ratelimit", {

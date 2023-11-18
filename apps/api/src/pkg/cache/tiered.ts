@@ -4,18 +4,16 @@ import { type Cache } from "./interface";
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredCache<TNamespace extends string, TKey extends string, TValue>
-  implements Cache<TKey, TValue>
-{
-  private readonly tiers: Cache<TNamespace, TKey, TValue>[];
+export class TieredCache<TNamespaces extends Record<string, unknown>> implements Cache<TNamespaces> {
+  private readonly tiers: Cache<TNamespaces>[];
 
   /**
    * Create a new tiered cache
    * Caches are checked in the order they are provided
    * The first cache to return a value will be used to populate all previous caches
    */
-  constructor(...caches: (Cache<TNamespace, TKey, TValue> | undefined)[]) {
-    this.tiers = caches.filter(Boolean) as Cache<TNamespace, TKey, TValue>[];
+  constructor(...caches: (Cache<TNamespaces> | undefined)[]) {
+    this.tiers = caches.filter(Boolean) as Cache<TNamespaces>[];
   }
 
   /**
@@ -23,17 +21,17 @@ export class TieredCache<TNamespace extends string, TKey extends string, TValue>
    *
    * The response will be `undefined` for cache misses or `null` when the key was not found in the origin
    */
-  public async get(
+  public async get<TName extends keyof TNamespaces>(
     c: Context,
-    namespace: TNamespace,
-    key: TKey,
-  ): Promise<[TValue | undefined, boolean]> {
+    namespace: TName,
+    key: string,
+  ): Promise<[TNamespaces[TName] | undefined, boolean]> {
     if (this.tiers.length === 0) {
       return [undefined, false];
     }
 
     for (let i = 0; i < this.tiers.length; i++) {
-      const [cached, stale] = await this.tiers[i].get(c, namespace, key);
+      const [cached, stale] = await this.tiers[i].get<TName>(c, namespace, key);
       if (typeof cached !== "undefined") {
         for (let j = 0; j < i; j++) {
           this.tiers[j].set(c, namespace, key, cached);
@@ -47,24 +45,33 @@ export class TieredCache<TNamespace extends string, TKey extends string, TValue>
   /**
    * Sets the value for the given key.
    */
-  public async set(c: Context, namespace: TNamespace, key: TKey, value: TValue): Promise<void> {
-    await Promise.all(this.tiers.map((t) => t.set(c, namespace, key, value)));
+  public async set<TName extends keyof TNamespaces>(
+    c: Context,
+    namespace: TName,
+    key: string,
+    value: TNamespaces[TName],
+  ): Promise<void> {
+    await Promise.all(this.tiers.map((t) => t.set<TName>(c, namespace, key, value)));
   }
 
   /**
    * Removes the key from the cache.
    */
-  public async remove(c: Context, namespace: TNamespace, key: TKey): Promise<void> {
+  public async remove<TName extends keyof TNamespaces>(
+    c: Context,
+    namespace: TName,
+    key: string,
+  ): Promise<void> {
     await Promise.all(this.tiers.map((t) => t.remove(c, namespace, key)));
   }
 
-  public async withCache(
+  public async withCache<TName extends keyof TNamespaces>(
     c: Context,
-    namespace: TNamespace,
-    key: TKey,
-    loadFromDatabase: (key: TKey) => Promise<TValue>,
-  ): Promise<TValue> {
-    const [cached, stale] = await this.get(c, namespace, key);
+    namespace: TName,
+    key: string,
+    loadFromDatabase: (key: string) => Promise<TNamespaces[TName]>,
+  ): Promise<TNamespaces[TName]> {
+    const [cached, stale] = await this.get<TName>(c, namespace, key);
     if (typeof cached !== "undefined") {
       if (stale) {
         c.executionCtx.waitUntil(

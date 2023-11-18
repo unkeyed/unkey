@@ -127,7 +127,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                   <AlertCircle className="w-4 h-4" />
                   <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
                   <AlertDescription>
-                    Please pass it on to your user or store it somewhere safe.
+                    Please store it somewhere safe for future use.
                   </AlertDescription>
                 </Alert>
               </CardDescription>

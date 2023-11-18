@@ -1,5 +1,4 @@
 import { test, expect } from "bun:test";
-import { newHonoApp } from "@/pkg/hono/app";
 
 import { init } from "@/pkg/global";
 import { testEnv } from "@/pkg/testutil/env";
@@ -10,13 +9,13 @@ import { KeyV1 } from "@/pkg/keys/v1";
 import { V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
 import { schema } from "@unkey/db";
 import { fetchRoute } from "@/pkg/testutil/request";
+import { newApp } from "@/pkg/hono/app";
 
 test("returns 200", async () => {
   const env = testEnv();
   // @ts-ignore
   init({ env });
-
-  const app = newHonoApp();
+  const app = newApp();
   registerV1KeysGetKey(app);
 
   const r = await seed(env);
@@ -32,13 +31,6 @@ test("returns 200", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  // require.Equal(t, key.Id, successResponse.Id)
-  // require.Equal(t, resources.UserApi.Id, successResponse.ApiId)
-  // require.Equal(t, key.WorkspaceId, successResponse.WorkspaceId)
-  // require.Equal(t, key.Name, successResponse.Name)
-  // require.True(t, strings.HasPrefix(key.Hash, successResponse.Start))
-  // require.WithinDuration(t, key.CreatedAt, time.UnixMilli(successResponse.CreatedAt), time.Second)
-
   const res = await fetchRoute<never, V1KeysGetKeyResponse>(app, {
     method: "GET",
     url: `/v1/keys.getKey?keyId=${key.id}`,
@@ -49,7 +41,6 @@ test("returns 200", async () => {
 
   expect(res.status).toEqual(200);
 
-  console.log(res);
   expect(res.body.id).toEqual(key.id);
   expect(res.body.apiId).toEqual(r.userApi.id);
   expect(res.body.workspaceId).toEqual(key.workspaceId);

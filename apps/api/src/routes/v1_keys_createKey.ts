@@ -1,8 +1,7 @@
-import { db, apiCache, keyService, ApiId } from "@/pkg/global";
+import { db, cache, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { newId } from "@/pkg/id";
 import { schema } from "@unkey/db";
@@ -175,13 +174,13 @@ export const registerV1KeysCreateKey = (app: App) =>
 
     const req = c.req.valid("json");
 
-    const api = await withCache(c, apiCache, async (id: ApiId) => {
+    const api = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, id),
+          where: (table, { eq }) => eq(table.id, req.apiId),
         })) ?? null
       );
-    })(req.apiId);
+    });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });

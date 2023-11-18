@@ -1,5 +1,4 @@
 import { type Workspace, type Api, type KeyAuth, type Database, schema } from "@unkey/db";
-import { Env } from "../env";
 import { createConnection } from "../db";
 import { newId } from "../id";
 import { KeyV1 } from "../keys/v1";

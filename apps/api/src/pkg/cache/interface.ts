@@ -24,7 +24,7 @@ export type CacheConfig = {
   stale: number;
 };
 
-export interface Cache<TNamespace extends string, TKey extends string, TValue> {
+export interface Cache<TNamespaces extends Record<string, unknown>> {
   /**
    * Return the cached value
    *
@@ -32,19 +32,26 @@ export interface Cache<TNamespace extends string, TKey extends string, TValue> {
    *
    * The second value is true if the entry is stale and should be refetched from the origin
    */
-  get: (
+  get: <TName extends keyof TNamespaces>(
     c: Context,
-    namespace: TNamespace,
-    key: TKey,
-  ) => [TValue | undefined, boolean] | Promise<[TValue | undefined, boolean]>;
+    namespace: TName,
+    key: string,
+  ) =>
+    | [TNamespaces[TName] | undefined, boolean]
+    | Promise<[TNamespaces[TName] | undefined, boolean]>;
 
   /**
    * Sets the value for the given key.
    */
-  set: (c: Context, namespace: TNamespace, key: TKey, value: TValue) => void;
+  set: <TName extends keyof TNamespaces>(
+    c: Context,
+    namespace: keyof TNamespaces,
+    key: string,
+    value: TNamespaces[TName],
+  ) => void;
 
   /**
    * Removes the key from the cache.
    */
-  remove: (c: Context, key: TKey) => void;
+  remove: (c: Context, namespace: keyof TNamespaces, key: string) => void;
 }

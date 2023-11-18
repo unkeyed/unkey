@@ -1,9 +1,8 @@
-import { Hono } from "hono";
-
+import { type App } from "@/pkg/hono/app";
 export type StepRequest<TRequestBody> = {
   url: string;
   method: "POST" | "GET" | "PUT" | "DELETE";
-  headers: Record<string, string>;
+  headers?: Record<string, string>;
   body?: TRequestBody;
 };
 export type StepResponse<TBody = unknown> = {
@@ -32,7 +31,7 @@ export async function step<TRequestBody = unknown, TResponseBody = unknown>(
 }
 
 export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown>(
-  app: Hono,
+  app: App,
   req: StepRequest<TRequestBody>,
 ): Promise<StepResponse<TResponseBody>> {
   const res = await app.request(req.url, {

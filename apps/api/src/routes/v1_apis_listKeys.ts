@@ -1,9 +1,8 @@
-import { db, apiCache, keyService, ApiId } from "@/pkg/global";
+import { db, cache, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
-import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { keySchema } from "./schema";
 import { schema } from "@unkey/db";
@@ -80,13 +79,13 @@ export const registerV1ApisListKeys = (app: App) =>
 
     const { apiId, limit, cursor, ownerId } = c.req.query();
 
-    const api = await withCache(c, apiCache, async (id: ApiId) => {
+    const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, id),
+          where: (table, { eq }) => eq(table.id, apiId),
         })) ?? null
       );
-    })(apiId);
+    });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });

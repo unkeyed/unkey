@@ -1,7 +1,7 @@
 import { Env } from "@/pkg/env";
 import { handleError } from "@/pkg/errors/http";
 import { init, logger, metrics } from "@/pkg/global";
-import { newHonoApp } from "@/pkg/hono/app";
+import { newApp } from "@/pkg/hono/app";
 import { prettyJSON } from "hono/pretty-json";
 import { newId } from "./pkg/id";
 import { Metric } from "./pkg/metrics";
@@ -19,7 +19,7 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 
-const app = newHonoApp();
+const app = newApp();
 app.onError(handleError);
 app.use(prettyJSON());
 

@@ -5,9 +5,10 @@ import { handleZodError } from "../errors";
 export type Variables = {
   requestId: string;
 };
-export function newHonoApp() {
+export function newApp() {
   return new OpenAPIHono<{ Bindings: Env["Bindings"]; Variables: Variables }>({
     defaultHook: handleZodError,
   });
 }
-export type App = ReturnType<typeof newHonoApp>;
+
+export type App = ReturnType<typeof newApp>;

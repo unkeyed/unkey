@@ -3,10 +3,12 @@ import { step } from "@/pkg/testutil/request";
 import { testEnv } from "@/pkg/testutil/env";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
-import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
-import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
-import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "@/routes/v1_keys_updateRemaining";
+import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import type {
+  V1KeysUpdateKeyRequest,
+  V1KeysUpdateKeyResponse,
+} from "@/routes/v1_keys_updateRemaining";
 
 const env = testEnv();
 test("update a key's remaining limit", async () => {

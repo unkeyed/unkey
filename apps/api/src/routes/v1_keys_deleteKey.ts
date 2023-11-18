@@ -1,9 +1,8 @@
-import { KeyId, db, keyCache, keyService, verificationCache } from "@/pkg/global";
+import { db, cache, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 
-import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { eq } from "drizzle-orm";
 
@@ -69,19 +68,27 @@ export const registerV1KeysDeleteKey = (app: App) =>
 
     const { keyId } = c.req.valid("json");
 
-    console.log("XXXXXXX", keyId);
-    const key = await withCache(c, keyCache, async (kid: KeyId) => {
-      return (
-        (await db.query.keys.findFirst({
-          where: (table, { eq }) => eq(table.id, kid),
-        })) ?? null
-      );
-    })(keyId);
+    const data = await cache.withCache(c, "keyById", keyId, async () => {
+      const dbRes = await db.query.keys.findFirst({
+        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        with: {
+          keyAuth: {
+            with: {
+              api: true,
+            },
+          },
+        },
+      });
+      if (!dbRes) {
+        return null;
+      }
+      return {
+        key: dbRes,
+        api: dbRes.keyAuth.api,
+      };
+    });
 
-    if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
-    }
-    if (key.deletedAt !== null) {
+    if (!data || data.key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
@@ -90,11 +97,10 @@ export const registerV1KeysDeleteKey = (app: App) =>
       .set({
         deletedAt: new Date(),
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, data.key.id));
 
-    await keyCache.remove(c, keyId);
-    await verificationCache.remove(c, key.hash);
+    await cache.remove(c, "keyById", data.key.id);
+    await cache.remove(c, "keyByHash", data.key.hash);
 
-    console.log("I GOT THIS FAR");
     return c.jsonT({});
   });

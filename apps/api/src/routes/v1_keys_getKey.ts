@@ -1,8 +1,7 @@
-import { KeyId, db, keyCache, keyService } from "@/pkg/global";
+import { db, cache, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { keySchema } from "./schema";
 
@@ -56,30 +55,40 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const { keyId } = c.req.query();
 
-    const key = await withCache(c, keyCache, async (kid: KeyId) => {
-      return (
-        (await db.query.keys.findFirst({
-          where: (table, { eq }) => eq(table.id, kid),
-        })) ?? null
-      );
-    })(keyId);
+    const data = await cache.withCache(c, "keyById", keyId, async () => {
+      const dbRes = await db.query.keys.findFirst({
+        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        with: {
+          keyAuth: {
+            with: {
+              api: true,
+            },
+          },
+        },
+      });
+      if (!dbRes) {
+        return null;
+      }
+      return {
+        key: dbRes,
+        api: dbRes.keyAuth.api,
+      };
+    });
 
-    if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
-    }
-    if (key.deletedAt !== null) {
+    if (!data || data.key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
     return c.jsonT({
-      id: key.id,
-      start: key.start,
-      workspaceId: key.workspaceId,
-      name: key.name ?? undefined,
-      ownerId: key.ownerId ?? undefined,
-      meta: key.meta ?? undefined,
-      createdAt: key.createdAt.getTime() ?? undefined,
-      expiresAt: key.expires?.getTime() ?? undefined,
-      remaining: key.remainingRequests ?? undefined,
+      id: data.key.id,
+      start: data.key.start,
+      apiId: data.api.id,
+      workspaceId: data.key.workspaceId,
+      name: data.key.name ?? undefined,
+      ownerId: data.key.ownerId ?? undefined,
+      meta: data.key.meta ?? undefined,
+      createdAt: data.key.createdAt.getTime() ?? undefined,
+      expiresAt: data.key.expires?.getTime() ?? undefined,
+      remaining: data.key.remainingRequests ?? undefined,
     });
   });

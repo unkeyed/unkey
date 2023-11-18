@@ -20,15 +20,22 @@ import { AxiomMetrics, Metrics, NoopMetrics } from "./metrics";
 import { Tinybird } from "./tinybird";
 
 export type KeyHash = string;
-export type KeyId = string;
-export type ApiId = string;
+export type CacheNamespaces = {
+  keyById: {
+    key: Key;
+    api: Api;
+  } | null;
+  keyByHash: {
+    key: Key;
+    api: Api;
+  } | null;
+  apiById: Api | null;
+};
 
 const fresh = 1 * 60 * 1000; // 1 minute
 const stale = 24 * 60 * 60 * 1000; // 24 hours
 
-export let verificationCache: TieredCache<KeyHash, { key: Key; api: Api } | null>;
-export let keyCache: TieredCache<KeyId, Key | null>;
-export let apiCache: TieredCache<ApiId, Api | null>;
+export let cache: TieredCache<CacheNamespaces>;
 export let db: Database;
 export let metrics: Metrics;
 export let logger: Logger;
@@ -54,16 +61,15 @@ export function init(opts: { env: Env["Bindings"] }): void {
       })
     : new NoopMetrics();
 
-  verificationCache = new TieredCache(
-    new CacheWithMetrics({
-      cache: new MemoryCache({ fresh, stale }),
+  cache = new TieredCache(
+    new CacheWithMetrics<CacheNamespaces>({
+      cache: new MemoryCache<CacheNamespaces>({ fresh, stale }),
       metrics,
       tier: "memory",
-      resource: "verification",
     }),
     opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
-      ? new CacheWithMetrics({
-          cache: new ZoneCache({
+      ? new CacheWithMetrics<CacheNamespaces>({
+          cache: new ZoneCache<CacheNamespaces>({
             domain: "unkey.app",
             fresh,
             stale,
@@ -72,54 +78,10 @@ export function init(opts: { env: Env["Bindings"] }): void {
           }),
           metrics,
           tier: "zone",
-          resource: "verification",
         })
       : undefined,
   );
-  keyCache = new TieredCache(
-    new CacheWithMetrics({
-      cache: new MemoryCache({ fresh, stale }),
-      metrics,
-      tier: "memory",
-      resource: "key",
-    }),
-    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
-      ? new CacheWithMetrics({
-          cache: new ZoneCache({
-            domain: "unkey.app",
-            fresh,
-            stale,
-            zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-            cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
-          }),
-          metrics,
-          tier: "zone",
-          resource: "key",
-        })
-      : undefined,
-  );
-  apiCache = new TieredCache(
-    new CacheWithMetrics({
-      cache: new MemoryCache({ fresh, stale }),
-      metrics,
-      tier: "memory",
-      resource: "api",
-    }),
-    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
-      ? new CacheWithMetrics({
-          cache: new ZoneCache({
-            domain: "unkey.app",
-            fresh,
-            stale,
-            zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-            cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
-          }),
-          metrics,
-          tier: "zone",
-          resource: "api",
-        })
-      : undefined,
-  );
+
   db = createConnection({
     host: opts.env.DATABASE_HOST,
     username: opts.env.DATABASE_USERNAME,
@@ -130,7 +92,7 @@ export function init(opts: { env: Env["Bindings"] }): void {
     : new ConsoleLogger();
 
   keyService = new KeyService({
-    verificationCache,
+    cache,
     logger,
     db,
     metrics,

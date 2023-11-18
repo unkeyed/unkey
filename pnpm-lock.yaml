@@ -53,8 +53,8 @@ importers:
         specifier: 1.0.0-rc.1
         version: 1.0.0-rc.1
       '@chronark/zod-bird':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: 0.3.1-canary.0
+        version: 0.3.1-canary.0
       '@hono/zod-openapi':
         specifier: ^0.8.3
         version: 0.8.3(hono@3.10.0)(zod@3.22.4)
@@ -1888,6 +1888,12 @@ packages:
 
   /@chronark/zod-bird@0.3.0:
     resolution: {integrity: sha512-l7eIZegnE88sWobKAhop0v7zHeu1d7/PhLuKXUXpuxYyr5TQyvpefLHl2YekPfNkqT8hGB6A0HGmG0DoZWlw8A==}
+    dependencies:
+      zod: 3.22.4
+    dev: false
+
+  /@chronark/zod-bird@0.3.1-canary.0:
+    resolution: {integrity: sha512-HQmjzYY6BNatprkQIxyFh17TJe1ae78hrePcgIBymc+6pfOfcnuZHCOuA43Mp1EpFZ1aSjEztaYhgbQgkHr7sw==}
     dependencies:
       zod: 3.22.4
     dev: false
@@ -4961,6 +4967,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -16308,6 +16315,10 @@ packages:
   /napi-build-utils@1.0.2:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}

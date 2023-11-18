@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { newHonoApp } from "@/pkg/hono/app";
+import { newApp } from "@/pkg/hono/app";
 
 import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
 import { init } from "@/pkg/global";
@@ -10,8 +10,8 @@ test("returns 200", async () => {
   const env = testEnv();
   // @ts-ignore
   init({ env });
-  const app = newHonoApp();
 
+  const app = newApp();
   registerV1Liveness(app);
   const res = await fetchRoute<never, V1LivenessResponse>(app, {
     method: "GET",
@@ -19,7 +19,6 @@ test("returns 200", async () => {
   });
 
   expect(res.status).toEqual(200);
-
   expect(res.body.status).toEqual("we're cooking");
   expect(res.body.services.metrics).toEqual("NoopMetrics");
   expect(res.body.services.logger).toEqual("ConsoleLogger");

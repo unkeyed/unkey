@@ -1,10 +1,8 @@
 import type { Context } from "hono";
 import { Cache, CacheConfig, Entry } from "./interface";
 
-export class MemoryCache<TNamespace extends string, TKey extends string, TValue>
-  implements Cache<TNamespace, TKey, TValue>
-{
-  private readonly state: Map<`${TNamespace}:${TKey}`, Entry<TValue>>;
+export class MemoryCache<TNamespaces extends Record<string, unknown>> implements Cache<TNamespaces> {
+  private readonly state: Map<`${string}:${string}`, Entry<unknown>>;
   private readonly config: CacheConfig;
 
   constructor(config: CacheConfig) {
@@ -12,15 +10,21 @@ export class MemoryCache<TNamespace extends string, TKey extends string, TValue>
     this.config = config;
   }
 
-  public get(_c: Context, namespace: TNamespace, key: TKey): [TValue | undefined, boolean] {
-    const cached = this.state.get(`${namespace}:${key}`);
+  public get<TName extends keyof TNamespaces>(
+    _c: Context,
+    namespace: TName,
+    key: string,
+  ): [TNamespaces[TName] | undefined, boolean] {
+    const cached = this.state.get(`${String(namespace)}:${key}`) as
+      | Entry<TNamespaces[TName]>
+      | undefined;
     if (!cached) {
       return [undefined, false];
     }
     const now = Date.now();
 
     if (now >= cached.staleUntil) {
-      this.state.delete(`${namespace}:${key}`);
+      this.state.delete(`${String(namespace)}:${key}`);
       return [undefined, false];
     }
     if (now >= cached.freshUntil) {
@@ -30,16 +34,21 @@ export class MemoryCache<TNamespace extends string, TKey extends string, TValue>
     return [cached.value, false];
   }
 
-  public set(_c: Context, namespace: TNamespace, key: TKey, value: TValue): void {
+  public set<TName extends keyof TNamespaces>(
+    _c: Context,
+    namespace: TName,
+    key: string,
+    value: TNamespaces[TName],
+  ): void {
     const now = Date.now();
-    this.state.set(`${namespace}:${key}`, {
+    this.state.set(`${String(namespace)}:${key}`, {
       value: value,
       freshUntil: now + this.config.fresh,
       staleUntil: now + this.config.stale,
     });
   }
 
-  public remove(_c: Context, namespace: TNamespace, key: TKey): void {
-    this.state.delete(`${namespace}:${key}`);
+  public remove(_c: Context, namespace: keyof TNamespaces, key: string): void {
+    this.state.delete(`${String(namespace)}:${key}`);
   }
 }
