@@ -265,7 +265,9 @@ const RoleSwitcher: React.FC<{
     }
   }
 
-  if (!membership) return null;
+  if (!membership) {
+    return null;
+  }
 
   if (membership.role === "admin") {
     return (
