@@ -60,21 +60,24 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
           <CardDescription>Automatically revoke this key after a certain date.</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col gap-2 w-full", { "opacity-50": !enabled })}>
+          <div
+            className={cn("flex flex-col gap-2 w-full", {
+              "opacity-50": !enabled,
+            })}
+          >
             <input type="hidden" name="keyId" value={apiKey.id} />
             <input type="hidden" name="enableExpiration" value={enabled ? "true" : "false"} />
 
             <Label htmlFor="expiration">Expiration</Label>
             <Input
               disabled={!enabled}
-              type="string"
+              type="datetime-local"
               name="expiration"
               className="max-w-sm"
-              defaultValue={apiKey.expires?.toISOString()}
+              defaultValue={apiKey.expires ? apiKey.expires.toISOString().slice(0, -8) : ""}
               placeholder={placeholder}
               autoComplete="off"
             />
-            <span className="text-xs text-content-subtle">Use ISO format: {placeholder}</span>
           </div>
         </CardContent>
         <CardFooter className="justify-between">

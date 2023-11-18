@@ -27,6 +27,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
 
   const [content, setContent] = useState<string>(apiKey.meta ?? "");
   const rows = Math.max(3, content.split("\n").length);
+
   return (
     <form
       action={async (formData: FormData) => {
