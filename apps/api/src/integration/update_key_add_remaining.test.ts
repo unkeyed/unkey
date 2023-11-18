@@ -1,11 +1,12 @@
 import { test, expect } from "bun:test";
-import { step } from "@/pkg/testutil/step";
-import { testEnv } from "./env";
+import { step } from "@/pkg/testutil/request";
+import { testEnv } from "@/pkg/testutil/env";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
 import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "@/routes/v1_keys_updateRemaining";
 
 const env = testEnv();
 test("update a key's remaining limit", async () => {
@@ -42,7 +43,7 @@ test("update a key's remaining limit", async () => {
 
   for (let i = 4; i >= 0; i--) {
     const valid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/keys.validKey`,
+      url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -74,17 +75,38 @@ test("update a key's remaining limit", async () => {
   expect(invalid.body.valid).toBeFalse();
   expect(invalid.body.remaining).toEqual(0);
 
-  const updateKeyResponse = await step<never, V1ApisListKeysResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/apis.listKeys?apiId=${createApiResponse.body.apiId}`,
-    method: "GET",
+  const updateKeyResponse = await step<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+    url: `${env.UNKEY_BASE_URL}/v1/keys.updateRemaining`,
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
     },
+    body: {
+      keyId: createKeyResponse.body.keyId,
+      op: "increment",
+      value: 5,
+    },
   });
 
-  expect(listKeysResponse.status).toEqual(200);
-  expect(listKeysResponse.body.keys).toHaveLength(5);
+  expect(updateKeyResponse.status).toEqual(200);
+  expect(updateKeyResponse.body.remaining).toEqual(5);
+
+  const validAfterUpdate = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+    url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+    },
+    body: {
+      apiId: createApiResponse.body.apiId,
+      key: createKeyResponse.body.key,
+    },
+  });
+  expect(validAfterUpdate.status).toEqual(200);
+  expect(validAfterUpdate.body.valid).toBeTrue();
+  expect(validAfterUpdate.body.remaining).toEqual(4);
 
   /**
    * Teardown

@@ -8,7 +8,7 @@ const route = createRoute({
   path: "/v1/liveness",
   responses: {
     200: {
-      description: "The verification result",
+      description: "The configured services and their status",
       content: {
         "application/json": {
           schema: z.object({
@@ -33,6 +33,10 @@ const route = createRoute({
     ...openApiErrorResponses,
   },
 });
+
+export type V1LivenessResponse = z.infer<
+  typeof route.responses[200]["content"]["application/json"]["schema"]
+>;
 
 export const registerV1Liveness = (app: App) =>
   app.openapi(route, async (c) => {

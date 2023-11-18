@@ -18,6 +18,7 @@ type VerifyKeyResult =
         limit: number;
         reset: number;
       };
+      remaining?: number;
     }
   | {
       keyId: string;

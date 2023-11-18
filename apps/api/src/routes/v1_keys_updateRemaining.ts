@@ -1,13 +1,11 @@
-import { db, apiCache, keyService, ApiId } from "@/pkg/global";
+import { db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { withCache } from "@/pkg/cache/with_cache";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { newId } from "@/pkg/id";
 import { schema } from "@unkey/db";
-import { KeyV1 } from "@/pkg/keys/v1";
-import { sha256 } from "@/pkg/hash/sha256";
+import { eq, sql } from "drizzle-orm";
+import { revalidateUsage } from "@/pkg/usagelimit";
 
 const route = createRoute({
   method: "post",
@@ -32,7 +30,7 @@ const route = createRoute({
             op: z.enum(["increment", "decrement", "set"]).openapi({
               description: "The operation you want to perform on the remaining count",
             }),
-            value: z.number().int().openapi({
+            value: z.number().int().nullable().openapi({
               description: "The value you want to set, add or subtract the remaining count by",
               example: 1,
             }),
@@ -47,16 +45,15 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            keyId: z.string().openapi({
-              description:
-                "The id of the key. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.",
-              example: "key_123",
-            }),
-            key: z.string().openapi({
-              description:
-                "The newly created api key, do not store this on your own system but pass it along to your user.",
-              example: "prefix_xxxxxxxxx",
-            }),
+            remaining: z
+              .number()
+              .int()
+              .nullable()
+              .openapi({
+                description:
+                  "The number of remaining requests for this key after updating it. `null` means unlimited.",
+                examples: [1, null],
+              }),
           }),
         },
       },
@@ -66,14 +63,14 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysCreateKeyRequest = z.infer<
+export type V1KeysUpdateKeyRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type V1KeysCreateKeyResponse = z.infer<
+export type V1KeysUpdateKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerV1KeysCreateKey = (app: App) =>
+export const registerV1KeysUpdateRemaining = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
@@ -89,56 +86,78 @@ export const registerV1KeysCreateKey = (app: App) =>
 
     const req = c.req.valid("json");
 
-    const api = await withCache(c, apiCache, async (id: ApiId) => {
-      return (
-        (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, id),
-        })) ?? null
-      );
-    })(req.apiId);
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, req.keyId),
+    });
 
-    if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });
+    if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
+      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
     }
 
-    if (!api.keyAuthId) {
+    switch (req.op) {
+      case "increment": {
+        if (key.remainingRequests === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message:
+              "cannot increment a key with unlimited remaining requests, please 'set' a value instead.",
+          });
+        }
+        if (req.value === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "cannot increment a key by null.",
+          });
+        }
+        await db
+          .update(schema.keys)
+          .set({
+            remainingRequests: sql`remaining_requests + ${req.value}`,
+          })
+          .where(eq(schema.keys.id, req.keyId));
+      }
+      case "decrement": {
+        if (key.remainingRequests === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message:
+              "cannot decrement a key with unlimited remaining requests, please 'set' a value instead.",
+          });
+        }
+        if (req.value === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "cannot decrement a key by null.",
+          });
+        }
+        await db
+          .update(schema.keys)
+          .set({
+            remainingRequests: sql`remaining_requests - ${req.value}`,
+          })
+          .where(eq(schema.keys.id, req.keyId));
+      }
+      case "set": {
+        db.update(schema.keys)
+          .set({
+            remainingRequests: req.value,
+          })
+          .where(eq(schema.keys.id, req.keyId));
+      }
+    }
+
+    await revalidateUsage(c.env.DO_USAGELIMIT, key.id);
+    const keyAfterUpdate = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, req.keyId),
+    });
+    if (!keyAfterUpdate) {
       throw new UnkeyApiError({
-        code: "PRECONDITION_FAILED",
-        message: `api ${req.apiId} is not setup to handle keys`,
+        code: "INTERNAL_SERVER_ERROR",
+        message: "key not found after update, this should not happen",
       });
     }
 
-    /**
-     * Set up an api for production
-     */
-    const key = new KeyV1({ byteLength: req.byteLength, prefix: req.prefix }).toString();
-    const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
-    const keyId = newId("key");
-    const hash = await sha256(key.toString());
-
-    await db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: api.keyAuthId,
-      name: req.name,
-      hash,
-      start,
-      ownerId: req.ownerId,
-      meta: JSON.stringify(req.meta ?? {}),
-      workspaceId: rootKey.value.authorizedWorkspaceId,
-      forWorkspaceId: null,
-      expires: req.expires ? new Date(req.expires) : null,
-      createdAt: new Date(),
-      ratelimitLimit: req.ratelimit?.limit,
-      ratelimitRefillRate: req.ratelimit?.refillRate,
-      ratelimitRefillInterval: req.ratelimit?.refillInterval,
-      ratelimitType: req.ratelimit?.type,
-      remainingRequests: req.remaining,
-      totalUses: 0,
-      deletedAt: null,
-    });
-    // TODO: emit event to tinybird
     return c.jsonT({
-      keyId,
-      key,
+      remaining: keyAfterUpdate.remainingRequests,
     });
   });

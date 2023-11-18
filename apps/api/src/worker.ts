@@ -1,7 +1,7 @@
 import { Env } from "@/pkg/env";
 import { handleError } from "@/pkg/errors/http";
 import { init, logger, metrics } from "@/pkg/global";
-import { app } from "@/pkg/hono/app";
+import { newHonoApp } from "@/pkg/hono/app";
 import { prettyJSON } from "hono/pretty-json";
 import { newId } from "./pkg/id";
 import { Metric } from "./pkg/metrics";
@@ -14,10 +14,12 @@ import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
+import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 
+const app = newHonoApp();
 app.onError(handleError);
 app.use(prettyJSON());
 
@@ -87,6 +89,7 @@ registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);
 registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
+registerV1KeysUpdateRemaining(app);
 
 // apis
 registerV1ApisGetApi(app);

@@ -12,8 +12,8 @@ export class TieredCache<TKey extends string, TValue> implements Cache<TKey, TVa
    * Caches are checked in the order they are provided
    * The first cache to return a value will be used to populate all previous caches
    */
-  constructor(...caches: Cache<TKey, TValue>[]) {
-    this.tiers = caches;
+  constructor(...caches: (Cache<TKey, TValue> | undefined)[]) {
+    this.tiers = caches.filter(Boolean) as Cache<TKey, TValue>[];
   }
 
   /**

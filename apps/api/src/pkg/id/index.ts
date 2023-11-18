@@ -7,6 +7,7 @@ const namespaces = {
   key: "key",
   keyAuth: "keyAuth", // not customer facing
   request: "req",
+  test: "test", // not used in production but to mark test data
 } as const;
 
 export function newId(namespace: keyof typeof namespaces, byteLength = 8): string {

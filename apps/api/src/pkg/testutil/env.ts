@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 const requiredEnv = z.object({
-  UNKEY_BASE_URL: z.string().url().default("https://dev.api.unkey.app"),
+  UNKEY_BASE_URL: z.string().url().default("http://127.0.0.1:8787"),
   UNKEY_ROOT_KEY: z.string(),
+  DATABASE_HOST: z.string(),
+  DATABASE_USERNAME: z.string(),
+  DATABASE_PASSWORD: z.string(),
 });
 
 export function testEnv() {

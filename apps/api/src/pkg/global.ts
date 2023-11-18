@@ -61,18 +61,20 @@ export function init(opts: { env: Env["Bindings"] }): void {
       tier: "memory",
       resource: "verification",
     }),
-    new CacheWithMetrics({
-      cache: new ZoneCache({
-        domain: "unkey.app",
-        fresh,
-        stale,
-        zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-        cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
-      }),
-      metrics,
-      tier: "zone",
-      resource: "verification",
-    }),
+    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
+      ? new CacheWithMetrics({
+          cache: new ZoneCache({
+            domain: "unkey.app",
+            fresh,
+            stale,
+            zoneId: opts.env.CLOUDFLARE_ZONE_ID,
+            cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+          }),
+          metrics,
+          tier: "zone",
+          resource: "verification",
+        })
+      : undefined,
   );
   keyCache = new TieredCache(
     new CacheWithMetrics({
@@ -81,18 +83,20 @@ export function init(opts: { env: Env["Bindings"] }): void {
       tier: "memory",
       resource: "key",
     }),
-    new CacheWithMetrics({
-      cache: new ZoneCache({
-        domain: "unkey.app",
-        fresh,
-        stale,
-        zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-        cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
-      }),
-      metrics,
-      tier: "zone",
-      resource: "key",
-    }),
+    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
+      ? new CacheWithMetrics({
+          cache: new ZoneCache({
+            domain: "unkey.app",
+            fresh,
+            stale,
+            zoneId: opts.env.CLOUDFLARE_ZONE_ID,
+            cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+          }),
+          metrics,
+          tier: "zone",
+          resource: "key",
+        })
+      : undefined,
   );
   apiCache = new TieredCache(
     new CacheWithMetrics({
@@ -101,18 +105,20 @@ export function init(opts: { env: Env["Bindings"] }): void {
       tier: "memory",
       resource: "api",
     }),
-    new CacheWithMetrics({
-      cache: new ZoneCache({
-        domain: "unkey.app",
-        fresh,
-        stale,
-        zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-        cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
-      }),
-      metrics,
-      tier: "zone",
-      resource: "api",
-    }),
+    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
+      ? new CacheWithMetrics({
+          cache: new ZoneCache({
+            domain: "unkey.app",
+            fresh,
+            stale,
+            zoneId: opts.env.CLOUDFLARE_ZONE_ID,
+            cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+          }),
+          metrics,
+          tier: "zone",
+          resource: "api",
+        })
+      : undefined,
   );
   db = createConnection({
     host: opts.env.DATABASE_HOST,
