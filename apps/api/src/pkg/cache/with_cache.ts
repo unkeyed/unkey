@@ -1,18 +1,19 @@
 import type { Context } from "hono";
 import type { Cache } from "./interface";
 
-export function withCache<TKey extends string, TValue>(
+export function withCache<TNamespace extends string, TKey extends string, TValue>(
   c: Context,
-  cache: Cache<TKey, TValue>,
+  cache: Cache<TNamespace, TKey, TValue>,
+  namespace: TNamespace,
   loadFromDatabase: (identifier: TKey) => Promise<TValue>,
 ): (identifier: TKey) => Promise<TValue> {
-  return async (identifier: TKey): Promise<TValue> => {
-    const [cached, stale] = await cache.get(c, identifier);
+  return async (key: TKey): Promise<TValue> => {
+    const [cached, stale] = await cache.get(c, namespace, key);
     if (typeof cached !== "undefined") {
       if (stale) {
         c.executionCtx.waitUntil(
-          loadFromDatabase(identifier)
-            .then((value) => cache.set(c, identifier, value))
+          loadFromDatabase(key)
+            .then((value) => cache.set(c, namespace, key, value))
             .catch((err) => {
               console.error(err);
             }),
@@ -21,8 +22,8 @@ export function withCache<TKey extends string, TValue>(
       return cached;
     }
 
-    const value = await loadFromDatabase(identifier);
-    cache.set(c, identifier, value);
+    const value = await loadFromDatabase(key);
+    cache.set(c, namespace, key, value);
 
     return value;
   };

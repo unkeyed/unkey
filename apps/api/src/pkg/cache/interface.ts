@@ -1,8 +1,5 @@
 import type { Context } from "hono";
 
-
-
-
 export type Entry<TValue> = {
   value: TValue;
 
@@ -27,7 +24,7 @@ export type CacheConfig = {
   stale: number;
 };
 
-export interface Cache<TKey extends string, TValue> {
+export interface Cache<TNamespace extends string, TKey extends string, TValue> {
   /**
    * Return the cached value
    *
@@ -37,13 +34,14 @@ export interface Cache<TKey extends string, TValue> {
    */
   get: (
     c: Context,
+    namespace: TNamespace,
     key: TKey,
   ) => [TValue | undefined, boolean] | Promise<[TValue | undefined, boolean]>;
 
   /**
    * Sets the value for the given key.
    */
-  set: (c: Context, key: TKey, value: TValue) => void;
+  set: (c: Context, namespace: TNamespace, key: TKey, value: TValue) => void;
 
   /**
    * Removes the key from the cache.

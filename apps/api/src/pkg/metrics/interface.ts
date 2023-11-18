@@ -4,17 +4,17 @@ export type Metric = {
     hit: boolean;
     latency: number;
     tier: string;
-    resource: string;
+    namespace: string;
   };
   "metric.cache.write": {
     key: string;
     tier: string;
-    resource: string;
+    namespace: string;
   };
   "metric.cache.purge": {
     key: string;
     tier: string;
-    resource: string;
+    namespace: string;
   };
   "metric.http.request": {
     path: string;
@@ -42,7 +42,7 @@ export type Metric = {
   "metric.usagelimit": {
     keyId: string;
     latency: number;
-  }
+  };
 };
 
 export interface Metrics {

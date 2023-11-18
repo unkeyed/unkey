@@ -4,31 +4,32 @@ import { Cache } from "./interface";
 
 type Tier = "memory" | "zone";
 
-export class CacheWithMetrics<TKey extends string, TValue> {
-  private cache: Cache<TKey, TValue>;
+export class CacheWithMetrics<TNamespace extends string, TKey extends string, TValue> {
+  private cache: Cache<TNamespace, TKey, TValue>;
   private readonly metrics: Metrics | undefined = undefined;
-  private readonly resource: string;
   private readonly tier: Tier;
 
   constructor(opts: {
-    cache: Cache<TKey, TValue>;
+    cache: Cache<TNamespace, TKey, TValue>;
     tier: Tier;
-    resource: string;
     metrics?: Metrics;
   }) {
     this.cache = opts.cache;
     this.tier = opts.tier;
-    this.resource = opts.resource;
     this.metrics = opts.metrics;
   }
 
-  public async get(c: Context, key: TKey): Promise<[TValue | undefined, boolean]> {
+  public async get(
+    c: Context,
+    namespace: TNamespace,
+    key: TKey,
+  ): Promise<[TValue | undefined, boolean]> {
     const start = performance.now();
-    const [cached, stale] = await this.cache.get(c, key);
+    const [cached, stale] = await this.cache.get(c, namespace, key);
     const latency = performance.now() - start;
     c.res.headers.append(
       "Unkey-Latency",
-      `cache-${this.resource}-${this.tier}=${
+      `cache-${namespace}-${this.tier}=${
         typeof cached !== "undefined" ? "hit" : "miss"
       }@${latency}ms`,
     );
@@ -37,28 +38,28 @@ export class CacheWithMetrics<TKey extends string, TValue> {
         hit: typeof cached !== "undefined",
         latency: performance.now() - start,
         tier: this.tier,
-        resource: this.resource,
+        namespace,
         key,
       });
     }
     return [cached, stale];
   }
 
-  set(c: Context, key: TKey, value: TValue): void {
+  set(c: Context, namespace: TNamespace, key: TKey, value: TValue): void {
     if (this.metrics) {
       this.metrics.emit("metric.cache.write", {
         tier: this.tier,
-        resource: this.resource,
+        namespace,
         key,
       });
     }
-    this.cache.set(c, key, value);
+    this.cache.set(c, namespace, key, value);
   }
-  remove(c: Context, key: TKey) {
+  remove(c: Context, namespace: TNamespace, key: TKey) {
     if (this.metrics) {
       this.metrics.emit("metric.cache.purge", {
         tier: this.tier,
-        resource: this.resource,
+        namespace,
         key,
       });
     }
