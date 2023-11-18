@@ -116,7 +116,8 @@
     "trpc-tools": "^0.11.0",
     "typescript": "5.2.2",
     "unified-conditional": "0.0.2",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "zod-error": "^1.5.0"
   },
   "devDependencies": {
     "@clerk/types": "^3.56.1",
