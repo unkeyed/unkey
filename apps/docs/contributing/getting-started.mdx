@@ -15,12 +15,25 @@ You also need the following tools installed.
   <Step title="Setup" >
     Get the repo [here.](https://github.com/unkeyed/unkey)
 
+    On Windows, replace all `/` with `\\`.
+
     Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respectively and populate the values from the services above.:
 
-    ```sh-session
-    cp apps/web/.env.example apps/web/.env
-    cp apps/agent/.env.example apps/agent/.env
-    ```
+    <Tabs>
+      <Tab title="Mac/Linux">
+        ```sh-session
+        cp apps/web/.env.example apps/web/.env
+        cp apps/agent/.env.example apps/agent/.env
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```sh-session
+        copy apps\web\.env.example apps\web\.env
+        copy apps\agent\.env.example apps\agent\.env
+        ```
+      </Tab>
+    </Tabs>
 
     For Planetscale the following variables will be used after you create your database:
 
@@ -41,10 +54,25 @@ You also need the following tools installed.
 
     > Make sure you replace `user`, `password`, `host` and `db` with your own values
 
-    ```sh-session
-    cd internal/db
-    DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
-    ```
+    <Tabs>
+      <Tab title="Mac/Linux">
+        ```sh-session
+        cd internal/db
+        DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```sh-session
+        cd internal\db
+
+        set DRIZZLE_DATABASE_URL=mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}
+        pnpm drizzle-kit push:mysql
+        set DRIZZLE_DATABASE_URL=
+        ```
+      </Tab>
+    </Tabs>
+
   </Step>
 
   <Step title="Clerk">
@@ -60,15 +88,30 @@ You also need the following tools installed.
 
     You need to provide the database credentials as well as the organization ID from clerk as `TENANT_ID`
 
-    ```sh-session
+    <Tabs>
+      <Tab title="Mac/Linux">
+        ```sh-session
 
-    export DATABASE_HOST=
-    export DATABASE_USERNAME=
-    export DATABASE_PASSWORD=
-    export TENANT_ID=
+        export DATABASE_HOST=
+        export DATABASE_USERNAME=
+        export DATABASE_PASSWORD=
+        export TENANT_ID=
 
-    pnpm bootstrap
-    ```
+        pnpm bootstrap
+        ```
+      </Tab>
+      <Tab title="Windows">
+        ```sh-session
+        set DATABASE_HOST=
+        set DATABASE_USERNAME=
+        set DATABASE_PASSWORD=
+        set TENANT_ID=org_xxx
+
+        pnpm bootstrap
+        ```
+      </Tab>
+    <Tabs>
+
     The bootstrap will return a `UNKEY_WORKSPACE_ID`, `UNKEY_API_ID` and `UNKEY_KEY_AUTH_ID` which you will need to add to the .env files `/apps/web/.env` and `/apps/agent/.env` respectively.
 
   </Step>
