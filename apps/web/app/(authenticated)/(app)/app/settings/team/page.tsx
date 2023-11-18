@@ -62,19 +62,24 @@ export default function TeamPage() {
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
 
-  const actions: React.ReactNode[] = [
-    <Select value={tab} onValueChange={(value: Tab) => setTab(value)}>
-      <SelectTrigger className="w-[180px]">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectItem value="members">Members</SelectItem>
-          <SelectItem value="invitations">Invitations</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>,
-  ];
+  const actions: React.ReactNode[] = [];
+
+  if (isAdmin) {
+    actions.push(
+      <Select value={tab} onValueChange={(value: Tab) => setTab(value)}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="members">Members</SelectItem>
+            <SelectItem value="invitations">Invitations</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>,
+    );
+  }
+
   if (isAdmin) {
     actions.push(<InviteButton />);
   }
