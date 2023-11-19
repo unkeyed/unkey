@@ -16,10 +16,10 @@ const pangea = localFont({
 
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),
-  title: "Open Source API Key Management",
+  title: "Open Source API Authentication",
   description: "Accelerate your API development",
   openGraph: {
-    title: "Open Source API Key Management",
+    title: "Open Source API Authentication",
     description: "Accelerate your API development",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
