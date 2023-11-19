@@ -159,8 +159,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               </AlertDescription>
             </Alert>
 
-            <Code className="flex items-center justify-between w-full gap-4 my-8 ">
-              <pre data-sentry-mask>{showKey ? key.data.key : maskedKey}</pre>
+            <Code className="flex items-center justify-between w-full gap-4 my-8 flex-wrap ">
+              <pre data-sentry-mask className="whitespace-pre-wrap break-all">
+                {showKey ? key.data.key : maskedKey}
+              </pre>
               <div className="flex items-start justify-between gap-4">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
@@ -169,8 +171,11 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
           </div>
 
           <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
-          <Code className="flex items-start justify-between w-full gap-4 my-8 ">
-            <pre data-sentry-mask>
+          <Code
+            data-sentry-mask
+            className="flex items-start flex-wrap justify-between w-full gap-4 my-8 "
+          >
+            <pre data-sentry-mask className="whitespace-pre-wrap break-all">
               {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
             </pre>
             <div className="flex items-start justify-between gap-4">
