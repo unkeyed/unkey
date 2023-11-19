@@ -1,10 +1,10 @@
-import { test, expect } from "bun:test";
-import { step } from "@/pkg/testutil/request";
 import { testEnv } from "@/pkg/testutil/env";
+import { step } from "@/pkg/testutil/request";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
-import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "@/routes/v1_keys_deleteKey";
+import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import { expect, test } from "bun:test";
 
 const env = testEnv();
 test("create, verify and delete a key", async () => {

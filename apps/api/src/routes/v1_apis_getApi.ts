@@ -1,4 +1,4 @@
-import { db, cache, keyService } from "@/pkg/global";
+import { cache, db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -50,7 +50,9 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-
+export type V1ApisGetApiResponse = z.infer<
+  typeof route.responses[200]["content"]["application/json"]["schema"]
+>;
 export const registerV1ApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");

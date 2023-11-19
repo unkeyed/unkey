@@ -1,4 +1,4 @@
-import { db, cache, keyService } from "@/pkg/global";
+import { cache, db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 

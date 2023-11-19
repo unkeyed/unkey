@@ -1,12 +1,12 @@
-import { type Database, type Key } from "@unkey/db";
-import { type Result, result } from "@unkey/result";
-import type { Context } from "hono";
+import { TieredCache } from "@/pkg/cache/tiered";
 import { sha256 } from "@/pkg/hash/sha256";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
-import { durableUsageLimit } from "../usagelimit";
-import { TieredCache } from "@/pkg/cache/tiered";
+import { type Database, type Key } from "@unkey/db";
+import { type Result, result } from "@unkey/result";
+import type { Context } from "hono";
 import { CacheNamespaces } from "../global";
+import { durableUsageLimit } from "../usagelimit";
 
 type VerifyKeyResult =
   | {
@@ -157,6 +157,10 @@ export class KeyService {
       !key.ratelimitRefillRate ||
       !key.ratelimitRefillInterval
     ) {
+      return [true, undefined];
+    }
+    if (!this.rl) {
+      this.logger.warn("ratelimiting is not enabled, durable object binding is missing");
       return [true, undefined];
     }
 

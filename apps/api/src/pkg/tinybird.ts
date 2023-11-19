@@ -1,4 +1,4 @@
-import { Tinybird as Client, NoopTinybird } from "@chronark/zod-bird";
+import { NoopTinybird, Tinybird as Client } from "@chronark/zod-bird";
 import { z } from "zod";
 
 export class Tinybird {

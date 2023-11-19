@@ -1,12 +1,12 @@
-import { db, cache, keyService } from "@/pkg/global";
+import { cache, db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { newId } from "@/pkg/id";
-import { schema } from "@unkey/db";
-import { KeyV1 } from "@/pkg/keys/v1";
 import { sha256 } from "@/pkg/hash/sha256";
+import { newId } from "@/pkg/id";
+import { KeyV1 } from "@/pkg/keys/v1";
+import { schema } from "@unkey/db";
 
 const route = createRoute({
   method: "post",

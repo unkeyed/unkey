@@ -35,6 +35,8 @@ export const ErrorSchema = z.object({
   }),
 });
 
+export type ErrorResponse = z.infer<typeof ErrorSchema>;
+
 function codeToStatus(code: z.infer<typeof ErrorCode>): number {
   switch (code) {
     case "BAD_REQUEST":
