@@ -57,32 +57,32 @@ export class DurableObjectUsagelimiter {
           });
         }
 
-        if (this.key.remainingRequests === null) {
+        if (this.key.remaining === null) {
           this.logger.warn("key does not have remaining requests enabled", { key: this.key });
           return Response.json({
             valid: true,
           });
         }
 
-        if (this.key.remainingRequests <= 0) {
+        if (this.key.remaining <= 0) {
           return Response.json({
             valid: false,
             remaining: 0,
           });
         }
 
-        this.key.remainingRequests = Math.max(0, this.key.remainingRequests - 1);
+        this.key.remaining = Math.max(0, this.key.remaining - 1);
 
         this.state.waitUntil(
           this.db
             .update(schema.keys)
-            .set({ remainingRequests: sql`${schema.keys.remainingRequests}-1` })
+            .set({ remaining: sql`${schema.keys.remaining}-1` })
             .where(eq(schema.keys.id, this.key.id)),
         );
 
         return Response.json({
           valid: true,
-          remaining: this.key.remainingRequests,
+          remaining: this.key.remaining,
         });
       }
     }

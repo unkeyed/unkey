@@ -13,7 +13,7 @@ export async function durableUsageLimit(
   namespace: DurableObjectNamespace,
   key: Key,
 ): Promise<UsageLimit> {
-  if (key.remainingRequests === null) {
+  if (key.remaining === null) {
     return { valid: true };
   }
 
@@ -44,7 +44,7 @@ export async function durableUsageLimit(
 /**
  * revalidateUsage will ask the durable object to revalidate by loading the key from the database.
  *
- * Use this after updating the key's remainingRequests manually.
+ * Use this after updating the key's remaining manually.
  */
 export async function revalidateUsage(
   namespace: DurableObjectNamespace,
