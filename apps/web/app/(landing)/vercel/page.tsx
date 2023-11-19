@@ -8,8 +8,15 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
+import { Metadata } from "next";
 import Link from "next/link";
-export default function Example() {
+
+export const metadata: Metadata = {
+  title: "Vercel Integration",
+  description: "Zero Config API Authentication",
+};
+
+export default function Vercel() {
   return (
     <Container>
       <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0">
@@ -101,73 +108,3 @@ export default function Example() {
     </Container>
   );
 }
-
-const _Rings: React.FC = (): JSX.Element => {
-  return (
-    <div className="absolute left-1/2  h-2/3 scale-150  stroke-zinc-700/70 [mask-image:linear-gradient(to_top,white_20%,transparent_75%)] -translate-x-1/2">
-      {/* Outer ring */}
-
-      <svg
-        viewBox="0 0 1026 1026"
-        fill="none"
-        aria-hidden="true"
-        className="inset-0 w-full h-full animate-spin-forward-slow"
-      >
-        <path
-          d="M1025 513c0 282.77-229.23 512-512 512S1 795.77 1 513 230.23 1 513 1s512 229.23 512 512Z"
-          stroke="#d4d4d8"
-          strokeOpacity="0.7"
-        />
-        <path
-          d="M513 1025C230.23 1025 1 795.77 1 513"
-          stroke="url(#gradient-1)"
-          strokeLinecap="round"
-        />
-        <defs>
-          <linearGradient
-            id="gradient-1"
-            x1="1"
-            y1="513"
-            x2="1"
-            y2="1025"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#0000aa" />
-            <stop offset={1} stopColor="#121212" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-      </svg>
-      {/* Inner ring */}
-      <svg
-        viewBox="0 0 1026 1026"
-        fill="none"
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full animate-spin-reverse-slower"
-      >
-        <path
-          d="M913 513c0 220.914-179.086 400-400 400S113 733.914 113 513s179.086-400 400-400 400 179.086 400 400Z"
-          stroke="#d4d4d8"
-          strokeOpacity="0.7"
-        />
-        <path
-          d="M913 513c0 220.914-179.086 400-400 400"
-          stroke="url(#gradient-2)"
-          strokeLinecap="round"
-        />
-        <defs>
-          <linearGradient
-            id="gradient-2"
-            x1="913"
-            y1="513"
-            x2="913"
-            y2="913"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#0000aa" />
-            <stop offset={1} stopColor="#121212" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-      </svg>
-    </div>
-  );
-};
