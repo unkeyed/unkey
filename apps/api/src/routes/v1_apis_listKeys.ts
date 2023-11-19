@@ -22,7 +22,7 @@ const route = createRoute({
         description: "The id of the api to fetch",
         example: "api_1234",
       }),
-      limit: z.number().int().min(1).max(100).default(100).openapi({
+      limit: z.coerce.number().int().min(1).max(100).default(100).openapi({
         description: "The maximum number of keys to return",
         example: 100,
       }),
@@ -115,7 +115,7 @@ export const registerV1ApisListKeys = (app: App) =>
         orderBy: schema.keys.id,
       }),
       db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<string>`count(*)` })
         .from(schema.keys)
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt))),
     ]);
@@ -130,7 +130,7 @@ export const registerV1ApisListKeys = (app: App) =>
         ownerId: k.ownerId,
         createdAt: k.createdAt,
       })),
-      total,
+      total: parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });
