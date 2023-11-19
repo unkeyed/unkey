@@ -138,7 +138,8 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
           .where(eq(schema.keys.id, req.keyId));
       }
       case "set": {
-        db.update(schema.keys)
+        await db
+          .update(schema.keys)
           .set({
             remainingRequests: req.value,
           })
