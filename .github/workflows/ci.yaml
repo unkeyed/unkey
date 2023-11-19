@@ -23,16 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install dependencies
+        run: |
+          pnpm install
+          npm i -g bun
+
       - name: Load Schema into MySQL
         run: npx drizzle-kit push:mysql
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: mysql://root@127.0.0.1:3306/unkey
 
-      - name: Install dependencies
-        run: |
-          pnpm install
-          npm i -g bun
+
 
       - name: Test
         run: bun test src/routes --coverage
