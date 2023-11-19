@@ -24,7 +24,6 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
-  const _router = useRouter();
   const [isLoading, setLoading] = useState(false);
   async function changeOrg(orgId: string | null) {
     if (!setActive) {

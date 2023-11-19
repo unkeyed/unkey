@@ -31,7 +31,6 @@ test("deletes the api", async () => {
       apiId: r.userApi.id,
     },
   });
-  console.log(res);
 
   expect(res.status).toEqual(200);
   expect(res.body).toEqual({});
