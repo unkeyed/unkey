@@ -1,10 +1,10 @@
-import { test, expect } from "bun:test";
 import { newApp } from "@/pkg/hono/app";
+import { expect, test } from "bun:test";
 
-import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
 import { init } from "@/pkg/global";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
+import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
 
 test("returns 200", async () => {
   const env = testEnv();

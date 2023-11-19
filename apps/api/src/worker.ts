@@ -1,36 +1,24 @@
-import { Env } from "@/pkg/env";
-import { handleError } from "@/pkg/errors/http";
+import { Env, checkEnv } from "@/pkg/env";
 import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { prettyJSON } from "hono/pretty-json";
 import { newId } from "./pkg/id";
 import { Metric } from "./pkg/metrics";
-import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
-import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
-import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
-import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
-import { registerV1Liveness } from "./routes/v1_liveness";
+import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
-import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
+import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
+import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
+import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
 import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
+import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
+import { registerV1Liveness } from "./routes/v1_liveness";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 
 const app = newApp();
-app.onError(handleError);
-app.use(prettyJSON());
-
-app.doc("/openapi.json", {
-  openapi: "3.0.0",
-  info: {
-    title: "Unkey Api",
-    version: "1.0.0",
-  },
-});
 
 app.get("/routes", (c) => {
   return c.jsonT(
@@ -101,6 +89,7 @@ registerV1ApisDeleteApi(app);
 
 export default {
   fetch: (req: Request, env: Env["Bindings"], executionCtx: ExecutionContext) => {
+    checkEnv(env);
     init({ env });
 
     return app.fetch(req, env, executionCtx);

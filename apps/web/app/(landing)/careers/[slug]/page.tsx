@@ -1,7 +1,7 @@
 import { Container } from "@/components/landing/container";
 import { allJobs } from "contentlayer/generated";
 import { useMDXComponent } from "next-contentlayer/hooks";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import React from "react";
 
 import { ArrowLeft, Banknote, BarChart, Cake, Globe, LucideIcon } from "lucide-react";

@@ -24,8 +24,8 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
-  const _router = useRouter();
   const [isLoading, setLoading] = useState(false);
+  const router = useRouter();
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -37,7 +37,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       });
     } finally {
       setLoading(false);
-      _router.replace("/app");
+      router.replace("/app");
     }
   }
   const [search, _setSearch] = useState("");

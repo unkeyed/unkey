@@ -1,14 +1,14 @@
-import { test, expect } from "bun:test";
-import { step } from "@/pkg/testutil/request";
 import { testEnv } from "@/pkg/testutil/env";
+import { step } from "@/pkg/testutil/request";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
-import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
-import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import type {
   V1KeysUpdateKeyRequest,
   V1KeysUpdateKeyResponse,
 } from "@/routes/v1_keys_updateRemaining";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import { expect, test } from "bun:test";
 
 const env = testEnv();
 test("update a key's remaining limit", async () => {

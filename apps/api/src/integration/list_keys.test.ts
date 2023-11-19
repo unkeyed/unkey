@@ -1,10 +1,10 @@
-import { test, expect } from "bun:test";
-import { step } from "@/pkg/testutil/request";
 import { testEnv } from "@/pkg/testutil/env";
+import { step } from "@/pkg/testutil/request";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
-import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
-import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
 import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
+import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
+import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
+import { expect, test } from "bun:test";
 
 const env = testEnv();
 test("create and list keys", async () => {

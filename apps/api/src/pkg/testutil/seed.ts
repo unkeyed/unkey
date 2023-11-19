@@ -1,8 +1,8 @@
-import { type Workspace, type Api, type KeyAuth, type Database, schema } from "@unkey/db";
+import { type Api, type Database, type KeyAuth, type Workspace, schema } from "@unkey/db";
 import { createConnection } from "../db";
+import { sha256 } from "../hash/sha256";
 import { newId } from "../id";
 import { KeyV1 } from "../keys/v1";
-import { sha256 } from "../hash/sha256";
 
 export type Resources = {
   unkeyWorkspace: Workspace;

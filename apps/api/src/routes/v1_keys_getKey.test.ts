@@ -1,15 +1,15 @@
-import { test, expect } from "bun:test";
+import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { testEnv } from "@/pkg/testutil/env";
-import { seed } from "@/pkg/testutil/setup";
-import { newId } from "@/pkg/id";
 import { sha256 } from "@/pkg/hash/sha256";
-import { KeyV1 } from "@/pkg/keys/v1";
-import { V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
-import { schema } from "@unkey/db";
-import { fetchRoute } from "@/pkg/testutil/request";
 import { newApp } from "@/pkg/hono/app";
+import { newId } from "@/pkg/id";
+import { KeyV1 } from "@/pkg/keys/v1";
+import { testEnv } from "@/pkg/testutil/env";
+import { fetchRoute } from "@/pkg/testutil/request";
+import { seed } from "@/pkg/testutil/seed";
+import { schema } from "@unkey/db";
+import { V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
 
 test("returns 200", async () => {
   const env = testEnv();

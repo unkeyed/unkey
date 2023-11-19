@@ -1,11 +1,11 @@
-import { db, cache, keyService } from "@/pkg/global";
+import { cache, db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { keySchema } from "./schema";
 import { schema } from "@unkey/db";
+import { keySchema } from "./schema";
 
 const route = createRoute({
   method: "get",

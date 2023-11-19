@@ -1,6 +1,6 @@
+import { Database, createConnection, eq, schema, sql } from "@/pkg/db";
 import type { Key } from "@unkey/db";
 import { Env } from "../env";
-import { createConnection, Database, eq, schema, sql } from "@/pkg/db";
 import { ConsoleLogger, Logger } from "../logging";
 import { AxiomLogger } from "../logging/axiom";
 

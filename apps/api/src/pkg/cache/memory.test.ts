@@ -1,5 +1,5 @@
 import { MemoryCache } from "./memory";
-import { describe, beforeEach, test, expect } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 
 describe("MemoryCache", () => {
   let memoryCache: MemoryCache<{ name: string }>;
