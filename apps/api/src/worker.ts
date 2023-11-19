@@ -14,6 +14,7 @@ import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
+import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
@@ -89,6 +90,7 @@ registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);
 registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
+registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 
 // apis
