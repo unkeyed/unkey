@@ -18,8 +18,6 @@ import { Hono, MiddlewareHandler } from "hono";
 import { UnkeyContext, unkey } from "@unkey/hono";
 
 type Variables = {
-	customFn: (str: string) => string;
-	customData: Record<string, unknown>;
 	unkey: UnkeyContext;
 };
 
