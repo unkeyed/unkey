@@ -48,6 +48,6 @@
     }
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": "biome format --write"
+    "*.{js,jsx,ts,tsx}": "biome check --apply"
   }
 }
