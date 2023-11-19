@@ -35,7 +35,6 @@ test("creates the api", async () => {
     },
   });
 
-  console.log(res);
   expect(res.status).toEqual(200);
   expect(res.body.apiId).toBeDefined();
 

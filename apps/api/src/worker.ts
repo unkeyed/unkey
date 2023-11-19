@@ -1,4 +1,4 @@
-import { Env } from "@/pkg/env";
+import { Env, checkEnv } from "@/pkg/env";
 import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "./pkg/id";
@@ -87,6 +87,7 @@ registerV1ApisDeleteApi(app);
 
 export default {
   fetch: (req: Request, env: Env["Bindings"], executionCtx: ExecutionContext) => {
+    checkEnv(env);
     init({ env });
 
     return app.fetch(req, env, executionCtx);
