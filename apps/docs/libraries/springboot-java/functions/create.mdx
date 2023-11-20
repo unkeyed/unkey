@@ -1,0 +1,75 @@
+---
+title: 'Create'
+description: 'Create an api key for your users'
+---
+
+Pass the optional and required parameters as per the official [API docs](https://unkey.dev/docs/api-reference/apis/list-keys). See the DTO reference below for more information.
+
+```java
+package com.example.myapp;
+
+import com.unkey.unkeysdk.dto.KeyCreateResponse;
+import com.unkey.unkeysdk.dto.KeyCreateRequest;
+
+@RestController
+public class APIController {
+
+    private static IKeyService keyService = new KeyService();
+
+    @PostMapping("/createKey")
+    public KeyCreateResponse createKey(
+            @RequestBody KeyCreateRequest keyCreateRequest,
+            @RequestHeader("Authorization") String authToken) {
+        // Delegate the creation of the key to the KeyService from the SDK
+        return keyService.createKey(keyCreateRequest, authToken);
+    }
+}
+
+```
+
+### DTOs Reference
+
+The DTOs used in the code for a better understanding of request and response bodies.
+
+#### Request
+
+```java
+public class KeyCreateRequest {
+    @NonNull
+    private String apiId;
+    private String prefix;
+    private String name;
+    private Integer byteLength;
+    private String ownerId;
+    private Meta meta;
+    private Integer expires;
+    private Integer remaining;
+    private KeyRateLimit ratelimit;
+}
+```
+
+```java
+public class Meta {
+    private Map<String, String> meta;
+}
+```
+
+```java
+public class KeyRateLimit {
+    private String type;
+    private Integer limit;
+    private Integer refillRate;
+    private Integer refillInterval;
+}
+```
+
+#### Response
+
+```java
+public class KeyCreateResponse {
+    @NonNull
+    private String key;
+    @NonNull
+    private String keyId;
+}
+```
