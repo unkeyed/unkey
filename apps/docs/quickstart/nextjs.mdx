@@ -135,6 +135,71 @@ If you don't have a Next.js app yet, you can quickly create one with the followi
   </Tab>
 </Tabs>
 
+<<<<<<< HEAD
+=======
+<Step  title="Creating a protected route">
+
+Create a new route and add the following code
+
+```ts /app/protected/route.ts
+import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
+import { NextResponse } from "next/server";
+
+export const POST = withUnkey(async (req) => {
+  if (!req.unkey.valid) {
+    return new NextResponse("unauthorized", { status: 403 });
+  }
+
+  // Process the request here
+  // You have access to the verification response using `req.unkey`
+  console.log(req.unkey);
+  return new NextResponse("Your API key is valid!");
+});
+```
+
+</Step>
+
+<Step title="Running it">
+
+<Tabs>
+  <Tab title="bun">
+  ```bash
+    bun run dev
+    ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+    pnpm run dev
+    ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+    yarn run dev
+    ```
+  </Tab>
+  <Tab title="npm">
+  ```bash
+    npm run dev
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step  title="Try it out">
+
+Go to https://unkey.dev/app and create a new key. Then verify it with our new server:
+
+```bash
+curl -XPOST 'http://localhost:3000/protected' \
+  -H "Authorization: Bearer <KEY>"
+```
+
+It should return `"Your API key is valid!"` and log more information about the key, depending on what you set up in the dashboard.
+
+</Step>
+
+</Steps>
+>>>>>>> dde9cf1737462bc5458637132b93767a92a3eff0
 
 ## Options
 
