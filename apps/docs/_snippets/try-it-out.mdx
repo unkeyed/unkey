@@ -1,0 +1,12 @@
+<Step  title="Try it out">
+
+Go to https://unkey.dev/app and create a new key. Then verify it with our new server:
+
+```bash
+curl -XPOST 'http://localhost:3000/protected' \
+  -H "Authorization: Bearer <KEY>"
+```
+
+It should return `"Your API key is valid!"` and log more information about the key, depending on what you set up in the dashboard.
+
+</Step>
