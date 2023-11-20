@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { updateExpiration } from "./actions";
+import format from "date-fns/format";
 type Props = {
   apiKey: {
     id: string;
@@ -74,7 +75,9 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
               type="datetime-local"
               name="expiration"
               className="max-w-sm"
-              defaultValue={apiKey.expires ? apiKey.expires.toISOString().slice(0, -8) : ""}
+              defaultValue={
+                apiKey.expires ? format(new Date(apiKey.expires), "yyyy-MM-dd'T'HH:mm") : ""
+              }
               placeholder={placeholder}
               autoComplete="off"
             />

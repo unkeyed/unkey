@@ -72,6 +72,7 @@
     "clsx": "^2.0.0",
     "cmdk": "^0.2.0",
     "contentlayer": "^0.3.4",
+    "date-fns": "^2.30.0",
     "drizzle-orm": "^0.28.6",
     "escape-string-regexp": "^5.0.0",
     "eslint": "8.48.0",
