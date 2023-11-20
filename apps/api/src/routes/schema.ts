@@ -46,7 +46,7 @@ export const keySchema = z
         "The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.",
       example: Date.now(),
     }),
-    expiresAt: z.number().optional().openapi({
+    expires: z.number().optional().openapi({
       description:
         "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
       example: Date.now(),
