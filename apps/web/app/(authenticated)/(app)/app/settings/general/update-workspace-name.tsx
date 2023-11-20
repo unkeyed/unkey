@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import React from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,9 +49,9 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         <CardContent>
           <div className="flex flex-col space-y-2">
             <input type="hidden" name="workspaceId" value={workspace.id} />
-            <label className="hidden sr-only">Name</label>
+            <label className="sr-only hidden">Name</label>
             <Input name="name" className="max-w-sm" defaultValue={workspace.name} />
-            <p className="text-xs text-content-subtle">What should your workspace be called?</p>
+            <p className="text-content-subtle text-xs">What should your workspace be called?</p>
           </div>
         </CardContent>
         <CardFooter className="justify-end">

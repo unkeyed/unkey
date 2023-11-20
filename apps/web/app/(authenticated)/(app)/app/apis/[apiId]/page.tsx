@@ -8,8 +8,6 @@ import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-export const revalidate = 0;
-
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
@@ -76,7 +74,10 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   }));
 
   const data = [
-    ...successOverTime.map((d) => ({ ...d, category: "Successful Verifications" })),
+    ...successOverTime.map((d) => ({
+      ...d,
+      category: "Successful Verifications",
+    })),
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
   ];

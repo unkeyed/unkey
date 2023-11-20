@@ -6,7 +6,6 @@ let nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   productionBrowserSourceMaps: true, // we're open-source anyways
   experimental: {
-    serverActions: true,
     esmExternals: "loose",
   },
 

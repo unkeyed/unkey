@@ -3,7 +3,7 @@ import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
