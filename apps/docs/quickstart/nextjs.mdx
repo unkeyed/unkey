@@ -17,6 +17,7 @@ description: API Authentication in Next.js
 
 If you don't have a Next.js app yet, you can quickly create one with the following command:
 
+
 ```bash
 npm create next-app@latest
 ```
@@ -48,29 +49,16 @@ Now install the `@unkey/nextjs` package
     ```
   </Tab>
 </Tabs>
-</Step>
 
-<Step  title="Creating a protected route">
 
-Create a new route and add the following code
-
-```ts /app/protected/route.ts
-import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
-import { NextResponse } from "next/server";
-
-export const POST = withUnkey(async (req) => {
-  if (!req.unkey.valid) {
-    return new NextResponse("unauthorized", { status: 403 });
-  }
-
-  // Process the request here
-  // You have access to the verification response using `req.unkey`
-  console.log(req.unkey);
-  return new NextResponse("Your API key is valid!");
-});
-```
 
 </Step>
+
+{/* step 2 Creating a protected route */}
+<Snippet file='create-protected-route.mdx' />
+
+
+
 
 <Step title="Running it">
 
@@ -80,18 +68,8 @@ npm run dev
 
 </Step>
 
-<Step  title="Try it out">
-
-Go to https://unkey.dev/app and create a new key. Then verify it with our new server:
-
-```bash
-curl -XPOST 'http://localhost:3000/protected' \
-  -H "Authorization: Bearer <KEY>"
-```
-
-It should return `"Your API key is valid!"` and log more information about the key, depending on what you set up in the dashboard.
-
-</Step>
+{/* step 4 Try it out */}
+<Snippet file='try-it-out.mdx' />
 
 </Steps>
 
