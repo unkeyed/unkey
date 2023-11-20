@@ -202,6 +202,29 @@
       "pages": ["libraries/rs/overview"]
     },
     {
+      "group": "Spring Boot",
+      "icon": "code",
+      "pages": [
+        "libraries/springboot-java/overview",
+        {
+          "group": "Functions",
+          "pages": [
+            "libraries/springboot-java/functions/create",
+            "libraries/springboot-java/functions/verify",
+            "libraries/springboot-java/functions/revoke",
+            "libraries/springboot-java/functions/update"
+          ]
+        },
+        {
+          "group": "API",
+          "pages": [
+            "libraries/springboot-java/api/get",
+            "libraries/springboot-java/api/list"
+          ]
+        }
+      ]
+    },
+    {
       "group": "Contributing",
       "icon": "github",
       "pages": [
