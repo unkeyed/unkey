@@ -65,7 +65,7 @@ export default async function SettingsPage() {
             </CardDescription>
           </div>
           <Link href="/app/stripe">
-            <Button>Change Billing</Button>
+            <Button className="max-sm:text-xs">Change Billing</Button>
           </Link>
         </CardHeader>
 

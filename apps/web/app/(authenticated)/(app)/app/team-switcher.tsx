@@ -92,7 +92,10 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
         <ChevronsUpDown className="hidden w-3 h-3 md:block shrink-0" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" className="w-96">
+      <DropdownMenuContent
+        side="left"
+        className="w-96 absolute left-0 lg:left-8 top-8 lg:top-20 max-sm:left-0"
+      >
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem
           className="flex items-center justify-between"

@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { UserButton } from "@clerk/nextjs";
 import { BookOpen, FileJson, Menu, Settings } from "lucide-react";
 import Link from "next/link";
 import { WorkspaceSwitcher } from "./team-switcher";
@@ -12,11 +13,11 @@ type Props = {
 
 export const MobileSideBar = ({ className }: Props) => {
   return (
-    <div className={cn(className, "w-full")}>
+    <div className={cn(className, "w-96")}>
       <Sheet>
         <div className="flex items-center justify-between w-full p-4">
           <SheetTrigger>
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6 " />
           </SheetTrigger>
           <WorkspaceSwitcher />
         </div>
@@ -39,7 +40,6 @@ export const MobileSideBar = ({ className }: Props) => {
                   </Button>
                 </SheetClose>
               </Link>
-
               <Link href="/app/settings/general">
                 <SheetClose asChild>
                   <Button variant="ghost" className="justify-start w-full border-t">
@@ -48,7 +48,6 @@ export const MobileSideBar = ({ className }: Props) => {
                   </Button>
                 </SheetClose>
               </Link>
-
               <Link href="https://unkey.dev/docs" target="_blank">
                 <Button variant="ghost" className="justify-start w-full py-2 border-t">
                   <BookOpen className="w-4 h-4 mr-2" />
@@ -59,6 +58,9 @@ export const MobileSideBar = ({ className }: Props) => {
           </div>
         </SheetContent>
       </Sheet>
+      <div className="absolute top-4 right-4">
+        <UserButton />
+      </div>
     </div>
   );
 };
