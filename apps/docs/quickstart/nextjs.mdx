@@ -17,80 +17,124 @@ description: API Authentication in Next.js
 
 If you don't have a Next.js app yet, you can quickly create one with the following command:
 
+{/* Tabs for create next-app with package managers */}
 
 <Tabs>
+  {/* bun */}
   <Tab title="bun">
     ```bash
     bun create next-app
     ```
+    {/* bun steps */}
+    <Steps titleSize="h3">
+      <Step title="Install">
+      {/* step 1 Install */}
+      ```bash
+      bun install @unkey/nextjs
+      ```
+      </Step>
+
+      {/* step 2 Create a protected route */}
+      <Snippet file="create-protected-route.mdx" />
+
+      {/* step 3 Running it*/}
+      <Step title="Running it">
+        ```bash
+        bun run dev 
+        ```
+      </Step>
+      {/*step 4 Try it out*/}
+      <Snippet file="try-it-out.mdx" />
+    </Steps>
   </Tab>
+
+  {/* pnpm */}
   <Tab title="pnpm">
     ```bash
     pnpm create next-app
     ```
+    {/* steps */}
+    <Steps titleSize="h3">
+    {/* step 1 Install*/}
+      <Step title="Install">
+      ```bash
+      pnpm add @unkey/nextjs
+      ```
+      </Step>
+
+      {/* step 2 Create a protected route */}
+      <Snippet file="create-protected-route.mdx" />
+
+      {/* step 3 Running it */}
+      <Step title="Running it">
+        ```bash
+        pnpm run dev 
+        ```
+      </Step>
+
+      {/* step 4 Try it out*/}
+      <Snippet file="try-it-out.mdx" />
+    </Steps>
   </Tab>
+
+  {/* Yarn*/}
   <Tab title="yarn">
     ```bash
     yarn create next-app
     ```
+    <Steps titleSize="h3">
+    {/* step 1 Install*/}
+      <Step title="Install">
+      ```bash
+      yarn add @unkey/nextjs
+      ```
+      </Step>
+
+      {/* step 2 Create a protected route */}
+      <Snippet file="create-protected-route.mdx" />
+
+      {/* step 3 Running it*/}
+      <Step title="Running it">
+        ```bash
+        yarn run dev 
+        ```
+      </Step>
+
+      {/* step 4 Try it out*/}
+      <Snippet file="try-it-out.mdx" />
+    </Steps>
   </Tab>
+
+  {/* npm */}
   <Tab title="npm">
     ```bash
     npm create next-app@latest
     ```
+    <Steps titleSize="h3">
+
+    {/* step 1 Install*/}
+      <Step title="Install">
+      ```bash
+      npm install @unkey/nextjs
+      ```
+      </Step>
+
+      {/* step 2 Create a protected route */}
+      <Snippet file="create-protected-route.mdx" />
+
+      {/* step 3 Running it*/}
+      <Step title="Running it">
+        ```bash
+        npm run dev 
+        ```
+      </Step>
+
+      {/* step 4 Try it out*/}
+      <Snippet file="try-it-out.mdx" />
+    </Steps>
   </Tab>
 </Tabs>
 
-<Steps titleSize="h3">
-<Step  title="Install">
-
-Now install the `@unkey/nextjs` package
-
-<Tabs>
-  <Tab title="bun">
-  ```bash
-    bun install @unkey/nextjs
-    ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-    pnpm add @unkey/nextjs
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn add @unkey/nextjs
-    ```
-  </Tab>
-  <Tab title="npm">
-  ```bash
-    npm install @unkey/nextjs
-    ```
-  </Tab>
-</Tabs>
-
-
-
-</Step>
-
-{/* step 2 Creating a protected route */}
-<Snippet file='create-protected-route.mdx' />
-
-
-
-
-<Step title="Running it">
-
-```bash
-npm run dev
-```
-
-</Step>
-
-{/* step 4 Try it out */}
-<Snippet file='try-it-out.mdx' />
-
-</Steps>
 
 ## Options
 
