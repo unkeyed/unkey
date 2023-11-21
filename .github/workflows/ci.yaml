@@ -20,6 +20,8 @@ jobs:
 
       - name: Setup pscale
         uses: planetscale/setup-pscale-action@v1
+        with:
+          version: latest
 
       - name: Create a branch
         uses: planetscale/create-branch-action@v1
@@ -46,11 +48,7 @@ jobs:
         env:
           PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
           PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-      - name: Get the new credentials
-        run: |
-          echo "Hostname: ${{ steps.create_password.outputs.hostname }}" \
-          echo "Username: ${{ steps.create_password.outputs.username }}" \
-          echo "Password: ${{ steps.create_password.outputs.password }}"
+
       - uses: pnpm/action-setup@v2
         with:
           version: latest
