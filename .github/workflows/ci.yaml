@@ -27,7 +27,7 @@ jobs:
           version: latest
 
       - name: Create a branch
-        run: pscale branch create unkey main $BRANCH_NAME --org=unkey --wait
+        run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
 
       - name: Create a password
         id: create_password
