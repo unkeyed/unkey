@@ -27,23 +27,13 @@ jobs:
           version: latest
 
       - name: Create a branch
-        uses: planetscale/create-branch-action@v1
-        id: create_branch
-        with:
-          org_name: unkey
-          database_name: unkey
-          branch_name: $BRANCH_NAME
-          from: main
-          wait: true
+        run: pscale branch create unkey main $BRANCH_NAME --org=unkey --wait
 
       - name: Create a password
-        uses: planetscale/create-branch-password-action@v1
         id: create_password
-        with:
-          org_name: unkey
-          database_name: unkey
-          branch_name: $BRANCH_NAME
-          name: mynewpassword
+        run: |
+          pscale password create unkey $BRANCH_NAME github --ttl=900 --role=admin --org=unkey --format=json
+
 
 
       - uses: pnpm/action-setup@v2
