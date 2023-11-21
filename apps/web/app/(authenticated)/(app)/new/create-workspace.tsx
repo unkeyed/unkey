@@ -100,7 +100,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                         <div className="flex flex-col space-y-4">
                           <FormItem
                             className={cn(
-                              "flex items-start justify-between space-x-3 space-y-0 border rounded-md p-4",
+                              "flex items-start justify-between space-x-3 space-y-0 border rounded-md p-4 cursor-default",
                               {
                                 "border-primary": field.value === "pro",
                               },
@@ -124,7 +124,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                           </FormItem>
                           <FormItem
                             className={cn(
-                              "flex items-start justify-between  space-x-3 space-y-0 border rounded-md p-4",
+                              "flex items-start justify-between  space-x-3 space-y-0 border rounded-md p-4 cursor-default",
                               {
                                 "border-primary": field.value === "free",
                               },
