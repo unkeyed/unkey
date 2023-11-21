@@ -1,0 +1,60 @@
+---
+title: 'Verify'
+description: 'Verify an api key'
+---
+
+Pass the optional and required parameters as per the official [API docs](https://unkey.dev/docs/api-reference/apis/list-keys). See the DTO reference below for more information.
+
+```java
+package com.example.myapp;
+
+import com.unkey.unkeysdk.dto.KeyVerifyRequest;
+import com.unkey.unkeysdk.dto.KeyVerifyResponse;
+
+@RestController
+public class APIController {
+
+    private static IKeyService keyService = new KeyService();
+
+    @PostMapping("/verify")
+    public KeyVerifyResponse verifyKey(
+            @RequestBody KeyVerifyRequest keyVerifyRequest) {
+        // Delegate the creation of the key to the KeyService from the SDK
+        return keyService.verifyKey(keyVerifyRequest);
+    }
+}
+
+```
+
+### DTOs Reference
+
+The DTOs used in the code for a better understanding of request and response bodies.
+
+```java
+public class KeyVerifyResponse {
+    @NonNull
+    private Boolean valid;
+    private String code;
+    private String ownerId;
+    private Long expires;
+    private Object meta;
+    private KeyVerifyRateLimit ratelimit;
+    private Long remaining;
+}
+```
+
+```java
+public class KeyVerifyRateLimit {
+    private Integer limit;
+    private Integer remaining;
+    private Long reset;
+}
+```
+
+```java
+public class KeyVerifyRequest {
+    @NonNull
+    private String key;
+    private String apiId;
+}
+```
