@@ -71,7 +71,7 @@ jobs:
           DATABASE_PASSWORD: ${{ steps.create_password.outputs.password }}
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
       - name: Delete planetscale branch
-        if: always()
+        # if: always()
         run: |
           pscale branch delete unkey $BRANCH_NAME --force --org=unkey
 
