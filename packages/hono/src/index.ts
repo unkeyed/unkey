@@ -1,5 +1,6 @@
 import { UnkeyError, verifyKey } from "@unkey/api";
-import type { Context, MiddlewareHandler } from "hono";
+import type { Context } from "hono";
+import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
 export type UnkeyContext = {
@@ -17,6 +18,12 @@ export type UnkeyContext = {
     | undefined;
   code?: "NOT_FOUND" | "RATELIMITED" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | undefined;
 };
+
+declare module "hono" {
+  interface ContextVariableMap {
+    unkey: UnkeyContext;
+  }
+}
 
 export type UnkeyConfig<TContext = Context> = {
   /**
@@ -42,8 +49,8 @@ export type UnkeyConfig<TContext = Context> = {
   onError?: (c: TContext, err: UnkeyError) => Response | Promise<Response>;
 };
 
-export function unkey(config?: UnkeyConfig): MiddlewareHandler {
-  return async (c, next) => {
+export function unkey(config?: UnkeyConfig) {
+  return createMiddleware(async (c, next) => {
     const key = config?.getKey
       ? config.getKey(c)
       : c.req.header("Authorization")?.replace("Bearer ", "") ?? null;
@@ -69,5 +76,9 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
 
     c.set("unkey", res.result);
     await next();
-  };
+  });
 }
+
+export const getUnkey = (c: Context) => {
+  return c.get("unkey");
+};
