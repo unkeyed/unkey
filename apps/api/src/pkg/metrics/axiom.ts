@@ -13,7 +13,7 @@ export class AxiomMetrics implements Metrics {
   constructor(opts: {
     axiomToken: string;
     defaultFields?: Record<string, unknown>;
-    environment: Env["Bindings"]["ENVIRONMENT"];
+    environment: Env["ENVIRONMENT"];
   }) {
     this.axiomDataset = `cf_api_metrics_${opts.environment}`;
     this.ax = new Axiom({

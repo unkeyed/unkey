@@ -17,7 +17,7 @@ export class AxiomLogger implements Logger {
   constructor(opts: {
     axiomToken: string;
     defaultFields?: Fields;
-    environment: Env["Bindings"]["ENVIRONMENT"];
+    environment: Env["ENVIRONMENT"];
   }) {
     this.consoleLogger = new ConsoleLogger();
     this.axiomDataset = `cf_api_logs_${opts.environment}`;

@@ -87,8 +87,19 @@ registerV1ApisDeleteApi(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
-    const parsedEnv = zEnv.parse(env);
+    const parsedEnv = zEnv.safeParse(env);
+    if (!parsedEnv.success) {
+      return Response.json(
+        {
+          code: "BAD_ENVIRONMENT",
+          message: "Some environment variables are missing or are invalid",
+          errors: parsedEnv.error,
+        },
+        { status: 500 },
+      );
+    }
+    init({ env: parsedEnv.data });
 
-    return app.fetch(req, parsedEnv, executionCtx);
+    return app.fetch(req, parsedEnv.data, executionCtx);
   },
 };

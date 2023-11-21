@@ -10,7 +10,7 @@ export class DurableObjectUsagelimiter {
   private readonly db: Database;
   private key: Key | undefined = undefined;
   private readonly logger: Logger;
-  constructor(state: DurableObjectState, env: Env["Bindings"]) {
+  constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.db = createConnection({
       host: env.DATABASE_HOST,
