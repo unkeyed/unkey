@@ -24,20 +24,27 @@ jobs:
       - name: Setup pscale
         uses: planetscale/setup-pscale-action@v1
         with:
-          version: v0.162.0
-
-
-      - name: List dbs
-        run: pscale database list --org=unkey
+          version: latest
 
       - name: Create a branch
-        run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
+        uses: planetscale/create-branch-action@v1
+        id: create_branch
+        with:
+          org_name: unkey
+          database_name: unkey
+          branch_name: $BRANCH_NAME
+          from: main
+          wait: true
 
       - name: Create a password
+        uses: planetscale/create-branch-password-action@v1
         id: create_password
-        run: |
-          pscale password create unkey $BRANCH_NAME github --ttl=900 --role=admin --org=unkey --format=json
-
+        with:
+          org_name: unkey
+          database_name: unkey
+          branch_name: $BRANCH_NAME
+          name: mynewpassword
+          ttl: 900
 
 
       - uses: pnpm/action-setup@v2
