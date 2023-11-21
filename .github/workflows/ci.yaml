@@ -26,6 +26,10 @@ jobs:
         with:
           version: v0.162.0
 
+
+      - name: List dbs
+        run: pscale database list --org=unkey
+
       - name: Create a branch
         run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
 
