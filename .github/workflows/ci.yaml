@@ -7,7 +7,10 @@ concurrency: ${{ github.workflow }} - ${{ github.ref }}
 
 
 env:
-  BRANCH_NAME: PR-${{ github.event.number }}-${{ github.sha }}
+  BRANCH_NAME: gh-${{ github.event.number }}-${{ github.sha }}
+  PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+  PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+
 jobs:
   test_api:
     name: Test Api
@@ -32,9 +35,6 @@ jobs:
           branch_name: $BRANCH_NAME
           from: main
           wait: true
-        env:
-          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
       - name: Create a password
         uses: planetscale/create-branch-password-action@v1
@@ -44,10 +44,7 @@ jobs:
           database_name: unkey
           branch_name: $BRANCH_NAME
           name: mynewpassword
-          role: admin
-        env:
-          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+
 
       - uses: pnpm/action-setup@v2
         with:
@@ -72,13 +69,10 @@ jobs:
           DATABASE_USERNAME: ${{ steps.create_password.outputs.username }}
           DATABASE_PASSWORD: ${{ steps.create_password.outputs.password }}
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
-      - name: Use pscale
+      - name: Delete planetscale branch
         if: always()
-        env:
-          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
         run: |
-          pscale branch delete unkey $BRANCH_NAME --force
+          pscale branch delete unkey $BRANCH_NAME --force --org=unkey
 
 
   lint:
