@@ -7,7 +7,7 @@ concurrency: ${{ github.workflow }} - ${{ github.ref }}
 
 
 env:
-  BRANCH_NAME: gh-ci-${{ github.event.number }}-${{ github.sha }}
+  BRANCH_NAME: gh-ci-${{ github.event.number }}-${{ github.actor }}
   PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
   PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
