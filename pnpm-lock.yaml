@@ -70,12 +70,9 @@ importers:
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
-      bun-types:
-        specifier: ^1.0.10
-        version: 1.0.10
       drizzle-orm:
         specifier: ^0.28.6
-        version: 0.28.6(@cloudflare/workers-types@4.20231016.0)(@planetscale/database@1.11.0)(bun-types@1.0.10)
+        version: 0.28.6(@cloudflare/workers-types@4.20231016.0)(@planetscale/database@1.11.0)(bun-types@1.0.13)
       hono:
         specifier: ^3.10.0
         version: 3.10.0
@@ -98,6 +95,9 @@ importers:
       '@testcontainers/mysql':
         specifier: ^10.2.2
         version: 10.2.2
+      bun-types:
+        specifier: ^1.0.13
+        version: 1.0.13
       rollup-plugin-node-builtins:
         specifier: ^2.1.2
         version: 2.1.2
@@ -4967,6 +4967,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -9499,9 +9500,8 @@ packages:
       semver: 7.5.4
     dev: true
 
-  /bun-types@1.0.10:
-    resolution: {integrity: sha512-VqMF3Hcbycz2vtPYbtYwj2gkMUgbtNwXfUuH1rjF6a2Ix31GsT72VFFaJ95ce7mP9xJTm4nzjH028XyY+ez08A==}
-    dev: false
+  /bun-types@1.0.13:
+    resolution: {integrity: sha512-QQH6NLAOU+2tWgQuDSAYBFy+kQwVhPJLB0Q38QLjCmFUZJEYCiiq7tzvU784LAIX2onzO6gr+gIGXt8yCt0cJw==}
 
   /bundle-name@3.0.0:
     resolution: {integrity: sha512-PKA4BeSvBpQKQ8iPOGCSiell+N8P+Tf1DlwqmYhpe2gAhKPHn8EYOxVT+ShuGmhg8lN8XiSlS80yiExKXrURlw==}
@@ -11095,7 +11095,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.28.6(@cloudflare/workers-types@4.20231016.0)(@planetscale/database@1.11.0)(bun-types@1.0.10):
+  /drizzle-orm@0.28.6(@cloudflare/workers-types@4.20231016.0)(@planetscale/database@1.11.0)(bun-types@1.0.13):
     resolution: {integrity: sha512-yBe+F9htrlYER7uXgDJUQsTHFoIrI5yMm5A0bg0GiZ/kY5jNXTWoEy4KQtg35cE27sw1VbgzoMWHAgCckUUUww==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -11159,7 +11159,7 @@ packages:
     dependencies:
       '@cloudflare/workers-types': 4.20231016.0
       '@planetscale/database': 1.11.0
-      bun-types: 1.0.10
+      bun-types: 1.0.13
     dev: false
 
   /drizzle-orm@0.28.6(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0):
@@ -16303,6 +16303,10 @@ packages:
   /napi-build-utils@1.0.2:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}

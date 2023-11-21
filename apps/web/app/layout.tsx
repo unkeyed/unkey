@@ -1,3 +1,7 @@
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+// ^ https://bun.sh/docs/typescript#dom-types
+
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
