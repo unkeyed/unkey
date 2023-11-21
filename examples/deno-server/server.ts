@@ -1,4 +1,4 @@
-import { verifyKey } from "https://unpkg.com/@unkey/api@0.12.0/dist/index.mjs";
+import { verifyKey } from "https://unpkg.com/@unkey/api@latest/dist/index.mjs";
 
 const port = Deno.env.get("PORT") || 8000;
 
