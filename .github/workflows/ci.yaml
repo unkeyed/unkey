@@ -47,6 +47,7 @@ jobs:
           DATABASE_HOST: 127.0.0.1:3306
           DATABASE_USERNAME: root
           DATABASE_PASSWORD: ""
+          UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
 
   lint:
     name: Lint
