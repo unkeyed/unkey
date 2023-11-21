@@ -5,24 +5,52 @@ on:
 
 concurrency: ${{ github.workflow }} - ${{ github.ref }}
 
+
+env:
+  BRANCH_NAME: PR-${{ github.event.number }}-${{ github.sha }}
 jobs:
   test_api:
     name: Test Api
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:latest
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: unkey
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - uses: actions/checkout@v3
 
+
+      - name: Setup pscale
+        uses: planetscale/setup-pscale-action@v1
+
+      - name: Create a branch
+        uses: planetscale/create-branch-action@v1
+        id: create_branch
+        with:
+          org_name: unkey
+          database_name: unkey
+          branch_name: $BRANCH_NAME
+          from: main
+          wait: true
+        env:
+          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+
+      - name: Create a password
+        uses: planetscale/create-branch-password-action@v1
+        id: create_password
+        with:
+          org_name: unkey
+          database_name: unkey
+          branch_name: $BRANCH_NAME
+          name: mynewpassword
+          role: admin
+        env:
+          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      - name: Get the new credentials
+        run: |
+          echo "Hostname: ${{ steps.create_password.outputs.hostname }}" \
+          echo "Username: ${{ steps.create_password.outputs.username }}" \
+          echo "Password: ${{ steps.create_password.outputs.password }}"
       - uses: pnpm/action-setup@v2
         with:
           version: latest
@@ -36,18 +64,24 @@ jobs:
         run: npx drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: mysql://root@127.0.0.1:3306/unkey
-
-
+          DRIZZLE_DATABASE_URL: mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey
 
       - name: Test
         run: bun test src/routes --coverage
         working-directory: apps/api
         env:
-          DATABASE_HOST: 127.0.0.1:3306
-          DATABASE_USERNAME: root
-          DATABASE_PASSWORD: ""
+          DATABASE_HOST: ${{ steps.create_password.outputs.hostname }}
+          DATABASE_USERNAME: ${{ steps.create_password.outputs.username }}
+          DATABASE_PASSWORD: ${{ steps.create_password.outputs.password }}
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
+      - name: Use pscale
+        if: always()
+        env:
+          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+        run: |
+          pscale branch delete unkey $BRANCH_NAME --force
+
 
   lint:
     name: Lint
