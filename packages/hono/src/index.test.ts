@@ -1,16 +1,16 @@
 import { Hono } from "hono";
-import { UnkeyContext, unkey } from "./index";
+import { UnkeyContext, getUnkey, unkey } from "./index";
 import { describe, expect, test } from "bun:test";
 
 const key = "hono_3ZHg8eyRMts88vxy5uvWLb8S";
 
 describe("No custom Config", () => {
   describe("happy path", () => {
-    const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+    const app = new Hono();
 
     app.use("/*", unkey());
 
-    app.get("/", (c) => c.json(c.get("unkey")));
+    app.get("/", (c) => c.json(getUnkey(c)));
 
     test("Should be hello message", async () => {
       const res = await app.request("http://localhost/", {
@@ -24,11 +24,11 @@ describe("No custom Config", () => {
   });
 
   describe("No Authorization header", () => {
-    const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+    const app = new Hono();
 
     app.use("/*", unkey());
 
-    app.get("/", (c) => c.json(c.get("unkey")));
+    app.get("/", (c) => c.json(getUnkey(c)));
 
     test("should be unauthorized", async () => {
       const res = await app.request("http://localhost/");
@@ -42,7 +42,7 @@ describe("No custom Config", () => {
 
 describe("With custom key getter", () => {
   describe("No Authorization header", () => {
-    const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+    const app = new Hono();
 
     app.use(
       "/*",
@@ -53,7 +53,7 @@ describe("With custom key getter", () => {
       }),
     );
 
-    app.get("/", (c) => c.json(c.get("unkey")));
+    app.get("/", (c) => c.json(getUnkey(c)));
 
     test("should be called with response", async () => {
       const res = await app.request("http://localhost/");
@@ -65,7 +65,7 @@ describe("With custom key getter", () => {
 
 describe("With custom invald handler", () => {
   describe("No Authorization header", () => {
-    const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+    const app = new Hono();
 
     let calledWith: UnkeyContext | null = null;
     app.use(
@@ -78,7 +78,7 @@ describe("With custom invald handler", () => {
       }),
     );
 
-    app.get("/", (c) => c.json(c.get("unkey")));
+    app.get("/", (c) => c.json(getUnkey(c)));
 
     test("should be called with response", async () => {
       const res = await app.request("http://localhost/", {
