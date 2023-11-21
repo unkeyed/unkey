@@ -50,10 +50,10 @@ jobs:
           npm i -g bun
 
       - name: Load Schema into MySQL
-        run: npx drizzle-kit push:mysql
+        run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey
+          DRIZZLE_DATABASE_URL: mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey?ssl={"rejectUnauthorized":true}
 
       - name: Test
         run: bun test src/routes --coverage
