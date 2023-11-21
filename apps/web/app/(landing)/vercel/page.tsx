@@ -8,8 +8,15 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
+import { Metadata } from "next";
 import Link from "next/link";
-export default function Example() {
+
+export const metadata: Metadata = {
+  title: "Vercel Integration",
+  description: "Zero Config API Authentication",
+};
+
+export default function Vercel() {
   return (
     <Container>
       <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0">
