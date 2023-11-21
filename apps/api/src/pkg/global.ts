@@ -18,6 +18,7 @@ import { ConsoleLogger, Logger } from "./logging";
 import { AxiomLogger } from "./logging/axiom";
 import { AxiomMetrics, Metrics, NoopMetrics } from "./metrics";
 import { Tinybird } from "./tinybird";
+import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimit";
 
 export type KeyHash = string;
 export type CacheNamespaces = {
@@ -41,6 +42,7 @@ export let metrics: Metrics;
 export let logger: Logger;
 export let keyService: KeyService;
 export let tinybird: Tinybird;
+export let usageLimiter: UsageLimiter;
 
 let initialized = false;
 
@@ -49,7 +51,7 @@ let initialized = false;
  *
  * Call this once before any hono handlers run.
  */
-export function init(opts: { env: Env["Bindings"] }): void {
+export function init(opts: { env: Env }): void {
   if (initialized) {
     return;
   }
@@ -91,13 +93,19 @@ export function init(opts: { env: Env["Bindings"] }): void {
     ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
     : new ConsoleLogger();
 
+  usageLimiter = opts.env.DO_USAGELIMIT
+    ? new DurableUsageLimiter({
+        namespace: opts.env.DO_USAGELIMIT,
+      })
+    : new NoopUsageLimiter();
+
   keyService = new KeyService({
     cache,
     logger,
     db,
     metrics,
     rl: opts.env.DO_RATELIMIT,
-    ul: opts.env.DO_USAGELIMIT,
+    usageLimiter,
   });
 
   tinybird = new Tinybird(opts.env.TINYBIRD_TOKEN);

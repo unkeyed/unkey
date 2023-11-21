@@ -3,6 +3,7 @@ import type { Key } from "@unkey/db";
 import { Env } from "../env";
 import { ConsoleLogger, Logger } from "../logging";
 import { AxiomLogger } from "../logging/axiom";
+import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
 export class DurableObjectUsagelimiter {
   private readonly state: DurableObjectState;
@@ -31,25 +32,33 @@ export class DurableObjectUsagelimiter {
   }
 
   async fetch(request: Request) {
-    const req = (await request.json()) as { keyId: string };
-    if (!this.key) {
-      this.logger.info("Fetching key from origin", { id: req.keyId });
-      this.key = await this.db.query.keys.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, req.keyId), isNull(table.deletedAt)),
-      });
-    }
-
     const url = new URL(request.url);
     switch (url.pathname) {
       case "/revalidate": {
+        const req = revalidateRequestSchema.parse(await request.json());
+        if (!this.key) {
+          this.logger.info("Fetching key from origin", { id: req.keyId });
+          this.key = await this.db.query.keys.findFirst({
+            where: (table, { and, eq, isNull }) =>
+              and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+          });
+        }
+
         this.key = await this.db.query.keys.findFirst({
           where: (table, { and, eq, isNull }) =>
             and(eq(table.id, req.keyId), isNull(table.deletedAt)),
         });
         return Response.json({});
       }
-      case "/": {
+      case "/limit": {
+        const req = limitRequestSchema.parse(await request.json());
+        if (!this.key) {
+          this.logger.info("Fetching key from origin", { id: req.keyId });
+          this.key = await this.db.query.keys.findFirst({
+            where: (table, { and, eq, isNull }) =>
+              and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+          });
+        }
         if (!this.key) {
           this.logger.error("key not found", { keyId: req.keyId });
           return Response.json({

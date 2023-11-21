@@ -2,11 +2,11 @@ import { TieredCache } from "@/pkg/cache/tiered";
 import { sha256 } from "@/pkg/hash/sha256";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
+import type { UsageLimiter } from "@/pkg/usagelimit";
 import { type Database, type Key } from "@unkey/db";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { CacheNamespaces } from "../global";
-import { durableUsageLimit } from "../usagelimit";
 
 type VerifyKeyResult =
   | {
@@ -46,23 +46,23 @@ export class KeyService {
   private readonly metrics: Metrics;
   private readonly db: Database;
   private readonly rl: DurableObjectNamespace;
-  private readonly ul: DurableObjectNamespace;
   private readonly rlCache: Map<string, number>;
+  private readonly usageLimiter: UsageLimiter;
 
   constructor(opts: {
     cache: TieredCache<CacheNamespaces>;
     logger: Logger;
     metrics: Metrics;
     db: Database;
-    ul: DurableObjectNamespace;
     rl: DurableObjectNamespace;
+    usageLimiter: UsageLimiter;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
     this.db = opts.db;
     this.metrics = opts.metrics;
     this.rl = opts.rl;
-    this.ul = opts.ul;
+    this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
   }
 
@@ -130,21 +130,23 @@ export class KeyService {
       });
     }
 
-    const limited = await durableUsageLimit(this.ul, data.key);
-    if (!limited.valid) {
-      return result.success({
-        valid: false,
-        code: "USAGE_EXCEEDED",
-        keyId: data.key.id,
-        apiId: data.api.id,
-        ownerId: data.key.ownerId ?? undefined,
-        meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
-        expires: data.key.expires?.getTime() ?? undefined,
-        remaining: limited.remaining,
-        ratelimit,
-        isRootKey: !!data.key.forWorkspaceId,
-        authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
-      });
+    if (data.key.remainingRequests !== null) {
+      const limited = await this.usageLimiter.limit({ keyId: data.key.id });
+      if (!limited.valid) {
+        return result.success({
+          valid: false,
+          code: "USAGE_EXCEEDED",
+          keyId: data.key.id,
+          apiId: data.api.id,
+          ownerId: data.key.ownerId ?? undefined,
+          meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
+          expires: data.key.expires?.getTime() ?? undefined,
+          remaining: limited.remaining,
+          ratelimit,
+          isRootKey: !!data.key.forWorkspaceId,
+          authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
+        });
+      }
     }
 
     return result.success({
@@ -154,7 +156,6 @@ export class KeyService {
       ownerId: data.key.ownerId ?? undefined,
       meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
       expires: data.key.expires?.getTime() ?? undefined,
-      remaining: limited.remaining,
       ratelimit,
       isRootKey: !!data.key.forWorkspaceId,
       authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,

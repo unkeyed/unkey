@@ -1,9 +1,8 @@
-import { db, keyService } from "@/pkg/global";
+import { db, keyService, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { revalidateUsage } from "@/pkg/usagelimit";
 import { schema } from "@unkey/db";
 import { eq, sql } from "drizzle-orm";
 
@@ -146,7 +145,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       }
     }
 
-    await revalidateUsage(c.env.DO_USAGELIMIT, key.id);
+    await usageLimiter.revalidate({ keyId: key.id });
     const keyAfterUpdate = await db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
     });

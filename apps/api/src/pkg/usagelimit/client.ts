@@ -1,63 +1,54 @@
 import { logger, metrics } from "@/pkg/global";
-import type { Key } from "@unkey/db";
+import {
+  LimitRequest,
+  LimitResponse,
+  RevalidateRequest,
+  UsageLimiter,
+  limitResponseSchema,
+} from "./interface";
 
-export type UsageLimit = {
-  valid: boolean;
-  remaining?: number;
-};
+export class DurableUsageLimiter implements UsageLimiter {
+  private readonly namespace: DurableObjectNamespace;
+  private readonly domain: string;
+  constructor(opts: {
+    namespace: DurableObjectNamespace;
 
-/**
- * durableUsageLimit will serialize requests through a durable object, and return the remaining requests for the key.
- */
-export async function durableUsageLimit(
-  namespace: DurableObjectNamespace,
-  key: Key,
-): Promise<UsageLimit> {
-  if (key.remainingRequests === null) {
-    return { valid: true };
+    domain?: string;
+  }) {
+    this.namespace = opts.namespace;
+    this.domain = opts.domain ?? "unkey.app";
   }
 
-  const start = performance.now();
+  public async limit(req: LimitRequest): Promise<LimitResponse> {
+    const start = performance.now();
 
-  try {
-    const obj = namespace.get(namespace.idFromName(key.id));
-    return await obj
-      .fetch("https://unkey.app.com/", {
+    try {
+      const obj = this.namespace.get(this.namespace.idFromName(req.keyId));
+      const url = `https://${this.domain}/limit`;
+      const res = await obj.fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          keyId: key.id,
-        }),
-      })
-      .then(async (res) => (await res.json()) as { valid: boolean; remaining?: number });
-  } catch (e) {
-    logger.error("usagelimit failed", { error: e });
-    return { valid: false };
-  } finally {
-    metrics.emit("metric.usagelimit", {
-      latency: performance.now() - start,
-      keyId: key.id,
-    });
+        body: JSON.stringify(req),
+      });
+      return limitResponseSchema.parse(await res.json());
+    } catch (e) {
+      logger.error("usagelimit failed", { error: e });
+      return { valid: false };
+    } finally {
+      metrics.emit("metric.usagelimit", {
+        latency: performance.now() - start,
+        keyId: req.keyId,
+      });
+    }
   }
-}
 
-/**
- * revalidateUsage will ask the durable object to revalidate by loading the key from the database.
- *
- * Use this after updating the key's remainingRequests manually.
- */
-export async function revalidateUsage(
-  namespace: DurableObjectNamespace,
-  keyId: string,
-): Promise<void> {
-  const obj = namespace.get(namespace.idFromName(keyId));
-  await obj
-    .fetch("https://unkey.app.com/revalidate", {
+  public async revalidate(req: RevalidateRequest): Promise<void> {
+    const obj = this.namespace.get(this.namespace.idFromName(req.keyId));
+    const url = `https://${this.domain}/revalidate`;
+    await obj.fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        keyId,
-      }),
-    })
-    .then(async (res) => (await res.json()) as { valid: boolean; remaining?: number });
+      body: JSON.stringify(req),
+    });
+  }
 }
