@@ -24,7 +24,7 @@ jobs:
       - name: Setup pscale
         uses: planetscale/setup-pscale-action@v1
         with:
-          version: 0.162.0
+          version: v0.162.0
 
       - name: Create a branch
         run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
