@@ -37,7 +37,7 @@ jobs:
           database_name: unkey
           branch_name: $BRANCH_NAME
           name: mynewpassword
-          ttl: 900
+          role: admin
 
 
       - uses: pnpm/action-setup@v2
