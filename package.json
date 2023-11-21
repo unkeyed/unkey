@@ -14,9 +14,10 @@
     "build": "pnpm turbo run build --filter=!./examples/*",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
-    "bootstrap": "turbo run bootstrap",
     "commit": "cz",
-    "bump-versions": "pnpm changeset version && pnpm install"
+    "bump-versions": "pnpm changeset version && pnpm install",
+    "setup": "tsx ./.scripts/fresh-setup.ts",
+    "bootstrap": "tsx ./.scripts/bootstrap.ts"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
@@ -29,7 +30,10 @@
     "lint-staged": "^15.0.2",
     "ts-node": "^10.9.1",
     "turbo": "^1.10.16",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "execa": "^8.0.1",
+    "@planetscale/database": "^1.11.0",
+    "drizzle-orm": "^0.28.6"
   },
   "pnpm": {
     "overrides": {
