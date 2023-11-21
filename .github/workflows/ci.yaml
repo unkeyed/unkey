@@ -27,14 +27,7 @@ jobs:
           version: latest
 
       - name: Create a branch
-        uses: planetscale/create-branch-action@v1
-        id: create_branch
-        with:
-          org_name: unkey
-          database_name: unkey
-          branch_name: $BRANCH_NAME
-          from: main
-          wait: true
+        run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
 
       - name: Create a password
         uses: planetscale/create-branch-password-action@v1
