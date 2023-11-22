@@ -13,9 +13,18 @@ const navigation = [
       { title: "Blog", href: "/blog" },
       { title: "Careers", href: "/careers" },
       { title: "Changelog", href: "/changelog" },
-      { title: "Analytics", href: "https://plausible.io/unkey.dev" },
-      { title: "Source Code", href: "https://github.com/unkeyed/unkey" },
-      { title: "Documentation", href: "https://unkey.dev/docs" },
+      {
+        title: "Analytics",
+        href: "https://plausible.io/unkey.dev",
+      },
+      {
+        title: "Source Code",
+        href: "https://github.com/unkeyed/unkey",
+      },
+      {
+        title: "Documentation",
+        href: "https://unkey.dev/docs",
+      },
     ],
   },
   {
@@ -43,15 +52,26 @@ function Navigation() {
       <ul className="grid grid-cols-2 gap-8 sm:grid-cols-3">
         {navigation.map((section) => (
           <li key={section.title}>
-            <div className="text-sm font-semibold tracking-wider font-display text-gray-950">
+            <div className="font-display text-sm font-semibold tracking-wider text-gray-950">
               {section.title}
             </div>
             <ul className="mt-4 text-sm text-gray-700">
               {section.links.map((link) => (
                 <li key={link.href} className="mt-4">
-                  <Link href={link.href} className="transition hover:text-gray-950">
-                    {link.title}
-                  </Link>
+                  {link.href.startsWith("https://") ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transition hover:text-gray-950"
+                    >
+                      {link.title}
+                    </a>
+                  ) : (
+                    <Link href={link.href} className="transition hover:text-gray-950">
+                      {link.title}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -64,7 +84,7 @@ function Navigation() {
 
 export function Footer() {
   return (
-    <Container as="footer" className="w-full mt-24 sm:mt-32 lg:mt-40">
+    <Container as="footer" className="mt-24 w-full sm:mt-32 lg:mt-40">
       <FadeIn>
         <div className="grid grid-cols-1 gap-x-8 gap-y-16 lg:grid-cols-2">
           <Navigation />
@@ -72,7 +92,7 @@ export function Footer() {
             <NewsletterForm />
           </div>
         </div>
-        <div className="flex flex-wrap items-end justify-between pt-12 mt-24 mb-20 border-t gap-x-6 gap-y-4 border-gray-950/10">
+        <div className="mb-20 mt-24 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-t border-gray-950/10 pt-12">
           <Link href="/" aria-label="Home">
             <svg
               width="32"
