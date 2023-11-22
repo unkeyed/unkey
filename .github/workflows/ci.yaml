@@ -46,9 +46,9 @@ jobs:
           echo "::add-mask::$database_password"
 
           # Set outputs
-          echo "DATABASE_HOST=$database_host" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
+          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
+          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
 
 
       - uses: pnpm/action-setup@v2
@@ -78,16 +78,13 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.database_password.outputs.DATABASE_USERNAME }}:${{ steps.database_password.outputs.DATABASE_PASSWORD }}@${{ steps.database_password.outputs.DATABASE_HOST}}/unkey?ssl={"rejectUnauthorized":true}'
+          DRIZZLE_DATABASE_URL: 'mysql://${{env.DATABASE_USERNAME }}:${{env.DATABASE_PASSWORD }}@${{env.DATABASE_HOST}}/unkey?ssl={"rejectUnauthorized":true}'
 
 
       - name: Test
         run: bun test src/routes --coverage
         working-directory: apps/api
         env:
-          DATABASE_HOST: ${{ steps.database_password.outputs.DATABASE_HOST }}
-          DATABASE_USERNAME: ${{ steps.database_password.outputs.DATABASE_USERNAME }}
-          DATABASE_PASSWORD: ${{ steps.database_password.outputs.DATABASE_PASSWORD }}
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
       - name: Delete planetscale branch
         if: always()
