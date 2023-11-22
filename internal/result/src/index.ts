@@ -12,7 +12,6 @@ function success<TValue>(value: TValue): Result<TValue> {
   return { value };
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 function fail<TError extends { message: string }>(error: TError): Result<any, TError> {
   return { error };
 }

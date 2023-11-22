@@ -7,7 +7,6 @@ import { Result, result } from "@unkey/result";
 import { cookies } from "next/headers";
 
 export function serverAction<TInput, TOutput = void>(opts: {
-  // biome-ignore lint/suspicious/noExplicitAny: wish I knew what to type here
   input: z.ZodSchema<TInput, any, any>;
   output?: z.ZodSchema<TOutput>;
   handler: (args: {

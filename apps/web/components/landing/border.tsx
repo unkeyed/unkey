@@ -10,9 +10,7 @@ export function Border({
   className?: string;
   position?: "top" | "left";
   invert?: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   as?: any;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   [key: string]: any;
 }) {
   return (
