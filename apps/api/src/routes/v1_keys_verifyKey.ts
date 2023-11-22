@@ -74,7 +74,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                 "The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.",
               example: Date.now(),
             }),
-            expiresAt: z.number().optional().openapi({
+            expires: z.number().optional().openapi({
               description:
                 "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
               example: 123,
@@ -159,7 +159,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       valid: true,
       ownerId: value.ownerId,
       meta: value.meta,
-      expiresAt: value.expires,
+      expires: value.expires,
       remaining: value.remaining,
       ratelimit: value.ratelimit,
     });
