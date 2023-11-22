@@ -42,23 +42,38 @@ body:
     attributes:
       label: Description
       description: Describe the issue that you're seeing.
-      value: |
-        <!-- Be as precise as you can. Feel free to share screenshots, videos, or data from the devtools of your browser -->
-
-        **Steps to reproduce:**
-
-        1. Step 1
-        2. Step 2
-
-        **Expected behavior:**
-
-        <!-- Describe what you expected to happen -->
-
-        **Actual behavior:**
-
-        <!-- Describe what actually happened -->
     validations:
       required: true
+      - type: textarea
+  id: steps-to-reproduce
+  attributes:
+    label: Steps to Reproduce
+    value: |
+      1. (for example) Went to ...
+      2. Clicked on...
+      3. ...
+  validations:
+    required: true
+- type: textarea
+  id: expected-behavior
+  attributes:
+    label: Expected behavior
+    description: A clear and concise description of what you expected to happen.
+  validations:
+    required: true
+- type: textarea
+  id: other-information
+  attributes:
+    label: Other information
+  validations:
+    required: false
+- type: textarea
+  id: screenshots
+  attributes:
+    label: Screenshots
+    description: If applicable, add screenshots to help explain your problem.
+  validations:
+    required: false
   - type: textarea
     attributes:
       label: Environment
