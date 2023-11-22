@@ -9,9 +9,8 @@ export const db = drizzle(
     host: dbEnv().DATABASE_HOST,
     username: dbEnv().DATABASE_USERNAME,
     password: dbEnv().DATABASE_PASSWORD,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO
+
     fetch: (url: string, init: any) => {
-      // biome-ignore lint/suspicious/noExplicitAny: TODO
       (init as any).cache = undefined; // Remove cache header
       return fetch(url, init);
     },

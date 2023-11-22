@@ -6,7 +6,7 @@ async function handler(req: NextRequestWithUnkeyContext) {
     return new NextResponse("unauthorized", { status: 403 });
   }
 
-  return new NextResponse(`Your API key is valid!
+  return new NextResponse(`Your API key iunks valid!
 
 ${JSON.stringify(req.unkey, null, 2)}`);
 }
