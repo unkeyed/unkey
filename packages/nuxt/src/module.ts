@@ -41,7 +41,6 @@ export default defineNuxtModule<ModuleOptions>({
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url);
 
-    // biome-ignore lint/suspicious/noExplicitAny: TODO
     nuxt.options.runtimeConfig.unkey = defu(nuxt.options.runtimeConfig.unkey as any, {
       authPrefix: options.authPrefix,
       token: options.token,
