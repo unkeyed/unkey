@@ -40,7 +40,7 @@ type Column = {
   ratelimitLimit: number | null;
   ratelimitRefillRate: number | null;
   ratelimitRefillInterval: number | null;
-  remainingRequests: number | null;
+  remaining: number | null;
 };
 
 type Props = {
@@ -135,11 +135,11 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
         ),
     },
     {
-      accessorKey: "remainingRequests",
+      accessorKey: "remaining",
       header: "Remaining",
       cell: ({ row }) =>
-        row.original.remainingRequests ? (
-          <span>{row.original.remainingRequests.toLocaleString()}</span>
+        row.original.remaining ? (
+          <span>{row.original.remaining.toLocaleString()}</span>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),
