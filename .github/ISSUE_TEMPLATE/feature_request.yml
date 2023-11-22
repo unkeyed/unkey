@@ -2,7 +2,7 @@ name: "💡 Feature Request"
 description: Describe a new feature or capability you would like to see in Unkey's offering.
 labels:
   - "enhancement"
-  - "needs approval"
+  - "needs-approval"
 body:
   - type: markdown
     attributes:
