@@ -3,6 +3,7 @@ import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
 import { Metric } from "./pkg/metrics";
+import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -10,6 +11,7 @@ import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
 import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
 import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
+import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
@@ -77,6 +79,7 @@ registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);
 registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
+registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 
 // apis
@@ -84,6 +87,9 @@ registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
+
+// legacy REST style routes
+registerLegacyKeysUpdate(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
