@@ -91,15 +91,3 @@ body:
       render: markdown
     validations:
       required: true
-  - type: markdown
-    id: nodejs-version
-    attributes:
-      value: |
-        #### Node.JS version
-
-        [e.g. v18.15.0]
-  - type: markdown
-    id: anything-else
-    attributes:
-      value: |
-        #### Anything else?
