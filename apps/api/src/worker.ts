@@ -1,7 +1,7 @@
 import { Env, zEnv } from "@/pkg/env";
 import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { newId } from "./pkg/id";
+import { newId } from "@unkey/id";
 import { Metric } from "./pkg/metrics";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
@@ -49,7 +49,7 @@ app.use("*", async (c, next) => {
     userAgent: c.req.header("user-agent"),
   } as Metric["metric.http.request"];
   try {
-    const requestId = newId("request", 16);
+    const requestId = newId("request");
     m.requestId = requestId;
     c.set("requestId", requestId);
     await next();
