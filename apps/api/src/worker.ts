@@ -14,6 +14,7 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
+import { registerDeleteKey } from "./routes/keys_delete";
 // Legacy Routes
 import { registerGetKey } from "./routes/keys_get";
 import { registerCreateKey } from "./routes/keys_post";
@@ -94,6 +95,7 @@ registerV1ApisDeleteApi(app);
 registerGetKey(app);
 registerCreateKey(app);
 registerVerifyKey(app);
+registerDeleteKey(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {

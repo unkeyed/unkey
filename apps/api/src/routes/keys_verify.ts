@@ -5,7 +5,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
   method: "post",
-  path: "/v1/keys",
+  path: "/v1/keys/verify",
   request: {
     body: {
       required: true,
