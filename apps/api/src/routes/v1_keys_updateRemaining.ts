@@ -95,7 +95,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
 
     switch (req.op) {
       case "increment": {
-        if (key.remainingRequests === null) {
+        if (key.remaining === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message:
@@ -111,12 +111,12 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         await db
           .update(schema.keys)
           .set({
-            remainingRequests: sql`remaining_requests + ${req.value}`,
+            remaining: sql`remaining_requests + ${req.value}`,
           })
           .where(eq(schema.keys.id, req.keyId));
       }
       case "decrement": {
-        if (key.remainingRequests === null) {
+        if (key.remaining === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message:
@@ -132,7 +132,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         await db
           .update(schema.keys)
           .set({
-            remainingRequests: sql`remaining_requests - ${req.value}`,
+            remaining: sql`remaining_requests - ${req.value}`,
           })
           .where(eq(schema.keys.id, req.keyId));
       }
@@ -140,7 +140,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         await db
           .update(schema.keys)
           .set({
-            remainingRequests: req.value,
+            remaining: req.value,
           })
           .where(eq(schema.keys.id, req.keyId));
       }
@@ -158,6 +158,6 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     }
 
     return c.jsonT({
-      remaining: keyAfterUpdate.remainingRequests,
+      remaining: keyAfterUpdate.remaining,
     });
   });

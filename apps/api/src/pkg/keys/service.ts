@@ -130,7 +130,7 @@ export class KeyService {
       });
     }
 
-    if (data.key.remainingRequests !== null) {
+    if (data.key.remaining !== null) {
       const limited = await this.usageLimiter.limit({ keyId: data.key.id });
       if (!limited.valid) {
         return result.success({
