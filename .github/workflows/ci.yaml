@@ -3,11 +3,11 @@ name: CI
 on:
   pull_request:
 
-concurrency: ${{ github.workflow }} - ${{ github.ref }}
+concurrency: CI
 
 
 env:
-  BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
+  DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
   PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
   PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
@@ -66,13 +66,13 @@ jobs:
           version: latest
 
       - name: Create a branch
-        run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
+        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
 
 
       - name: Create a password
         id: database_password
         run: |
-          res=$(pscale password create unkey $BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
 
           # Extract secrets
           database_host=$(echo $res | jq -r '.access_host_url')
@@ -128,7 +128,7 @@ jobs:
       - name: Delete planetscale branch
         if: always()
         run: |
-          pscale branch delete unkey $BRANCH_NAME --force --org=unkey
+          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
 
 
   lint:
