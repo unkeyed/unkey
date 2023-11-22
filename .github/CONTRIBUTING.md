@@ -11,7 +11,7 @@ Contributions are what makes the open source community such an amazing place to 
     - Feature Requests: Wait for a Unkey member to approve and remove the `needs approval` label before you start coding or submit a PR.
     - Bugs, Security, Documentation, etc.: You can start coding immediately, even if the `needs approval` label is present. This label mainly concerns feature requests.
   - **Our Process**:
-    - Issues from non-core members automatically receive the `needs approval` label.
+    - Issues from Unkey member automatically receive the `needs approval` label.
     - We greatly value new feature ideas. To ensure consistency in the product's direction, they undergo review and approval.
 
 
@@ -44,7 +44,7 @@ pnpm build
 To check the formatting of your code:
 
 ```sh
-pnpm lint
+pnpm fmt
 ```
 
 If you get errors, be sure to fix them before committing.
