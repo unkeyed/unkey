@@ -3,11 +3,11 @@ import { describe, expect, test } from "bun:test";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
-import { newId } from "@/pkg/id";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
+import { newId } from "@unkey/id";
 import { type V1ApisGetApiResponse, registerV1ApisGetApi } from "./v1_apis_getApi";
 
 describe("when api exists", () => {

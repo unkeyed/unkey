@@ -217,7 +217,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       ratelimitRefillRate: req.ratelimit?.refillRate,
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
-      remaining: req.remaining,
+      remainingRequests: req.remaining,
       totalUses: 0,
       deletedAt: null,
     });
