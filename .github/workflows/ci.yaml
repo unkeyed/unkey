@@ -46,9 +46,9 @@ jobs:
           echo "::add-mask::$database_password"
 
           # Set outputs
-          echo "DATABASE_HOST=$(database_host)" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_USERNAME=$(database_username)" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_PASSWORD=$(database_password)" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_HOST=$database_host" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_OUTPUT"
 
 
       - uses: pnpm/action-setup@v2
