@@ -16,6 +16,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "base-x": "^4.0.0"
+    "base-x": "^4.0.0",
+    "@unkey/hash": "workspace:*"
   }
 }
