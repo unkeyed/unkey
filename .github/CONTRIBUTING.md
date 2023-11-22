@@ -8,10 +8,10 @@ Contributions are what makes the open source community such an amazing place to 
 - If there isn't an issue please *create one* before any development begins
 - GitHub issues: take note of the `needs approval` label.
   - **For Contributors**:
-    - Feature Requests: Wait for a Unkey member to approve and remove the `needs approval` label before you start coding or submit a PR.
+    - Feature Requests /  Refactoring on a large scale: Wait for a Unkey member to approve and remove the `needs approval` label before you start coding or submit a PR.
     - Bugs, Security, Documentation, etc.: You can start coding immediately, even if the `needs approval` label is present. This label mainly concerns feature requests.
   - **Our Process**:
-    - Issues from Unkey member automatically receive the `needs approval` label.
+    - Issues from anyone not on the Unkey team automatically receive the `needs approval` label.
     - We greatly value new feature ideas. To ensure consistency in the product's direction, they undergo review and approval.
 
 
