@@ -3,6 +3,7 @@ import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
 import { Metric } from "./pkg/metrics";
+import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -86,6 +87,9 @@ registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
+
+// legacy REST style routes
+registerLegacyKeysUpdate(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {

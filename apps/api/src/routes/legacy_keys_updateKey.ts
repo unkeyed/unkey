@@ -7,9 +7,15 @@ import { schema } from "@unkey/db";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
-  method: "post",
-  path: "/v1/keys.updateKey",
+  method: "put",
+  path: "/v1/keys/{keyId}",
   request: {
+    params: z.object({
+      keyId: z.string().openapi({
+        description: "The id of the key you want to modify",
+        example: "key_123",
+      }),
+    }),
     headers: z.object({
       authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
         description: "A root key to authorize the request formatted as bearer token",
@@ -22,10 +28,6 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            keyId: z.string().openapi({
-              description: "The id of the key you want to modify",
-              example: "key_123",
-            }),
             name: z.string().nullish().openapi({
               description: "The name of the key",
               example: "Customer X",
@@ -107,14 +109,14 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysUpdateKeyRequest = z.infer<
+export type LegacyKeysUpdateKeyRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type V1KeysUpdateKeyResponse = z.infer<
+export type LegacyKeysUpdateKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerV1KeysUpdate = (app: App) =>
+export const registerLegacyKeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
 
@@ -129,15 +131,15 @@ export const registerV1KeysUpdate = (app: App) =>
     if (!rootKey.value.isRootKey) {
       throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
     }
-
+    const keyId = c.req.param("keyId");
     const req = c.req.valid("json");
 
     const key = await db.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.id, req.keyId),
+      where: (table, { eq }) => eq(table.id, keyId),
     });
 
     if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
+      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
     await db
@@ -158,7 +160,7 @@ export const registerV1KeysUpdate = (app: App) =>
         ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
         ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
       })
-      .where(eq(schema.keys.id, req.keyId));
+      .where(eq(schema.keys.id, keyId));
 
     await usageLimiter.revalidate({ keyId: key.id });
 

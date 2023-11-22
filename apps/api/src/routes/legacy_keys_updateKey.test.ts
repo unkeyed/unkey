@@ -10,17 +10,17 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import {
-  V1KeysUpdateKeyRequest,
-  V1KeysUpdateKeyResponse,
-  registerV1KeysUpdate,
-} from "./v1_keys_updateKey";
+  LegacyKeysUpdateKeyRequest,
+  LegacyKeysUpdateKeyResponse,
+  registerLegacyKeysUpdate,
+} from "./legacy_keys_updateKey";
 
 test("returns 200", async () => {
   const env = testEnv();
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysUpdate(app);
+  registerLegacyKeysUpdate(app);
 
   const r = await seed(env);
 
@@ -34,16 +34,14 @@ test("returns 200", async () => {
     createdAt: new Date(),
   };
   await r.database.insert(schema.keys).values(key);
-
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
-    url: "/v1/keys.updateKey",
+  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
+    method: "PUT",
+    url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
     },
     body: {
-      keyId: key.id,
       name: "test2",
       ownerId: "test2",
       meta: { test: "test" },
@@ -59,7 +57,7 @@ test("update all", async () => {
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysUpdate(app);
+  registerLegacyKeysUpdate(app);
 
   const r = await seed(env);
 
@@ -74,15 +72,14 @@ test("update all", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
-    url: "/v1/keys.updateKey",
+  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
+    method: "PUT",
+    url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
     },
     body: {
-      keyId: key.id,
       name: "newName",
       ownerId: "newOwnerId",
       expires: null,
@@ -118,7 +115,7 @@ test("update ratelimit", async () => {
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysUpdate(app);
+  registerLegacyKeysUpdate(app);
 
   const r = await seed(env);
 
@@ -133,15 +130,14 @@ test("update ratelimit", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
-    url: "/v1/keys.updateKey",
+  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
+    method: "PUT",
+    url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
     },
     body: {
-      keyId: key.id,
       ratelimit: {
         type: "fast",
         limit: 10,
@@ -172,7 +168,7 @@ test("delete expires", async () => {
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysUpdate(app);
+  registerLegacyKeysUpdate(app);
 
   const r = await seed(env);
 
@@ -188,15 +184,14 @@ test("delete expires", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
-    url: "/v1/keys.updateKey",
+  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
+    method: "PUT",
+    url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
     },
     body: {
-      keyId: key.id,
       expires: null,
     },
   });
@@ -218,7 +213,7 @@ test("update should not affect undefined fields", async () => {
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysUpdate(app);
+  registerLegacyKeysUpdate(app);
 
   const r = await seed(env);
 
@@ -235,15 +230,14 @@ test("update should not affect undefined fields", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
-    url: "/v1/keys.updateKey",
+  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
+    method: "PUT",
+    url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
     },
     body: {
-      keyId: key.id,
       ownerId: "newOwnerId",
     },
   });
