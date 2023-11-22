@@ -9,7 +9,7 @@ const route = createRoute({
   method: "get",
   path: "/v1/keys.getKey",
   request: {
-    header: z.object({
+    headers: z.object({
       authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
         description: "A root key to authorize the request formatted as bearer token",
         example: "Bearer unkey_1234",
