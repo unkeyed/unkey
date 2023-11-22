@@ -33,50 +33,73 @@ body:
         Link to a minimal reproduction (GitHub repository, CodeSandbox, StackBlitz, etc.) or a [Replay recording](https://www.replay.io/).
 
         **Do not link to your actual project**, but provide a minimal reproduction in a fresh project.
-        
+
         Instructions:
         - [How to record a Replay](https://docs.replay.io/bug-reports/recording-a-replay)
     validations:
       required: false
   - type: textarea
+    id: issue-summary
     attributes:
-      label: Description
-      description: Describe the issue that you're seeing.
-      value: |
-        <!-- Be as precise as you can. Feel free to share screenshots, videos, or data from the devtools of your browser -->
-
-        **Steps to reproduce:**
-
-        1. Step 1
-        2. Step 2
-
-        **Expected behavior:**
-
-        <!-- Describe what you expected to happen -->
-
-        **Actual behavior:**
-
-        <!-- Describe what actually happened -->
+      label: Issue Summary
+      description: A summary of the issue. This needs to be a clear detailed-rich summary.
     validations:
       required: true
   - type: textarea
+    id: steps-to-reproduce
     attributes:
-      label: Environment
-      render: Shell
-      description: Run "npx envinfo --system --browsers --binaries --npmPackages" in your project directory and paste the output here.
-      placeholder: |
-        You'll get an output similar to this:
-
-        System:
-          OS: Operating System
-          CPU: CPU
-        Binaries:
-          Node: X
-          npm: X
-        Browsers:
-          Chrome: X
-          Edge: X
-        npmPackages:
-          unkey: X => X
+      label: Steps to Reproduce
+      value: |
+        1. (for example) Went to ...
+        2. Clicked on...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: other-information
+    attributes:
+      label: Other information
     validations:
       required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+    validations:
+      required: false
+  - type: textarea
+    id: versions
+    attributes:
+      label: Version info
+      description: |
+        examples:
+        - **OS**: [e.g. iOS]
+        - **Browser**: [e.g. chrome, safari]
+        - **Version**: [e.g. 22]
+      value: |
+        - OS:
+        - Node:
+        - npm:
+      render: markdown
+    validations:
+      required: true
+  - type: markdown
+    id: nodejs-version
+    attributes:
+      value: |
+        #### Node.JS version
+
+        [e.g. v18.15.0]
+  - type: markdown
+    id: anything-else
+    attributes:
+      value: |
+        #### Anything else?
