@@ -34,12 +34,21 @@ jobs:
         id: database_password
         run: |
           res=$(pscale password create unkey $BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
-          echo "DATABASE_HOST=$(echo $res | jq -r '.access_host_url')" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_USERNAME=$(echo $res | jq -r '.username')" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_PASSWORD=$(echo $res | jq -r '.plain_text')" >> "$GITHUB_OUTPUT"
 
+          # Extract secrets
+          database_host=$(echo $res | jq -r '.access_host_url')
+          database_username=$(echo $res | jq -r '.username')
+          database_password=$(echo $res | jq -r '.plain_text')
 
+          # Mask secrets
+          echo "::add-mask::$database_host"
+          echo "::add-mask::$database_username"
+          echo "::add-mask::$database_password"
 
+          # Set outputs
+          echo "DATABASE_HOST=$(database_host)" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_USERNAME=$(database_username)" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_PASSWORD=$(database_password)" >> "$GITHUB_OUTPUT"
 
 
       - uses: pnpm/action-setup@v2
@@ -69,7 +78,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.database_password.outputs.DATABASE_USERNAME }}:${{ steps.database_password.outputs.DATABASE_PASSWORD }}@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
+          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.database_password.outputs.DATABASE_USERNAME }}:${{ steps.database_password.outputs.DATABASE_PASSWORD }}@${{ steps.database_password.outputs.DATABASE_HOST}}/unkey?ssl={"rejectUnauthorized":true}'
 
 
       - name: Test
