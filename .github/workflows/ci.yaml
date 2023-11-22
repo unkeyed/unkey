@@ -29,15 +29,19 @@ jobs:
       - name: Create a branch
         run: pscale branch create unkey $BRANCH_NAME --from=main --org=unkey --wait
 
+
       - name: Create a password
-        uses: planetscale/create-branch-password-action@v1
-        id: create_password
-        with:
-          org_name: unkey
-          database_name: unkey
-          branch_name: $BRANCH_NAME
-          name: gihub-actions
-          role: admin
+        run: |
+          pscale password create unkey $BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json
+
+      # uses: planetscale/create-branch-password-action@v1
+      #   id: create_password
+      #   with:
+      #     org_name: unkey
+      #     database_name: unkey
+      #     branch_name: $BRANCH_NAME
+      #     name: gihub-actions
+      #     role: admin
 
 
       - uses: pnpm/action-setup@v2
