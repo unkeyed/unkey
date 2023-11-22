@@ -1,21 +1,16 @@
 import { cache, db, keyService } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
-import { createRoute, z } from "@hono/zod-openapi";
+import { z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 
-import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { UnkeyApiError } from "@/pkg/errors";
+import { createAuthenticatedRoute } from "@/pkg/hono/openapi/create-auth-route";
 import { eq } from "drizzle-orm";
 
-const route = createRoute({
+const route = createAuthenticatedRoute({
   method: "post",
   path: "/v1/keys.deleteKey",
   request: {
-    headers: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
     body: {
       required: true,
       content: {
@@ -40,7 +35,6 @@ const route = createRoute({
         },
       },
     },
-    ...openApiErrorResponses,
   },
 });
 
