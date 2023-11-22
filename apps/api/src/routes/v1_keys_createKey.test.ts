@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { sha256 } from "@/pkg/hash/sha256";
 import { newApp } from "@/pkg/hono/app";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
+import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
 import {
