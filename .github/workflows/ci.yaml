@@ -67,7 +67,8 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
+          # Yes I know I leaked this, it's only valid for a few minutes and it's a test database
+          DRIZZLE_DATABASE_URL: 'mysql://dbsjx1z5h7h1p7mdrpfn:pscale_pw_4nyg2Fn983JqZDzyTeumVlw5Zxe7H1eAvB2wNOxSwME@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
 
           # DRIZZLE_DATABASE_URL: "mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@aws.connect.psdb.cloud/unkey"
 
