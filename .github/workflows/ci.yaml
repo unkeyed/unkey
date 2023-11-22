@@ -51,8 +51,8 @@ jobs:
        env:
          DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
-  test_api:
-    name: Test Api
+  test_api_worker:
+    name: Unit Test API
     runs-on: ubuntu-latest
 
 
