@@ -7,7 +7,7 @@ concurrency: ${{ github.workflow }} - ${{ github.ref }}
 
 
 env:
-  BRANCH_NAME: gh-ci-${{ github.event.number }}-${{ github.actor }}
+  BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
   PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
   PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
@@ -32,7 +32,7 @@ jobs:
 
       - name: Create a password
         run: |
-          res = $(pscale password create unkey $BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+          res=$(pscale password create unkey $BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
           echo "DATABASE_HOST=$(echo $res | jq -r '.access_host_url')" >> "$GITHUB_ENV"
           echo "DATABASE_USERNAME=$(echo $res | jq -r '.username')" >> "$GITHUB_ENV"
           echo "DATABASE_PASSWORD=$(echo $res | jq -r '.plain_text')" >> "$GITHUB_ENV"
