@@ -15,7 +15,7 @@ export const MobileSideBar = ({ className }: Props) => {
   return (
     <div className={cn(className, "w-96")}>
       <Sheet>
-        <div className="flex items-center justify-between w-full p-4">
+        <div className="flex items-center justify-between w-full p-4 gap-6">
           <SheetTrigger>
             <Menu className="w-6 h-6 " />
           </SheetTrigger>

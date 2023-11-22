@@ -159,9 +159,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               </AlertDescription>
             </Alert>
 
-            <Code className="flex items-center justify-between w-full gap-4 my-8 ">
+            <Code className="flex items-center justify-between w-full gap-4 my-8 sm:overflow-hidden max-sm:text-xs">
               <pre data-sentry-mask>{showKey ? key.data.key : maskedKey}</pre>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-4 max-sm:absolute  max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
               </div>
@@ -169,11 +169,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
           </div>
 
           <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
-          <Code className="flex items-start justify-between w-full gap-4 my-8 max-sm:text-[8px]">
-            <pre data-sentry-mask>
-              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-            </pre>
-            <div className="flex items-start justify-between gap-4">
+          <Code className="flex items-start justify-between w-full gap-4 my-8 max-sm:text-xs overflow-hidden ">
+            <div className="max-sm:mt-10">
+              <pre data-sentry-mask>
+                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+              </pre>
+            </div>
+            <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11 max-ms:top-2 ">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>

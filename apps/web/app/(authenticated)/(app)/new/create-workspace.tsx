@@ -126,10 +126,10 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                               field.onChange("pro");
                             }}
                           >
-                            <div>
+                            <div className="w-full ">
                               <FormLabel className="font-semibold">PRO</FormLabel>
 
-                              <p className="text-sm text-content-subtle">
+                              <p className="text-sm text-content-subtle max-sm:mt-2">
                                 Usage based billing for teams
                               </p>
                               <p className="text-xs text-content-subtle">
@@ -137,7 +137,9 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                               </p>
                             </div>
 
-                            <Badge>14 Day Trial</Badge>
+                            <Badge className="py-1 px-4 max-sm:text-xs whitespace-nowrap max-sm:absolute max-sm:right-12">
+                              14 Day Trial
+                            </Badge>
                           </FormItem>
                           <FormItem
                             className={cn(
@@ -163,7 +165,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                                 })}
                               >
                                 <FormLabel className="font-semibold">FREE</FormLabel>
-                                <p className="text-sm text-content-subtle">
+                                <p className="text-sm text-content-subtle max-sm:mt-2">
                                   Free forever for side projects
                                 </p>
                                 <p className="text-xs text-content-subtle">
