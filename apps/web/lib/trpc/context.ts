@@ -6,7 +6,6 @@ import { unkeyRoot } from "../api";
 import { db, eq, schema } from "../db";
 
 export async function createContext({ req, resHeaders }: FetchCreateContextFnOptions) {
-  // biome-ignore lint/suspicious/noExplicitAny: TODO
   const { userId, orgId, orgRole } = getAuth(req as any);
 
   const tenantId = orgId ?? userId;

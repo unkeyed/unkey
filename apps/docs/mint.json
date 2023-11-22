@@ -108,13 +108,19 @@
           "pages": [
             "api-reference/keys/create",
             "api-reference/keys/verify",
+            "api-reference/keys/get",
             "api-reference/keys/update",
-            "api-reference/keys/revoke"
+            "api-reference/keys/delete"
           ]
         },
         {
           "group": "APIs",
-          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
+          "pages": [
+            "api-reference/apis/get",
+            "api-reference/apis/create",
+            "api-reference/apis/list-keys",
+            "api-reference/apis/delete"
+          ]
         }
       ]
     },
@@ -217,10 +223,7 @@
         },
         {
           "group": "API",
-          "pages": [
-            "libraries/springboot-java/api/get",
-            "libraries/springboot-java/api/list"
-          ]
+          "pages": ["libraries/springboot-java/api/get", "libraries/springboot-java/api/list"]
         }
       ]
     },
@@ -237,5 +240,12 @@
   "footerSocials": {
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
+  },
+  "openapi": "https://api.unkey.app/openapi.json",
+  "api": {
+    "baseUrl": "https://api.unkey.app",
+    "auth": {
+      "method": "bearer"
+    }
   }
 }

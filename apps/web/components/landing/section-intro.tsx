@@ -16,7 +16,6 @@ export function SectionIntro({
   children?: React.ReactNode;
   smaller?: boolean;
   invert?: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   [key: string]: any;
 }) {
   return (
