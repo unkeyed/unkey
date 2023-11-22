@@ -6,12 +6,12 @@ Contributions are what makes the open source community such an amazing place to 
 
 - Before submitting a new issue or PR, check if it already exists in [issues](https://github.com/unkeyed/unkey/issues) or [PRs](https://github.com/unkeyed/unkey/pulls).
 - If there isn't an issue please *create one* before any development begins
-- GitHub issues: take note of the `needs approval` label.
+- GitHub issues: take note of the `needs-approval` label.
   - **For Contributors**:
-    - Feature Requests /  Refactoring on a large scale: Wait for a Unkey member to approve and remove the `needs approval` label before you start coding or submit a PR.
-    - Bugs, Security, Documentation, etc.: You can start coding immediately, even if the `needs approval` label is present. This label mainly concerns feature requests.
+    - Feature Requests / Refactoring on a Large Scale: Wait for an Unkey member to approve and remove the `needs-approval` label before you start coding or submitting a PR.
+    - Bugs, Security, Documentation, etc.: You can start coding immediately, even if the `needs-approval` label is present. This label mainly concerns feature requests.
   - **Our Process**:
-    - Issues from anyone not on the Unkey team automatically receive the `needs approval` label.
+    - Issues from anyone not on the Unkey team automatically receive the `needs-approval` label.
     - We greatly value new feature ideas. To ensure consistency in the product's direction, they undergo review and approval.
 
 
