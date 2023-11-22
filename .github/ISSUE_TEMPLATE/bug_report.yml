@@ -76,9 +76,9 @@ body:
     validations:
       required: false
   - type: textarea
-    id: desktop-version
+    id: versions
     attributes:
-      label: Desktop (please complete the following information)
+      label: Version info
       description: |
         examples:
         - **OS**: [e.g. iOS]
