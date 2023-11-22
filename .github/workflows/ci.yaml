@@ -3,9 +3,6 @@ name: CI
 on:
   pull_request_target:
 
-concurrency: CI
-
-
 env:
   DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
   PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
