@@ -53,8 +53,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey?ssl={"rejectUnauthorized":true}'
-
+v
       - name: Test
         run: bun test src/routes --coverage
         working-directory: apps/api
