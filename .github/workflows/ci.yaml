@@ -69,7 +69,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.database_password.outputs.DATABASE_USERNAME }}:${{ steps.database_password.outputs..DATABASE_PASSWORD }}@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
+          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.database_password.outputs.DATABASE_USERNAME }}:${{ steps.database_password.outputs.DATABASE_PASSWORD }}@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
 
 
       - name: Test
