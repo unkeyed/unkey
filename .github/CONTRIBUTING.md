@@ -28,7 +28,7 @@ To develop locally:
 2. Create a new branch:
 
    ```sh
-   git checkout -b MY_BRANCH_NAME
+   git switch -c MY_BRANCH_NAME
    ```
 3. Follow our getting started guide in our [documentation](https://unkey.dev/docs/contributing/getting-started)
 
