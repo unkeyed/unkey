@@ -62,10 +62,10 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysUpdateKeyRequest = z.infer<
+export type V1KeysUpdateKeyRemainingRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type V1KeysUpdateKeyResponse = z.infer<
+export type V1KeysUpdateKeyRemainingResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
