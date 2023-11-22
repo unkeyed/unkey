@@ -67,10 +67,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DATABASE_HOST: ${{ steps.create_password.outputs.hostname }}
-          DATABASE_USERNAME: ${{ steps.create_password.outputs.username }}
-          DATABASE_PASSWORD: ${{ steps.create_password.outputs.password }}
-          # DRIZZLE_DATABASE_URL: "mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey"
+          DRIZZLE_DATABASE_URL: "mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@aws.connect.psdb.cloud/unkey"
 
       - name: Test
         run: bun test src/routes --coverage
