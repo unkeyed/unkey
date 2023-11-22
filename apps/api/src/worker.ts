@@ -15,9 +15,9 @@ import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
 // Legacy Routes
-import { registerGetKey } from "./routes/key_get";
-import { registerCreateKey } from "./routes/key_post";
-import { registerVerifyKey } from "./routes/key_verify";
+import { registerGetKey } from "./routes/keys_get";
+import { registerCreateKey } from "./routes/keys_post";
+import { registerVerifyKey } from "./routes/keys_verify";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";

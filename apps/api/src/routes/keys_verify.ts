@@ -130,7 +130,7 @@ Possible values are:
   },
 });
 
-export type V1KeysVerifyKeyRequest = z.infer<
+export type VerifyKeyRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
 export type VerifyKeyResponse = z.infer<

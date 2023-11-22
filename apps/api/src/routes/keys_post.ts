@@ -151,7 +151,7 @@ When validating a key, we will return this back to you, so you can clearly ident
 });
 
 export type Route = typeof route;
-export type V1KeysCreateKeyRequest = z.infer<
+export type CreateKeyRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
 export type CreateKeyResponse = z.infer<

@@ -9,7 +9,7 @@ import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
-import { GetKeyResponse, registerGetKey } from "./key_get";
+import { GetKeyResponse, registerGetKey } from "./keys_get";
 
 test("returns 200", async () => {
   const env = testEnv();
