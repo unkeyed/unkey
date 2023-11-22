@@ -5,6 +5,10 @@ export default {
   out: "./drizzle",
   driver: "mysql2",
   dbCredentials: {
-    connectionString: process.env.DRIZZLE_DATABASE_URL!,
+    host: process.env.DATABASE_HOST!,
+    user: process.env.DATABASE_USERNAME!,
+    password: process.env.DATABASE_PASSWORD!,
+    database: "unkey",
+    // connectionString: process.env.DRIZZLE_DATABASE_URL!,
   },
 } satisfies Config;

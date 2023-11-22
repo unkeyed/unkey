@@ -44,6 +44,20 @@ jobs:
         with:
           version: latest
 
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+
       - name: Install dependencies
         run: |
           pnpm install
@@ -53,7 +67,10 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: "mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey"
+          DATABASE_HOST: ${{ steps.create_password.outputs.hostname }}
+          DATABASE_USERNAME: ${{ steps.create_password.outputs.username }}
+          DATABASE_PASSWORD: ${{ steps.create_password.outputs.password }}
+          # DRIZZLE_DATABASE_URL: "mysql://${{ steps.create_password.outputs.username }}:${{ steps.create_password.outputs.password }}@${{ steps.create_password.outputs.hostname }}/unkey"
 
       - name: Test
         run: bun test src/routes --coverage
