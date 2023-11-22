@@ -31,24 +31,15 @@ jobs:
 
 
       - name: Create a password
+        id: database_password
         run: |
           res=$(pscale password create unkey $BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
-          echo "DATABASE_HOST=$(echo $res | jq -r '.access_host_url')" >> "$GITHUB_ENV"
-          echo "DATABASE_USERNAME=$(echo $res | jq -r '.username')" >> "$GITHUB_ENV"
-          echo "DATABASE_PASSWORD=$(echo $res | jq -r '.plain_text')" >> "$GITHUB_ENV"
-          echo "::add-mask::${{ env.DATABASE_PASSWORD }}"
-          echo "::add-mask::${{ env.DATABASE_USERNAME }}"
+          echo "DATABASE_HOST=$(echo $res | jq -r '.access_host_url')" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_USERNAME=$(echo $res | jq -r '.username')" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_PASSWORD=$(echo $res | jq -r '.plain_text')" >> "$GITHUB_OUTPUT"
 
 
 
-      # uses: planetscale/create-branch-password-action@v1
-      #   id: create_password
-      #   with:
-      #     org_name: unkey
-      #     database_name: unkey
-      #     branch_name: $BRANCH_NAME
-      #     name: gihub-actions
-      #     role: admin
 
 
       - uses: pnpm/action-setup@v2
@@ -78,13 +69,16 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{ env.DATABASE_USERNAME }}:${{ env.DATABASE_PASSWORD }}@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
+          DRIZZLE_DATABASE_URL: 'mysql://${{ steps.database_password.outputs.DATABASE_USERNAME }}:${{ steps.database_password.outputs..DATABASE_PASSWORD }}@aws.connect.psdb.cloud/unkey?ssl={"rejectUnauthorized":true}'
 
 
       - name: Test
         run: bun test src/routes --coverage
         working-directory: apps/api
         env:
+          DATABASE_HOST: ${{ steps.database_password.outputs.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ steps.database_password.outputs.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ steps.database_password.outputs.DATABASE_PASSWORD }}
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
       - name: Delete planetscale branch
         if: always()
