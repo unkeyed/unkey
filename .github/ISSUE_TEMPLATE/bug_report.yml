@@ -1,8 +1,8 @@
 name: "🐛 Bug Report"
 description: Report a bug for Unkey.
 labels:
-  - "needs-triage"
   - "bug"
+  - "needs-approval"
 body:
   - type: markdown
     attributes:
