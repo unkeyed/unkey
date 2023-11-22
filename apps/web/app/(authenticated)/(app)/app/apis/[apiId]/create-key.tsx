@@ -148,7 +148,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   return (
     <>
       {key.data ? (
-        <div className="w-full">
+        <div className="w-full max-sm:p-4">
           <div>
             <p className="mb-4 text-xl font-bold">Your API Key</p>
             <Alert>
@@ -169,7 +169,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
           </div>
 
           <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
-          <Code className="flex items-start justify-between w-full gap-4 my-8 ">
+          <Code className="flex items-start justify-between w-full gap-4 my-8 max-sm:text-[8px]">
             <pre data-sentry-mask>
               {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
             </pre>

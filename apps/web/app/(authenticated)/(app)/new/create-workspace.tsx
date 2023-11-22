@@ -65,9 +65,26 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
     },
   });
 
+  function AsideContent() {
+    return (
+      <div className="space-y-2">
+        <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
+          <Box className="w-6 h-6 text-primary" />
+        </div>
+        <h4 className="text-lg font-medium">What is a workspace?</h4>
+        <p className="text-sm text-content-subtle">
+          A workspace groups all your resources and billing. You can have one personal workspace for
+          free and create more workspaces with your teammates.
+        </p>
+      </div>
+    );
+  }
   return (
-    <div className="flex items-start justify-between gap-16">
-      <main className="w-3/4">
+    <div className="flex items-start justify-between gap-16 max-sm:gap-4">
+      <main className="w-3/4 max-sm:w-full">
+        <aside className="mb-4 md:hidden">
+          <AsideContent />
+        </aside>
         <div>
           <Form {...form}>
             <form
@@ -183,17 +200,8 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
           </Form>
         </div>
       </main>
-      <aside className="flex flex-col items-start justify-center w-1/4 space-y-16">
-        <div className="space-y-2">
-          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
-            <Box className="w-6 h-6 text-primary" />
-          </div>
-          <h4 className="text-lg font-medium">What is a workspace?</h4>
-          <p className="text-sm text-content-subtle">
-            A workspace groups all your resources and billing. You can have one personal workspace
-            for free and create more workspaces with your teammates.
-          </p>
-        </div>
+      <aside className="md:flex flex-col items-start justify-center w-1/4 space-y-16 max-md:hidden ">
+        <AsideContent />
       </aside>
     </div>
   );

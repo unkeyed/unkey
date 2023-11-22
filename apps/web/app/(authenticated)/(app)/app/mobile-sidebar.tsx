@@ -2,10 +2,10 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { UserButton } from "@clerk/nextjs";
 import { BookOpen, FileJson, Menu, Settings } from "lucide-react";
 import Link from "next/link";
 import { WorkspaceSwitcher } from "./team-switcher";
+import { UserButton } from "./user-button";
 
 type Props = {
   className?: string;
@@ -29,6 +29,10 @@ export const MobileSideBar = ({ className }: Props) => {
           className="bg-white shadow dark:bg-gray-950 rounded-xl"
           size="lg"
         >
+          <div className="absolute bottom-6 left-2">
+            <UserButton />
+          </div>
+
           <div className="flex flex-col w-full p-4 ">
             <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
             <div className="space-y-1">
@@ -58,9 +62,6 @@ export const MobileSideBar = ({ className }: Props) => {
           </div>
         </SheetContent>
       </Sheet>
-      <div className="absolute top-4 right-4">
-        <UserButton />
-      </div>
     </div>
   );
 };

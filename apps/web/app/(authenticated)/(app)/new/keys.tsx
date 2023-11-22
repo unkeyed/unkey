@@ -104,10 +104,38 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
     }
     return `${split.at(0)}_${"*".repeat(split.at(1)!.length)}`;
   }
-
+  function AsideContent() {
+    return (
+      <div>
+        <div className="space-y-2">
+          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
+            <Lock className="w-6 h-6 text-primary" />
+          </div>
+          <h4 className="text-lg font-medium">Root Keys</h4>
+          <p className="text-sm text-content-subtle">
+            Root keys create resources such as keys or APIs on Unkey. You should never give this to
+            your users.
+          </p>
+        </div>
+        <div className="space-y-2 max-sm:mt-4">
+          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
+            <KeyRound className="w-6 h-6 text-primary" />
+          </div>
+          <h4 className="text-lg font-medium">Regular Keys</h4>
+          <p className="text-sm text-content-subtle">
+            Regular API keys are used to authenticate your users. You can use your root key to
+            create regular API keys and give them to your users.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex items-start justify-between gap-16">
-      <main className="w-3/4">
+      <main className="max-sm:w-full md:w-3/4">
+        <aside className="mb-4 md:hidden w-full">
+          <AsideContent />
+        </aside>
         {step.step === "CREATE_ROOT_KEY" ? (
           <EmptyPlaceholder>
             <EmptyPlaceholder.Description>
@@ -135,10 +163,11 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
             <CardContent>
               <Code
                 data-sentry-mask
-                className="flex items-center justify-between w-full gap-4 my-8 "
+                className="flex items-center justify-between w-full gap-4 my-8 
+                max-sm:text-[10px]"
               >
                 {showKey ? step.rootKey : maskKey(step.rootKey)}
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 ">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                   <CopyButton value={step.rootKey} />
                 </div>
@@ -149,12 +178,12 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               </p>
               <Code
                 data-sentry-mask
-                className="flex items-start justify-between w-full gap-4 my-8 "
+                className="flex items-start justify-between w-full gap-4 my-8 max-sm:text-[8px] md:text-[10px] "
               >
                 {showKeyInSnippet
                   ? createKeySnippet
                   : createKeySnippet.replace(step.rootKey, maskKey(step.rootKey))}
-                <div className="flex items-start justify-between gap-4">
+                <div className="md:flex items-start justify-between gap-4 max-sm:absolute max-sm:top-30 max-sm:right-16 ">
                   <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
                   <CopyButton value={createKeySnippet} />
                 </div>
@@ -170,6 +199,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                 {key.isLoading ? <Loading /> : "Or click here to create a key"}
               </Button>
               <Button
+                className="max-sm:text-[8px]"
                 size="sm"
                 onClick={() => {
                   setStep({ step: "VERIFY_KEY" });
@@ -189,7 +219,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               {step.key ? (
                 <Code
                   data-sentry-mask
-                  className="flex items-center justify-between w-full gap-4 my-8 "
+                  className="flex items-center justify-between w-full gap-4 my-8"
                 >
                   {showKey ? step.key : maskKey(step.key)}
                   <div className="flex items-start justify-between gap-4">
@@ -201,14 +231,14 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
 
               <Code
                 data-sentry-mask
-                className="flex items-start justify-between w-full gap-4 my-8 "
+                className="flex items-start justify-between w-full gap-4 my-8 overflow-scroll max-sm:text-[8px]"
               >
                 {step.key
                   ? showKeyInSnippet
                     ? verifyKeySnippet
                     : verifyKeySnippet.replace(step.key, maskKey(step.key))
                   : verifyKeySnippet}
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 overflow-scroll">
                   {step.key ? (
                     <VisibleButton
                       isVisible={showKeyInSnippet}
@@ -232,27 +262,8 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
           </Card>
         ) : null}
       </main>
-      <aside className="flex flex-col items-start justify-center w-1/4 space-y-16">
-        <div className="space-y-2">
-          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
-            <Lock className="w-6 h-6 text-primary" />
-          </div>
-          <h4 className="text-lg font-medium">Root Keys</h4>
-          <p className="text-sm text-content-subtle">
-            Root keys create resources such as keys or APIs on Unkey. You should never give this to
-            your users.
-          </p>
-        </div>
-        <div className="space-y-2">
-          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
-            <KeyRound className="w-6 h-6 text-primary" />
-          </div>
-          <h4 className="text-lg font-medium">Regular Keys</h4>
-          <p className="text-sm text-content-subtle">
-            Regular API keys are used to authenticate your users. You can use your root key to
-            create regular API keys and give them to your users.
-          </p>
-        </div>
+      <aside className="md:flex flex-col items-start justify-center w-1/4 space-y-16 max-md:hidden ">
+        <AsideContent />
       </aside>
     </div>
   );
