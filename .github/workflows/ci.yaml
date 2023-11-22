@@ -3,46 +3,133 @@ name: CI
 on:
   pull_request:
 
-concurrency: ${{ github.workflow }} - ${{ github.ref }}
+concurrency: CI
+
+
+env:
+  DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
+  PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+  PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
 jobs:
+
   test_agent:
-    name: Unit Test Agent
+   name: Unit Test Agent
+   runs-on: ubuntu-latest
+
+   services:
+     mysql:
+       image: mysql:latest
+       env:
+         MYSQL_ALLOW_EMPTY_PASSWORD: yes
+         MYSQL_DATABASE: unkey
+       ports:
+         - 3306:3306
+       options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+   steps:
+     - uses: actions/checkout@v3
+
+     - name: Load Schema into MySQL
+       run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
+
+     - name: Setup Go
+       uses: actions/setup-go@v2
+       with:
+         go-version: ^1.20.0
+
+     - name: Set up gotestfmt
+       run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
+     - name: Install dependencies
+       run: go mod download
+       working-directory: apps/agent
+
+     - name: Test
+       run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
+       working-directory: apps/agent
+       env:
+         DATABASE_DSN: root@tcp(localhost:3306)/unkey
+
+  test_api_worker:
+    name: Unit Test API
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:latest
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: unkey
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Load Schema into MySQL
-        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
 
-      - name: Setup Go
-        uses: actions/setup-go@v2
+      - name: Setup pscale
+        uses: planetscale/setup-pscale-action@v1
         with:
-          go-version: ^1.20.0
+          version: latest
 
-      - name: Set up gotestfmt
-        run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+      - name: Create a branch
+        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
+
+
+      - name: Create a password
+        id: database_password
+        run: |
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+
+          # Extract secrets
+          database_host=$(echo $res | jq -r '.access_host_url')
+          database_username=$(echo $res | jq -r '.username')
+          database_password=$(echo $res | jq -r '.plain_text')
+
+          # Mask secrets
+          echo "::add-mask::$database_host"
+          echo "::add-mask::$database_username"
+          echo "::add-mask::$database_password"
+
+          # Set outputs
+          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
+          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
+          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
+
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
 
       - name: Install dependencies
-        run: go mod download
-        working-directory: apps/agent
+        run: |
+          pnpm install
+          npm i -g bun
+
+      - name: Load Schema into MySQL
+        run: pnpm drizzle-kit push:mysql
+        working-directory: internal/db
+        env:
+          DRIZZLE_DATABASE_URL: 'mysql://${{env.DATABASE_USERNAME }}:${{env.DATABASE_PASSWORD }}@${{env.DATABASE_HOST}}/unkey?ssl={"rejectUnauthorized":true}'
+
 
       - name: Test
-        run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
-        working-directory: apps/agent
+        run: bun test src/routes --coverage
+        working-directory: apps/api
         env:
-          DATABASE_DSN: root@tcp(localhost:3306)/unkey
+          UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
+      - name: Delete planetscale branch
+        if: always()
+        run: |
+          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+
 
   lint:
     name: Lint

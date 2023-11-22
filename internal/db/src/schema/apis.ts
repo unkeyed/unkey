@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { auditLogs } from "./audit";
+import { keyAuth } from "./keyAuth";
 import { workspaces } from "./workspaces";
 
 export const apis = mysqlTable(
@@ -24,6 +25,10 @@ export const apisRelations = relations(apis, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [apis.workspaceId],
     references: [workspaces.id],
+  }),
+  keyAuth: one(keyAuth, {
+    fields: [apis.keyAuthId],
+    references: [keyAuth.id],
   }),
   auditLogs: many(auditLogs),
 }));
