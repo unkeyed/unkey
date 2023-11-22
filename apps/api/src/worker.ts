@@ -17,6 +17,7 @@ import { registerV1Liveness } from "./routes/v1_liveness";
 // Legacy Routes
 import { registerGetKey } from "./routes/key_get";
 import { registerCreateKey } from "./routes/key_post";
+import { registerVerifyKey } from "./routes/key_verify";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
@@ -92,6 +93,7 @@ registerV1ApisDeleteApi(app);
 // Legacy Routes
 registerGetKey(app);
 registerCreateKey(app);
+registerVerifyKey(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
