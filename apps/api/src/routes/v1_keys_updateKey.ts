@@ -152,7 +152,7 @@ export const registerV1KeysUpdate = (app: App) =>
             : req.expires === null
             ? null
             : new Date(req.expires),
-        remainingRequests: req.remaining,
+        remaining: req.remaining,
         ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
         ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
         ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,

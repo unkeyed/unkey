@@ -107,7 +107,7 @@ test("update all", async () => {
   expect(found?.ratelimitLimit).toEqual(10);
   expect(found?.ratelimitRefillRate).toEqual(5);
   expect(found?.ratelimitRefillInterval).toEqual(1000);
-  expect(found?.remainingRequests).toEqual(0);
+  expect(found?.remaining).toEqual(0);
 });
 
 test("update ratelimit", async () => {
@@ -160,7 +160,7 @@ test("update ratelimit", async () => {
   expect(found?.ratelimitLimit).toEqual(10);
   expect(found?.ratelimitRefillRate).toEqual(5);
   expect(found?.ratelimitRefillInterval).toEqual(1000);
-  expect(found?.remainingRequests).toBeNull();
+  expect(found?.remaining).toBeNull();
 });
 
 test("delete expires", async () => {
@@ -256,5 +256,5 @@ test("update should not affect undefined fields", async () => {
   expect(found?.ratelimitLimit).toBeNull();
   expect(found?.ratelimitRefillRate).toBeNull();
   expect(found?.ratelimitRefillInterval).toBeNull();
-  expect(found?.remainingRequests).toBeNull();
+  expect(found?.remaining).toBeNull();
 });
