@@ -73,7 +73,8 @@ const route = createRoute({
               })
               .nullish()
               .openapi({
-                description: "Unkey comes with per-key ratelimiting out of the box.",
+                description:
+                  "Unkey comes with per-key ratelimiting out of the box. Set `null` to disable.",
                 example: {
                   type: "fast",
                   limit: 10,
@@ -83,7 +84,7 @@ const route = createRoute({
               }),
             remaining: z.number().nullish().openapi({
               description:
-                "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
+                "The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.",
               example: 1000,
             }),
           }),
@@ -139,36 +140,23 @@ export const registerV1KeysUpdate = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
     }
 
-    // Create the updated key object
-    const updatedKey = {
-      name: req.name,
-      ownerId: req.ownerId,
-      meta: req.meta === null ? null : JSON.stringify(req.meta),
-      expires: req.expires === null ? null : new Date(req.expires!),
-      remainingRequests: req.remaining,
-      ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
-      ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
-      ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
-      ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
-    };
-
     // Await the db call since workers are serverless (the call might not succeed but the response will be sent)
     await db
       .update(schema.keys)
-      .set({ ...updatedKey } as any)
+      .set({
+        name: req.name,
+        ownerId: req.ownerId,
+        meta: req.meta === null ? null : JSON.stringify(req.meta),
+        expires: req.expires === null ? null : new Date(req.expires!),
+        remainingRequests: req.remaining,
+        ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
+        ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
+        ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
+        ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
+      })
       .where(eq(schema.keys.id, req.keyId));
 
     await usageLimiter.revalidate({ keyId: key.id });
-    const keyAfterUpdate = await db.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.id, req.keyId),
-    });
-
-    if (!keyAfterUpdate) {
-      throw new UnkeyApiError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "key not found after update, this should not happen",
-      });
-    }
 
     return c.jsonT({});
   });
