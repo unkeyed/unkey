@@ -8,37 +8,39 @@ import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { CacheNamespaces } from "../global";
 
-type VerifyKeyResult =
-  | {
-      valid: false;
-      code: string;
-      ratelimit?: {
-        remaining: number;
-        limit: number;
-        reset: number;
-      };
-      remaining?: number;
-    }
-  | {
-      keyId: string;
-      apiId?: string;
-      valid: true;
-      ownerId?: string;
-      meta?: Record<string, unknown>;
-      expires?: number;
-      remaining?: number;
-      ratelimit?: {
-        remaining: number;
-        limit: number;
-        reset: number;
-      };
+export type ValidKey = {
+  keyId: string;
+  apiId?: string;
+  valid: true;
+  ownerId?: string;
+  meta?: Record<string, unknown>;
+  expires?: number;
+  remaining?: number;
+  ratelimit?: {
+    remaining: number;
+    limit: number;
+    reset: number;
+  };
 
-      isRootKey?: boolean;
-      /**
-       * the workspace of the user, even if this is a root key
-       */
-      authorizedWorkspaceId: string;
-    };
+  isRootKey?: boolean;
+  /**
+   * the workspace of the user, even if this is a root key
+   */
+  authorizedWorkspaceId: string;
+};
+
+export type InvalidKey = {
+  valid: false;
+  code: string;
+  ratelimit?: {
+    remaining: number;
+    limit: number;
+    reset: number;
+  };
+  remaining?: number;
+};
+
+type VerifyKeyResult = ValidKey | InvalidKey;
 
 export class KeyService {
   private readonly cache: TieredCache<CacheNamespaces>;
