@@ -32,7 +32,9 @@ export const createAuthenticatedRoute = <R extends Config>(routeConfig: R) => {
 
   const request = {
     ...(routeConfig?.request && { ...routeConfig?.request }),
-    headers: ZAuthHeader,
+    headers: routeConfig.request?.headers
+      ? ZAuthHeader.merge(routeConfig.request?.headers)
+      : ZAuthHeader,
   } as Request;
 
   return createRoute({
