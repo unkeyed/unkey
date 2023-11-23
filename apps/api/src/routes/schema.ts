@@ -46,7 +46,7 @@ export const keySchema = z
         "The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.",
       example: Date.now(),
     }),
-    expiresAt: z.number().optional().openapi({
+    expires: z.number().optional().openapi({
       description:
         "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
       example: Date.now(),
@@ -56,5 +56,38 @@ export const keySchema = z
         "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
       example: 1000,
     }),
+    ratelimit: z
+      .object({
+        type: z
+          .enum(["fast", "consistent"])
+          .default("fast")
+          .openapi({
+            description:
+              "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+            externalDocs: {
+              description: "Learn more",
+              url: "https://unkey.dev/docs/features/ratelimiting",
+            },
+          }),
+        limit: z.number().int().min(1).openapi({
+          description: "The total amount of burstable requests.",
+        }),
+        refillRate: z.number().int().min(1).openapi({
+          description: "How many tokens to refill during each refillInterval.",
+        }),
+        refillInterval: z.number().int().min(1).openapi({
+          description: "Determines the speed at which tokens are refilled, in milliseconds.",
+        }),
+      })
+      .optional()
+      .openapi({
+        description: "Unkey comes with per-key ratelimiting out of the box.",
+        example: {
+          type: "fast",
+          limit: 10,
+          refillRate: 1,
+          refillInterval: 60,
+        },
+      }),
   })
   .openapi("Key");

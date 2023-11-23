@@ -3,9 +3,6 @@ name: CI
 on:
   pull_request_target:
 
-concurrency: CI
-
-
 env:
   DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
   PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
@@ -109,20 +106,6 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           version: latest
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
 
       - name: Install dependencies
         run: |
