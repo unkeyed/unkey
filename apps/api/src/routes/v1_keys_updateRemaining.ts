@@ -1,8 +1,9 @@
-import { db, keyService, usageLimiter } from "@/pkg/global";
+import { db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { rootKey } from "@/pkg/hono/middlewares/root-key-middleware";
 import { schema } from "@unkey/db";
 import { eq, sql } from "drizzle-orm";
 
@@ -69,19 +70,10 @@ export type V1KeysUpdateKeyRemainingResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerV1KeysUpdateRemaining = (app: App) =>
-  app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
-    const rootKey = await keyService.verifyKey(c, { key: authorization });
-    if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
-    }
-    if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
-    }
-    if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
-    }
+export const registerV1KeysUpdateRemaining = (app: App) => {
+  app.use(route.getRoutingPath(), rootKey());
+  return app.openapi(route, async (c) => {
+    const rootKey = c.get("rootKey");
 
     const req = c.req.valid("json");
 
@@ -89,7 +81,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       where: (table, { eq }) => eq(table.id, req.keyId),
     });
 
-    if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
+    if (!key || key.workspaceId !== rootKey.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
     }
 
@@ -161,3 +153,4 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       remaining: keyAfterUpdate.remaining,
     });
   });
+};

@@ -1,8 +1,9 @@
-import { cache, db, keyService } from "@/pkg/global";
+import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { rootKey } from "@/pkg/hono/middlewares/root-key-middleware";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -158,19 +159,10 @@ export type V1KeysCreateKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerV1KeysCreateKey = (app: App) =>
-  app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
-    const rootKey = await keyService.verifyKey(c, { key: authorization });
-    if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
-    }
-    if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
-    }
-    if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
-    }
+export const registerV1KeysCreateKey = (app: App) => {
+  app.use(route.getRoutingPath(), rootKey());
+  return app.openapi(route, async (c) => {
+    const rootKey = c.get("rootKey");
 
     const req = c.req.valid("json");
 
@@ -182,7 +174,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       );
     });
 
-    if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
+    if (!api || api.workspaceId !== rootKey.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });
     }
 
@@ -209,7 +201,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       start,
       ownerId: req.ownerId,
       meta: JSON.stringify(req.meta ?? {}),
-      workspaceId: rootKey.value.authorizedWorkspaceId,
+      workspaceId: rootKey.authorizedWorkspaceId,
       forWorkspaceId: null,
       expires: req.expires ? new Date(req.expires) : null,
       createdAt: new Date(),
@@ -227,3 +219,4 @@ export const registerV1KeysCreateKey = (app: App) =>
       key,
     });
   });
+};
