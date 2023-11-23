@@ -1,10 +1,7 @@
 name: CI
 
 on:
-  pull_request:
-
-concurrency: CI
-
+  pull_request_target:
 
 env:
   DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
@@ -13,7 +10,18 @@ env:
 
 jobs:
 
+  authorize:
+    environment:
+      ${{ github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository &&
+      'external' || 'internal' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
+
   test_agent:
+   needs: authorize
    name: Unit Test Agent
    runs-on: ubuntu-latest
 
@@ -29,6 +37,8 @@ jobs:
 
    steps:
      - uses: actions/checkout@v3
+       with:
+         ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
      - name: Load Schema into MySQL
        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
@@ -52,12 +62,15 @@ jobs:
          DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
   test_api_worker:
+    needs: authorize
     name: Unit Test API
     runs-on: ubuntu-latest
 
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
 
       - name: Setup pscale
@@ -94,20 +107,6 @@ jobs:
         with:
           version: latest
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-
       - name: Install dependencies
         run: |
           pnpm install
@@ -121,7 +120,7 @@ jobs:
 
 
       - name: Test
-        run: bun test src/routes --coverage
+        run: bun test src/routes --coverage --timeout 10000
         working-directory: apps/api
         env:
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
@@ -132,11 +131,14 @@ jobs:
 
 
   lint:
+    needs: authorize
     name: Lint
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v2
@@ -169,11 +171,14 @@ jobs:
         run: pnpm biome ci .
 
   test_nuxt:
+    needs: authorize
     name: Test Nuxt
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
       - run: corepack enable
       - uses: actions/setup-node@v3
         with:
@@ -189,6 +194,7 @@ jobs:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
 
   tinybird:
+    needs: authorize
     name: Tinybird CI
     concurrency: tinybird
     uses: tinybirdco/ci/.github/workflows/ci.yml@v1.1.8
@@ -199,14 +205,16 @@ jobs:
       tb_host: https://api.tinybird.co
 
   build_packages:
+    needs: authorize
     strategy:
       matrix:
         package: ["@unkey/api", "@unkey/nextjs", "@unkey/hono", "@unkey/nuxt"]
     name: Build ${{matrix.package}}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v2

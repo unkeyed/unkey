@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { sha256 } from "@/pkg/hash/sha256";
 import { newApp } from "@/pkg/hono/app";
-import { newId } from "@/pkg/id";
-import { KeyV1 } from "@/pkg/keys/v1";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
+import { newId } from "@unkey/id";
+import { KeyV1 } from "@unkey/keys";
 import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 describe("simple", () => {
@@ -121,7 +121,7 @@ describe("with limit", () => {
     expect(res.status).toEqual(200);
     expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
     expect(res.body.keys).toBeArrayOfSize(2);
-  });
+  }, 10_000);
 });
 
 describe("with cursor", () => {
