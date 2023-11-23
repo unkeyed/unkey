@@ -12,7 +12,7 @@ import {
   LegacyKeysCreateKeyRequest,
   LegacyKeysCreateKeyResponse,
   registerLegacyKeysCreate,
-} from "./legacy_keys_postKey";
+} from "./legacy_keys_createKey";
 
 describe("simple", () => {
   test("creates key", async () => {
