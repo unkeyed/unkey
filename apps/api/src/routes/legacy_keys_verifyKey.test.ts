@@ -13,7 +13,7 @@ import { KeyV1 } from "@unkey/keys";
 import {
   LegacyKeysVerifyKeyRequest,
   LegacyKeysVerifyKeyResponse,
-  registerLegacyKeysVerify,
+  registerLegacyKeysVerifyKey,
 } from "./legacy_keys_verifyKey";
 
 test("returns 200", async () => {
@@ -21,7 +21,7 @@ test("returns 200", async () => {
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerLegacyKeysVerify(app);
+  registerLegacyKeysVerifyKey(app);
 
   const r = await seed(env);
 
@@ -57,7 +57,7 @@ describe("bad request", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerLegacyKeysVerify(app);
+    registerLegacyKeysVerifyKey(app);
 
     const r = await seed(env);
 
@@ -92,7 +92,7 @@ describe("with temporary key", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerLegacyKeysVerify(app);
+    registerLegacyKeysVerifyKey(app);
 
     const r = await seed(env);
 
@@ -148,7 +148,7 @@ describe("with ip whitelist", () => {
       // @ts-ignore
       init({ env });
       const app = newApp();
-      registerLegacyKeysVerify(app);
+      registerLegacyKeysVerifyKey(app);
 
       const r = await seed(env);
 
@@ -200,7 +200,7 @@ describe("with ip whitelist", () => {
       // @ts-ignore
       init({ env });
       const app = newApp();
-      registerLegacyKeysVerify(app);
+      registerLegacyKeysVerifyKey(app);
 
       const r = await seed(env);
 

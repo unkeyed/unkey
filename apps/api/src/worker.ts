@@ -20,7 +20,7 @@ import { registerLegacyKeysGet } from "./routes/legacy_keys_getKey";
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_postKey";
 // Legacy Routes
 import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
-import { registerLegacyKeysVerify } from "./routes/legacy_keys_verifyKey";
+import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
@@ -98,7 +98,7 @@ registerV1ApisDeleteApi(app);
 registerLegacyKeysUpdate(app);
 registerLegacyKeysGet(app);
 registerLegacyKeysCreate(app);
-registerLegacyKeysVerify(app);
+registerLegacyKeysVerifyKey(app);
 registerLegacyKeysDelete(app);
 
 export default {
