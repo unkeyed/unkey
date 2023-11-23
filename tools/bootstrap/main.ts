@@ -34,9 +34,8 @@ async function main() {
       host: env.DATABASE_HOST,
       username: env.DATABASE_USERNAME,
       password: env.DATABASE_PASSWORD,
-      // biome-ignore lint/suspicious/noExplicitAny: TODO
+
       fetch: (url: string, init: any) => {
-        // biome-ignore lint/suspicious/noExplicitAny: TODO
         (init as any).cache = undefined; // Remove cache header
         return fetch(url, init);
       },
@@ -57,12 +56,12 @@ async function main() {
     features: {},
   };
   await db.insert(schema.workspaces).values(workspace);
-  console.log(`Created workspace: ${workspace.name} with id: ${workspace.id}`);
 
   const keyAuth = {
     id: newId("key_auth"),
     workspaceId: workspace.id,
   };
+
   await db.insert(schema.keyAuth).values(keyAuth);
 
   /**
@@ -76,7 +75,13 @@ async function main() {
     authType: "key",
     keyAuthId: keyAuth.id,
   });
-  console.log(`Created API: ${apiId}`);
+
+  console.log("Add these to /apps/agent/.env and /apps/web/.env");
+  console.log(`
+UNKEY_WORKSPACE_ID="${workspaceId}"
+UNKEY_API_ID="${apiId}"
+UNKEY_KEY_AUTH_ID="${keyAuth.id}"
+    `);
 }
 
 main();

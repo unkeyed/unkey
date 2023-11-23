@@ -1,107 +1,56 @@
-### Services
+# Contributing to Unkey
 
-There are a few 3rd party services that are required to run the app:
+Contributions are what makes the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-Required
+## House rules
 
-- [Planetscale](https://planetscale.com?ref=unkey): Database
-- [Clerk](https://clerk.com?ref=unkey): Authentication
+- Before submitting a new issue or PR, check if it already exists in [issues](https://github.com/unkeyed/unkey/issues) or [PRs](https://github.com/unkeyed/unkey/pulls).
+- If there isn't an issue please *create one* before any development begins
+- GitHub issues: take note of the `needs-approval` label.
+  - **For Contributors**:
+    - Feature Requests / Refactoring on a Large Scale: Wait for an Unkey member to approve and remove the `needs-approval` label before you start coding or submitting a PR.
+    - Bugs, Security, Documentation, etc.: You can start coding immediately, even if the `needs-approval` label is present. This label mainly concerns feature requests.
+  - **Our Process**:
+    - Issues from anyone not on the Unkey team automatically receive the `needs-approval` label.
+    - We greatly value new feature ideas. To ensure consistency in the product's direction, they undergo review and approval.
 
-Optional
 
-- [Tinybird](https://www.tinybird.co?ref=unkey): Time series database
-- [Upstash Kafka](https://upstash.com/kafka?ref=unkey): Cache invalidation
+## Developing
 
-### 0.1 Setup
+The development branch is `main`. This is the branch that all pull
+requests should be made against.
 
-[Unkey Repo](https://github.com/unkeyed/unkey)
+To develop locally:
 
-Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respectively and populate the values from the services above.:
+1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your
+   own GitHub account and then
+   [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device.
+2. Create a new branch:
 
-```sh-session
-cp apps/web/.env.example apps/web/.env
-cp apps/agent/.env.example apps/agent/.env
-```
+   ```sh
+   git switch -c MY_BRANCH_NAME
+   ```
+3. Follow our getting started guide in our [documentation](https://unkey.dev/docs/contributing/getting-started)
 
-### 0.2 Install
+## Building
 
-```sh-session
-pnpm install
-```
+You can build the project with:
 
-### 1. Prepare databases
-
-Push the database schema to Planetscale:
-
-```sh-session
-cd internal/db
-DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
-```
-
-### 2. Tinybird (Optional)
-
-Download the Tinybird CLI from [here](https://www.tinybird.co/docs/cli.html) and run the following command after authenticating:
-
-```sh-session
-cd packages/tinybird
-tb push ./*.datasource
-tb push
-```
-
-### 3. Clerk
-
-Create a new app and set it up as described [here](https://clerk.com/docs/nextjs/get-started-with-nextjs).
-Alternatively, ask on our [discord](https://unkey.dev/discord) for temporary credentials.
-
-Afterwards, create a new organization in clerk and make a note of the organization ID, you'll need it in the next step.
-
-### 4. Bootstrap Unkey
-
-Unkey uses itself to manage its own API keys. To bootstrap the app, run the following command:
-
-You need to provide the database credentials as well as the organization ID from clerk as `TENANT_ID`
-
-```sh-session
-
-export DATABASE_HOST=
-export DATABASE_USERNAME=
-export DATABASE_PASSWORD=
-export TENANT_ID=
-
-pnpm bootstrap
-```
-
-This sets up the workspace and gets everything ready to run the app.
-
-## Build
-
-```sh-session
+```bash
 pnpm build
 ```
+## Linting
 
-## Run API
+To check the formatting of your code:
 
-Add a `.env` file in `/apps/agent/.env` and populate the values from the services above.:
-
-```sh-session
-cp apps/agent/.env.example apps/agent/.env
+```sh
+pnpm fmt
 ```
 
-Then run the api via docker compose:
+If you get errors, be sure to fix them before committing.
 
-```sh-session
-cd apps/agent
-docker compose up
-```
+## Making a Pull Request
 
-## Run app
-
-```sh-session
-pnpm turbo run dev --filter=web
-```
-
-## Run api
-
-```sh-session
-pnpm turbo run dev --filter=api
-```
+- Be sure to [check the "Allow edits from maintainers" option](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork) while creating your PR.
+- If your PR refers to or fixes an issue, be sure to add `refs #XXX` or `fixes #XXX` to the PR description. Replacing `XXX` with the respective issue number. See more about [Linking a pull request to an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
+- Be sure to fill the PR Template accordingly.

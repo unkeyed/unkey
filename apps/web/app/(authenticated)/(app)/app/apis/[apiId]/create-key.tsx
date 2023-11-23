@@ -139,6 +139,12 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       : "*".repeat(split.at(0)?.length ?? 0);
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
+
+  function getDatePlusTwoMinutes(): string {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + 2 * 60000);
+    return futureDate.toISOString().slice(0, -8);
+  }
   return (
     <>
       {key.data ? (
@@ -198,7 +204,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           </FormControl>
                           <FormDescription>
                             Using a prefix can make it easier for your users to distinguish between
-                            apis
+                            apis. Don't add a trailing underscore, we'll do that automatically.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -269,7 +275,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem className="w-full">
                                   <FormLabel>Limit</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="10" type="number" {...field} />
+                                    <Input
+                                      placeholder="10"
+                                      type="number"
+                                      {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          //don't trigger validation if the field is empty
+                                          return;
+                                        }
+                                      }}
+                                    />
                                   </FormControl>
                                   <FormDescription>
                                     The maximum number of requests possible during a burst.
@@ -287,7 +303,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormItem className="w-full">
                                     <FormLabel>Refill Rate</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="5" type="number" {...field} />
+                                      <Input
+                                        placeholder="5"
+                                        type="number"
+                                        {...field}
+                                        onBlur={(e) => {
+                                          if (e.target.value === "") {
+                                            return;
+                                          }
+                                        }}
+                                      />
                                     </FormControl>
 
                                     <FormMessage />
@@ -301,7 +326,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormItem className="w-full">
                                     <FormLabel>Refill Interval (milliseconds)</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="1000" type="number" {...field} />
+                                      <Input
+                                        placeholder="1000"
+                                        type="number"
+                                        {...field}
+                                        onBlur={(e) => {
+                                          if (e.target.value === "") {
+                                            return;
+                                          }
+                                        }}
+                                      />
                                     </FormControl>
 
                                     <FormMessage />
@@ -403,8 +437,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <FormLabel>Expiry Date</FormLabel>
                                   <FormControl>
                                     <Input
+                                      min={getDatePlusTwoMinutes()}
                                       type="datetime-local"
                                       {...field}
+                                      defaultValue={getDatePlusTwoMinutes()}
                                       value={field.value?.toLocaleString()}
                                     />
                                   </FormControl>

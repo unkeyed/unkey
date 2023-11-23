@@ -62,19 +62,24 @@ export default function TeamPage() {
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
 
-  const actions: React.ReactNode[] = [
-    <Select value={tab} onValueChange={(value: Tab) => setTab(value)}>
-      <SelectTrigger className="w-[180px]">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectItem value="members">Members</SelectItem>
-          <SelectItem value="invitations">Invitations</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>,
-  ];
+  const actions: React.ReactNode[] = [];
+
+  if (isAdmin) {
+    actions.push(
+      <Select value={tab} onValueChange={(value: Tab) => setTab(value)}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="members">Members</SelectItem>
+            <SelectItem value="invitations">Invitations</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>,
+    );
+  }
+
   if (isAdmin) {
     actions.push(<InviteButton />);
   }
@@ -227,10 +232,12 @@ const Invitations: React.FC = () => {
   );
 };
 
-const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> = ({ member }) => {
+const RoleSwitcher: React.FC<{
+  member: { id: string; role: Member["role"] };
+}> = ({ member }) => {
   const [role, setRole] = useState(member.role);
   const [isLoading, setLoading] = useState(false);
-  const { organization } = useOrganization();
+  const { organization, membership } = useOrganization();
   const { toast } = useToast();
   const { userId } = useAuth();
   async function updateRole(role: Member["role"]) {
@@ -258,25 +265,33 @@ const RoleSwitcher: React.FC<{ member: { id: string; role: Member["role"] } }> =
     }
   }
 
-  return (
-    <Select
-      value={role}
-      disabled={member.id === userId}
-      onValueChange={async (value: Member["role"]) => {
-        updateRole(value);
-      }}
-    >
-      <SelectTrigger className="w-[180px]">
-        {isLoading ? <Loading /> : <SelectValue />}
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectItem value="admin">Admin</SelectItem>
-          <SelectItem value="basic_member">Member</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>
-  );
+  if (!membership) {
+    return null;
+  }
+
+  if (membership.role === "admin") {
+    return (
+      <Select
+        value={role}
+        disabled={member.id === userId}
+        onValueChange={async (value: Member["role"]) => {
+          updateRole(value);
+        }}
+      >
+        <SelectTrigger className="w-[180px]">
+          {isLoading ? <Loading /> : <SelectValue />}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="basic_member">Member</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
 };
 
 const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" }> = ({ status }) => {

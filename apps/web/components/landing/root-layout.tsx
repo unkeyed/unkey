@@ -10,10 +10,10 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { Footer } from "@/components/landing/footer";
 import { GridPattern } from "@/components/landing/grid-pattern";
+import { allJobs } from "contentlayer/generated";
 
 const RootLayoutContext = createContext({});
 
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function XIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -23,7 +23,6 @@ function XIcon(props: any) {
   );
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function MenuIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -42,12 +41,9 @@ function Header({
 }: {
   panelId: string;
   invert?: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   icon: any;
   expanded: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   onToggle: any;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   toggleRef: any;
 }) {
   return (
@@ -128,9 +124,11 @@ function Header({
           </svg>
         </Link>
         <div className="flex items-center gap-x-2 md:gap-x-8">
-          <Button className="whitespace-nowrap" href="/careers" invert={invert}>
-            We're hiring
-          </Button>
+          {allJobs.some((j) => j.visible) ? (
+            <Button className="whitespace-nowrap" href="/careers" invert={invert}>
+              We're hiring
+            </Button>
+          ) : null}
           <Button href="/app" invert={invert}>
             Dashboard
           </Button>

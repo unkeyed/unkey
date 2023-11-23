@@ -2,15 +2,20 @@
 
 There are a few 3rd party services that are required to run the app:
 
-**Required**
-
 - [Planetscale](https://planetscale.com?ref=unkey): Database
 - [Clerk](https://clerk.com?ref=unkey): Authentication
 
-**Optional**
+You also need the following tools installed.
 
-- [Tinybird](https://www.tinybird.co?ref=unkey): Time series database
-- [Upstash Kafka](https://upstash.com/kafka?ref=unkey): Cache invalidation
+- [Go](https://go.dev)
+- [Node](https://nodejs.org)
+- [pnpm](https://pnpm.io/installation)
+
+
+<div className="flex justify-center align-center">
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/V36culpgpLE?si=c5JMq-baTNzSNk7e" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
+</div>
+
 
 <Steps titleSize="h3">
   <Step title="Setup" >
@@ -22,6 +27,7 @@ There are a few 3rd party services that are required to run the app:
     cp apps/web/.env.example apps/web/.env
     cp apps/agent/.env.example apps/agent/.env
     ```
+
   </Step>
   <Step title="Install">
     ```sh-session
@@ -30,34 +36,44 @@ There are a few 3rd party services that are required to run the app:
 
   </Step>
   <Step title="Prepare Database">
-    Push the database schema to Planetscale:
+  #### Web App
+  For Unkey Dashboard `apps/web/.env` the following variables will be used after you create your database:
+
+  ```
+  DATABASE_HOST=aws.connect.psdb.cloud
+  DATABASE_USERNAME=...
+  DATABASE_PASSWORD=pscale_pw_....
+  ```
+
+  ### Agent
+  For the agent (`apps/agent/.env`) you will need the DSN which is made up of the same values as above including the database name:
+
+  ```
+  DATABASE_DSN=<USERNAME>:<PASSWORD>@tcp(aws.connect.psdb.cloud)/unkey?tls=true
+  ```
+  ### Drizzle Schema
+    To use Drizzle we need to push the schema, run the following command in your terminal
+
+    > Make sure you replace `user`, `password`, `host` and `db` with your own values
 
     ```sh-session
     cd internal/db
     DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
     ```
   </Step>
-  <Step title="Tinybird (Optional)">
-    Download the Tinybird CLI from [here](https://www.tinybird.co/docs/cli.html) and run the following command after authenticating:
 
-    ```sh-session
-    cd packages/tinybird
-    tb push ./*.datasource
-    tb push
-    ```
-  </Step>
   <Step title="Clerk">
-    Create a new app and set it up as described [here](https://clerk.com/docs/nextjs/get-started-with-nextjs).
-    Alternatively, ask on our [discord](https://unkey.dev/discord) for temporary credentials.
+  Create a new application via their [dashboard](https://dashboard.clerk.com?ref=unkey).
 
-    Afterwards, create a new organization in clerk and make a note of the organization ID, you'll need it in the next step.
+  Add the following to your web app .env
+  ```
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+  CLERK_SECRET_KEY=
+  ```
 
-    If you want to use our custom flows you can update the .env to use
+  Once you have created the application, you need to create a single user from the UI (in the users section) and then enable and create an organization. When you create the organization you will be provided an organization ID.
 
-    ```
-    NEXT_PUBLIC_CLERK_SIGN_IN_URL=/auth/sign-in
-    NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up  
-    ```
+  > You need the organization ID for the next step.
 
   </Step>
   <Step title="Bootstrap">
@@ -74,52 +90,27 @@ There are a few 3rd party services that are required to run the app:
 
     pnpm bootstrap
     ```
-
-    This sets up the workspace and gets everything ready to run the app.
-  </Step>
-  <Step title="Build">
-  ```sh-session
-    pnpm build
-    ```
+    The bootstrap will return a `UNKEY_WORKSPACE_ID`, `UNKEY_API_ID` and `UNKEY_KEY_AUTH_ID` which you will need to add to the .env files `/apps/web/.env` and `/apps/agent/.env` respectively.
 
   </Step>
-  <Step title="Run API">
-    Add a `.env` file in `/apps/agent/.env` and populate the values from the services above.:
 
-    ```sh-session
-    cp apps/agent/.env.example apps/agent/.env
-    ```
-
-    Then run the api via docker compose:
+  <Step title="Run the Agent">
 
     ```sh-session
     cd apps/agent
-    docker compose up
+    go run . agent --env ./.env
     ```
   </Step>
   <Step title="Run app">
+
+  Open a new terminal and run the following command:
     ```sh-session
+    pnpm build
     pnpm turbo run dev --filter=web
     ```
   </Step>
-  <Step title="Run api">
-    ```sh-session
-    pnpm turbo run dev --filter=api
-    ```
+
+  <Step title="Develop">
+    Finally open your browser at http://localhost:3000/app and go through the onboarding process.
   </Step>
 </Steps>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -102,10 +102,13 @@ export function EmailSignIn(props: {
             autoComplete="email"
             autoCorrect="off"
             required
-            className="bg-background"
+            className="border-gray-300 bg-gray-50 "
           />
         </div>
-        <Button disabled={isLoading}>
+        <Button
+          className="bg-black border-black text-white hover:bg-gray-100 hover:text-black"
+          disabled={isLoading}
+        >
           {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
           Sign In with Email
         </Button>

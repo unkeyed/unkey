@@ -2,7 +2,6 @@ import clsx from "clsx";
 import { Globe } from "lucide-react";
 import Link from "next/link";
 
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function XIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -14,7 +13,6 @@ function XIcon(props: any) {
   );
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function GitHubIcon(props: any) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>

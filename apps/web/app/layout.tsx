@@ -1,3 +1,7 @@
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+// ^ https://bun.sh/docs/typescript#dom-types
+
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -16,10 +20,10 @@ const pangea = localFont({
 
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),
-  title: "Open Source API Key Management",
+  title: "Open Source API Authentication",
   description: "Accelerate your API development",
   openGraph: {
-    title: "Open Source API Key Management",
+    title: "Open Source API Authentication",
     description: "Accelerate your API development",
     url: "https://unkey.dev",
     siteName: "unkey.dev",

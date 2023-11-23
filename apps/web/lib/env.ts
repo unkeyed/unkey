@@ -15,10 +15,10 @@ export const env = () =>
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
-      TINYBIRD_TOKEN: z.string(),
+      TINYBIRD_TOKEN: z.string().optional(),
 
-      UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
-      NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("https://api.unkey.dev"),
+      UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
+      NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
       UNKEY_APP_AUTH_TOKEN: z.string(),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),

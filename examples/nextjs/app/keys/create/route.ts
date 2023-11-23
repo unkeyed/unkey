@@ -4,9 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const unkeyToken = process.env.UNKEY_TOKEN;
+  const unkeyToken = process.env.UNKEY_ROOT_KEY;
   if (!unkeyToken) {
-    return NextResponse.json({ error: "UNKEY_TOKEN is undefined" }, { status: 500 });
+    return NextResponse.json({ error: "UNKEY_ROOT_KEY is undefined" }, { status: 500 });
   }
   const unkey = new Unkey({ token: unkeyToken });
   const url = new URL(req.url);
