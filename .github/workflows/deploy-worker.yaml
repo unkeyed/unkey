@@ -29,7 +29,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build
+        run: pnpm turbo run build --filter='./apps/api'
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
@@ -61,7 +61,8 @@ jobs:
           run: pnpm install
 
         - name: Build
-          run: pnpm build
+          run: pnpm turbo run build --filter='./apps/api'
+
 
         - name: Deploy
           uses: cloudflare/wrangler-action@v3
@@ -92,7 +93,8 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build
+        run: pnpm turbo run build --filter='./apps/api'
+
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
