@@ -130,14 +130,14 @@ Possible values are:
   },
 });
 
-export type VerifyKeyRequest = z.infer<
+export type LegacyKeysVerifyKeyRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type VerifyKeyResponse = z.infer<
+export type LegacyKeysVerifyKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerVerifyKey = (app: App) =>
+export const registerLegacyKeysVerify = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, key } = c.req.valid("json");
 

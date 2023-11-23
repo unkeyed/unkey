@@ -1,22 +1,22 @@
 import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { sha256 } from "@/pkg/hash/sha256";
 import { newApp } from "@/pkg/hono/app";
-import { newId } from "@/pkg/id";
-import { KeyV1 } from "@/pkg/keys/v1";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
-import { GetKeyResponse, registerGetKey } from "./keys_get";
+import { sha256 } from "@unkey/hash";
+import { newId } from "@unkey/id";
+import { KeyV1 } from "@unkey/keys";
+import { LegacyKeysGetKeyResponse, registerLegacyKeysGet } from "./legacy_keys_getKey";
 
 test("returns 200", async () => {
   const env = testEnv();
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerGetKey(app);
+  registerLegacyKeysGet(app);
 
   const r = await seed(env);
 
@@ -31,7 +31,7 @@ test("returns 200", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<never, GetKeyResponse>(app, {
+  const res = await fetchRoute<never, LegacyKeysGetKeyResponse>(app, {
     method: "GET",
     url: `/v1/keys/${key.id}`,
     headers: {

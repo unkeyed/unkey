@@ -32,11 +32,11 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type DeleteKeyResponse = z.infer<
+export type LegacyKeysDeleteKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerDeleteKey = (app: App) =>
+export const registerLegacyKeysDelete = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });

@@ -3,10 +3,10 @@ import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { sha256 } from "@/pkg/hash/sha256";
-import { newId } from "@/pkg/id";
-import { KeyV1 } from "@/pkg/keys/v1";
 import { schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
+import { newId } from "@unkey/id";
+import { KeyV1 } from "@unkey/keys";
 
 const route = createRoute({
   method: "post",
@@ -151,14 +151,14 @@ When validating a key, we will return this back to you, so you can clearly ident
 });
 
 export type Route = typeof route;
-export type CreateKeyRequest = z.infer<
+export type LegacyKeysCreateKeyRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type CreateKeyResponse = z.infer<
+export type LegacyKeysCreateKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerCreateKey = (app: App) =>
+export const registerLegacyKeysCreate = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
@@ -217,7 +217,7 @@ export const registerCreateKey = (app: App) =>
       ratelimitRefillRate: req.ratelimit?.refillRate,
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
-      remainingRequests: req.remaining,
+      remaining: req.remaining,
       totalUses: 0,
       deletedAt: null,
     });

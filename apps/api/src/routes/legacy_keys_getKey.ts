@@ -30,11 +30,11 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type GetKeyResponse = z.infer<
+export type LegacyKeysGetKeyResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerGetKey = (app: App) =>
+export const registerLegacyKeysGet = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")!.replace("Bearer ", "");
     const rootKey = await keyService.verifyKey(c, { key: authorization });
@@ -91,7 +91,7 @@ export const registerGetKey = (app: App) =>
       createdAt: data.key.createdAt.getTime() ?? undefined,
       forWorkspaceId: data.key.forWorkspaceId ?? undefined,
       expiresAt: data.key.expires?.getTime() ?? undefined,
-      remaining: data.key.remainingRequests ?? undefined,
+      remaining: data.key.remaining ?? undefined,
       rateLimit: data.key.ratelimitType
         ? {
             type: data.key.ratelimitType ?? undefined,

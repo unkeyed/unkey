@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { sha256 } from "@/pkg/hash/sha256";
 import { newApp } from "@/pkg/hono/app";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
+import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { CreateKeyRequest, CreateKeyResponse, registerCreateKey } from "./keys_post";
+import {
+  LegacyKeysCreateKeyRequest,
+  LegacyKeysCreateKeyResponse,
+  registerLegacyKeysCreate,
+} from "./legacy_keys_postKey";
 
 describe("simple", () => {
   test("creates key", async () => {
@@ -16,11 +20,11 @@ describe("simple", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerCreateKey(app);
+    registerLegacyKeysCreate(app);
 
     const r = await seed(env);
 
-    const res = await fetchRoute<CreateKeyRequest, CreateKeyResponse>(app, {
+    const res = await fetchRoute<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>(app, {
       method: "POST",
       url: "/v1/keys",
       headers: {
@@ -49,11 +53,11 @@ describe("wrong ratelimit type", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerCreateKey(app);
+    registerLegacyKeysCreate(app);
 
     const r = await seed(env);
 
-    const res = await fetchRoute<CreateKeyRequest, ErrorResponse>(app, {
+    const res = await fetchRoute<LegacyKeysCreateKeyRequest, ErrorResponse>(app, {
       method: "POST",
       url: "/v1/keys",
       headers: {
@@ -81,11 +85,11 @@ describe("with prefix", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerCreateKey(app);
+    registerLegacyKeysCreate(app);
 
     const r = await seed(env);
 
-    const res = await fetchRoute<CreateKeyRequest, CreateKeyResponse>(app, {
+    const res = await fetchRoute<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>(app, {
       method: "POST",
       url: "/v1/keys",
       headers: {

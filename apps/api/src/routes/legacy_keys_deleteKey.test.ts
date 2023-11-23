@@ -1,23 +1,23 @@
 import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { sha256 } from "@/pkg/hash/sha256";
 import { newApp } from "@/pkg/hono/app";
-import { newId } from "@/pkg/id";
-import { KeyV1 } from "@/pkg/keys/v1";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
+import { newId } from "@unkey/id";
+import { KeyV1 } from "@unkey/keys";
 
-import { DeleteKeyResponse, registerDeleteKey } from "./keys_delete";
+import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 
 test("soft deletes key", async () => {
   const env = testEnv();
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerDeleteKey(app);
+  registerLegacyKeysDelete(app);
 
   const r = await seed(env);
 
@@ -32,7 +32,7 @@ test("soft deletes key", async () => {
     createdAt: new Date(),
   });
 
-  const res = await fetchRoute<never, DeleteKeyResponse>(app, {
+  const res = await fetchRoute<never, LegacyKeysDeleteKeyResponse>(app, {
     method: "DELETE",
     url: `/v1/keys/${keyId}`,
     headers: {

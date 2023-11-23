@@ -2,22 +2,26 @@ import { describe, expect, test } from "bun:test";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
-import { sha256 } from "@/pkg/hash/sha256";
 import { newApp } from "@/pkg/hono/app";
-import { newId } from "@/pkg/id";
-import { KeyV1 } from "@/pkg/keys/v1";
 import { testEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
-import { VerifyKeyRequest, VerifyKeyResponse, registerVerifyKey } from "./keys_verify";
+import { sha256 } from "@unkey/hash";
+import { newId } from "@unkey/id";
+import { KeyV1 } from "@unkey/keys";
+import {
+  LegacyKeysVerifyKeyRequest,
+  LegacyKeysVerifyKeyResponse,
+  registerLegacyKeysVerify,
+} from "./legacy_keys_verifyKey";
 
 test("returns 200", async () => {
   const env = testEnv();
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerVerifyKey(app);
+  registerLegacyKeysVerify(app);
 
   const r = await seed(env);
 
@@ -31,7 +35,7 @@ test("returns 200", async () => {
     createdAt: new Date(),
   });
 
-  const res = await fetchRoute<VerifyKeyRequest, VerifyKeyResponse>(app, {
+  const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
     method: "POST",
     url: "/v1/keys/verify",
     headers: {
@@ -53,7 +57,7 @@ describe("bad request", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerVerifyKey(app);
+    registerLegacyKeysVerify(app);
 
     const r = await seed(env);
 
@@ -88,7 +92,7 @@ describe("with temporary key", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerVerifyKey(app);
+    registerLegacyKeysVerify(app);
 
     const r = await seed(env);
 
@@ -103,7 +107,7 @@ describe("with temporary key", () => {
       expires: new Date(Date.now() + 5000),
     });
 
-    const res = await fetchRoute<VerifyKeyRequest, VerifyKeyResponse>(app, {
+    const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
       method: "POST",
       url: "/v1/keys/verify",
       headers: {
@@ -118,7 +122,10 @@ describe("with temporary key", () => {
     expect(res.body.valid).toBeTrue();
 
     await new Promise((resolve) => setTimeout(resolve, 6000));
-    const secondResponse = await fetchRoute<VerifyKeyRequest, VerifyKeyResponse>(app, {
+    const secondResponse = await fetchRoute<
+      LegacyKeysVerifyKeyRequest,
+      LegacyKeysVerifyKeyResponse
+    >(app, {
       method: "POST",
       url: "/v1/keys/verify",
       headers: {
@@ -141,7 +148,7 @@ describe("with ip whitelist", () => {
       // @ts-ignore
       init({ env });
       const app = newApp();
-      registerVerifyKey(app);
+      registerLegacyKeysVerify(app);
 
       const r = await seed(env);
 
@@ -171,7 +178,7 @@ describe("with ip whitelist", () => {
         createdAt: new Date(),
       });
 
-      const res = await fetchRoute<VerifyKeyRequest, VerifyKeyResponse>(app, {
+      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
         method: "POST",
         url: "/v1/keys/verify",
         headers: {
@@ -193,7 +200,7 @@ describe("with ip whitelist", () => {
       // @ts-ignore
       init({ env });
       const app = newApp();
-      registerVerifyKey(app);
+      registerLegacyKeysVerify(app);
 
       const r = await seed(env);
 
@@ -223,7 +230,7 @@ describe("with ip whitelist", () => {
         createdAt: new Date(),
       });
 
-      const res = await fetchRoute<VerifyKeyRequest, VerifyKeyResponse>(app, {
+      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
         method: "POST",
         url: "/v1/keys/verify",
         headers: {
