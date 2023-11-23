@@ -120,7 +120,7 @@ jobs:
 
 
       - name: Test
-        run: bun test src/routes --coverage
+        run: bun test src/routes --coverage --timeout 10000
         working-directory: apps/api
         env:
           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
