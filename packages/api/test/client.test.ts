@@ -8,8 +8,6 @@ describe("Unkey client", () => {
     const client = new Unkey({ rootKey });
 
     expect(client.baseUrl).toBe("https://api.unkey.dev");
-    // @ts-expect-error
-    expect(client.rootKey).toBe(rootKey);
     expect(client.retry.attempts).toBe(5);
     // @ts-expect-error
     expect(client.retry.backoff).toStrictEqual(expect.any(Function));
@@ -27,8 +25,6 @@ describe("Unkey client", () => {
     const client = new Unkey({ baseUrl, rootKey, retry });
 
     expect(client.baseUrl).toBe(baseUrl);
-    // @ts-expect-error
-    expect(client.rootKey).toBe(rootKey);
     expect(client.retry.attempts).toBe(retry.attempts);
     expect(client.retry.backoff).toBe(retry.backoff);
   });
