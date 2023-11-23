@@ -37,7 +37,7 @@ jobs:
         run: wrangler deploy --env=preview
         working-directory: apps/api
         env:
-          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
 
 
@@ -71,7 +71,7 @@ jobs:
           run: wrangler deploy --env=canary
           working-directory: apps/api
           env:
-            CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   production:
     needs:
@@ -103,4 +103,4 @@ jobs:
         run: wrangler deploy --env=production
         working-directory: apps/api
         env:
-          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
