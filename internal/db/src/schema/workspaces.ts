@@ -68,8 +68,14 @@ export const workspaces = mysqlTable(
 
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
   apis: many(apis),
-  keys: many(keys),
-  vercelIntegrations: many(vercelIntegrations),
-  vercelBindings: many(vercelBindings),
+  keys: many(keys, {
+    relationName: "workspace_key_relation",
+  }),
+  vercelIntegrations: many(vercelIntegrations, {
+    relationName: "vercel_workspace_relation",
+  }),
+  vercelBindings: many(vercelBindings, {
+    relationName: "vercel_key_binding_relation",
+  }),
   auditLogs: many(auditLogs),
 }));
