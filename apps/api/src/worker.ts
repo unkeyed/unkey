@@ -3,8 +3,6 @@ import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
 import { Metric } from "./pkg/metrics";
-import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
-import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -16,6 +14,13 @@ import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
+
+import { registerLegacyKeysDelete } from "./routes/legacy_keys_deleteKey";
+import { registerLegacyKeysGet } from "./routes/legacy_keys_getKey";
+import { registerLegacyKeysCreate } from "./routes/legacy_keys_postKey";
+// Legacy Routes
+import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
+import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
@@ -91,7 +96,10 @@ registerV1ApisDeleteApi(app);
 
 // legacy REST style routes
 registerLegacyKeysUpdate(app);
+registerLegacyKeysGet(app);
+registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
+registerLegacyKeysDelete(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
