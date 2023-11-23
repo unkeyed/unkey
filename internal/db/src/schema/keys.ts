@@ -71,6 +71,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     references: [keyAuth.id],
   }),
   workspace: one(workspaces, {
+    relationName: "workspace_key_relation",
     fields: [keys.workspaceId],
     references: [workspaces.id],
   }),
@@ -78,5 +79,6 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
   }),
+
   auditLog: many(auditLogs),
 }));
