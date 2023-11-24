@@ -2,7 +2,7 @@ import { TieredCache } from "@/pkg/cache/tiered";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { type Database, type Key } from "@unkey/db";
+import { type Api, type Database, type Key } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
@@ -11,7 +11,17 @@ import { CacheNamespaces } from "../global";
 type VerifyKeyResult =
   | {
       valid: false;
-      code: string;
+      code: "NOT_FOUND";
+      key?: never;
+      api?: never;
+      ratelimit?: never;
+      remaining?: never;
+    }
+  | {
+      valid: false;
+      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+      key: Key;
+      api: Api;
       ratelimit?: {
         remaining: number;
         limit: number;
@@ -20,19 +30,17 @@ type VerifyKeyResult =
       remaining?: number;
     }
   | {
-      keyId: string;
-      apiId?: string;
+      code?: never;
       valid: true;
-      ownerId?: string;
-      meta?: Record<string, unknown>;
-      expires?: number;
-      remaining?: number;
+      key: Key;
+      api: Api;
+
       ratelimit?: {
         remaining: number;
         limit: number;
         reset: number;
       };
-
+      remaining?: number;
       isRootKey?: boolean;
       /**
        * the workspace of the user, even if this is a root key
@@ -96,7 +104,7 @@ export class KeyService {
     }
 
     if (req.apiId && data.api.id !== req.apiId) {
-      return result.success({ valid: false, code: "FORBIDDEN" });
+      return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
     }
 
     /**
@@ -109,11 +117,11 @@ export class KeyService {
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
       if (!ip) {
-        return result.success({ valid: false, code: "FORBIDDEN" });
+        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
-        return result.success({ valid: false, code: "FORBIDDEN" });
+        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
       }
     }
 
@@ -124,8 +132,10 @@ export class KeyService {
     const [pass, ratelimit] = await this.ratelimit(c, data.key);
     if (!pass) {
       return result.success({
+        key: data.key,
+        api: data.api,
         valid: false,
-        code: "RATELIMITED",
+        code: "RATE_LIMITED",
         ratelimit,
       });
     }
@@ -134,13 +144,10 @@ export class KeyService {
       const limited = await this.usageLimiter.limit({ keyId: data.key.id });
       if (!limited.valid) {
         return result.success({
+          key: data.key,
+          api: data.api,
           valid: false,
           code: "USAGE_EXCEEDED",
-          keyId: data.key.id,
-          apiId: data.api.id,
-          ownerId: data.key.ownerId ?? undefined,
-          meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
-          expires: data.key.expires?.getTime() ?? undefined,
           remaining: limited.remaining,
           ratelimit,
           isRootKey: !!data.key.forWorkspaceId,
@@ -150,8 +157,9 @@ export class KeyService {
     }
 
     return result.success({
-      keyId: data.key.id,
-      apiId: data.api.id,
+      workspaceId: data.key.workspaceId,
+      key: data.key,
+      api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,
       meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
