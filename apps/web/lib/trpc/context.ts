@@ -3,7 +3,7 @@ import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
 import { getAuth } from "@clerk/nextjs/server";
 
-export async function createContext({ req, resHeaders }: FetchCreateContextFnOptions) {
+export async function createContext({ req }: FetchCreateContextFnOptions) {
   const { userId, orgId, orgRole } = getAuth(req as any);
 
   return {
