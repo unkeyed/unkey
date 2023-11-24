@@ -99,6 +99,8 @@ export function init(opts: { env: Env }): void {
       })
     : new NoopUsageLimiter();
 
+  analytics = new Analytics(opts.env.TINYBIRD_TOKEN);
+
   keyService = new KeyService({
     cache,
     logger,
@@ -106,9 +108,8 @@ export function init(opts: { env: Env }): void {
     metrics,
     rl: opts.env.DO_RATELIMIT,
     usageLimiter,
+    analytics,
   });
-
-  analytics = new Analytics(opts.env.TINYBIRD_TOKEN);
 
   initialized = true;
 }

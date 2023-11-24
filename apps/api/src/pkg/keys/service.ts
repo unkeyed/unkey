@@ -6,6 +6,7 @@ import { type Api, type Database, type Key } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
+import { Analytics } from "../analytics";
 import { CacheNamespaces } from "../global";
 
 type VerifyKeyResult =
@@ -56,6 +57,7 @@ export class KeyService {
   private readonly rl: DurableObjectNamespace;
   private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
+  private readonly analytics: Analytics;
 
   constructor(opts: {
     cache: TieredCache<CacheNamespaces>;
@@ -64,6 +66,7 @@ export class KeyService {
     db: Database;
     rl: DurableObjectNamespace;
     usageLimiter: UsageLimiter;
+    analytics: Analytics;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -72,9 +75,43 @@ export class KeyService {
     this.rl = opts.rl;
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
+    this.analytics = opts.analytics;
   }
 
   public async verifyKey(
+    c: Context,
+    req: { key: string; apiId?: string },
+  ): Promise<Result<VerifyKeyResult>> {
+    const res = await this._verifyKey(c, req);
+    if (res.error) {
+      return res;
+    }
+    // if we have identified the key, we can send the analytics event
+    // otherwise, they likely sent garbage to us and we can't associate it with anything
+    if (res.value.key) {
+      c.executionCtx.waitUntil(
+        this.analytics.ingestKeyVerification({
+          workspaceId: res.value.key.workspaceId,
+          apiId: res.value.api.id,
+          keyId: res.value.key.id,
+          time: Date.now(),
+          denied: res.value.code,
+          ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
+          userAgent: c.req.header("User-Agent"),
+          requestedResource: undefined,
+          edgeRegion: undefined,
+          // @ts-expect-error - the cf object will be there on cloudflare
+          region: c.req.raw?.cf?.colo,
+        }),
+      );
+    }
+    return res;
+  }
+
+  /**
+   * extracting this into a separate function just makes it easier to emit the analytics event
+   */
+  private async _verifyKey(
     c: Context,
     req: { key: string; apiId?: string },
   ): Promise<Result<VerifyKeyResult>> {

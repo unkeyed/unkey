@@ -1,5 +1,5 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { analytics, keyService } from "@/pkg/global";
+import { keyService } from "@/pkg/global";
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -141,30 +141,9 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, key } = c.req.valid("json");
 
-    const now = Date.now();
     const { value, error } = await keyService.verifyKey(c, { key, apiId });
     if (error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
-    }
-
-    // if we have identified the key, we can send the analytics event
-    // otherwise, they likely sent garbage to us and we can't associate it with anything
-    if (value.key) {
-      c.executionCtx.waitUntil(
-        analytics.ingestKeyVerification({
-          workspaceId: value.key.workspaceId,
-          apiId: value.api.id,
-          keyId: value.key.id,
-          time: now,
-          denied: value.code,
-          ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-          userAgent: c.req.header("User-Agent"),
-          requestedResource: undefined,
-          edgeRegion: undefined,
-          // @ts-expect-error - the cf object will be there on cloudflare
-          region: c.req.raw?.cf?.colo,
-        }),
-      );
     }
 
     if (!value.valid) {
