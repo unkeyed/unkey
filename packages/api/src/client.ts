@@ -530,45 +530,4 @@ export class Unkey {
       },
     };
   }
-  /**
-   * Must be authenticated via app token
-   */
-  public get _internal() {
-    return {
-      createRootKey: async (req: {
-        /**
-         * Provide a name to this key if you want for later reference
-         */
-        name?: string;
-
-        /**
-         * You can auto expire keys by providing a unix timestamp in milliseconds.
-         *
-         * Once keys expire they will automatically be deleted and are no longer valid.
-         */
-        expires?: number;
-
-        // Used to create root keys from the frontend, please ignore
-        forWorkspaceId: string;
-      }): Promise<Result<{ key: string; keyId: string }>> => {
-        return await this.fetch<{ key: string; keyId: string }>({
-          path: ["v1", "internal", "rootkeys"],
-          method: "POST",
-          body: req,
-        });
-      },
-      deleteRootKey: async (req: {
-        /**
-         *  Used to create root keys from the frontend, please ignore
-         */
-        keyId: string;
-      }): Promise<Result<void>> => {
-        return await this.fetch<void>({
-          path: ["v1", "internal.removeRootKey"],
-          method: "POST",
-          body: req,
-        });
-      },
-    };
-  }
 }

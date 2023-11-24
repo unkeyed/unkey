@@ -57,6 +57,7 @@
     "@unkey/api": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
+    "@unkey/keys": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/result": "workspace:^",
     "@unkey/vercel": "workspace:^",
