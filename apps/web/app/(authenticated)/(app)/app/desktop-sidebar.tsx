@@ -72,21 +72,19 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
             {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
             <ScrollArea className="mt-2 max-h-64 -mx-2 space-y-1 overflow-auto">
               {workspace.apis.map((api) => (
-                <li key={api.id}>
-                  <Tooltip>
-                    <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
-                      <NavLink
-                        item={{
-                          icon: Code,
-                          href: `/app/apis/${api.id}`,
-                          label: api.name,
-                          active: segments.includes(api.id),
-                        }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{api.name}</TooltipContent>
-                  </Tooltip>
-                </li>
+                <Tooltip key={api.id}>
+                  <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
+                    <NavLink
+                      item={{
+                        icon: Code,
+                        href: `/app/apis/${api.id}`,
+                        label: api.name,
+                        active: segments.includes(api.id),
+                      }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>{api.name}</TooltipContent>
+                </Tooltip>
               ))}
             </ScrollArea>
           </li>
