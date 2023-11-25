@@ -73,7 +73,7 @@ jobs:
           env:
             CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  canary-test:
+  canary-tests:
     needs: canary
     name: End to End Test Canary
     runs-on: ubuntu-latest
