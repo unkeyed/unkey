@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
@@ -17,7 +17,7 @@ import {
 } from "./v1_keys_deleteKey";
 
 test("soft deletes key", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
