@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { sha256 } from "@unkey/hash";
@@ -16,7 +16,7 @@ import {
 
 describe("simple", () => {
   test("creates key", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -49,7 +49,7 @@ describe("simple", () => {
 
 describe("wrong ratelimit type", () => {
   test("reject the request", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -81,7 +81,7 @@ describe("wrong ratelimit type", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();

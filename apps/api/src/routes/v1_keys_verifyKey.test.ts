@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
@@ -17,7 +17,7 @@ import {
 } from "./v1_keys_verifyKey";
 
 test("returns 200", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
@@ -53,7 +53,7 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -88,7 +88,7 @@ describe("bad request", () => {
 
 describe("with temporary key", () => {
   test("returns valid", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -141,7 +141,7 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
-      const env = testEnv();
+      const env = unitTestEnv.parse(process.env);
       // @ts-ignore
       init({ env });
       const app = newApp();
@@ -193,7 +193,7 @@ describe("with ip whitelist", () => {
   });
   describe("with invalid ip", () => {
     test("returns invalid", async () => {
-      const env = testEnv();
+      const env = unitTestEnv.parse(process.env);
       // @ts-ignore
       init({ env });
       const app = newApp();
