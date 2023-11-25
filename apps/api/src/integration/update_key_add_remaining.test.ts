@@ -23,6 +23,7 @@ test("update a key's remaining limit", async () => {
       name: "scenario-test-pls-delete",
     },
   });
+  console.log(createApiResponse);
   expect(createApiResponse.status).toEqual(200);
   expect(createApiResponse.body.apiId).toBeDefined();
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
@@ -41,6 +42,7 @@ test("update a key's remaining limit", async () => {
       remaining: 5,
     },
   });
+  console.log(createKeyResponse);
   expect(createKeyResponse.status).toEqual(200);
 
   for (let i = 4; i >= 0; i--) {
