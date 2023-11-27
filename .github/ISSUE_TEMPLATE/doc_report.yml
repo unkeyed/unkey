@@ -1,7 +1,7 @@
 name: "📚 Documentation request"
 description: Need to report a documentation issue? Please fill out the information below
 title: '[docs]'
-labels: ['documentation']
+labels: ['documentation', "needs-approval"]
 body:
   - type: dropdown
     id: type-of-doc-issue
