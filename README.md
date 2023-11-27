@@ -11,7 +11,7 @@
 
 ## Contributing
 
-See [here](https://unkey.dev/docs/contributing/getting-started) for more information on how to contribute to Unkey.
+Please read through our [contributing guide](.github/CONTRIBUTING.md) before starting any work.
 
 
 ## Let's talk

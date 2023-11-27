@@ -1,0 +1,37 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "deploy": "pnpm build && wrangler deploy",
+    "dev": "pnpm build && wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20230419.0",
+    "@stepci/runner": "^1.11.7",
+    "@testcontainers/mysql": "^10.2.2",
+    "bun-types": "^1.0.13",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "testcontainers": "^10.2.2",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@axiomhq/js": "1.0.0-rc.1",
+    "@chronark/zod-bird": "0.3.1-canary.0",
+    "@hono/zod-openapi": "^0.8.3",
+    "@planetscale/database": "^1.11.0",
+    "@unkey/db": "workspace:^",
+    "@unkey/hash": "workspace:^",
+    "@unkey/id": "workspace:^",
+    "@unkey/keys": "workspace:^",
+    "@unkey/result": "workspace:^",
+    "base-x": "^4.0.0",
+    "drizzle-orm": "^0.28.6",
+    "hono": "^3.10.0",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4",
+    "zod-error": "^1.5.0"
+  }
+}

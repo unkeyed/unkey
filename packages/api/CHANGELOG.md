@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.12.1
+
+### Patch Changes
+
+- 2347efd: Fix `@unkey/client` types
+
 ## 0.12.0
 
 ### Minor Changes
