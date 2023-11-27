@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { updateWorkspaceName } from "./actions";
+export const dynamic = "force-dynamic";
 type Props = {
   workspace: {
     id: string;
