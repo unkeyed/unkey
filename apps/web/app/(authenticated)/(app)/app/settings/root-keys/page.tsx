@@ -7,7 +7,9 @@ import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
 
-export default async function SettingsKeysPage(props: { params: { apiId: string } }) {
+export default async function SettingsKeysPage(props: {
+  params: { apiId: string };
+}) {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -44,13 +46,15 @@ export default async function SettingsKeysPage(props: { params: { apiId: string 
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen ">
       <PageHeader
         title="Root Keys"
         description="Root keys are used to interact with the Unkey API."
         actions={[<CreateRootKeyButton key="create-root-key" apiId={props.params.apiId} />]}
       />
-      <RootKeyTable data={keys} />
+      <div className="grid grid-cols-1 gap-8 mb-20 w-full">
+        <RootKeyTable data={keys} />
+      </div>
     </div>
   );
 }

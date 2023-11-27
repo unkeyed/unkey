@@ -140,7 +140,7 @@ function Header({
             aria-expanded={expanded.toString()}
             aria-controls={panelId}
             className={clsx(
-              "group -m-2.5 rounded-full p-2.5 transition",
+              "group -m-2.5 rounded-full p-2.5 transition max-sm:ml-3 max-md:ml-4",
               invert ? "hover:bg-white/10" : "hover:bg-gray-950/10",
             )}
             aria-label="Toggle navigation"

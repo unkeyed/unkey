@@ -164,7 +164,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
                 <a
                   href="https://unkey.dev/docs"
                   target="_blank"
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   className="text-sm font-semibold leading-6 text-white"
                 >
                   Documentation <span aria-hidden="true">→</span>
