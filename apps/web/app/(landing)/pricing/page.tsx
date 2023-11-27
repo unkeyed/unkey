@@ -37,7 +37,7 @@ const tiers = {
   custom: {
     name: "Enterprise Tier",
     id: "enterprise",
-    href: "https://cal.com/james-unkey/enterprise",
+    href: "https://cal.com/team/unkey/unkey-chat",
     price: "Let's talk",
     description: "We offer custom pricing for those with high volume needs.",
     buttonText: "Schedule a call",
