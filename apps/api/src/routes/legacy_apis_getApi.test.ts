@@ -8,7 +8,7 @@ import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { type V1ApisGetApiResponse, registerV1ApisGetApi } from "./v1_apis_getApi";
+import { type LegacyApisGetApiResponse, registerLegacyApisGetApi } from "./legacy_apis_getApi";
 
 describe("when api exists", () => {
   describe("basic", () => {
@@ -19,11 +19,11 @@ describe("when api exists", () => {
 
       const r = await seed(env);
       const app = newApp();
-      registerV1ApisGetApi(app);
+      registerLegacyApisGetApi(app);
 
-      const res = await fetchRoute<never, V1ApisGetApiResponse>(app, {
+      const res = await fetchRoute<never, LegacyApisGetApiResponse>(app, {
         method: "GET",
-        url: `/v1/apis.getApi?apiId=${r.userApi.id}`,
+        url: `/v1/apis/${r.userApi.id}`,
         headers: {
           Authorization: `Bearer ${r.rootKey}`,
         },
@@ -56,11 +56,11 @@ describe("when api exists", () => {
       await r.database.insert(schema.apis).values(api);
 
       const app = newApp();
-      registerV1ApisGetApi(app);
+      registerLegacyApisGetApi(app);
 
-      const res = await fetchRoute<never, V1ApisGetApiResponse>(app, {
+      const res = await fetchRoute<never, LegacyApisGetApiResponse>(app, {
         method: "GET",
-        url: `/v1/apis.getApi?apiId=${api.id}`,
+        url: `/v1/apis/${api.id}`,
         headers: {
           Authorization: `Bearer ${r.rootKey}`,
         },
@@ -83,13 +83,13 @@ describe("when api does not exist", () => {
 
     const r = await seed(env);
     const app = newApp();
-    registerV1ApisGetApi(app);
+    registerLegacyApisGetApi(app);
 
     const fakeApiId = newId("api");
 
     const res = await fetchRoute<never, ErrorResponse>(app, {
       method: "GET",
-      url: `/v1/apis.getApi?apiId=${fakeApiId}`,
+      url: `/v1/apis/${fakeApiId}`,
       headers: {
         Authorization: `Bearer ${r.rootKey}`,
       },

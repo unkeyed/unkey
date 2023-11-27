@@ -9,10 +9,10 @@ import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
 import {
-  V1KeysCreateKeyRequest,
-  V1KeysCreateKeyResponse,
-  registerV1KeysCreateKey,
-} from "./v1_keys_createKey";
+  LegacyKeysCreateKeyRequest,
+  LegacyKeysCreateKeyResponse,
+  registerLegacyKeysCreate,
+} from "./legacy_keys_createKey";
 
 describe("simple", () => {
   test("creates key", async () => {
@@ -20,13 +20,13 @@ describe("simple", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1KeysCreateKey(app);
+    registerLegacyKeysCreate(app);
 
     const r = await seed(env);
 
-    const res = await fetchRoute<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>(app, {
+    const res = await fetchRoute<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>(app, {
       method: "POST",
-      url: "/v1/keys.createKey",
+      url: "/v1/keys",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${r.rootKey}`,
@@ -53,13 +53,13 @@ describe("wrong ratelimit type", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1KeysCreateKey(app);
+    registerLegacyKeysCreate(app);
 
     const r = await seed(env);
 
-    const res = await fetchRoute<V1KeysCreateKeyRequest, ErrorResponse>(app, {
+    const res = await fetchRoute<LegacyKeysCreateKeyRequest, ErrorResponse>(app, {
       method: "POST",
-      url: "/v1/keys.createKey",
+      url: "/v1/keys",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${r.rootKey}`,
@@ -85,13 +85,13 @@ describe("with prefix", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1KeysCreateKey(app);
+    registerLegacyKeysCreate(app);
 
     const r = await seed(env);
 
-    const res = await fetchRoute<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>(app, {
+    const res = await fetchRoute<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>(app, {
       method: "POST",
-      url: "/v1/keys.createKey",
+      url: "/v1/keys",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${r.rootKey}`,

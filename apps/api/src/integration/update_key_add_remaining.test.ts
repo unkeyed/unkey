@@ -1,4 +1,4 @@
-import { testEnv } from "@/pkg/testutil/env";
+import { integrationTestEnv } from "@/pkg/testutil/env";
 import { step } from "@/pkg/testutil/request";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
@@ -10,7 +10,7 @@ import type {
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { expect, test } from "bun:test";
 
-const env = testEnv();
+const env = integrationTestEnv.parse(process.env);
 test("update a key's remaining limit", async () => {
   const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,
@@ -23,6 +23,7 @@ test("update a key's remaining limit", async () => {
       name: "scenario-test-pls-delete",
     },
   });
+  console.log(JSON.stringify(createApiResponse, null, 2));
   expect(createApiResponse.status).toEqual(200);
   expect(createApiResponse.body.apiId).toBeDefined();
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
@@ -56,6 +57,8 @@ test("update a key's remaining limit", async () => {
         key: createKeyResponse.body.key,
       },
     });
+    console.log(i, JSON.stringify(valid, null, 2));
+
     expect(valid.status).toEqual(200);
     expect(valid.body.valid).toBeTrue();
     expect(valid.body.remaining).toEqual(i);

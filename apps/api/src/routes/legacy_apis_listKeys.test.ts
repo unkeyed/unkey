@@ -9,7 +9,10 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
+import {
+  type LegacyApisListKeysResponse,
+  registerLegacyApisListKeys,
+} from "./legacy_apis_listKeys";
 
 describe("simple", () => {
   test("returns 200", async () => {
@@ -17,7 +20,7 @@ describe("simple", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1ApisListKeys(app);
+    registerLegacyApisListKeys(app);
 
     const r = await seed(env);
 
@@ -34,9 +37,9 @@ describe("simple", () => {
       });
     }
 
-    const res = await fetchRoute<never, V1ApisListKeysResponse>(app, {
+    const res = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
       method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}`,
+      url: `/v1/apis/${r.userApi.id}/keys`,
       headers: {
         Authorization: `Bearer ${r.rootKey}`,
       },
@@ -55,7 +58,7 @@ describe("filter by ownerId", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1ApisListKeys(app);
+    registerLegacyApisListKeys(app);
 
     const r = await seed(env);
 
@@ -74,9 +77,9 @@ describe("filter by ownerId", () => {
       });
     }
 
-    const res = await fetchRoute<never, V1ApisListKeysResponse>(app, {
+    const res = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
       method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&ownerId=${ownerId}`,
+      url: `/v1/apis/${r.userApi.id}/keys?ownerId=${ownerId}`,
       headers: {
         Authorization: `Bearer ${r.rootKey}`,
       },
@@ -94,7 +97,7 @@ describe("with limit", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1ApisListKeys(app);
+    registerLegacyApisListKeys(app);
 
     const r = await seed(env);
 
@@ -111,9 +114,9 @@ describe("with limit", () => {
       });
     }
 
-    const res = await fetchRoute<never, V1ApisListKeysResponse>(app, {
+    const res = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
       method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&limit=2`,
+      url: `/v1/apis/${r.userApi.id}/keys?limit=2`,
       headers: {
         Authorization: `Bearer ${r.rootKey}`,
       },
@@ -124,13 +127,13 @@ describe("with limit", () => {
   }, 10_000);
 });
 
-describe("with cursor", () => {
+describe("with offset", () => {
   test("returns the correct keys", async () => {
     const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1ApisListKeys(app);
+    registerLegacyApisListKeys(app);
 
     const r = await seed(env);
 
@@ -147,19 +150,18 @@ describe("with cursor", () => {
       });
     }
 
-    const res1 = await fetchRoute<never, V1ApisListKeysResponse>(app, {
+    const res1 = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
       method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&limit=2`,
+      url: `/v1/apis/${r.userApi.id}/keys?limit=2`,
       headers: {
         Authorization: `Bearer ${r.rootKey}`,
       },
     });
     expect(res1.status).toEqual(200);
-    expect(res1.body.cursor).toBeDefined();
 
-    const res2 = await fetchRoute<never, V1ApisListKeysResponse>(app, {
+    const res2 = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
       method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&limit=3&cursor=${res1.body.cursor}`,
+      url: `/v1/apis/${r.userApi.id}/keys?limit=2&offset=2`,
       headers: {
         Authorization: `Bearer ${r.rootKey}`,
       },
@@ -173,6 +175,6 @@ describe("with cursor", () => {
     for (const key of res2.body.keys) {
       found.add(key.id);
     }
-    expect(found.size).toEqual(5);
+    expect(found.size).toEqual(4);
   });
 });

@@ -40,6 +40,20 @@ route = { pattern = "preview.api.unkey.app", custom_domain = true }
 
 ]
 
+# canary is a special environment that is used to test new code by a small percentage of users before it is rolled out to the rest of the world.
+# all settings must be the same as production, except for the route pattern
+[env.canary]
+vars = {  ENVIRONMENT = "production"}
+route = { pattern = "canary.unkey.app", custom_domain = true}
+logpush = true
+
+[env.canary.durable_objects]
+ bindings = [
+  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
+  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+
+]
+
 [env.production]
 vars = {  ENVIRONMENT = "production"}
 route = { pattern = "api.unkey.app", custom_domain = true}

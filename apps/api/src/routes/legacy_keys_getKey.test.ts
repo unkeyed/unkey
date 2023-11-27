@@ -9,14 +9,14 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
+import { LegacyKeysGetKeyResponse, registerLegacyKeysGet } from "./legacy_keys_getKey";
 
 test("returns 200", async () => {
   const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysGetKey(app);
+  registerLegacyKeysGet(app);
 
   const r = await seed(env);
 
@@ -31,9 +31,9 @@ test("returns 200", async () => {
   };
   await r.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<never, V1KeysGetKeyResponse>(app, {
+  const res = await fetchRoute<never, LegacyKeysGetKeyResponse>(app, {
     method: "GET",
-    url: `/v1/keys.getKey?keyId=${key.id}`,
+    url: `/v1/keys/${key.id}`,
     headers: {
       Authorization: `Bearer ${r.rootKey}`,
     },

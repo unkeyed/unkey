@@ -3,6 +3,8 @@ name: CI
 on:
   pull_request_target:
 
+concurrency: pr-${{ github.event.number }} # otherwise planetscale will fail, because it can't create a branch with the same name
+
 env:
   DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
   PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
@@ -120,10 +122,8 @@ jobs:
 
 
       - name: Test
-        run: bun test src/routes --coverage
+        run: bun test src/routes --coverage --timeout 10000
         working-directory: apps/api
-        env:
-          UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
       - name: Delete planetscale branch
         if: always()
         run: |

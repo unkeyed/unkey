@@ -64,7 +64,7 @@
         "onboarding",
         {
           "group": "Quickstart",
-          "pages": ["quickstart/bun", "quickstart/nextjs", "quickstart/express"]
+          "pages": ["quickstart/nextjs", "quickstart/express", "quickstart/bun"]
         },
         "security"
       ]

@@ -10,18 +10,14 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
-import {
-  V1KeysDeleteKeyRequest,
-  V1KeysDeleteKeyResponse,
-  registerV1KeysDeleteKey,
-} from "./v1_keys_deleteKey";
+import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 
 test("soft deletes key", async () => {
   const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysDeleteKey(app);
+  registerLegacyKeysDelete(app);
 
   const r = await seed(env);
 
@@ -36,15 +32,12 @@ test("soft deletes key", async () => {
     createdAt: new Date(),
   });
 
-  const res = await fetchRoute<V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse>(app, {
-    method: "POST",
-    url: "/v1/keys.deleteKey",
+  const res = await fetchRoute<never, LegacyKeysDeleteKeyResponse>(app, {
+    method: "DELETE",
+    url: `/v1/keys/${keyId}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
-    },
-    body: {
-      keyId,
     },
   });
 

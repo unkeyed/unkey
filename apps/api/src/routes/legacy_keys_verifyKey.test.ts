@@ -11,17 +11,17 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import {
-  V1KeysVerifyKeyRequest,
-  V1KeysVerifyKeyResponse,
-  registerV1KeysVerifyKey,
-} from "./v1_keys_verifyKey";
+  LegacyKeysVerifyKeyRequest,
+  LegacyKeysVerifyKeyResponse,
+  registerLegacyKeysVerifyKey,
+} from "./legacy_keys_verifyKey";
 
 test("returns 200", async () => {
   const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
-  registerV1KeysVerifyKey(app);
+  registerLegacyKeysVerifyKey(app);
 
   const r = await seed(env);
 
@@ -35,9 +35,9 @@ test("returns 200", async () => {
     createdAt: new Date(),
   });
 
-  const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+  const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
     method: "POST",
-    url: "/v1/keys.verifyKey",
+    url: "/v1/keys/verify",
     headers: {
       "Content-Type": "application/json",
     },
@@ -57,7 +57,7 @@ describe("bad request", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1KeysVerifyKey(app);
+    registerLegacyKeysVerifyKey(app);
 
     const r = await seed(env);
 
@@ -73,7 +73,7 @@ describe("bad request", () => {
 
     const res = await fetchRoute<any, ErrorResponse>(app, {
       method: "POST",
-      url: "/v1/keys.verifyKey",
+      url: "/v1/keys/verify",
       headers: {
         "Content-Type": "application/json",
       },
@@ -92,7 +92,7 @@ describe("with temporary key", () => {
     // @ts-ignore
     init({ env });
     const app = newApp();
-    registerV1KeysVerifyKey(app);
+    registerLegacyKeysVerifyKey(app);
 
     const r = await seed(env);
 
@@ -107,9 +107,9 @@ describe("with temporary key", () => {
       expires: new Date(Date.now() + 5000),
     });
 
-    const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+    const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
       method: "POST",
-      url: "/v1/keys.verifyKey",
+      url: "/v1/keys/verify",
       headers: {
         "Content-Type": "application/json",
       },
@@ -122,9 +122,12 @@ describe("with temporary key", () => {
     expect(res.body.valid).toBeTrue();
 
     await new Promise((resolve) => setTimeout(resolve, 6000));
-    const secondResponse = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+    const secondResponse = await fetchRoute<
+      LegacyKeysVerifyKeyRequest,
+      LegacyKeysVerifyKeyResponse
+    >(app, {
       method: "POST",
-      url: "/v1/keys.verifyKey",
+      url: "/v1/keys/verify",
       headers: {
         "Content-Type": "application/json",
       },
@@ -145,7 +148,7 @@ describe("with ip whitelist", () => {
       // @ts-ignore
       init({ env });
       const app = newApp();
-      registerV1KeysVerifyKey(app);
+      registerLegacyKeysVerifyKey(app);
 
       const r = await seed(env);
 
@@ -175,9 +178,9 @@ describe("with ip whitelist", () => {
         createdAt: new Date(),
       });
 
-      const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
         method: "POST",
-        url: "/v1/keys.verifyKey",
+        url: "/v1/keys/verify",
         headers: {
           "Content-Type": "application/json",
           "True-Client-IP": "100.100.100.100",
@@ -197,7 +200,7 @@ describe("with ip whitelist", () => {
       // @ts-ignore
       init({ env });
       const app = newApp();
-      registerV1KeysVerifyKey(app);
+      registerLegacyKeysVerifyKey(app);
 
       const r = await seed(env);
 
@@ -227,9 +230,9 @@ describe("with ip whitelist", () => {
         createdAt: new Date(),
       });
 
-      const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
         method: "POST",
-        url: "/v1/keys.verifyKey",
+        url: "/v1/keys/verify",
         headers: {
           "Content-Type": "application/json",
           "True-Client-IP": "200.200.200.200",

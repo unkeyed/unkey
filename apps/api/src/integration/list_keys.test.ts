@@ -1,4 +1,4 @@
-import { testEnv } from "@/pkg/testutil/env";
+import { integrationTestEnv } from "@/pkg/testutil/env";
 import { step } from "@/pkg/testutil/request";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
@@ -6,7 +6,7 @@ import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { expect, test } from "bun:test";
 
-const env = testEnv();
+const env = integrationTestEnv.parse(process.env);
 test("create and list keys", async () => {
   const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,

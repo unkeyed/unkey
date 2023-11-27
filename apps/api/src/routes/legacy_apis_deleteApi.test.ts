@@ -5,11 +5,7 @@ import { init } from "@/pkg/global";
 import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
-import {
-  V1ApisDeleteApiRequest,
-  V1ApisDeleteApiResponse,
-  registerV1ApisDeleteApi,
-} from "./v1_apis_deleteApi";
+import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("deletes the api", async () => {
   const env = unitTestEnv.parse(process.env);
@@ -18,17 +14,13 @@ test("deletes the api", async () => {
 
   const r = await seed(env);
   const app = newApp();
-  registerV1ApisDeleteApi(app);
+  registerLegacyApisDeleteApi(app);
 
-  const res = await fetchRoute<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>(app, {
-    method: "POST",
-    url: "/v1/apis.deleteApi",
+  const res = await fetchRoute<never, LegacyApisDeleteApiResponse>(app, {
+    method: "DELETE",
+    url: `/v1/apis/${r.userApi.id}`,
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
-    },
-    body: {
-      apiId: r.userApi.id,
     },
   });
 

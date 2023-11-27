@@ -3,7 +3,6 @@ import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
 import { Metric } from "./pkg/metrics";
-import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -16,6 +15,18 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
+// Legacy Routes
+import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
+import { registerLegacyApisDeleteApi } from "./routes/legacy_apis_deleteApi";
+import { registerLegacyApisGetApi } from "./routes/legacy_apis_getApi";
+import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
+import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
+import { registerLegacyKeysDelete } from "./routes/legacy_keys_deleteKey";
+import { registerLegacyKeysGet } from "./routes/legacy_keys_getKey";
+import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
+import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
+
+// Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 
@@ -90,6 +101,15 @@ registerV1ApisDeleteApi(app);
 
 // legacy REST style routes
 registerLegacyKeysUpdate(app);
+registerLegacyKeysGet(app);
+registerLegacyKeysCreate(app);
+registerLegacyKeysVerifyKey(app);
+registerLegacyKeysDelete(app);
+
+registerLegacyApisCreateApi(app);
+registerLegacyApisGetApi(app);
+registerLegacyApisDeleteApi(app);
+registerLegacyApisListKeys(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {

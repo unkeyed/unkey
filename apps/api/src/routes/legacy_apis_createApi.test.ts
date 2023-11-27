@@ -9,10 +9,10 @@ import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
 import { eq } from "drizzle-orm";
 import {
-  V1ApisCreateApiRequest,
-  V1ApisCreateApiResponse,
-  registerV1ApisCreateApi,
-} from "./v1_apis_createApi";
+  LegacyApisCreateApiRequest,
+  LegacyApisCreateApiResponse,
+  registerLegacyApisCreateApi,
+} from "./legacy_apis_createApi";
 
 test("creates the api", async () => {
   const env = unitTestEnv.parse(process.env);
@@ -21,11 +21,11 @@ test("creates the api", async () => {
 
   const r = await seed(env);
   const app = newApp();
-  registerV1ApisCreateApi(app);
+  registerLegacyApisCreateApi(app);
 
-  const res = await fetchRoute<V1ApisCreateApiRequest, V1ApisCreateApiResponse>(app, {
+  const res = await fetchRoute<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>(app, {
     method: "POST",
-    url: "/v1/apis.createApi",
+    url: "/v1/apis",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${r.rootKey}`,
@@ -53,11 +53,11 @@ test("creates rejects invalid root key", async () => {
 
   await seed(env);
   const app = newApp();
-  registerV1ApisCreateApi(app);
+  registerLegacyApisCreateApi(app);
 
-  const res = await fetchRoute<V1ApisCreateApiRequest, ErrorResponse>(app, {
+  const res = await fetchRoute<LegacyApisCreateApiRequest, ErrorResponse>(app, {
     method: "POST",
-    url: "/v1/apis.createApi",
+    url: "/v1/apis",
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer invalidRootKey",
