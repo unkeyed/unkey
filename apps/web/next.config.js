@@ -9,7 +9,7 @@ let nextConfig = {
     esmExternals: "loose",
   },
 
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result"],
+  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

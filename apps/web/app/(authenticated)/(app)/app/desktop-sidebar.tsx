@@ -1,4 +1,5 @@
 "use client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -51,47 +52,44 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside className={cn("fixed inset-y-0 w-64 px-6 z-10", className)}>
-      <div className="max-h-[92vh] no-scrollbar flex flex-col px-6 gap-y-5 overflow-scroll">
-        <div className="flex items-center h-16 mt-4">
-          <WorkspaceSwitcher />
-        </div>
-        <nav className="flex flex-col flex-1 flex-grow">
-          <ul className="flex flex-col flex-1 gap-y-7">
-            <li>
-              <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
-              <ul className="mt-2 -mx-2 space-y-1">
-                {navigation.map((item) => (
-                  <li key={item.label}>
-                    <NavLink item={item} />
-                  </li>
-                ))}
-              </ul>
-            </li>
-            <li>
-              <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
-              <ul className="mt-2 max-h-[100%] overflow-x-hidden overflow-y-scroll -mx-2 space-y-1">
-                {workspace.apis.map((api) => (
-                  <li key={api.id}>
-                    <Tooltip>
-                      <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
-                        <NavLink
-                          item={{
-                            icon: Code,
-                            href: `/app/apis/${api.id}`,
-                            label: api.name,
-                            active: segments.includes(api.id),
-                          }}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>{api.name}</TooltipContent>
-                    </Tooltip>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          </ul>
-        </nav>
+      <div className="flex -mx-2  h-12 my-4 min-w-full">
+        <WorkspaceSwitcher />
       </div>
+      <nav className="flex flex-col flex-1 flex-grow">
+        <ul className="flex flex-col flex-1 gap-y-7">
+          <li>
+            <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
+            <ul className="mt-2 -mx-2 space-y-1">
+              {navigation.map((item) => (
+                <li key={item.label}>
+                  <NavLink item={item} />
+                </li>
+              ))}
+            </ul>
+          </li>
+          <li>
+            <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
+            {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
+            <ScrollArea className="mt-2 max-h-64 -mx-2 space-y-1 overflow-auto">
+              {workspace.apis.map((api) => (
+                <Tooltip key={api.id}>
+                  <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
+                    <NavLink
+                      item={{
+                        icon: Code,
+                        href: `/app/apis/${api.id}`,
+                        label: api.name,
+                        active: segments.includes(api.id),
+                      }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>{api.name}</TooltipContent>
+                </Tooltip>
+              ))}
+            </ScrollArea>
+          </li>
+        </ul>
+      </nav>
 
       <UserButton />
     </aside>

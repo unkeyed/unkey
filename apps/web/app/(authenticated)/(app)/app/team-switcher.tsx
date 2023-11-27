@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
 
@@ -24,8 +24,8 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
-  const _router = useRouter();
   const [isLoading, setLoading] = useState(false);
+  const _router = useRouter();
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -55,9 +55,9 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex w-full items-center justify-between gap-2 overflow-hidden whitespace-nowrap">
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="h-6 w-6">
+      <DropdownMenuTrigger className="flex items-center px-2 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md justify-between w-full h-full gap-2 overflow-hidden whitespace-nowrap ring-0 focus:ring-0 focus:outline-none ">
+        <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+          <Avatar className="w-6 h-6">
             {currentOrg?.imageUrl ? (
               <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
             ) : user?.imageUrl ? (
@@ -127,12 +127,11 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
               <Plus className="mr-2 h-4 w-4" />
               <span>Create Workspace</span>
             </Link>
-            {/* <DropdownMenuShortcut>⌘B</DropdownMenuShortcut> */}
           </DropdownMenuItem>
           {membership?.role === "admin" ? (
             <Link href="/app/team/invite">
               <DropdownMenuItem>
-                <Plus className="mr-2 h-4 w-4 " />
+                <UserPlus className="w-4 h-4 mr-2 " />
                 <span className="cursor-pointer">Invite Member</span>
               </DropdownMenuItem>
             </Link>

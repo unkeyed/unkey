@@ -2,8 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
-
-// biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
 function Block({ x, y, ...props }: any) {
   return (
     <motion.path

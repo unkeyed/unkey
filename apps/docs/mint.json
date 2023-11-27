@@ -64,7 +64,7 @@
         "onboarding",
         {
           "group": "Quickstart",
-          "pages": ["quickstart/bun", "quickstart/nextjs", "quickstart/express"]
+          "pages": ["quickstart/nextjs", "quickstart/express", "quickstart/bun"]
         },
         "security"
       ]
@@ -108,8 +108,9 @@
           "pages": [
             "api-reference/keys/create",
             "api-reference/keys/verify",
+            "api-reference/keys/get",
             "api-reference/keys/update",
-            "api-reference/keys/revoke"
+            "api-reference/keys/delete"
           ]
         },
         {
@@ -214,5 +215,12 @@
   "footerSocials": {
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
+  },
+  "openapi": "https://api.unkey.app/openapi.json",
+  "api": {
+    "baseUrl": "https://api.unkey.app",
+    "auth": {
+      "method": "bearer"
+    }
   }
 }

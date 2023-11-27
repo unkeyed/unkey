@@ -1,5 +1,12 @@
 # @unkey/web
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [2347efd]
+  - @unkey/api@0.12.1
+
 ## 0.1.4
 
 ### Patch Changes
