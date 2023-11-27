@@ -24,13 +24,13 @@
         "noExplicitAny": "off"
       }
     },
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer", "pnpm-lock-yaml"]
+    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer"]
   },
   "formatter": {
     "indentStyle": "space",
     "indentSize": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer", "pnpm-lock-yaml"]
+    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer"]
   }
 }
