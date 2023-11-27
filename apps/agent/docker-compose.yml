@@ -14,7 +14,6 @@ services:
       DATABASE_DSN: "user:password@database/unkey"
       UNKEY_WORKSPACE_ID: "${UNKEY_WORKSPACE_ID}"
       UNKEY_API_ID: "${UNKEY_API_ID}"
-      UNKEY_APP_AUTH_TOKEN: "${UNKEY_APP_AUTH_TOKEN}"
       UNKEY_KEY_AUTH_ID: "${UNKEY_KEY_AUTH_ID}"
 
   database:
@@ -40,5 +39,4 @@ services:
       DATABASE_DSN: "user:password@database/unkey"
       UNKEY_WORKSPACE_ID: "${UNKEY_WORKSPACE_ID}"
       UNKEY_API_ID: "${UNKEY_API_ID}"
-      UNKEY_APP_AUTH_TOKEN: "${UNKEY_APP_AUTH_TOKEN}"
-      UNKEY_KEY_AUTH_ID: "${UNKEY_KEY_AUTH_ID}"  
+      UNKEY_KEY_AUTH_ID: "${UNKEY_KEY_AUTH_ID}"

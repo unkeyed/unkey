@@ -96,9 +96,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
           />
           <Stat
             label="Remaining"
-            value={
-              typeof key.remainingRequests === "number" ? fmt(key.remainingRequests) : <Minus />
-            }
+            value={typeof key.remaining === "number" ? fmt(key.remaining) : <Minus />}
           />
           <Stat
             label="Last Used"

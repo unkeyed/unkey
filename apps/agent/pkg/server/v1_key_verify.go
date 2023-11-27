@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -58,6 +59,35 @@ func (s *Server) v1VerifyKey(c *fiber.Ctx) error {
 		return errors.NewHttpError(c, errors.BAD_REQUEST, err.Error())
 
 	}
+
+	// Send a copy to cloudflare
+	go func() {
+		b, err := json.Marshal(req)
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to marshal request for cloudflare")
+			return
+		}
+		r, err := http.NewRequest("POST", "https://api.unkey.app/v1/keys.verifyKey", bytes.NewBuffer(b))
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to create request for cloudflare")
+			return
+		}
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("User-Agent", "unkey-agent")
+		resp, err := http.DefaultClient.Do(r)
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to send request to cloudflare")
+			return
+		}
+		defer resp.Body.Close()
+		resB, err := io.ReadAll(resp.Body)
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to read response body from cloudflare")
+			return
+		}
+		s.logger.Info().Int("status", resp.StatusCode).Str("body", string(resB)).Msg("sent request to cloudflare")
+
+	}()
 
 	// ---------------------------------------------------------------------------------------------
 	// Get the key from either cache or db

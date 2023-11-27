@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nextjs",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
