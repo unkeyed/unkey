@@ -6,13 +6,13 @@ export default function Loading() {
       <div className="flex flex-col pt-2">
         <Skeleton className="w-32 h-6" />
         <Skeleton className="w-28 h-3 mt-4" />
-        <Skeleton className="w-full h-[1px] md:mt-9 lg:mt-[52px]" />
+        <Skeleton className="w-full h-[1px] mt-6 md:mt-9 lg:mt-[52px]" />
       </div>
-      <div className="flex flex-row mt-6 gap-4">
+      <div className="flex max-sm:flex-col md:flex-row mt-6 gap-4">
         <Skeleton className="h-8 w-full" />
-        <Skeleton className="md:basis-48 lg:basis-[168px] h-8" />
+        <Skeleton className="sm:basis-full md:basis-48 lg:basis-[168px] h-8" />
       </div>
-      <div className="flex lg:flex-row md:flex-col mt-4 gap-6">
+      <div className="flex lg:flex-row flex-col mt-4 gap-6">
         <Skeleton className="h-44 w-full p-6 bg-transparent border border-round border-border">
           <Skeleton className="w-[130px] h-6" />
           <Skeleton className="w-[215px] h-3 mt-4" />

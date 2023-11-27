@@ -124,7 +124,7 @@ const Members: React.FC = () => {
         {membershipList?.map(({ id, role, publicUserData }) => (
           <TableRow key={id}>
             <TableCell>
-              <div className="flex items-center flex-grow w-full gap-2">
+              <div className="flex items-center md:flex-grow w-full max-sm:gap-1 max-sm:m-0 max-sm:text-xs gap-2">
                 <Avatar>
                   <AvatarImage src={publicUserData.imageUrl} />
                   <AvatarFallback>{publicUserData.identifier.slice(0, 2)}</AvatarFallback>
@@ -278,7 +278,7 @@ const RoleSwitcher: React.FC<{
           updateRole(value);
         }}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="max-sm:w-36 w-[180px]">
           {isLoading ? <Loading /> : <SelectValue />}
         </SelectTrigger>
         <SelectContent>
