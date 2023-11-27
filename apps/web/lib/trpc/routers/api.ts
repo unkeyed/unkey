@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { unkeyScoped } from "@/lib/api";
+import { db, eq, schema } from "@/lib/db";
+import { newId } from "@unkey/id";
 import { auth, t } from "../trpc";
 
 export const apiRouter = t.router({
@@ -13,13 +14,20 @@ export const apiRouter = t.router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.rootKey) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "unable to load rootKey" });
+      const api = await db.query.apis.findFirst({
+        where: (table, { eq }) => eq(table.id, input.apiId),
+        with: {
+          workspace: true,
+        },
+      });
+      if (!api) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
       }
-      const res = await unkeyScoped(ctx.rootKey).apis.remove({ apiId: input.apiId });
-      if (res.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.error.message });
+      if (api.workspace.tenantId !== ctx.tenant.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
       }
+
+      await db.delete(schema.apis).where(eq(schema.apis.id, input.apiId));
     }),
   create: t.procedure
     .use(auth)
@@ -29,16 +37,31 @@ export const apiRouter = t.router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      if (!ctx.rootKey) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "unable to load rootKey" });
-      }
-      const res = await unkeyScoped(ctx.rootKey).apis.create({ name: input.name });
-      if (res.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.error.message });
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
       }
 
+      const keyAuthId = newId("keyAuth");
+      await db.insert(schema.keyAuth).values({
+        id: keyAuthId,
+        workspaceId: workspace.id,
+      });
+
+      const apiId = newId("api");
+      await db.insert(schema.apis).values({
+        id: apiId,
+        name: input.name,
+        workspaceId: workspace.id,
+        keyAuthId,
+        authType: "key",
+        ipWhitelist: null,
+      });
+
       return {
-        id: res.result.apiId,
+        id: apiId,
       };
     }),
 });

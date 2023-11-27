@@ -51,7 +51,7 @@ export const keys = mysqlTable(
     /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
-    remainingRequests: int("remaining_requests"),
+    remaining: int("remaining_requests"),
 
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
@@ -71,6 +71,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     references: [keyAuth.id],
   }),
   workspace: one(workspaces, {
+    relationName: "workspace_key_relation",
     fields: [keys.workspaceId],
     references: [workspaces.id],
   }),
@@ -78,5 +79,6 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
   }),
+
   auditLog: many(auditLogs),
 }));

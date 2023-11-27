@@ -206,7 +206,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           </FormControl>
                           <FormDescription>
                             Using a prefix can make it easier for your users to distinguish between
-                            apis
+                            apis. Don't add a trailing underscore, we'll do that automatically.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

@@ -11,6 +11,12 @@ You also need the following tools installed.
 - [Node](https://nodejs.org)
 - [pnpm](https://pnpm.io/installation)
 
+
+<div className="flex justify-center align-center">
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/V36culpgpLE?si=c5JMq-baTNzSNk7e" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
+</div>
+
+
 <Steps titleSize="h3">
   <Step title="Setup" >
     Get the repo [here.](https://github.com/unkeyed/unkey)
@@ -21,21 +27,7 @@ You also need the following tools installed.
     cp apps/web/.env.example apps/web/.env
     cp apps/agent/.env.example apps/agent/.env
     ```
-    #### Web App
-    For Planetscale the following variables will be used after you create your database:
 
-    ```
-    DATABASE_HOST=aws.connect.psdb.cloud
-    DATABASE_USERNAME=...
-    DATABASE_PASSWORD=pscale_pw_....
-    ```
-
-    ### Agent
-    For the agent you will need the DSN which is made up of the same values as above including the database name:
-
-    ```
-    DATABASE_DSN=<USERNAME>:<PASSWORD>@tcp(aws.connect.psdb.cloud)/unkey?tls=true
-    ```
   </Step>
   <Step title="Install">
     ```sh-session
@@ -44,7 +36,23 @@ You also need the following tools installed.
 
   </Step>
   <Step title="Prepare Database">
-    Push the database schema to Planetscale:
+  #### Web App
+  For Unkey Dashboard `apps/web/.env` the following variables will be used after you create your database:
+
+  ```
+  DATABASE_HOST=aws.connect.psdb.cloud
+  DATABASE_USERNAME=...
+  DATABASE_PASSWORD=pscale_pw_....
+  ```
+
+  ### Agent
+  For the agent (`apps/agent/.env`) you will need the DSN which is made up of the same values as above including the database name:
+
+  ```
+  DATABASE_DSN=<USERNAME>:<PASSWORD>@tcp(aws.connect.psdb.cloud)/unkey?tls=true
+  ```
+  ### Drizzle Schema
+    To use Drizzle we need to push the schema, run the following command in your terminal
 
     > Make sure you replace `user`, `password`, `host` and `db` with your own values
 
@@ -63,7 +71,7 @@ You also need the following tools installed.
   CLERK_SECRET_KEY=
   ```
 
-  Once you have created the application, you need to create a single user from the UI and then enable and create an organization.
+  Once you have created the application, you need to create a single user from the UI (in the users section) and then enable and create an organization. When you create the organization you will be provided an organization ID.
 
   > You need the organization ID for the next step.
 

@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
@@ -149,7 +150,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
         ) : step.step === "CREATE_KEY" ? (
           <Card>
             <CardHeader>
-              <CardTitle className="mb-4">Create a key for your users</CardTitle>
+              <CardTitle className="mb-4">Your root key</CardTitle>
               <CardDescription>
                 <Alert>
                   <AlertCircle className="w-4 h-4" />
@@ -172,8 +173,11 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                 </div>
               </Code>
 
-              <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
-                Try creating a new api key for your users:
+              <Separator className="my-8" />
+
+              <h2 className="mt-2 font-medium text-xl">Try it out</h2>
+              <p className="mt-2 text-gray-500">
+                Use your new root key to create a new API key for your users:
               </p>
               <Code
                 data-sentry-mask
