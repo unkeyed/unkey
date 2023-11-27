@@ -38,7 +38,7 @@ export const UserButton: React.FC = () => {
             </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm font-semibold min-w-full">
+          <span className="text-sm font-semibold min-w-full whitespace-nowrap overflow-hidden text-ellipsis w-28">
             {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
           </span>
         </div>
