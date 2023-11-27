@@ -69,7 +69,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
         </DialogTrigger>
 
         {key.data ? (
-          <DialogContent className="max-w-fit ">
+          <DialogContent className="max-w-screen max-sm:w-fit ">
             <DialogHeader>
               <DialogTitle>Your API Key</DialogTitle>
               <DialogDescription>
