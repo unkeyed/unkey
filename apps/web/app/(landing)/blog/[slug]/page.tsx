@@ -161,7 +161,11 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
                 >
                   Get started
                 </Link>
-                <Link href="/docs" className="text-sm font-semibold leading-6 text-white">
+                <Link
+                  href="/docs"
+                  className="text-sm font-semibold leading-6 text-white"
+                  rel="noopener noreferrer"
+                >
                   Documentation <span aria-hidden="true">→</span>
                 </Link>
               </div>
