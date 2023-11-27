@@ -3,7 +3,6 @@
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
@@ -69,10 +68,10 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
         </DialogTrigger>
 
         {key.data ? (
-          <DialogContent className="max-w-screen max-sm:w-fit ">
+          <DialogContent className="flex flex-col max-sm:w-full">
             <DialogHeader>
               <DialogTitle>Your API Key</DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="w-fit">
                 This key is only shown once and can not be recovered. Please store it somewhere
                 safe.
               </DialogDescription>
@@ -90,10 +89,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
                 </Alert>
               </div>
 
-              <Code
-                data-sentry-mask
-                className="flex items-center justify-between w-full gap-4 my-8 "
-              >
+              <Code data-sentry-mask className="flex items-center justify-between gap-4 my-8 ">
                 {showKey ? key.data.key : maskedKey}
                 <div className="flex items-start justify-between gap-4">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -105,9 +101,12 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
             <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
               Try creating a new api key for your users:
             </p>
-            <Code data-sentry-mask className="flex items-start justify-between w-full gap-4 my-8 ">
+            <Code
+              data-sentry-mask
+              className="flex items-start justify-between gap-4 my-8 text-xs pt-10 "
+            >
               {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-4 relative -top-8 right-[88px]">
                 <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
                 <CopyButton value={snippet} />
               </div>
