@@ -110,8 +110,8 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
               </div>
             </Code>
             <DialogClose asChild>
-              <Button type="button" variant="secondary">
-                Close
+              <Button type="button" variant="primary">
+                Done
               </Button>
             </DialogClose>
           </DialogContent>
