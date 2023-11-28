@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -77,19 +78,16 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
               </DialogDescription>
               <div>
                 <Alert variant="alert" className="my-4">
-                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Root Key Generated</AlertTitle>
                   <AlertDescription>
                     The root key will provide full read and write access to all current and future
                     resources.
-                    <br />
-                    For production use, we recommend creating a key with only the permissions you
-                    need.
                   </AlertDescription>
                 </Alert>
               </div>
 
-              <Code data-sentry-mask className="flex items-center justify-between gap-4 my-8 ">
+              <Code data-sentry-mask className="my-8 flex items-center justify-between gap-4 ">
                 {showKey ? key.data.key : maskedKey}
                 <div className="flex items-start justify-between gap-4">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -98,19 +96,24 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
               </Code>
             </DialogHeader>
 
-            <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
+            <p className="mt-2 text-center text-sm font-medium text-gray-700 ">
               Try creating a new api key for your users:
             </p>
             <Code
               data-sentry-mask
-              className="flex items-start justify-between gap-4 my-8 text-xs pt-10 "
+              className="my-8 flex items-start justify-between gap-4 pt-10 text-xs "
             >
               {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-              <div className="flex items-start justify-between gap-4 relative -top-8 right-[88px]">
+              <div className="relative -top-8 right-[88px] flex items-start justify-between gap-4">
                 <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
                 <CopyButton value={snippet} />
               </div>
             </Code>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
           </DialogContent>
         ) : (
           <DialogContent>
@@ -118,13 +121,11 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
             <DialogDescription />
 
             <Alert id="root-key-alert">
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle className="h-4 w-4" />
               <AlertTitle id="root-key-alert-title">Root keys can be dangerous</AlertTitle>
               <AlertDescription>
                 The root key will provide full read and write access to all current and future
                 resources.
-                <br />
-                For production use, we recommend creating a key with only the permissions you need.
               </AlertDescription>
             </Alert>
             <DialogFooter className="flex items-center justify-between gap-2 ">
