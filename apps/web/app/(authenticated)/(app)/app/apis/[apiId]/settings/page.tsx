@@ -14,7 +14,7 @@ type Props = {
     apiId: string;
   };
 };
-
+export const runtime = "edge";
 export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 

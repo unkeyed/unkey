@@ -18,7 +18,7 @@ import ms from "ms";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./access-table";
 export const revalidate = 0;
-
+export const runtime = "edge";
 export default async function Page(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 

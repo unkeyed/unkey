@@ -16,7 +16,7 @@ import { Info, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./table";
-
+export const runtime = "edge";
 export default async function KeyPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 

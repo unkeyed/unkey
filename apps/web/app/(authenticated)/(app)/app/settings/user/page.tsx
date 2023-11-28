@@ -6,7 +6,7 @@ import { UpdateUserEmail } from "./update-user-email";
 import { UpdateUserImage } from "./update-user-image";
 import { UpdateUserName } from "./update-user-name";
 export const revalidate = 0;
-
+export const runtime = "edge";
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 

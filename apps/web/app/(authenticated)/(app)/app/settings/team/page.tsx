@@ -36,7 +36,7 @@ type Member = {
   role: "basic_member" | "admin" | "guest_member";
   email?: string;
 };
-
+export const runtime = "edge";
 export default function TeamPage() {
   const { user, organization } = useClerk();
 
