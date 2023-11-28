@@ -115,12 +115,7 @@
         },
         {
           "group": "APIs",
-          "pages": [
-            "api-reference/apis/get",
-            "api-reference/apis/create",
-            "api-reference/apis/list-keys",
-            "api-reference/apis/delete"
-          ]
+          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
         }
       ]
     },
@@ -206,26 +201,6 @@
       "group": "Rust",
       "icon": "code",
       "pages": ["libraries/rs/overview"]
-    },
-    {
-      "group": "Spring Boot",
-      "icon": "code",
-      "pages": [
-        "libraries/springboot-java/overview",
-        {
-          "group": "Functions",
-          "pages": [
-            "libraries/springboot-java/functions/create",
-            "libraries/springboot-java/functions/verify",
-            "libraries/springboot-java/functions/revoke",
-            "libraries/springboot-java/functions/update"
-          ]
-        },
-        {
-          "group": "API",
-          "pages": ["libraries/springboot-java/api/get", "libraries/springboot-java/api/list"]
-        }
-      ]
     },
     {
       "group": "Contributing",
