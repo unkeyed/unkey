@@ -26,6 +26,7 @@ import { redirect } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+export const runtime = "edge";
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"], {

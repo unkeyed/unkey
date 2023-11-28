@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
-
+export const runtime = "edge";
 export default async function SettingsKeysPage(props: {
   params: { apiId: string };
 }) {
