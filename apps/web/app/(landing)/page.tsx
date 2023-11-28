@@ -29,7 +29,7 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
     return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
   }),
 ]);
-
+export const runtime = "edge";
 function NumbersServed() {
   return (
     <div className="mt-24 rounded-4xl sm:mt-32 lg:mt-32">

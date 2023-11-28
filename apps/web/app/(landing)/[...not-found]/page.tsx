@@ -1,5 +1,5 @@
 import { Button } from "@/components/landing/button";
-
+export const runtime = "edge";
 export default function NotFound() {
   return (
     <section className="flex flex-col items-center justify-center h-screen max-w-7xl width-full lg:mx-auto">

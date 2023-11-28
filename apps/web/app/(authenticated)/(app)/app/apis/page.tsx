@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { ApiList } from "./client";
 
 export const revalidate = 3;
-
+export const runtime = "edge";
 export default async function TenantOverviewPage() {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({

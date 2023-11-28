@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { z } from "zod";
-
+export const runtime = "edge";
 export async function POST(request: Request) {
   const env = vercelIntegrationEnv();
   if (!env) {
