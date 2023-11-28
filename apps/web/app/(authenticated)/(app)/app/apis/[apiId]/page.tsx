@@ -8,8 +8,10 @@ import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
+
 export const revalidate = 0;
 export const runtime = "edge";
+
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 

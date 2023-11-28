@@ -3,7 +3,7 @@
 import { addEmail } from "@/app/actions/addEmail";
 import { useToast } from "@/components/ui/use-toast";
 import { useRef } from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { Loading } from "../dashboard/loading";
 import { Button } from "../ui/button";
 function ArrowIcon(props: any) {
@@ -25,9 +25,9 @@ const SubmitButton = () => {
     <Button
       size="icon"
       disabled={pending}
-      className="flex items-center justify-center h-full text-white transition aspect-square rounded-xl bg-gray-950 hover:bg-gray-800 disabled:bg-gray-500"
+      className="flex aspect-square h-full items-center justify-center rounded-xl bg-gray-950 text-white transition hover:bg-gray-800 disabled:bg-gray-500"
     >
-      {pending ? <Loading className="w-4 h-4" /> : <ArrowIcon className="w-4" />}
+      {pending ? <Loading className="h-4 w-4" /> : <ArrowIcon className="w-4" />}
     </Button>
   );
 };
@@ -57,7 +57,7 @@ export function NewsletterForm() {
         }
       }}
     >
-      <h2 className="text-sm font-semibold tracking-wider font-display text-gray-950">
+      <h2 className="font-display text-sm font-semibold tracking-wider text-gray-950">
         Sign up for our newsletter
       </h2>
       <p className="mt-4 text-sm text-gray-700">Subscribe to get the latest Unkey news</p>
@@ -70,9 +70,9 @@ export function NewsletterForm() {
           autoComplete="email"
           aria-label="Email address"
           required
-          className="block w-full py-4 pl-6 pr-20 transition bg-transparent border border-gray-300 rounded-2xl text-base/6 text-gray-950 ring-4 ring-transparent placeholder:text-gray-500 focus:border-gray-950 focus:outline-none focus:ring-gray-950/5"
+          className="block w-full rounded-2xl border border-gray-300 bg-transparent py-4 pl-6 pr-20 text-base/6 text-gray-950 ring-4 ring-transparent transition placeholder:text-gray-500 focus:border-gray-950 focus:outline-none focus:ring-gray-950/5"
         />
-        <div className="absolute flex justify-end inset-y-1 right-1">
+        <div className="absolute inset-y-1 right-1 flex justify-end">
           <SubmitButton />
         </div>
       </div>

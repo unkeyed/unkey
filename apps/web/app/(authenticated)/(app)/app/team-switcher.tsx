@@ -25,7 +25,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
   const [isLoading, setLoading] = useState(false);
-  const router = useRouter();
+  const _router = useRouter();
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
@@ -37,7 +37,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       });
     } finally {
       setLoading(false);
-      router.replace("/app");
+      _router.refresh();
     }
   }
   const [search, _setSearch] = useState("");
@@ -66,7 +66,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
                 alt={user?.username ?? user?.fullName ?? "Profile picture"}
               />
             ) : null}
-            <AvatarFallback className="flex items-center justify-center w-8 h-8 text-gray-700 bg-gray-100 border border-gray-500 rounded">
+            <AvatarFallback className="flex h-8 w-8 items-center justify-center rounded border border-gray-500 bg-gray-100 text-gray-700">
               {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "")
                 .slice(0, 2)
                 .toUpperCase() ?? "P"}
@@ -77,7 +77,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           ) : (
             <Tooltip>
               <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
-                <span className="text-sm font-semibold overflow-hidden text-ellipsis">
+                <span className="overflow-hidden text-ellipsis text-sm font-semibold">
                   {currentOrg?.name ?? "Personal Workspace"}
                 </span>
               </TooltipTrigger>
@@ -90,7 +90,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           )}
         </div>
 
-        <ChevronsUpDown className="hidden w-3 h-3 md:block shrink-0" />
+        <ChevronsUpDown className="hidden h-3 w-3 shrink-0 md:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="left"
@@ -104,7 +104,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           <span className={currentOrg === null ? "font-semibold" : undefined}>
             {user?.username ?? user?.fullName ?? ""}
           </span>
-          {currentOrg === null ? <Check className="w-4 h-4" /> : null}
+          {currentOrg === null ? <Check className="h-4 w-4" /> : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
@@ -120,14 +120,14 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
                 {" "}
                 {organization.name}
               </span>
-              {organization.id === currentOrg?.id ? <Check className="w-4 h-4" /> : null}
+              {organization.id === currentOrg?.id ? <Check className="h-4 w-4" /> : null}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
 
           <DropdownMenuItem>
             <Link href="/new" className="flex items-center">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               <span>Create Workspace</span>
             </Link>
           </DropdownMenuItem>
