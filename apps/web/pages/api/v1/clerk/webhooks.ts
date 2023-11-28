@@ -6,7 +6,7 @@ import freeDomains from "free-email-domains";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { WebhookRequiredHeaders } from "svix";
 import { Webhook } from "svix";
-export const runtime = "edge";
+
 const { CLERK_WEBHOOK_SECRET, RESEND_API_KEY, RESEND_AUDIENCE_ID } = env();
 export default async function handler(
   req: NextApiRequestWithSvixRequiredHeaders,
