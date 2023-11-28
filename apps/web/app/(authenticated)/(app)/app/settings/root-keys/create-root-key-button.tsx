@@ -87,7 +87,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
                 </Alert>
               </div>
 
-              <Code data-sentry-mask className="my-8 flex items-center justify-between gap-4 ">
+              <Code className="my-8 flex items-center justify-between gap-4 ">
                 {showKey ? key.data.key : maskedKey}
                 <div className="flex items-start justify-between gap-4">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -99,10 +99,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
             <p className="mt-2 text-center text-sm font-medium text-gray-700 ">
               Try creating a new api key for your users:
             </p>
-            <Code
-              data-sentry-mask
-              className="my-8 flex items-start justify-between gap-4 pt-10 text-xs "
-            >
+            <Code className="my-8 flex items-start justify-between gap-4 pt-10 text-xs ">
               {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
               <div className="relative -top-8 right-[88px] flex items-start justify-between gap-4">
                 <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
