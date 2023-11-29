@@ -1,5 +1,12 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  MetricCardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -89,23 +96,25 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     <div className="grid grid-cols-2 md:gap-4 md:grid-cols-3">
       <Card className="max-md:mr-2 max-md:mb-4 ">
         <CardHeader className="pb-6 ">
-          <CardTitle>{formatNumber(keys)}</CardTitle>
-          <CardDescription>Total Keys</CardDescription>
+          <MetricCardTitle>{formatNumber(keys)}</MetricCardTitle>
+          <CardDescription>
+            <span className="text-2xl font-bold">Total Keys</span>
+          </CardDescription>
         </CardHeader>
       </Card>
       <Card className="max-md:ml-2 max-md:mb-4">
         <CardHeader className="pb-6">
-          <CardTitle>
+          <MetricCardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
-          </CardTitle>
+          </MetricCardTitle>
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
       <Card className="max-md:mb-4 col-span-2 md:col-span-1">
         <CardHeader className="pb-6">
-          <CardTitle>
+          <MetricCardTitle>
             {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
-          </CardTitle>
+          </MetricCardTitle>
           <CardDescription>Successful Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>

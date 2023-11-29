@@ -19,9 +19,9 @@ function Changelog({ changelogs } = { changelogs: allChangelogs }) {
               <Border className="grid grid-cols-3 pt-16 gap-x-8 gap-y-8">
                 <div className="col-span-full sm:flex sm:items-center sm:justify-between sm:gap-x-8 lg:col-span-1 lg:block">
                   <div className="sm:flex sm:items-center sm:gap-x-6 lg:block">
-                    <h3 className="mt-6 text-sm font-semibold text-gray-950 sm:mt-0 lg:mt-8">
+                    <p className="mt-6 text-sm font-semibold text-gray-950 sm:mt-0 lg:mt-8">
                       {changelog.title}
-                    </h3>
+                    </p>
                   </div>
                   <div className="flex mt-1 gap-x-4 sm:mt-0 lg:block">
                     <p className="text-sm tracking-tight text-gray-950 after:ml-4 after:font-semibold after:text-gray-300 after:content-['/'] lg:mt-2 lg:after:hidden" />
@@ -31,9 +31,9 @@ function Changelog({ changelogs } = { changelogs: allChangelogs }) {
                   </div>
                 </div>
                 <div className="col-span-full lg:col-span-2 lg:max-w-2xl">
-                  <p className="text-4xl font-medium font-display text-gray-950">
+                  <h3 className="text-4xl font-medium font-display text-gray-950">
                     <Link href={changelog.url}>{changelog.title}</Link>
-                  </p>
+                  </h3>
                   <div className="mt-6 space-y-6 text-base text-gray-600">
                     {changelog.summary?.map((paragraph) => (
                       <p key={paragraph}>{paragraph}</p>
