@@ -142,6 +142,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                             </Badge>
                           </FormItem>
                           <FormItem
+                            aria-disabled={workspaces.length > 0}
                             className={cn(
                               "flex items-start justify-between  space-x-3 space-y-0 border rounded-md p-4 cursor-default",
                               {
@@ -174,7 +175,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
                                 </p>
                               </div>
                               {workspaces.length > 0 ? (
-                                <p className="mt-2 text-xs text-alert">
+                                <p className="mt-2 text-xs text-red-500">
                                   Only one free workspace allowed
                                 </p>
                               ) : null}
@@ -190,6 +191,7 @@ export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
 
               <div className="mt-8">
                 <Button
+                  aria-disabled={workspaces.length > 0}
                   variant={form.formState.isValid ? "primary" : "disabled"}
                   disabled={createWorkspace.isLoading || !form.formState.isValid}
                   type="submit"
