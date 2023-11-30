@@ -54,10 +54,35 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
       });
     },
   });
-
+  function AsideContent() {
+    return (
+      <div className="space-y-2">
+        <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
+          <Code2 className="w-6 h-6 text-primary" />
+        </div>
+        <h4 className="text-lg font-medium">What is an API?</h4>
+        <p className="text-sm text-content-subtle">
+          An API groups all of your keys together. They are invisible to your users but allow you to
+          filter keys by a namespace. We recommend creating one API for each environment, typically{" "}
+          <span className="font-medium text-mono text-foreground">development</span>,{" "}
+          <span className="font-medium text-mono text-foreground">preview</span> and{" "}
+          <span className="font-medium text-mono text-foreground">production</span>.
+        </p>
+        <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
+          <li>Group keys together</li>
+          <li>Globally distributed in 35+ locations</li>
+          <li>Key and API analytics </li>
+        </ol>
+      </div>
+    );
+  }
   return (
     <div className="flex items-start justify-between gap-16">
-      <main className="w-3/4">
+      <main className="max-sm:w-full md:w-3/4">
+        <aside className="mb-4 md:hidden">
+          <AsideContent />
+        </aside>
+
         <div>
           <Form {...form}>
             <form
@@ -96,25 +121,8 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
           </Form>
         </div>
       </main>
-      <aside className="flex flex-col items-start justify-center w-1/4 space-y-16">
-        <div className="space-y-2">
-          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
-            <Code2 className="w-6 h-6 text-primary" />
-          </div>
-          <h4 className="text-lg font-medium">What is an API?</h4>
-          <p className="text-sm text-content-subtle">
-            APIs group your keys together. They are invisible to your users but allow you to filter
-            keys by a namespace. We recommend creating one API for each environment, typically{" "}
-            <span className="font-medium text-mono text-foreground">development</span>,{" "}
-            <span className="font-medium text-mono text-foreground">preview</span> and{" "}
-            <span className="font-medium text-mono text-foreground">production</span>.
-          </p>
-          <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
-            <li>Group keys together</li>
-            <li>Globally distributed in 35+ locations</li>
-            <li>Key and API analytics </li>
-          </ol>
-        </div>
+      <aside className="md:flex flex-col items-start justify-center w-1/4 space-y-16 max-md:hidden ">
+        <AsideContent />
       </aside>
     </div>
   );

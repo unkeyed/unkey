@@ -9,6 +9,7 @@ import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 export const revalidate = 0;
+export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
@@ -20,7 +21,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const keysP = db
@@ -76,20 +77,23 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   }));
 
   const data = [
-    ...successOverTime.map((d) => ({ ...d, category: "Successful Verifications" })),
+    ...successOverTime.map((d) => ({
+      ...d,
+      category: "Successful Verifications",
+    })),
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-      <Card>
-        <CardHeader className="pb-6">
+    <div className="grid grid-cols-2 md:gap-4 md:grid-cols-3">
+      <Card className="max-md:mr-2 max-md:mb-4 ">
+        <CardHeader className="pb-6 ">
           <CardTitle>{formatNumber(keys)}</CardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
-      <Card>
+      <Card className="max-md:ml-2 max-md:mb-4">
         <CardHeader className="pb-6">
           <CardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
@@ -97,7 +101,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="col-span-2 md:col-span-1">
+      <Card className="max-md:mb-4 col-span-2 md:col-span-1">
         <CardHeader className="pb-6">
           <CardTitle>
             {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}

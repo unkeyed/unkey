@@ -4,7 +4,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { BookOpen, Code, LucideIcon, Settings } from "lucide-react";
-import ms from "ms";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import React from "react";

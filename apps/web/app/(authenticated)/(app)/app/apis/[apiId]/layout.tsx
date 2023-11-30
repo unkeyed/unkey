@@ -25,7 +25,7 @@ export default async function ApiPageLayout(props: Props) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const navigation = [
     { label: "Overview", href: `/app/apis/${props.params.apiId}`, segment: null },

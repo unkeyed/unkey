@@ -15,7 +15,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const revalidate = 0;
-
+export const runtime = "edge";
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 
@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const t = new Date();
@@ -65,11 +65,14 @@ export default async function SettingsPage() {
             </CardDescription>
           </div>
           <Link href="/app/settings/billing">
-            <Button>Change Billing</Button>
+            <Button className="max-sm:hidden">Change Billing</Button>
           </Link>
         </CardHeader>
 
         <CardContent>
+          <Link href="/app/stripe">
+            <Button className="max-sm:text-sm md:hidden max-sm:mb-4">Change Billing</Button>
+          </Link>
           <ol className="flex flex-col space-y-4">
             <li className="flex flex-col w-2/3">
               <h3 className="text-sm font-medium text-content">Active Keys</h3>

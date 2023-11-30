@@ -24,7 +24,7 @@ export default async function StripeSuccess(props: Props) {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!ws) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const e = stripeEnv();
   if (!e) {

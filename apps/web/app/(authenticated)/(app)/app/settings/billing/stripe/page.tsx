@@ -6,7 +6,7 @@ import { currentUser } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
-
+export const runtime = "edge";
 export default async function StripeRedirect() {
   const tenantId = getTenantId();
   if (!tenantId) {
@@ -18,7 +18,7 @@ export default async function StripeRedirect() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!ws) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const e = stripeEnv();
   if (!e) {

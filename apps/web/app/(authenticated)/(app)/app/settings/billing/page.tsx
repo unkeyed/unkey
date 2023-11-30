@@ -15,7 +15,7 @@ export default async function BillingPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   return (
