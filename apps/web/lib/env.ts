@@ -24,7 +24,7 @@ export const env = () =>
       RESEND_API_KEY: z.string().optional(),
       RESEND_AUDIENCE_ID: z.string().optional(),
 
-      UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
+      HEARTBEAT_UPDATE_USAGE_URL: z.string().optional(),
       PLAIN_API_KEY: z.string().optional(),
     })
     .parse(process.env);
