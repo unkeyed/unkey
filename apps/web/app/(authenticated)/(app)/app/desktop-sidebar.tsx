@@ -52,10 +52,10 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside className={cn("fixed inset-y-0 w-64 px-6 z-10", className)}>
-      <div className="flex -mx-2  h-12 my-4 min-w-full">
+      <div className="flex -mx-2 mt-4 min-w-full">
         <WorkspaceSwitcher />
       </div>
-      <nav className="flex flex-col flex-1 flex-grow">
+      <nav className="flex flex-col flex-1 flex-grow mt-4">
         <ul className="flex flex-col flex-1 gap-y-7">
           <li>
             <h2 className="text-xs font-semibold leading-6 text-content">General</h2>
