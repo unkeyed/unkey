@@ -27,12 +27,7 @@ export const UserButton: React.FC = () => {
       <DropdownMenuTrigger className="absolute inset-x-0 z-20 bottom-0 flex items-center justify-between gap-2 px-6 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer">
         <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8">
-            {user.imageUrl ? (
-              <AvatarImage
-                src={user.imageUrl}
-                alt={user.username ?? user.fullName ?? "Profile picture"}
-              />
-            ) : null}
+            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="Profile picture" /> : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>

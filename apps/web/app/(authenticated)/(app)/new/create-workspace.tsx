@@ -63,7 +63,7 @@ export const CreateWorkspace: React.FC = () => {
         <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
           <Box className="w-6 h-6 text-primary" />
         </div>
-        <h4 className="text-lg font-medium">What is a workspace?</h4>
+        <h2 className="text-lg font-medium">What is a workspace?</h2>
         <p className="text-sm text-content-subtle">
           A workspace groups all your resources and billing. You can have one personal workspace for
           free and create more workspaces with your teammates.

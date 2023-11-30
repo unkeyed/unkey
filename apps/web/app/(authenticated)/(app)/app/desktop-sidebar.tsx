@@ -58,7 +58,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       <nav className="flex flex-col flex-1 flex-grow mt-4">
         <ul className="flex flex-col flex-1 gap-y-7">
           <li>
-            <h3 className="text-xs font-semibold leading-6 text-content">General</h3>
+            <h2 className="text-xs font-semibold leading-6 text-content">General</h2>
             <ul className="mt-2 -mx-2 space-y-1">
               {navigation.map((item) => (
                 <li key={item.label}>
@@ -68,7 +68,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
             </ul>
           </li>
           <li>
-            <h3 className="text-xs font-semibold leading-6 text-content">Your APIs</h3>
+            <h2 className="text-xs font-semibold leading-6 text-content">Your APIs</h2>
             {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
             <ScrollArea className="mt-2 max-h-64 -mx-2 space-y-1 overflow-auto">
               {workspace.apis.map((api) => (
