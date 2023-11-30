@@ -6,7 +6,6 @@ let nextConfig = {
   productionBrowserSourceMaps: true, // we're open-source anyways
   experimental: {
     esmExternals: "loose",
-    webpackBuildWorker: true,
   },
 
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
