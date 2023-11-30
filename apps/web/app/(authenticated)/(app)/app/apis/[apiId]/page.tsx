@@ -96,9 +96,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       <Card className="max-md:mb-4 max-md:mr-2 ">
         <CardHeader className="pb-6 ">
           <MetricCardTitle>{formatNumber(keys)}</MetricCardTitle>
-          <CardDescription>
-            <span className="text-2xl font-bold">Total Keys</span>
-          </CardDescription>
+          <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
       <Card className="max-md:mb-4 max-md:ml-2">
