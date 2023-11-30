@@ -62,6 +62,9 @@ export function NewsletterForm() {
         Sign up for our newsletter
       </h2>
       <p className="mt-4 text-sm text-gray-700">Subscribe to get the latest Unkey news</p>
+      <label htmlFor="email" className="sr-only">
+        Enter email address to subscribe:
+      </label>
       <div className="relative mt-6">
         <input
           type="email"
@@ -73,6 +76,7 @@ export function NewsletterForm() {
           required
           className="block w-full rounded-2xl border border-gray-300 bg-transparent py-4 pl-6 pr-20 text-base/6 text-gray-950 ring-4 ring-transparent transition placeholder:text-gray-500 focus:border-gray-950 focus:outline-none focus:ring-gray-950/5"
         />
+
         <div className="absolute inset-y-1 right-1 flex justify-end">
           <SubmitButton />
         </div>
