@@ -23,6 +23,7 @@ const SubmitButton = () => {
   const { pending } = useFormStatus();
   return (
     <Button
+      aria-label="Submit"
       size="icon"
       disabled={pending}
       className="flex aspect-square h-full items-center justify-center rounded-xl bg-gray-950 text-white transition hover:bg-gray-800 disabled:bg-gray-500"
