@@ -20,7 +20,7 @@ type Props = {
 };
 export const runtime = "edge";
 export default async function (props: Props) {
-  const tenantId = getTenantId();
+  const _tenantId = getTenantId();
   const { userId } = auth();
 
   if (props.searchParams.apiId) {
@@ -74,39 +74,41 @@ export default async function (props: Props) {
     );
   }
 
-  const workspaces = await db.query.workspaces.findMany({
-    where: eq(schema.workspaces.tenantId, tenantId),
-  });
-
-  // if no personal worksapce exists, we create one
-  if (userId && !workspaces.find((ws) => ws.tenantId === userId)) {
-    const workspaceId = newId("workspace");
-    await db.insert(schema.workspaces).values({
-      id: workspaceId,
-      slug: null,
-      tenantId: userId,
-      name: "Personal",
-      plan: "free",
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      maxActiveKeys: QUOTA.free.maxActiveKeys,
-      maxVerifications: QUOTA.free.maxVerifications,
-      usageActiveKeys: null,
-      usageVerifications: null,
-      lastUsageUpdate: null,
-      billingPeriodStart: null,
-      billingPeriodEnd: null,
-      features: {},
-      betaFeatures: {},
+  if (userId) {
+    const personalWorkspace = await db.query.workspaces.findFirst({
+      where: eq(schema.workspaces.tenantId, userId),
     });
-    return redirect(`/new?workspaceId=${workspaceId}`);
+
+    // if no personal workspace exists, we create one
+    if (!personalWorkspace) {
+      const workspaceId = newId("workspace");
+      await db.insert(schema.workspaces).values({
+        id: workspaceId,
+        slug: null,
+        tenantId: userId,
+        name: "Personal",
+        plan: "free",
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        maxActiveKeys: QUOTA.free.maxActiveKeys,
+        maxVerifications: QUOTA.free.maxVerifications,
+        usageActiveKeys: null,
+        usageVerifications: null,
+        lastUsageUpdate: null,
+        billingPeriodStart: null,
+        billingPeriodEnd: null,
+        features: {},
+        betaFeatures: {},
+      });
+      return redirect(`/new?workspaceId=${workspaceId}`);
+    }
   }
 
   return (
     <div className="container m-16 mx-auto">
       <PageHeader title="Unkey" description="Create your workspace" />
       <Separator className="my-6" />
-      <CreateWorkspace workspaces={workspaces} />
+      <CreateWorkspace />
     </div>
   );
 }

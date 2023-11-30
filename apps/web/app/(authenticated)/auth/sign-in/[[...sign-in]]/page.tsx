@@ -1,4 +1,5 @@
 "use client";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { FadeIn } from "@/components/landing/fade-in";
 import {
   AlertDialog,
@@ -8,6 +9,7 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@clerk/nextjs";
+import { SearchX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { EmailCode } from "../email-code";
@@ -71,16 +73,23 @@ export default function AuthenticationPage() {
       )}
       <AlertDialog open={showDialog}>
         <AlertDialogContent>
-          <div>
-            We didn't detect an account associated with{" "}
-            <span className="font-semibold">{email}</span>. Did you mean to sign up?
-          </div>
+          <EmptyPlaceholder className="min-h-full border-0">
+            <EmptyPlaceholder.Icon>
+              <SearchX />
+            </EmptyPlaceholder.Icon>
+            <EmptyPlaceholder.Title>No account found</EmptyPlaceholder.Title>
+
+            <EmptyPlaceholder.Description>
+              We didn't detect an account associated with{" "}
+              <span className="font-semibold">{email}</span>. Did you mean to sign up?
+            </EmptyPlaceholder.Description>
+          </EmptyPlaceholder>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowDialog(false)}>No</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => router.push(`/auth/sign-up?email=${encodeURIComponent(email)}`)}
             >
-              Yes
+              Sign up
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

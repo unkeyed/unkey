@@ -28,11 +28,7 @@ const formSchema = z.object({
   name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
 });
 
-type Props = {
-  workspaces: Workspace[];
-};
-
-export const CreateWorkspace: React.FC<Props> = ({ workspaces }) => {
+export const CreateWorkspace: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
