@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 // db.ts
 import { datetime, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
-import { keys } from "./keys";
 import { workspaces } from "./workspaces";
 
 export const vercelIntegrations = mysqlTable("vercel_integrations", {
@@ -38,15 +37,17 @@ export const vercelBindings = mysqlTable(
 
 export const vercelIntegrationRelations = relations(vercelIntegrations, ({ many, one }) => ({
   workspace: one(workspaces, {
+    relationName: "vercel_workspace_relation",
     fields: [vercelIntegrations.workspaceId],
     references: [workspaces.id],
   }),
-  keys: many(keys),
+  // keys: many(keys,),
   vercelBindings: many(vercelBindings),
 }));
 
 export const vercelBindingRelations = relations(vercelBindings, ({ one }) => ({
   workspace: one(workspaces, {
+    relationName: "vercel_key_binding_relation",
     fields: [vercelBindings.workspaceId],
     references: [workspaces.id],
   }),

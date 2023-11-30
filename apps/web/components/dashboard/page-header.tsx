@@ -15,7 +15,7 @@ export const PageHeader: React.FC<Props> = ({ title, description, actions }) => 
   return (
     <div className="flex flex-col items-start justify-between w-full gap-2 mb-4 md:items-center md:flex-row md:mb-8 lg:mb-12 md:gap-4">
       <div className="space-y-1 ">
-        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
       </div>
       {actionRows.map((row, i) => (

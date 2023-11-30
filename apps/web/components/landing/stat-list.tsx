@@ -7,7 +7,6 @@ export function StatList({
   ...props
 }: {
   children: React.ReactNode;
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   props?: any;
 }) {
   return (

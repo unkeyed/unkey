@@ -5,7 +5,6 @@ export function Container({
   className,
   children,
 }: {
-  // biome-ignore lint/suspicious/noExplicitAny: it's tailwindui's code
   as?: any;
   className?: string;
   children: React.ReactNode;

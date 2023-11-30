@@ -18,7 +18,7 @@ import ms from "ms";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./access-table";
 export const revalidate = 0;
-
+export const runtime = "edge";
 export default async function Page(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
@@ -105,9 +105,7 @@ export default async function Page(props: { params: { keyId: string } }) {
           />
           <Stat
             label="Remaining"
-            value={
-              typeof key.remainingRequests === "number" ? fmt(key.remainingRequests) : <Minus />
-            }
+            value={typeof key.remaining === "number" ? fmt(key.remaining) : <Minus />}
           />
           <Stat
             label="LastUsed"

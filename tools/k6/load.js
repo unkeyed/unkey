@@ -3,16 +3,16 @@ import http from "k6/http";
 
 export const options = {
   stages: [
-    { duration: "10s", target: 100 },
-    { duration: "2m", target: 100 },
-    { duration: "10s", target: 200 },
-    { duration: "2m", target: 200 },
-    { duration: "10s", target: 300 },
-    { duration: "2m", target: 300 },
-    { duration: "10s", target: 400 },
-    { duration: "2m", target: 400 },
-    { duration: "10s", target: 500 },
-    { duration: "2m", target: 500 },
+    { duration: "10s", target: 1 },
+    { duration: "2m", target: 1 },
+    { duration: "10s", target: 2 },
+    { duration: "2m", target: 2 },
+    { duration: "10s", target: 3 },
+    { duration: "2m", target: 3 },
+    { duration: "10s", target: 4 },
+    { duration: "2m", target: 4 },
+    { duration: "10s", target: 5 },
+    { duration: "2m", target: 5 },
   ],
 
   thresholds: {
@@ -22,9 +22,9 @@ export const options = {
 
 export default function () {
   const res = http.post(
-    "https://api.unkey.dev/v1/keys/verify",
+    "https://api.unkey.app/v1/keys.verifyKey",
     JSON.stringify({
-      key: "api_JGNtmzGWj4VmqH1qdVhqcT",
+      key: "rl_3ZQQJ33EAjjLU1GgJPz6H9iy",
     }),
     {
       headers: {

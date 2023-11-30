@@ -25,19 +25,31 @@ export default async function ApiPageLayout(props: Props) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const navigation = [
-    { label: "Overview", href: `/app/apis/${props.params.apiId}`, segment: null },
-    { label: "Keys", href: `/app/apis/${props.params.apiId}/keys`, segment: "keys" },
-    { label: "Settings", href: `/app/apis/${props.params.apiId}/settings`, segment: "settings" },
+    {
+      label: "Overview",
+      href: `/app/apis/${props.params.apiId}`,
+      segment: null,
+    },
+    {
+      label: "Keys",
+      href: `/app/apis/${props.params.apiId}/keys`,
+      segment: "keys",
+    },
+    {
+      label: "Settings",
+      href: `/app/apis/${props.params.apiId}/settings`,
+      segment: "settings",
+    },
   ];
 
   return (
     <div>
       <PageHeader
         title={api.name}
-        description={"Here is a list of your current API keys"}
+        description={" "}
         actions={[
           <Badge
             key="apiId"

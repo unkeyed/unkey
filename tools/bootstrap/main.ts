@@ -34,9 +34,8 @@ async function main() {
       host: env.DATABASE_HOST,
       username: env.DATABASE_USERNAME,
       password: env.DATABASE_PASSWORD,
-      // biome-ignore lint/suspicious/noExplicitAny: TODO
+
       fetch: (url: string, init: any) => {
-        // biome-ignore lint/suspicious/noExplicitAny: TODO
         (init as any).cache = undefined; // Remove cache header
         return fetch(url, init);
       },
