@@ -18,7 +18,7 @@ type Props = {
     apiId?: string;
   };
 };
-export const runtime = "edge";
+
 export default async function (props: Props) {
   const _tenantId = getTenantId();
   const { userId } = auth();
@@ -33,9 +33,9 @@ export default async function (props: Props) {
             <Link
               key="skip"
               href="/app"
-              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
+              className="text-content-subtle hover:text-foreground flex items-center gap-1 text-sm duration-200"
             >
-              Skip <ArrowRight className="w-4 h-4" />{" "}
+              Skip <ArrowRight className="h-4 w-4" />{" "}
             </Link>,
           ]}
         />
@@ -62,9 +62,9 @@ export default async function (props: Props) {
             <Link
               key="skip"
               href="/app"
-              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
+              className="text-content-subtle hover:text-foreground flex items-center gap-1 text-sm duration-200"
             >
-              Skip <ArrowRight className="w-4 h-4" />{" "}
+              Skip <ArrowRight className="h-4 w-4" />{" "}
             </Link>,
           ]}
         />

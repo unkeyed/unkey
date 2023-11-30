@@ -16,7 +16,6 @@ import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 export const revalidate = 0;
-export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
@@ -93,8 +92,8 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:gap-4 md:grid-cols-3">
-      <Card className="max-md:mr-2 max-md:mb-4 ">
+    <div className="grid grid-cols-2 md:grid-cols-3 md:gap-4">
+      <Card className="max-md:mb-4 max-md:mr-2 ">
         <CardHeader className="pb-6 ">
           <MetricCardTitle>{formatNumber(keys)}</MetricCardTitle>
           <CardDescription>
@@ -102,7 +101,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           </CardDescription>
         </CardHeader>
       </Card>
-      <Card className="max-md:ml-2 max-md:mb-4">
+      <Card className="max-md:mb-4 max-md:ml-2">
         <CardHeader className="pb-6">
           <MetricCardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
@@ -110,7 +109,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="max-md:mb-4 col-span-2 md:col-span-1">
+      <Card className="col-span-2 max-md:mb-4 md:col-span-1">
         <CardHeader className="pb-6">
           <MetricCardTitle>
             {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}

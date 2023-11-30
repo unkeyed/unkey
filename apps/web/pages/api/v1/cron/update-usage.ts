@@ -9,6 +9,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 export const config = {
   maxDuration: 300,
+  runtime: "nodejs",
 };
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {

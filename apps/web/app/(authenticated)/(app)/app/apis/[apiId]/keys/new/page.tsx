@@ -2,7 +2,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateKey } from "../../create-key";
-export const runtime = "edge";
+
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 

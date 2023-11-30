@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider } from "@clerk/nextjs";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export default function AuthenticatedLayout({
   children,
