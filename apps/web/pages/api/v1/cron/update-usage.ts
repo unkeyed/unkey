@@ -4,7 +4,6 @@ import {
   getActiveKeysPerHourForAllWorkspaces,
   getVerificationsPerHourForAllWorkspaces,
 } from "@/lib/tinybird";
-import * as Sentry from "@sentry/nextjs";
 import { verifySignature } from "@upstash/qstash/nextjs";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
@@ -13,10 +12,6 @@ export const config = {
 };
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
-  const checkInId = Sentry.captureCheckIn({
-    monitorSlug: "usage-updates",
-    status: "in_progress",
-  });
   try {
     const e = stripeEnv();
     if (!e) {
@@ -122,23 +117,13 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     }
 
     // report success
-    if (env().UPTIME_CRON_URL_COLLECT_BILLING) {
-      await fetch(env().UPTIME_CRON_URL_COLLECT_BILLING!);
+    if (env().HEARTBEAT_UPDATE_USAGE_URL) {
+      await fetch(env().HEARTBEAT_UPDATE_USAGE_URL!);
     }
 
-    Sentry.captureCheckIn({
-      checkInId,
-      monitorSlug: "usage-updates",
-      status: "ok",
-    });
     res.send("OK");
   } catch (err) {
     res.status(500);
-    Sentry.captureCheckIn({
-      checkInId,
-      monitorSlug: "usage-updates",
-      status: "error",
-    });
     if (err instanceof Error) {
       console.error(err.message);
       res.send(err.message);

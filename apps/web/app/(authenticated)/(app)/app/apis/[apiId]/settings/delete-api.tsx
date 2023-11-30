@@ -150,7 +150,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
                 )}
               />
 
-              <DialogFooter className="justify-end">
+              <DialogFooter className="justify-end gap-4">
                 <Button type="button" onClick={() => setOpen(!open)} variant="secondary">
                   Cancel
                 </Button>

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
@@ -16,7 +16,7 @@ import {
 } from "./legacy_keys_updateKey";
 
 test("returns 200", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
@@ -53,7 +53,7 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
@@ -111,7 +111,7 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
@@ -164,7 +164,7 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();
@@ -209,7 +209,7 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
   const app = newApp();

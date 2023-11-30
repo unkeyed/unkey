@@ -14,7 +14,7 @@ type Props = {
     apiId: string;
   };
 };
-
+export const runtime = "edge";
 export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
@@ -27,7 +27,7 @@ export default async function SettingsPage(props: Props) {
     },
   });
   if (!workspace || workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const api = workspace.apis.find((api) => api.id === props.params.apiId);
   if (!api) {

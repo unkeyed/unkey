@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
@@ -13,7 +13,7 @@ import { type LegacyApisGetApiResponse, registerLegacyApisGetApi } from "./legac
 describe("when api exists", () => {
   describe("basic", () => {
     test("returns the api", async () => {
-      const env = testEnv();
+      const env = unitTestEnv.parse(process.env);
       // @ts-ignore
       init({ env });
 
@@ -40,7 +40,7 @@ describe("when api exists", () => {
 
   describe("with ip whitelist", () => {
     test("returns the ip whitelist", async () => {
-      const env = testEnv();
+      const env = unitTestEnv.parse(process.env);
       // @ts-ignore
       init({ env });
 
@@ -77,7 +77,7 @@ describe("when api exists", () => {
 });
 describe("when api does not exist", () => {
   test("returns an error", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
 
