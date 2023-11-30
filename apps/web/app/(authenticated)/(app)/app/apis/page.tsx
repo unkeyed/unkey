@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
+import PostHogClient from "@/lib/posthog";
 
 export const revalidate = 3;
 export const runtime = "edge";
@@ -35,7 +36,15 @@ export default async function ApisOverviewPage() {
         .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
-  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+  const unpaid =
+    workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+
+  const posthog = PostHogClient();
+  posthog.identify({
+    distinctId: tenantId,
+  });
+  await posthog.shutdownAsync();
+
   return (
     <div className="">
       {unpaid ? (
@@ -58,8 +67,8 @@ export default async function ApisOverviewPage() {
               Please add billing to your account
             </h3>
             <p className="text-center text-sm text-gray-500 md:text-base">
-              Team workspaces is a paid feature. Please add billing to your account to continue
-              using it.
+              Team workspaces is a paid feature. Please add billing to your
+              account to continue using it.
             </p>
             <Link
               href="/app/stripe"

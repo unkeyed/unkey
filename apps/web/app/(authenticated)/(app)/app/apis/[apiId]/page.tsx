@@ -1,5 +1,11 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -86,14 +92,14 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:gap-4 md:grid-cols-3">
-      <Card className="max-md:mr-2 max-md:mb-4 ">
+    <div className="grid grid-cols-2 md:grid-cols-3 md:gap-4">
+      <Card className="max-md:mb-4 max-md:mr-2 ">
         <CardHeader className="pb-6 ">
           <CardTitle>{formatNumber(keys)}</CardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="max-md:ml-2 max-md:mb-4">
+      <Card className="max-md:mb-4 max-md:ml-2">
         <CardHeader className="pb-6">
           <CardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
@@ -101,10 +107,12 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="max-md:mb-4 col-span-2 md:col-span-1">
+      <Card className="col-span-2 max-md:mb-4 md:col-span-1">
         <CardHeader className="pb-6">
           <CardTitle>
-            {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
+            {formatNumber(
+              usage.data.reduce((sum, day) => sum + day.success, 0),
+            )}
           </CardTitle>
           <CardDescription>Successful Verifications (30 days)</CardDescription>
         </CardHeader>
@@ -112,7 +120,9 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
       <Card className="relative col-span-3">
         <CardHeader>
           <CardTitle>Usage in the last 30 days</CardTitle>
-          <CardDescription>This includes all key verifications in this API</CardDescription>
+          <CardDescription>
+            This includes all key verifications in this API
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <StackedColumnChart data={data} />
