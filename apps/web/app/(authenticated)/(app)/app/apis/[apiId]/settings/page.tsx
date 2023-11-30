@@ -7,7 +7,8 @@ import { notFound, redirect } from "next/navigation";
 import { DeleteApi } from "./delete-api";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
-export const revalidate = 0;
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   params: {
