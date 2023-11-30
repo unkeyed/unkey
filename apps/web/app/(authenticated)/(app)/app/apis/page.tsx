@@ -61,7 +61,7 @@ export default async function TenantOverviewPage() {
               using it.
             </p>
             <Link
-              href="/app/stripe"
+              href="/app/settings/billing/stripe"
               target="_blank"
               className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
             >

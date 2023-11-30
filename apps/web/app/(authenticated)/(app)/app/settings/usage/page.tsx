@@ -64,7 +64,7 @@ export default async function SettingsPage() {
               </span>{" "}
             </CardDescription>
           </div>
-          <Link href="/app/stripe">
+          <Link href="/app/settings/billing">
             <Button>Change Billing</Button>
           </Link>
         </CardHeader>

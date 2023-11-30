@@ -21,8 +21,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     },
     {
       label: "Billing",
-      href: "/app/stripe",
-      segment: null,
+      href: "/app/settings/billing",
+      segment: "billing",
     },
     {
       label: "Usage",

@@ -55,7 +55,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center px-2 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md justify-between w-full h-full gap-2 overflow-hidden whitespace-nowrap ring-0 focus:ring-0 focus:outline-none ">
+      <DropdownMenuTrigger className="h-12 flex items-center px-2 hover:bg-gray-200 dark:hover:bg-gray-800 hover:cursor-pointer rounded-md justify-between w-full gap-2 overflow-hidden whitespace-nowrap ring-0 focus:ring-0 focus:outline-none ">
         <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
           <Avatar className="w-6 h-6">
             {currentOrg?.imageUrl ? (

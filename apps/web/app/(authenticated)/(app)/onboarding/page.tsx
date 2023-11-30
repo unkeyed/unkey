@@ -1,5 +1,7 @@
 import { getTenantId } from "@/lib/auth";
+import { QUOTA } from "@/lib/constants/quotas";
 import { db, eq, schema } from "@/lib/db";
+import { newId } from "@unkey/id";
 import { redirect } from "next/navigation";
 
 export default async function OnboardingPage() {
@@ -12,5 +14,26 @@ export default async function OnboardingPage() {
     return redirect("/app/apis");
   }
 
-  return redirect("/new");
+  const workspaceId = newId("workspace");
+
+  await db.insert(schema.workspaces).values({
+    id: workspaceId,
+    slug: null,
+    tenantId,
+    name: "Personal",
+    plan: "free",
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    maxActiveKeys: QUOTA.free.maxActiveKeys,
+    maxVerifications: QUOTA.free.maxVerifications,
+    usageActiveKeys: null,
+    usageVerifications: null,
+    lastUsageUpdate: null,
+    billingPeriodStart: null,
+    billingPeriodEnd: null,
+    features: {},
+    betaFeatures: {},
+  });
+
+  return redirect(`/new?workspaceId=${workspaceId}`);
 }
