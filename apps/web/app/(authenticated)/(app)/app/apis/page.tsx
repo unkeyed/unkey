@@ -9,7 +9,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
 
-export const revalidate = 3;
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export default async function ApisOverviewPage() {
   const tenantId = getTenantId();
