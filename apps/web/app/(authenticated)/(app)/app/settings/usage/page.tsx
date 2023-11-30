@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const t = new Date();
@@ -64,7 +64,7 @@ export default async function SettingsPage() {
               </span>{" "}
             </CardDescription>
           </div>
-          <Link href="/app/stripe">
+          <Link href="/app/settings/billing">
             <Button className="max-sm:hidden">Change Billing</Button>
           </Link>
         </CardHeader>

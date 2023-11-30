@@ -14,7 +14,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const keys = await db.query.keys.findMany({
     where: and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)),

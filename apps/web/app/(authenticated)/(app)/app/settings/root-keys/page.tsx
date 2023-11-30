@@ -21,7 +21,7 @@ export default async function SettingsKeysPage(props: {
     },
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const allKeys = await db.query.keys.findMany({

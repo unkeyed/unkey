@@ -25,8 +25,8 @@ export default function SettingsLayout({
     },
     {
       label: "Billing",
-      href: "/app/stripe",
-      segment: null,
+      href: "/app/settings/billing",
+      segment: "billing",
     },
     {
       label: "Usage",
