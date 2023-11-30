@@ -117,8 +117,8 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     }
 
     // report success
-    if (env().UPTIME_CRON_URL_COLLECT_BILLING) {
-      await fetch(env().UPTIME_CRON_URL_COLLECT_BILLING!);
+    if (env().HEARTBEAT_UPDATE_USAGE_URL) {
+      await fetch(env().HEARTBEAT_UPDATE_USAGE_URL!);
     }
 
     res.send("OK");
