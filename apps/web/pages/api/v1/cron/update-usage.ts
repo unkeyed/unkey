@@ -56,6 +56,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
               activeKeys = d.usage;
             }
           }
+          console.log({ activeKeys });
 
           let verifications = 0;
           for (const d of globalVerifications) {
