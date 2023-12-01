@@ -33,6 +33,8 @@ export const updateUsage = inngest.createFunction(
       tinybird.verifications({}).then((res) => res.data),
     );
 
+    const summary: Record<string, { activeKeys: number; verifications: number }> = {};
+
     await Promise.all(
       workspaces.map(async (ws) => {
         logger.info("workspace", ws.id);
@@ -64,6 +66,7 @@ export const updateUsage = inngest.createFunction(
             verifications += d.verifications;
           }
         }
+        summary[ws.id] = { activeKeys, verifications };
         if (verifications > 0 || activeKeys > 0) {
           console.log(
             "%s did %d verifications with %d keys between %s and %s",
@@ -123,7 +126,7 @@ export const updateUsage = inngest.createFunction(
 
     return {
       event,
-      body: "done",
+      body: summary,
     };
   },
 );
