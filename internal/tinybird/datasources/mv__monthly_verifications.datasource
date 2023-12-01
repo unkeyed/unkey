@@ -1,5 +1,4 @@
-VERSION 2
-# Data Source created from Pipe 'aggregate_verifications_daily__v2'
+VERSION 1
 
 SCHEMA >
     `workspaceId` String,
