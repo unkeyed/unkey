@@ -1,15 +1,18 @@
 import type { IncomingHttpHeaders } from "http";
 import { env } from "@/lib/env";
 import type { WebhookEvent } from "@clerk/nextjs/server";
-import { Resend } from "@unkey/resend";
+import WelcomeEmail from "@unkey/resend/emails/welcome_email";
 import freeDomains from "free-email-domains";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { Resend } from "resend";
 import type { WebhookRequiredHeaders } from "svix";
 import { Webhook } from "svix";
-
 export const config = {
   runtime: "nodejs",
 };
+const domain = "updates.unkey.dev";
+const replyTo = "support@unkey.dev";
+
 const { CLERK_WEBHOOK_SECRET, RESEND_API_KEY, RESEND_AUDIENCE_ID } = env();
 export default async function handler(
   req: NextApiRequestWithSvixRequiredHeaders,
@@ -31,7 +34,7 @@ export default async function handler(
     return res.status(400).json({});
   }
 
-  const resend = new Resend({ apiKey: RESEND_API_KEY });
+  const resend = new Resend(RESEND_API_KEY);
   const eventType = evt.type;
   if (eventType === "user.created") {
     // we only care about the first email address, so we can just grab the first one
@@ -41,12 +44,16 @@ export default async function handler(
     }
     try {
       await alertSlack(email);
-      await resend.addUserToAudience({
-        email,
-        audienceId: RESEND_AUDIENCE_ID,
+      await resend.contacts.create({
+        audience_id: RESEND_AUDIENCE_ID,
+        email: email,
       });
-      await resend.sendWelcomeEmail({
-        email,
+      await resend.emails.send({
+        to: email,
+        from: `james@${domain}`,
+        reply_to: replyTo,
+        subject: "Welcome to Unkey",
+        react: WelcomeEmail(),
       });
       return res.status(200).json({});
     } catch (err) {
