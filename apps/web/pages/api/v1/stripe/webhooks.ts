@@ -3,11 +3,13 @@ import { QUOTA } from "@/lib/constants/quotas";
 import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
-import { Resend } from "@unkey/resend";
+import PaymentIssue from "@unkey/resend/emails/payment_issue";
+import SubscriptionEnded from "@unkey/resend/emails/subscription_ended";
+import TrialEndsIn3Days from "@unkey/resend/emails/trial_ends_in_3_days";
 import { NextApiRequest, NextApiResponse } from "next";
+import { Resend } from "resend";
 import Stripe from "stripe";
 import { z } from "zod";
-
 // Stripe requires the raw body to construct the event.
 export const config = {
   api: {
@@ -15,6 +17,8 @@ export const config = {
   },
   runtime: "nodejs",
 };
+const domain = "updates.unkey.dev";
+const replyTo = "support@unkey.dev";
 
 async function buffer(readable: Readable) {
   const chunks = [];
@@ -30,7 +34,7 @@ const requestValidation = z.object({
     "stripe-signature": z.string(),
   }),
 });
-const email = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
+const email = env().RESEND_API_KEY ? new Resend(env().RESEND_API_KEY!) : null;
 
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -97,9 +101,16 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
         if (email) {
           const users = await getUsers(ws.tenantId);
           for await (const user of users) {
-            await email.sendSubscriptionEnded({
-              email: user.email,
-              name: user.name,
+            await email.contacts.remove({
+              audience_id: env().RESEND_AUDIENCE_ID!,
+              id: user.email,
+            });
+            await email.emails.send({
+              to: user.email,
+              from: `james@${domain}`,
+              reply_to: replyTo,
+              subject: "Your Unkey subscription has ended",
+              react: SubscriptionEnded({ username: user.name }),
             });
           }
         }
@@ -121,11 +132,16 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
 
         const users = await getUsers(ws.tenantId);
         for await (const user of users) {
-          await email.sendTrialEnds({
-            email: user.email,
-            name: user.name,
-            workspace: ws.name,
-            date: new Date(subscription.trial_end! * 1000),
+          await email.emails.send({
+            to: user.email,
+            from: `james@${domain}`,
+            reply_to: replyTo,
+            subject: "Your Unkey trial ends in 3 days",
+            react: TrialEndsIn3Days({
+              workspaceName: ws.name,
+              username: user.name,
+              endDate: new Date(subscription.trial_end! * 1000).toString(),
+            }),
           });
         }
 
@@ -144,12 +160,17 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           throw new Error("workspace does not exist");
         }
         const users = await getUsers(ws.tenantId);
+        const date = invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date();
         for await (const user of users) {
-          await email.sendTrialEnds({
-            email: user.email,
-            name: user.name,
-            workspace: ws.name,
-            date: invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date(),
+          await email.emails.send({
+            to: user.email,
+            from: `james@${domain}`,
+            reply_to: replyTo,
+            subject: "There was an issue with your payment",
+            react: PaymentIssue({
+              username: user.name,
+              date: date.toString(),
+            }),
           });
         }
         break;
