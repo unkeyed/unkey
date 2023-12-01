@@ -1,16 +1,18 @@
-import { Inngest, EventSchemas } from "inngest";
-import { type Workspace } from "./db";
-
-
+import { EventSchemas, Inngest } from "inngest";
 
 type Events = {
+  // biome-ignore lint/complexity/noBannedTypes: inngest doesn't like never or unknown
+  "billing/invoicing": {};
   "billing/create.invoice": {
     data: {
       year: number;
       month: number;
-      workspace: Workspace
-    }
-  }
-}
+      workspaceId: string;
+    };
+  };
+};
 
-export const inngest = new Inngest({ id: "workflows", schemas: new EventSchemas().fromRecord<Events>() });
+export const inngest = new Inngest({
+  id: "workflows",
+  schemas: new EventSchemas().fromRecord<Events>(),
+});

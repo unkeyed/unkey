@@ -59,12 +59,22 @@ export const workspaces = mysqlTable(
         auditLog?: boolean;
       }>()
       .notNull(),
+    // prevent plan changes for a certain time, should be 1 day
+    planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
     subscriptions: json("subscriptions").$type<{
-      priceIdActiveKeys?: string,
-      priceIdVerifications?: string,
-      priceIdSupport?: string,
-      priceIdPlan?: string,
-    }>()
+      activeKeys?: {
+        priceId: string;
+      };
+      verifications?: {
+        priceId: string;
+      };
+      plan?: {
+        priceId: string;
+      };
+      support?: {
+        priceId: string;
+      };
+    }>(),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

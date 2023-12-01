@@ -1,7 +1,6 @@
 import { Tinybird as Client } from "@chronark/zod-bird";
 import { z } from "zod";
 
-
 export class Tinybird {
   private readonly tb: Client;
 
@@ -19,7 +18,6 @@ export class Tinybird {
       }),
       data: z.object({
         keys: z.number().int().nullable().default(0),
-
       }),
       opts: {
         cache: "no-store",
