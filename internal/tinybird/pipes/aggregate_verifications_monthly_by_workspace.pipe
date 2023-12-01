@@ -10,7 +10,7 @@ SQL >
         keyId,
         countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
         countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
-        countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded,
+        countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded
     FROM key_verifications__v2
     GROUP BY time
 
