@@ -4,7 +4,7 @@ SCHEMA >
     `workspaceId` String,
     `apiId` String,
     `keyId` String,
-    `time` DateTime
+    `time` Date
 
 ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(time)"
