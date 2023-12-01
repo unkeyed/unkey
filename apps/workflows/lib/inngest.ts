@@ -1,3 +1,3 @@
 import { Inngest } from "inngest";
 
-export const inngest = new Inngest({ id: "unkey-workflows" });
+export const inngest = new Inngest({ id: "workflows" });

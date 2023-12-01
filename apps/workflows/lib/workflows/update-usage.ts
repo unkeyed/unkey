@@ -9,10 +9,7 @@ export const config = {
 
 export const updateUsage = inngest.createFunction(
   { id: "update.usage" },
-  {
-    event: "cron/update.usage",
-    cron: "0 0 * * *",
-  },
+  { cron: "0 0 * * *" },
   async ({ event, step, logger }) => {
     const db = connectDatabase();
     const stripe = new Stripe(env().STRIPE_SECRET_KEY, {
@@ -120,6 +117,9 @@ export const updateUsage = inngest.createFunction(
         });
       }),
     );
+
+    // report success
+    await fetch(env().HEARTBEAT_UPDATE_USAGE_URL!);
 
     return {
       event,
