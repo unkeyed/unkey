@@ -12,7 +12,7 @@ SQL >
         countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
         countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded
     FROM key_verifications__v2
-    GROUP BY time
+    GROUP BY workspaceId, apiId, keyId, time
 
 TYPE materialized
 DATASOURCE mv__monthly_verifications__v1
