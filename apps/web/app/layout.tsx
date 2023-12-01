@@ -24,7 +24,7 @@ export const metadata = {
   description: "Accelerate your API development",
   openGraph: {
     title: "Open Source API Authentication",
-    description: "Accelerate your API development",
+    description: "Accelerate your API development ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
     images: ["https://unkey.dev/og.png"],
