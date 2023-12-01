@@ -11,8 +11,6 @@ import { getTotalVerifications } from "@/lib/tinybird";
 import { Github } from "lucide-react";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
-
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   db
     .select({ count: sql<number>`count(*)` })
@@ -29,6 +27,7 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   getTotalVerifications({}).then((res) => {
     return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
   }),
+  { next: { revalidate: 3600 } },
 ]);
 
 function NumbersServed() {
