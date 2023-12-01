@@ -205,7 +205,15 @@
     {
       "group": "Springboot",
       "icon": "code",
-      "pages": ["libraries/springboot-java/overview"]
+      "pages": [
+        "libraries/springboot-java/overview",
+        "libraries/springboot-java/api/get",
+        "libraries/springboot-java/api/list",
+        "libraries/springboot-java/functions/create",
+        "libraries/springboot-java/functions/revoke",
+        "libraries/springboot-java/functions/update",
+        "libraries/springboot-java/functions/verify",
+      ]
     },
     {
       "group": "Contributing",
