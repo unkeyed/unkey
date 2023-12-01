@@ -16,7 +16,7 @@ type Props = {
     configurationId: string;
   };
 };
-export const runtime = "edge";
+
 export default async function Page(props: Props) {
   const vercelEnv = vercelIntegrationEnv();
   if (!vercelEnv) {

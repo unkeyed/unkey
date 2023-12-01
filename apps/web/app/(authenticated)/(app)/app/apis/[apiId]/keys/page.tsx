@@ -2,8 +2,9 @@ import { ApiKeyTable } from "@/components/dashboard/api-key-table";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-export const runtime = "edge";
+
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 

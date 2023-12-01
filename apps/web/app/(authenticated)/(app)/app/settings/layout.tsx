@@ -2,6 +2,9 @@ import * as React from "react";
 
 import { Navbar } from "@/components/dashboard/navbar";
 
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
 export default function SettingsLayout({
   children,
 }: {
@@ -54,7 +57,7 @@ export default function SettingsLayout({
 
       <Navbar navigation={navigation} className="mt-8" />
 
-      <main className="mt-8 mb-20">{children}</main>
+      <main className="mb-20 mt-8">{children}</main>
     </div>
   );
 }
