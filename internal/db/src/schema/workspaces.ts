@@ -59,6 +59,12 @@ export const workspaces = mysqlTable(
         auditLog?: boolean;
       }>()
       .notNull(),
+    subscriptions: json("subscriptions").$type<{
+      priceIdActiveKeys?: string,
+      priceIdVerifications?: string,
+      priceIdSupport?: string,
+      priceIdPlan?: string,
+    }>()
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

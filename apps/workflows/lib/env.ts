@@ -14,5 +14,7 @@ export const env = () =>
       STRIPE_ACTIVE_KEYS_PRICE_ID: z.string(),
       STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: z.string(),
       STRIPE_KEY_VERIFICATIONS_PRICE_ID: z.string(),
+      STRIPE_SUPPORT_PRODUCT_ID: z.string(),
+      STRIPE_SUPPORT_PRICE_ID: z.string(),
     })
     .parse(process.env);
