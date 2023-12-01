@@ -36,7 +36,7 @@ export function SubscriptionEnded({ username = "username" }: Props) {
 
             <Container className="flex items-center justify-center my-8">
               <Button
-                href="https://unkey.dev/app/stripe"
+                href="https://unkey.dev/app/settings/billing/stripe"
                 className="px-4 py-2 text-white bg-black rounded"
               >
                 Upgrade Now

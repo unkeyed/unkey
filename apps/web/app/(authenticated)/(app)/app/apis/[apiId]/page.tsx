@@ -1,5 +1,12 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  MetricCardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -7,6 +14,9 @@ import { getDailyVerifications, getTotalActiveKeys } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
@@ -18,7 +28,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const keysP = db
@@ -83,26 +93,26 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:gap-4 md:grid-cols-3">
-      <Card className="max-md:mr-2 max-md:mb-4 ">
+    <div className="grid grid-cols-2 md:grid-cols-3 md:gap-4">
+      <Card className="max-md:mb-4 max-md:mr-2 ">
         <CardHeader className="pb-6 ">
-          <CardTitle>{formatNumber(keys)}</CardTitle>
+          <MetricCardTitle>{formatNumber(keys)}</MetricCardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="max-md:ml-2 max-md:mb-4">
+      <Card className="max-md:mb-4 max-md:ml-2">
         <CardHeader className="pb-6">
-          <CardTitle>
+          <MetricCardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
-          </CardTitle>
+          </MetricCardTitle>
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="max-md:mb-4 col-span-2 md:col-span-1">
+      <Card className="col-span-2 max-md:mb-4 md:col-span-1">
         <CardHeader className="pb-6">
-          <CardTitle>
+          <MetricCardTitle>
             {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
-          </CardTitle>
+          </MetricCardTitle>
           <CardDescription>Successful Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>

@@ -23,6 +23,12 @@ export function newApp() {
       title: "Unkey Api",
       version: "1.0.0",
     },
+    servers: [
+      {
+        url: "https://api.unkey.dev",
+        description: "Production",
+      },
+    ],
   });
 
   return app;

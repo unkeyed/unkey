@@ -1,4 +1,5 @@
 "use client";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { FadeIn } from "@/components/landing/fade-in";
 import {
   AlertDialog,
@@ -8,12 +9,12 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@clerk/nextjs";
+import { SearchX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
-export const runtime = "edge";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = React.useState(false);
@@ -25,7 +26,7 @@ export default function AuthenticationPage() {
     return null;
   }
   return (
-    <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-6 md:px-0 sm:w-[500px]">
+    <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-6 sm:w-[500px] md:px-0">
       {!verify && !showDialog && (
         <>
           <div className="flex flex-col space-y-2 text-center">
@@ -45,13 +46,13 @@ export default function AuthenticationPage() {
                 <span className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-50 px-2 text-content-subtle">Or continue with</span>
+                <span className="text-content-subtle bg-gray-50 px-2">Or continue with</span>
               </div>
             </div>
             <OAuthSignIn />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-gray-50 px-2 text-content-subtle">
+            <span className="text-content-subtle bg-gray-50 px-2">
               Not been here before? Just{" "}
               <a className="text-black" href="/auth/sign-up">
                 Sign Up
@@ -71,16 +72,23 @@ export default function AuthenticationPage() {
       )}
       <AlertDialog open={showDialog}>
         <AlertDialogContent>
-          <div>
-            We didn't detect an account associated with{" "}
-            <span className="font-semibold">{email}</span>. Did you mean to sign up?
-          </div>
+          <EmptyPlaceholder className="min-h-full border-0">
+            <EmptyPlaceholder.Icon>
+              <SearchX />
+            </EmptyPlaceholder.Icon>
+            <EmptyPlaceholder.Title>No account found</EmptyPlaceholder.Title>
+
+            <EmptyPlaceholder.Description>
+              We didn't detect an account associated with{" "}
+              <span className="font-semibold">{email}</span>. Did you mean to sign up?
+            </EmptyPlaceholder.Description>
+          </EmptyPlaceholder>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowDialog(false)}>No</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => router.push(`/auth/sign-up?email=${encodeURIComponent(email)}`)}
             >
-              Yes
+              Sign up
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

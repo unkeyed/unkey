@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const t = new Date();
@@ -59,34 +59,34 @@ export default async function SettingsPage() {
             <CardTitle>Usage</CardTitle>
             <CardDescription>
               Current billing cycle:{" "}
-              <span className="font-medium text-primary">
+              <span className="text-primary font-medium">
                 {new Date(start).toDateString()} - {new Date(end).toDateString()}
               </span>{" "}
             </CardDescription>
           </div>
-          <Link href="/app/stripe">
+          <Link href="/app/settings/billing">
             <Button className="max-sm:hidden">Change Billing</Button>
           </Link>
         </CardHeader>
 
         <CardContent>
           <Link href="/app/stripe">
-            <Button className="max-sm:text-sm md:hidden max-sm:mb-4">Change Billing</Button>
+            <Button className="max-sm:mb-4 max-sm:text-sm md:hidden">Change Billing</Button>
           </Link>
           <ol className="flex flex-col space-y-4">
-            <li className="flex flex-col w-2/3">
-              <h3 className="text-sm font-medium text-content">Active Keys</h3>
+            <li className="flex w-2/3 flex-col">
+              <h3 className="text-content text-sm font-medium">Active Keys</h3>
               {activeKeysPercentage !== null ? (
-                <div className="mt-1 overflow-hidden bg-gray-300 rounded-full">
+                <div className="mt-1 overflow-hidden rounded-full bg-gray-300">
                   <div
-                    className={cn("h-2 rounded bg-primary", {
+                    className={cn("bg-primary h-2 rounded", {
                       "bg-alert": workspace.maxActiveKeys && activeKeysPercentage >= 100,
                     })}
                     style={{ width: `${activeKeysPercentage}%` }}
                   />
                 </div>
               ) : null}
-              <p className="text-xs text-content-subtle">
+              <p className="text-content-subtle text-xs">
                 {workspace.usageActiveKeys?.toLocaleString()} /{" "}
                 {workspace.maxActiveKeys?.toLocaleString() ?? "∞"}{" "}
                 {activeKeysPercentage !== null
@@ -96,19 +96,19 @@ export default async function SettingsPage() {
                   : null}
               </p>
             </li>
-            <li className="flex flex-col w-2/3">
-              <h3 className="text-sm font-medium text-content">Verifications</h3>
+            <li className="flex w-2/3 flex-col">
+              <h3 className="text-content text-sm font-medium">Verifications</h3>
               {verificationsPercentage !== null ? (
-                <div className="mt-1 overflow-hidden bg-gray-300 rounded-full">
+                <div className="mt-1 overflow-hidden rounded-full bg-gray-300">
                   <div
-                    className={cn("h-2 rounded bg-primary", {
+                    className={cn("bg-primary h-2 rounded", {
                       "bg-alert": workspace.maxVerifications && verificationsPercentage >= 100,
                     })}
                     style={{ width: `${verificationsPercentage}%` }}
                   />
                 </div>
               ) : null}
-              <p className="text-xs text-content-subtle">
+              <p className="text-content-subtle text-xs">
                 {workspace.usageVerifications?.toLocaleString()} /{" "}
                 {workspace.maxVerifications?.toLocaleString() ?? "∞"}{" "}
                 {verificationsPercentage !== null
@@ -121,7 +121,7 @@ export default async function SettingsPage() {
           </ol>
         </CardContent>
         <CardFooter>
-          <p className="text-xs text-content-subtle">
+          <p className="text-content-subtle text-xs">
             These are soft limits. We will not throttle or block you if you go over them, however we
             will contact you if you exceed them repeatedly.
           </p>
