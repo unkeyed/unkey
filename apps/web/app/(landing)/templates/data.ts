@@ -45,7 +45,7 @@ export const templates: Record<string, Template> = {
     description: "Deploy and secure your API globally with Unkey and Koyeb.",
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/unkey/tree/main/examples/bun-koyeb",
-    image: "/templates/placeholder.png",
+    image: "/templates/bun_koyeb.png",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/bun-koyeb/README.md",
     language: "Typescript",
     framework: "Bun",
