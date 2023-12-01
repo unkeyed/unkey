@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
-export const runtime = "edge";
+
 export default async function SettingsKeysPage(props: {
   params: { apiId: string };
 }) {
@@ -52,7 +52,7 @@ export default async function SettingsKeysPage(props: {
         description="Root keys are used to interact with the Unkey API."
         actions={[<CreateRootKeyButton key="create-root-key" apiId={props.params.apiId} />]}
       />
-      <div className="grid grid-cols-1 gap-8 mb-20 w-full">
+      <div className="mb-20 grid w-full grid-cols-1 gap-8">
         <RootKeyTable data={keys} />
       </div>
     </div>

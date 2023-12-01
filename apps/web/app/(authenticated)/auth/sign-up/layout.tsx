@@ -21,6 +21,8 @@ const features: {
   },
 ];
 
+export const runtime = "edge";
+
 export default function AuthLayout(props: { children: React.ReactNode }) {
   const { userId } = auth();
 
@@ -30,11 +32,11 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
   return (
     <FadeIn>
       <div className="relative grid min-h-screen grid-cols-1 overflow-hidden md:grid-cols-3 lg:grid-cols-2">
-        <div className="absolute inset-0 bg-gradient-to-t from-background to-background/60 md:hidden" />
-        <div className="container absolute flex items-center col-span-1 -translate-y-1/2 top-1/2 md:static md:top-0 md:col-span-2 md:flex md:translate-y-0 lg:col-span-1">
+        <div className="from-background to-background/60 absolute inset-0 bg-gradient-to-t md:hidden" />
+        <div className="container absolute top-1/2 col-span-1 flex -translate-y-1/2 items-center md:static md:top-0 md:col-span-2 md:flex md:translate-y-0 lg:col-span-1">
           {props.children}
         </div>
-        <div className="relative items-center justify-center hidden bg-white md:flex md:bg-black ">
+        <div className="relative hidden items-center justify-center bg-white md:flex md:bg-black ">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="57.5"
@@ -159,7 +161,7 @@ export default function AuthLayout(props: { children: React.ReactNode }) {
               </linearGradient>
             </defs>
           </svg>
-          <div className="hidden lg:pr-4 lg:pt-4 md:block">
+          <div className="hidden md:block lg:pr-4 lg:pt-4">
             {features.map((feature) => (
               <div key={feature.title} className="mb-8 lg:max-w-lg">
                 <h3 className="my-2 text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">

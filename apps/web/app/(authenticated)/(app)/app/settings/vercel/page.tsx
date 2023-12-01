@@ -13,7 +13,7 @@ type Props = {
     configurationId?: string;
   };
 };
-export const runtime = "edge";
+
 export default async function Page(props: Props) {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, getTenantId()),
@@ -101,25 +101,31 @@ export default async function Page(props: Props) {
       name: p.name,
       bindings: integration.vercelBindings
         .filter((binding) => binding.projectId === p.id)
-        .reduce((acc, binding) => {
-          if (!acc[binding.environment]) {
-            acc[binding.environment] = {
-              apiId: null,
-              rootKey: null,
+        .reduce(
+          (acc, binding) => {
+            if (!acc[binding.environment]) {
+              acc[binding.environment] = {
+                apiId: null,
+                rootKey: null,
+              };
+            }
+            acc[binding.environment][binding.resourceType] = {
+              ...binding,
+              updatedBy: users[binding.lastEditedBy],
             };
-          }
-          acc[binding.environment][binding.resourceType] = {
-            ...binding,
-            updatedBy: users[binding.lastEditedBy],
-          };
-          return acc;
-        }, {} as Record<
-          VercelBinding["environment"],
-          Record<
-            VercelBinding["resourceType"],
-            (VercelBinding & { updatedBy: { id: string; name: string; image: string } }) | null
-          >
-        >),
+            return acc;
+          },
+          {} as Record<
+            VercelBinding["environment"],
+            Record<
+              VercelBinding["resourceType"],
+              | (VercelBinding & {
+                  updatedBy: { id: string; name: string; image: string };
+                })
+              | null
+            >
+          >,
+        ),
     })),
   );
 

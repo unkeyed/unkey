@@ -9,7 +9,10 @@ type Props = PropsWithChildren<{
     keyId: string;
   };
 }>;
-export const revalidate = 0;
+
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
 export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
@@ -47,7 +50,7 @@ export default async function ApiPageLayout(props: Props) {
     <div>
       <PageHeader title={props.params.keyId} description="Here is an overview of your key usage" />
       <Navbar navigation={navigation} />
-      <main className="mt-8 mb-20">{props.children}</main>
+      <main className="mb-20 mt-8">{props.children}</main>
     </div>
   );
 }

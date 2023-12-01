@@ -6,7 +6,7 @@ import { UpdateUserEmail } from "./update-user-email";
 import { UpdateUserImage } from "./update-user-image";
 import { UpdateUserName } from "./update-user-name";
 export const revalidate = 0;
-export const runtime = "edge";
+
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 
@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 mb-20 ">
+    <div className="mb-20 flex flex-col gap-8 ">
       <UpdateUserName />
       <UpdateUserEmail />
       <UpdateUserImage />

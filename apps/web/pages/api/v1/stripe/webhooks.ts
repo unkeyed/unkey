@@ -13,6 +13,7 @@ export const config = {
   api: {
     bodyParser: false,
   },
+  runtime: "nodejs",
 };
 
 async function buffer(readable: Readable) {
