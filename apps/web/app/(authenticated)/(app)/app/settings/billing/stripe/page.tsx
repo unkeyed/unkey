@@ -6,7 +6,7 @@ import { currentUser } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
-export const runtime = "edge";
+
 export default async function StripeRedirect() {
   const tenantId = getTenantId();
   if (!tenantId) {
@@ -18,7 +18,7 @@ export default async function StripeRedirect() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!ws) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const e = stripeEnv();
   if (!e) {
@@ -46,23 +46,19 @@ export default async function StripeRedirect() {
     return redirect(session.url);
   }
 
-  // else we upsert them and then display checkout
+  // If they don't have a subscription, we send them to the checkout
+  // and the checkout will redirect them to the success page, which will add the subscription to the user table
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
 
-  if (!ws.stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      name: ws.name,
-      email: user?.emailAddresses.at(0)?.emailAddress,
-    });
-    ws.stripeCustomerId = customer.id;
+  // do not use `new URL(...).searchParams` here, because it will escape the curly braces and stripe will not replace them with the session id
+  const successUrl = `${baseUrl}/app/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
 
-    await db
-      .update(schema.workspaces)
-      .set({ stripeCustomerId: customer.id })
-      .where(eq(schema.workspaces.id, ws.id));
-  }
-  const returnUrl = headers().get("referer") ?? "https://unkey.dev/app";
-
+  const cancelUrl = headers().get("referer") ?? "https://unkey.dev/app";
   const session = await stripe.checkout.sessions.create({
+    client_reference_id: ws.id,
+    customer_email: user?.emailAddresses.at(0)?.emailAddress,
     billing_address_collection: "auto",
     line_items: [
       {
@@ -80,11 +76,13 @@ export default async function StripeRedirect() {
       },
     ],
     mode: "subscription",
-    success_url: returnUrl,
-    cancel_url: returnUrl,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
     currency: "USD",
     allow_promotion_codes: true,
-    customer: ws.stripeCustomerId,
+    subscription_data: {
+      billing_cycle_anchor: nextBillinAnchor(),
+    },
   });
 
   if (!session.url) {
@@ -92,4 +90,11 @@ export default async function StripeRedirect() {
   }
 
   return redirect(session.url);
+}
+
+// Returns midnight of the first day of the next month as unix timestamp (seconds)
+function nextBillinAnchor(): number {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+  return Math.floor(nextMonth.getTime() / 1000);
 }

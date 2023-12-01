@@ -13,6 +13,7 @@ export const config = {
   api: {
     bodyParser: false,
   },
+  runtime: "nodejs",
 };
 
 async function buffer(readable: Readable) {
@@ -64,8 +65,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
             plan: "pro",
             billingPeriodStart: new Date(sub.current_period_start * 1000),
             billingPeriodEnd: new Date(sub.current_period_end * 1000),
-            trialEnds:
-              sub.status === "trialing" && sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+            trialEnds: null,
             maxActiveKeys: QUOTA.pro.maxActiveKeys,
             maxVerifications: QUOTA.pro.maxVerifications,
           })

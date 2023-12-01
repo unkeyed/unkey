@@ -7,14 +7,15 @@ import { notFound, redirect } from "next/navigation";
 import { DeleteApi } from "./delete-api";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
-export const revalidate = 0;
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   params: {
     apiId: string;
   };
 };
-export const runtime = "edge";
+
 export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
@@ -27,7 +28,7 @@ export default async function SettingsPage(props: Props) {
     },
   });
   if (!workspace || workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const api = workspace.apis.find((api) => api.id === props.params.apiId);
   if (!api) {
@@ -35,7 +36,7 @@ export default async function SettingsPage(props: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-8 mb-20 ">
+    <div className="mb-20 flex flex-col gap-8 ">
       <UpdateApiName api={api} />
       <UpdateIpWhitelist api={api} workspace={workspace} />
       <Card>
@@ -44,7 +45,7 @@ export default async function SettingsPage(props: Props) {
           <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
+          <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
             <pre>{api.id}</pre>
             <div className="flex items-start justify-between gap-4">
               <CopyButton value={api.id} />

@@ -244,7 +244,6 @@ const Feedback: React.FC = () => {
                   type="submit"
                   disabled={create.isLoading}
                   onClick={form.handleSubmit((data) => {
-                    console.log(data);
                     create.mutate(data);
                   })}
                 >

@@ -9,6 +9,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 export const config = {
   maxDuration: 300,
+  runtime: "nodejs",
 };
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
@@ -56,6 +57,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
               activeKeys = d.usage;
             }
           }
+          console.log({ activeKeys });
 
           let verifications = 0;
           for (const d of globalVerifications) {
@@ -117,8 +119,8 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
     }
 
     // report success
-    if (env().UPTIME_CRON_URL_COLLECT_BILLING) {
-      await fetch(env().UPTIME_CRON_URL_COLLECT_BILLING!);
+    if (env().HEARTBEAT_UPDATE_USAGE_URL) {
+      await fetch(env().HEARTBEAT_UPDATE_USAGE_URL!);
     }
 
     res.send("OK");

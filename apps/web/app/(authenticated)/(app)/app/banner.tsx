@@ -21,24 +21,6 @@ export const UsageBanner: React.FC = async () => {
 
   const fmt = new Intl.NumberFormat("en-US").format;
 
-  // Show a banner if their trial is ending within 7 days
-  if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
-    return (
-      <Banner>
-        <p className="text-xs text-center">
-          {workspace.trialEnds.getTime() <= Date.now()
-            ? "Your trial has expired."
-            : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
-                long: true,
-              })}.`}{" "}
-          <Link href="/app/stripe" className="underline">
-            Add a payment method
-          </Link>
-        </p>
-      </Banner>
-    );
-  }
-
   if (
     workspace.maxActiveKeys &&
     workspace.usageActiveKeys &&
@@ -50,7 +32,7 @@ export const UsageBanner: React.FC = async () => {
           You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
           <strong>{fmt(workspace.usageActiveKeys)}</strong> /{" "}
           <strong>{fmt(workspace.maxActiveKeys)}</strong>.{" "}
-          <Link href="/app/stripe" className="underline">
+          <Link href="/app/settings/billing/stripe" className="underline">
             Upgrade your plan
           </Link>{" "}
           or{" "}
@@ -73,12 +55,30 @@ export const UsageBanner: React.FC = async () => {
           You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
           <strong>{fmt(workspace.usageVerifications)}</strong> /{" "}
           <strong>{fmt(workspace.maxVerifications)}</strong>.{" "}
-          <Link href="/app/stripe" className="underline">
+          <Link href="/app/settings/billing/stripe" className="underline">
             Upgrade your plan
           </Link>{" "}
           or{" "}
           <Link href="mailto:support@unkey.dev" className="underline">
             contact us.
+          </Link>
+        </p>
+      </Banner>
+    );
+  }
+
+  // Show a banner if their trial is ending within 7 days
+  if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
+    return (
+      <Banner>
+        <p className="text-xs text-center">
+          {workspace.trialEnds.getTime() <= Date.now()
+            ? "Your trial has expired."
+            : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
+                long: true,
+              })}.`}{" "}
+          <Link href="/app/settings/billing/stripe" className="underline">
+            Add a payment method
           </Link>
         </p>
       </Banner>
