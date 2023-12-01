@@ -203,6 +203,11 @@
       "pages": ["libraries/rs/overview"]
     },
     {
+      "group": "Springboot",
+      "icon": "code",
+      "pages": ["libraries/springboot-java/overview"]
+    },
+    {
       "group": "Contributing",
       "icon": "github",
       "pages": [
