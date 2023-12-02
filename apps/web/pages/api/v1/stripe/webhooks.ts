@@ -6,7 +6,6 @@ import { Resend } from "@unkey/resend";
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { z } from "zod";
-
 // Stripe requires the raw body to construct the event.
 export const config = {
   api: {
@@ -14,6 +13,8 @@ export const config = {
   },
   runtime: "nodejs",
 };
+const _domain = "updates.unkey.dev";
+const _replyTo = "support@unkey.dev";
 
 async function buffer(readable: Readable) {
   const chunks = [];
@@ -29,10 +30,10 @@ const requestValidation = z.object({
     "stripe-signature": z.string(),
   }),
 });
-const email = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
 
 export default async function webhookHandler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    const resend = env().RESEND_API_KEY ? new Resend({ apiKey: env().RESEND_API_KEY! }) : null;
     const {
       headers: { "stripe-signature": signature },
     } = requestValidation.parse(req);
@@ -56,7 +57,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         console.log("invoice failed", invoice.id);
-        if (!email) {
+        if (!resend) {
           break;
         }
         const ws = await db.query.workspaces.findFirst({
@@ -66,12 +67,12 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           throw new Error("workspace does not exist");
         }
         const users = await getUsers(ws.tenantId);
+        const date = invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date();
         for await (const user of users) {
-          await email.sendTrialEnds({
+          await resend.sendPaymentIssue({
             email: user.email,
             name: user.name,
-            workspace: ws.name,
-            date: invoice.effective_at ? new Date(invoice.effective_at * 1000) : new Date(),
+            date: date,
           });
         }
         break;

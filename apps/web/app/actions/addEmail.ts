@@ -1,7 +1,7 @@
 "use server";
 
 import { env } from "@/lib/env";
-import { Resend } from "@unkey/resend";
+import { Resend } from "resend";
 export async function addEmail(formData: FormData) {
   const { RESEND_API_KEY, RESEND_AUDIENCE_ID } = env();
   if (!RESEND_API_KEY || !RESEND_AUDIENCE_ID) {
@@ -12,11 +12,11 @@ export async function addEmail(formData: FormData) {
   if (!email) {
     return { success: false };
   }
-  const resend = new Resend({ apiKey: RESEND_API_KEY });
+  const resend = new Resend(RESEND_API_KEY);
 
-  await resend.addUserToAudience({
-    email,
-    audienceId: RESEND_AUDIENCE_ID,
+  await resend.contacts.create({
+    audience_id: RESEND_AUDIENCE_ID,
+    email: email,
   });
 
   return { success: true };

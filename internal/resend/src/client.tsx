@@ -10,7 +10,7 @@ import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   private readonly apiKey: string;
   private readonly baseUrl: string;
-  private readonly client: Client;
+  public readonly client: Client;
   private readonly domain = "updates.unkey.dev";
   private readonly replyTo = "support@unkey.dev";
 
