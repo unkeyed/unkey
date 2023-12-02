@@ -6,7 +6,7 @@ import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { UpdateWorkspaceImage } from "./update-workspace-image";
 import { UpdateWorkspaceName } from "./update-workspace-name";
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const tenantId = getTenantId();
@@ -15,11 +15,11 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   return (
-    <div className="flex flex-col gap-8 mb-20 ">
+    <div className="mb-20 flex flex-col gap-8 ">
       <UpdateWorkspaceName workspace={workspace} />
       <UpdateWorkspaceImage />
       <Card>
@@ -28,7 +28,7 @@ export default async function SettingsPage() {
           <CardDescription>This is your workspace id. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
+          <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
             <pre>{workspace.id}</pre>
             <div className="flex items-start justify-between gap-4">
               <CopyButton className="hover:bg-transparent" value={workspace.id} />

@@ -7,7 +7,7 @@ import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 
 const options = {
-  theme: "github-light",
+  theme: "light-plus",
   defaultLang: {
     block: "typescript",
   },
@@ -94,6 +94,7 @@ const Changelog = defineDocumentType(() => ({
     summary: {
       type: "list",
       of: { type: "string" },
+      required: false,
     },
     changes: {
       type: "number",

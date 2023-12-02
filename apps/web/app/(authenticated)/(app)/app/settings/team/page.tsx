@@ -102,8 +102,8 @@ const Members: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="animate-in relative fade-in-50 flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
-        <div className="flex flex-col items-center justify-center mx-auto">
+      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
+        <div className="mx-auto flex flex-col items-center justify-center">
           <Loading />
         </div>
       </div>
@@ -124,14 +124,14 @@ const Members: React.FC = () => {
         {membershipList?.map(({ id, role, publicUserData }) => (
           <TableRow key={id}>
             <TableCell>
-              <div className="flex items-center flex-grow w-full gap-2">
+              <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <Avatar>
                   <AvatarImage src={publicUserData.imageUrl} />
                   <AvatarFallback>{publicUserData.identifier.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
-                  <span className="font-medium text-content">{`${publicUserData.firstName} ${publicUserData.lastName}`}</span>
-                  <span className="text-xs text-content-subtle">{publicUserData.identifier}</span>
+                  <span className="text-content font-medium">{`${publicUserData.firstName} ${publicUserData.lastName}`}</span>
+                  <span className="text-content-subtle text-xs">{publicUserData.identifier}</span>
                 </div>
               </div>
             </TableCell>
@@ -172,8 +172,8 @@ const Invitations: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="animate-in relative fade-in-50 flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
-        <div className="flex flex-col items-center justify-center mx-auto">
+      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
+        <div className="mx-auto flex flex-col items-center justify-center">
           <Loading />
         </div>
       </div>
@@ -204,7 +204,7 @@ const Invitations: React.FC = () => {
         {invitationList?.map((invitation) => (
           <TableRow key={invitation.id}>
             <TableCell>
-              <span className="font-medium text-content">{invitation.emailAddress}</span>
+              <span className="text-content font-medium">{invitation.emailAddress}</span>
             </TableCell>
             <TableCell>
               <StatusBadge status={invitation.status} />
@@ -278,7 +278,7 @@ const RoleSwitcher: React.FC<{
           updateRole(value);
         }}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] max-sm:w-36">
           {isLoading ? <Loading /> : <SelectValue />}
         </SelectTrigger>
         <SelectContent>

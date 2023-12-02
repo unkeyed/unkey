@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import React from "react";
-import { experimental_useFormStatus as useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 import { Loading } from "@/components/dashboard/loading";
 import {
@@ -57,7 +57,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
           <div className="flex flex-col space-y-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
-            <label className="hidden sr-only">Name</label>
+            <label className="sr-only hidden">Name</label>
             <Input name="name" className="max-w-sm" defaultValue={api.name} autoComplete="off" />
           </div>
         </CardContent>

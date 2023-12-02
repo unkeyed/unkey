@@ -19,13 +19,12 @@ export const env = () =>
 
       UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
       NEXT_PUBLIC_UNKEY_API_URL: z.string().url().default("http://127.0.0.1:8080"),
-      UNKEY_APP_AUTH_TOKEN: z.string(),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),
       RESEND_API_KEY: z.string().optional(),
       RESEND_AUDIENCE_ID: z.string().optional(),
 
-      UPTIME_CRON_URL_COLLECT_BILLING: z.string().optional(),
+      HEARTBEAT_UPDATE_USAGE_URL: z.string().optional(),
       PLAIN_API_KEY: z.string().optional(),
     })
     .parse(process.env);

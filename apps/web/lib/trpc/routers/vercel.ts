@@ -1,10 +1,10 @@
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
-import { unkeyRoot } from "@/lib/api";
 import { VercelBinding, and, db, eq, schema } from "@/lib/db";
+import { env } from "@/lib/env";
+import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
+import { newKey } from "@unkey/keys";
 import { Vercel } from "@unkey/vercel";
+import { z } from "zod";
 import { auth, t } from "../trpc";
 
 export const vercelRouter = t.router({
@@ -24,9 +24,16 @@ export const vercelRouter = t.router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const _workspace = await db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+      // It's stupid to have to do this, we should just read `UNKEY_KEY_AUTH_ID` from the env instead
+      const unkeyApi = await db.query.apis.findFirst({
+        where: (table, { eq }) => eq(table.id, env().UNKEY_API_ID),
       });
+      if (!unkeyApi) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not found" });
+      }
+      if (!unkeyApi.keyAuthId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not setup to handle keys" });
+      }
 
       const integration = await db.query.vercelIntegrations.findFirst({
         where: eq(schema.vercelIntegrations.id, input.integrationId),
@@ -44,30 +51,38 @@ export const vercelRouter = t.router({
         accessToken: integration.accessToken,
         teamId: integration.vercelTeamId ?? undefined,
       });
-      for (const [env, apiId] of Object.entries(input.apiIds)) {
+      for (const [environment, apiId] of Object.entries(input.apiIds)) {
         if (!apiId) {
           continue;
         }
 
-        // Root key stuff
-
-        const newRootKey = await unkeyRoot._internal.createRootKey({
-          name: `Vercel Integration - ${env}`,
+        const keyId = newId("key");
+        const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+        await db.insert(schema.keys).values({
+          id: keyId,
+          keyAuthId: unkeyApi.keyAuthId!,
+          name: `Vercel Integration - ${environment}`,
+          hash,
+          start,
+          ownerId: ctx.user.id,
+          workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: integration.workspace.id,
+          expires: null,
+          createdAt: new Date(),
+          ratelimitLimit: 10,
+          ratelimitRefillRate: 10,
+          ratelimitRefillInterval: 1000,
+          ratelimitType: "fast",
+          remaining: null,
+          totalUses: 0,
+          deletedAt: null,
         });
-        if (newRootKey.error) {
-          console.error(newRootKey.error.message);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "unable to create new rootKey",
-          });
-        }
 
         const setRootKeyRes = await vercel.upsertEnvironmentVariable(
           input.projectId,
-          env,
+          environment,
           "UNKEY_ROOT_KEY",
-          newRootKey.result.key,
+          key,
           true,
         );
         if (setRootKeyRes.error) {
@@ -81,10 +96,10 @@ export const vercelRouter = t.router({
           createdAt: new Date(Date.now()),
           updatedAt: new Date(Date.now()),
           resourceType: "rootKey",
-          resourceId: newRootKey.result.keyId,
+          resourceId: keyId,
           vercelEnvId: setRootKeyRes.value.created.id,
           lastEditedBy: ctx.user.id,
-          environment: env as VercelBinding["environment"],
+          environment: environment as VercelBinding["environment"],
           projectId: input.projectId,
           workspaceId: integration.workspace.id,
           integrationId: integration.id,
@@ -94,7 +109,7 @@ export const vercelRouter = t.router({
 
         const setApiIdRes = await vercel.upsertEnvironmentVariable(
           input.projectId,
-          env,
+          environment,
           "UNKEY_API_ID",
           apiId,
         );
@@ -113,7 +128,7 @@ export const vercelRouter = t.router({
           resourceId: apiId,
           vercelEnvId: setApiIdRes.value.created.id,
           lastEditedBy: ctx.user.id,
-          environment: env as VercelBinding["environment"],
+          environment: environment as VercelBinding["environment"],
           projectId: input.projectId,
           workspaceId: integration.workspace.id,
           integrationId: integration.id,
@@ -216,28 +231,49 @@ export const vercelRouter = t.router({
       if (integration.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
+      // It's stupid to have to do this, we should just read `UNKEY_KEY_AUTH_ID` from the env instead
+      const unkeyApi = await db.query.apis.findFirst({
+        where: (table, { eq }) => eq(table.id, env().UNKEY_API_ID),
+      });
+      if (!unkeyApi) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not found" });
+      }
+      if (!unkeyApi.keyAuthId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "unkey api not setup to handle keys" });
+      }
 
       const vercel = new Vercel({
         accessToken: integration.accessToken,
         teamId: integration.vercelTeamId ?? undefined,
       });
 
-      const newRootKey = await unkeyRoot._internal.createRootKey({
+      const keyId = newId("key");
+      const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+      await db.insert(schema.keys).values({
+        id: keyId,
+        keyAuthId: unkeyApi.keyAuthId!,
         name: `Vercel Integration - ${input.environment}`,
+        hash,
+        start,
+        ownerId: ctx.user.id,
+        workspaceId: env().UNKEY_WORKSPACE_ID,
         forWorkspaceId: integration.workspace.id,
+        expires: null,
+        createdAt: new Date(),
+        ratelimitLimit: 10,
+        ratelimitRefillRate: 10,
+        ratelimitRefillInterval: 1000,
+        ratelimitType: "fast",
+        remaining: null,
+        totalUses: 0,
+        deletedAt: null,
       });
-      if (newRootKey.error) {
-        console.error(newRootKey.error.message);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "unable to create new rootKey",
-        });
-      }
+
       const res = await vercel.upsertEnvironmentVariable(
         input.projectId,
         input.environment,
         "UNKEY_ROOT_KEY",
-        newRootKey.result.key,
+        key,
         true,
       );
       if (res.error) {
@@ -253,7 +289,7 @@ export const vercelRouter = t.router({
         await db
           .update(schema.vercelBindings)
           .set({
-            resourceId: newRootKey.result.keyId,
+            resourceId: keyId,
             vercelEnvId: res.value.created.id,
             updatedAt: new Date(),
             lastEditedBy: ctx.user.id,
@@ -265,7 +301,7 @@ export const vercelRouter = t.router({
           createdAt: new Date(Date.now()),
           updatedAt: new Date(Date.now()),
           resourceType: "rootKey",
-          resourceId: newRootKey.result.keyId,
+          resourceId: keyId,
           vercelEnvId: res.value.created.id,
           lastEditedBy: ctx.user.id,
           environment: input.environment,

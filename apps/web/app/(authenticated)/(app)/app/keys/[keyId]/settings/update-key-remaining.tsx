@@ -20,14 +20,14 @@ type Props = {
   apiKey: {
     id: string;
     workspaceId: string;
-    remainingRequests: number | null;
+    remaining: number | null;
   };
 };
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
 
-  const [enabled, setEnabled] = useState(apiKey.remainingRequests !== null);
+  const [enabled, setEnabled] = useState(apiKey.remaining !== null);
   return (
     <form
       action={async (formData: FormData) => {
@@ -65,7 +65,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               min={0}
               name="remaining"
               className="max-w-sm"
-              defaultValue={apiKey.remainingRequests ?? ""}
+              defaultValue={apiKey.remaining ?? ""}
               autoComplete="off"
             />
           </div>

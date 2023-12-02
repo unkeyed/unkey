@@ -2,12 +2,12 @@ import { newApp } from "@/pkg/hono/app";
 import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
 
 test("returns 200", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
 

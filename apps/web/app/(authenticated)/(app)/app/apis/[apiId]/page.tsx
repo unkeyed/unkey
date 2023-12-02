@@ -1,5 +1,12 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  MetricCardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -8,7 +15,8 @@ import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
@@ -20,7 +28,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const keysP = db
@@ -76,32 +84,35 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   }));
 
   const data = [
-    ...successOverTime.map((d) => ({ ...d, category: "Successful Verifications" })),
+    ...successOverTime.map((d) => ({
+      ...d,
+      category: "Successful Verifications",
+    })),
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-      <Card>
-        <CardHeader className="pb-6">
-          <CardTitle>{formatNumber(keys)}</CardTitle>
+    <div className="grid grid-cols-2 md:grid-cols-3 md:gap-4">
+      <Card className="max-md:mb-4 max-md:mr-2 ">
+        <CardHeader className="pb-6 ">
+          <MetricCardTitle>{formatNumber(keys)}</MetricCardTitle>
           <CardDescription>Total Keys</CardDescription>
         </CardHeader>
       </Card>
-      <Card>
+      <Card className="max-md:mb-4 max-md:ml-2">
         <CardHeader className="pb-6">
-          <CardTitle>
+          <MetricCardTitle>
             {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
-          </CardTitle>
+          </MetricCardTitle>
           <CardDescription>Active Keys (30 days)</CardDescription>
         </CardHeader>
       </Card>
-      <Card className="col-span-2 md:col-span-1">
+      <Card className="col-span-2 max-md:mb-4 md:col-span-1">
         <CardHeader className="pb-6">
-          <CardTitle>
+          <MetricCardTitle>
             {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
-          </CardTitle>
+          </MetricCardTitle>
           <CardDescription>Successful Verifications (30 days)</CardDescription>
         </CardHeader>
       </Card>

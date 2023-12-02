@@ -33,7 +33,7 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
           <TableHead>Time</TableHead>
           <TableHead>Resource</TableHead>
           <TableHead>User Agent</TableHead>
-          <TableHead className="flex items-center">
+          <TableHead className="flex items-center h-full">
             IP Address{" "}
             <Button
               onClick={() => {

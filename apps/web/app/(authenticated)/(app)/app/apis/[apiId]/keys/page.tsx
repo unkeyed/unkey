@@ -3,7 +3,8 @@ import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
@@ -14,7 +15,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const keys = await db.query.keys.findMany({
     where: and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)),

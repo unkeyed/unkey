@@ -14,11 +14,11 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   return (
-    <div className="flex flex-col gap-8 mb-20 ">
+    <div className="mb-20 flex flex-col gap-8 ">
       <UpdateUserName />
       <UpdateUserEmail />
       <UpdateUserImage />

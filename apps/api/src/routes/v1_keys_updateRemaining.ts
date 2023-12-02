@@ -62,10 +62,10 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysUpdateKeyRequest = z.infer<
+export type V1KeysUpdateKeyRemainingRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type V1KeysUpdateKeyResponse = z.infer<
+export type V1KeysUpdateKeyRemainingResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
@@ -95,7 +95,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
 
     switch (req.op) {
       case "increment": {
-        if (key.remainingRequests === null) {
+        if (key.remaining === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message:
@@ -111,12 +111,12 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         await db
           .update(schema.keys)
           .set({
-            remainingRequests: sql`remaining_requests + ${req.value}`,
+            remaining: sql`remaining_requests + ${req.value}`,
           })
           .where(eq(schema.keys.id, req.keyId));
       }
       case "decrement": {
-        if (key.remainingRequests === null) {
+        if (key.remaining === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message:
@@ -132,14 +132,15 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         await db
           .update(schema.keys)
           .set({
-            remainingRequests: sql`remaining_requests - ${req.value}`,
+            remaining: sql`remaining_requests - ${req.value}`,
           })
           .where(eq(schema.keys.id, req.keyId));
       }
       case "set": {
-        db.update(schema.keys)
+        await db
+          .update(schema.keys)
           .set({
-            remainingRequests: req.value,
+            remaining: req.value,
           })
           .where(eq(schema.keys.id, req.keyId));
       }
@@ -157,6 +158,6 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     }
 
     return c.jsonT({
-      remaining: keyAfterUpdate.remainingRequests,
+      remaining: keyAfterUpdate.remaining,
     });
   });

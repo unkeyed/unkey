@@ -88,7 +88,7 @@ export const registerV1KeysGetKey = (app: App) =>
       ownerId: data.key.ownerId ?? undefined,
       meta: data.key.meta ?? undefined,
       createdAt: data.key.createdAt.getTime() ?? undefined,
-      expiresAt: data.key.expires?.getTime() ?? undefined,
-      remaining: data.key.remainingRequests ?? undefined,
+      expires: data.key.expires?.getTime() ?? undefined,
+      remaining: data.key.remaining ?? undefined,
     });
   });

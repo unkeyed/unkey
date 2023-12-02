@@ -8,6 +8,7 @@ const prefixes = {
   workspace: "ws",
   keyAuth: "key_auth",
   vercelBinding: "vb",
+  test: "test", // for tests only
 } as const;
 
 export function newId(prefix: keyof typeof prefixes): string {
