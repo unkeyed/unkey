@@ -55,7 +55,6 @@ export default async function StripeSuccess(props: Props) {
       </EmptyPlaceholder>
     );
   }
-  console.log("session", session);
   const customer = await stripe.customers.retrieve(session.customer as string);
   if (!customer) {
     return (

@@ -44,7 +44,7 @@ export async function seed(env: {
     billingPeriodStart: null,
     billingPeriodEnd: null,
     trialEnds: null,
-    subscriptions: {},
+    subscriptions: null,
     planLockedUntil: null,
   };
   const userWorkspace: Workspace = {
@@ -65,7 +65,7 @@ export async function seed(env: {
     billingPeriodStart: null,
     billingPeriodEnd: null,
     trialEnds: null,
-    subscriptions: {},
+    subscriptions: null,
     planLockedUntil: null,
   };
 

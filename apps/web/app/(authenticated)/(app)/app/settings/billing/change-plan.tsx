@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { type Workspace } from "@unkey/db";
-import { BatteryFull, BatteryLow, BatteryMedium, LucideIcon } from "lucide-react";
+import { Building2, LucideIcon, User, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import React from "react";
@@ -48,18 +48,18 @@ export const ChangePlan: React.FC<Props> = ({ workspace }) => {
             description="Are you sure you want to change your plan?"
             disabled={workspace.plan === "free"}
             onConfirm={() => changePlan.mutateAsync({ workspaceId: workspace.id, plan: "free" })}
-            trigger={<Option currentPlan={workspace.plan} plan="free" icon={BatteryLow} />}
+            trigger={<Option currentPlan={workspace.plan} plan="free" icon={User} />}
           />
           <Confirm
             title="Change plan to pro"
             description="Are you sure you want to change your plan?"
             disabled={workspace.plan === "pro"}
             onConfirm={() => changePlan.mutateAsync({ workspaceId: workspace.id, plan: "pro" })}
-            trigger={<Option currentPlan={workspace.plan} plan="pro" icon={BatteryMedium} />}
+            trigger={<Option currentPlan={workspace.plan} plan="pro" icon={Users} />}
           />
 
           <a href="mailto:support@unkey.dev">
-            <Option currentPlan={workspace.plan} plan="enterprise" icon={BatteryFull} />
+            <Option currentPlan={workspace.plan} plan="enterprise" icon={Building2} />
           </a>
         </div>
       </CardContent>

@@ -1,5 +1,4 @@
 import { Readable } from "node:stream";
-import { QUOTA } from "@/lib/constants/quotas";
 import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
@@ -54,83 +53,6 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     );
 
     switch (event.type) {
-      case "customer.subscription.created":
-      case "customer.subscription.updated": {
-        const sub = event.data.object as Stripe.Subscription;
-        await db
-          .update(schema.workspaces)
-          .set({
-            stripeCustomerId: sub.customer.toString(),
-            stripeSubscriptionId: sub.id,
-            plan: "pro",
-            billingPeriodStart: new Date(sub.current_period_start * 1000),
-            billingPeriodEnd: new Date(sub.current_period_end * 1000),
-            trialEnds: null,
-            maxActiveKeys: QUOTA.pro.maxActiveKeys,
-            maxVerifications: QUOTA.pro.maxVerifications,
-          })
-          .where(eq(schema.workspaces.stripeCustomerId, sub.customer.toString()));
-
-        break;
-      }
-
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log("subscription deleted", subscription.id);
-        const ws = await db.query.workspaces.findFirst({
-          where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
-        });
-        if (!ws) {
-          throw new Error("workspace does not exist");
-        }
-        await db
-          .update(schema.workspaces)
-          .set({
-            stripeCustomerId: subscription.customer.toString(),
-            stripeSubscriptionId: null,
-            plan: "free",
-            billingPeriodStart: null,
-            billingPeriodEnd: null,
-          })
-          .where(eq(schema.workspaces.id, ws.id));
-
-        if (email) {
-          const users = await getUsers(ws.tenantId);
-          for await (const user of users) {
-            await email.sendSubscriptionEnded({
-              email: user.email,
-              name: user.name,
-            });
-          }
-        }
-        break;
-      }
-      case "customer.subscription.trial_will_end": {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log("subscription will end", subscription.id);
-        if (!email) {
-          // no need to fetch everything if we don't use it
-          break;
-        }
-        const ws = await db.query.workspaces.findFirst({
-          where: eq(schema.workspaces.stripeCustomerId, subscription.customer.toString()),
-        });
-        if (!ws) {
-          throw new Error("workspace does not exist");
-        }
-
-        const users = await getUsers(ws.tenantId);
-        for await (const user of users) {
-          await email.sendTrialEnds({
-            email: user.email,
-            name: user.name,
-            workspace: ws.name,
-            date: new Date(subscription.trial_end! * 1000),
-          });
-        }
-
-        break;
-      }
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         console.log("invoice failed", invoice.id);

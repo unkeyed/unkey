@@ -63,16 +63,28 @@ export const workspaces = mysqlTable(
     planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
     subscriptions: json("subscriptions").$type<{
       activeKeys?: {
-        priceId: string;
+        productId: string;
+        tiers: {
+          firstUnit: number;
+          lastUnit: number | null; // null means unlimited
+          perUnit: number; // $ 0.01
+        }[];
       };
       verifications?: {
-        priceId: string;
+        productId: string;
+        tiers: {
+          firstUnit: number;
+          lastUnit: number | null; // null means unlimited
+          perUnit: number; // $ 0.01
+        }[];
       };
       plan?: {
-        priceId: string;
+        productId: string;
+        price: number; // $ 25
       };
       support?: {
-        priceId: string;
+        productId: string;
+        price: number; // $ 125
       };
     }>(),
   },

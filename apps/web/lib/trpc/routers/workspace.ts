@@ -1,4 +1,5 @@
 import { QUOTA } from "@/lib/constants/quotas";
+import { defaultProSubscriptions } from "@/lib/constants/subscriptions";
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
@@ -27,8 +28,6 @@ export const workspaceRouter = t.router({
         createdBy: userId,
       });
 
-      const priceIds = stripeEnv();
-
       const workspace: Workspace = {
         id: newId("workspace"),
         slug: null,
@@ -48,13 +47,7 @@ export const workspaceRouter = t.router({
         features: {},
         betaFeatures: {},
         planLockedUntil: null,
-        subscriptions: priceIds
-          ? {
-              activeKeys: { priceId: priceIds.STRIPE_ACTIVE_KEYS_PRICE_ID },
-              verifications: { priceId: priceIds.STRIPE_KEY_VERIFICATIONS_PRICE_ID },
-              plan: { priceId: priceIds.STRIPE_PRO_PLAN_PRICE_ID },
-            }
-          : {},
+        subscriptions: defaultProSubscriptions(),
       };
       await db.insert(schema.workspaces).values(workspace);
 
@@ -106,7 +99,6 @@ export const workspaceRouter = t.router({
       if (workspace.plan === input.plan) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "workspace already on this plan" });
       }
-      console.log("plan", input.plan);
 
       switch (input.plan) {
         case "free": {
@@ -118,7 +110,7 @@ export const workspaceRouter = t.router({
               maxActiveKeys: QUOTA.free.maxActiveKeys,
               maxVerifications: QUOTA.free.maxVerifications,
               planLockedUntil: new Date(Date.now() + 1000 * 60 * 60 * 24),
-              subscriptions: {},
+              subscriptions: null,
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
           break;
@@ -146,11 +138,7 @@ export const workspaceRouter = t.router({
               maxActiveKeys: QUOTA.pro.maxActiveKeys,
               maxVerifications: QUOTA.pro.maxVerifications,
               planLockedUntil: new Date(Date.now() + 1000 * 60 * 60 * 24),
-              subscriptions: {
-                activeKeys: { priceId: env.STRIPE_ACTIVE_KEYS_PRICE_ID },
-                verifications: { priceId: env.STRIPE_KEY_VERIFICATIONS_PRICE_ID },
-                plan: { priceId: env.STRIPE_PRO_PLAN_PRICE_ID },
-              },
+              subscriptions: defaultProSubscriptions(),
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
           break;
