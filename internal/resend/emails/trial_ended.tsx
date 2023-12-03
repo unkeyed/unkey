@@ -13,13 +13,9 @@ import React from "react";
 export type Props = {
   username: string;
   workspaceName: string;
-  endDate: string;
 };
 
-export function TrialEndsIn3Days({
-  workspaceName = "workspaceName",
-  username = "username",
-}: Props) {
+export function TrialEnded({ workspaceName = "workspaceName", username = "" }: Props) {
   return (
     <Tailwind>
       <Html className="font-sans text-zinc-800">
@@ -32,8 +28,8 @@ export function TrialEndsIn3Days({
             <Text>Hey {username},</Text>
             <Text>
               we hope you’ve enjoyed your two-week Unkey Pro trial for your workspace{" "}
-              {workspaceName}. Your trial ends in 3 days, add a payment method to keep all features
-              of the pro plan.
+              {workspaceName}. Your trial ended, add a payment method to keep all features of the
+              pro plan.
             </Text>
 
             <Section>
@@ -52,7 +48,7 @@ export function TrialEndsIn3Days({
 
             <Container className="flex items-center justify-center my-8">
               <Button
-                href="https://unkey.dev/app/settings/billing/stripe"
+                href="https://unkey.dev/app/settings/billing"
                 className="px-4 py-2 text-white bg-black rounded"
               >
                 Upgrade Now
@@ -79,4 +75,4 @@ export function TrialEndsIn3Days({
   );
 }
 
-export default TrialEndsIn3Days;
+export default TrialEnded;
