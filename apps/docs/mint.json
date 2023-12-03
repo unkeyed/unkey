@@ -212,7 +212,7 @@
         "libraries/springboot-java/functions/create",
         "libraries/springboot-java/functions/revoke",
         "libraries/springboot-java/functions/update",
-        "libraries/springboot-java/functions/verify",
+        "libraries/springboot-java/functions/verify"
       ]
     },
     {

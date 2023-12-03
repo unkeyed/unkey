@@ -404,4 +404,7 @@ type Workspace struct {
 	TrialEnds             sql.NullTime
 	Features              json.RawMessage
 	BetaFeatures          json.RawMessage
+	Subscriptions         json.RawMessage
+	PlanLockedUntil       sql.NullTime
+	PlanChanged           sql.NullTime
 }
