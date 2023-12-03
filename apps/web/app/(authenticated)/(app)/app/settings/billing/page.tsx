@@ -430,7 +430,10 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
             </span>
 
             <p className="whitespace-nowrap mt-1 text-xs leading-5 text-content-subtle">
-              {invoice.custom_fields?.find((f) => f.name === "Billing Period")?.value}
+              {invoice.custom_fields?.find((f) => f.name === "Billing Period")?.value ??
+              invoice.due_date
+                ? new Date(invoice.due_date * 1000).toDateString()
+                : null}
             </p>
           </div>
 
