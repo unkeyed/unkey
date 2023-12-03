@@ -5,7 +5,7 @@ export const invoicing = inngest.createFunction(
   {
     id: "billing/invoicing",
   },
-  { event: "billing/invoicing" },
+  { cron: "0 12 1 * *" }, // every 1st of the month at noon UTC
   async ({ event, step, logger }) => {
     const db = connectDatabase();
 
