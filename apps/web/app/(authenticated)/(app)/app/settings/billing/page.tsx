@@ -82,13 +82,13 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col space-y-6 w-2/3">
           <MeteredLineItem
             title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: 100, price: 0 }]}
+            tiers={[{ firstUnit: 1, lastUnit: 100, perUnit: 0 }]}
             used={usedActiveKeys}
             max={workspace.maxActiveKeys}
           />
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: 2500, price: 0 }]}
+            tiers={[{ firstUnit: 1, lastUnit: 2500, perUnit: 0 }]}
             used={usedVerifications}
             max={workspace.maxVerifications}
           />
@@ -429,14 +429,16 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
               ) : null}
               <span className="text-sm text-content capitalize">{invoice.status}</span>
             </div>
-            <Link
-              href={invoice.hosted_invoice_url}
-              target="_blank"
-              className="items-center flex whitespace-nowrap mt-1  leading-5 text-content-subtle hover:underline text-xs hover:text-content duration-150"
-            >
-              View Invoice
-              <ExternalLink className="inline-block w-3 h-3 ml-1" />
-            </Link>
+            {invoice.hosted_invoice_url ? (
+              <Link
+                href={invoice.hosted_invoice_url}
+                target="_blank"
+                className="items-center flex whitespace-nowrap mt-1  leading-5 text-content-subtle hover:underline text-xs hover:text-content duration-150"
+              >
+                View Invoice
+                <ExternalLink className="inline-block w-3 h-3 ml-1" />
+              </Link>
+            ) : null}
           </div>
         </li>
       ))}

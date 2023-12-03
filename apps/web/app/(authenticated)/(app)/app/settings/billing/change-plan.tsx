@@ -2,10 +2,8 @@
 
 import { Confirm } from "@/components/dashboard/confirm";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { type Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
 
@@ -13,7 +11,7 @@ import React from "react";
 type Props = {
   label: string;
   workspace: Workspace;
-  plan: Workspace["plan"];
+  plan: "free" | "pro";
 };
 
 export const ChangePlan: React.FC<Props> = ({ workspace, plan, label }) => {
