@@ -1,20 +1,22 @@
 "use client";
 
 import { Confirm } from "@/components/dashboard/confirm";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { type Workspace } from "@unkey/db";
-import { Building2, LucideIcon, User, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import React from "react";
 type Props = {
+  label: string;
   workspace: Workspace;
+  plan: Workspace["plan"];
 };
 
-export const ChangePlan: React.FC<Props> = ({ workspace }) => {
+export const ChangePlan: React.FC<Props> = ({ workspace, plan, label }) => {
   const { toast } = useToast();
   const router = useRouter();
   const changePlan = trpc.workspace.changePlan.useMutation({
@@ -34,56 +36,12 @@ export const ChangePlan: React.FC<Props> = ({ workspace }) => {
     },
   });
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Plan</CardTitle>
-        <CardDescription>
-          You are currently on the <strong className="capitalize">{workspace.plan} </strong> plan.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-8 max-sm:gap-2 ">
-          <Confirm
-            title="Change plan to free"
-            description="Are you sure you want to change your plan?"
-            disabled={workspace.plan === "free"}
-            onConfirm={() => changePlan.mutateAsync({ workspaceId: workspace.id, plan: "free" })}
-            trigger={<Option currentPlan={workspace.plan} plan="free" icon={User} />}
-          />
-          <Confirm
-            title="Change plan to pro"
-            description="Are you sure you want to change your plan?"
-            disabled={workspace.plan === "pro"}
-            onConfirm={() => changePlan.mutateAsync({ workspaceId: workspace.id, plan: "pro" })}
-            trigger={<Option currentPlan={workspace.plan} plan="pro" icon={Users} />}
-          />
-
-          <a href="mailto:support@unkey.dev">
-            <Option currentPlan={workspace.plan} plan="enterprise" icon={Building2} />
-          </a>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-type OptionProps = {
-  currentPlan: Workspace["plan"];
-  plan: Workspace["plan"];
-  icon: LucideIcon;
-};
-
-const Option: React.FC<OptionProps> = (props) => {
-  return (
-    <div
-      className={cn(
-        "border text-sm rounded-md hover:border-primary flex items-center justify-center gap-2 h-8 p-2 ",
-        {
-          "bg-primary text-primary-foreground border-primary": props.plan === props.currentPlan,
-        },
-      )}
-    >
-      <props.icon className="w-4 h-4 shrink-0" /> <span className="capitalize">{props.plan}</span>
-    </div>
+    <Confirm
+      title={`Change plan to ${plan}`}
+      description="Are you sure you want to change your plan?"
+      disabled={workspace.plan === plan}
+      onConfirm={() => changePlan.mutateAsync({ workspaceId: workspace.id, plan })}
+      trigger={<Button type="button">{label}</Button>}
+    />
   );
 };

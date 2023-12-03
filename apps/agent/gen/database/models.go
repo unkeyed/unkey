@@ -406,4 +406,5 @@ type Workspace struct {
 	BetaFeatures          json.RawMessage
 	Subscriptions         json.RawMessage
 	PlanLockedUntil       sql.NullTime
+	PlanChanged           sql.NullTime
 }

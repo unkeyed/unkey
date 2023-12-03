@@ -47,6 +47,7 @@ export const workspaceRouter = t.router({
         features: {},
         betaFeatures: {},
         planLockedUntil: null,
+        planChanged: null,
         subscriptions: defaultProSubscriptions(),
       };
       await db.insert(schema.workspaces).values(workspace);
@@ -88,7 +89,10 @@ export const workspaceRouter = t.router({
         });
       }
 
-      if (workspace.planLockedUntil && Date.now() < workspace.planLockedUntil.getTime()) {
+      if (
+        workspace.planChanged &&
+        Date.now() < workspace.planChanged.getTime() + 1000 * 60 * 60 * 24
+      ) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message:
@@ -109,7 +113,7 @@ export const workspaceRouter = t.router({
               plan: "free",
               maxActiveKeys: QUOTA.free.maxActiveKeys,
               maxVerifications: QUOTA.free.maxVerifications,
-              planLockedUntil: new Date(Date.now() + 1000 * 60 * 60 * 24),
+              planChanged: new Date(),
               subscriptions: null,
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
@@ -137,7 +141,7 @@ export const workspaceRouter = t.router({
               plan: "pro",
               maxActiveKeys: QUOTA.pro.maxActiveKeys,
               maxVerifications: QUOTA.pro.maxVerifications,
-              planLockedUntil: new Date(Date.now() + 1000 * 60 * 60 * 24),
+              planChanged: new Date(),
               subscriptions: defaultProSubscriptions(),
             })
             .where(eq(schema.workspaces.id, input.workspaceId));

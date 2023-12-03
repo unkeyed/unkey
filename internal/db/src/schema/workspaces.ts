@@ -60,7 +60,9 @@ export const workspaces = mysqlTable(
       }>()
       .notNull(),
     // prevent plan changes for a certain time, should be 1 day
+    // deprecated, use planChanged
     planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
+    planChanged: datetime("plan_changed", { fsp: 3 }),
     subscriptions: json("subscriptions").$type<{
       activeKeys?: {
         productId: string;
