@@ -12,8 +12,7 @@ import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { ExternalLink } from "lucide-react";
-import { Check } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -120,9 +119,6 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
           </ul>
         </div>
       </CardContent>
-      <CardFooter className="flex items-center justify-end">
-        <ChangePlan workspace={workspace} plan="pro" label="Upgrade plan" />
-      </CardFooter>
     </Card>
   );
 };
@@ -164,10 +160,6 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     invoices = [...open.data, ...paid.data].sort((a, b) => a.created - b.created);
   }
 
-  if (!paymentMethod && invoices.length === 0) {
-    return null;
-  }
-
   return (
     <div className="px-4 md:px-0 w-full lg:w-2/5">
       <div className="flex flex-col md:flex-row lg:flex-col gap-8 items-center justify-center">
@@ -175,17 +167,26 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
           {paymentMethod?.card ? (
             <CreditCard paymentMethod={paymentMethod} />
           ) : (
-            <Button variant="secondary" type="button">
-              Add credit card
-            </Button>
+            <MissingCreditCard />
           )}
-          <Link href="/app/settings/billing/stripe" className="w-full">
-            <Button variant="secondary" type="button" size="block">
-              Update Billing
-            </Button>
-          </Link>
+
+          <div className="flex items-center gap-8">
+            <Link href="/app/settings/billing/stripe" className="w-full">
+              <Button variant="secondary" type="button" size="block" className="whitespace-nowrap">
+                {paymentMethod ? "Update Card" : "Add Credit Card"}
+              </Button>
+            </Link>
+            <ChangePlan
+              workspace={workspace}
+              trigger={
+                <Button variant="secondary" type="button" size="block">
+                  Change Plan
+                </Button>
+              }
+            />
+          </div>
         </div>
-        <Invoices invoices={invoices} />
+        {invoices.length > 0 ? <Invoices invoices={invoices} /> : null}
       </div>
     </div>
   );
@@ -324,7 +325,7 @@ const MeteredLineItem: React.FC<{
             </span>
           ) : null}
         </div>
-        <div className="overflow-hidden rounded-full bg-gray-300">
+        <div className="overflow-hidden rounded-full bg-gray-300 dark:bg-gray-800">
           <div
             className={cn("bg-primary h-2", {
               "bg-alert": props.max && props.used >= props.max,
@@ -389,7 +390,7 @@ function percentage(num: number, total: number): number {
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
-  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 to-gray-100  shadow-lg p-8 hover:scale-105 duration-500 hover:shadow-xl">
+  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
     <div className="mt-16 font-mono text-content whitespace-nowrap">
       •••• •••• •••• {paymentMethod.card?.last4}
     </div>
@@ -399,6 +400,19 @@ const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ payment
     <div className="text-content-subtle text-xs font-mono mt-1">
       Expires {paymentMethod.card?.exp_month.toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
       {paymentMethod.card?.exp_year}
+    </div>
+  </div>
+);
+
+const MissingCreditCard: React.FC = () => (
+  <div className="relative aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8">
+    <div className="z-50 mt-16 font-mono text-content whitespace-nowrap blur-sm">
+      •••• •••• •••• ••••
+    </div>
+    <div className="z-50 text-content-subtle font-mono text-sm mt-2 ">No credit card on file</div>
+    <div className="text-content-subtle text-xs font-mono mt-1 blur-sm">
+      Expires {(new Date().getUTCMonth() - 1).toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
+      {new Date().getUTCFullYear()}
     </div>
   </div>
 );

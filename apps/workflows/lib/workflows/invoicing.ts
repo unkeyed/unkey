@@ -11,8 +11,12 @@ export const invoicing = inngest.createFunction(
 
     let workspaces = await step.run("list workspaces", async () =>
       db.query.workspaces.findMany({
-        where: (table, { isNotNull, and }) =>
-          and(isNotNull(table.stripeCustomerId), isNotNull(table.subscriptions)),
+        where: (table, { isNotNull, not, eq, and }) =>
+          and(
+            isNotNull(table.stripeCustomerId),
+            isNotNull(table.subscriptions),
+            not(eq(table.plan, "free")),
+          ),
       }),
     );
     // hack to filter out workspaces with `{}` as subscriptions
