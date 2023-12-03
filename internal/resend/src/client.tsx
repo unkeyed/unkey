@@ -4,7 +4,7 @@ import { render } from "@react-email/render";
 import React from "react";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SubscriptionEnded } from "../emails/subscription_ended";
-import { TrialEndsIn3Days } from "../emails/trial_ends_in_3_days";
+import { TrialEnded } from "../emails/trial_ended";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   public readonly client: Client;
@@ -15,25 +15,18 @@ export class Resend {
     this.client = new Client(opts.apiKey);
   }
 
-  public async sendTrialEnds(req: {
+  public async sendTrialEnded(req: {
     email: string;
     name: string;
     workspace: string;
-    date: Date;
   }): Promise<void> {
-    const html = render(
-      <TrialEndsIn3Days
-        username={req.name}
-        workspaceName={req.workspace}
-        endDate={req.date.toDateString()}
-      />,
-    );
+    const html = render(<TrialEnded username={req.name} workspaceName={req.workspace} />);
 
     await this.client.emails.send({
       to: req.email,
       from: `andreas@${this.domain}`,
       reply_to: this.replyTo,
-      subject: "Your Unkey trial ends in 3 days",
+      subject: "Your Unkey trial has ended",
       html,
     });
   }
