@@ -32,11 +32,6 @@ export default function SettingsLayout({
       segment: "billing",
     },
     {
-      label: "Usage",
-      href: "/app/settings/usage",
-      segment: "usage",
-    },
-    {
       label: "Vercel Integration",
       href: "/app/settings/vercel",
       segment: "vercel",
