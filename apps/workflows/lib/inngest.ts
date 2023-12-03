@@ -3,6 +3,8 @@ import { EventSchemas, Inngest } from "inngest";
 type Events = {
   // biome-ignore lint/complexity/noBannedTypes: inngest doesn't like never or unknown
   "billing/invoicing": {};
+  // biome-ignore lint/complexity/noBannedTypes: inngest doesn't like never or unknown
+  "billing/end.trials": {};
   "billing/create.invoice": {
     name: "billing/create.invoice";
     data: {
