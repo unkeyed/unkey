@@ -9,6 +9,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 export const config = {
   maxDuration: 300,
+  runtime: "nodejs",
 };
 
 async function handler(_req: NextApiRequest, res: NextApiResponse) {
@@ -56,6 +57,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
               activeKeys = d.usage;
             }
           }
+          console.log({ activeKeys });
 
           let verifications = 0;
           for (const d of globalVerifications) {
@@ -87,7 +89,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
             for (const item of subscription.items.data) {
               console.log("handling item %s -> product %s", item.id, item.price.product);
               switch (item.price.product) {
-                case e.STRIPE_ACTIVE_KEYS_PRODUCT_ID: {
+                case e.STRIPE_PRODUCT_ID_ACTIVE_KEYS: {
                   if (activeKeys) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),
@@ -98,7 +100,7 @@ async function handler(_req: NextApiRequest, res: NextApiResponse) {
                   }
                   break;
                 }
-                case e.STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: {
+                case e.STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: {
                   if (verifications) {
                     await stripe.subscriptionItems.createUsageRecord(item.id, {
                       timestamp: Math.floor(Date.now() / 1000),

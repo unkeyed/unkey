@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { redirect } from "next/navigation";
-export const runtime = "edge";
+
 export default async function TenantOverviewPage() {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
