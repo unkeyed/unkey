@@ -36,7 +36,9 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger disabled={props.disabled}>{props.trigger}</DialogTrigger>
+      <DialogTrigger asChild disabled={props.disabled}>
+        {props.trigger}
+      </DialogTrigger>
       <DialogContent
         className={cn("sm:max-w-[425px]", { "border-alert": props.variant === "alert" })}
       >
