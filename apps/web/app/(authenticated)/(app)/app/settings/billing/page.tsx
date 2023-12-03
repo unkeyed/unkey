@@ -135,16 +135,13 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   });
 
   let paymentMethod: Stripe.PaymentMethod | undefined = undefined;
-  if (workspace.stripeCustomerId) {
-    const paymentMethods = await stripe.customers.listPaymentMethods(workspace.stripeCustomerId);
-    if (paymentMethods && paymentMethods.data.length > 0) {
-      paymentMethod = paymentMethods.data.at(0);
-    }
-  }
-
   let invoices: Stripe.Invoice[] = [];
+  let coupon: Stripe.Coupon | undefined = undefined;
+
   if (workspace.stripeCustomerId) {
-    const [paid, open] = await Promise.all([
+    const [customer, paymentMethods, paid, open] = await Promise.all([
+      stripe.customers.retrieve(workspace.stripeCustomerId),
+      stripe.customers.listPaymentMethods(workspace.stripeCustomerId),
       stripe.invoices.list({
         customer: workspace.stripeCustomerId,
         limit: 3,
@@ -158,6 +155,12 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     ]);
 
     invoices = [...open.data, ...paid.data].sort((a, b) => a.created - b.created);
+    if (!customer.deleted) {
+      coupon = customer.discount?.coupon;
+    }
+    if (paymentMethods && paymentMethods.data.length > 0) {
+      paymentMethod = paymentMethods.data.at(0);
+    }
   }
 
   return (
@@ -186,6 +189,7 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
             />
           </div>
         </div>
+        {coupon ? <Coupon coupon={coupon} /> : null}
         {invoices.length > 0 ? <Invoices invoices={invoices} /> : null}
       </div>
     </div>
@@ -414,6 +418,15 @@ const MissingCreditCard: React.FC = () => (
       Expires {(new Date().getUTCMonth() - 1).toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
       {new Date().getUTCFullYear()}
     </div>
+  </div>
+);
+
+const Coupon: React.FC<{ coupon: Stripe.Coupon }> = ({ coupon }) => (
+  <div className="w-full border border-gray-200 dark:border-gray-800 p-8 rounded-lg">
+    <dt className="text-sm font-medium leading-6 text-content-subtle">Discount</dt>
+    <dd className="w-full flex-none font-mono text-xl font-medium leading-10 tracking-tight text-content">
+      {coupon.name}
+    </dd>
   </div>
 );
 
