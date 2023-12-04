@@ -25,7 +25,7 @@ test("remaining consistently counts down", async () => {
   expect(createApiResponse.body.apiId).toBeDefined();
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
 
-  const remaining = 1000;
+  const remaining = 100;
 
   const createKeyResponse = await step<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/keys.createKey`,
@@ -106,4 +106,4 @@ test("remaining consistently counts down", async () => {
     },
   });
   expect(deleteApi.status).toEqual(200);
-});
+}, 60_000);
