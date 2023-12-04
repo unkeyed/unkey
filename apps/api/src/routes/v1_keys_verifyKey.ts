@@ -155,11 +155,11 @@ export const registerV1KeysVerifyKey = (app: App) =>
     }
 
     return c.json({
-      keyId: value.keyId,
+      keyId: value.key.id,
       valid: true,
-      ownerId: value.ownerId,
-      meta: value.meta,
-      expires: value.expires,
+      ownerId: value.key.ownerId,
+      meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
+      expires: value.key.expires?.getTime(),
       remaining: value.remaining,
       ratelimit: value.ratelimit,
     });
