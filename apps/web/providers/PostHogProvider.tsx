@@ -1,8 +1,9 @@
 // app/providers.tsx
 "use client";
+import { useUser } from "@clerk/nextjs";
+import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
-import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 if (typeof window !== "undefined") {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
@@ -18,7 +19,7 @@ export function PostHogPageview(): JSX.Element {
   useEffect(() => {
     if (pathname) {
       let url = window.origin + pathname;
-      if (searchParams && searchParams.toString()) {
+      if (searchParams?.toString()) {
         url = url + `?${searchParams.toString()}`;
       }
       posthog.capture("$pageview", {
@@ -26,6 +27,28 @@ export function PostHogPageview(): JSX.Element {
       });
     }
   }, [pathname, searchParams]);
+
+  return <></>;
+}
+
+export function PostHogAuthIdentify(): JSX.Element {
+  const { user, isLoaded } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+    if (user) {
+      posthog.get_distinct_id();
+      posthog.alias(user.id, posthog.get_distinct_id());
+      posthog.identify(posthog.get_distinct_id(), {
+        email: user.primaryEmailAddress?.emailAddress,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userName: user.username,
+      });
+    }
+  }, [user]);
 
   return <></>;
 }

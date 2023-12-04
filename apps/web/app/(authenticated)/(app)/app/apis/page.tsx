@@ -4,7 +4,6 @@ import { CreateApiButton } from "./create-api-button";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema, sql } from "@/lib/db";
-import PostHogClient from "@/lib/posthog";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -37,12 +36,6 @@ export default async function ApisOverviewPage() {
     })),
   );
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
-
-  const posthog = PostHogClient();
-  posthog.identify({
-    distinctId: tenantId,
-  });
-  await posthog.shutdownAsync();
 
   return (
     <div className="">

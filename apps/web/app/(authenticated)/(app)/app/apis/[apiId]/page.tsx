@@ -1,5 +1,12 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  MetricCardTitle,
+} from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
