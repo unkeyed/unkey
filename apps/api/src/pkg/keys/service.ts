@@ -96,13 +96,13 @@ export class KeyService {
           apiId: res.value.api.id,
           keyId: res.value.key.id,
           time: Date.now(),
-          denied: res.value.code,
+          deniedReason: res.value.code,
           ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
           userAgent: c.req.header("User-Agent"),
-          requestedResource: undefined,
-          edgeRegion: undefined,
+          requestedResource: "",
+          edgeRegion: "",
           // @ts-expect-error - the cf object will be there on cloudflare
-          region: c.req.raw?.cf?.colo,
+          region: c.req.raw?.cf?.colo ?? "",
         }),
       );
     }
