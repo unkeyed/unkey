@@ -1,9 +1,0 @@
-VERSION 1
-TOKEN "endpoint__get_total_verifications__v1_endpoint_read_5793" READ
-
-NODE endpoint
-SQL >
-
-    SELECT sum(count) as total FROM mv__total_verifications
-
-

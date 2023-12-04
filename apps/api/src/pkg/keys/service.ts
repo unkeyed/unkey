@@ -3,16 +3,27 @@ import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { type Database, type Key } from "@unkey/db";
+import { type Api, type Database, type Key } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
+import { Analytics } from "../analytics";
 import { CacheNamespaces } from "../global";
 
 type VerifyKeyResult =
   | {
       valid: false;
-      code: string;
+      code: "NOT_FOUND";
+      key?: never;
+      api?: never;
+      ratelimit?: never;
+      remaining?: never;
+    }
+  | {
+      valid: false;
+      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+      key: Key;
+      api: Api;
       ratelimit?: {
         remaining: number;
         limit: number;
@@ -21,19 +32,17 @@ type VerifyKeyResult =
       remaining?: number;
     }
   | {
-      keyId: string;
-      apiId?: string;
+      code?: never;
       valid: true;
-      ownerId?: string;
-      meta?: Record<string, unknown>;
-      expires?: number;
-      remaining?: number;
+      key: Key;
+      api: Api;
+
       ratelimit?: {
         remaining: number;
         limit: number;
         reset: number;
       };
-
+      remaining?: number;
       isRootKey?: boolean;
       /**
        * the workspace of the user, even if this is a root key
@@ -48,6 +57,7 @@ export class KeyService {
   private readonly db: Database;
   private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
+  private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
 
   constructor(opts: {
@@ -57,6 +67,7 @@ export class KeyService {
     db: Database;
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
+    analytics: Analytics;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -65,9 +76,43 @@ export class KeyService {
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
+    this.analytics = opts.analytics;
   }
 
   public async verifyKey(
+    c: Context,
+    req: { key: string; apiId?: string },
+  ): Promise<Result<VerifyKeyResult>> {
+    const res = await this._verifyKey(c, req);
+    if (res.error) {
+      return res;
+    }
+    // if we have identified the key, we can send the analytics event
+    // otherwise, they likely sent garbage to us and we can't associate it with anything
+    if (res.value.key) {
+      c.executionCtx.waitUntil(
+        this.analytics.ingestKeyVerification({
+          workspaceId: res.value.key.workspaceId,
+          apiId: res.value.api.id,
+          keyId: res.value.key.id,
+          time: Date.now(),
+          denied: res.value.code,
+          ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
+          userAgent: c.req.header("User-Agent"),
+          requestedResource: undefined,
+          edgeRegion: undefined,
+          // @ts-expect-error - the cf object will be there on cloudflare
+          region: c.req.raw?.cf?.colo,
+        }),
+      );
+    }
+    return res;
+  }
+
+  /**
+   * extracting this into a separate function just makes it easier to emit the analytics event
+   */
+  private async _verifyKey(
     c: Context,
     req: { key: string; apiId?: string },
   ): Promise<Result<VerifyKeyResult>> {
@@ -97,7 +142,7 @@ export class KeyService {
     }
 
     if (req.apiId && data.api.id !== req.apiId) {
-      return result.success({ valid: false, code: "FORBIDDEN" });
+      return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
     }
 
     /**
@@ -110,11 +155,11 @@ export class KeyService {
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
       if (!ip) {
-        return result.success({ valid: false, code: "FORBIDDEN" });
+        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
-        return result.success({ valid: false, code: "FORBIDDEN" });
+        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
       }
     }
 
@@ -125,8 +170,10 @@ export class KeyService {
     const [pass, ratelimit] = await this.ratelimit(c, data.key);
     if (!pass) {
       return result.success({
+        key: data.key,
+        api: data.api,
         valid: false,
-        code: "RATELIMITED",
+        code: "RATE_LIMITED",
         ratelimit,
       });
     }
@@ -137,6 +184,8 @@ export class KeyService {
       remaining = limited.remaining;
       if (!limited.valid) {
         return result.success({
+          key: data.key,
+          api: data.api,
           valid: false,
           code: "USAGE_EXCEEDED",
           keyId: data.key.id,
@@ -153,8 +202,9 @@ export class KeyService {
     }
 
     return result.success({
-      keyId: data.key.id,
-      apiId: data.api.id,
+      workspaceId: data.key.workspaceId,
+      key: data.key,
+      api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,
       meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
