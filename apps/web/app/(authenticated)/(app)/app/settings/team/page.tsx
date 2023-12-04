@@ -130,8 +130,12 @@ const Members: React.FC = () => {
                   <AvatarFallback>{publicUserData.identifier.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
-                  <span className="text-content font-medium">{`${publicUserData.firstName} ${publicUserData.lastName}`}</span>
-                  <span className="text-content-subtle text-xs">{publicUserData.identifier}</span>
+                  <span className="text-content font-medium">{`${
+                    publicUserData.firstName ? publicUserData.firstName : publicUserData.identifier
+                  } ${publicUserData.lastName ? publicUserData.lastName : ""}`}</span>
+                  <span className="text-content-subtle text-xs">
+                    {publicUserData.firstName ? publicUserData.identifier : ""}
+                  </span>
                 </div>
               </div>
             </TableCell>
