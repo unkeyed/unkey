@@ -31,7 +31,7 @@ export function EmailCode() {
       .then((result) => {
         if (result.status === "complete" && result.createdSessionId) {
           setActive({ session: result.createdSessionId }).then(() => {
-            router.push("/onboarding");
+            router.push("/new");
           });
         }
       })

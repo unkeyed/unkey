@@ -120,7 +120,7 @@ export const registerLegacyApisListKeys = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
 
-    return c.jsonT({
+    return c.json({
       keys: keys.map((k) => ({
         id: k.id,
         ownerId: k.ownerId,

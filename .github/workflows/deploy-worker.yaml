@@ -39,11 +39,34 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+  preview-tests:
+    environment: Preview
+    needs: preview
+    name: End to End Test Preview
+    runs-on: ubuntu-latest
 
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: |
+          pnpm install
+          npm i -g bun
+
+      - name: Test
+        run: bun test src/integration --timeout 10000
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: https://preview.api.unkey.app
+          UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
 
   canary:
-      needs:
-        - preview
+      needs: preview-tests
       environment: Canary
       runs-on: ubuntu-latest
       name: Deploy Canary
@@ -74,6 +97,7 @@ jobs:
             CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   canary-tests:
+    environment: Canary
     needs: canary
     name: End to End Test Canary
     runs-on: ubuntu-latest

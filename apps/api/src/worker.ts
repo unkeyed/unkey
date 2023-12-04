@@ -33,7 +33,7 @@ export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 const app = newApp();
 
 app.get("/routes", (c) => {
-  return c.jsonT(
+  return c.json(
     app.routes.map((r) => ({
       method: r.method,
       path: r.path,
@@ -48,7 +48,7 @@ app.use("*", async (c, next) => {
   });
   const start = performance.now();
   const m = {
-    path: c.req.path,
+    path: c.req.routePath,
     method: c.req.method,
     // @ts-ignore - this is a bug in the types
     continent: c.req.raw?.cf?.continent,

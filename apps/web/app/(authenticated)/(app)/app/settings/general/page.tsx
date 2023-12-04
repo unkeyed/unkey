@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { UpdateWorkspaceImage } from "./update-workspace-image";
 import { UpdateWorkspaceName } from "./update-workspace-name";
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
+
 export default async function SettingsPage() {
   const tenantId = getTenantId();
 
@@ -15,7 +15,7 @@ export default async function SettingsPage() {
     where: eq(schema.workspaces.tenantId, tenantId),
   });
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   return (

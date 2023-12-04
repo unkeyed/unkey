@@ -44,6 +44,9 @@ export async function seed(env: {
     billingPeriodStart: null,
     billingPeriodEnd: null,
     trialEnds: null,
+    subscriptions: null,
+    planLockedUntil: null,
+    planChanged: null,
   };
   const userWorkspace: Workspace = {
     id: newId("workspace"),
@@ -63,6 +66,9 @@ export async function seed(env: {
     billingPeriodStart: null,
     billingPeriodEnd: null,
     trialEnds: null,
+    subscriptions: null,
+    planLockedUntil: null,
+    planChanged: null,
   };
 
   const unkeyKeyAuth: KeyAuth = {

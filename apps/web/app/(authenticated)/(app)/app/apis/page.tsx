@@ -4,13 +4,13 @@ import { CreateApiButton } from "./create-api-button";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema, sql } from "@/lib/db";
+import PostHogClient from "@/lib/posthog";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
-import PostHogClient from "@/lib/posthog";
 
-export const revalidate = 3;
+export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function ApisOverviewPage() {
@@ -23,7 +23,7 @@ export default async function ApisOverviewPage() {
   });
 
   if (!workspace) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
 
   const apis = await Promise.all(
@@ -36,8 +36,7 @@ export default async function ApisOverviewPage() {
         .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
-  const unpaid =
-    workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 
   const posthog = PostHogClient();
   posthog.identify({
@@ -67,11 +66,11 @@ export default async function ApisOverviewPage() {
               Please add billing to your account
             </h3>
             <p className="text-center text-sm text-gray-500 md:text-base">
-              Team workspaces is a paid feature. Please add billing to your
-              account to continue using it.
+              Team workspaces is a paid feature. Please add billing to your account to continue
+              using it.
             </p>
             <Link
-              href="/app/stripe"
+              href="/app/settings/billing/stripe"
               target="_blank"
               className="mr-3 rounded-lg bg-gray-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
             >

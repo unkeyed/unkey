@@ -80,7 +80,7 @@ export const registerLegacyKeysGet = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
-    return c.jsonT({
+    return c.json({
       id: data.key.id,
       apiId: data.api.id,
       workspaceId: data.key.workspaceId,

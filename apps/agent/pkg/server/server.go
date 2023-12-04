@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -202,6 +204,24 @@ func New(config Config) *Server {
 		return err
 	})
 
+	rollout, err := strconv.ParseInt(os.Getenv("CANARY_ROLLOUT"), 10, 64)
+	if err == nil {
+		s.logger.Info().Int("rollout", int(rollout)).Msg("running in canary mode")
+		s.app.Use("*", func(c *fiber.Ctx) error {
+			if c.Path() == "/v1/liveness" {
+				return c.Next()
+			}
+
+			if rand.Intn(100) < int(rollout) {
+				redirect := "https://api.unkey.app" + c.Path()
+				s.logger.Info().Str("url", redirect).Msg("redirecting to cloudflare")
+				return c.Redirect(redirect, 307)
+			}
+
+			return c.Next()
+
+		})
+	}
 	s.app.Get("/v1/liveness", s.liveness)
 
 	// Used internally only, not covered by versioning

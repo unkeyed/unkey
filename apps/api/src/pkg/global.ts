@@ -7,6 +7,7 @@
  * Use the hono context for that.
  */
 
+import { Analytics } from "./analytics";
 import { MemoryCache } from "./cache/memory";
 import { CacheWithMetrics } from "./cache/metrics";
 import { TieredCache } from "./cache/tiered";
@@ -17,7 +18,7 @@ import { KeyService } from "./keys/service";
 import { ConsoleLogger, Logger } from "./logging";
 import { AxiomLogger } from "./logging/axiom";
 import { AxiomMetrics, Metrics, NoopMetrics } from "./metrics";
-import { Tinybird } from "./tinybird";
+import { DurableRateLimiter, NoopRateLimiter, RateLimiter } from "./ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimit";
 
 export type KeyHash = string;
@@ -41,8 +42,9 @@ export let db: Database;
 export let metrics: Metrics;
 export let logger: Logger;
 export let keyService: KeyService;
-export let tinybird: Tinybird;
+export let analytics: Analytics;
 export let usageLimiter: UsageLimiter;
+export let rateLimiter: RateLimiter;
 
 let initialized = false;
 
@@ -99,16 +101,22 @@ export function init(opts: { env: Env }): void {
       })
     : new NoopUsageLimiter();
 
+  analytics = new Analytics(opts.env.TINYBIRD_TOKEN);
+  rateLimiter = opts.env.DO_RATELIMIT
+    ? new DurableRateLimiter({
+        namespace: opts.env.DO_RATELIMIT,
+      })
+    : new NoopRateLimiter();
+
   keyService = new KeyService({
     cache,
     logger,
     db,
     metrics,
-    rl: opts.env.DO_RATELIMIT,
+    rateLimiter,
     usageLimiter,
+    analytics,
   });
-
-  tinybird = new Tinybird(opts.env.TINYBIRD_TOKEN);
 
   initialized = true;
 }

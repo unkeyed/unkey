@@ -23,7 +23,6 @@ test("update a key's remaining limit", async () => {
       name: "scenario-test-pls-delete",
     },
   });
-  console.log(JSON.stringify(createApiResponse, null, 2));
   expect(createApiResponse.status).toEqual(200);
   expect(createApiResponse.body.apiId).toBeDefined();
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
@@ -42,6 +41,7 @@ test("update a key's remaining limit", async () => {
       remaining: 5,
     },
   });
+  console.log(JSON.stringify(createKeyResponse));
   expect(createKeyResponse.status).toEqual(200);
 
   for (let i = 4; i >= 0; i--) {
@@ -57,7 +57,6 @@ test("update a key's remaining limit", async () => {
         key: createKeyResponse.body.key,
       },
     });
-    console.log(i, JSON.stringify(valid, null, 2));
 
     expect(valid.status).toEqual(200);
     expect(valid.body.valid).toBeTrue();

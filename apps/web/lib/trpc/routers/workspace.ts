@@ -1,4 +1,5 @@
 import { QUOTA } from "@/lib/constants/quotas";
+import { defaultProSubscriptions } from "@/lib/constants/subscriptions";
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
@@ -14,89 +15,138 @@ export const workspaceRouter = t.router({
     .input(
       z.object({
         name: z.string().min(1).max(50),
-        plan: z.enum(["free", "pro"]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      let organizationId: string | null = null;
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "unable to find userId" });
       }
 
-      if (input.plan !== "free") {
-        const org = await clerkClient.organizations.createOrganization({
-          name: input.name,
-          createdBy: userId,
-        });
-        organizationId = org.id;
-      }
+      const org = await clerkClient.organizations.createOrganization({
+        name: input.name,
+        createdBy: userId,
+      });
 
       const workspace: Workspace = {
         id: newId("workspace"),
         slug: null,
-        tenantId: organizationId ?? userId,
+        tenantId: org.id,
         name: input.name,
-        plan: input.plan,
+        plan: "pro",
         stripeCustomerId: null,
         stripeSubscriptionId: null,
-        maxActiveKeys: QUOTA[input.plan].maxActiveKeys,
-        maxVerifications: QUOTA[input.plan].maxVerifications,
+        maxActiveKeys: QUOTA.pro.maxActiveKeys,
+        maxVerifications: QUOTA.pro.maxVerifications,
         usageActiveKeys: null,
         usageVerifications: null,
         lastUsageUpdate: null,
         billingPeriodStart: null,
         billingPeriodEnd: null,
-        trialEnds: null,
+        trialEnds: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks
         features: {},
         betaFeatures: {},
+        planLockedUntil: null,
+        planChanged: null,
+        subscriptions: defaultProSubscriptions(),
       };
       await db.insert(schema.workspaces).values(workspace);
 
-      const e = stripeEnv();
-      if (e) {
-        const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-          apiVersion: "2022-11-15",
-        });
-
-        const user = await clerkClient.users.getUser(ctx.user.id);
-
-        if (input.plan === "pro") {
-          const customer = await stripe.customers.create({
-            name: input.name,
-            email: user.emailAddresses.at(0)?.emailAddress,
-          });
-          workspace.stripeCustomerId = customer.id;
-          await db
-            .update(schema.workspaces)
-            .set({ stripeCustomerId: customer.id })
-            .where(eq(schema.workspaces.id, workspace.id));
-
-          await stripe.subscriptions.create({
-            customer: customer.id,
-            items: [
-              {
-                // base
-                price: e.STRIPE_PRO_PLAN_PRICE_ID,
-                quantity: 1,
-              },
-              {
-                // additional keys
-                price: e.STRIPE_ACTIVE_KEYS_PRICE_ID,
-              },
-              {
-                // additional verifications
-                price: e.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
-              },
-            ],
-            trial_period_days: 14,
-          });
-        }
-      }
-
       return {
         workspace,
-        organizationId,
+        organizationId: org.id,
       };
+    }),
+
+  changePlan: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        workspaceId: z.string(),
+        plan: z.enum(["free", "pro"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const env = stripeEnv();
+      if (!env) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "stripe env not set" });
+      }
+      const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+        apiVersion: "2022-11-15",
+        typescript: true,
+      });
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { eq }) => eq(table.id, input.workspaceId),
+      });
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+      }
+      if (workspace.tenantId !== ctx.tenant.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "you are not allowed to modify this workspace",
+        });
+      }
+
+      if (
+        workspace.planChanged &&
+        Date.now() < workspace.planChanged.getTime() + 1000 * 60 * 60 * 24
+      ) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "You can not change your plan multiple times per day, please wait 24h or contact support@unkey.dev",
+        });
+      }
+
+      if (workspace.plan === input.plan) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "workspace already on this plan" });
+      }
+
+      switch (input.plan) {
+        case "free": {
+          // TODO: create invoice
+          await db
+            .update(schema.workspaces)
+            .set({
+              plan: "free",
+              maxActiveKeys: QUOTA.free.maxActiveKeys,
+              maxVerifications: QUOTA.free.maxVerifications,
+              planChanged: new Date(),
+              subscriptions: null,
+            })
+            .where(eq(schema.workspaces.id, input.workspaceId));
+          break;
+        }
+        case "pro": {
+          if (!workspace.stripeCustomerId) {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: "Please add a payment method first",
+            });
+          }
+          const paymentMethods = await stripe.customers.listPaymentMethods(
+            workspace.stripeCustomerId,
+          );
+          if (!paymentMethods || paymentMethods.data.length === 0) {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: "Please add a payment method first",
+            });
+          }
+          await db
+            .update(schema.workspaces)
+            .set({
+              plan: "pro",
+              maxActiveKeys: QUOTA.pro.maxActiveKeys,
+              maxVerifications: QUOTA.pro.maxVerifications,
+              planChanged: new Date(),
+              subscriptions: defaultProSubscriptions(),
+            })
+            .where(eq(schema.workspaces.id, input.workspaceId));
+          break;
+        }
+      }
     }),
 });

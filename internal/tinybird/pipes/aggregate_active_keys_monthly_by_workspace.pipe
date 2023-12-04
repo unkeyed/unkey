@@ -1,0 +1,22 @@
+VERSION 1
+
+NODE aggregate
+SQL >
+
+    SELECT
+        workspaceId,
+        apiId,
+        keyId,
+        toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time
+    FROM key_verifications__v2
+    GROUP BY
+        workspaceId,
+        apiId,
+        keyId,
+        time
+
+TYPE materialized
+DATASOURCE mv__monthly_active_keys__v1
+ENGINE "AggregatingMergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(time)"
+ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"

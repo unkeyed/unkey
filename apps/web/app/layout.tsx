@@ -2,13 +2,13 @@
 /// <reference lib="dom.iterable" />
 // ^ https://bun.sh/docs/typescript#dom-types
 
+import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import type React from "react";
 import { Suspense } from "react";
-import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -25,7 +25,7 @@ export const metadata = {
   description: "Accelerate your API development",
   openGraph: {
     title: "Open Source API Authentication",
-    description: "Accelerate your API development",
+    description: "Accelerate your API development ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
     images: ["https://unkey.dev/og.png"],
