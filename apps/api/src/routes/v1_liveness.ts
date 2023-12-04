@@ -1,5 +1,5 @@
 import { openApiErrorResponses } from "@/pkg/errors";
-import { logger, metrics } from "@/pkg/global";
+import { logger, metrics, rateLimiter, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -25,6 +25,12 @@ const route = createRoute({
                 description: "The name of the connected logger service",
                 example: "AxiomLogger or ConsoleLogger",
               }),
+              ratelimit: z.string().openapi({
+                description: "The name of the connected ratelimit service",
+              }),
+              usagelimit: z.string().openapi({
+                description: "The name of the connected usagelimit service",
+              }),
             }),
           }),
         },
@@ -45,6 +51,8 @@ export const registerV1Liveness = (app: App) =>
       services: {
         metrics: metrics.constructor.name,
         logger: logger.constructor.name,
+        ratelimit: rateLimiter.constructor.name,
+        usagelimit: usageLimiter.constructor.name,
       },
     });
   });
