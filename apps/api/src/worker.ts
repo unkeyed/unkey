@@ -33,7 +33,7 @@ export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 const app = newApp();
 
 app.get("/routes", (c) => {
-  return c.jsonT(
+  return c.json(
     app.routes.map((r) => ({
       method: r.method,
       path: r.path,

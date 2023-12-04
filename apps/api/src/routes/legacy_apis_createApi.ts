@@ -91,7 +91,7 @@ export const registerLegacyApisCreateApi = (app: App) =>
       keyAuthId: keyAuth.id,
     });
 
-    return c.jsonT({
+    return c.json({
       apiId,
       name,
     });

@@ -46,7 +46,7 @@ export type V1LivenessResponse = z.infer<
 
 export const registerV1Liveness = (app: App) =>
   app.openapi(route, async (c) => {
-    return c.jsonT({
+    return c.json({
       status: "we're cooking",
       services: {
         metrics: metrics.constructor.name,
