@@ -19,7 +19,6 @@ import { ConsoleLogger, Logger } from "./logging";
 import { AxiomLogger } from "./logging/axiom";
 import { AxiomMetrics, Metrics, NoopMetrics } from "./metrics";
 import { DurableRateLimiter, NoopRateLimiter, RateLimiter } from "./ratelimit";
-import { Tinybird } from "./tinybird";
 import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimit";
 
 export type KeyHash = string;

@@ -156,7 +156,7 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     }
 
     return c.json({
-      keyId: value.keyId,
+      keyId: value.key.id,
       valid: true,
       ownerId: value.key?.ownerId,
       meta: value.key?.meta,

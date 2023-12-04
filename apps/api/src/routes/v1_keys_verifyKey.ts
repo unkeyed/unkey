@@ -155,7 +155,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
     }
 
     return c.json({
-      keyId: value.keyId,
+      keyId: value.key.id,
       valid: true,
       ownerId: value.key.ownerId,
       meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
