@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
@@ -200,6 +201,21 @@ func New(config Config) *Server {
 			log.Info().Msg("request completed")
 		}
 		return err
+	})
+
+	s.app.Use("*", func(c *fiber.Ctx) error {
+		if c.Path() == "/v1/liveness" {
+			return c.Next()
+		}
+
+		if rand.Intn(100) < 1 {
+			redirect := "https://api.unkey.app" + c.Path()
+			s.logger.Info().Str("url", redirect).Msg("redirecting to cloudflare")
+			return c.Redirect(redirect, 307)
+		}
+
+		return c.Next()
+
 	})
 
 	s.app.Get("/v1/liveness", s.liveness)

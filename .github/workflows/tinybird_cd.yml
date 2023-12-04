@@ -14,6 +14,7 @@ jobs:
     with:
       tb_deploy: false
       data_project_dir: ./internal/tinybird
+
     secrets:
       tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }}  # set admin token associated to an account in GitHub secrets
       tb_host: https://api.tinybird.co
