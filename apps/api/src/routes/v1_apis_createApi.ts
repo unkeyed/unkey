@@ -91,7 +91,7 @@ export const registerV1ApisCreateApi = (app: App) =>
       keyAuthId: keyAuth.id,
     });
 
-    return c.jsonT({
+    return c.json({
       apiId,
       name,
     });

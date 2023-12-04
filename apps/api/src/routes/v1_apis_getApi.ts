@@ -81,7 +81,7 @@ export const registerV1ApisGetApi = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
 
-    return c.jsonT({
+    return c.json({
       id: api.id,
       workspaceId: api.workspaceId,
       name: api.name,

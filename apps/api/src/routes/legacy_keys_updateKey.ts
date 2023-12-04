@@ -164,5 +164,5 @@ export const registerLegacyKeysUpdate = (app: App) =>
 
     await usageLimiter.revalidate({ keyId: key.id });
 
-    return c.jsonT({});
+    return c.json({});
   });

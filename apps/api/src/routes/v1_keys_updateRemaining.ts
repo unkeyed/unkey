@@ -157,7 +157,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       });
     }
 
-    return c.jsonT({
+    return c.json({
       remaining: keyAfterUpdate.remaining,
     });
   });
