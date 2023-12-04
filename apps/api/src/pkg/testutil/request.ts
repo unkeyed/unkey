@@ -39,7 +39,11 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
    * Otherwise it will throw an error when trying to access the context.
    */
   const noopExecutionContext: ExecutionContext = {
-    waitUntil: (_promise: Promise<any>) => {},
+    waitUntil: (promise: Promise<any>) => {
+      promise.catch((err) => {
+        console.error("waitUntil promise failed", err);
+      });
+    },
     passThroughOnException: () => {},
   };
 
