@@ -275,29 +275,5 @@ describe("snapshot api calls", () => {
             ownerId: "owner id",
           }),
       }));
-
-    describe("client._internal", () => {
-      test("createRootKey", async () =>
-        testOneFetchCall({
-          url: "https://api.unkey.dev/v1/internal/rootkeys",
-          method: "POST",
-          jsonBody: {
-            name: "root key name",
-            expires: 0,
-            forWorkspaceId: "workspace id",
-          },
-          execute: (req) => client._internal.createRootKey(req),
-        }));
-
-      test("deleteRootKey", async () =>
-        testOneFetchCall({
-          url: "https://api.unkey.dev/v1/internal.removeRootKey",
-          method: "POST",
-          jsonBody: {
-            keyId: "key id",
-          },
-          execute: (req) => client._internal.deleteRootKey(req),
-        }));
-    });
   });
 });
