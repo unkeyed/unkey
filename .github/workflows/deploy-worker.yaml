@@ -59,7 +59,7 @@ jobs:
           npm i -g bun
 
       - name: Test
-        run: bun test src/integration --timeout 10000
+        run: bun test src/integration --timeout 10000 --rerun-each 10
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview.api.unkey.app
@@ -116,7 +116,7 @@ jobs:
           npm i -g bun
 
       - name: Test
-        run: bun test src/integration --timeout 10000
+        run: bun test src/integration --timeout 10000 --rerun-each 10
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.app
