@@ -41,6 +41,7 @@ test("update a key's remaining limit", async () => {
       remaining: 5,
     },
   });
+  console.log(JSON.stringify(createKeyResponse));
   expect(createKeyResponse.status).toEqual(200);
 
   for (let i = 4; i >= 0; i--) {

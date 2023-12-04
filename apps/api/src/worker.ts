@@ -48,7 +48,7 @@ app.use("*", async (c, next) => {
   });
   const start = performance.now();
   const m = {
-    path: c.req.path,
+    path: c.req.routePath,
     method: c.req.method,
     // @ts-ignore - this is a bug in the types
     continent: c.req.raw?.cf?.continent,
