@@ -3676,7 +3676,7 @@ packages:
       react: '>=16'
     dependencies:
       '@types/mdx': 2.0.10
-      '@types/react': 18.2.41
+      '@types/react': 18.2.42
       react: 18.2.0
     dev: false
 
@@ -4546,7 +4546,7 @@ packages:
       '@octokit/graphql': 7.0.2
       '@octokit/request': 8.1.6
       '@octokit/request-error': 5.0.1
-      '@octokit/types': 12.3.0
+      '@octokit/types': 12.4.0
       before-after-hook: 2.2.3
       universal-user-agent: 6.0.1
     dev: false
@@ -4572,7 +4572,7 @@ packages:
     resolution: {integrity: sha512-DWPLtr1Kz3tv8L0UvXTDP1fNwM0S+z6EJpRcvH66orY6Eld4XBMCSYsaWp4xIm61jTWxK68BrR7ibO+vSDnZqw==}
     engines: {node: '>= 18'}
     dependencies:
-      '@octokit/types': 12.3.0
+      '@octokit/types': 12.4.0
       universal-user-agent: 6.0.1
     dev: false
 
@@ -4602,7 +4602,7 @@ packages:
     engines: {node: '>= 18'}
     dependencies:
       '@octokit/request': 8.1.6
-      '@octokit/types': 12.3.0
+      '@octokit/types': 12.4.0
       universal-user-agent: 6.0.1
     dev: false
 
@@ -4687,7 +4687,7 @@ packages:
     resolution: {integrity: sha512-X7pnyTMV7MgtGmiXBwmO6M5kIPrntOXdyKZLigNfQWSEQzVxR4a4vo49vJjTWX70mPndj8KhfT4Dx+2Ng3vnBQ==}
     engines: {node: '>= 18'}
     dependencies:
-      '@octokit/types': 12.3.0
+      '@octokit/types': 12.4.0
       deprecation: 2.3.1
       once: 1.4.0
     dev: false
@@ -4725,7 +4725,7 @@ packages:
     dependencies:
       '@octokit/endpoint': 9.0.4
       '@octokit/request-error': 5.0.1
-      '@octokit/types': 12.3.0
+      '@octokit/types': 12.4.0
       universal-user-agent: 6.0.1
     dev: false
 
@@ -4751,8 +4751,8 @@ packages:
       '@octokit/openapi-types': 18.1.1
     dev: false
 
-  /@octokit/types@12.3.0:
-    resolution: {integrity: sha512-nJ8X2HRr234q3w/FcovDlA+ttUU4m1eJAourvfUUtwAWeqL8AsyRqfnLvVnYn3NFbUnsmzQCzLNdFerPwdmcDQ==}
+  /@octokit/types@12.4.0:
+    resolution: {integrity: sha512-FLWs/AvZllw/AGVs+nJ+ELCDZZJk+kY0zMen118xhL2zD0s1etIUHm1odgjP7epxYU1ln7SZxEUWYop5bhsdgQ==}
     dependencies:
       '@octokit/openapi-types': 19.1.0
     dev: false
@@ -7886,7 +7886,7 @@ packages:
       '@types/connect': 3.4.38
       '@types/express': 4.17.21
       '@types/keygrip': 1.0.6
-      '@types/node': 20.10.3
+      '@types/node': 20.8.7
     dev: false
 
   /@types/cors@2.8.15:
@@ -8061,7 +8061,7 @@ packages:
   /@types/node-fetch@2.6.2:
     resolution: {integrity: sha512-DHqhlq5jeESLy19TYhLakJ07kNumXWjcDdxXsLUMJZ6ue8VZJj4kLPQVE/2mdHh3xZziNF1xppu5lwmS53HR+A==}
     dependencies:
-      '@types/node': 20.10.3
+      '@types/node': 20.8.7
       form-data: 3.0.1
     dev: false
 
@@ -8128,7 +8128,7 @@ packages:
   /@types/react-dom@18.2.13:
     resolution: {integrity: sha512-eJIUv7rPP+EC45uNYp/ThhSpE16k22VJUknt5OLoH9tbXoi8bMhwLf5xRuWMywamNbWzhrSmU7IBJfPup1+3fw==}
     dependencies:
-      '@types/react': 18.2.33
+      '@types/react': 18.2.42
 
   /@types/react-dom@18.2.14:
     resolution: {integrity: sha512-V835xgdSVmyQmI1KLV2BEIUgqEuinxp9O4G6g3FqO/SqLac049E53aysv0oEFD2kHfejeKU+ZqL2bcFWj9gLAQ==}
@@ -8157,13 +8157,12 @@ packages:
       '@types/scheduler': 0.16.8
       csstype: 3.1.2
 
-  /@types/react@18.2.41:
-    resolution: {integrity: sha512-CwOGr/PiLiNBxEBqpJ7fO3kocP/2SSuC9fpH5K7tusrg4xPSRT/193rzolYwQnTN02We/ATXKnb6GqA5w4fRxw==}
+  /@types/react@18.2.42:
+    resolution: {integrity: sha512-c1zEr96MjakLYus/wPnuWDo1/zErfdU9rNsIGmE+NV71nx88FG9Ttgo5dqorXTu/LImX2f63WBP986gJkMPNbA==}
     dependencies:
       '@types/prop-types': 15.7.11
       '@types/scheduler': 0.16.8
       csstype: 3.1.2
-    dev: false
 
   /@types/resolve@1.20.2:
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
@@ -15268,7 +15267,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /lowercase-keys@2.0.0:
@@ -19952,7 +19951,7 @@ packages:
     resolution: {integrity: sha512-cYjgBM2SY/dTm8Lr6eMyyONaHTZHA/QjHxFUIW5WH8FevSRIGAVtXEmBkUXF1fsqe7QvvRgQSGSJZmjDacegGg==}
     engines: {node: '>=12.*'}
     dependencies:
-      '@types/node': 20.10.3
+      '@types/node': 20.8.7
       qs: 6.11.2
     dev: false
 

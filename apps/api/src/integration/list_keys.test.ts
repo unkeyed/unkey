@@ -120,7 +120,6 @@ test("list keys does not return revoked keys", async () => {
           keyId: createKeyResponse.body.keyId,
         },
       });
-      console.log(deleteKeyResponse);
       expect(deleteKeyResponse.status).toEqual(200);
       deletedKeyIds.push(createKeyResponse.body.keyId);
     } else {
