@@ -41,7 +41,6 @@ test("remaining consistently counts down", async () => {
       remaining,
     },
   });
-  console.log(JSON.stringify(createKeyResponse));
   expect(createKeyResponse.status).toEqual(200);
 
   for (let i = remaining - 1; i >= 0; i--) {
