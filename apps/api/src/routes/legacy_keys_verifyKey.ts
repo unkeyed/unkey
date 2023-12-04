@@ -147,7 +147,7 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     }
 
     if (!value.valid) {
-      return c.jsonT({
+      return c.json({
         valid: false,
         code: value.code,
         rateLimit: value.ratelimit,
@@ -155,8 +155,8 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
       });
     }
 
-    return c.jsonT({
-      keyId: value.key.id,
+    return c.json({
+      keyId: value.keyId,
       valid: true,
       ownerId: value.key?.ownerId,
       meta: value.key?.meta,

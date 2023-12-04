@@ -222,7 +222,7 @@ export const registerLegacyKeysCreate = (app: App) =>
       deletedAt: null,
     });
     // TODO: emit event to tinybird
-    return c.jsonT({
+    return c.json({
       keyId,
       key,
     });

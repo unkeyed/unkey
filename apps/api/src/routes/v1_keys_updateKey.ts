@@ -162,5 +162,5 @@ export const registerV1KeysUpdate = (app: App) =>
 
     await usageLimiter.revalidate({ keyId: key.id });
 
-    return c.jsonT({});
+    return c.json({});
   });

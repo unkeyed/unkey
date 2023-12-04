@@ -1,16 +1,19 @@
-import { Result } from "@unkey/result";
+import { z } from "zod";
 
-export interface Ratelimiter {
-  limit: (req: RatelimitRequest) => Promise<Result<RatelimitResponse>>;
+export const ratelimitRequestSchema = z.object({
+  keyId: z.string(),
+  limit: z.number().int(),
+  interval: z.number().int(),
+});
+export type RatelimitRequest = z.infer<typeof ratelimitRequestSchema>;
+
+export const ratelimitResponseSchema = z.object({
+  current: z.number(),
+  reset: z.number(),
+  pass: z.boolean(),
+});
+export type RatelimitResponse = z.infer<typeof ratelimitResponseSchema>;
+
+export interface RateLimiter {
+  limit: (req: RatelimitRequest) => Promise<RatelimitResponse>;
 }
-
-export type RatelimitRequest = {
-  keyId: string;
-  windowSizeMs: number;
-  limit: number;
-};
-export type RatelimitResponse = {
-  currentLimit: number;
-  reset: number;
-  pass: boolean;
-};

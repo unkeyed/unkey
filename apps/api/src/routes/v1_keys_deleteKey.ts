@@ -102,5 +102,5 @@ export const registerV1KeysDeleteKey = (app: App) =>
     await cache.remove(c, "keyById", data.key.id);
     await cache.remove(c, "keyByHash", data.key.hash);
 
-    return c.jsonT({});
+    return c.json({});
   });
