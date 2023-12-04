@@ -66,8 +66,7 @@ jobs:
           UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
 
   canary:
-      needs:
-        - preview
+      needs: preview-tests
       environment: Canary
       runs-on: ubuntu-latest
       name: Deploy Canary
