@@ -34,11 +34,25 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
   app: App,
   req: StepRequest<TRequestBody>,
 ): Promise<StepResponse<TResponseBody>> {
-  const res = await app.request(req.url, {
-    method: req.method,
-    headers: req.headers,
-    body: JSON.stringify(req.body),
-  });
+  /**
+   * Hono requires an ExecutionContext to be passed to the app.request function.
+   * Otherwise it will throw an error when trying to access the context.
+   */
+  const noopExecutionContext: ExecutionContext = {
+    waitUntil: (_promise: Promise<any>) => {},
+    passThroughOnException: () => {},
+  };
+
+  const res = await app.request(
+    req.url,
+    {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(req.body),
+    },
+    {},
+    noopExecutionContext,
+  );
 
   return {
     status: res.status,
