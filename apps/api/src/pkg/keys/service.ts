@@ -1,6 +1,7 @@
 import { TieredCache } from "@/pkg/cache/tiered";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
+import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { type Database, type Key } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -45,23 +46,23 @@ export class KeyService {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
-  private readonly rl: DurableObjectNamespace;
   private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
+  private readonly rateLimiter: RateLimiter;
 
   constructor(opts: {
     cache: TieredCache<CacheNamespaces>;
     logger: Logger;
     metrics: Metrics;
     db: Database;
-    rl: DurableObjectNamespace;
+    rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
     this.db = opts.db;
     this.metrics = opts.metrics;
-    this.rl = opts.rl;
+    this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
   }
@@ -130,8 +131,10 @@ export class KeyService {
       });
     }
 
+    let remaining: number | undefined = undefined;
     if (data.key.remaining !== null) {
       const limited = await this.usageLimiter.limit({ keyId: data.key.id });
+      remaining = limited.remaining;
       if (!limited.valid) {
         return result.success({
           valid: false,
@@ -141,7 +144,7 @@ export class KeyService {
           ownerId: data.key.ownerId ?? undefined,
           meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
           expires: data.key.expires?.getTime() ?? undefined,
-          remaining: limited.remaining,
+          remaining,
           ratelimit,
           isRootKey: !!data.key.forWorkspaceId,
           authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
@@ -157,11 +160,15 @@ export class KeyService {
       meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       ratelimit,
+      remaining,
       isRootKey: !!data.key.forWorkspaceId,
       authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
     });
   }
 
+  /**
+   * @returns [pass, ratelimit]
+   */
   private async ratelimit(c: Context, key: Key): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
     if (
       !key.ratelimitType ||
@@ -171,8 +178,8 @@ export class KeyService {
     ) {
       return [true, undefined];
     }
-    if (!this.rl) {
-      this.logger.warn("ratelimiting is not enabled, durable object binding is missing");
+    if (!this.rateLimiter) {
+      this.logger.warn("ratelimiting is not enabled, but a key has ratelimiting enabled");
       return [true, undefined];
     }
 
@@ -197,7 +204,7 @@ export class KeyService {
           false,
           {
             remaining: 0,
-            limit: key.ratelimitLimit,
+            limit: key.ratelimitRefillRate,
             reset,
           },
         ];
@@ -209,18 +216,13 @@ export class KeyService {
       // but I'm pretty sure it's not an issue cause they take up very little memory
       // and are reset when the worker deallocates
       this.rlCache.set(keyAndWindow, cached + 1);
-
-      const obj = this.rl.get(this.rl.idFromName(keyAndWindow));
       const t2 = performance.now();
-      const p = obj
-        .fetch("https://unkey.app.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reset,
-          }),
+      const p = this.rateLimiter
+        .limit({
+          keyId: key.id,
+          limit: key.ratelimitRefillRate,
+          interval: key.ratelimitRefillInterval,
         })
-        .then(async (res) => (await res.json()) as { current: number })
         .then(({ current }) => {
           this.rlCache.set(keyAndWindow, current);
           this.metrics.emit("metric.ratelimit", {
@@ -237,17 +239,17 @@ export class KeyService {
           true,
           {
             remaining,
-            limit: key.ratelimitLimit,
+            limit: key.ratelimitRefillRate,
             reset,
           },
         ];
       }
       const current = await p;
       return [
-        current <= key.ratelimitLimit,
+        current <= key.ratelimitRefillRate,
         {
-          remaining: key.ratelimitLimit - current,
-          limit: key.ratelimitLimit,
+          remaining: key.ratelimitRefillRate - current,
+          limit: key.ratelimitRefillRate,
           reset,
         },
       ];
