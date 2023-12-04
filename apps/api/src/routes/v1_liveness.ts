@@ -56,7 +56,7 @@ export const registerV1Liveness = (app: App) =>
         logger: logger.constructor.name,
         ratelimit: rateLimiter.constructor.name,
         usagelimit: usageLimiter.constructor.name,
-        analytics: analytics.constructor.name,
+        analytics: analytics.client.constructor.name,
       },
     });
   });

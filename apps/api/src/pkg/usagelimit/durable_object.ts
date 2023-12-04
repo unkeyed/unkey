@@ -1,4 +1,4 @@
-import { Database, createConnection, eq, schema, sql } from "@/pkg/db";
+import { Database, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
 import type { Key } from "@unkey/db";
 import { Env } from "../env";
 import { ConsoleLogger, Logger } from "../logging";
@@ -77,13 +77,21 @@ export class DurableObjectUsagelimiter {
           });
         }
 
+        console.log("decrementing before", this.key.remaining);
         this.key.remaining = Math.max(0, this.key.remaining - 1);
+        console.log("decremented after", this.key.remaining);
 
         this.state.waitUntil(
           this.db
             .update(schema.keys)
             .set({ remaining: sql`${schema.keys.remaining}-1` })
-            .where(eq(schema.keys.id, this.key.id)),
+            .where(
+              and(
+                eq(schema.keys.id, this.key.id),
+                gt(schema.keys.remaining, 0), // prevent negative remaining
+              ),
+            )
+            .execute(),
         );
         // revalidate every minute
         if (Date.now() - this.lastRevalidate > 60_000) {
@@ -94,6 +102,7 @@ export class DurableObjectUsagelimiter {
                 where: (table, { and, eq, isNull }) =>
                   and(eq(table.id, req.keyId), isNull(table.deletedAt)),
               })
+              .execute()
               .then((key) => {
                 this.key = key;
                 this.lastRevalidate = Date.now();
