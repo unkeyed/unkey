@@ -21,6 +21,7 @@ test("creates the api", async () => {
 
   const r = await seed(env);
   const app = newApp();
+
   registerLegacyApisCreateApi(app);
 
   const res = await fetchRoute<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>(app, {
