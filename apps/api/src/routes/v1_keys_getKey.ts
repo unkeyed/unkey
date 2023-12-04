@@ -79,7 +79,7 @@ export const registerV1KeysGetKey = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
-    return c.jsonT({
+    return c.json({
       id: data.key.id,
       start: data.key.start,
       apiId: data.api.id,

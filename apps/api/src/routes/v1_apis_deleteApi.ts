@@ -83,5 +83,5 @@ export const registerV1ApisDeleteApi = (app: App) =>
     await db.delete(schema.apis).where(eq(schema.apis.id, apiId));
     await cache.remove(c, "apiById", apiId);
 
-    return c.jsonT({});
+    return c.json({});
   });
