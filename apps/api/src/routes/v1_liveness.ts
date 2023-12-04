@@ -12,7 +12,7 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            status: z.literal("we're cooking").openapi({
+            status: z.string().openapi({
               description: "The status of the server",
               example: "we're cooking",
             }),
