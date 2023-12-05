@@ -31,6 +31,10 @@ export function PostHogPageview(): JSX.Element {
   return <></>;
 }
 
+/**
+ *
+ *
+ */
 export function PostHogAuthIdentify(): JSX.Element {
   const { user, isLoaded } = useUser();
 
@@ -51,6 +55,21 @@ export function PostHogAuthIdentify(): JSX.Element {
 
   return <></>;
 }
+
+/*
+ * This function can be used to send events to PostHog from anywhere in the app.
+ * Example:
+ * import { PostHogEvent } from "@/providers/PostHogProvider";
+ * PostHogEvent({ name: "plan_upgrade", properties: { plan: "pro"} })
+ *
+ */
+
+export const PostHogEvent = ({
+  name,
+  properties,
+}: { name: string; properties?: Record<string, any> }) => {
+  posthog.capture(name, properties);
+};
 
 export function PHProvider({ children }: { children: React.ReactNode }) {
   return <PostHogProvider client={posthog}>{children}</PostHogProvider>;
