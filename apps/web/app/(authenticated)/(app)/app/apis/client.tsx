@@ -4,10 +4,9 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { PostHogAuthIdentify } from "@/providers/PostHogProvider";
 import { BookOpen, Code, Search } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { CreateApiButton } from "./create-api-button";
 
 type ApiWithKeys = {
@@ -27,9 +26,6 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
   const [localData, setLocalData] = useState(apis);
   return (
     <div>
-      <Suspense>
-        <PostHogAuthIdentify />
-      </Suspense>
       <PageHeader title="Applications" description="Manage your APIs" />
       <Separator className="my-6" />
       <section className="my-4 flex flex-col gap-4 md:flex-row md:items-center">
