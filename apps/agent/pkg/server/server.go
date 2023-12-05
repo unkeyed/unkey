@@ -215,6 +215,7 @@ func New(config Config) *Server {
 			if rand.Intn(100) < int(rollout) {
 				redirect := "https://api.unkey.app" + c.Path()
 				s.logger.Info().Str("url", redirect).Msg("redirecting to cloudflare")
+				c.Request().Header.Set("Unkey-Redirect", "true")
 				return c.Redirect(redirect, 307)
 			}
 
