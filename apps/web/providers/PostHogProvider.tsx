@@ -1,5 +1,6 @@
 // app/providers.tsx
 "use client";
+import { UserResource } from "@clerk/types";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
@@ -30,6 +31,16 @@ export function PostHogPageview(): JSX.Element {
 
   return <></>;
 }
+
+export const PostHogIdentify = ({ user }: { user: UserResource }) => {
+  posthog.identify(user.id, {
+    email: user.primaryEmailAddress?.emailAddress,
+    userName: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    createdAt: user.createdAt,
+  });
+};
 
 /*
  * This function can be used to send events to PostHog from anywhere in the app.

@@ -3,7 +3,6 @@ import { db, eq, schema } from "@/lib/db";
 import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
-import PostHogClient from "./lib/posthog";
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
@@ -14,7 +13,6 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
 export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
-  const posthogClient = PostHogClient();
   const privateMatch = "^/app/";
   const res = await authMiddleware({
     debug: process.env.CLERK_DEBUG === "true",
@@ -26,19 +24,8 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
       ) {
         return redirectToSignIn({ returnBackUrl: req.url });
       }
-      userId = auth.userId!;
+      userId = auth.userId ?? undefined;
       tenantId = auth.orgId ?? auth.userId ?? undefined;
-      posthogClient.identify({
-        distinctId: userId,
-        properties: {
-          email: auth.sessionClaims?.email ?? "",
-          tenantId: tenantId,
-          firstName: auth.sessionClaims?.firstName ?? "",
-          lastName: auth.sessionClaims?.lastName ?? "",
-          username: auth.sessionClaims?.username ?? "",
-          signedUpAt: auth.sessionClaims?.signedUpAt ?? "",
-        },
-      });
       if (auth.orgId && req.nextUrl.pathname !== "/" && privateMatch.match(req.nextUrl.pathname)) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
         if (!workspace && req.nextUrl.pathname !== "/new") {
