@@ -12,7 +12,6 @@ jobs:
   deploy:  # deploy changes to workspace 'unkey'
     uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
     with:
-      tb_deploy: false
       data_project_dir: ./internal/tinybird
 
     secrets:

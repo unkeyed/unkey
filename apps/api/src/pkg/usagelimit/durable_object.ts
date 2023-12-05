@@ -1,5 +1,4 @@
-import { Database, createConnection, eq, schema, sql } from "@/pkg/db";
-import type { Key } from "@unkey/db";
+import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
 import { Env } from "../env";
 import { ConsoleLogger, Logger } from "../logging";
 import { AxiomLogger } from "../logging/axiom";
@@ -83,7 +82,13 @@ export class DurableObjectUsagelimiter {
           this.db
             .update(schema.keys)
             .set({ remaining: sql`${schema.keys.remaining}-1` })
-            .where(eq(schema.keys.id, this.key.id)),
+            .where(
+              and(
+                eq(schema.keys.id, this.key.id),
+                gt(schema.keys.remaining, 0), // prevent negative remaining
+              ),
+            )
+            .execute(),
         );
         // revalidate every minute
         if (Date.now() - this.lastRevalidate > 60_000) {
@@ -94,6 +99,7 @@ export class DurableObjectUsagelimiter {
                 where: (table, { and, eq, isNull }) =>
                   and(eq(table.id, req.keyId), isNull(table.deletedAt)),
               })
+              .execute()
               .then((key) => {
                 this.key = key;
                 this.lastRevalidate = Date.now();

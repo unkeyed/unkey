@@ -12,9 +12,8 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            status: z.literal("we're cooking").openapi({
+            status: z.string().openapi({
               description: "The status of the server",
-              example: "we're cooking",
             }),
             services: z.object({
               metrics: z.string().openapi({
@@ -56,7 +55,7 @@ export const registerV1Liveness = (app: App) =>
         logger: logger.constructor.name,
         ratelimit: rateLimiter.constructor.name,
         usagelimit: usageLimiter.constructor.name,
-        analytics: analytics.constructor.name,
+        analytics: analytics.client.constructor.name,
       },
     });
   });
