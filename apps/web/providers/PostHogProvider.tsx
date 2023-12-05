@@ -39,7 +39,6 @@ export function PostHogAuthIdentify(): JSX.Element {
       return;
     }
     if (user) {
-      posthog.get_distinct_id();
       posthog.alias(user.id, posthog.get_distinct_id());
       posthog.identify(posthog.get_distinct_id(), {
         email: user.primaryEmailAddress?.emailAddress,
