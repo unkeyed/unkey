@@ -24,7 +24,7 @@ const route = createRoute({
       }),
     }),
     query: z.object({
-      limit: z.coerce.number().int().min(1).max(100).default(100).openapi({
+      limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
         description: "The maximum number of keys to return",
         example: 100,
       }),

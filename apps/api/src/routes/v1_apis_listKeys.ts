@@ -16,7 +16,7 @@ const route = createRoute({
         description: "The id of the api to fetch",
         example: "api_1234",
       }),
-      limit: z.coerce.number().int().min(1).max(100).default(100).openapi({
+      limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
         description: "The maximum number of keys to return",
         example: 100,
       }),
@@ -124,8 +124,24 @@ export const registerV1ApisListKeys = (app: App) =>
     return c.json({
       keys: keys.map((k) => ({
         id: k.id,
-        ownerId: k.ownerId,
-        createdAt: k.createdAt,
+        start: k.start,
+        apiId: api.id,
+        workspaceId: k.workspaceId,
+        name: k.name ?? undefined,
+        ownerId: k.ownerId ?? undefined,
+        meta: k.meta ?? undefined,
+        createdAt: k.createdAt.getTime() ?? undefined,
+        expires: k.expires?.getTime() ?? undefined,
+        ratelimit:
+          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+            ? {
+                type: k.ratelimitType,
+                limit: k.ratelimitLimit,
+                refillRate: k.ratelimitRefillRate,
+                refillInterval: k.ratelimitRefillInterval,
+              }
+            : undefined,
+        remaining: k.remaining ?? undefined,
       })),
       total: parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
