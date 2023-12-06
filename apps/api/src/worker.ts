@@ -80,6 +80,7 @@ app.use("*", async (c, next) => {
     m.status = c.res.status;
     m.serviceLatency = performance.now() - start;
     c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
+    c.res.headers.append("Unkey-Version", c.env.VERSION);
     metrics.emit("metric.http.request", m);
     c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
   }

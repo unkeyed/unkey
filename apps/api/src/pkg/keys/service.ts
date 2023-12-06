@@ -114,6 +114,9 @@ export class KeyService {
     this.metrics.emit("metric.key.verification", {
       valid: res.value.valid,
       code: res.value.code ?? "OK",
+      workspaceId: res.value.key?.workspaceId,
+      apiId: res.value.api?.id,
+      keyId: res.value.key?.id,
     });
 
     return res;

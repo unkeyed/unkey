@@ -10,13 +10,6 @@ const route = createRoute({
   method: "post",
   path: "/v1/keys.updateRemaining",
   request: {
-    header: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
-
     body: {
       required: true,
       content: {
@@ -44,15 +37,11 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            remaining: z
-              .number()
-              .int()
-              .nullable()
-              .openapi({
-                description:
-                  "The number of remaining requests for this key after updating it. `null` means unlimited.",
-                examples: [1, null],
-              }),
+            remaining: z.number().int().nullable().openapi({
+              description:
+                "The number of remaining requests for this key after updating it. `null` means unlimited.",
+              example: 100,
+            }),
           }),
         },
       },

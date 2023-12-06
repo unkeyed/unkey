@@ -19,6 +19,9 @@ export type Metric = {
   "metric.key.verification": {
     valid: boolean;
     code: string;
+    workspaceId?: string;
+    apiId?: string;
+    keyId?: string;
   };
   "metric.http.request": {
     path: string;
