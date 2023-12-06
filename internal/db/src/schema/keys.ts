@@ -49,8 +49,15 @@ export const keys = mysqlTable(
      */
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
+     * You can add uses to keys at a desired interval
+     */
+    refillInterval: bigint("refill_interval", { mode: "number" }),
+    refillIncrement: int("refill_increment"),
+    lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
+    /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
+
     remaining: int("remaining_requests"),
 
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),

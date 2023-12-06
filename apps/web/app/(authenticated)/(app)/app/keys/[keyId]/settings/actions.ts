@@ -26,11 +26,14 @@ export const updateKeyRemaining = serverAction({
     keyId: z.string(),
     enableRemaining: z.string().transform((s) => s === "true"),
     remaining: stringToIntOrNull,
+    refillInterval: stringToIntOrNull,
+    refillIncrement: stringToIntOrNull,
   }),
   handler: async ({ input, ctx }) => {
     if (input.enableRemaining && typeof input.remaining !== "number") {
       throw new Error("provide a number");
     }
+    console.log(input.refillInterval, input.refillIncrement);
 
     const key = await db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, input.keyId),
@@ -49,6 +52,8 @@ export const updateKeyRemaining = serverAction({
       .update(schema.keys)
       .set({
         remaining: input.enableRemaining ? input.remaining : null,
+        refillInterval: input.refillInterval ?? null,
+        refillIncrement: input.refillIncrement ?? null,
       })
       .where(eq(schema.keys.id, input.keyId));
 

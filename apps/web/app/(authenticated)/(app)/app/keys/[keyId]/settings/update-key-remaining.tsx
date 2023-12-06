@@ -12,6 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -21,6 +28,8 @@ type Props = {
     id: string;
     workspaceId: string;
     remaining: number | null;
+    refillInterval: number | null;
+    refillIncrement: number | null;
   };
 };
 
@@ -32,6 +41,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     <form
       action={async (formData: FormData) => {
         const res = await updateKeyRemaining(formData);
+        console.log(formData);
         if (res.error) {
           toast({
             title: "Error",
@@ -54,7 +64,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col space-y-2", { "opacity-50": !enabled })}>
+          <div
+            className={cn("flex flex-col space-y-2", {
+              "opacity-50": !enabled,
+            })}
+          >
             <input type="hidden" name="keyId" value={apiKey.id} />
             <input type="hidden" name="enableRemaining" value={enabled ? "true" : "false"} />
 
@@ -67,6 +81,32 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               className="max-w-sm"
               defaultValue={apiKey.remaining ?? ""}
               autoComplete="off"
+            />
+            <Label htmlFor="replenish" className="pt-4">
+              Replenishment Rate
+            </Label>
+            <Select
+              disabled={!enabled}
+              name="refillInterval"
+              defaultValue={apiKey?.refillInterval ? apiKey?.refillInterval.toString() : "None"}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">None</SelectItem>
+                <SelectItem value="86400000">Daily</SelectItem>
+                <SelectItem value="604800000">Weekly</SelectItem>
+                <SelectItem value="1209600000">Bi-Weekly</SelectItem>
+                <SelectItem value="2629800000">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              name="refillIncrement"
+              placeholder="100"
+              className="w-full"
+              type="number"
+              defaultValue={apiKey.refillIncrement ? apiKey.refillIncrement : "100"}
             />
           </div>
         </CardContent>
