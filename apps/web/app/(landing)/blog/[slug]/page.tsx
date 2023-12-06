@@ -3,6 +3,7 @@ import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { type Author, authors } from "@/content/blog/authors";
 import { allPosts } from "contentlayer/generated";
 import type { Metadata } from "next";
 import { useMDXComponent } from "next-contentlayer/hooks";
@@ -16,15 +17,19 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
+  if (!post) {
+    return notFound();
+  }
+  const author = authors[post.author];
 
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
   const ogUrl = new URL("/og/blog", baseUrl);
   ogUrl.searchParams.set("title", post?.title ?? "");
-  ogUrl.searchParams.set("author", post?.author.name ?? "");
-  if (post?.author.image?.src) {
-    ogUrl.searchParams.set("image", new URL(post?.author.image.src, baseUrl).toString());
+  ogUrl.searchParams.set("author", author?.name ?? "");
+  if (author.image?.src) {
+    ogUrl.searchParams.set("image", new URL(author.image.src, baseUrl).toString());
   }
 
   return {
@@ -61,7 +66,7 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
   if (!post) {
     return notFound();
   }
-
+  const author = authors[post.author];
   const Content = useMDXComponent(post.body.code);
 
   // Find other articles to recommend at the bottom of the page that aren't the current article
@@ -85,10 +90,10 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
           <div className="top-24 flex h-max w-full flex-col justify-end self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-8">
             <div className="mx-auto flex items-center justify-start gap-4 border-y-0 p-2 md:mx-0 md:border-b md:border-b-gray-200">
               <Avatar className="h-14 w-14 justify-items-start">
-                <AvatarImage src={post.author.image?.src} alt={post.author.name} />
+                <AvatarImage src={author.image?.src} alt={author.name} />
               </Avatar>
               <div className="text-sm text-gray-950">
-                <div className="font-semibold">{post.author.name}</div>
+                <div className="font-semibold">{author.name}</div>
               </div>
             </div>
             <div className="hidden md:block">

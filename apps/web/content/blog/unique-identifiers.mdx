@@ -1,0 +1,83 @@
+---
+date: 2023-12-07
+title: "Unique identifiers: the good, the bad and the one you can’t copy"
+description: "Unique identifiers play a crucial role in all applications, from user authentication to resource management. You might just want to use a library to generate a UUID and be done with it. While that will of course satisfy all your security concerns, there’s a lot we can improve for our users."
+author: andreas
+---
+
+
+
+## The baseline: Ensuring global uniqueness
+
+Unique identifiers are essential for distinguishing individual entities within a system. They provide a reliable way to ensure that each item, user, or piece of data has a distinct identity. By maintaining uniqueness, applications can effectively manage and organise information, enabling efficient operations and facilitating data integrity.
+
+Let’s not pretend like we are Google or AWS who have special needs around this. any securely generated UUID with 128 bits is more than enough for us. There are lots of libraries that generate one, or you could fall back to the standard library of your language of choice.
+
+For example in typescript, you can easily generate securely random ids like this:
+
+```tsx
+const id = crypto.randomUUID()
+// '5727a4a4-9bba-41ae-b7fe-e69cf60bb0ab'
+```
+
+That’s a good start, now let’s improve the output. We’ll look at 4 steps of small iterative changes:
+1. Making them copyable
+1. Prefixing
+2. Changing the entropy
+3. More efficient encoding
+
+## Making them copyable
+
+One way to enhance the usability of unique identifiers is by making them easily copyable. This can be achieved by removing the hyphens from the UUIDs, allowing users to simply double-click on the identifier to copy it. By eliminating the need for manual selection and copy-pasting, this small change can greatly improve the user experience when working with identifiers.
+
+Try it yourself:
+
+```tsx
+5727a4a4-9bba-41ae-b7fe-e69cf60bb0ab
+5727a4a49bba41aeb7fee69cf60bb0ab
+```
+
+Removing the hyphens is probably trivial in all languages, here’s how you can do it in js/ts:
+
+```tsx
+const id = crypto.randomUUID().replace(/-/g, "")
+// fe4723eab07f408384a2c0f051696083
+```
+
+## Prefixing with a human-readable string:
+
+Another improvement we can make is to add a human-readable prefix to the identifiers. This can help differentiate between different environments or resources within the system. For example,  Stripe uses prefixes like "sk_live_" for production environment secret keys or "cus_" for customer identifiers. By incorporating such prefixes, we can ensure clarity and reduce the chances of confusion, especially in complex systems where multiple environments coexist.
+
+```tsx
+const id = `hello_${crypto.randomUUID().replace(/-/g, "")}`
+// hello_1559debea64142f3b2d29f8b0f126041
+```
+
+## Changing the entropy:
+
+
+Not all identifiers need to have a high level of collision resistance. In some cases, shorter identifiers can be sufficient, depending on the specific requirements of the application. By reducing the entropy of the identifiers, we can generate shorter and more concise IDs while still maintaining an acceptable level of uniqueness.
+
+For example, in JavaScript/TypeScript, you can generate shorter IDs using the following code:
+
+```tsx
+
+// Generate an array of 8bit secure randomness with 8 elements
+const buf = crypto.getRandomValues(new Uint8Array(8)))
+
+// convert it to a hexadecimal string representation, just like the previous ids
+let id = Array.from(buf).map(x=>x.toString(16).padStart(2, "0")).join("")
+
+id = `prefix_${id}`
+// 'prefix_d136207a9a532da8'
+```
+
+## Encoding in base58:
+
+Instead of using a hexadecimal representation for identifiers, we can also consider encoding them in a more efficient way, such as base58. Base58 encoding uses a larger character set and avoids ambiguous characters, such as upper case ``I`` and lower case `l` , resulting in shorter identifier strings without compromising readability.
+
+As an example, an 8 character long base58 string, can store roughly 30.000 times as many states as an 8 char hex string. And at 16 chars, the base58 string can store 889.054.070 as many combinations.
+
+## Conclusion
+
+By implementing these improvements, we can enhance the usability and efficiency of unique identifiers in our applications. This will provide a better experience for both users and developers, as they interact with and manage various entities within the system. Whether it's copying identifiers with ease, differentiating between different environments, or achieving shorter and more readable identifier strings, these strategies can contribute to a more user-friendly and robust identification system.
