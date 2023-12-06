@@ -16,6 +16,10 @@ export type Metric = {
     tier: string;
     namespace: string;
   };
+  "metric.key.verification": {
+    valid: boolean;
+    code: string;
+  };
   "metric.http.request": {
     path: string;
     method: string;
@@ -29,6 +33,7 @@ export type Metric = {
     country?: string;
     city?: string;
     userAgent?: string;
+    fromAgent?: string;
   };
   "metric.db.read": {
     query: "getKeyAndApiByHash";

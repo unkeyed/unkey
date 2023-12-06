@@ -42,13 +42,13 @@ app.get("/routes", (c) => {
 });
 
 app.use("*", async (c, next) => {
-  logger.info("request", {
-    method: c.req.method,
-    path: c.req.path,
-  });
+  // logger.info("request", {
+  //   method: c.req.method,
+  //   path: c.req.path,
+  // });
   const start = performance.now();
   const m = {
-    path: c.req.routePath,
+    path: c.req.path,
     method: c.req.method,
     // @ts-ignore - this is a bug in the types
     continent: c.req.raw?.cf?.continent,
@@ -59,6 +59,7 @@ app.use("*", async (c, next) => {
     // @ts-ignore - this is a bug in the types
     city: c.req.raw?.cf?.city,
     userAgent: c.req.header("user-agent"),
+    fromAgent: c.req.header("Unkey-Redirect"),
   } as Metric["metric.http.request"];
   try {
     const requestId = newId("request");
@@ -69,6 +70,11 @@ app.use("*", async (c, next) => {
     c.res.headers.append("Unkey-Request-Id", requestId);
   } catch (e) {
     m.error = (e as Error).message;
+    logger.error("request", {
+      method: c.req.method,
+      path: c.req.path,
+      error: e,
+    });
     throw e;
   } finally {
     m.status = c.res.status;

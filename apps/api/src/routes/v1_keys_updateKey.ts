@@ -116,7 +116,10 @@ export type V1KeysUpdateKeyResponse = z.infer<
 
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
 
     // Get root key and check for API errors
     const rootKey = await keyService.verifyKey(c, { key: authorization });

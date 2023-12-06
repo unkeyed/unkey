@@ -62,7 +62,7 @@ jobs:
         run: bun test src/integration --timeout 10000 --rerun-each 10
         working-directory: apps/api
         env:
-          UNKEY_BASE_URL: https://preview.api.unkey.app
+          UNKEY_BASE_URL: https://preview-api.unkey.dev
           UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
 
   canary:
@@ -119,7 +119,7 @@ jobs:
         run: bun test src/integration --timeout 10000 --rerun-each 10
         working-directory: apps/api
         env:
-          UNKEY_BASE_URL: https://canary.unkey.app
+          UNKEY_BASE_URL: https://canary.unkey.dev
           UNKEY_ROOT_KEY: ${{ secrets.CANARY_ROOT_KEY }}
 
   production:

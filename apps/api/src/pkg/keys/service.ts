@@ -85,6 +85,10 @@ export class KeyService {
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req);
     if (res.error) {
+      this.metrics.emit("metric.key.verification", {
+        valid: false,
+        code: res.error.message,
+      });
       return res;
     }
     // if we have identified the key, we can send the analytics event
@@ -106,6 +110,12 @@ export class KeyService {
         }),
       );
     }
+
+    this.metrics.emit("metric.key.verification", {
+      valid: res.value.valid,
+      code: res.value.code ?? "OK",
+    });
+
     return res;
   }
 
