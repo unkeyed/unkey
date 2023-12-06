@@ -23,15 +23,6 @@ export function newApp() {
       title: "Unkey Api",
       version: "1.0.0",
     },
-    // @ts-expect-error - this is a bug in the types
-    components: {
-      securitySchemes: {
-        BearerAuth: {
-          type: "http",
-          scheme: "bearer",
-        },
-      },
-    },
     security: [{ BearerAuth: [] }],
     servers: [
       {
