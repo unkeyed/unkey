@@ -65,15 +65,6 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   stripeCustomerId: "cus_1234",
                 },
               }),
-            createdAt: z.number().openapi({
-              description: "The unix timestamp in milliseconds when the key was created",
-              example: Date.now(),
-            }),
-            deletedAt: z.number().optional().openapi({
-              description:
-                "The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.",
-              example: Date.now(),
-            }),
             expires: z.number().optional().openapi({
               description:
                 "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
@@ -120,7 +111,6 @@ Possible values are:
 - KEY_USAGE_EXCEEDED: the key has exceeded its request limit
 - RATELIMITED: the key has been ratelimited,
 `,
-                example: "NOT_FOUND",
               }),
           }),
         },
@@ -157,6 +147,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
     return c.json({
       keyId: value.key.id,
       valid: true,
+      name: value.key.name ?? undefined,
       ownerId: value.key.ownerId ?? undefined,
       meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
       expires: value.key.expires?.getTime(),
