@@ -38,7 +38,7 @@ export const PostHogIdentify = ({ user }: { user: UserResource }) => {
     userName: user.username,
     firstName: user.firstName,
     lastName: user.lastName,
-    createdAt: user.createdAt?.toUTCString(),
+    createdAt: user.createdAt?.toISOString(),
   });
 };
 
