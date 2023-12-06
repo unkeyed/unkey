@@ -157,10 +157,10 @@ export const registerV1KeysVerifyKey = (app: App) =>
     return c.json({
       keyId: value.key.id,
       valid: true,
-      ownerId: value.key.ownerId,
+      ownerId: value.key.ownerId ?? undefined,
       meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
       expires: value.key.expires?.getTime(),
-      remaining: value.remaining,
-      ratelimit: value.ratelimit,
+      remaining: value.remaining ?? undefined,
+      ratelimit: value.ratelimit ?? undefined,
     });
   });

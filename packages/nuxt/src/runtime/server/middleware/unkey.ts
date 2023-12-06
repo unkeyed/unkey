@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // TODO: refactor to SDK once it is released
-  event.context.unkey = (await $fetch("https://api.unkey.dev/v1/keys/verify", {
+  event.context.unkey = (await $fetch("https://api.unkey.dev/v1/keys.verifyKey", {
     method: "POST",
     body: { key },
   }).catch((e) => e.data)) as any;

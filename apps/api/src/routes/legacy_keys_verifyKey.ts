@@ -158,10 +158,10 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     return c.json({
       keyId: value.key.id,
       valid: true,
-      ownerId: value.key?.ownerId,
-      meta: value.key?.meta,
-      expires: value.key?.expires?.getTime(),
-      remaining: value.remaining,
-      ratelimit: value.ratelimit,
+      ownerId: value.key.ownerId ?? undefined,
+      meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
+      expires: value.key.expires?.getTime(),
+      remaining: value.remaining ?? undefined,
+      ratelimit: value.ratelimit ?? undefined,
     });
   });

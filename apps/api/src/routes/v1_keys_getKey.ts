@@ -9,12 +9,6 @@ const route = createRoute({
   method: "get",
   path: "/v1/keys.getKey",
   request: {
-    header: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
     query: z.object({
       keyId: z.string().min(1).openapi({
         description: "The id of the key to fetch",
@@ -41,7 +35,10 @@ export type V1KeysGetKeyResponse = z.infer<
 >;
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
@@ -90,5 +87,17 @@ export const registerV1KeysGetKey = (app: App) =>
       createdAt: data.key.createdAt.getTime() ?? undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
+      ratelimit:
+        data.key.ratelimitType &&
+        data.key.ratelimitLimit &&
+        data.key.ratelimitRefillRate &&
+        data.key.ratelimitRefillInterval
+          ? {
+              type: data.key.ratelimitType,
+              limit: data.key.ratelimitLimit,
+              refillRate: data.key.ratelimitRefillRate,
+              refillInterval: data.key.ratelimitRefillInterval,
+            }
+          : undefined,
     });
   });

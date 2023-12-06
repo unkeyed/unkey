@@ -11,18 +11,12 @@ const route = createRoute({
   method: "get",
   path: "/v1/apis.listKeys",
   request: {
-    header: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
     query: z.object({
       apiId: z.string().min(1).openapi({
         description: "The id of the api to fetch",
         example: "api_1234",
       }),
-      limit: z.coerce.number().int().min(1).max(100).default(100).openapi({
+      limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
         description: "The maximum number of keys to return",
         example: 100,
       }),
@@ -65,7 +59,10 @@ export type V1ApisListKeysResponse = z.infer<
 
 export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
@@ -127,8 +124,24 @@ export const registerV1ApisListKeys = (app: App) =>
     return c.json({
       keys: keys.map((k) => ({
         id: k.id,
-        ownerId: k.ownerId,
-        createdAt: k.createdAt,
+        start: k.start,
+        apiId: api.id,
+        workspaceId: k.workspaceId,
+        name: k.name ?? undefined,
+        ownerId: k.ownerId ?? undefined,
+        meta: k.meta ?? undefined,
+        createdAt: k.createdAt.getTime() ?? undefined,
+        expires: k.expires?.getTime() ?? undefined,
+        ratelimit:
+          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+            ? {
+                type: k.ratelimitType,
+                limit: k.ratelimitLimit,
+                refillRate: k.ratelimitRefillRate,
+                refillInterval: k.ratelimitRefillInterval,
+              }
+            : undefined,
+        remaining: k.remaining ?? undefined,
       })),
       total: parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
