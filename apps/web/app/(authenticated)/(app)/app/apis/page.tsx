@@ -36,6 +36,7 @@ export default async function ApisOverviewPage() {
     })),
   );
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+
   return (
     <div className="">
       {unpaid ? (
