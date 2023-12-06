@@ -188,7 +188,7 @@ app.post("/signUp", async (req: Request, res: Response) => {
 
 
   const createKeyResponse = await fetch(
-    "https://api.unkey.dev/v1/keys",
+    "https://api.unkey.dev/v1/keys.createKey",
     {
       method: "POST",
       headers: myHeaders,
@@ -369,8 +369,9 @@ app.post("/upgradeUser", async (req: Request, res: Response) => {
   });
 
   const updateKeyRequest = await fetch(
-    "https://api.unkey.dev/v1/keys/example_key",
+    "https://api.unkey.dev/v1/keys.updateKey",
     {
+      keyId: "example_key"
       method: "PUT",
       headers: myHeaders,
       body: raw,
