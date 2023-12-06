@@ -227,11 +227,8 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "https://api.unkey.dev/openapi.json",
+  "openapi": "http://localhost:8787/openapi.json",
   "api": {
-    "baseUrl": "https://api.unkey.dev",
-    "auth": {
-      "method": "bearer"
-    }
+    "baseUrl": "http://localhost:8787"
   }
 }
