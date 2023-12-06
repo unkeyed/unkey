@@ -2,12 +2,13 @@
 /// <reference lib="dom.iterable" />
 // ^ https://bun.sh/docs/typescript#dom-types
 
+import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import type React from "react";
-
+import { Suspense } from "react";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -56,15 +57,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
-      <head>
-        <script
-          defer
-          data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
-          src="https://plausible.io/js/script.exclusions.js"
-          data-exclude="/app/apis/**, /app/keys/**"
-        />
-      </head>
-      <body>{children}</body>
+      <Suspense>
+        <PostHogPageview />
+      </Suspense>
+      <PHProvider>
+        <body>{children}</body>
+      </PHProvider>
     </html>
   );
 }

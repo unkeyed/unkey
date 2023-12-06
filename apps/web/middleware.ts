@@ -3,7 +3,6 @@ import { db, eq, schema } from "@/lib/db";
 import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
-
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),

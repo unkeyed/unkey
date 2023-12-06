@@ -28,12 +28,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { MembershipRole } from "@clerk/types";
 import Link from "next/link";
+
 type Member = {
   id: string;
   name: string;
   image: string;
-  role: "basic_member" | "admin" | "guest_member";
+  role: MembershipRole;
   email?: string;
 };
 

@@ -125,7 +125,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
                 className="flex justify-between font-mono font-medium "
               >
                 <span className="truncate">{key.id}</span>
-                <CopyButton value={key.id} className="ml-2" />
+                <CopyButton value={key.id} className="ph-no-capture ml-2" />
               </Badge>
             }
           />
