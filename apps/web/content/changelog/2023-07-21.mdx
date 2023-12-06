@@ -20,7 +20,7 @@ AI is incredible popular, and part of creating your AI product is finding a way 
 
 ```bash
 curl --request POST \
---url https://api.unkey.dev/v1/keys \
+--url https://api.unkey.dev/v1/keys.createKey \
 --header 'Authorization: Bearer <UNKEY>' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -33,7 +33,7 @@ Then when you validate your key we will return two properties, is it valid and h
 
 ```bash
 curl --request POST \
---url https://api.unkey.dev/v1/keys/verify \
+--url https://api.unkey.dev/v1/keys.verifyKey \
 --header 'Content-Type: application/json' \
 --data '{
 "key": "<NEW_KEY>"
@@ -54,11 +54,12 @@ Which will return if the key is valid, and the **`remaining`** value which rep
 Need to update ratelimits? Change some metadata? Maybe you want to use our new remaining to create tokens and update them when a user pays. This is all now possible with our update endpoint.
 
 ```bash
-curl --request PUT \
-  --url https://api.unkey.dev/v1/keys/key_123 \
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateLey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   -d '{
+    "keyId": "<KEY_ID>",
     "remaining": 200,
   }'
 ```
