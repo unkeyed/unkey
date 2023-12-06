@@ -36,7 +36,6 @@ type VerifyKeyResult =
       valid: true;
       key: Key;
       api: Api;
-
       ratelimit?: {
         remaining: number;
         limit: number;
@@ -204,7 +203,6 @@ export class KeyService {
           keyId: data.key.id,
           apiId: data.api.id,
           ownerId: data.key.ownerId ?? undefined,
-          meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
           expires: data.key.expires?.getTime() ?? undefined,
           remaining,
           ratelimit,
@@ -220,7 +218,6 @@ export class KeyService {
       api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       ratelimit,
       remaining,
