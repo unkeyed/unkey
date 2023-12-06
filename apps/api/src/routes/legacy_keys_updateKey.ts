@@ -118,7 +118,10 @@ export type LegacyKeysUpdateKeyResponse = z.infer<
 
 export const registerLegacyKeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
 
     // Get root key and check for API errors
     const rootKey = await keyService.verifyKey(c, { key: authorization });

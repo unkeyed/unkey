@@ -16,7 +16,7 @@ export class DurableUsageLimiter implements UsageLimiter {
     domain?: string;
   }) {
     this.namespace = opts.namespace;
-    this.domain = opts.domain ?? "unkey.app";
+    this.domain = opts.domain ?? "unkey.dev";
   }
 
   public async limit(req: LimitRequest): Promise<LimitResponse> {
