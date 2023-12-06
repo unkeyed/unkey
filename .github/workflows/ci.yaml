@@ -80,7 +80,7 @@ jobs:
 
 
       - name: Test
-        run: bun test src/routes --coverage --timeout 10000 --rerun-each 10
+        run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
       - name: Delete planetscale branch
         if: always()

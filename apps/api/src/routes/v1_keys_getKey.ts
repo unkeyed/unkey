@@ -87,5 +87,17 @@ export const registerV1KeysGetKey = (app: App) =>
       createdAt: data.key.createdAt.getTime() ?? undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
+      ratelimit:
+        data.key.ratelimitType &&
+        data.key.ratelimitLimit &&
+        data.key.ratelimitRefillRate &&
+        data.key.ratelimitRefillInterval
+          ? {
+              type: data.key.ratelimitType,
+              limit: data.key.ratelimitLimit,
+              refillRate: data.key.ratelimitRefillRate,
+              refillInterval: data.key.ratelimitRefillInterval,
+            }
+          : undefined,
     });
   });
