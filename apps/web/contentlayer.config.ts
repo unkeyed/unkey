@@ -5,6 +5,7 @@ import rehypeCodeTitles from "rehype-code-titles";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { authors } from "./content/blog/authors";
 
 const options = {
   theme: "light-plus",
@@ -30,8 +31,9 @@ const Post = defineDocumentType(() => ({
       required: true,
     },
     author: {
-      type: "json",
-      description: "The author of the post",
+      type: "enum",
+      options: Object.keys(authors),
+      description: "The author id of the post",
       required: true,
     },
     description: {

@@ -129,7 +129,7 @@ export const registerV1ApisListKeys = (app: App) =>
         workspaceId: k.workspaceId,
         name: k.name ?? undefined,
         ownerId: k.ownerId ?? undefined,
-        meta: k.meta ?? undefined,
+        meta: k.meta ? JSON.parse(k.meta) : undefined,
         createdAt: k.createdAt.getTime() ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
