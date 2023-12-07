@@ -27,6 +27,12 @@ export const keyRouter = t.router({
             limit: z.number().int().positive(),
           })
           .optional(),
+        refill: z
+          .object({
+            interval: z.enum(["daily", "monthly"]),
+            amount: z.number().int().min(1).positive(),
+          })
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -34,7 +40,10 @@ export const keyRouter = t.router({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const api = await db.query.apis.findFirst({
@@ -71,6 +80,9 @@ export const keyRouter = t.router({
         ratelimitRefillRate: input.ratelimit?.refillRate,
         ratelimitRefillInterval: input.ratelimit?.refillInterval,
         ratelimitType: input.ratelimit?.type,
+        refillIncrement: input.refill?.amount,
+        refillInterval: input.refill?.interval,
+        lastRefillAt: input.refill ? new Date() : null,
         remaining: input.remaining,
         totalUses: 0,
         deletedAt: null,
@@ -95,7 +107,10 @@ export const keyRouter = t.router({
         },
       });
       if (!unkeyApi) {
-        throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `api ${env().UNKEY_API_ID} not found`,
+        });
       }
       if (!unkeyApi.keyAuthId) {
         throw new TRPCError({
@@ -109,11 +124,17 @@ export const keyRouter = t.router({
       });
       if (!workspace) {
         console.error(`workspace for tenant ${ctx.tenant.id} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const keyId = newId("key");
-      const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+      const { key, hash, start } = await newKey({
+        prefix: "unkey",
+        byteLength: 16,
+      });
       await db.insert(schema.keys).values({
         id: keyId,
         keyAuthId: unkeyApi.keyAuthId,
@@ -147,7 +168,10 @@ export const keyRouter = t.router({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       await Promise.all(
@@ -186,7 +210,10 @@ export const keyRouter = t.router({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       await Promise.all(

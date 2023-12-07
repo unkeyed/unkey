@@ -51,7 +51,7 @@ export const keys = mysqlTable(
     /**
      * You can add uses to keys at a desired interval
      */
-    refillInterval: bigint("refill_interval", { mode: "number" }),
+    refillInterval: text("refill_interval", { enum: ["daily", "monthly"] }),
     refillIncrement: int("refill_increment"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
     /**

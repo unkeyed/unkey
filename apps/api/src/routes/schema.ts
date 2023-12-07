@@ -89,5 +89,17 @@ export const keySchema = z
           refillInterval: 60,
         },
       }),
+    refill: z
+      .object({
+        refillInterval: z.enum(["daily", "monthly"]).openapi({
+          description: "Determines the rate at kills will be refilled.",
+          example: "daily",
+        }),
+        refillIncrement: z.number().int().openapi({
+          description: "Sets how many uses to refill during each refillInterval.",
+          example: 100,
+        }),
+      })
+      .optional(),
   })
   .openapi("Key");

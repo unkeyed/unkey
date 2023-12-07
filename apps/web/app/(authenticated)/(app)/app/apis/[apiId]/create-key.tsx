@@ -21,6 +21,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -41,6 +48,8 @@ const formSchema = z.object({
   name: z.string().optional(),
   meta: z.string().optional(),
   remaining: z.coerce.number().positive().optional(),
+  refillInterval: z.coerce.number().positive().optional(),
+  refillIncrement: z.coerce.number().positive().optional(),
   expires: z.coerce.date().min(new Date(oneMinute)).optional(),
   ratelimit: z
     .object({
@@ -48,6 +57,12 @@ const formSchema = z.object({
       refillInterval: z.coerce.number().positive(),
       refillRate: z.coerce.number().positive(),
       limit: z.coerce.number().positive(),
+    })
+    .optional(),
+  refill: z
+    .object({
+      interval: z.enum(["daily", "monthly"]),
+      amount: z.number().int().min(1).positive(),
     })
     .optional(),
 });
@@ -59,7 +74,6 @@ type Props = {
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
   const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -79,6 +93,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
+
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast({
@@ -117,12 +132,14 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
+
     await key.mutateAsync({
       apiId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
+      refill: values.refill ?? undefined,
     });
   }
 
@@ -189,9 +206,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         <>
           <div>
             <div className="w-full overflow-scroll">
-              <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="mx-auto max-w-6xl" onSubmit={form.handleSubmit(onSubmit)}>
+                  <h2 className="mb-2 text-2xl">Create a New Key</h2>
                   <div className="flex flex-col justify-evenly gap-4 md:flex-row">
                     <FormField
                       control={form.control}
@@ -294,7 +311,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 </FormItem>
                               )}
                             />
-
                             <div className="mt-8 flex items-center gap-4">
                               <FormField
                                 control={form.control}
@@ -369,6 +385,46 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   </FormControl>
                                   <FormDescription>
                                     Enter the remaining amount of uses for this key.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="refill.interval"
+                              render={({ field }) => (
+                                <FormItem className="mt-4">
+                                  <FormLabel>Replenishment Rate</FormLabel>
+                                  <Select onValueChange={field.onChange}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select Interval" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="daily">Daily</SelectItem>
+                                      <SelectItem value="monthly">Weekly</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="refill.amount"
+                              render={({ field }) => (
+                                <FormItem className="mt-4">
+                                  <FormLabel>Number of uses per interval</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="100"
+                                      className="w-full"
+                                      type="number"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Enter the amount of uses added per replenish interval.
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>

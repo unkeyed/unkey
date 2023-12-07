@@ -54,6 +54,7 @@ export const updateKeyRemaining = serverAction({
         remaining: input.enableRemaining ? input.remaining : null,
         refillInterval: input.refillInterval ?? null,
         refillIncrement: input.refillIncrement ?? null,
+        lastRefillAt: new Date(),
       })
       .where(eq(schema.keys.id, input.keyId));
 

@@ -87,6 +87,22 @@ const route = createRoute({
                 "The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.",
               example: 1000,
             }),
+            refill: z
+              .object({
+                interval: z.enum(["daily", "monthly"]).openapi({
+                  description: "The interval at which to refill the key, in milliseconds.",
+                }),
+                increment: z.number().int().min(1).positive().openapi({
+                  description: "The amount of uses to add to the key at each refill.",
+                }),
+              })
+              .optional()
+              .openapi({
+                example: {
+                  interval: "daily",
+                  increment: 100,
+                },
+              }),
           }),
         },
       },
@@ -157,6 +173,9 @@ export const registerV1KeysUpdate = (app: App) =>
         ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
         ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
         ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
+        refillIncrement: req.refill == null ? null : req.refill?.increment,
+        refillInterval: req.refill == null ? null : req.refill?.interval,
+        lastRefillAt: req.refill == null ? null : new Date(),
       })
       .where(eq(schema.keys.id, req.keyId));
 

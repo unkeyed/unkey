@@ -41,6 +41,8 @@ type Column = {
   ratelimitRefillRate: number | null;
   ratelimitRefillInterval: number | null;
   remaining: number | null;
+  refillInterval: string | null;
+  refillIncrement: number | null;
 };
 
 type Props = {
@@ -132,7 +134,10 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  This key expired {ms(Date.now() - row.original.expires.getTime(), { long: true })}{" "}
+                  This key expired{" "}
+                  {ms(Date.now() - row.original.expires.getTime(), {
+                    long: true,
+                  })}{" "}
                   ago.
                   <Link href={`/app/keys/${row.original.id}/settings`} className="ml-2">
                     <Button variant="ghost">Update Key</Button>
@@ -153,6 +158,18 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) =>
         row.original.remaining ? (
           <span>{row.original.remaining.toLocaleString()}</span>
+        ) : (
+          <Minus className="w-4 h-4 text-gray-300" />
+        ),
+    },
+    {
+      accessorKey: "refillInterval",
+      header: "Refill Rate / days",
+      cell: ({ row }) =>
+        row.original.refillInterval && row.original.refillIncrement && row.original.remaining ? (
+          <div>
+            <span>{row.original.refillInterval}</span>
+          </div>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),
@@ -193,6 +210,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
           <Minus className="w-4 h-4 text-gray-300" />
         ),
     },
+
     {
       id: "actions",
       cell: ({ row }) => (

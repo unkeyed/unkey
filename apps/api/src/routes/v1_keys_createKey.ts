@@ -121,6 +121,22 @@ When validating a key, we will return this back to you, so you can clearly ident
                   refillInterval: 60,
                 },
               }),
+            refill: z
+              .object({
+                interval: z.enum(["daily", "monthly"]).openapi({
+                  description: "The interval at which to refill uses",
+                }),
+                increment: z.number().int().min(1).positive().openapi({
+                  description: "The amount of uses to add to the key at each refill.",
+                }),
+              })
+              .optional()
+              .openapi({
+                example: {
+                  interval: "daily",
+                  increment: 100,
+                },
+              }),
           }),
         },
       },
@@ -217,6 +233,9 @@ export const registerV1KeysCreateKey = (app: App) =>
       ratelimitRefillRate: req.ratelimit?.refillRate,
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
+      refillInterval: req.refill?.interval,
+      refillIncrement: req.refill?.increment,
+      lastRefillAt: new Date(),
       remaining: req.remaining,
       totalUses: 0,
       deletedAt: null,
