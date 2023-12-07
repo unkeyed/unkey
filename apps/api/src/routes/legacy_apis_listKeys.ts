@@ -126,8 +126,24 @@ export const registerLegacyApisListKeys = (app: App) =>
     return c.json({
       keys: keys.map((k) => ({
         id: k.id,
-        ownerId: k.ownerId,
-        createdAt: k.createdAt,
+        start: k.start,
+        apiId: api.id,
+        workspaceId: k.workspaceId,
+        name: k.name ?? undefined,
+        ownerId: k.ownerId ?? undefined,
+        meta: k.meta ? JSON.parse(k.meta) : undefined,
+        createdAt: k.createdAt.getTime() ?? undefined,
+        expires: k.expires?.getTime() ?? undefined,
+        ratelimit:
+          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+            ? {
+                type: k.ratelimitType,
+                limit: k.ratelimitLimit,
+                refillRate: k.ratelimitRefillRate,
+                refillInterval: k.ratelimitRefillInterval,
+              }
+            : undefined,
+        remaining: k.remaining ?? undefined,
       })),
       total: parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
