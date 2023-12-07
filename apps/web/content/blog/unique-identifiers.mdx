@@ -56,7 +56,7 @@ Try copying it now, it’s much nicer!
 ### Prefixing
 
 Have you ever accidentally used a production API key in a development environment? I have, and it’s not fun.
-We can help the user differentiate between different environments or resources within the system by adding a meaningful prefix. For example, Stripe uses prefixes like `sk_live_" for production environment secret keys or `cus_` for customer identifiers. By incorporating such prefixes, we can ensure clarity and reduce the chances of confusion, especially in complex systems where multiple environments coexist.
+We can help the user differentiate between different environments or resources within the system by adding a meaningful prefix. For example, Stripe uses prefixes like `sk_live_` for production environment secret keys or `cus_` for customer identifiers. By incorporating such prefixes, we can ensure clarity and reduce the chances of confusion, especially in complex systems where multiple environments coexist.
 
 ```tsx
 const id = `hello_${crypto.randomUUID().replace(/-/g, "")}`
