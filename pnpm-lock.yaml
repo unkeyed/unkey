@@ -362,6 +362,12 @@ importers:
       postcss-focus-visible:
         specifier: ^9.0.0
         version: 9.0.0(postcss@8.4.31)
+      posthog-js:
+        specifier: ^1.93.3
+        version: 1.93.3
+      posthog-node:
+        specifier: ^3.1.3
+        version: 3.1.3
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -448,8 +454,8 @@ importers:
         version: 3.22.4
     devDependencies:
       '@clerk/types':
-        specifier: ^3.56.1
-        version: 3.56.1
+        specifier: ^3.58.0
+        version: 3.58.0
       '@tailwindcss/aspect-ratio':
         specifier: ^0.4.2
         version: 0.4.2(tailwindcss@3.3.3)
@@ -2090,19 +2096,11 @@ packages:
       swr: 2.2.0(react@18.2.0)
     dev: false
 
-  /@clerk/types@3.56.1:
-    resolution: {integrity: sha512-w/LKUH/PtB0nfQ6xtfh08/HyRLcIhvp1Vl3tx67Rvj7HdgDb5r2a2wbqsVanQZkdhE71WpIG36BRPhNWF4W2Bg==}
-    engines: {node: '>=14'}
-    dependencies:
-      csstype: 3.1.1
-    dev: true
-
   /@clerk/types@3.58.0:
     resolution: {integrity: sha512-fIsvEM3nYQwViOuYxNVcwEl0WkXW6AdYpSghNBKfOge1kriSSHP++T5rRMJBXy6asl2AEydVlUBKx9drAzqKoA==}
     engines: {node: '>=14'}
     dependencies:
       csstype: 3.1.1
-    dev: false
 
   /@cloudflare/kv-asset-handler@0.2.0:
     resolution: {integrity: sha512-MVbXLbTcAotOPUj0pAMhVtJ+3/kFkwJqc5qNOleOZTv6QkZZABDMS21dSrSlVswEHwrpWC03e4fWytjqKvuE2A==}
@@ -5063,6 +5061,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -9317,7 +9316,6 @@ packages:
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
-    dev: true
 
   /axobject-query@3.2.1:
     resolution: {integrity: sha512-jsyHu61e6N4Vbz/v18DHwWYKK0bSWLqn47eeDSKPB7m8tqMHF9YJ+mhIk2lVteyZrY8tnSj/jHOv4YiTCuCJgg==}
@@ -12853,6 +12851,10 @@ packages:
     resolution: {integrity: sha512-3yurQZ2hD9VISAhJJP9bpYFNQrHHBXE2JxxjY5aLEcDi46RmAzJE2OC9FAde0yis5ElW0jTTzs0zfg/Cca4XqQ==}
     dev: false
 
+  /fflate@0.4.8:
+    resolution: {integrity: sha512-FJqqoDBR00Mdj9ppamLa/Y7vxm+PRmNWA67N846RvsoYVMKB4q3y/de5PA7gUmRMYK/8CMz2GDZQmCRN1wBcWA==}
+    dev: false
+
   /fflate@0.7.4:
     resolution: {integrity: sha512-5u2V/CDW15QM1XbbgS+0DfPxVB+jUKhWEKuuFuHncbk3tEEqzmoXL+2KyOFuKGqOnmdIy0/davWF1CkuwtibCw==}
     dev: false
@@ -12982,7 +12984,6 @@ packages:
     peerDependenciesMeta:
       debug:
         optional: true
-    dev: true
 
   /for-each@0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -13016,7 +13017,6 @@ packages:
       asynckit: 0.4.0
       combined-stream: 1.0.8
       mime-types: 2.1.35
-    dev: true
 
   /format@0.2.2:
     resolution: {integrity: sha512-wzsgA6WOq+09wrU1tsJ09udeR/YZRaeArL9e1wPbFg3GG2yDnC2ldKpxs4xunpFF9DgqCqOIra3bc1HWrJ37Ww==}
@@ -16452,6 +16452,10 @@ packages:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
     dev: false
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
@@ -18052,6 +18056,22 @@ packages:
       source-map-js: 1.0.2
     dev: true
 
+  /posthog-js@1.93.3:
+    resolution: {integrity: sha512-jEOWwaQpTRbqLPrDLY6eZr7t95h+LyXqN7Yq1/K6u3V0Y1C9xHtYhpuGzYamirVnCDTbVq22RM++OBUaIpp9Wg==}
+    dependencies:
+      fflate: 0.4.8
+    dev: false
+
+  /posthog-node@3.1.3:
+    resolution: {integrity: sha512-UaOOoWEUYTcaaDe1w0fgHW/sXvFr3RO0l7yI7RUDzkZNZCfwXNO9r3pc14d1EtNppF/SHBrV5hNiZZATpf/vUw==}
+    engines: {node: '>=15.0.0'}
+    dependencies:
+      axios: 1.6.2
+      rusha: 0.8.14
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
   /prebuild-install@7.1.1:
     resolution: {integrity: sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==}
     engines: {node: '>=10'}
@@ -18238,7 +18258,6 @@ packages:
 
   /proxy-from-env@1.1.0:
     resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
-    dev: true
 
   /prr@0.0.0:
     resolution: {integrity: sha512-LmUECmrW7RVj6mDWKjTXfKug7TFGdiz9P18HMcO4RHL+RW7MCOGNvpj5j47Rnp6ne6r4fZ2VzyUWEpKbg+tsjQ==}
@@ -19184,6 +19203,10 @@ packages:
     hasBin: true
     dependencies:
       minimatch: 9.0.3
+    dev: false
+
+  /rusha@0.8.14:
+    resolution: {integrity: sha512-cLgakCUf6PedEu15t8kbsjnwIFFR2D4RfL+W3iWFJ4iac7z4B0ZI8fxy4R3J956kAI68HclCFGL8MPoUVC3qVA==}
     dev: false
 
   /rw@1.3.3:
