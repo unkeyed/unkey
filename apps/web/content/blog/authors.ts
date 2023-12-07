@@ -15,7 +15,7 @@ export const authors = {
   },
   andreas: {
     name: "Andreas Thomas",
-    role: "Co-Founder / CTO",
+    role: "Co-Founder",
     image: { src: "/andreas.jpeg" },
   },
   wilfred: {

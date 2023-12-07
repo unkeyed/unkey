@@ -405,16 +405,6 @@ export interface paths {
                 [key: string]: unknown;
               };
               /**
-               * @description The unix timestamp in milliseconds when the key was created
-               * @example 0
-               */
-              createdAt: number;
-              /**
-               * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-               * @example 0
-               */
-              deletedAt?: number;
-              /**
                * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
                * @example 123
                */
@@ -457,7 +447,6 @@ export interface paths {
                * - KEY_USAGE_EXCEEDED: the key has exceeded its request limit
                * - RATELIMITED: the key has been ratelimited,
                *
-               * @example NOT_FOUND
                * @enum {string}
                */
               code?: "NOT_FOUND" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | "RATELIMITED";
@@ -861,7 +850,7 @@ export interface paths {
       parameters: {
         query: {
           apiId: string;
-          limit: number;
+          limit?: number;
           cursor?: string;
           ownerId?: string;
         };
@@ -1751,8 +1740,8 @@ export interface paths {
   "/v1/apis/{apiId}/keys": {
     get: {
       parameters: {
-        query: {
-          limit: number;
+        query?: {
+          limit?: number;
           offset?: number | null;
           ownerId?: string;
         };

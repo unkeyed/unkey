@@ -6,7 +6,7 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
-import { type Author, authors } from "@/content/blog/authors";
+import { authors } from "@/content/blog/authors";
 import { allPosts } from "contentlayer/generated";
 
 export const metadata = {

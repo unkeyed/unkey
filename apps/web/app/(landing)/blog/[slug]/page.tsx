@@ -3,7 +3,7 @@ import { FadeIn } from "@/components/landing/fade-in";
 import { PageLinks } from "@/components/landing/page-links";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { type Author, authors } from "@/content/blog/authors";
+import { authors } from "@/content/blog/authors";
 import { allPosts } from "contentlayer/generated";
 import type { Metadata } from "next";
 import { useMDXComponent } from "next-contentlayer/hooks";
