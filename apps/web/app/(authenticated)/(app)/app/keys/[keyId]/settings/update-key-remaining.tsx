@@ -28,7 +28,7 @@ type Props = {
     id: string;
     workspaceId: string;
     remaining: number | null;
-    refillInterval: number | null;
+    refillInterval: string | null;
     refillIncrement: number | null;
   };
 };
@@ -41,7 +41,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     <form
       action={async (formData: FormData) => {
         const res = await updateKeyRemaining(formData);
-        console.log(formData);
+
         if (res.error) {
           toast({
             title: "Error",
@@ -79,7 +79,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               min={0}
               name="remaining"
               className="max-w-sm"
-              defaultValue={apiKey.remaining ?? ""}
+              defaultValue={apiKey?.remaining ?? ""}
               autoComplete="off"
             />
             <Label htmlFor="replenish" className="pt-4">
@@ -88,25 +88,24 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
             <Select
               disabled={!enabled}
               name="refillInterval"
-              defaultValue={apiKey?.refillInterval ? apiKey?.refillInterval.toString() : "None"}
+              defaultValue={apiKey?.refillInterval?.toString() ?? "null"}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">None</SelectItem>
-                <SelectItem value="86400000">Daily</SelectItem>
-                <SelectItem value="604800000">Weekly</SelectItem>
-                <SelectItem value="1209600000">Bi-Weekly</SelectItem>
-                <SelectItem value="2629800000">Monthly</SelectItem>
+                <SelectItem value="null">None</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
             <Input
               name="refillIncrement"
               placeholder="100"
               className="w-full"
+              min={1}
               type="number"
-              defaultValue={apiKey.refillIncrement ? apiKey.refillIncrement : "100"}
+              defaultValue={apiKey?.refillIncrement ? apiKey.refillIncrement : "100"}
             />
           </div>
         </CardContent>

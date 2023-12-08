@@ -29,7 +29,7 @@ export const keyRouter = t.router({
           .optional(),
         refill: z
           .object({
-            interval: z.enum(["daily", "monthly"]),
+            interval: z.enum(["null", "daily", "monthly"]),
             amount: z.number().int().min(1).positive(),
           })
           .optional(),

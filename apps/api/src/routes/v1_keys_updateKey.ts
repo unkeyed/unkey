@@ -89,7 +89,7 @@ const route = createRoute({
             }),
             refill: z
               .object({
-                interval: z.enum(["daily", "monthly"]).openapi({
+                interval: z.enum(["null", "daily", "monthly"]).openapi({
                   description: "The interval at which to refill the key, in milliseconds.",
                 }),
                 increment: z.number().int().min(1).positive().openapi({
@@ -173,9 +173,16 @@ export const registerV1KeysUpdate = (app: App) =>
         ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
         ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
         ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
-        refillIncrement: req.refill == null ? null : req.refill?.increment,
-        refillInterval: req.refill == null ? null : req.refill?.interval,
-        lastRefillAt: req.refill == null ? null : new Date(),
+        refillIncrement:
+          req.refill?.increment === null || req.refill?.interval === "null"
+            ? null
+            : req.refill?.increment,
+        refillInterval:
+          req.refill?.interval == null || req.refill?.interval === "null"
+            ? null
+            : req.refill?.interval,
+        lastRefillAt:
+          req.refill?.interval == null || req.refill?.interval === "null" ? null : new Date(),
       })
       .where(eq(schema.keys.id, req.keyId));
 

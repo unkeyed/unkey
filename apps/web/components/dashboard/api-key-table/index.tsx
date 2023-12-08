@@ -164,7 +164,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
     },
     {
       accessorKey: "refillInterval",
-      header: "Refill Rate / days",
+      header: "Refill Rate",
       cell: ({ row }) =>
         row.original.refillInterval && row.original.refillIncrement && row.original.remaining ? (
           <div>

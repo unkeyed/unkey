@@ -61,8 +61,8 @@ const formSchema = z.object({
     .optional(),
   refill: z
     .object({
-      interval: z.enum(["daily", "monthly"]),
-      amount: z.number().int().min(1).positive(),
+      interval: z.enum(["null", "daily", "monthly"]),
+      amount: z.coerce.number().int().min(1).positive(),
     })
     .optional(),
 });
@@ -132,7 +132,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
-
+    if (values.refill?.interval === "null" || values.refill?.amount === undefined) {
+      delete values.refill;
+    }
     await key.mutateAsync({
       apiId,
       ...values,
@@ -401,8 +403,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       <SelectValue placeholder="Select Interval" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                      <SelectItem value="null">None</SelectItem>
                                       <SelectItem value="daily">Daily</SelectItem>
-                                      <SelectItem value="monthly">Weekly</SelectItem>
+                                      <SelectItem value="monthly">Monthly</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
