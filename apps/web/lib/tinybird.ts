@@ -119,7 +119,7 @@ export const getLastUsed = tb.buildPipe({
 });
 
 export const getActiveKeysPerHourForAllWorkspaces = tb.buildPipe({
-  pipe: "endpoint_billing_get_active_keys_per_workspace_per_hour__v1",
+  pipe: "endpoint_billing_get_active_keys_per_workspace_per_hour__v2__v1",
 
   data: z.object({
     usage: z.number(),

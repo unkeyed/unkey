@@ -1,4 +1,4 @@
-import { type UnkeyError, verifyKey } from "@unkey/api";
+import { type ErrorResponse, verifyKey } from "@unkey/api";
 import { type NextFetchEvent, NextRequest, NextResponse } from "next/server";
 
 export type WithUnkeyConfig = {
@@ -31,7 +31,7 @@ export type WithUnkeyConfig = {
   /**
    * What to do if things go wrong
    */
-  onError?: (req: NextRequest, err: UnkeyError) => NextResponse | Promise<NextResponse>;
+  onError?: (req: NextRequest, err: ErrorResponse["error"]) => NextResponse | Promise<NextResponse>;
 };
 
 export type UnkeyContext = {

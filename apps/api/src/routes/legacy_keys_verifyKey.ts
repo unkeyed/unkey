@@ -145,8 +145,9 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     if (error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
     }
+
     if (!value.valid) {
-      return c.jsonT({
+      return c.json({
         valid: false,
         code: value.code,
         rateLimit: value.ratelimit,
@@ -154,13 +155,13 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
       });
     }
 
-    return c.jsonT({
-      keyId: value.keyId,
+    return c.json({
+      keyId: value.key.id,
       valid: true,
-      ownerId: value.ownerId,
-      meta: value.meta,
-      expires: value.expires,
-      remaining: value.remaining,
-      ratelimit: value.ratelimit,
+      ownerId: value.key.ownerId ?? undefined,
+      meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
+      expires: value.key.expires?.getTime(),
+      remaining: value.remaining ?? undefined,
+      ratelimit: value.ratelimit ?? undefined,
     });
   });

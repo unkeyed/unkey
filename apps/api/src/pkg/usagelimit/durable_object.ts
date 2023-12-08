@@ -1,5 +1,4 @@
-import { Database, createConnection, eq, schema, sql } from "@/pkg/db";
-import type { Key } from "@unkey/db";
+import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
 import { Env } from "../env";
 import { ConsoleLogger, Logger } from "../logging";
 import { AxiomLogger } from "../logging/axiom";
@@ -8,6 +7,7 @@ import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 export class DurableObjectUsagelimiter {
   private readonly state: DurableObjectState;
   private readonly db: Database;
+  private lastRevalidate = 0;
   private key: Key | undefined = undefined;
   private readonly logger: Logger;
   constructor(state: DurableObjectState, env: Env) {
@@ -20,7 +20,7 @@ export class DurableObjectUsagelimiter {
 
     const defaultFields = {
       durableObjectId: state.id.toString(),
-      durableObjectClass: state.constructor.name,
+      durableObjectClass: "DurableObjectUsagelimiter",
     };
     this.logger = env.AXIOM_TOKEN
       ? new AxiomLogger({
@@ -36,18 +36,12 @@ export class DurableObjectUsagelimiter {
     switch (url.pathname) {
       case "/revalidate": {
         const req = revalidateRequestSchema.parse(await request.json());
-        if (!this.key) {
-          this.logger.info("Fetching key from origin", { id: req.keyId });
-          this.key = await this.db.query.keys.findFirst({
-            where: (table, { and, eq, isNull }) =>
-              and(eq(table.id, req.keyId), isNull(table.deletedAt)),
-          });
-        }
 
         this.key = await this.db.query.keys.findFirst({
           where: (table, { and, eq, isNull }) =>
             and(eq(table.id, req.keyId), isNull(table.deletedAt)),
         });
+        this.lastRevalidate = Date.now();
         return Response.json({});
       }
       case "/limit": {
@@ -58,7 +52,9 @@ export class DurableObjectUsagelimiter {
             where: (table, { and, eq, isNull }) =>
               and(eq(table.id, req.keyId), isNull(table.deletedAt)),
           });
+          this.lastRevalidate = Date.now();
         }
+
         if (!this.key) {
           this.logger.error("key not found", { keyId: req.keyId });
           return Response.json({
@@ -86,8 +82,30 @@ export class DurableObjectUsagelimiter {
           this.db
             .update(schema.keys)
             .set({ remaining: sql`${schema.keys.remaining}-1` })
-            .where(eq(schema.keys.id, this.key.id)),
+            .where(
+              and(
+                eq(schema.keys.id, this.key.id),
+                gt(schema.keys.remaining, 0), // prevent negative remaining
+              ),
+            )
+            .execute(),
         );
+        // revalidate every minute
+        if (Date.now() - this.lastRevalidate > 60_000) {
+          this.logger.info("revalidating in the background", { keyId: this.key.id });
+          this.state.waitUntil(
+            this.db.query.keys
+              .findFirst({
+                where: (table, { and, eq, isNull }) =>
+                  and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+              })
+              .execute()
+              .then((key) => {
+                this.key = key;
+                this.lastRevalidate = Date.now();
+              }),
+          );
+        }
 
         return Response.json({
           valid: true,

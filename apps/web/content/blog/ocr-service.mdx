@@ -2,12 +2,7 @@
 date: 2023-08-10
 title: Building an OCR as a Service
 description: Learn how to use Unkey to make an Optical Character Recognition (OCR) API as a service
-author:
-  {
-    name: "Wilfred Almeida",
-    role: "Freelance Writer",
-    image: { src: "/images/blog-images/ocr-post/wilfred.jpg" },
-  }
+author: wilfred
 ---
 
 [Unkey](https://unkey.dev) is an open-source API key management tool with real-time API key creation, updating, and verification.
@@ -188,7 +183,7 @@ app.post("/signUp", async (req: Request, res: Response) => {
 
 
   const createKeyResponse = await fetch(
-    "https://api.unkey.dev/v1/keys",
+    "https://api.unkey.dev/v1/keys.createKey",
     {
       method: "POST",
       headers: myHeaders,
@@ -270,7 +265,7 @@ const verifyApiKey = async (
       });
 
       const verifyKeyResponse = await fetch(
-        "https://api.unkey.dev/v1/keys/verify",
+        "https://api.unkey.dev/v1/keys.verifyKey",
         {
           method: "POST",
           headers: myHeaders,
@@ -369,8 +364,9 @@ app.post("/upgradeUser", async (req: Request, res: Response) => {
   });
 
   const updateKeyRequest = await fetch(
-    "https://api.unkey.dev/v1/keys/example_key",
+    "https://api.unkey.dev/v1/keys.updateKey",
     {
+      keyId: "example_key"
       method: "PUT",
       headers: myHeaders,
       body: raw,

@@ -19,7 +19,7 @@ test("returns 200", async () => {
   });
 
   expect(res.status).toEqual(200);
-  expect(res.body.status).toEqual("we're cooking");
+  expect(res.body.status).toEqual("we're so back");
   expect(res.body.services.metrics).toEqual("NoopMetrics");
   expect(res.body.services.logger).toEqual("ConsoleLogger");
 });
