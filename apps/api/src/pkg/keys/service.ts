@@ -1,9 +1,9 @@
 import { TieredCache } from "@/pkg/cache/tiered";
+import type { Api, Database, Key } from "@/pkg/db";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { type Api, type Database, type Key } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";

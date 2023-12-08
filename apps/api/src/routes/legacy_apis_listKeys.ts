@@ -114,6 +114,7 @@ export const registerLegacyApisListKeys = (app: App) =>
         offset: offset ? parseInt(offset) : undefined,
       }),
       db
+        // @ts-ignore, mysql sucks
         .select({ count: sql<string>`count(*)` })
         .from(schema.keys)
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt))),
@@ -145,6 +146,7 @@ export const registerLegacyApisListKeys = (app: App) =>
             : undefined,
         remaining: k.remaining ?? undefined,
       })),
+      // @ts-ignore, mysql sucks
       total: parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });

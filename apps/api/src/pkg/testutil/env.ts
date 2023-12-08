@@ -4,6 +4,7 @@ export const unitTestEnv = z.object({
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
+  DATABASE_MODE: z.enum(["planetscale", "mysql"]).optional().default("planetscale"),
 });
 
 export const integrationTestEnv = z.object({
