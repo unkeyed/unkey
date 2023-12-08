@@ -97,7 +97,7 @@ export default async function Page(props: { params: { keyId: string } }) {
   return (
     <div className="flex flex-col gap-8">
       <Card>
-        <CardContent className="grid grid-cols-2 gap-px mx-auto xl:divide-x md:grid-cols-3 xl:grid-cols-6 ">
+        <CardContent className="mx-auto grid grid-cols-2 gap-px md:grid-cols-3 xl:grid-cols-6 xl:divide-x ">
           <Stat label="Usage 30 days" value={fmt(usage30Days)} />
           <Stat
             label="Expires"
@@ -116,7 +116,7 @@ export default async function Page(props: { params: { keyId: string } }) {
             label={
               <Tooltip>
                 <TooltipTrigger className="flex items-center gap-1">
-                  Key ID <Info className="w-4 h-4" />
+                  Key ID <Info className="h-4 w-4" />
                 </TooltipTrigger>
                 <TooltipContent>
                   This is not the secret key, but just a unique identifier used for interacting with
@@ -153,10 +153,10 @@ export default async function Page(props: { params: { keyId: string } }) {
 }
 
 const Stat: React.FC<{ label: React.ReactNode; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex flex-wrap items-baseline justify-between px-4 py-2 gap-x-4 gap-y-2 sm:px-6 xl:px-8">
-    <dt className="text-sm font-medium leading-6 text-content-subtle">{label}</dt>
+  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:px-8">
+    <dt className="text-content-subtle text-sm font-medium leading-6">{label}</dt>
 
-    <dd className="flex-none w-full text-3xl font-medium leading-10 tracking-tight text-content">
+    <dd className="text-content w-full flex-none text-3xl font-medium leading-10 tracking-tight">
       {value}
     </dd>
   </div>

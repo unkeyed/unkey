@@ -2,11 +2,11 @@ name = "api"
 main = "src/worker.ts"
 compatibility_date = "2023-11-06"
 
-## these a
+## these are in local dev
 [durable_objects]
 bindings = [
-{name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
- {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
+  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
 ]
 
  [[migrations]]
@@ -17,12 +17,12 @@ bindings = [
  tag = "v2"
  new_classes = ["DurableObjectUsagelimiter"]
 
-[env.dev]
-route = { pattern = "dev.api.unkey.app", custom_domain = true }
+[env.development]
+route = { pattern = "development-api.unkey.dev", custom_domain = true }
 vars = {ENVIRONMENT = "development"}
 
 
-[env.dev.durable_objects]
+[env.development.durable_objects]
  bindings = [
  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
   {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
@@ -30,7 +30,7 @@ vars = {ENVIRONMENT = "development"}
 
 [env.preview]
 vars = {  ENVIRONMENT = "preview" }
-route = { pattern = "preview.api.unkey.app", custom_domain = true }
+route = { pattern = "preview-api.unkey.dev", custom_domain = true }
 
 
 [env.preview.durable_objects]
@@ -44,19 +44,18 @@ route = { pattern = "preview.api.unkey.app", custom_domain = true }
 # all settings must be the same as production, except for the route pattern
 [env.canary]
 vars = {  ENVIRONMENT = "production"}
-route = { pattern = "canary.unkey.app", custom_domain = true}
+route = { pattern = "canary.unkey.dev", custom_domain = true}
 logpush = true
 
 [env.canary.durable_objects]
  bindings = [
   {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
   {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
-
 ]
 
 [env.production]
 vars = {  ENVIRONMENT = "production"}
-route = { pattern = "api.unkey.app", custom_domain = true}
+route = { pattern = "api.unkey.dev", custom_domain = true}
 logpush = true
 
 
@@ -64,5 +63,4 @@ logpush = true
  bindings = [
   {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
   {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
-
 ]

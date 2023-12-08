@@ -2,7 +2,14 @@ import * as React from "react";
 
 import { Navbar } from "@/components/dashboard/navbar";
 
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
+export default function SettingsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const navigation = [
     {
       label: "General",
@@ -21,13 +28,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     },
     {
       label: "Billing",
-      href: "/app/stripe",
-      segment: null,
-    },
-    {
-      label: "Usage",
-      href: "/app/settings/usage",
-      segment: "usage",
+      href: "/app/settings/billing",
+      segment: "billing",
     },
     {
       label: "Vercel Integration",
@@ -44,13 +46,13 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   return (
     <div>
       <div className="space-y-1 ">
-        <h2 className="text-2xl font-semibold tracking-tight">Settings</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">Manage your workspace settings.</p>
       </div>
 
       <Navbar navigation={navigation} className="mt-8" />
 
-      <main className="mt-8 mb-20">{children}</main>
+      <main className="mb-20 mt-8">{children}</main>
     </div>
   );
 }

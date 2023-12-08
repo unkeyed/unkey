@@ -6,6 +6,7 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
+import { authors } from "@/content/blog/authors";
 import { allPosts } from "contentlayer/generated";
 
 export const metadata = {
@@ -66,16 +67,16 @@ export default async function Blog() {
                         <dd className="flex mt-6 gap-x-4">
                           <div className="flex-none overflow-hidden rounded-xl bg-gray-100">
                             <Image
-                              alt={post.author.name}
-                              {...post.author.image}
+                              alt={authors[post.author].name}
+                              src={authors[post.author].image.src}
                               width={12}
                               height={12}
                               className="object-cover w-12 h-12 grayscale"
                             />
                           </div>
                           <div className="text-sm text-gray-950">
-                            <div className="font-semibold">{post.author.name}</div>
-                            <div>{post.author.role}</div>
+                            <div className="font-semibold">{authors[post.author].name}</div>
+                            <div>{authors[post.author].role}</div>
                           </div>
                         </dd>
                       </dl>

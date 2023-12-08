@@ -9,7 +9,7 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-background text-content",
-        alert: "border-alert bg-alert/5 text-alert",
+        alert: "border-2 border-[#b80f07] bg-alert/1 text-[#b80f07]",
         warn: "border-warn bg-warn/5 text-warn",
       },
     },
@@ -29,7 +29,7 @@ Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h5
+    <h3
       ref={ref}
       className={cn("mb-1 font-medium leading-none tracking-tight ", className)}
       {...props}

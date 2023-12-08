@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
@@ -16,7 +16,7 @@ import {
 
 describe("simple", () => {
   test("returns 200", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -54,7 +54,7 @@ describe("simple", () => {
 
 describe("filter by ownerId", () => {
   test("returns all keys owned ", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -93,7 +93,7 @@ describe("filter by ownerId", () => {
 
 describe("with limit", () => {
   test("returns only a few keys", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();
@@ -129,7 +129,7 @@ describe("with limit", () => {
 
 describe("with offset", () => {
   test("returns the correct keys", async () => {
-    const env = testEnv();
+    const env = unitTestEnv.parse(process.env);
     // @ts-ignore
     init({ env });
     const app = newApp();

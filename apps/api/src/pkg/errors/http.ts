@@ -17,6 +17,28 @@ const ErrorCode = z.enum([
   "PRECONDITION_FAILED",
 ]);
 
+export function errorSchemaFactory(code: z.ZodEnum<any>) {
+  return z.object({
+    error: z.object({
+      code: code.openapi({
+        description: "A machine readable error code.",
+        example: code._def.values.at(0),
+      }),
+      docs: z.string().openapi({
+        description: "A link to our documentation with more details about this error code",
+        example: `https://docs.unkey.dev/api-reference/errors/code/${code._def.values.at(0)}`,
+      }),
+      message: z
+        .string()
+        .openapi({ description: "A human readable explanation of what went wrong" }),
+      requestId: z.string().openapi({
+        description: "Please always include the requestId in your error report",
+        example: "req_1234",
+      }),
+    }),
+  });
+}
+
 export const ErrorSchema = z.object({
   error: z.object({
     code: ErrorCode.openapi({
@@ -30,7 +52,7 @@ export const ErrorSchema = z.object({
     message: z.string().openapi({ description: "A human readable explanation of what went wrong" }),
     requestId: z.string().openapi({
       description: "Please always include the requestId in your error report",
-      example: "fra:fra:198151925125",
+      example: "req_1234",
     }),
   }),
 });

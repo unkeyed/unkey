@@ -148,37 +148,39 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   return (
     <>
       {key.data ? (
-        <div className="w-full">
+        <div className="w-full max-sm:p-4">
           <div>
             <p className="mb-4 text-xl font-bold">Your API Key</p>
             <Alert>
-              <AlertCircle className="w-4 h-4" />
+              <AlertCircle className="h-4 w-4" />
               <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
               <AlertDescription>
                 Please pass it on to your user or store it somewhere safe.
               </AlertDescription>
             </Alert>
 
-            <Code className="flex items-center justify-between w-full gap-4 my-8 ">
-              <pre data-sentry-mask>{showKey ? key.data.key : maskedKey}</pre>
-              <div className="flex items-start justify-between gap-4">
+            <Code className="ph-no-capture my-8 flex w-full items-center justify-between gap-4 max-sm:text-xs sm:overflow-hidden">
+              <pre>{showKey ? key.data.key : maskedKey}</pre>
+              <div className="flex items-start justify-between gap-4 max-sm:absolute  max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
               </div>
             </Code>
           </div>
 
-          <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
-          <Code className="flex items-start justify-between w-full gap-4 my-8 ">
-            <pre data-sentry-mask>
-              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-            </pre>
-            <div className="flex items-start justify-between gap-4">
+          <p className="my-2 text-center font-medium text-gray-700 ">Try verifying it:</p>
+          <Code className="my-8 flex w-full items-start justify-between gap-4 overflow-hidden max-sm:text-xs ">
+            <div className="max-sm:mt-10">
+              <pre className="ph-no-capture">
+                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+              </pre>
+            </div>
+            <div className="max-ms:top-2 flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11 ">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
           </Code>
-          <div className="flex justify-end my-4 space-x-4">
+          <div className="my-4 flex justify-end space-x-4">
             <Link href={`/app/apis/${apiId}`}>
               <Button variant="secondary">Back</Button>
             </Link>
@@ -191,8 +193,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             <div className="w-full overflow-scroll">
               <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
-                <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="flex flex-col gap-4 md:flex-row justify-evenly">
+                <form className="mx-auto max-w-6xl" onSubmit={form.handleSubmit(onSubmit)}>
+                  <div className="flex flex-col justify-evenly gap-4 md:flex-row">
                     <FormField
                       control={form.control}
                       name="prefix"
@@ -295,7 +297,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               )}
                             />
 
-                            <div className="flex items-center gap-4 mt-8">
+                            <div className="mt-8 flex items-center gap-4">
                               <FormField
                                 control={form.control}
                                 name="ratelimit.refillRate"
@@ -390,7 +392,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem>
                                   <FormControl>
                                     <Textarea
-                                      className="w-full m-4 border rounded-md shadow-sm mx-auto"
+                                      className="m-4 mx-auto w-full rounded-md border shadow-sm"
                                       rows={3}
                                       placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
                                       {...field}
@@ -456,7 +458,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </Accordion>
                     </div>
                   </div>
-                  <div className="flex justify-end mt-8">
+                  <div className="mt-8 flex justify-end">
                     <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>

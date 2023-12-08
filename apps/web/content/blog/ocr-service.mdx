@@ -2,11 +2,7 @@
 date: 2023-08-10
 title: Building an OCR as a Service
 description: Learn how to use Unkey to make an Optical Character Recognition (OCR) API as a service
-author: {
-    name: 'Wilfred Almeida',
-    role: 'Freelance Writer',
-    image: { src: '/images/blog-images/ocr-post/wilfred.jpg' },
-  }
+author: wilfred
 ---
 
 [Unkey](https://unkey.dev) is an open-source API key management tool with real-time API key creation, updating, and verification.
@@ -48,14 +44,12 @@ OCR is done via an npm package [tesseract.js](https://www.npmjs.com/package/tess
 ```tsx
 const doOcr = async (image) => {
   try {
-
     // It detects English and Spanish
     const { data } = await Tesseract.recognize(image, "spa+eng", {
       logger: (m) => console.log(m),
     });
 
     return { data: data, error: null };
-
   } catch (error) {
     console.log(error);
     return { data: null, error: error };
@@ -69,7 +63,6 @@ const doOcr = async (image) => {
 
 1. `/signup`: Sign up for an API key. Returns a JSON object with the API key.
 
-
 It validates the email and provisions and returns an API key. The key is then used to authenticate the OCR endpoints.
 
 Type: `POST`
@@ -77,71 +70,65 @@ Type: `POST`
 Body:
 
 | Name  | Type   | Description                   |
-|-------|--------|-------------------------------|
+| ----- | ------ | ----------------------------- |
 | email | string | Email address to sign up with |
 | name  | string | Name of user                  |
-
 
 Returns:
 
 | Name  | Type   | Description |
-|-------|--------|-------------|
+| ----- | ------ | ----------- |
 | key   | string | API Key     |
 | keyId | string | API Key ID  |
 
-
 2. `/upload`: Upload an image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
-
 
 Type: `POST`
 
 Headers:
 
 | Name   | Type   | Description            |
-|--------|--------|------------------------|
+| ------ | ------ | ---------------------- |
 | Bearer | string | API key in Bearer auth |
 
 Body:
 
 | Name       | Type | Description  |
-|------------|------|--------------|
+| ---------- | ---- | ------------ |
 | sampleFile | file | Image to use |
 
 Returns:
 
 | Name  | Type         | Description  |
-|-------|--------------|--------------|
+| ----- | ------------ | ------------ |
 | text  | string, null | OCR Results  |
 | error | string, null | Error if any |
 
 3. `/uploadBase64`: Upload a base64 encoded image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
-
 
 Type: `POST`
 
 Headers:
 
 | Name   | Type   | Description            |
-|--------|--------|------------------------|
+| ------ | ------ | ---------------------- |
 | Bearer | string | API key in Bearer auth |
 
 Body:
 
-| Name       | Type | Description  |
-|------------|------|--------------|
+| Name        | Type   | Description          |
+| ----------- | ------ | -------------------- |
 | imageBase64 | string | Base64 encoded image |
-
 
 Returns:
 
 | Name  | Type         | Description  |
-|-------|--------------|--------------|
+| ----- | ------------ | ------------ |
 | text  | string, null | OCR Results  |
 | error | string, null | Error if any |
 
 4. `/upgradeUser`: Upgrade a user to a paid plan. It validates an imaginary transaction id and then upgrades the user.
-    It increases the usage limit of the user based on the subscription the user has purchased.
-
+   It increases the usage limit of the user based on the subscription the user has purchased.
 
 Type: `POST`
 
@@ -150,7 +137,7 @@ Headers: None
 Body:
 
 | Name          | Type   | Description                                                            |
-|---------------|--------|------------------------------------------------------------------------|
+| ------------- | ------ | ---------------------------------------------------------------------- |
 | email         | string | Email address of the user                                              |
 | transactionId | string | Imaginary transaction id                                               |
 | apiKeyId      | string | Id of the API key to be updated. It is returned when a key is created. |
@@ -196,7 +183,7 @@ app.post("/signUp", async (req: Request, res: Response) => {
 
 
   const createKeyResponse = await fetch(
-    "https://api.unkey.dev/v1/keys",
+    "https://api.unkey.dev/v1/keys.createKey",
     {
       method: "POST",
       headers: myHeaders,
@@ -227,28 +214,27 @@ Its params are explained in detail in the official [docs](https://unkey.dev/docs
 
 Following is a description of the params used in this example:
 
-* `apiId`: The API ID to create the key for. You create this API in the Unkey dashboard.
+- `apiId`: The API ID to create the key for. You create this API in the Unkey dashboard.
 
-* `prefix`: The prefix to use for the key. Every key is prefixed with this. This is useful to identify the key's purpose. For eg. we can have prefixes like `user_`, `admin_`, `service_`, `staging_`, `trial_`, `production_` etc.
+- `prefix`: The prefix to use for the key. Every key is prefixed with this. This is useful to identify the key's purpose. For eg. we can have prefixes like `user_`, `admin_`, `service_`, `staging_`, `trial_`, `production_` etc.
 
-* `byteLength`: The byte length used to generate the key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes or 2^128 possible combinations.
+- `byteLength`: The byte length used to generate the key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes or 2^128 possible combinations.
 
-* `ownerId`: This can be any string. In this example, we're using the user's email address as the id. By doing this we'll be able to verify the appropriate owner of the key.
+- `ownerId`: This can be any string. In this example, we're using the user's email address as the id. By doing this we'll be able to verify the appropriate owner of the key.
 
-* `meta`: Any metadata information we want to store with the key. In this example, we're storing the user's name and email.
+- `meta`: Any metadata information we want to store with the key. In this example, we're storing the user's name and email.
 
-* `expires`: Keys can be auto-expired by providing a UNIX timestamp in milliseconds. Once keys expire they will automatically be deleted and are no longer valid.
+- `expires`: Keys can be auto-expired by providing a UNIX timestamp in milliseconds. Once keys expire they will automatically be deleted and are no longer valid.
 
-* `rateLimit`: Keys can be rate limited by certain parameters. This is extremely beneficial as it prevents abuse of our API. The rate limit is enforced on the edge, so it's extremely fast and efficient. The rate limit params we've used in this example are:
+- `rateLimit`: Keys can be rate limited by certain parameters. This is extremely beneficial as it prevents abuse of our API. The rate limit is enforced on the edge, so it's extremely fast and efficient. The rate limit params we've used in this example are:
 
-    * `type`: Type of the rate limit. Read more [here](https://unkey.dev/docs/features/ratelimiting)
+  - `type`: Type of the rate limit. Read more: [Rate Limiting](https://unkey.dev/docs/features/ratelimiting)
 
-    * `limit`: The number of requests allowed in the given time
+  - `limit`: The number of requests allowed in the given time
 
-    * `refill`: The number of requests to refill in the given time
+  - `refill`: The number of requests to refill in the given time
 
-    * `refillInterval`: The interval by which the requests are refilled
-
+  - `refillInterval`: The interval by which the requests are refilled
 
 In the rate limit set in the `/signUp` route, the user is on a trial plan and is allowed 1 request every 10 seconds.
 
@@ -260,7 +246,11 @@ The API key verification is done in the `middleware.ts` file. We're making an AP
 import { Request, Response, NextFunction } from "express";
 
 // An Express Middleware
-const verifyApiKey = async (req:Request, res:Response, next:NextFunction) => {
+const verifyApiKey = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const authHeader = req.headers.authorization;
   if (authHeader) {
     // Get the token from request headers
@@ -275,13 +265,13 @@ const verifyApiKey = async (req:Request, res:Response, next:NextFunction) => {
       });
 
       const verifyKeyResponse = await fetch(
-        "https://api.unkey.dev/v1/keys/verify",
+        "https://api.unkey.dev/v1/keys.verifyKey",
         {
           method: "POST",
           headers: myHeaders,
           body: raw,
           redirect: "follow",
-        },
+        }
       );
       const verifyKeyResponseJson = await verifyKeyResponse.json();
 
@@ -328,12 +318,11 @@ export default verifyApiKey;
 
 Let's understand the response in detail:
 
-* `valid`: This is either `true` or `false` telling us if the key is valid or not.
+- `valid`: This is either `true` or `false` telling us if the key is valid or not.
 
-* `expires`: The UNIX timestamp in milliseconds when the key expires. Here, we've given the user a 30 days trial. So the key expires in 30 days.
+- `expires`: The UNIX timestamp in milliseconds when the key expires. Here, we've given the user a 30 days trial. So the key expires in 30 days.
 
-* `ratelimit`: Currently, the user is limited to 1 request every 10 seconds. The `limit` param tells us how many more requests the user has left. The `reset` tells us the time when the requests will be refilled. We can use this to show the user how much time is left before they can make another request.
-
+- `ratelimit`: Currently, the user is limited to 1 request every 10 seconds. The `limit` param tells us how many more requests the user has left. The `reset` tells us the time when the requests will be refilled. We can use this to show the user how much time is left before they can make another request.
 
 ---
 
@@ -344,7 +333,7 @@ Suppose we want to offer an API as a paid service with subscription tiers. We ca
 Consider the following plans:
 
 | Price      | Requests      | Rate Limit |
-|------------|---------------|------------|
+| ---------- | ------------- | ---------- |
 | Free       | 100/month     | 6/min      |
 | $10/month  | 10,000/month  | 100/min    |
 | $100/month | 100,000/month | No limit   |
@@ -353,7 +342,6 @@ Suppose the user upgrades to the $10/month plan, then, we can update the rate li
 
 ```javascript
 app.post("/upgradeUser", async (req: Request, res: Response) => {
-
   const { transactionId, email, apiKeyId } = req.body;
 
   // Imaginary transactionId and email validation.
@@ -366,25 +354,30 @@ app.post("/upgradeUser", async (req: Request, res: Response) => {
   myHeaders.append("Authorization", `Bearer ${process.env.UNKEY_ROOT_KEY}`);
 
   const raw = JSON.stringify({
-    "keyId": apiKeyId,
-    "ratelimit": {
-      "type": "fast",
-      "limit": 100, // Maximum allowed requests for the user
-      "refillRate": 100, // Number of requests that will be replenished
-      "refillInterval": 60000 // Time interval (in milliseconds) for refilling the requests
-    }
+    keyId: apiKeyId,
+    ratelimit: {
+      type: "fast",
+      limit: 100, // Maximum allowed requests for the user
+      refillRate: 100, // Number of requests that will be replenished
+      refillInterval: 60000, // Time interval (in milliseconds) for refilling the requests
+    },
   });
 
-  const updateKeyRequest = await fetch("https://api.unkey.dev/v1/keys/example_key", {
-    method: 'PUT',
-    headers: myHeaders,
-    body: raw,
-    redirect: 'follow'
-  })
+  const updateKeyRequest = await fetch(
+    "https://api.unkey.dev/v1/keys.updateKey",
+    {
+      keyId: "example_key"
+      method: "PUT",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    }
+  );
 
-  if (updateKeyRequest.status !== 200) return res.status(400).json({ message: "Something went wrong" })
+  if (updateKeyRequest.status !== 200)
+    return res.status(400).json({ message: "Something went wrong" });
 
-  return res.status(200).json({ message: "User upgraded successfully" })
+  return res.status(200).json({ message: "User upgraded successfully" });
 });
 ```
 

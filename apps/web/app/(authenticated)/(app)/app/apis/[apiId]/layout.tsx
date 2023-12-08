@@ -14,7 +14,10 @@ type Props = PropsWithChildren<{
     apiId: string;
   };
 }>;
-export const revalidate = 0;
+
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
 export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
@@ -25,24 +28,36 @@ export default async function ApiPageLayout(props: Props) {
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return redirect("/new");
   }
   const navigation = [
-    { label: "Overview", href: `/app/apis/${props.params.apiId}`, segment: null },
-    { label: "Keys", href: `/app/apis/${props.params.apiId}/keys`, segment: "keys" },
-    { label: "Settings", href: `/app/apis/${props.params.apiId}/settings`, segment: "settings" },
+    {
+      label: "Overview",
+      href: `/app/apis/${props.params.apiId}`,
+      segment: null,
+    },
+    {
+      label: "Keys",
+      href: `/app/apis/${props.params.apiId}/keys`,
+      segment: "keys",
+    },
+    {
+      label: "Settings",
+      href: `/app/apis/${props.params.apiId}/settings`,
+      segment: "settings",
+    },
   ];
 
   return (
     <div>
       <PageHeader
         title={api.name}
-        description={"Here is a list of your current API keys"}
+        description={" "}
         actions={[
           <Badge
             key="apiId"
             variant="secondary"
-            className="flex justify-between w-full font-mono font-medium"
+            className="ph-no-capture flex w-full justify-between font-mono font-medium"
           >
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
@@ -55,7 +70,7 @@ export default async function ApiPageLayout(props: Props) {
       <div className="-mt-4 md:space-x-4 ">
         <Navbar navigation={navigation} />
       </div>
-      <main className="mt-8 mb-20">{props.children}</main>
+      <main className="mb-20 mt-8">{props.children}</main>
     </div>
   );
 }

@@ -1,19 +1,23 @@
 ---
 title: "Introduction"
-description: "Machine readable error codes"
+description: "Machine and human readable error codes"
 ---
+
 
 The Unkey API returns machine readable error codes to quickly identify the type of error as well as link to the docs and a `requestId`. Please always include the `requestId` in your error report.
 
-```json JSON response
+
+```json
 {
-  "error": {
-    "code": "NOT_FOUND",
-    "docs": "https://unkey.dev/docs/api-reference/errors/code/NOT_FOUND",
-    "message": "unable to find workspace ws_123",
-    "requestId": "fra:fra::e4bcaf2b91ce0296c31f44e8e4cc70a9"
+  error: {
+    code: "UNAUTHORIZED",
+    message: "We were unable to authorize your request. Either your key was missing, malformed or does not have the required permissions.",
+    docs: "https://unkey.api/docs/api-reference/errors/code/BAD_REQUEST",
+    requestId: "req_1234567890"
   }
 }
+
 ```
+
 
 If you can't debug something on your own or think there is a bug, please get in touch with us on [Discord](https://unkey.dev/discord) or [Email](mailto:support@unkey.dev) and provide the full error response.

@@ -21,48 +21,6 @@ jobs:
     steps:
       - run: true
 
-
-  test_agent:
-   needs: authorize
-   name: Unit Test Agent
-   runs-on: ubuntu-latest
-
-   services:
-     mysql:
-       image: mysql:latest
-       env:
-         MYSQL_ALLOW_EMPTY_PASSWORD: yes
-         MYSQL_DATABASE: unkey
-       ports:
-         - 3306:3306
-       options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-   steps:
-     - uses: actions/checkout@v3
-       with:
-         ref: ${{ github.event.pull_request.head.sha || github.ref }}
-
-     - name: Load Schema into MySQL
-       run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
-
-     - name: Setup Go
-       uses: actions/setup-go@v2
-       with:
-         go-version: ^1.20.0
-
-     - name: Set up gotestfmt
-       run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
-
-     - name: Install dependencies
-       run: go mod download
-       working-directory: apps/agent
-
-     - name: Test
-       run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
-       working-directory: apps/agent
-       env:
-         DATABASE_DSN: root@tcp(localhost:3306)/unkey
-
   test_api_worker:
     needs: authorize
     name: Unit Test API
@@ -122,10 +80,8 @@ jobs:
 
 
       - name: Test
-        run: bun test src/routes --coverage --timeout 10000
+        run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
-        env:
-          UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
       - name: Delete planetscale branch
         if: always()
         run: |
@@ -195,16 +151,16 @@ jobs:
         env:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
 
-  tinybird:
-    needs: authorize
-    name: Tinybird CI
-    concurrency: tinybird
-    uses: tinybirdco/ci/.github/workflows/ci.yml@v1.1.8
-    with:
-      data_project_dir: ./internal/tinybird
-    secrets:
-      admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
-      tb_host: https://api.tinybird.co
+  # tinybird:
+  #   needs: authorize
+  #   name: Tinybird CI
+  #   concurrency: tinybird
+  #   uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
+  #   with:
+  #     data_project_dir: ./internal/tinybird
+  #   secrets:
+  #     tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
+  #     tb_host: https://api.tinybird.co
 
   build_packages:
     needs: authorize

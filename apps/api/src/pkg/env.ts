@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const zEnv = z.object({
+  VERSION: z.string().default("unknown"),
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),

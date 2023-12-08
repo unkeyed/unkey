@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
@@ -15,12 +15,13 @@ import {
 } from "./legacy_apis_createApi";
 
 test("creates the api", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
 
   const r = await seed(env);
   const app = newApp();
+
   registerLegacyApisCreateApi(app);
 
   const res = await fetchRoute<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>(app, {
@@ -47,7 +48,7 @@ test("creates the api", async () => {
 });
 
 test("creates rejects invalid root key", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
 

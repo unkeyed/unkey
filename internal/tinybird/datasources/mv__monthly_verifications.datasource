@@ -1,0 +1,14 @@
+VERSION 2
+
+SCHEMA >
+    `workspaceId` String,
+    `apiId` String,
+    `keyId` String,
+    `success` AggregateFunction(countIf, Nullable(UInt8)),
+    `rateLimited` AggregateFunction(countIf, Nullable(UInt8)),
+    `usageExceeded` AggregateFunction(countIf, Nullable(UInt8)),
+    `time` Date
+
+ENGINE "AggregatingMergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(time)"
+ENGINE_SORTING_KEY "workspaceId, time, apiId, keyId"

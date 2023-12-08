@@ -3,7 +3,6 @@ import { db, eq, schema } from "@/lib/db";
 import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
-
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),
@@ -36,9 +35,13 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
           return NextResponse.redirect(new URL("/new", req.url));
         }
         // this stops users if they haven't paid.
-        if (!["/app/stripe", "/app/apis", "/app", "/new", "/"].includes(req.nextUrl.pathname)) {
+        if (
+          !["/app/settings/billing/stripe", "/app/apis", "/app", "/new", "/"].includes(
+            req.nextUrl.pathname,
+          )
+        ) {
           if (workspace?.plan === "free") {
-            return NextResponse.redirect(new URL("/app/stripe", req.url));
+            return NextResponse.redirect(new URL("/app/settings/billing/stripe", req.url));
           }
           return NextResponse.next();
         }

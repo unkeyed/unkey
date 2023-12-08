@@ -2,12 +2,13 @@
 /// <reference lib="dom.iterable" />
 // ^ https://bun.sh/docs/typescript#dom-types
 
+import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import type React from "react";
-
+import { Suspense } from "react";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -24,7 +25,7 @@ export const metadata = {
   description: "Accelerate your API development",
   openGraph: {
     title: "Open Source API Authentication",
-    description: "Accelerate your API development",
+    description: "Accelerate your API development ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
     images: ["https://unkey.dev/og.png"],
@@ -56,15 +57,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
-      <head>
-        <script
-          defer
-          data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || ""}
-          src="https://plausible.io/js/script.exclusions.js"
-          data-exclude="/app/apis/**, /app/keys/**"
-        />
-      </head>
-      <body>{children}</body>
+      <Suspense>
+        <PostHogPageview />
+      </Suspense>
+      <PHProvider>
+        <body>
+          <head>
+            {(process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "preview") && (
+              // eslint-disable-next-line @next/next/no-sync-scripts
+              <script
+                data-project-id="LgLkKSvYgWMJ231LDMvubknwDBTikeK7C7y9FEtb"
+                data-is-production-environment="false"
+                src="https://snippet.meticulous.ai/v1/meticulous.js"
+              />
+            )}
+          </head>
+          {children}
+        </body>
+      </PHProvider>
     </html>
   );
 }

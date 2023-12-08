@@ -23,8 +23,19 @@ export function newApp() {
       title: "Unkey Api",
       version: "1.0.0",
     },
+    security: [{ BearerAuth: [] }],
+    servers: [
+      {
+        url: "https://api.unkey.dev",
+        description: "Production",
+      },
+    ],
   });
 
+  app.openAPIRegistry.registerComponent("securitySchemes", "BearerAuth", {
+    type: "http",
+    scheme: "bearer",
+  });
   return app;
 }
 

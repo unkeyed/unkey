@@ -10,7 +10,6 @@ import { db, schema, sql } from "@/lib/db";
 import { getTotalVerifications } from "@/lib/tinybird";
 import { Github } from "lucide-react";
 import Link from "next/link";
-export const revalidate = 60;
 
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   db
@@ -28,17 +27,18 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   getTotalVerifications({}).then((res) => {
     return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
   }),
+  { next: { revalidate: 3600 } },
 ]);
 
 function NumbersServed() {
   return (
-    <div className="mt-24 rounded-4xl sm:mt-32 lg:mt-32">
+    <div className="rounded-4xl mt-24 sm:mt-32 lg:mt-32">
       <Container className="">
         <FadeIn className="flex items-center gap-x-8">
-          <h2 className="mb-8 text-2xl font-semibold tracking-wider text-center text-black font-display sm:text-left">
+          <h2 className="font-display mb-8 text-center text-2xl font-semibold tracking-wider text-black sm:text-left">
             We serve
           </h2>
-          <div className="flex-auto h-px" />
+          <div className="h-px flex-auto" />
         </FadeIn>
         <FadeInStagger faster>
           <StatList>
@@ -85,7 +85,7 @@ function Features() {
               <StylizedImage
                 src={laptopImage}
                 sizes="(min-width: 1024px) 41rem, 31rem"
-                className="justify-center w-full lg:justify-end"
+                className="w-full justify-center lg:justify-end"
               />
             </FadeIn>
           </div>
@@ -146,10 +146,10 @@ export const metadata = {
 export default async function Home() {
   return (
     <>
-      <Container className="mt-24 md:mb-8 sm:mt-32 md:mt-56 lg:px-0">
-        <FadeIn className="flex flex-col md:flex-row md:justify-stretch md:spacing-x-4">
+      <Container className="mt-24 sm:mt-32 md:mb-8 md:mt-56 lg:px-0">
+        <FadeIn className="md:spacing-x-4 flex flex-col md:flex-row md:justify-stretch">
           <div className="w-full">
-            <h1 className="font-display text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-7xl font-sans">
+            <h1 className="font-display font-sans text-5xl font-medium tracking-tight text-gray-950 [text-wrap:balance] sm:text-7xl">
               Seriously Fast API Authentication
             </h1>
             <p className={"mt-6 text-xl text-gray-600 [text-wrap:balance]"}>
@@ -157,15 +157,15 @@ export default async function Home() {
               authorization platform for scaling user facing APIs. Create, verify, and manage low
               latency API keys in seconds.
             </p>
-            <div className="flex flex-col mt-4 space-y-4 md:flex-row md:space-x-8 md:space-y-0">
-              <Button size="xl" className="text-sm font-semibold rounded-full" asChild>
+            <div className="mt-4 flex flex-col space-y-4 md:flex-row md:space-x-8 md:space-y-0">
+              <Button size="xl" className="rounded-full text-sm font-semibold" asChild>
                 <Link className="flex-none" href="/app">
                   Start for free
                 </Link>
               </Button>
               <Button
                 size="xl"
-                className="text-sm font-semibold rounded-full"
+                className="rounded-full text-sm font-semibold"
                 variant="secondary"
                 asChild
               >
@@ -175,12 +175,12 @@ export default async function Home() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <Github className="w-4 h-4 mr-2" /> Star us on GitHub
+                  <Github className="mr-2 h-4 w-4" /> Star us on GitHub
                 </a>
               </Button>
             </div>
           </div>
-          <div className="hidden lg:block lg:ml-12">
+          <div className="hidden lg:ml-12 lg:block">
             <iframe
               width="560"
               height="315"
@@ -190,7 +190,7 @@ export default async function Home() {
               allowFullScreen
             />
           </div>
-          <div className="mt-4 aspect-w-16 aspect-h-9 lg:hidden">
+          <div className="aspect-w-16 aspect-h-9 mt-4 lg:hidden">
             <iframe
               src="https://www.youtube-nocookie.com/embed/-gvpo4SWgG8?si=8n5wIAdTZA7PCgZb"
               title="Unkey in Five minutes - YouTube"

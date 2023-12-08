@@ -8,9 +8,9 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
-    "@unkey/api": "^0.12.0"
+   "@unkey/api": "latest"
   },
   "devDependencies": {
-    "bun-types": "^1.0.11"
+    "bun-types": "^1.0.11" 
   }
 }
