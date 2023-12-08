@@ -45,7 +45,6 @@ export function createConnection(
           host: opts.host,
           user: opts.username,
           password: opts.password,
-          ssl: { rejectUnauthorized: true },
         }),
         {
           schema,
