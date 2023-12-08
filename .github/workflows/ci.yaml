@@ -21,10 +21,39 @@ jobs:
     steps:
       - run: true
 
+
+  test_docs:
+    name: Test Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: |
+          pnpm install
+          npm i -g mintlify@latest
+      - name: Check for broken links
+        run: mintlify broken-links
+        working-directory: apps/docs
+
+
   test_api_worker:
     needs: authorize
     name: Unit Test API
     runs-on: ubuntu-latest
+    services:
+         mysql:
+           image: mysql:latest
+           env:
+             MYSQL_ALLOW_EMPTY_PASSWORD: yes
+             MYSQL_DATABASE: unkey
+           ports:
+             - 3306:3306
+           options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
 
     steps:
@@ -32,35 +61,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
-
-      - name: Setup pscale
-        uses: planetscale/setup-pscale-action@v1
-        with:
-          version: latest
-
-      - name: Create a branch
-        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-
-
-      - name: Create a password
-        id: database_password
-        run: |
-          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
-
-          # Extract secrets
-          database_host=$(echo $res | jq -r '.access_host_url')
-          database_username=$(echo $res | jq -r '.username')
-          database_password=$(echo $res | jq -r '.plain_text')
-
-          # Mask secrets
-          echo "::add-mask::$database_host"
-          echo "::add-mask::$database_username"
-          echo "::add-mask::$database_password"
-
-          # Set outputs
-          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
+      - name: Load Schema into MySQL
+        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
 
 
       - uses: pnpm/action-setup@v2
@@ -76,16 +78,15 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{env.DATABASE_USERNAME }}:${{env.DATABASE_PASSWORD }}@${{env.DATABASE_HOST}}/unkey?ssl={"rejectUnauthorized":true}'
+          DRIZZLE_DATABASE_URL: 'mysql://root@localhost:3306/unkey'
 
 
       - name: Test
         run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
-      - name: Delete planetscale branch
-        if: always()
-        run: |
-          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+        env:
+          DATABASE_DSN: mysql://root@localhost:3306/unkey
+
 
 
   lint:

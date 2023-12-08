@@ -86,11 +86,14 @@ export function init(opts: { env: Env }): void {
       : undefined,
   );
 
-  db = createConnection({
-    host: opts.env.DATABASE_HOST,
-    username: opts.env.DATABASE_USERNAME,
-    password: opts.env.DATABASE_PASSWORD,
-  });
+  db = createConnection(
+    {
+      host: opts.env.DATABASE_HOST,
+      username: opts.env.DATABASE_USERNAME,
+      password: opts.env.DATABASE_PASSWORD,
+    },
+    opts.env.DATABASE_MODE,
+  );
   logger = opts.env.AXIOM_TOKEN
     ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
     : new ConsoleLogger();
