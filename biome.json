@@ -24,7 +24,14 @@
         "noExplicitAny": "off"
       }
     },
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".contentlayer",
+      "./packages/api/src/openapi.d.ts"
+    ]
   },
   "formatter": {
     "indentStyle": "space",

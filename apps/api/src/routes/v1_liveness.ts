@@ -1,5 +1,5 @@
 import { openApiErrorResponses } from "@/pkg/errors";
-import { logger, metrics } from "@/pkg/global";
+import { analytics, logger, metrics, rateLimiter, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -12,9 +12,8 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            status: z.literal("we're cooking").openapi({
+            status: z.string().openapi({
               description: "The status of the server",
-              example: "we're cooking",
             }),
             services: z.object({
               metrics: z.string().openapi({
@@ -24,6 +23,15 @@ const route = createRoute({
               logger: z.string().openapi({
                 description: "The name of the connected logger service",
                 example: "AxiomLogger or ConsoleLogger",
+              }),
+              ratelimit: z.string().openapi({
+                description: "The name of the connected ratelimit service",
+              }),
+              usagelimit: z.string().openapi({
+                description: "The name of the connected usagelimit service",
+              }),
+              analytics: z.string().openapi({
+                description: "The name of the connected analytics service",
               }),
             }),
           }),
@@ -40,11 +48,14 @@ export type V1LivenessResponse = z.infer<
 
 export const registerV1Liveness = (app: App) =>
   app.openapi(route, async (c) => {
-    return c.jsonT({
-      status: "we're cooking",
+    return c.json({
+      status: "we're so back",
       services: {
         metrics: metrics.constructor.name,
         logger: logger.constructor.name,
+        ratelimit: rateLimiter.constructor.name,
+        usagelimit: usageLimiter.constructor.name,
+        analytics: analytics.client.constructor.name,
       },
     });
   });

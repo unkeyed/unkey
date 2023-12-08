@@ -7,7 +7,6 @@ There are a few 3rd party services that are required to run the app:
 
 You also need the following tools installed.
 
-- [Go](https://go.dev)
 - [Node](https://nodejs.org)
 - [pnpm](https://pnpm.io/installation)
 
@@ -20,24 +19,32 @@ You also need the following tools installed.
 <Steps titleSize="h3">
   <Step title="Setup" >
     Get the repo [here.](https://github.com/unkeyed/unkey)
-
-    Set environment variables in `/apps/web/.env` and/or `/apps/agent/.env` respectively and populate the values from the services above.:
-
-    ```sh-session
-    cp apps/web/.env.example apps/web/.env
-    cp apps/agent/.env.example apps/agent/.env
+    ```bash
+    git clone github.com/unkeyed/unkey
     ```
 
   </Step>
+
   <Step title="Install">
-    ```sh-session
+    ```bash
+    cd unkey
     pnpm install
     ```
 
   </Step>
+
+  <Step title="Environment variable files">
+  Copy the example files `/apps/web/.env.example` and `/apps/api/.dev.vars.example` respectively.
+
+  ```bash
+  cp apps/web/.env.example apps/web/.env
+  cp apps/api/.dev.vars.example apps/api/.dev.vars
+  ```
+</Step>
+
   <Step title="Prepare Database">
   #### Web App
-  For Unkey Dashboard `apps/web/.env` the following variables will be used after you create your database:
+  For the Unkey dashboard in `apps/web/.env`, the following variables will be used after you create your database:
 
   ```
   DATABASE_HOST=aws.connect.psdb.cloud
@@ -45,18 +52,27 @@ You also need the following tools installed.
   DATABASE_PASSWORD=pscale_pw_....
   ```
 
-  ### Agent
-  For the agent (`apps/agent/.env`) you will need the DSN which is made up of the same values as above including the database name:
+  #### API
+
+  <Info>
+  You do not need this is if you are just working on the web app.
+</Info>
+  The API runs on `workerd`, thus you need to populate `apps/api/.dev.vars` instead of `.env` with the same values as above.
 
   ```
-  DATABASE_DSN=<USERNAME>:<PASSWORD>@tcp(aws.connect.psdb.cloud)/unkey?tls=true
+  DATABASE_HOST=aws.connect.psdb.cloud
+  DATABASE_USERNAME=...
+  DATABASE_PASSWORD=pscale_pw_....
   ```
+
+
+
   ### Drizzle Schema
     To use Drizzle we need to push the schema, run the following command in your terminal
 
     > Make sure you replace `user`, `password`, `host` and `db` with your own values
 
-    ```sh-session
+    ```bash
     cd internal/db
     DRIZZLE_DATABASE_URL='mysql://{user}:{password}@{host}/{db}?ssl={"rejectUnauthorized":true}' pnpm drizzle-kit push:mysql
     ```
@@ -81,12 +97,12 @@ You also need the following tools installed.
 
     You need to provide the database credentials as well as the organization ID from clerk as `TENANT_ID`
 
-    ```sh-session
+    ```bash
 
-    export DATABASE_HOST=
-    export DATABASE_USERNAME=
-    export DATABASE_PASSWORD=
-    export TENANT_ID=
+    export DATABASE_HOST=aws.connect.psdb.cloud
+    export DATABASE_USERNAME=...
+    export DATABASE_PASSWORD=pscale_pw_....
+    export TENANT_ID={clerk org id from previous step}
 
     pnpm bootstrap
     ```
@@ -94,23 +110,31 @@ You also need the following tools installed.
 
   </Step>
 
-  <Step title="Run the Agent">
 
-    ```sh-session
-    cd apps/agent
-    go run . agent --env ./.env
-    ```
-  </Step>
   <Step title="Run app">
 
   Open a new terminal and run the following command:
-    ```sh-session
+    ```bash
     pnpm build
     pnpm turbo run dev --filter=web
     ```
   </Step>
 
   <Step title="Develop">
-    Finally open your browser at http://localhost:3000/app and go through the onboarding process.
+    Finally open your browser at http://localhost:3000/app and login.
+  </Step>
+
+  <Step title="Run the api">
+  <Info>
+  This is only required if you are working on the API.
+  </Info>
+
+
+    ```bash
+    cd apps/api
+    pnpm dev
+    ```
+
+    The development server runs on `:8787` by default.
   </Step>
 </Steps>

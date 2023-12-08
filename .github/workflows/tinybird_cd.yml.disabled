@@ -1,0 +1,19 @@
+name: Tinybird - CD Workflow
+
+concurrency: tinybird
+
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:  # deploy changes to workspace 'unkey'
+    uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
+    with:
+      data_project_dir: ./internal/tinybird
+
+    secrets:
+      tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }}  # set admin token associated to an account in GitHub secrets
+      tb_host: https://api.tinybird.co

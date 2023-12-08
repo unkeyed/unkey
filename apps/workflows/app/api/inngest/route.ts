@@ -1,10 +1,12 @@
 import { inngest } from "@/lib/inngest";
-import { updateUsage } from "@/lib/workflows/update-usage";
+import { createInvoice } from "@/lib/workflows/create-invoice";
+import { endTrials } from "@/lib/workflows/end-trials";
+import { invoicing } from "@/lib/workflows/invoicing";
 import { serve } from "inngest/next";
 
 export const maxDuration = 300;
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [updateUsage],
+  functions: [invoicing, createInvoice, endTrials],
 });

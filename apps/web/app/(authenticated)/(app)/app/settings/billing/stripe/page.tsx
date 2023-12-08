@@ -38,9 +38,10 @@ export default async function StripeRedirect() {
   });
 
   // If they have a subscription already, we display the portal
-  if (ws.stripeCustomerId && ws.stripeSubscriptionId) {
+  if (ws.stripeCustomerId) {
     const session = await stripe.billingPortal.sessions.create({
       customer: ws.stripeCustomerId,
+      return_url: headers().get("referer") ?? "https://unkey.dev/app",
     });
 
     return redirect(session.url);
@@ -48,41 +49,21 @@ export default async function StripeRedirect() {
 
   // If they don't have a subscription, we send them to the checkout
   // and the checkout will redirect them to the success page, which will add the subscription to the user table
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  const baseUrl = process.env.VERCEL_URL ? "https://unkey.dev" : "http://localhost:3000";
 
   // do not use `new URL(...).searchParams` here, because it will escape the curly braces and stripe will not replace them with the session id
   const successUrl = `${baseUrl}/app/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
 
-  const cancelUrl = headers().get("referer") ?? "https://unkey.dev/app";
+  const cancelUrl = headers().get("referer") ?? `${baseUrl}/app`;
   const session = await stripe.checkout.sessions.create({
     client_reference_id: ws.id,
     customer_email: user?.emailAddresses.at(0)?.emailAddress,
     billing_address_collection: "auto",
-    line_items: [
-      {
-        // base
-        price: e.STRIPE_PRO_PLAN_PRICE_ID,
-        quantity: 1,
-      },
-      {
-        // additional keys
-        price: e.STRIPE_ACTIVE_KEYS_PRICE_ID,
-      },
-      {
-        // additional verifications
-        price: e.STRIPE_KEY_VERIFICATIONS_PRICE_ID,
-      },
-    ],
-    mode: "subscription",
+    mode: "setup",
     success_url: successUrl,
     cancel_url: cancelUrl,
     currency: "USD",
-    allow_promotion_codes: true,
-    subscription_data: {
-      billing_cycle_anchor: nextBillinAnchor(),
-    },
+    customer_creation: "always",
   });
 
   if (!session.url) {
@@ -90,11 +71,4 @@ export default async function StripeRedirect() {
   }
 
   return redirect(session.url);
-}
-
-// Returns midnight of the first day of the next month as unix timestamp (seconds)
-function nextBillinAnchor(): number {
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
-  return Math.floor(nextMonth.getTime() / 1000);
 }

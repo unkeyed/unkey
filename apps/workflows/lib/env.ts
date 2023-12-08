@@ -7,12 +7,15 @@ export const env = () =>
       DATABASE_USERNAME: z.string(),
       DATABASE_PASSWORD: z.string(),
       TINYBIRD_TOKEN: z.string(),
-      HEARTBEAT_UPDATE_USAGE_URL: z.string().optional(),
       STRIPE_SECRET_KEY: z.string(),
-      STRIPE_PRO_PLAN_PRICE_ID: z.string(),
-      STRIPE_ACTIVE_KEYS_PRODUCT_ID: z.string(),
-      STRIPE_ACTIVE_KEYS_PRICE_ID: z.string(),
-      STRIPE_KEY_VERIFICATIONS_PRODUCT_ID: z.string(),
-      STRIPE_KEY_VERIFICATIONS_PRICE_ID: z.string(),
+
+      STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
+      STRIPE_PRODUCT_ID_ACTIVE_KEYS: z.string(),
+      STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
+      STRIPE_PRODUCT_ID_SUPPORT: z.string(),
+
+      CLERK_SECRET_KEY: z.string(),
+
+      RESEND_API_KEY: z.string(),
     })
     .parse(process.env);

@@ -99,6 +99,7 @@ export default async function (props: Props) {
         billingPeriodEnd: null,
         features: {},
         betaFeatures: {},
+        subscriptions: null,
       });
       return redirect(`/new?workspaceId=${workspaceId}`);
     }

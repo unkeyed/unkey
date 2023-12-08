@@ -38,6 +38,7 @@ describe("basic behaviour", () => {
     expect(data).toMatchInlineSnapshot(`
       {
         "unkey": {
+          "keyId": "key_XudidxnEzmwBxhGFkN8P84",
           "meta": {
             "customMetadata": 324,
           },
