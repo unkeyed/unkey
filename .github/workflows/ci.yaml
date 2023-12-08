@@ -40,7 +40,7 @@ jobs:
              MYSQL_ROOT_PASSWORD: root
              MYSQL_DATABASE: unkey
              MYSQL_USER: unkey
-             MYSQL_PASSWORD: unkey
+             MYSQL_PASSWORD: password
            ports:
              - 3306:3306
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -80,7 +80,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://unkey:root@localhost:3306/unkey'
+          DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
 
 
       - name: Test
@@ -89,7 +89,7 @@ jobs:
         env:
           DATABASE_HOST: localhost
           DATABASE_USERNAME: unkey
-          DATABASE_PASSWORD: unkey
+          DATABASE_PASSWORD: password
 
 
 
