@@ -1,3 +1,4 @@
+import { authors } from "@/content/blog/authors";
 import { ImageResponse } from "@vercel/og";
 import { allPosts } from "contentlayer/generated";
 const truncate = (str: string | null, length: number) => {
@@ -24,7 +25,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
         height: 720,
       });
     }
-
+    const author = authors[post.author];
     return new ImageResponse(
       <div
         style={{
@@ -203,9 +204,9 @@ export default async function Image({ params }: { params: { slug: string } }) {
               alignItems: "center",
             }}
           >
-            {post.author.image ? (
+            {author.image ? (
               <img
-                alt={post.author.name}
+                alt={author.name}
                 width={64}
                 height={64}
                 style={{
@@ -215,10 +216,10 @@ export default async function Image({ params }: { params: { slug: string } }) {
                   borderRadius: "100%",
                   marginRight: "10px",
                 }}
-                src={`${baseUrl}${post.author.image.src}`}
+                src={`${baseUrl}${author.image.src}`}
               />
             ) : null}
-            <p>{post.author.name ? `by ${post.author.name}` : null}</p>
+            <p>{author.name ? `by ${author.name}` : null}</p>
           </div>
           <p style={{ marginLeft: "4px" }}>Unkey.dev</p>
         </div>
