@@ -80,14 +80,14 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://unkey:root@mysql:3306/unkey'
+          DRIZZLE_DATABASE_URL: 'mysql://unkey:root@localhost:3306/unkey'
 
 
       - name: Test
         run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
         env:
-          DATABASE_HOST: mysql
+          DATABASE_HOST: localhost
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: unkey
 
