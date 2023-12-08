@@ -10,27 +10,18 @@ jobs:
 
 
 
-  test_docs:
-    name: Test Docs
+  docs:
+    name: Check Docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: latest
-
-      - name: Install dependencies
-        run: |
-          pnpm install
-          npm i -g mintlify@latest
       - name: Check for broken links
-        run: mintlify broken-links
+        run: npx mintlify@latest broken-links
         working-directory: apps/docs
 
 
   test_api_worker:
-
     name: Unit Test API
     runs-on: ubuntu-latest
     services:
