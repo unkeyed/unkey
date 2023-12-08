@@ -20,17 +20,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) {
     return notFound();
   }
-  const author = authors[post.author];
-
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const ogUrl = new URL("/og/blog", baseUrl);
-  ogUrl.searchParams.set("title", post?.title ?? "");
-  ogUrl.searchParams.set("author", author?.name ?? "");
-  if (author.image?.src) {
-    ogUrl.searchParams.set("image", new URL(author.image.src, baseUrl).toString());
-  }
 
   return {
     title: `${post?.title} | Unkey`,
@@ -40,17 +29,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post?.description,
       url: `https://unkey.dev/blog/${params.slug}`,
       siteName: "unkey.dev",
-      images: [
-        {
-          url: post?.image || ogUrl.toString(),
-          width: 1200,
-          height: 675,
-        },
-      ],
     },
     twitter: {
-      title: `${post?.title} | Unkey`,
       card: "summary_large_image",
+      title: `${post?.title} | Unkey`,
+      description: post?.description,
+      site: "@unkeydev",
+      creator: "@unkeydev",
     },
     icons: {
       shortcut: "/unkey.png",

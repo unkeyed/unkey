@@ -15,9 +15,6 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const job = allJobs.find((j) => j.slug === params.slug && j.visible);
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
 
   return {
     title: `${job?.title} | Unkey`,
@@ -25,19 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${job?.title} | Unkey`,
       description: job?.description,
-      url: `${baseUrl}/careers/${job?.slug}`,
-      siteName: "unkey.dev",
-      images: [
-        {
-          url: `${baseUrl}/og/changelog?title=${job?.title}`,
-          width: 1200,
-          height: 675,
-        },
-      ],
+      url: `https://unkey.dev/careers/${job?.slug}`,
     },
     twitter: {
-      title: `${job?.title} | Unkey`,
       card: "summary_large_image",
+      title: `${job?.title} | Unkey`,
+      description: job?.description,
+      site: "@unkeydev",
+      creator: "@unkeydev",
     },
     icons: {
       shortcut: "/unkey.png",

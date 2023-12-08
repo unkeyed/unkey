@@ -1,6 +1,6 @@
+import { authors } from "@/content/blog/authors";
 import { ImageResponse } from "@vercel/og";
-import { NextRequest, NextResponse } from "next/server";
-
+import { allPosts } from "contentlayer/generated";
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
     return str;
@@ -9,16 +9,25 @@ const truncate = (str: string | null, length: number) => {
 };
 
 export const runtime = "edge";
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export const contentType = "image/png";
+const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
+export default async function Image({ params }: { params: { slug: string } }) {
   try {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
+    const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
+    if (!post) {
+      return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+        width: 1280,
+        height: 720,
+      });
+    }
 
-    const { searchParams } = new URL(req.url);
+    const author = authors[post.author];
 
-    const title = searchParams.get("title") || "Career";
-    // @ts-expect-error no idea why nextjs is complaining about this
     return new ImageResponse(
       <div
         style={{
@@ -170,9 +179,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             color: "transparent",
+            textAlign: "center",
           }}
         >
-          {truncate(title, 55)}
+          {truncate(post.title, 55)}
         </h1>
 
         <div
@@ -190,8 +200,30 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             width: "100%",
           }}
         >
-          <p>We're hiring</p>
-          <p>Unkey.dev</p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            {author ? (
+              <img
+                alt={author.name}
+                width={64}
+                height={64}
+                style={{
+                  width: 64,
+                  height: 64,
+                  filter: "grayscale()",
+                  borderRadius: "100%",
+                  marginRight: "10px",
+                }}
+                src={`${baseUrl}${author.image.src}`}
+              />
+            ) : null}
+            <p>{author.name ? `by ${author.name}` : null}</p>
+          </div>
+          <p style={{ marginLeft: "4px" }}>Unkey.dev</p>
         </div>
       </div>,
       {
@@ -206,7 +238,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     );
   } catch (e) {
-    console.error(e);
-    return new NextResponse("Something went wrong");
+    console.error(`Error generating image using fallback for blog route ${params.slug}`, e);
+    return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+      width: 1280,
+      height: 720,
+    });
   }
 }
