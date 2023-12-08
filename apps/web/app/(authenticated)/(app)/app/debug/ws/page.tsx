@@ -2,7 +2,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 
 export const revalidate = 0;
-export const runtime = "edge";
+
 export default async function DebugWorkspacePage() {
   const tenantId = getTenantId();
 

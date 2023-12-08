@@ -16,7 +16,7 @@ import { Info, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./table";
-export const runtime = "edge";
+
 export default async function KeyPage(props: { params: { keyId: string } }) {
   const tenantId = getTenantId();
 
@@ -125,7 +125,7 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
                 className="flex justify-between font-mono font-medium "
               >
                 <span className="truncate">{key.id}</span>
-                <CopyButton value={key.id} className="ml-2" />
+                <CopyButton value={key.id} className="ph-no-capture ml-2" />
               </Badge>
             }
           />

@@ -15,7 +15,6 @@ import * as React from "react";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { OAuthSignIn } from "../oauth-signin";
-export const runtime = "edge";
 
 export default function AuthenticationPage() {
   const [verify, setVerify] = React.useState(false);
@@ -27,7 +26,7 @@ export default function AuthenticationPage() {
     return null;
   }
   return (
-    <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-6 md:px-0 sm:w-[500px]">
+    <div className="mx-auto flex w-full flex-col justify-center space-y-6 px-6 sm:w-[500px] md:px-0">
       {!verify && !showDialog && (
         <>
           <div className="flex flex-col space-y-2 text-center">
@@ -47,13 +46,13 @@ export default function AuthenticationPage() {
                 <span className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-50 px-2 text-content-subtle">Or continue with</span>
+                <span className="text-content-subtle bg-gray-50 px-2">Or continue with</span>
               </div>
             </div>
             <OAuthSignIn />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-gray-50 px-2 text-content-subtle">
+            <span className="text-content-subtle bg-gray-50 px-2">
               Not been here before? Just{" "}
               <a className="text-black" href="/auth/sign-up">
                 Sign Up

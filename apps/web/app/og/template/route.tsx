@@ -1,12 +1,13 @@
 import { ImageResponse } from "@vercel/og";
 import { NextRequest, NextResponse } from "next/server";
-export const runtime = "edge";
+
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
     return str;
   }
   return `${str.slice(0, length - 3)}...`;
 };
+export const runtime = "edge";
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(

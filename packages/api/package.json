@@ -1,6 +1,6 @@
 {
   "name": "@unkey/api",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
@@ -22,10 +22,14 @@
   ],
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
-    "build": "tsup"
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "generate": "openapi-typescript https://api.unkey.dev/openapi.json -o ./src/openapi.d.ts",
+    "build": "pnpm generate && tsup"
   },
   "devDependencies": {
     "@types/node": "^20.8.7",
+    "openapi-typescript": "^6.7.2",
     "tsup": "^7.2.0",
     "tsx": "^3.14.0",
     "typescript": "^5.2.2"

@@ -59,6 +59,36 @@ export const workspaces = mysqlTable(
         auditLog?: boolean;
       }>()
       .notNull(),
+    // prevent plan changes for a certain time, should be 1 day
+    // deprecated, use planChanged
+    planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
+    planChanged: datetime("plan_changed", { fsp: 3 }),
+    subscriptions: json("subscriptions").$type<{
+      activeKeys?: {
+        productId: string;
+        tiers: {
+          firstUnit: number;
+          lastUnit: number | null; // null means unlimited
+          perUnit: number; // $ 0.01
+        }[];
+      };
+      verifications?: {
+        productId: string;
+        tiers: {
+          firstUnit: number;
+          lastUnit: number | null; // null means unlimited
+          perUnit: number; // $ 0.01
+        }[];
+      };
+      plan?: {
+        productId: string;
+        price: number; // $ 25
+      };
+      support?: {
+        productId: string;
+        price: number; // $ 125
+      };
+    }>(),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

@@ -14,7 +14,10 @@ type Props = PropsWithChildren<{
     apiId: string;
   };
 }>;
-export const revalidate = 0;
+
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
 export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
@@ -54,7 +57,7 @@ export default async function ApiPageLayout(props: Props) {
           <Badge
             key="apiId"
             variant="secondary"
-            className="flex justify-between w-full font-mono font-medium"
+            className="ph-no-capture flex w-full justify-between font-mono font-medium"
           >
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
@@ -67,7 +70,7 @@ export default async function ApiPageLayout(props: Props) {
       <div className="-mt-4 md:space-x-4 ">
         <Navbar navigation={navigation} />
       </div>
-      <main className="mt-8 mb-20">{props.children}</main>
+      <main className="mb-20 mt-8">{props.children}</main>
     </div>
   );
 }

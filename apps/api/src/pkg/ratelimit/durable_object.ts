@@ -1,5 +1,6 @@
+import { z } from "zod";
+
 type Memory = {
-  // How many requests were made in the current window
   current: number;
   alarmScheduled?: number;
 };
@@ -7,10 +8,11 @@ type Memory = {
 export class DurableObjectRatelimiter {
   private state: DurableObjectState;
   private memory: Memory;
+  private readonly storageKey = "rl";
   constructor(state: DurableObjectState) {
     this.state = state;
     this.state.blockConcurrencyWhile(async () => {
-      const m = await this.state.storage.get<Memory>("rl");
+      const m = await this.state.storage.get<Memory>(this.storageKey);
       if (m) {
         this.memory = m;
       }
@@ -22,16 +24,26 @@ export class DurableObjectRatelimiter {
 
   // Handle HTTP requests from clients.
   async fetch(request: Request) {
-    const req = (await request.json()) as { reset: number };
+    const req = z
+      .object({
+        reset: z.number().int(),
+      })
+      .safeParse(await request.json());
+    if (!req.success) {
+      console.error("invalid DO req", req.error.message);
+      return Response.json({
+        current: 0,
+      });
+    }
 
     this.memory.current += 1;
 
     if (!this.memory.alarmScheduled) {
-      this.memory.alarmScheduled = req.reset;
+      this.memory.alarmScheduled = req.data.reset;
       await this.state.storage.setAlarm(this.memory.alarmScheduled);
     }
 
-    await this.state.storage.put("rl", this.memory);
+    await this.state.storage.put(this.storageKey, this.memory);
 
     return Response.json({
       current: this.memory.current,

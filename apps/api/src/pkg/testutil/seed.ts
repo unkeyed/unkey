@@ -1,8 +1,8 @@
-import { type Api, type Database, type KeyAuth, type Workspace, schema } from "@unkey/db";
+import { type Api, type KeyAuth, type Workspace, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { createConnection } from "../db";
+import { type Database, createConnection } from "../db";
 
 export type Resources = {
   unkeyWorkspace: Workspace;
@@ -19,12 +19,16 @@ export async function seed(env: {
   DATABASE_HOST: string;
   DATABASE_USERNAME: string;
   DATABASE_PASSWORD: string;
+  DATABASE_MODE: "planetscale" | "mysql";
 }): Promise<Resources> {
-  const database = createConnection({
-    host: env.DATABASE_HOST,
-    username: env.DATABASE_USERNAME,
-    password: env.DATABASE_PASSWORD,
-  });
+  const database = createConnection(
+    {
+      host: env.DATABASE_HOST,
+      username: env.DATABASE_USERNAME,
+      password: env.DATABASE_PASSWORD,
+    },
+    env.DATABASE_MODE,
+  );
 
   const unkeyWorkspace: Workspace = {
     id: newId("workspace"),
@@ -44,6 +48,9 @@ export async function seed(env: {
     billingPeriodStart: null,
     billingPeriodEnd: null,
     trialEnds: null,
+    subscriptions: null,
+    planLockedUntil: null,
+    planChanged: null,
   };
   const userWorkspace: Workspace = {
     id: newId("workspace"),
@@ -63,6 +70,9 @@ export async function seed(env: {
     billingPeriodStart: null,
     billingPeriodEnd: null,
     trialEnds: null,
+    subscriptions: null,
+    planLockedUntil: null,
+    planChanged: null,
   };
 
   const unkeyKeyAuth: KeyAuth = {

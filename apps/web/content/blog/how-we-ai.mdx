@@ -2,11 +2,7 @@
 date: 2023-07-26
 title: How Unkey can help accelerate your AI development
 description: Building AI projects and protecting the API can be a daunting task. With Unkey we simplify the experience.
-author: {
-    name: 'James Perkins',
-    role: 'Co-Founder / CEO',
-    image: { src: '/james.jpg' },
-  }
+author: james
 ---
 
 Artificial Intelligence (AI) has undeniably transformed the technology landscape in the past few years. From OpenAI to Llama 2, AI has permeated every facet of our lives. Yet, as with any groundbreaking technology, developers face unique challenges when working on AI projects. This is where Unkey comes in. Unkey's API management platform helps developers secure, manage, and scale their APIs.
@@ -36,7 +32,7 @@ With Unkey you can simplify this by adding in a single API call to create a user
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys \
+  --url https://api.unkey.dev/v1/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -64,7 +60,7 @@ So now you have an API key, but how does that help you protect your AI project? 
 
 ```jsx
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys/verify \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
     "key":"THE_NEW_KEY"

@@ -87,9 +87,9 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
                 </Alert>
               </div>
 
-              <Code className="my-8 flex items-center justify-between gap-4 ">
+              <Code className="ph-no-capture my-8 flex items-center justify-between gap-4">
                 {showKey ? key.data.key : maskedKey}
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 ">
                   <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                   <CopyButton value={key.data.key} />
                 </div>

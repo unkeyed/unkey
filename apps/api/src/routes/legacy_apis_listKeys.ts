@@ -24,7 +24,7 @@ const route = createRoute({
       }),
     }),
     query: z.object({
-      limit: z.coerce.number().int().min(1).max(100).default(100).openapi({
+      limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
         description: "The maximum number of keys to return",
         example: 100,
       }),
@@ -62,7 +62,10 @@ export type LegacyApisListKeysResponse = z.infer<
 
 export const registerLegacyApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
@@ -111,6 +114,7 @@ export const registerLegacyApisListKeys = (app: App) =>
         offset: offset ? parseInt(offset) : undefined,
       }),
       db
+        // @ts-ignore, mysql sucks
         .select({ count: sql<string>`count(*)` })
         .from(schema.keys)
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt))),
@@ -120,12 +124,29 @@ export const registerLegacyApisListKeys = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
 
-    return c.jsonT({
+    return c.json({
       keys: keys.map((k) => ({
         id: k.id,
-        ownerId: k.ownerId,
-        createdAt: k.createdAt,
+        start: k.start,
+        apiId: api.id,
+        workspaceId: k.workspaceId,
+        name: k.name ?? undefined,
+        ownerId: k.ownerId ?? undefined,
+        meta: k.meta ? JSON.parse(k.meta) : undefined,
+        createdAt: k.createdAt.getTime() ?? undefined,
+        expires: k.expires?.getTime() ?? undefined,
+        ratelimit:
+          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+            ? {
+                type: k.ratelimitType,
+                limit: k.ratelimitLimit,
+                refillRate: k.ratelimitRefillRate,
+                refillInterval: k.ratelimitRefillInterval,
+              }
+            : undefined,
+        remaining: k.remaining ?? undefined,
       })),
+      // @ts-ignore, mysql sucks
       total: parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });

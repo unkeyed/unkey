@@ -33,7 +33,7 @@ export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 const app = newApp();
 
 app.get("/routes", (c) => {
-  return c.jsonT(
+  return c.json(
     app.routes.map((r) => ({
       method: r.method,
       path: r.path,
@@ -42,10 +42,10 @@ app.get("/routes", (c) => {
 });
 
 app.use("*", async (c, next) => {
-  logger.info("request", {
-    method: c.req.method,
-    path: c.req.path,
-  });
+  // logger.info("request", {
+  //   method: c.req.method,
+  //   path: c.req.path,
+  // });
   const start = performance.now();
   const m = {
     path: c.req.path,
@@ -59,6 +59,7 @@ app.use("*", async (c, next) => {
     // @ts-ignore - this is a bug in the types
     city: c.req.raw?.cf?.city,
     userAgent: c.req.header("user-agent"),
+    fromAgent: c.req.header("Unkey-Redirect"),
   } as Metric["metric.http.request"];
   try {
     const requestId = newId("request");
@@ -69,11 +70,17 @@ app.use("*", async (c, next) => {
     c.res.headers.append("Unkey-Request-Id", requestId);
   } catch (e) {
     m.error = (e as Error).message;
+    logger.error("request", {
+      method: c.req.method,
+      path: c.req.path,
+      error: e,
+    });
     throw e;
   } finally {
     m.status = c.res.status;
     m.serviceLatency = performance.now() - start;
     c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
+    c.res.headers.append("Unkey-Version", c.env.VERSION);
     metrics.emit("metric.http.request", m);
     c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
   }

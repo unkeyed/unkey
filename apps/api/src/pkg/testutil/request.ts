@@ -34,11 +34,23 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
   app: App,
   req: StepRequest<TRequestBody>,
 ): Promise<StepResponse<TResponseBody>> {
-  const res = await app.request(req.url, {
-    method: req.method,
-    headers: req.headers,
-    body: JSON.stringify(req.body),
-  });
+  const eCtx: ExecutionContext = {
+    waitUntil: (promise: Promise<any>) => {
+      promise.catch(() => {});
+    },
+    passThroughOnException: () => {},
+  };
+
+  const res = await app.request(
+    req.url,
+    {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(req.body),
+    },
+    {}, // Env
+    eCtx,
+  );
 
   return {
     status: res.status,

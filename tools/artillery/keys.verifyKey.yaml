@@ -1,5 +1,5 @@
 config:
-  
+
   target: https://api.unkey.dev
   phases:
     - name: Warm up phase
@@ -30,7 +30,7 @@ scenarios:
       - post:
           url: "/v1/keys.verifyKey"
           json:
-            key: "{{ $env.UNKEY_KEY }}"
+            key: "test"
           capture:
             - json: "$.valid"
               as: valid
@@ -41,5 +41,3 @@ scenarios:
             - equals:
               - "true"
               - "{{ valid }}"
-      
-      

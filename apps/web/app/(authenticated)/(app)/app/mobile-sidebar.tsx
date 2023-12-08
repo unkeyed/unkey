@@ -2,16 +2,18 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { BookOpen, FileJson, Menu, Settings } from "lucide-react";
+import { SignOutButton } from "@clerk/nextjs";
+import { BookOpen, FileJson, LogOut, Menu, Settings } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { WorkspaceSwitcher } from "./team-switcher";
-import { UserButton } from "./user-button";
 
 type Props = {
   className?: string;
 };
 
 export const MobileSideBar = ({ className }: Props) => {
+  const router = useRouter();
   return (
     <div className={cn(className, "w-96")}>
       <Sheet>
@@ -24,15 +26,7 @@ export const MobileSideBar = ({ className }: Props) => {
         <SheetHeader>
           <SheetClose />
         </SheetHeader>
-        <SheetContent
-          position="bottom"
-          className="bg-white shadow dark:bg-gray-950 rounded-xl"
-          size="lg"
-        >
-          <div className="absolute bottom-6 left-2">
-            <UserButton />
-          </div>
-
+        <SheetContent side="bottom" className="bg-white shadow dark:bg-gray-950 rounded-xl">
           <div className="flex flex-col w-full p-4 ">
             <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
             <div className="space-y-1">
@@ -58,6 +52,14 @@ export const MobileSideBar = ({ className }: Props) => {
                   Docs
                 </Button>
               </Link>
+              <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
+                <SheetClose asChild>
+                  <Button variant="ghost" className="justify-start w-full py-2 border-t">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </SheetClose>
+              </SignOutButton>
             </div>
           </div>
         </SheetContent>

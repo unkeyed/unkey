@@ -1,4 +1,4 @@
-VERSION 2
+VERSION 3
 NODE aggregate
 SQL >
 
@@ -7,7 +7,7 @@ SQL >
         apiId,
         keyId,
         toStartOfHour(fromUnixTimestamp64Milli(time)) AS time
-    FROM key_verifications
+    FROM key_verifications__v2
     GROUP BY
         workspaceId,
         apiId,
@@ -15,6 +15,4 @@ SQL >
         time
 
 TYPE materialized
-DATASOURCE mv_billing_hourly_active_keys
-
-
+DATASOURCE mv_billing_hourly_active_keys__v2

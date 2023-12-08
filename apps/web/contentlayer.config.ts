@@ -5,9 +5,10 @@ import rehypeCodeTitles from "rehype-code-titles";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { authors } from "./content/blog/authors";
 
 const options = {
-  theme: "github-light",
+  theme: "light-plus",
   defaultLang: {
     block: "typescript",
   },
@@ -30,8 +31,9 @@ const Post = defineDocumentType(() => ({
       required: true,
     },
     author: {
-      type: "json",
-      description: "The author of the post",
+      type: "enum",
+      options: Object.keys(authors),
+      description: "The author id of the post",
       required: true,
     },
     description: {
@@ -94,6 +96,7 @@ const Changelog = defineDocumentType(() => ({
     summary: {
       type: "list",
       of: { type: "string" },
+      required: false,
     },
     changes: {
       type: "number",
