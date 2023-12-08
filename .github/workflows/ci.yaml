@@ -1,14 +1,10 @@
 name: CI
 
 on:
-  pull_request_target:
+  pull_request:
+    branches: [main]
 
-concurrency: pr-${{ github.event.number }} # otherwise planetscale will fail, because it can't create a branch with the same name
-
-env:
-  DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
-  PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-  PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+concurrency: pr-${{ github.event.number }}
 
 jobs:
 
@@ -41,24 +37,39 @@ jobs:
          mysql:
            image: mysql:latest
            env:
-             MYSQL_ALLOW_EMPTY_PASSWORD: yes
+             MYSQL_ROOT_PASSWORD: root
              MYSQL_DATABASE: unkey
+             MYSQL_USER: unkey
+             MYSQL_PASSWORD: unkey
            ports:
              - 3306:3306
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-
     steps:
       - uses: actions/checkout@v3
 
-
-      - name: Load Schema into MySQL
-        run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - uses: pnpm/action-setup@v2
+        name: Install pnpm
         with:
-          version: latest
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: |
@@ -69,14 +80,16 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://root@localhost:3306/unkey'
+          DRIZZLE_DATABASE_URL: 'mysql://unkey:root@mysql:3306/unkey'
 
 
       - name: Test
         run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
         env:
-          DATABASE_DSN: mysql://root@localhost:3306/unkey
+          DATABASE_HOST: mysql
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: unkey
 
 
 
