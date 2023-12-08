@@ -151,16 +151,16 @@ jobs:
         env:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
 
-  tinybird:
-    needs: authorize
-    name: Tinybird CI
-    concurrency: tinybird
-    uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
-    with:
-      data_project_dir: ./internal/tinybird
-    secrets:
-      tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
-      tb_host: https://api.tinybird.co
+  # tinybird:
+  #   needs: authorize
+  #   name: Tinybird CI
+  #   concurrency: tinybird
+  #   uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
+  #   with:
+  #     data_project_dir: ./internal/tinybird
+  #   secrets:
+  #     tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
+  #     tb_host: https://api.tinybird.co
 
   build_packages:
     needs: authorize
