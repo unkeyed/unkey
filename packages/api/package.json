@@ -22,6 +22,8 @@
   ],
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
     "generate": "openapi-typescript https://api.unkey.dev/openapi.json -o ./src/openapi.d.ts",
     "build": "pnpm generate && tsup"
   },
