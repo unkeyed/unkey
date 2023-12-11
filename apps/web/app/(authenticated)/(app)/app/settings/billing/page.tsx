@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -198,14 +199,14 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 };
 
 const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
-  const t = new Date();
-  t.setUTCDate(1);
-  t.setUTCHours(0, 0, 0, 0);
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
 
-  const year = t.getUTCFullYear();
-  const month = t.getUTCMonth() + 1;
+  const year = startOfMonth.getUTCFullYear();
+  const month = startOfMonth.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications] = await Promise.all([
+  let [usedActiveKeys, usedVerifications] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -218,19 +219,27 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
-  let totalPrice = 0;
+  usedActiveKeys += 2;
+  usedVerifications += usedActiveKeys * 151;
+  let currentPrice = 0;
+  let estimatedTotalPrice = 0;
   if (workspace.subscriptions?.plan) {
-    totalPrice += parseFloat(workspace.subscriptions.plan.cents);
+    const cost = parseFloat(workspace.subscriptions.plan.cents);
+    currentPrice += cost;
+    estimatedTotalPrice += cost; // does not scale
   }
   if (workspace.subscriptions?.support) {
-    totalPrice += parseFloat(workspace.subscriptions.support.cents);
+    const cost = parseFloat(workspace.subscriptions.support.cents);
+    currentPrice += cost;
+    estimatedTotalPrice += cost; // does not scale
   }
   if (workspace.subscriptions?.activeKeys) {
     const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
     if (cost.error) {
       return <div className="text-red-500">{cost.error.message}</div>;
     } else {
-      totalPrice += cost.value.totalCentsEstimate;
+      currentPrice += cost.value.totalCentsEstimate;
+      estimatedTotalPrice += cost.value.totalCentsEstimate; // does not necessarily scale
     }
   }
   if (workspace.subscriptions?.verifications) {
@@ -241,7 +250,8 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     if (cost.error) {
       return <div className="text-red-500">{cost.error.message}</div>;
     } else {
-      totalPrice += cost.value.totalCentsEstimate;
+      currentPrice += cost.value.totalCentsEstimate;
+      estimatedTotalPrice += forecastUsage(cost.value.totalCentsEstimate);
     }
   }
 
@@ -252,7 +262,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardDescription>
           Current billing cycle:{" "}
           <span className="text-primary font-medium">
-            {t.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
           </span>{" "}
         </CardDescription>
       </CardHeader>
@@ -271,25 +281,55 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               title="Active keys"
               tiers={workspace.subscriptions.activeKeys.tiers}
               used={usedActiveKeys}
-              max={workspace.maxActiveKeys}
+              max={workspace.plan === "free" ? 100 : undefined}
             />
           ) : null}
           {workspace.subscriptions?.verifications ? (
             <MeteredLineItem
               displayPrice
               title="Verifications"
-              tiers={workspace.subscriptions.verifications.tiers}
+              tiers={[
+                {
+                  firstUnit: 1,
+                  lastUnit: 2500,
+                  centsPerUnit: null,
+                },
+                {
+                  firstUnit: 2501,
+                  lastUnit: 100000,
+                  centsPerUnit: "0.02",
+                },
+                {
+                  firstUnit: 100001,
+                  lastUnit: 1000000,
+                  centsPerUnit: "0.005",
+                },
+                {
+                  firstUnit: 1000001,
+                  lastUnit: null,
+                  centsPerUnit: "0.0001",
+                },
+              ]}
               used={usedVerifications}
-              max={workspace.maxVerifications}
+              max={workspace.plan === "free" ? 2500 : undefined}
+              forecast
             />
           ) : null}
         </ol>
       </CardContent>
-      <CardFooter className="flex items-center justify-between">
-        <span className="font-semibold text-content text-sm">Current Total</span>
-        <span className="font-semibold tabular-nums text-content text-sm">
-          {formatCentsToDollar(totalPrice)}
-        </span>
+      <CardFooter className="flex flex-col gap-4">
+        <div className="flex items-center justify-between w-full">
+          <span className="font-semibold text-content text-sm">Current Total</span>
+          <span className="font-semibold tabular-nums text-content text-sm">
+            {formatCentsToDollar(currentPrice)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between w-full">
+          <span className="text-content-subtle text-xs">Estimated by end of month</span>
+          <span className="tabular-nums text-content-subtle text-xs">
+            {formatCentsToDollar(estimatedTotalPrice)}
+          </span>
+        </div>
       </CardFooter>
     </Card>
   );
@@ -313,20 +353,42 @@ const LineItem: React.FC<{
   </div>
 );
 
+function forecastUsage(currentUsage: number): number {
+  const t = new Date();
+  t.setUTCDate(1);
+  t.setUTCHours(0, 0, 0, 0);
+
+  const start = t.getTime();
+  t.setUTCMonth(t.getUTCMonth() + 1);
+  const end = t.getTime() - 1;
+
+  const passed = (Date.now() - start) / (end - start);
+
+  return currentUsage * (1 + 1 / passed);
+}
+
 const MeteredLineItem: React.FC<{
   displayPrice?: boolean;
   title: string;
   used: number;
   max?: number | null;
   tiers: BillingTier[];
+  forecast?: boolean;
 }> = (props) => {
   const firstTier = props.tiers.at(0);
-  const included = firstTier?.centsPerUnit === "0" ? firstTier.lastUnit ?? 0 : 0;
+  const included = firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
 
   const price = calculateTieredPrices(props.tiers, props.used);
   if (price.error) {
     return <div className="text-red-500">{price.error.message}</div>;
   }
+
+  const forecast = forecastUsage(props.used);
+
+  const currentTier = props.tiers.find((tier) => props.used >= tier.firstUnit);
+  const max = props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
+
+  console.log({ currentTier, max, forecast, used: props.used });
 
   return (
     <div className="flex items-center justify-between">
@@ -344,17 +406,58 @@ const MeteredLineItem: React.FC<{
             </span>
           ) : null}
         </div>
-        <div className="overflow-hidden rounded-full bg-gray-300 dark:bg-gray-800">
-          <div
-            className={cn("bg-primary h-2", {
-              "bg-alert": props.max && props.used >= props.max,
-            })}
-            style={{ width: percentage(props.used, props.max ?? 0) }}
-          />
+        <div className="h-2 flex rounded-full bg-gray-200 dark:bg-gray-800 relative">
+          {props.tiers
+            .filter((tier) => props.used >= tier.firstUnit)
+            .map((tier, i) => (
+              <Tooltip key={tier.firstUnit}>
+                <TooltipTrigger style={{ width: percentage(props.used - tier.firstUnit, max) }}>
+                  <div
+                    className={cn("relative bg-primary hover:bg-brand duration-500 h-2", {
+                      "opacity-100": i === 0,
+                      "opacity-80": i === 1,
+                      "opacity-60": i === 2,
+                      "opacity-40": i === 3,
+                      "opacity-20": i === 4,
+                      "rounded-l-full": i === 0,
+                    })}
+                  >
+                    <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 to-transparent" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {tier.centsPerUnit ? (
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:px-8">
+                      <dt className="text-content-subtle text-sm font-medium leading-6">
+                        {" "}
+                        {tier.centsPerUnit
+                          ? formatCentsToDollar(parseFloat(tier.centsPerUnit), 4)
+                          : "free"}{" "}
+                        per unit
+                      </dt>
+
+                      <dd className="text-content w-full flex-none text-3xl font-medium leading-10 tracking-tight">
+                        {tier.firstUnit} - {tier.lastUnit ?? "∞"}
+                      </dd>
+                    </div>
+                  ) : (
+                    `${tier.lastUnit} included`
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          <div className="bg-gradient-to-r max-w-[4rem] w-full from-primary to-transparent opacity-50" />
         </div>
-        <span className="text-xs text-content-subtle">
-          Used {Intl.NumberFormat("en-US", { notation: "compact" }).format(props.used)}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-content-subtle">
+            Used {Intl.NumberFormat("en-US", { notation: "compact" }).format(props.used)}
+          </span>
+          {props.forecast ? (
+            <span className="text-xs text-content-subtle">
+              {Intl.NumberFormat("en-US", { notation: "compact" }).format(forecast)} forecasted
+            </span>
+          ) : null}
+        </div>
       </div>
       {props.displayPrice ? (
         <span
@@ -370,12 +473,12 @@ const MeteredLineItem: React.FC<{
   );
 };
 
-function formatCentsToDollar(cents: number): string {
+function formatCentsToDollar(cents: number, decimals = 2): string {
   return Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: decimals,
   }).format(cents / 100);
 }
 
