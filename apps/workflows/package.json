@@ -20,12 +20,18 @@
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^12.18.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "@trigger.dev/sdk": "^2.3.4",
+    "@trigger.dev/nextjs": "^2.3.4",
+    "@trigger.dev/react": "^2.3.4"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5"
+  },
+  "trigger.dev": {
+    "endpointId": "workflows-6eiv"
   }
 }

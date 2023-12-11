@@ -1,28 +1,32 @@
 import { connectDatabase, eq, schema } from "@/lib/db";
-import { inngest } from "@/lib/inngest";
+import { env } from "@/lib/env";
+import { client } from "@/trigger";
 import { clerkClient } from "@clerk/nextjs";
+import { cronTrigger } from "@trigger.dev/sdk";
 import { Resend } from "@unkey/resend";
-import { env } from "../env";
 
-export const endTrials = inngest.createFunction(
-  {
-    id: "billing/end.trials",
-  },
-  { cron: "0 * * * *" }, // every hour
-  async ({ event, step, logger }) => {
+client.defineJob({
+  id: "billing.trials.end",
+  name: "End trials",
+  version: "0.0.1",
+  trigger: cronTrigger({
+    cron: "0 * * * *",
+  }),
+  run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
     const resend = new Resend({ apiKey: env().RESEND_API_KEY });
 
-    const workspaces = await step.run("list workspaces", () =>
+    const workspaces = await io.runTask("list workspaces", () =>
       db.query.workspaces.findMany({
         where: (table, { isNotNull, lte, and }) =>
           and(isNotNull(table.trialEnds), lte(table.trialEnds, new Date())),
       }),
     );
+    io.logger.info(`found ${workspaces.length} workspaces with an expired trial`);
 
     for (const ws of workspaces) {
-      await step.run("end trial", async () =>
-        db
+      await io.runTask(`end trial for worksapce ${ws.id}`, async () => {
+        await db
           .update(schema.workspaces)
           .set({
             trialEnds: null,
@@ -31,13 +35,15 @@ export const endTrials = inngest.createFunction(
             maxActiveKeys: 100, // TODO: read from constant
             maxVerifications: 2500,
           })
-          .where(eq(schema.workspaces.id, ws.id)),
+          .where(eq(schema.workspaces.id, ws.id));
+      });
+
+      const users = await io.runTask(`get users for workspace ${ws.id}`, () =>
+        getUsers(ws.tenantId),
       );
 
-      const users = await step.run("get users for workspace", () => getUsers(ws.tenantId));
-
       for await (const user of users) {
-        logger.info(`sending trial ended email to ${user.email}`);
+        io.logger.info(`sending trial ended email to ${user.email}`);
         await resend.sendTrialEnded({
           email: user.email,
           name: user.name,
@@ -46,12 +52,9 @@ export const endTrials = inngest.createFunction(
       }
     }
 
-    return {
-      event,
-      body: "done",
-    };
+    return {};
   },
-);
+});
 
 async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];

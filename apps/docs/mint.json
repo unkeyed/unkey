@@ -22,13 +22,13 @@
       "url": "https://unkey.dev/discord"
     },
     {
-      "name": "GitHub",
-      "url": "https://github.com/unkeyed/unkey"
+      "name": "Dashboard",
+      "url": "https://unkey.dev/app"
     }
   ],
   "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://unkey.dev/app"
+    "type": "github",
+    "url": "https://github.com/unkeyed/unkey"
   },
   "tabs": [
     {
