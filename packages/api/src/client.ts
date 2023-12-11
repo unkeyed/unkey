@@ -1,3 +1,4 @@
+import { version } from "../package.json";
 import { ErrorResponse } from "./errors";
 import type { paths } from "./openapi";
 export type UnkeyOptions = (
@@ -50,7 +51,15 @@ export type UnkeyOptions = (
    * Customize the `fetch` cache behaviour
    */
   cache?: RequestCache;
-  // some change
+
+  /**
+   * The version of the SDK instantiating this client.
+   *
+   * This is used for internal metrics and is not covered by semver, and may change at any time.
+   *
+   * You can leave this blank unless you are building a wrapper around this SDK.
+   */
+  wrapperSdkVersion?: `v${string}`;
 };
 
 type ApiRequest = {
@@ -82,6 +91,7 @@ export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
   private readonly cache?: RequestCache;
+  private readonly sdkVersions: `v${string}`[] = [];
 
   public readonly retry: {
     attempts: number;
@@ -91,6 +101,10 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
+    this.sdkVersions.push(`v${version}`);
+    if (opts.wrapperSdkVersion) {
+      this.sdkVersions.push(opts.wrapperSdkVersion);
+    }
 
     this.cache = opts.cache;
     /**
@@ -123,6 +137,7 @@ export class Unkey {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.rootKey}`,
+          "Unkey-SDK": this.sdkVersions.join(","),
         },
         cache: this.cache,
         body: JSON.stringify(req.body),
