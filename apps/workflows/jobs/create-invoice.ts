@@ -1,17 +1,23 @@
 import { Tinybird } from "@/lib/tinybird";
-import Stripe from "stripe";
+import {
+  type FixedSubscription,
+  type TieredSubscription,
+  calculateTieredPrices,
+} from "@unkey/billing";
 import { z } from "zod";
 
 import { env } from "@/lib/env";
 import { client } from "@/trigger";
 
 import { connectDatabase } from "@/lib/db";
-import { eventTrigger } from "@trigger.dev/sdk";
+import { type IO, eventTrigger } from "@trigger.dev/sdk";
+
+import Stripe from "stripe";
 
 client.defineJob({
   id: "billing.invoicing.createInvoice",
   name: "Collect usage and create invoice",
-  version: "0.0.1",
+  version: "0.0.2",
   trigger: eventTrigger({
     name: "billing.invoicing.createInvoice",
     schema: z.object({
@@ -45,46 +51,36 @@ client.defineJob({
       throw new Error(`workspace ${workspaceId} has no stripe customer id`);
     }
 
-    const invoice = await io.runTask(`create invoice for ${workspace.id}`, async () => {
-      const inv = await stripe.invoices.create({
-        customer: workspace.stripeCustomerId!,
-        auto_advance: false,
-        custom_fields: [
-          {
-            name: "Workspace",
-            value: workspace.name,
-          },
-          {
-            name: "Billing Period",
-            value: new Date(year, month - 1, 1).toLocaleString("en-US", {
-              month: "long",
-              year: "numeric",
-            }),
-          },
-        ],
-      });
-      return {
-        id: inv.id,
-      };
-    });
-
-    /**
-     * Plan
-     */
-    if (workspace.subscriptions?.plan) {
-      await io.runTask("add plan", async () => {
-        await stripe.invoiceItems.create({
+    const invoiceId = await io.runTask(`create invoice for ${workspace.id}`, async () =>
+      stripe.invoices
+        .create({
           customer: workspace.stripeCustomerId!,
-          invoice: invoice.id,
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            product: workspace.subscriptions!.plan!.productId,
-            unit_amount: workspace.subscriptions!.plan!.price * 100,
-          },
-          currency: "usd",
-          description: "Pro Plan",
-        });
+          auto_advance: false,
+          custom_fields: [
+            {
+              name: "Workspace",
+              value: workspace.name,
+            },
+            {
+              name: "Billing Period",
+              value: new Date(year, month - 1, 1).toLocaleString("en-US", {
+                month: "long",
+                year: "numeric",
+              }),
+            },
+          ],
+        })
+        .then((invoice) => invoice.id),
+    );
+
+    if (workspace.subscriptions?.plan) {
+      await createFixedCostInvoiceItem({
+        stripe,
+        invoiceId,
+        stripeCustomerId: workspace.stripeCustomerId!,
+        io,
+        name: "Pro plan",
+        sub: workspace.subscriptions.plan,
       });
     }
 
@@ -92,7 +88,7 @@ client.defineJob({
      * Active keys
      */
     if (workspace.subscriptions?.activeKeys) {
-      let activeKeys = await io.runTask(`get active keys for ${workspace.id}`, async () =>
+      const activeKeys = await io.runTask(`get active keys for ${workspace.id}`, async () =>
         tinybird
           .activeKeys({
             workspaceId: workspace.id,
@@ -102,41 +98,22 @@ client.defineJob({
           .then((res) => res.data.at(0)?.keys ?? 0),
       );
 
-      for (const tier of workspace.subscriptions!.activeKeys!.tiers) {
-        if (activeKeys <= 0) {
-          break;
-        }
-
-        const quantity =
-          tier.lastUnit === null
-            ? activeKeys
-            : Math.min(tier.lastUnit - tier.firstUnit + 1, activeKeys);
-        activeKeys -= quantity;
-        if (quantity > 0) {
-          await io.runTask(`add active keys tier ${tier.firstUnit}-${tier.lastUnit}`, async () => {
-            await stripe.invoiceItems.create({
-              customer: workspace.stripeCustomerId!,
-              invoice: invoice.id,
-              quantity,
-              price_data: {
-                currency: "usd",
-                product: workspace.subscriptions!.activeKeys!.productId,
-                unit_amount_decimal: (tier.perUnit * 100).toString(),
-              },
-              currency: "usd",
-              description: `Active Keys ${tier.firstUnit}${
-                tier.lastUnit ? `-${tier.lastUnit}` : "+"
-              }`,
-            });
-          });
-        }
-      }
+      await createTieredInvoiceItem({
+        stripe,
+        invoiceId,
+        stripeCustomerId: workspace.stripeCustomerId!,
+        io,
+        name: "Active Keys",
+        sub: workspace.subscriptions.activeKeys,
+        usage: activeKeys,
+      });
     }
+
     /**
      * Verifications
      */
     if (workspace.subscriptions?.verifications) {
-      let verifications = await io.runTask(`get verifications for ${workspace.id}`, async () =>
+      const verifications = await io.runTask(`get verifications for ${workspace.id}`, async () =>
         tinybird
           .verifications({
             workspaceId: workspace.id,
@@ -146,61 +123,107 @@ client.defineJob({
           .then((res) => res.data.at(0)?.success ?? 0),
       );
 
-      for (const tier of workspace.subscriptions!.verifications!.tiers) {
-        if (verifications <= 0) {
-          break;
-        }
-
-        const quantity =
-          tier.lastUnit === null
-            ? verifications
-            : Math.min(tier.lastUnit - tier.firstUnit + 1, verifications);
-        verifications -= quantity;
-        if (quantity > 0) {
-          await io.runTask(`add verification tier ${tier.firstUnit}-${tier.lastUnit}`, async () => {
-            await stripe.invoiceItems.create({
-              customer: workspace.stripeCustomerId!,
-              invoice: invoice.id,
-              quantity,
-              price_data: {
-                currency: "usd",
-                product: workspace.subscriptions!.verifications!.productId,
-
-                unit_amount_decimal: (tier.perUnit * 100).toString(),
-              },
-
-              currency: "usd",
-              description: `Verifications ${tier.firstUnit}${
-                tier.lastUnit ? `-${tier.lastUnit}` : "+"
-              }`,
-            });
-          });
-        }
-      }
+      await createTieredInvoiceItem({
+        stripe,
+        invoiceId,
+        stripeCustomerId: workspace.stripeCustomerId!,
+        io,
+        name: "Verifications",
+        sub: workspace.subscriptions.verifications,
+        usage: verifications,
+      });
     }
 
     /**
      * Support
      */
     if (workspace.subscriptions?.support) {
-      await io.runTask("add support", async () => {
-        await stripe.invoiceItems.create({
-          customer: workspace.stripeCustomerId!,
-          invoice: invoice.id,
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            product: workspace.subscriptions!.support!.productId,
-            unit_amount: workspace.subscriptions!.support!.price * 100,
-          },
-          currency: "usd",
-          description: "Professional support",
-        });
+      await createFixedCostInvoiceItem({
+        stripe,
+        invoiceId,
+        stripeCustomerId: workspace.stripeCustomerId!,
+        io,
+        name: "Professional Support",
+        sub: workspace.subscriptions.support,
       });
     }
 
     return {
-      invoiceId: invoice.id,
+      invoiceId,
     };
   },
 });
+
+async function createFixedCostInvoiceItem({
+  stripe,
+  invoiceId,
+  io,
+  stripeCustomerId,
+  name,
+  sub,
+}: {
+  stripe: Stripe;
+  invoiceId: string;
+  io: IO;
+  stripeCustomerId: string;
+  name: string;
+  sub: FixedSubscription;
+}): Promise<void> {
+  await io.runTask(name, async () => {
+    await stripe.invoiceItems.create({
+      customer: stripeCustomerId,
+      invoice: invoiceId,
+      quantity: 1,
+      price_data: {
+        currency: "usd",
+        product: sub.productId,
+        unit_amount_decimal: sub.cents,
+      },
+      currency: "usd",
+      description: name,
+    });
+  });
+}
+
+async function createTieredInvoiceItem({
+  stripe,
+  invoiceId,
+  io,
+  stripeCustomerId,
+  name,
+  sub,
+  usage,
+}: {
+  stripe: Stripe;
+  invoiceId: string;
+  io: IO;
+  stripeCustomerId: string;
+  name: string;
+  sub: TieredSubscription;
+  usage: number;
+}): Promise<void> {
+  const cost = calculateTieredPrices(sub.tiers, usage);
+  if (cost.error) {
+    throw new Error(cost.error.message);
+  }
+
+  for (const tier of cost.value.tiers) {
+    if (tier.quantity > 0 && tier.centsPerUnit) {
+      const description = `${name} ${tier.firstUnit}${tier.lastUnit ? `-${tier.lastUnit}` : "+"}`;
+      await io.runTask(description, async () => {
+        await stripe.invoiceItems.create({
+          customer: stripeCustomerId,
+          invoice: invoiceId,
+          quantity: tier.quantity,
+          price_data: {
+            currency: "usd",
+            product: sub.productId,
+            unit_amount_decimal: tier.centsPerUnit!,
+          },
+          currency: "usd",
+          description,
+        });
+      });
+    }
+  }
+}

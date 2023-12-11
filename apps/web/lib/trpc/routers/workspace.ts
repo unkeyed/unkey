@@ -1,9 +1,8 @@
-import { QUOTA } from "@/lib/constants/quotas";
-import { defaultProSubscriptions } from "@/lib/constants/subscriptions";
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
+import { QUOTA, defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import Stripe from "stripe";
 import { z } from "zod";
