@@ -349,7 +349,7 @@ const MeteredLineItem: React.FC<{
             className={cn("bg-primary h-2", {
               "bg-alert": props.max && props.used >= props.max,
             })}
-            style={{ width: `${percentage(props.used, props.max ?? 0)}%` }}
+            style={{ width: percentage(props.used, props.max ?? 0) }}
           />
         </div>
         <span className="text-xs text-content-subtle">
@@ -379,11 +379,11 @@ function formatCentsToDollar(cents: number): string {
   }).format(cents / 100);
 }
 
-function percentage(num: number, total: number): number {
+function percentage(num: number, total: number): `${number}%` {
   if (total === 0) {
-    return 0;
+    return "0%";
   }
-  return Math.min(100, (num / total) * 100);
+  return `${Math.min(100, (num / total) * 100)}%`;
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
@@ -432,7 +432,7 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
         <li key={invoice.id} className="flex items-center justify-between gap-x-6 py-2">
           <div>
             <span className="tabular-nums text-sm text-content font-semibold">
-              {formatCentsToDollar(invoice.total / 100)}
+              {formatCentsToDollar(invoice.total)}
             </span>
 
             <p className="whitespace-nowrap mt-1 text-xs leading-5 text-content-subtle">
