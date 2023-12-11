@@ -3,7 +3,12 @@ import { env } from "@/lib/env";
 import { client } from "@/trigger";
 import { clerkClient } from "@clerk/nextjs";
 import { cronTrigger } from "@trigger.dev/sdk";
+import { Slack } from "@trigger.dev/slack";
 import { Resend } from "@unkey/resend";
+
+const slack = new Slack({
+  id: "unkey",
+});
 
 client.defineJob({
   id: "billing.trials.end",
@@ -12,6 +17,9 @@ client.defineJob({
   trigger: cronTrigger({
     cron: "0 * * * *",
   }),
+  integrations: {
+    slack,
+  },
   run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
     const resend = new Resend({ apiKey: env().RESEND_API_KEY });
@@ -50,6 +58,10 @@ client.defineJob({
           workspace: ws.name,
         });
       }
+      await io.slack.postMessage(`notify slack channel about workspace ${ws.id}`, {
+        channel: "C04GWUTDC3W",
+        text: `Trial ended for workspace ${ws.name} (${ws.id})`,
+      });
     }
 
     return {};
