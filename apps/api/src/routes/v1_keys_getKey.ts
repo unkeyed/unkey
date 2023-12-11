@@ -90,8 +90,10 @@ export const registerV1KeysGetKey = (app: App) =>
       createdAt: data.key.createdAt.getTime() ?? undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
-      refillInterval: data.key.refillInterval ?? undefined,
-      refillIncrement: data.key.refillIncrement ?? undefined,
-      lastRefillAt: data.key.lastRefillAt?.getTime() ?? undefined,
+      refill: {
+        refillInterval: data.key.refillInterval ?? undefined,
+        refillIncrement: data.key.refillIncrement ?? undefined,
+        lastRefillAt: data.key.lastRefillAt?.getTime() ?? undefined,
+      },
     });
   });
