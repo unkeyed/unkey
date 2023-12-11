@@ -22,13 +22,13 @@
       "url": "https://unkey.dev/discord"
     },
     {
-      "name": "GitHub",
-      "url": "https://github.com/unkeyed/unkey"
+      "name": "Dashboard",
+      "url": "https://unkey.dev/app"
     }
   ],
   "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://unkey.dev/app"
+    "type": "github",
+    "url": "https://github.com/unkeyed/unkey"
   },
   "tabs": [
     {
@@ -88,20 +88,18 @@
       "group": "API Documentation",
       "icon": "code",
       "pages": [
+        "api-reference/overview",
         "api-reference/authentication",
         {
           "group": "Errors",
           "pages": [
             "api-reference/errors/introduction",
             "api-reference/errors/code/BAD_REQUEST",
+            "api-reference/errors/code/UNAUTHORIZED",
             "api-reference/errors/code/FORBIDDEN",
-            "api-reference/errors/code/INTERNAL_SERVER_ERROR",
-            "api-reference/errors/code/INVALID_KEY_TYPE",
-            "api-reference/errors/code/KEY_USAGE_EXCEEDED",
             "api-reference/errors/code/NOT_FOUND",
-            "api-reference/errors/code/NOT_UNIQUE",
-            "api-reference/errors/code/RATELIMITED",
-            "api-reference/errors/code/UNAUTHORIZED"
+            "api-reference/errors/code/CONFLICT",
+            "api-reference/errors/code/INTERNAL_SERVER_ERROR"
           ]
         },
         {
@@ -230,11 +228,13 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "https://api.unkey.app/openapi.json",
+  "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
-    "baseUrl": "https://api.unkey.app",
-    "auth": {
-      "method": "bearer"
+    "baseUrl": "https://api.unkey.dev"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
     }
   }
 }

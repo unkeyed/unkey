@@ -18,7 +18,7 @@ This way of limiting is effective to protect your application because there is a
 ### Example
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys \
+  --url https://api.unkey.dev/v1/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -44,7 +44,7 @@ Be aware that this can add significant latency to your application, because all 
 ### Example
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys \
+  --url https://api.unkey.dev/v1/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{

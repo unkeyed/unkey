@@ -22,7 +22,7 @@ export const options = {
 
 export default function () {
   const res = http.post(
-    "https://api.unkey.app/v1/keys.verifyKey",
+    "https://api.unkey.dev/v1/keys.verifyKey",
     JSON.stringify({
       key: "rl_3ZQQJ33EAjjLU1GgJPz6H9iy",
     }),

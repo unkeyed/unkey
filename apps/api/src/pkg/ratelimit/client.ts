@@ -11,7 +11,7 @@ export class DurableRateLimiter implements RateLimiter {
     domain?: string;
   }) {
     this.namespace = opts.namespace;
-    this.domain = opts.domain ?? "unkey.app";
+    this.domain = opts.domain ?? "unkey.dev";
   }
 
   public async limit(req: RatelimitRequest): Promise<RatelimitResponse> {

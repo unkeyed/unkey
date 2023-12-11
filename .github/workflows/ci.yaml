@@ -1,113 +1,66 @@
 name: CI
 
 on:
-  pull_request_target:
+  pull_request:
+    branches: [main]
 
-concurrency: pr-${{ github.event.number }} # otherwise planetscale will fail, because it can't create a branch with the same name
-
-env:
-  DATABASE_BRANCH_NAME: pr-${{ github.event.number }}-${{ github.actor }}
-  PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-  PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+concurrency: pr-${{ github.event.number }}
 
 jobs:
 
-  authorize:
-    environment:
-      ${{ github.event_name == 'pull_request_target' &&
-      github.event.pull_request.head.repo.full_name != github.repository &&
-      'external' || 'internal' }}
+
+
+  docs:
+    name: Check Docs
     runs-on: ubuntu-latest
     steps:
-      - run: true
+      - uses: actions/checkout@v3
 
+      - name: Check for broken links
+        run: npx mintlify@latest broken-links
+        working-directory: apps/docs
 
-  test_agent:
-   needs: authorize
-   name: Unit Test Agent
-   runs-on: ubuntu-latest
-
-   services:
-     mysql:
-       image: mysql:latest
-       env:
-         MYSQL_ALLOW_EMPTY_PASSWORD: yes
-         MYSQL_DATABASE: unkey
-       ports:
-         - 3306:3306
-       options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-   steps:
-     - uses: actions/checkout@v3
-       with:
-         ref: ${{ github.event.pull_request.head.sha || github.ref }}
-
-     - name: Load Schema into MySQL
-       run: mysql -h 127.0.0.1 --port 3306 -uroot unkey < ./apps/agent/pkg/database/schema.sql
-
-     - name: Setup Go
-       uses: actions/setup-go@v2
-       with:
-         go-version: ^1.20.0
-
-     - name: Set up gotestfmt
-       run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
-
-     - name: Install dependencies
-       run: go mod download
-       working-directory: apps/agent
-
-     - name: Test
-       run: go test -p 4 -v -json -shuffle=on --race ./... | gotestfmt
-       working-directory: apps/agent
-       env:
-         DATABASE_DSN: root@tcp(localhost:3306)/unkey
 
   test_api_worker:
-    needs: authorize
     name: Unit Test API
     runs-on: ubuntu-latest
-
+    services:
+         mysql:
+           image: mysql:latest
+           env:
+             MYSQL_ROOT_PASSWORD: root
+             MYSQL_DATABASE: unkey
+             MYSQL_USER: unkey
+             MYSQL_PASSWORD: password
+           ports:
+             - 3306:3306
+           options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-
-
-      - name: Setup pscale
-        uses: planetscale/setup-pscale-action@v1
-        with:
-          version: latest
-
-      - name: Create a branch
-        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-
-
-      - name: Create a password
-        id: database_password
-        run: |
-          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
-
-          # Extract secrets
-          database_host=$(echo $res | jq -r '.access_host_url')
-          database_username=$(echo $res | jq -r '.username')
-          database_password=$(echo $res | jq -r '.plain_text')
-
-          # Mask secrets
-          echo "::add-mask::$database_host"
-          echo "::add-mask::$database_username"
-          echo "::add-mask::$database_password"
-
-          # Set outputs
-          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
-
+          node-version: 20
 
       - uses: pnpm/action-setup@v2
+        name: Install pnpm
         with:
-          version: latest
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: |
@@ -118,27 +71,27 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{env.DATABASE_USERNAME }}:${{env.DATABASE_PASSWORD }}@${{env.DATABASE_HOST}}/unkey?ssl={"rejectUnauthorized":true}'
+          DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
 
 
       - name: Test
-        run: bun test src/routes --coverage --timeout 10000
+        run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
-      - name: Delete planetscale branch
-        if: always()
-        run: |
-          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+
 
 
   lint:
-    needs: authorize
+
     name: Lint
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
 
       - name: Setup Node
         uses: actions/setup-node@v2
@@ -171,14 +124,13 @@ jobs:
         run: pnpm biome ci .
 
   test_nuxt:
-    needs: authorize
+
     name: Test Nuxt
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
       - run: corepack enable
       - uses: actions/setup-node@v3
         with:
@@ -193,19 +145,19 @@ jobs:
         env:
           NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
 
-  tinybird:
-    needs: authorize
-    name: Tinybird CI
-    concurrency: tinybird
-    uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
-    with:
-      data_project_dir: ./internal/tinybird
-    secrets:
-      tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
-      tb_host: https://api.tinybird.co
+  # tinybird:
+  #
+  #   name: Tinybird CI
+  #   concurrency: tinybird
+  #   uses: tinybirdco/ci/.github/workflows/ci.yml@v2.4.0
+  #   with:
+  #     data_project_dir: ./internal/tinybird
+  #   secrets:
+  #     tb_admin_token: ${{ secrets.TINYBIRD_ADMIN_TOKEN }} # set admin token associated to an account in GitHub secrets
+  #     tb_host: https://api.tinybird.co
 
   build_packages:
-    needs: authorize
+
     strategy:
       matrix:
         package: ["@unkey/api", "@unkey/nextjs", "@unkey/hono", "@unkey/nuxt"]
@@ -213,8 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
 
       - name: Setup Node
         uses: actions/setup-node@v2

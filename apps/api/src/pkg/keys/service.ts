@@ -1,9 +1,9 @@
 import { TieredCache } from "@/pkg/cache/tiered";
+import type { Api, Database, Key } from "@/pkg/db";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { type Api, type Database, type Key } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
@@ -36,7 +36,6 @@ type VerifyKeyResult =
       valid: true;
       key: Key;
       api: Api;
-
       ratelimit?: {
         remaining: number;
         limit: number;
@@ -85,6 +84,10 @@ export class KeyService {
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req);
     if (res.error) {
+      this.metrics.emit("metric.key.verification", {
+        valid: false,
+        code: res.error.message,
+      });
       return res;
     }
     // if we have identified the key, we can send the analytics event
@@ -106,6 +109,15 @@ export class KeyService {
         }),
       );
     }
+
+    this.metrics.emit("metric.key.verification", {
+      valid: res.value.valid,
+      code: res.value.code ?? "OK",
+      workspaceId: res.value.key?.workspaceId,
+      apiId: res.value.api?.id,
+      keyId: res.value.key?.id,
+    });
+
     return res;
   }
 
@@ -191,7 +203,6 @@ export class KeyService {
           keyId: data.key.id,
           apiId: data.api.id,
           ownerId: data.key.ownerId ?? undefined,
-          meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
           expires: data.key.expires?.getTime() ?? undefined,
           remaining,
           ratelimit,
@@ -207,7 +218,6 @@ export class KeyService {
       api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ? (JSON.parse(data.key.meta) as Record<string, unknown>) : undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       ratelimit,
       remaining,

@@ -1,16 +1,16 @@
 ---
 title: "Authentication"
-description: "Example overview page before API endpoints"
+description: "How to authenticate your requests to Unkey's API"
 ---
 
-You'll need to authenticate your requests to access some of the endpoints in the Unkey API. In this guide, we'll look at how authentication works. {{ className: 'lead' }}
+You'll need to authenticate your requests to access some of the endpoints in the Unkey API. In this guide, we'll look at how authentication works.
 
 ## Bearer Token
 
 When requesting resources, you will need your root key — you will find it in the [Dashboard](https://unkey.dev/app/settings/root-keys). Here's how to add the root key to the request header using cURL:
 
 ```bash
-curl https://api.unkey.app/v1/... \
+curl https://api.unkey.dev/v1/... \
   -H "Authorization: Bearer unkey_xxx"
 ```
 

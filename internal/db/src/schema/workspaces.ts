@@ -1,3 +1,4 @@
+import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import {
   datetime,
@@ -12,7 +13,6 @@ import { apis } from "./apis";
 import { auditLogs } from "./audit";
 import { keys } from "./keys";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
-
 export const workspaces = mysqlTable(
   "workspaces",
   {
@@ -63,32 +63,7 @@ export const workspaces = mysqlTable(
     // deprecated, use planChanged
     planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
     planChanged: datetime("plan_changed", { fsp: 3 }),
-    subscriptions: json("subscriptions").$type<{
-      activeKeys?: {
-        productId: string;
-        tiers: {
-          firstUnit: number;
-          lastUnit: number | null; // null means unlimited
-          perUnit: number; // $ 0.01
-        }[];
-      };
-      verifications?: {
-        productId: string;
-        tiers: {
-          firstUnit: number;
-          lastUnit: number | null; // null means unlimited
-          perUnit: number; // $ 0.01
-        }[];
-      };
-      plan?: {
-        productId: string;
-        price: number; // $ 25
-      };
-      support?: {
-        productId: string;
-        price: number; // $ 125
-      };
-    }>(),
+    subscriptions: json("subscriptions").$type<Subscriptions>(),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

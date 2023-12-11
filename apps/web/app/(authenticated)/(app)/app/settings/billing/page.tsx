@@ -7,11 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
+import { BillingTier, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -81,13 +83,13 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col space-y-6 w-2/3">
           <MeteredLineItem
             title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: 100, perUnit: 0 }]}
+            tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: null }]}
             used={usedActiveKeys}
             max={workspace.maxActiveKeys}
           />
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: 2500, perUnit: 0 }]}
+            tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: null }]}
             used={usedVerifications}
             max={workspace.maxVerifications}
           />
@@ -197,14 +199,14 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 };
 
 const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
-  const t = new Date();
-  t.setUTCDate(1);
-  t.setUTCHours(0, 0, 0, 0);
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
 
-  const year = t.getUTCFullYear();
-  const month = t.getUTCMonth() + 1;
+  const year = startOfMonth.getUTCFullYear();
+  const month = startOfMonth.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications] = await Promise.all([
+  let [usedActiveKeys, usedVerifications] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -217,18 +219,40 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
-  let totalPrice = 0;
+  usedActiveKeys += 2;
+  usedVerifications += usedActiveKeys * 151;
+  let currentPrice = 0;
+  let estimatedTotalPrice = 0;
   if (workspace.subscriptions?.plan) {
-    totalPrice += workspace.subscriptions.plan.price;
+    const cost = parseFloat(workspace.subscriptions.plan.cents);
+    currentPrice += cost;
+    estimatedTotalPrice += cost; // does not scale
   }
   if (workspace.subscriptions?.support) {
-    totalPrice += workspace.subscriptions.support.price;
+    const cost = parseFloat(workspace.subscriptions.support.cents);
+    currentPrice += cost;
+    estimatedTotalPrice += cost; // does not scale
   }
   if (workspace.subscriptions?.activeKeys) {
-    totalPrice += calculatePrice(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
+    const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
+    if (cost.error) {
+      return <div className="text-red-500">{cost.error.message}</div>;
+    } else {
+      currentPrice += cost.value.totalCentsEstimate;
+      estimatedTotalPrice += cost.value.totalCentsEstimate; // does not necessarily scale
+    }
   }
   if (workspace.subscriptions?.verifications) {
-    totalPrice += calculatePrice(workspace.subscriptions.verifications.tiers, usedVerifications);
+    const cost = calculateTieredPrices(
+      workspace.subscriptions.verifications.tiers,
+      usedVerifications,
+    );
+    if (cost.error) {
+      return <div className="text-red-500">{cost.error.message}</div>;
+    } else {
+      currentPrice += cost.value.totalCentsEstimate;
+      estimatedTotalPrice += forecastUsage(cost.value.totalCentsEstimate);
+    }
   }
 
   return (
@@ -238,7 +262,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardDescription>
           Current billing cycle:{" "}
           <span className="text-primary font-medium">
-            {t.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
           </span>{" "}
         </CardDescription>
       </CardHeader>
@@ -246,10 +270,10 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       <CardContent>
         <ol className="flex flex-col space-y-6">
           {workspace.subscriptions?.plan ? (
-            <LineItem title="Pro plan" price={workspace.subscriptions.plan.price} />
+            <LineItem title="Pro plan" cents={workspace.subscriptions.plan.cents} />
           ) : null}
           {workspace.subscriptions?.support ? (
-            <LineItem title="Professional support" price={workspace.subscriptions.support.price} />
+            <LineItem title="Professional support" cents={workspace.subscriptions.support.cents} />
           ) : null}
           {workspace.subscriptions?.activeKeys ? (
             <MeteredLineItem
@@ -257,25 +281,55 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               title="Active keys"
               tiers={workspace.subscriptions.activeKeys.tiers}
               used={usedActiveKeys}
-              max={workspace.maxActiveKeys}
+              max={workspace.plan === "free" ? 100 : undefined}
             />
           ) : null}
           {workspace.subscriptions?.verifications ? (
             <MeteredLineItem
               displayPrice
               title="Verifications"
-              tiers={workspace.subscriptions.verifications.tiers}
+              tiers={[
+                {
+                  firstUnit: 1,
+                  lastUnit: 2500,
+                  centsPerUnit: null,
+                },
+                {
+                  firstUnit: 2501,
+                  lastUnit: 100000,
+                  centsPerUnit: "0.02",
+                },
+                {
+                  firstUnit: 100001,
+                  lastUnit: 1000000,
+                  centsPerUnit: "0.005",
+                },
+                {
+                  firstUnit: 1000001,
+                  lastUnit: null,
+                  centsPerUnit: "0.0001",
+                },
+              ]}
               used={usedVerifications}
-              max={workspace.maxVerifications}
+              max={workspace.plan === "free" ? 2500 : undefined}
+              forecast
             />
           ) : null}
         </ol>
       </CardContent>
-      <CardFooter className="flex items-center justify-between">
-        <span className="font-semibold text-content text-sm">Current Total</span>
-        <span className="font-semibold tabular-nums text-content text-sm">
-          {dollar(totalPrice)}
-        </span>
+      <CardFooter className="flex flex-col gap-4">
+        <div className="flex items-center justify-between w-full">
+          <span className="font-semibold text-content text-sm">Current Total</span>
+          <span className="font-semibold tabular-nums text-content text-sm">
+            {formatCentsToDollar(currentPrice)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between w-full">
+          <span className="text-content-subtle text-xs">Estimated by end of month</span>
+          <span className="tabular-nums text-content-subtle text-xs">
+            {formatCentsToDollar(estimatedTotalPrice)}
+          </span>
+        </div>
       </CardFooter>
     </Card>
   );
@@ -284,7 +338,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 const LineItem: React.FC<{
   title: string;
   subtitle?: string;
-  price: number; // in dollar
+  cents: string;
 }> = (props) => (
   <div className="flex items-center justify-between">
     <div>
@@ -293,25 +347,48 @@ const LineItem: React.FC<{
       </div>
       <div className="text-sm text-secondary">{props.subtitle}</div>
     </div>
-    <span className="font-semibold tabular-nums text-content text-sm">{dollar(props.price)}</span>
+    <span className="font-semibold tabular-nums text-content text-sm">
+      {formatCentsToDollar(parseFloat(props.cents))}
+    </span>
   </div>
 );
+
+function forecastUsage(currentUsage: number): number {
+  const t = new Date();
+  t.setUTCDate(1);
+  t.setUTCHours(0, 0, 0, 0);
+
+  const start = t.getTime();
+  t.setUTCMonth(t.getUTCMonth() + 1);
+  const end = t.getTime() - 1;
+
+  const passed = (Date.now() - start) / (end - start);
+
+  return currentUsage * (1 + 1 / passed);
+}
 
 const MeteredLineItem: React.FC<{
   displayPrice?: boolean;
   title: string;
   used: number;
   max?: number | null;
-  tiers: {
-    firstUnit: number;
-    lastUnit: number | null; // null means unlimited
-    perUnit: number; // $ 0.01
-  }[];
+  tiers: BillingTier[];
+  forecast?: boolean;
 }> = (props) => {
   const firstTier = props.tiers.at(0);
-  const included = firstTier?.perUnit === 0 ? firstTier.lastUnit ?? 0 : 0;
+  const included = firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
 
-  const price = calculatePrice(props.tiers, props.used);
+  const price = calculateTieredPrices(props.tiers, props.used);
+  if (price.error) {
+    return <div className="text-red-500">{price.error.message}</div>;
+  }
+
+  const forecast = forecastUsage(props.used);
+
+  const currentTier = props.tiers.find((tier) => props.used >= tier.firstUnit);
+  const max = props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
+
+  console.log({ currentTier, max, forecast, used: props.used });
 
   return (
     <div className="flex items-center justify-between">
@@ -329,68 +406,87 @@ const MeteredLineItem: React.FC<{
             </span>
           ) : null}
         </div>
-        <div className="overflow-hidden rounded-full bg-gray-300 dark:bg-gray-800">
-          <div
-            className={cn("bg-primary h-2", {
-              "bg-alert": props.max && props.used >= props.max,
-            })}
-            style={{ width: `${percentage(props.used, props.max ?? 0)}%` }}
-          />
+        <div className="h-2 flex rounded-full bg-gray-200 dark:bg-gray-800 relative">
+          {props.tiers
+            .filter((tier) => props.used >= tier.firstUnit)
+            .map((tier, i) => (
+              <Tooltip key={tier.firstUnit}>
+                <TooltipTrigger style={{ width: percentage(props.used - tier.firstUnit, max) }}>
+                  <div
+                    className={cn("relative bg-primary hover:bg-brand duration-500 h-2", {
+                      "opacity-100": i === 0,
+                      "opacity-80": i === 1,
+                      "opacity-60": i === 2,
+                      "opacity-40": i === 3,
+                      "opacity-20": i === 4,
+                      "rounded-l-full": i === 0,
+                    })}
+                  >
+                    <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 to-transparent" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {tier.centsPerUnit ? (
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:px-8">
+                      <dt className="text-content-subtle text-sm font-medium leading-6">
+                        {" "}
+                        {tier.centsPerUnit
+                          ? formatCentsToDollar(parseFloat(tier.centsPerUnit), 4)
+                          : "free"}{" "}
+                        per unit
+                      </dt>
+
+                      <dd className="text-content w-full flex-none text-3xl font-medium leading-10 tracking-tight">
+                        {tier.firstUnit} - {tier.lastUnit ?? "∞"}
+                      </dd>
+                    </div>
+                  ) : (
+                    `${tier.lastUnit} included`
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          <div className="bg-gradient-to-r max-w-[4rem] w-full from-primary to-transparent opacity-50" />
         </div>
-        <span className="text-xs text-content-subtle">
-          Used {Intl.NumberFormat("en-US", { notation: "compact" }).format(props.used)}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-content-subtle">
+            Used {Intl.NumberFormat("en-US", { notation: "compact" }).format(props.used)}
+          </span>
+          {props.forecast ? (
+            <span className="text-xs text-content-subtle">
+              {Intl.NumberFormat("en-US", { notation: "compact" }).format(forecast)} forecasted
+            </span>
+          ) : null}
+        </div>
       </div>
       {props.displayPrice ? (
         <span
           className={cn("tabular-nums text-sm", {
-            "text-content font-semibold ": price > 0,
-            "text-content-subtle": price === 0,
+            "text-content font-semibold ": price.value.totalCentsEstimate > 0,
+            "text-content-subtle": price.value.totalCentsEstimate === 0,
           })}
         >
-          {dollar(price)}
+          {formatCentsToDollar(price.value.totalCentsEstimate)}
         </span>
       ) : null}
     </div>
   );
 };
 
-function calculatePrice(
-  tiers: {
-    firstUnit: number;
-    lastUnit: number | null; // null means unlimited
-    perUnit: number; // $ 0.01
-  }[],
-  used: number,
-): number {
-  let price = 0;
-  let u = used;
-  for (const tier of tiers) {
-    if (u <= 0) {
-      break;
-    }
-
-    const quantity = tier.lastUnit === null ? u : Math.min(tier.lastUnit - tier.firstUnit + 1, u);
-    u -= quantity;
-    price += quantity * tier.perUnit;
-  }
-  return price;
-}
-
-function dollar(d: number): string {
+function formatCentsToDollar(cents: number, decimals = 2): string {
   return Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(d);
+    maximumFractionDigits: decimals,
+  }).format(cents / 100);
 }
 
-function percentage(num: number, total: number): number {
+function percentage(num: number, total: number): `${number}%` {
   if (total === 0) {
-    return 0;
+    return "0%";
   }
-  return Math.min(100, (num / total) * 100);
+  return `${Math.min(100, (num / total) * 100)}%`;
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
@@ -439,7 +535,7 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
         <li key={invoice.id} className="flex items-center justify-between gap-x-6 py-2">
           <div>
             <span className="tabular-nums text-sm text-content font-semibold">
-              {dollar(invoice.total / 100)}
+              {formatCentsToDollar(invoice.total)}
             </span>
 
             <p className="whitespace-nowrap mt-1 text-xs leading-5 text-content-subtle">

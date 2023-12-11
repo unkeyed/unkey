@@ -15,7 +15,7 @@
     "rollup-plugin-node-builtins": "^2.1.2",
     "testcontainers": "^10.3.2",
     "typescript": "^5.3.2",
-    "wrangler": "^3.18.0"
+    "wrangler": "^3.19.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.1",
@@ -30,6 +30,7 @@
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.28.6",
     "hono": "^3.11.0",
+    "mysql2": "^3.6.2",
     "winston": "^3.11.0",
     "zod": "^3.22.4",
     "zod-error": "^1.5.0"

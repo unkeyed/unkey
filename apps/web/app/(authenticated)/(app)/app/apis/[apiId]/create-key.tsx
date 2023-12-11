@@ -178,7 +178,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               </AlertDescription>
             </Alert>
 
-            <Code className="my-8 flex w-full items-center justify-between gap-4 max-sm:text-xs sm:overflow-hidden">
+            <Code className="ph-no-capture my-8 flex w-full items-center justify-between gap-4 max-sm:text-xs sm:overflow-hidden">
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute  max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -190,7 +190,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
           <p className="my-2 text-center font-medium text-gray-700 ">Try verifying it:</p>
           <Code className="my-8 flex w-full items-start justify-between gap-4 overflow-hidden max-sm:text-xs ">
             <div className="max-sm:mt-10">
-              <pre>{showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}</pre>
+              <pre className="ph-no-capture">
+                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+              </pre>
             </div>
             <div className="max-ms:top-2 flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11 ">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />

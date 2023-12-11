@@ -1,0 +1,23 @@
+{
+  "name": "@unkey/billing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "scripts": {
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.7",
+    "@unkey/tsconfig": "workspace:*",
+    "bun-types": "^1.0.16",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@unkey/result": "workspace:^",
+    "zod": "^3.22.4"
+  }
+}

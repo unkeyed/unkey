@@ -74,7 +74,7 @@ export function init(opts: { env: Env }): void {
     opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
       ? new CacheWithMetrics<CacheNamespaces>({
           cache: new ZoneCache<CacheNamespaces>({
-            domain: "unkey.app",
+            domain: "unkey.dev",
             fresh,
             stale,
             zoneId: opts.env.CLOUDFLARE_ZONE_ID,
@@ -86,11 +86,14 @@ export function init(opts: { env: Env }): void {
       : undefined,
   );
 
-  db = createConnection({
-    host: opts.env.DATABASE_HOST,
-    username: opts.env.DATABASE_USERNAME,
-    password: opts.env.DATABASE_PASSWORD,
-  });
+  db = createConnection(
+    {
+      host: opts.env.DATABASE_HOST,
+      username: opts.env.DATABASE_USERNAME,
+      password: opts.env.DATABASE_PASSWORD,
+    },
+    opts.env.DATABASE_MODE,
+  );
   logger = opts.env.AXIOM_TOKEN
     ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
     : new ConsoleLogger();
