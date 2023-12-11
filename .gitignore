@@ -18,3 +18,4 @@ dist
 .vscode
 .dev.vars
 ./**/.wrangler
+./**/**/.wrangler
