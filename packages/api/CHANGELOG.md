@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.13.1
+
+### Patch Changes
+
+- 153bd10: send name and version in header
+
 ## 0.13.0
 
 ### Minor Changes
