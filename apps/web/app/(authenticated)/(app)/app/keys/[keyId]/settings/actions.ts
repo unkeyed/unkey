@@ -26,9 +26,10 @@ export const updateKeyRemaining = serverAction({
     keyId: z.string(),
     enableRemaining: z.string().transform((s) => s === "true"),
     remaining: stringToIntOrNull,
-    refillInterval: z.enum(["null", "daily", "monthly"]).nullable(),
+    refillInterval: z.enum(["null", "daily", "monthly"]).optional(),
     refillIncrement: stringToIntOrNull,
   }),
+
   handler: async ({ input, ctx }) => {
     if (input.enableRemaining && typeof input.remaining !== "number") {
       throw new Error("provide a number");
@@ -46,19 +47,18 @@ export const updateKeyRemaining = serverAction({
     if (key.workspace.tenantId !== ctx.tenantId) {
       throw new Error("key not found");
     }
-    console.log(input?.refillInterval, input?.refillIncrement);
-    if (input?.refillInterval === "null") {
-      input.refillInterval = null;
-      input.refillIncrement = null;
+
+    if (input?.enableRemaining === false) {
+      input.refillInterval = "null";
     }
 
     await db
       .update(schema.keys)
       .set({
         remaining: input.enableRemaining ? input.remaining : null,
-        refillInterval: input?.refillInterval ?? null,
-        refillIncrement: input?.refillIncrement ?? null,
-        lastRefillAt: input?.refillInterval !== null ? new Date() : null,
+        refillInterval: input?.refillInterval !== "null" ? input.refillInterval : null,
+        refillIncrement: input?.refillInterval !== "null" ? input?.refillIncrement : null,
+        lastRefillAt: input?.refillInterval !== "null" ? new Date() : null,
       })
       .where(eq(schema.keys.id, input.keyId));
 

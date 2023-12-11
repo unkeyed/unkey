@@ -35,8 +35,9 @@ type Props = {
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-
   const [enabled, setEnabled] = useState(apiKey.remaining !== null);
+  const [refillEbabled, setRefillEnabled] = useState(apiKey.remaining !== null);
+
   return (
     <form
       action={async (formData: FormData) => {
@@ -88,7 +89,8 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
             <Select
               disabled={!enabled}
               name="refillInterval"
-              defaultValue={apiKey?.refillInterval?.toString() ?? "null"}
+              defaultValue={apiKey?.refillInterval ?? "null"}
+              onValueChange={(value) => setRefillEnabled(value !== "null")}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -100,12 +102,13 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               </SelectContent>
             </Select>
             <Input
+              disabled={!refillEbabled}
               name="refillIncrement"
               placeholder="100"
               className="w-full"
               min={1}
               type="number"
-              defaultValue={apiKey?.refillIncrement ? apiKey.refillIncrement : "100"}
+              defaultValue={apiKey?.refillIncrement ?? ""}
             />
           </div>
         </CardContent>
