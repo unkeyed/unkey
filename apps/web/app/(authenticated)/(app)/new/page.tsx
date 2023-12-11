@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { QUOTA } from "@/lib/constants/quotas";
 import { db, eq, schema } from "@/lib/db";
 import { auth } from "@clerk/nextjs";
+import { QUOTA } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";

@@ -16,6 +16,7 @@
     "@trigger.dev/react": "^2.3.4",
     "@trigger.dev/sdk": "^2.3.4",
     "@trigger.dev/slack": "^2.3.4",
+    "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/resend": "workspace:^",
     "drizzle-orm": "^0.28.6",
