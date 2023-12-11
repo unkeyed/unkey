@@ -12,6 +12,10 @@
     "@chronark/zod-bird": "^0.3.1",
     "@clerk/nextjs": "^4.27.2",
     "@planetscale/database": "^1.11.0",
+    "@trigger.dev/nextjs": "^2.3.4",
+    "@trigger.dev/react": "^2.3.4",
+    "@trigger.dev/sdk": "^2.3.4",
+    "@trigger.dev/slack": "^2.3.4",
     "@unkey/db": "workspace:^",
     "@unkey/resend": "workspace:^",
     "drizzle-orm": "^0.28.6",
@@ -20,10 +24,7 @@
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^12.18.0",
-    "zod": "^3.22.4",
-    "@trigger.dev/sdk": "^2.3.4",
-    "@trigger.dev/nextjs": "^2.3.4",
-    "@trigger.dev/react": "^2.3.4"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20",
