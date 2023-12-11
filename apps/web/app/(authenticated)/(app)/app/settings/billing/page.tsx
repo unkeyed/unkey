@@ -82,13 +82,13 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col space-y-6 w-2/3">
           <MeteredLineItem
             title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: "0" }]}
+            tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: null }]}
             used={usedActiveKeys}
             max={workspace.maxActiveKeys}
           />
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: "0" }]}
+            tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: null }]}
             used={usedVerifications}
             max={workspace.maxVerifications}
           />
