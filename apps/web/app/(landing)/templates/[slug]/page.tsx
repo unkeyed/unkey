@@ -119,14 +119,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const template = templates[params.slug];
 
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const ogUrl = new URL("/og/template", baseUrl);
-  ogUrl.searchParams.set("title", template?.title ?? "");
-  ogUrl.searchParams.set("author", template?.authors.join(", "));
-  ogUrl.searchParams.set("description", template?.description ?? "");
-
   return {
     title: `${template?.title} | Unkey`,
     description: template?.description,
@@ -135,17 +127,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: template?.description,
       url: `https://unkey.dev/blog/${params.slug}`,
       siteName: "unkey.dev",
-      images: [
-        {
-          url: ogUrl.toString(),
-          width: 1200,
-          height: 675,
-        },
-      ],
     },
     twitter: {
-      title: `${template?.title} | Unkey`,
       card: "summary_large_image",
+      title: `${template?.title} | Unkey`,
+      description: template?.description,
+      site: "@unkeydev",
+      creator: "@unkeydev",
     },
     icons: {
       shortcut: "/unkey.png",

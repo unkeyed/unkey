@@ -1,20 +1,28 @@
-import { connectDatabase } from "@/lib/db";
-import { env } from "@/lib/env";
-import { inngest } from "@/lib/inngest";
 import { Tinybird } from "@/lib/tinybird";
 import Stripe from "stripe";
 import { z } from "zod";
-const _metaSchema = z.object({
-  priceIdActiveKeys: z.string().optional(),
-  priceIdVerifications: z.string().optional(),
-  priceIdSupport: z.string().optional(),
-});
 
-export const createInvoice = inngest.createFunction(
-  { id: "billing/create.invoice" },
-  { event: "billing/create.invoice" },
-  async ({ event, step }) => {
-    const { workspaceId, year, month } = event.data;
+import { env } from "@/lib/env";
+import { client } from "@/trigger";
+
+import { connectDatabase } from "@/lib/db";
+import { eventTrigger } from "@trigger.dev/sdk";
+
+client.defineJob({
+  id: "billing.invoicing.createInvoice",
+  name: "Collect usage and create invoice",
+  version: "0.0.1",
+  trigger: eventTrigger({
+    name: "billing.invoicing.createInvoice",
+    schema: z.object({
+      workspaceId: z.string(),
+      year: z.number(),
+      month: z.number(),
+    }),
+  }),
+
+  run: async (payload, io, _ctx) => {
+    const { workspaceId, year, month } = payload;
 
     const db = connectDatabase();
     const stripe = new Stripe(env().STRIPE_SECRET_KEY, {
@@ -23,7 +31,7 @@ export const createInvoice = inngest.createFunction(
     });
     const tinybird = new Tinybird(env().TINYBIRD_TOKEN);
 
-    const workspace = await step.run(`get workspace ${workspaceId}`, async () =>
+    const workspace = await io.runTask(`get workspace ${workspaceId}`, async () =>
       db.query.workspaces.findFirst({
         where: (table, { eq }) => eq(table.id, workspaceId),
       }),
@@ -37,8 +45,8 @@ export const createInvoice = inngest.createFunction(
       throw new Error(`workspace ${workspaceId} has no stripe customer id`);
     }
 
-    const invoice = await step.run("create invoice", () =>
-      stripe.invoices.create({
+    const invoice = await io.runTask(`create invoice for ${workspace.id}`, async () => {
+      const inv = await stripe.invoices.create({
         customer: workspace.stripeCustomerId!,
         auto_advance: false,
         custom_fields: [
@@ -54,15 +62,18 @@ export const createInvoice = inngest.createFunction(
             }),
           },
         ],
-      }),
-    );
+      });
+      return {
+        id: inv.id,
+      };
+    });
 
     /**
      * Plan
      */
     if (workspace.subscriptions?.plan) {
-      await step.run("add plan", () =>
-        stripe.invoiceItems.create({
+      await io.runTask("add plan", async () => {
+        await stripe.invoiceItems.create({
           customer: workspace.stripeCustomerId!,
           invoice: invoice.id,
           quantity: 1,
@@ -73,20 +84,20 @@ export const createInvoice = inngest.createFunction(
           },
           currency: "usd",
           description: "Pro Plan",
-        }),
-      );
+        });
+      });
     }
 
     /**
      * Active keys
      */
     if (workspace.subscriptions?.activeKeys) {
-      let activeKeys = await step.run(`get active keys for ${workspace.id}`, async () =>
+      let activeKeys = await io.runTask(`get active keys for ${workspace.id}`, async () =>
         tinybird
           .activeKeys({
             workspaceId: workspace.id,
-            year: event.data.year,
-            month: event.data.month,
+            year,
+            month,
           })
           .then((res) => res.data.at(0)?.keys ?? 0),
       );
@@ -102,8 +113,8 @@ export const createInvoice = inngest.createFunction(
             : Math.min(tier.lastUnit - tier.firstUnit + 1, activeKeys);
         activeKeys -= quantity;
         if (quantity > 0) {
-          await step.run(`add active keys tier ${tier.firstUnit}-${tier.lastUnit}`, () =>
-            stripe.invoiceItems.create({
+          await io.runTask(`add active keys tier ${tier.firstUnit}-${tier.lastUnit}`, async () => {
+            await stripe.invoiceItems.create({
               customer: workspace.stripeCustomerId!,
               invoice: invoice.id,
               quantity,
@@ -116,8 +127,8 @@ export const createInvoice = inngest.createFunction(
               description: `Active Keys ${tier.firstUnit}${
                 tier.lastUnit ? `-${tier.lastUnit}` : "+"
               }`,
-            }),
-          );
+            });
+          });
         }
       }
     }
@@ -125,12 +136,12 @@ export const createInvoice = inngest.createFunction(
      * Verifications
      */
     if (workspace.subscriptions?.verifications) {
-      let verifications = await step.run(`get verifications for ${workspace.id}`, async () =>
+      let verifications = await io.runTask(`get verifications for ${workspace.id}`, async () =>
         tinybird
           .verifications({
             workspaceId: workspace.id,
-            year: event.data.year,
-            month: event.data.month,
+            year,
+            month,
           })
           .then((res) => res.data.at(0)?.success ?? 0),
       );
@@ -146,8 +157,8 @@ export const createInvoice = inngest.createFunction(
             : Math.min(tier.lastUnit - tier.firstUnit + 1, verifications);
         verifications -= quantity;
         if (quantity > 0) {
-          await step.run(`add verification tier ${tier.firstUnit}-${tier.lastUnit}`, () =>
-            stripe.invoiceItems.create({
+          await io.runTask(`add verification tier ${tier.firstUnit}-${tier.lastUnit}`, async () => {
+            await stripe.invoiceItems.create({
               customer: workspace.stripeCustomerId!,
               invoice: invoice.id,
               quantity,
@@ -162,8 +173,8 @@ export const createInvoice = inngest.createFunction(
               description: `Verifications ${tier.firstUnit}${
                 tier.lastUnit ? `-${tier.lastUnit}` : "+"
               }`,
-            }),
-          );
+            });
+          });
         }
       }
     }
@@ -172,8 +183,8 @@ export const createInvoice = inngest.createFunction(
      * Support
      */
     if (workspace.subscriptions?.support) {
-      await step.run("add support", () =>
-        stripe.invoiceItems.create({
+      await io.runTask("add support", async () => {
+        await stripe.invoiceItems.create({
           customer: workspace.stripeCustomerId!,
           invoice: invoice.id,
           quantity: 1,
@@ -184,15 +195,12 @@ export const createInvoice = inngest.createFunction(
           },
           currency: "usd",
           description: "Professional support",
-        }),
-      );
+        });
+      });
     }
 
     return {
-      event,
-      body: {
-        invoiceId: invoice.id,
-      },
+      invoiceId: invoice.id,
     };
   },
-);
+});

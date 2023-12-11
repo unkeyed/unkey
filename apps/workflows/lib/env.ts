@@ -17,5 +17,6 @@ export const env = () =>
       CLERK_SECRET_KEY: z.string(),
 
       RESEND_API_KEY: z.string(),
+      TRIGGER_API_KEY: z.string(),
     })
     .parse(process.env);
