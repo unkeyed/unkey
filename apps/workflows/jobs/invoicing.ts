@@ -1,15 +1,18 @@
 import { connectDatabase } from "@/lib/db";
-import { inngest } from "@/lib/inngest";
+import { client } from "@/trigger";
+import { cronTrigger } from "@trigger.dev/sdk";
 
-export const invoicing = inngest.createFunction(
-  {
-    id: "billing/invoicing",
-  },
-  { cron: "0 12 1 * *" }, // every 1st of the month at noon UTC
-  async ({ event, step, logger }) => {
+client.defineJob({
+  id: "billing.invoicing",
+  name: "Monthly invoicing",
+  version: "0.0.1",
+  trigger: cronTrigger({
+    cron: "0 12 1 * *", // every 1st of the month at noon UTC
+  }),
+  run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
 
-    let workspaces = await step.run("list workspaces", async () =>
+    let workspaces = await io.runTask("list workspaces", async () =>
       db.query.workspaces.findMany({
         where: (table, { isNotNull, not, eq, and }) =>
           and(
@@ -24,7 +27,7 @@ export const invoicing = inngest.createFunction(
       (ws) => ws.subscriptions && Object.keys(ws.subscriptions).length > 0,
     );
 
-    logger.info(`found ${workspaces.length} workspaces`, JSON.stringify(workspaces));
+    io.logger.info(`found ${workspaces.length} workspaces`, workspaces);
 
     /**
      * Dates gymnastics to get the previous month's number, ie: if it's December now, it returns -> 11
@@ -34,22 +37,19 @@ export const invoicing = inngest.createFunction(
     const year = t.getUTCFullYear();
     const month = t.getUTCMonth() + 1; // months are 0 indexed
 
-    await Promise.all(
-      workspaces.map(async (workspace) =>
-        step.sendEvent("invoice.create", {
-          name: "billing/create.invoice",
-          data: {
-            workspaceId: workspace.id,
-            year,
-            month,
-          },
-        }),
-      ),
+    await io.sendEvents(
+      "delegate invoicing",
+      workspaces.map((w) => ({
+        name: "billing.invoicing.createInvoice",
+        payload: {
+          workspaceId: w.id,
+          year,
+          month,
+        },
+      })),
     );
-
     return {
-      event,
-      body: "done",
+      workspaceIds: workspaces.map((w) => w.id),
     };
   },
-);
+});
