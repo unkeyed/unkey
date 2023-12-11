@@ -1,6 +1,4 @@
-import type { Workspace } from "@unkey/db";
-
-export type Plan = NonNullable<Workspace["plan"]>;
+type Plan = "free" | "pro" | "enterprise";
 
 export type Quotas = {
   maxActiveKeys: number | null;
