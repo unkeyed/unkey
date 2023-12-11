@@ -12,6 +12,7 @@ import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
+import { BillingTier, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -81,13 +82,13 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col space-y-6 w-2/3">
           <MeteredLineItem
             title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: 100, perUnit: 0 }]}
+            tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: null }]}
             used={usedActiveKeys}
             max={workspace.maxActiveKeys}
           />
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: 2500, perUnit: 0 }]}
+            tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: null }]}
             used={usedVerifications}
             max={workspace.maxVerifications}
           />
@@ -219,16 +220,29 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 
   let totalPrice = 0;
   if (workspace.subscriptions?.plan) {
-    totalPrice += workspace.subscriptions.plan.price;
+    totalPrice += parseFloat(workspace.subscriptions.plan.cents);
   }
   if (workspace.subscriptions?.support) {
-    totalPrice += workspace.subscriptions.support.price;
+    totalPrice += parseFloat(workspace.subscriptions.support.cents);
   }
   if (workspace.subscriptions?.activeKeys) {
-    totalPrice += calculatePrice(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
+    const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
+    if (cost.error) {
+      return <div className="text-red-500">{cost.error.message}</div>;
+    } else {
+      totalPrice += cost.value.totalCentsEstimate;
+    }
   }
   if (workspace.subscriptions?.verifications) {
-    totalPrice += calculatePrice(workspace.subscriptions.verifications.tiers, usedVerifications);
+    const cost = calculateTieredPrices(
+      workspace.subscriptions.verifications.tiers,
+      usedVerifications,
+    );
+    if (cost.error) {
+      return <div className="text-red-500">{cost.error.message}</div>;
+    } else {
+      totalPrice += cost.value.totalCentsEstimate;
+    }
   }
 
   return (
@@ -246,10 +260,10 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       <CardContent>
         <ol className="flex flex-col space-y-6">
           {workspace.subscriptions?.plan ? (
-            <LineItem title="Pro plan" price={workspace.subscriptions.plan.price} />
+            <LineItem title="Pro plan" cents={workspace.subscriptions.plan.cents} />
           ) : null}
           {workspace.subscriptions?.support ? (
-            <LineItem title="Professional support" price={workspace.subscriptions.support.price} />
+            <LineItem title="Professional support" cents={workspace.subscriptions.support.cents} />
           ) : null}
           {workspace.subscriptions?.activeKeys ? (
             <MeteredLineItem
@@ -274,7 +288,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       <CardFooter className="flex items-center justify-between">
         <span className="font-semibold text-content text-sm">Current Total</span>
         <span className="font-semibold tabular-nums text-content text-sm">
-          {dollar(totalPrice)}
+          {formatCentsToDollar(totalPrice)}
         </span>
       </CardFooter>
     </Card>
@@ -284,7 +298,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 const LineItem: React.FC<{
   title: string;
   subtitle?: string;
-  price: number; // in dollar
+  cents: string;
 }> = (props) => (
   <div className="flex items-center justify-between">
     <div>
@@ -293,7 +307,9 @@ const LineItem: React.FC<{
       </div>
       <div className="text-sm text-secondary">{props.subtitle}</div>
     </div>
-    <span className="font-semibold tabular-nums text-content text-sm">{dollar(props.price)}</span>
+    <span className="font-semibold tabular-nums text-content text-sm">
+      {formatCentsToDollar(parseFloat(props.cents))}
+    </span>
   </div>
 );
 
@@ -302,16 +318,15 @@ const MeteredLineItem: React.FC<{
   title: string;
   used: number;
   max?: number | null;
-  tiers: {
-    firstUnit: number;
-    lastUnit: number | null; // null means unlimited
-    perUnit: number; // $ 0.01
-  }[];
+  tiers: BillingTier[];
 }> = (props) => {
   const firstTier = props.tiers.at(0);
-  const included = firstTier?.perUnit === 0 ? firstTier.lastUnit ?? 0 : 0;
+  const included = firstTier?.centsPerUnit === "0" ? firstTier.lastUnit ?? 0 : 0;
 
-  const price = calculatePrice(props.tiers, props.used);
+  const price = calculateTieredPrices(props.tiers, props.used);
+  if (price.error) {
+    return <div className="text-red-500">{price.error.message}</div>;
+  }
 
   return (
     <div className="flex items-center justify-between">
@@ -334,7 +349,7 @@ const MeteredLineItem: React.FC<{
             className={cn("bg-primary h-2", {
               "bg-alert": props.max && props.used >= props.max,
             })}
-            style={{ width: `${percentage(props.used, props.max ?? 0)}%` }}
+            style={{ width: percentage(props.used, props.max ?? 0) }}
           />
         </div>
         <span className="text-xs text-content-subtle">
@@ -344,53 +359,31 @@ const MeteredLineItem: React.FC<{
       {props.displayPrice ? (
         <span
           className={cn("tabular-nums text-sm", {
-            "text-content font-semibold ": price > 0,
-            "text-content-subtle": price === 0,
+            "text-content font-semibold ": price.value.totalCentsEstimate > 0,
+            "text-content-subtle": price.value.totalCentsEstimate === 0,
           })}
         >
-          {dollar(price)}
+          {formatCentsToDollar(price.value.totalCentsEstimate)}
         </span>
       ) : null}
     </div>
   );
 };
 
-function calculatePrice(
-  tiers: {
-    firstUnit: number;
-    lastUnit: number | null; // null means unlimited
-    perUnit: number; // $ 0.01
-  }[],
-  used: number,
-): number {
-  let price = 0;
-  let u = used;
-  for (const tier of tiers) {
-    if (u <= 0) {
-      break;
-    }
-
-    const quantity = tier.lastUnit === null ? u : Math.min(tier.lastUnit - tier.firstUnit + 1, u);
-    u -= quantity;
-    price += quantity * tier.perUnit;
-  }
-  return price;
-}
-
-function dollar(d: number): string {
+function formatCentsToDollar(cents: number): string {
   return Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(d);
+  }).format(cents / 100);
 }
 
-function percentage(num: number, total: number): number {
+function percentage(num: number, total: number): `${number}%` {
   if (total === 0) {
-    return 0;
+    return "0%";
   }
-  return Math.min(100, (num / total) * 100);
+  return `${Math.min(100, (num / total) * 100)}%`;
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
@@ -439,7 +432,7 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
         <li key={invoice.id} className="flex items-center justify-between gap-x-6 py-2">
           <div>
             <span className="tabular-nums text-sm text-content font-semibold">
-              {dollar(invoice.total / 100)}
+              {formatCentsToDollar(invoice.total)}
             </span>
 
             <p className="whitespace-nowrap mt-1 text-xs leading-5 text-content-subtle">

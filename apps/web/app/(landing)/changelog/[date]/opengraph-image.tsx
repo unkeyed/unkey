@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
-import { NextRequest, NextResponse } from "next/server";
-
+import { allChangelogs } from "contentlayer/generated";
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
     return str;
@@ -8,20 +7,31 @@ const truncate = (str: string | null, length: number) => {
   return `${str.slice(0, length - 3)}...`;
 };
 
-export const runtime = "edge";
+const _baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export const runtime = "edge";
+export const contentType = "image/png";
+export const alt = "Changelog OG Image";
+
+export default async function Image({ params }: { params: { date: string } }) {
   try {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
+    const changelog = allChangelogs.find(
+      (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
+    );
 
-    const { searchParams } = new URL(req.url);
+    // Rare case where the changelog is not found?
+    if (!changelog) {
+      return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+        width: 1280,
+        height: 720,
+      });
+    }
 
-    const title = searchParams.get("title") || "Blog";
-    const author = searchParams.get("author");
-    const image = searchParams.get("image");
-    // @ts-expect-error no idea why nextjs is complaining about this
     return new ImageResponse(
       <div
         style={{
@@ -173,10 +183,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             color: "transparent",
-            textAlign: "center",
           }}
         >
-          {truncate(title, 55)}
+          {truncate(changelog.title, 55)}
         </h1>
 
         <div
@@ -194,30 +203,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             width: "100%",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {image ? (
-              <img
-                alt="author"
-                width={64}
-                height={64}
-                style={{
-                  width: 64,
-                  height: 64,
-                  filter: "grayscale()",
-                  borderRadius: "100%",
-                  marginRight: "10px",
-                }}
-                src={image}
-              />
-            ) : null}
-            <p>{author ? `by ${author}` : null}</p>
-          </div>
-          <p style={{ marginLeft: "4px" }}>Unkey.dev</p>
+          <p>{changelog.date ? `Changelog - ${changelog.date}` : null}</p>
+          <p>Unkey.dev</p>
         </div>
       </div>,
       {
@@ -232,7 +219,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     );
   } catch (e) {
-    console.error(e);
-    return new NextResponse("Something went wrong");
+    console.error(`Error generating image using fallback for changelog route ${params.date}`, e);
+    return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+      width: 1280,
+      height: 720,
+    });
   }
 }

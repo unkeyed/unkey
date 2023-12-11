@@ -12,6 +12,11 @@
     "@chronark/zod-bird": "^0.3.1",
     "@clerk/nextjs": "^4.27.2",
     "@planetscale/database": "^1.11.0",
+    "@trigger.dev/nextjs": "^2.3.4",
+    "@trigger.dev/react": "^2.3.4",
+    "@trigger.dev/sdk": "^2.3.4",
+    "@trigger.dev/slack": "^2.3.4",
+    "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/resend": "workspace:^",
     "drizzle-orm": "^0.28.6",
@@ -27,5 +32,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5"
+  },
+  "trigger.dev": {
+    "endpointId": "workflows-6eiv"
   }
 }

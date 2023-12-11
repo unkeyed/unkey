@@ -5,6 +5,7 @@ export const zEnv = z.object({
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
+  DATABASE_MODE: z.enum(["planetscale", "mysql"]).optional().default("planetscale"),
   AXIOM_TOKEN: z.string().optional(),
   CLOUDFLARE_API_KEY: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),

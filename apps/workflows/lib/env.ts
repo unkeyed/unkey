@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const env = () =>
-  z
+export function env() {
+  const parsed = z
     .object({
       DATABASE_HOST: z.string(),
       DATABASE_USERNAME: z.string(),
@@ -17,5 +17,11 @@ export const env = () =>
       CLERK_SECRET_KEY: z.string(),
 
       RESEND_API_KEY: z.string(),
+      TRIGGER_API_KEY: z.string(),
     })
-    .parse(process.env);
+    .safeParse(process.env);
+  if (!parsed.success) {
+    throw new Error(`env: ${parsed.error.message}`);
+  }
+  return parsed.data;
+}
