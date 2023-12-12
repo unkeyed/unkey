@@ -40,8 +40,6 @@ client.defineJob({
             trialEnds: null,
             plan: "free",
             subscriptions: null,
-            maxActiveKeys: 100, // TODO: read from constant
-            maxVerifications: 2500,
           })
           .where(eq(schema.workspaces.id, ws.id));
       });

@@ -2,7 +2,6 @@ import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import {
   datetime,
-  int,
   json,
   mysqlEnum,
   mysqlTable,
@@ -32,17 +31,6 @@ export const workspaces = mysqlTable(
 
     // null means there was no trial
     trialEnds: datetime("trial_ends", { fsp: 3 }),
-    // if null, you should fall back to start of month
-    billingPeriodStart: datetime("billing_period_start", { fsp: 3 }),
-    // if null, you should fall back to end of month
-    billingPeriodEnd: datetime("billing_period_end", { fsp: 3 }),
-
-    // quotas and usage
-    maxActiveKeys: int("quota_max_active_keys"),
-    usageActiveKeys: int("usage_active_keys"),
-    maxVerifications: int("quota_max_verifications"),
-    usageVerifications: int("usage_verifications"),
-    lastUsageUpdate: datetime("last_usage_update", { fsp: 3 }),
 
     /**
      * feature flags

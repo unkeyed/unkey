@@ -53,7 +53,7 @@ let initialized = false;
  *
  * Call this once before any hono handlers run.
  */
-export function init(opts: { env: Env }): void {
+export async function init(opts: { env: Env }): Promise<void> {
   if (initialized) {
     return;
   }
@@ -86,14 +86,11 @@ export function init(opts: { env: Env }): void {
       : undefined,
   );
 
-  db = createConnection(
-    {
-      host: opts.env.DATABASE_HOST,
-      username: opts.env.DATABASE_USERNAME,
-      password: opts.env.DATABASE_PASSWORD,
-    },
-    opts.env.DATABASE_MODE,
-  );
+  db = createConnection({
+    host: opts.env.DATABASE_HOST,
+    username: opts.env.DATABASE_USERNAME,
+    password: opts.env.DATABASE_PASSWORD,
+  });
   logger = opts.env.AXIOM_TOKEN
     ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
     : new ConsoleLogger();
