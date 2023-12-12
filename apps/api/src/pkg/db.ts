@@ -21,7 +21,12 @@ export function createConnection(opts: ConnectionOptions): Database {
 
       fetch: (url: string, init: any) => {
         (init as any).cache = undefined; // Remove cache header
-        return fetch(url, init);
+        const u = new URL(url);
+        // set protocol to http if localhost for CI testing
+        if (u.host.includes("localhost")) {
+          u.protocol = "http";
+        }
+        return fetch(u, init);
       },
     }),
     {
