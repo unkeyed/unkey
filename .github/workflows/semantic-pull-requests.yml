@@ -1,4 +1,4 @@
-name: "Check PR"
+name: "Lint PR title"
 
 on:
   pull_request_target:
@@ -8,11 +8,10 @@ on:
       - edited
       - synchronize
 
-permissions:
-  pull-requests: write
-
 jobs:
   validate-pr:
+    permissions:
+      pull-requests: write
     name: PR title
     runs-on: ubuntu-latest
     steps:
@@ -35,8 +34,8 @@ jobs:
             ```
             <type>[optional scope]: <description>
             fix: I fixed something for Unkey
-            ```  
-    
+            ```
+
             Details:
 
             ```
