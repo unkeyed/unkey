@@ -21,14 +21,11 @@ export async function seed(env: {
   DATABASE_PASSWORD: string;
   DATABASE_MODE: "planetscale" | "mysql";
 }): Promise<Resources> {
-  const database = createConnection(
-    {
-      host: env.DATABASE_HOST,
-      username: env.DATABASE_USERNAME,
-      password: env.DATABASE_PASSWORD,
-    },
-    env.DATABASE_MODE,
-  );
+  const database = createConnection({
+    host: env.DATABASE_HOST,
+    username: env.DATABASE_USERNAME,
+    password: env.DATABASE_PASSWORD,
+  });
 
   const unkeyWorkspace: Workspace = {
     id: newId("workspace"),
@@ -40,13 +37,6 @@ export async function seed(env: {
     slug: null,
     stripeCustomerId: null,
     stripeSubscriptionId: null,
-    maxActiveKeys: 1000,
-    usageActiveKeys: 0,
-    maxVerifications: 1000,
-    usageVerifications: 0,
-    lastUsageUpdate: null,
-    billingPeriodStart: null,
-    billingPeriodEnd: null,
     trialEnds: null,
     subscriptions: null,
     planLockedUntil: null,
@@ -62,13 +52,6 @@ export async function seed(env: {
     betaFeatures: {},
     stripeCustomerId: null,
     stripeSubscriptionId: null,
-    maxActiveKeys: 1000,
-    usageActiveKeys: 0,
-    maxVerifications: 1000,
-    usageVerifications: 0,
-    lastUsageUpdate: null,
-    billingPeriodStart: null,
-    billingPeriodEnd: null,
     trialEnds: null,
     subscriptions: null,
     planLockedUntil: null,

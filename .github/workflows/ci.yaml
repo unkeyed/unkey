@@ -5,11 +5,12 @@ on:
     branches: [main]
 
 concurrency: pr-${{ github.event.number }}
+env:
+  DATABASE_USERNAME: unkey
+  DATABASE_PASSWORD: password
+  DATABASE_NAME: unkey
 
 jobs:
-
-
-
   docs:
     name: Check Docs
     runs-on: ubuntu-latest
@@ -29,12 +30,18 @@ jobs:
            image: mysql:latest
            env:
              MYSQL_ROOT_PASSWORD: root
-             MYSQL_DATABASE: unkey
-             MYSQL_USER: unkey
-             MYSQL_PASSWORD: password
+             MYSQL_DATABASE: ${{env.DATABASE_NAME }}
+             MYSQL_USER: ${{env.DATABASE_USERNAME }}
+             MYSQL_PASSWORD: ${{env.DATABASE_PASSWORD }}
            ports:
              - 3306:3306
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+         planetscale:
+          image: ghcr.io/mattrobenolt/ps-http-sim:latest
+          options: -mysql-addr=mysql:3306 -mysql-dbname=${{env.DATABASE_NAME}}
+          ports:
+            - 8080:8080
+
 
     steps:
       - uses: actions/checkout@v3
@@ -71,7 +78,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
+          DRIZZLE_DATABASE_URL: 'mysql://${{env.DATABASE_HOST}}:${{env.DATABASE_PASSWORD}}@localhost:8080/${{env.DATABASE_NAME}}'
 
 
       - name: Test

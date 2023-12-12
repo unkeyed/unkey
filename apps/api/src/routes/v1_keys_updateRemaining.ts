@@ -2,9 +2,8 @@ import { db, keyService, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { eq, schema, sql } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
-import { eq, sql } from "drizzle-orm";
 
 const route = createRoute({
   method: "post",
