@@ -52,7 +52,7 @@ jobs:
         run: |
           go install github.com/mattrobenolt/ps-http-sim@latest
           # start the proxy in the background
-          ps-http-sim -mysql-addr=localhost -mysql-dbname=$DATABASE_NAME -listen-addr=0.0.0.0 &
+          ps-http-sim -mysql-dbname=$DATABASE_NAME -listen-addr=0.0.0.0 &
 
 
       - uses: pnpm/action-setup@v2
