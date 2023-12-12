@@ -2,7 +2,7 @@ import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
-import { QUOTA, defaultProSubscriptions } from "@unkey/billing";
+import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -35,13 +35,6 @@ export const workspaceRouter = t.router({
         plan: "pro",
         stripeCustomerId: null,
         stripeSubscriptionId: null,
-        maxActiveKeys: QUOTA.pro.maxActiveKeys,
-        maxVerifications: QUOTA.pro.maxVerifications,
-        usageActiveKeys: null,
-        usageVerifications: null,
-        lastUsageUpdate: null,
-        billingPeriodStart: null,
-        billingPeriodEnd: null,
         trialEnds: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks
         features: {},
         betaFeatures: {},
@@ -110,8 +103,6 @@ export const workspaceRouter = t.router({
             .update(schema.workspaces)
             .set({
               plan: "free",
-              maxActiveKeys: QUOTA.free.maxActiveKeys,
-              maxVerifications: QUOTA.free.maxVerifications,
               planChanged: new Date(),
               subscriptions: null,
             })
@@ -138,8 +129,6 @@ export const workspaceRouter = t.router({
             .update(schema.workspaces)
             .set({
               plan: "pro",
-              maxActiveKeys: QUOTA.pro.maxActiveKeys,
-              maxVerifications: QUOTA.pro.maxVerifications,
               planChanged: new Date(),
               subscriptions: defaultProSubscriptions(),
             })

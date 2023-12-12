@@ -10,5 +10,3 @@ SQL >
         uniqMerge(activeWorkspaces) as activeWorkspaces,
         month
     FROM mv__monthly_stats group by month
-
-
