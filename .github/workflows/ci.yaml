@@ -30,15 +30,15 @@ jobs:
            image: mysql:latest
            env:
              MYSQL_ROOT_PASSWORD: root
-             MYSQL_DATABASE: ${{env.DATABASE_NAME }}
-             MYSQL_USER: ${{env.DATABASE_USERNAME }}
-             MYSQL_PASSWORD: ${{env.DATABASE_PASSWORD }}
+             MYSQL_DATABASE: $DATABASE_NAME
+             MYSQL_USER: $DATABASE_USERNAME
+             MYSQL_PASSWORD: $DATABASE_PASSWORD
            ports:
              - 3306:3306
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
          planetscale:
           image: ghcr.io/mattrobenolt/ps-http-sim:latest
-          options: -mysql-addr=mysql:3306 -mysql-dbname=${{env.DATABASE_NAME}}
+          options: -mysql-addr=mysql:3306 -mysql-dbname=$DATABASE_NAME
           ports:
             - 8080:8080
 
@@ -78,7 +78,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://${{env.DATABASE_HOST}}:${{env.DATABASE_PASSWORD}}@localhost:8080/${{env.DATABASE_NAME}}'
+          DRIZZLE_DATABASE_URL: 'mysql://$DATABASE_HOST:$DATABASE_PASSWORD@localhost:8080/$DATABASE_NAME'
 
 
       - name: Test
