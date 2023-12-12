@@ -21,4 +21,3 @@ export const db = drizzle(
 );
 
 export * from "@unkey/db";
-export * from "drizzle-orm";

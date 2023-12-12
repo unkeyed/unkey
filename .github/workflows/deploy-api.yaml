@@ -204,6 +204,7 @@ jobs:
           UNKEY_ROOT_KEY: ${{ secrets.CANARY_ROOT_KEY }}
 
   production:
+    if: "!github.event.release.prerelease"
     needs:
       - canary
       - canary-tests
