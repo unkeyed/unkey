@@ -7,7 +7,6 @@ on:
 concurrency: pr-${{ github.event.number }}
 env:
   DATABASE_HOST: localhost
-  DATABASE_PORT: 8080
   DATABASE_USERNAME: unkey
   DATABASE_PASSWORD: password
   DATABASE_NAME: unkey
@@ -53,7 +52,7 @@ jobs:
         run: |
           go install github.com/mattrobenolt/ps-http-sim@latest
           # start the proxy in the background
-          ps-http-sim -mysql-addr=localhost:3306 -mysql-dbname=$DATABASE_NAME &
+          ps-http-sim -mysql-addr=localhost:3306 -mysql-dbname=$DATABASE_NAME -listen-addr=0.0.0.0 &
 
 
       - uses: pnpm/action-setup@v2
