@@ -99,7 +99,6 @@ jobs:
           - "@unkey/billing"
           - "@unkey/hash"
           - "@unkey/key"
-          - "api"
           - "@unkey/api"
           - "@unkey/nextjs"
           - "@unkey/hono"
