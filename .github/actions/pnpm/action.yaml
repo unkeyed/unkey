@@ -32,6 +32,6 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        pnpm install
+        pnpm install --recursive
         npm i -g bun
         npm i -g wrangler
