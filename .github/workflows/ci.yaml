@@ -102,26 +102,9 @@ jobs:
       - name: Install
         uses: ./.github/actions/pnpm
 
-      - name: Format
-        run: pnpm biome ci .
+      - name: Test
+        run: pnpm turbo run test
 
-  test_nuxt:
-
-    name: Test Nuxt
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - run: corepack enable
-
-      - name: Install
-        uses: ./.github/actions/pnpm
-
-      - name: 🧪 Test project
-        run: pnpm turbo test --filter=@unkey/nuxt
-        env:
-          NUXT_TEST_KEY: ${{secrets.NUXT_TEST_KEY}}
 
   # tinybird:
   #
