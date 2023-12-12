@@ -56,6 +56,25 @@ export const keySchema = z
         "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
       example: 1000,
     }),
+    refill: z
+      .object({
+        refillInterval: z.enum(["null", "daily", "monthly"]).openapi({
+          description: "Determines the rate verifications will be refilled.",
+          example: "daily",
+        }),
+        refillIncrement: z.number().int().openapi({
+          description: "Sets how many verifications to refill during each refillInterval.",
+          example: 100,
+        }),
+      })
+      .optional()
+      .openapi({
+        description: "Unkey allows you to replenish verifications on a key on a refular interval.",
+        example: {
+          refillInterval: "daily",
+          refillIncrement: 10,
+        },
+      }),
     ratelimit: z
       .object({
         type: z
@@ -89,17 +108,5 @@ export const keySchema = z
           refillInterval: 60,
         },
       }),
-    refill: z
-      .object({
-        refillInterval: z.enum(["null", "daily", "monthly"]).openapi({
-          description: "Determines the rate at kills will be refilled.",
-          example: "daily",
-        }),
-        refillIncrement: z.number().int().openapi({
-          description: "Sets how many uses to refill during each refillInterval.",
-          example: 100,
-        }),
-      })
-      .optional(),
   })
   .openapi("Key");

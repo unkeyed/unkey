@@ -64,17 +64,29 @@ export const registerLegacyApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const apiId = c.req.param("apiId");
@@ -89,7 +101,10 @@ export const registerLegacyApisListKeys = (app: App) =>
     });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `api ${apiId} not found`,
+      });
     }
 
     if (!api.keyAuthId) {
@@ -121,7 +136,10 @@ export const registerLegacyApisListKeys = (app: App) =>
     ]);
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `api ${apiId} not found`,
+      });
     }
 
     return c.json({
@@ -145,6 +163,14 @@ export const registerLegacyApisListKeys = (app: App) =>
               }
             : undefined,
         remaining: k.remaining ?? undefined,
+        refill:
+          k.refillInterval && k.refillIncrement
+            ? {
+                refillInterval: k.refillInterval,
+                refillIncrement: k.refillIncrement,
+                lastRefillAt: k.lastRefillAt?.getTime(),
+              }
+            : undefined,
       })),
       // @ts-ignore, mysql sucks
       total: parseInt(total.at(0)?.count ?? "0"),
