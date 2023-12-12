@@ -9,7 +9,6 @@ describe("Unkey client", () => {
 
     expect(client.baseUrl).toBe("https://api.unkey.dev");
     expect(client.retry.attempts).toBe(5);
-    // @ts-expect-error
     expect(client.retry.backoff).toStrictEqual(expect.any(Function));
   });
 
@@ -168,7 +167,7 @@ describe("snapshot api calls", () => {
   describe("client.keys", () => {
     test("create", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/keys",
+        url: "https://api.unkey.dev/v1/keys.createKey",
         method: "POST",
         jsonBody: {
           name: "key name",
@@ -194,8 +193,8 @@ describe("snapshot api calls", () => {
 
     test("update", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/keys/keyId",
-        method: "PUT",
+        url: "https://api.unkey.dev/v1/keys.updateKey",
+        method: "POST",
         jsonBody: {
           keyId: "keyId",
           name: "key name",
@@ -218,7 +217,7 @@ describe("snapshot api calls", () => {
 
     test("verify", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/keys/verify",
+        url: "https://api.unkey.dev/v1/keys.verifyKey",
         method: "POST",
         jsonBody: {
           key: "key",
@@ -227,11 +226,14 @@ describe("snapshot api calls", () => {
         execute: (req) => client.keys.verify(req),
       }));
 
-    test("revoke", async () =>
+    test("delete", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/keys/keyId",
-        method: "DELETE",
-        execute: () => client.keys.revoke({ keyId: "keyId" }),
+        url: "https://api.unkey.dev/v1/keys.deleteKey",
+        method: "POST",
+        jsonBody: {
+          keyId: "keyId",
+        },
+        execute: () => client.keys.delete({ keyId: "keyId" }),
       }));
   });
 
@@ -248,31 +250,30 @@ describe("snapshot api calls", () => {
 
     test("remove", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/apis.removeApi",
+        url: "https://api.unkey.dev/v1/apis.deleteApi",
         method: "POST",
         jsonBody: {
           apiId: "api id",
         },
-        execute: (req) => client.apis.remove(req),
+        execute: (req) => client.apis.delete(req),
       }));
 
     test("get", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/apis/apiId",
+        url: "https://api.unkey.dev/v1/apis.getApi?apiId=apiId",
         method: "GET",
         execute: () => client.apis.get({ apiId: "apiId" }),
       }));
 
     test("listKeys", async () =>
       testOneFetchCall({
-        url: "https://api.unkey.dev/v1/apis/apiId/keys?limit=10&offset=5&ownerId=owner+id",
+        url: "https://api.unkey.dev/v1/apis.listKeys?apiId=apiId&limit=10&ownerId=ownerId",
         method: "GET",
         execute: () =>
           client.apis.listKeys({
             apiId: "apiId",
             limit: 10,
-            offset: 5,
-            ownerId: "owner id",
+            ownerId: "ownerId",
           }),
       }));
   });
