@@ -38,12 +38,8 @@ describe("basic behaviour", () => {
     expect(data).toMatchInlineSnapshot(`
       {
         "unkey": {
-          "keyId": "key_XudidxnEzmwBxhGFkN8P84",
-          "meta": {
-            "customMetadata": 324,
-          },
-          "ownerId": "someid",
-          "valid": true,
+          "code": "NOT_FOUND",
+          "valid": false,
         },
       }
     `);

@@ -7,7 +7,7 @@ describe("verifyKey() function", () => {
 
   test("accepts plain string", async () =>
     testOneFetchCall({
-      url: "https://api.unkey.dev/v1/keys/verify",
+      url: "https://api.unkey.dev/v1/keys.verifyKey",
       method: "POST",
       headers: {
         Authorization: "Bearer public",
@@ -20,7 +20,7 @@ describe("verifyKey() function", () => {
 
   test("accepts { key, apiId }", async () =>
     testOneFetchCall({
-      url: "https://api.unkey.dev/v1/keys/verify",
+      url: "https://api.unkey.dev/v1/keys.verifyKey",
       method: "POST",
       headers: {
         Authorization: "Bearer public",

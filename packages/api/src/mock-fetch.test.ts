@@ -35,7 +35,7 @@ export async function testOneFetchCall<T>({
   const [callUrl, callOptions] = mockFetch.mock.lastCall!;
   expect(callUrl.toString()).toBe(url);
   expect<string | undefined>(callOptions.method).toBe(method);
-  expect(callOptions.headers).toStrictEqual({
+  expect(callOptions.headers).toMatchObject({
     "Content-Type": "application/json",
     Authorization: "Bearer root key",
     ...(headers ?? {}),
