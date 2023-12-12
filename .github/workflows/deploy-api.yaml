@@ -51,28 +51,11 @@ jobs:
            echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
 
 
-       - uses: pnpm/action-setup@v2
-         with:
-           version: latest
+       - name: Install
+         uses: ./.github/actions/pnpm
 
-       - name: Get pnpm store directory
-         shell: bash
-         run: |
-           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-       - uses: actions/cache@v3
-         name: Setup pnpm cache
-         with:
-           path: ${{ env.STORE_PATH }}
-           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-           restore-keys: |
-             ${{ runner.os }}-pnpm-store-
-
-
-       - name: Install dependencies
-         run: |
-           pnpm install
-           npm i -g bun
+       - name: Install bun
+         run: npm i -g bun
 
 
        - name: Test
@@ -98,22 +81,15 @@ jobs:
         with:
             version: latest
 
-      - name: Use Node.js 20
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-          cache: "pnpm"
-
       - name: Install
-        run: |
-          pnpm install
-          pnpm install -g wrangler@latest
+        uses: ./.github/actions/pnpm
+
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
 
       - name: Deploy
-        run: wrangler deploy --env=preview --var VERSION:${GITHUB_REF#refs/*/}
+        run: npx wrangler deploy --env=preview --var VERSION:${GITHUB_REF#refs/*/}
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -128,14 +104,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      - name: Install
+        uses: ./.github/actions/pnpm
 
-      - name: Install dependencies
-        run: |
-          pnpm install
-          npm i -g bun
+      - name: Install bun
+        run: npm i -g bun
 
       - name: Test
         run: bun test src/integration --timeout 10000 --rerun-each 10
@@ -153,26 +126,15 @@ jobs:
       name: Deploy Canary
       steps:
         - uses: actions/checkout@v3
-        - uses: pnpm/action-setup@v2.2.4
-          with:
-              version: latest
-
-        - name: Use Node.js 20
-          uses: actions/setup-node@v3
-          with:
-            node-version: 20
-            cache: "pnpm"
 
         - name: Install
-          run: |
-            pnpm install
-            pnpm install -g wrangler@latest
+          uses: ./.github/actions/pnpm
 
         - name: Build
           run: pnpm turbo run build --filter='./apps/api'
 
         - name: Deploy
-          run: wrangler deploy --env=canary --var VERSION:${GITHUB_REF#refs/*/}
+          run: npx wrangler deploy --env=canary --var VERSION:${GITHUB_REF#refs/*/}
           working-directory: apps/api
           env:
             CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -187,14 +149,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      - name: Install
+        uses: ./.github/actions/pnpm
 
-      - name: Install dependencies
-        run: |
-          pnpm install
-          npm i -g bun
+      - name: Install bun
+        run: npm i -g bun
+
 
       - name: Test
         run: bun test src/integration --timeout 10000 --rerun-each 10
@@ -213,26 +173,15 @@ jobs:
     name: Deploy Production
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.4
-        with:
-            version: latest
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-          cache: "pnpm"
-
       - name: Install
-        run: |
-          pnpm install
-          pnpm install -g wrangler@latest
+        uses: ./.github/actions/pnpm
+
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
 
       - name: Deploy
-        run: wrangler deploy --env=production --var VERSION:${GITHUB_REF#refs/*/}
+        run: npx wrangler deploy --env=production --var VERSION:${GITHUB_REF#refs/*/}
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
