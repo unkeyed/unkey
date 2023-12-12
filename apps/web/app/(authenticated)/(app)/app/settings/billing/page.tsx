@@ -85,13 +85,11 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
             title="Active keys"
             tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: null }]}
             used={usedActiveKeys}
-            max={workspace.maxActiveKeys}
           />
           <MeteredLineItem
             title="Verifications"
             tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: null }]}
             used={usedVerifications}
-            max={workspace.maxVerifications}
           />
         </ol>
         <div className="w-1/3">
@@ -422,7 +420,7 @@ const MeteredLineItem: React.FC<{
                       "rounded-l-full": i === 0,
                     })}
                   >
-                    <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 to-transparent" />
+                    <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 dark:via-gray-100 to-transparent" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>

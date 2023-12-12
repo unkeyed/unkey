@@ -7,7 +7,69 @@ on:
 
 concurrency: "only one deploy at a time"
 
+env:
+  DATABASE_BRANCH_NAME: pre-release-tests
+  PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+  PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+
 jobs:
+  test_api_worker:
+     name: Unit Test API
+     runs-on: ubuntu-latest
+
+     steps:
+       - uses: actions/checkout@v3
+
+
+       - name: Setup pscale
+         uses: planetscale/setup-pscale-action@v1
+         with:
+           version: latest
+
+       - name: Create a branch
+         run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
+
+
+       - name: Create a password
+         id: database_password
+         run: |
+           res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+
+           # Extract secrets
+           database_host=$(echo $res | jq -r '.access_host_url')
+           database_username=$(echo $res | jq -r '.username')
+           database_password=$(echo $res | jq -r '.plain_text')
+
+           # Mask secrets
+           echo "::add-mask::$database_host"
+           echo "::add-mask::$database_username"
+           echo "::add-mask::$database_password"
+
+           # Set outputs
+           echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
+           echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
+           echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
+
+
+       - name: Install
+         uses: ./.github/actions/pnpm
+
+       - name: Install bun
+         run: npm i -g bun
+
+
+       - name: Test
+         run: bun test src/routes --coverage
+         working-directory: apps/api
+         env:
+           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
+       - name: Delete planetscale branch
+         if: always()
+         run: |
+           pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+
+
+
   preview:
     environment: Preview
     runs-on: ubuntu-latest
@@ -19,16 +81,9 @@ jobs:
         with:
             version: latest
 
-      - name: Use Node.js 20
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-          cache: "pnpm"
-
       - name: Install
-        run: |
-          pnpm install
-          pnpm install -g wrangler@latest
+        uses: ./.github/actions/pnpm
+
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
@@ -49,14 +104,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      - name: Install
+        uses: ./.github/actions/pnpm
 
-      - name: Install dependencies
-        run: |
-          pnpm install
-          npm i -g bun
+      - name: Install bun
+        run: npm i -g bun
 
       - name: Test
         run: bun test src/integration --timeout 10000 --rerun-each 10
@@ -66,26 +118,17 @@ jobs:
           UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
 
   canary:
-      needs: preview-tests
+      needs:
+        - test_api_worker
+        - preview-tests
       environment: Canary
       runs-on: ubuntu-latest
       name: Deploy Canary
       steps:
         - uses: actions/checkout@v3
-        - uses: pnpm/action-setup@v2.2.4
-          with:
-              version: latest
-
-        - name: Use Node.js 20
-          uses: actions/setup-node@v3
-          with:
-            node-version: 20
-            cache: "pnpm"
 
         - name: Install
-          run: |
-            pnpm install
-            pnpm install -g wrangler@latest
+          uses: ./.github/actions/pnpm
 
         - name: Build
           run: pnpm turbo run build --filter='./apps/api'
@@ -106,14 +149,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      - name: Install
+        uses: ./.github/actions/pnpm
 
-      - name: Install dependencies
-        run: |
-          pnpm install
-          npm i -g bun
+      - name: Install bun
+        run: npm i -g bun
+
 
       - name: Test
         run: bun test src/integration --timeout 10000 --rerun-each 10
@@ -123,6 +164,7 @@ jobs:
           UNKEY_ROOT_KEY: ${{ secrets.CANARY_ROOT_KEY }}
 
   production:
+    if: "!github.event.release.prerelease"
     needs:
       - canary
       - canary-tests
@@ -131,20 +173,9 @@ jobs:
     name: Deploy Production
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.4
-        with:
-            version: latest
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-          cache: "pnpm"
-
       - name: Install
-        run: |
-          pnpm install
-          pnpm install -g wrangler@latest
+        uses: ./.github/actions/pnpm
+
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'

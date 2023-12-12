@@ -19,4 +19,3 @@ DATASOURCE mv__monthly_stats
 ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(month)"
 ENGINE_SORTING_KEY "month"
-

@@ -1,9 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { auth } from "@clerk/nextjs";
-import { QUOTA } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -20,7 +18,6 @@ type Props = {
 };
 
 export default async function (props: Props) {
-  const _tenantId = getTenantId();
   const { userId } = auth();
 
   if (props.searchParams.apiId) {
@@ -90,13 +87,6 @@ export default async function (props: Props) {
         plan: "free",
         stripeCustomerId: null,
         stripeSubscriptionId: null,
-        maxActiveKeys: QUOTA.free.maxActiveKeys,
-        maxVerifications: QUOTA.free.maxVerifications,
-        usageActiveKeys: null,
-        usageVerifications: null,
-        lastUsageUpdate: null,
-        billingPeriodStart: null,
-        billingPeriodEnd: null,
         features: {},
         betaFeatures: {},
         subscriptions: null,
