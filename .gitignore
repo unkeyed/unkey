@@ -17,5 +17,5 @@ dist
 .DS_Store
 .vscode
 .dev.vars
-./**/.wrangler
-./**/**/.wrangler
+.wrangler
+
