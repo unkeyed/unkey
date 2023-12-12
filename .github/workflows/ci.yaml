@@ -105,7 +105,7 @@ jobs:
           - "@unkey/hono"
           - "@unkey/nuxt"
 
-    name: Build ${{matrix.package}}
+    name: Test ${{matrix.package}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -114,7 +114,10 @@ jobs:
       - name: Install
         uses: ./.github/actions/pnpm
 
-      - name: Build packages
+      - name: Build
+        run: pnpm turbo run build --filter=${{matrix.package}}
+
+      - name: Test
         run: pnpm turbo run test --filter=${{matrix.package}}
 
 

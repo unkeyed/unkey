@@ -34,7 +34,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@unkey/api": "^0.13.1"
+    "@unkey/api": "workspace:^"
   },
   "peerDependencies": {
     "hono": "^3.7.2"
