@@ -98,7 +98,7 @@ jobs:
         package:
           - "@unkey/billing"
           - "@unkey/hash"
-          - "@unkey/key"
+          - "@unkey/keys"
           - "@unkey/api"
           - "@unkey/nextjs"
           - "@unkey/hono"
