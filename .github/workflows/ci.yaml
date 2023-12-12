@@ -45,7 +45,12 @@ jobs:
           node-version: 20
 
       - name: Run Planetscale Proxy
-        run: docker run -d -p=8080:8080  --name planetscale ghcr.io/mattrobenolt/ps-http-sim:latest /ps-http-sim -mysql-addr=mysql:3306 -mysql-dbname=$DATABASE_NAME
+        run: |
+          docker run -d -p=8080:8080  --name planetscale ghcr.io/mattrobenolt/ps-http-sim:latest /ps-http-sim -mysql-addr=mysql:3306 -mysql-dbname=$DATABASE_NAME
+          docker network create ps
+          docker network connect ps planetscale
+          docker network connect ps mysql
+
 
       - uses: pnpm/action-setup@v2
         name: Install pnpm
