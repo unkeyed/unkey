@@ -1,4 +1,5 @@
 name: Install Repo
+description: Install the ts toolchain and dependencies
 
 runs:
   using: "composite"
