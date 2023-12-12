@@ -1,5 +1,12 @@
 # @unkey/nuxt
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [153bd10]
+  - @unkey/api@0.13.1
+
 ## 1.0.5
 
 ### Patch Changes
