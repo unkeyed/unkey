@@ -22,4 +22,3 @@ export const connectDatabase = () =>
   );
 
 export * from "@unkey/db";
-export * from "drizzle-orm";
