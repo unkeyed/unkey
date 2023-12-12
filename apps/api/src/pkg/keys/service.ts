@@ -160,7 +160,15 @@ export class KeyService {
     /**
      * Expiration
      */
-    if (data.key.expires !== null && data.key.expires.getTime() < Date.now()) {
+    try {
+      if (data.key.expires && data.key.expires.getTime() < Date.now()) {
+        return result.success({ valid: false, code: "NOT_FOUND" });
+      }
+    } catch (e) {
+      this.logger.error("Failed to check key expiration", {
+        error: (e as Error).message,
+        key: data.key.id,
+      });
       return result.success({ valid: false, code: "NOT_FOUND" });
     }
 
