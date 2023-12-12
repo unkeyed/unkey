@@ -161,7 +161,7 @@ export class KeyService {
      * Expiration
      */
     if (data.key.expires) {
-      // The zone cache can not deserialize dates and returns the as string, so we need to do it manually
+      // The zone cache can not deserialize dates and returns them as string, so we need to do it manually
       const expires = new Date(data.key.expires).getTime();
       if (expires < Date.now()) {
         return result.success({ valid: false, code: "NOT_FOUND" });
