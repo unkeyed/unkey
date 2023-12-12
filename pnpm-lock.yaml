@@ -980,7 +980,7 @@ importers:
   packages/hono:
     dependencies:
       '@unkey/api':
-        specifier: workspace:^
+        specifier: ^0.13.1
         version: link:../api
     devDependencies:
       '@types/node':
