@@ -6,7 +6,8 @@ on:
 
 concurrency: pr-${{ github.event.number }}
 env:
-  DATABASE_HOST: localhost:8080 # proxied by planetscale proxy
+  DATABASE_HOST: localhost
+  DATABASE_PORT: 8080
   DATABASE_USERNAME: unkey
   DATABASE_PASSWORD: password
   DATABASE_NAME: unkey
@@ -89,6 +90,10 @@ jobs:
       - name: Test
         run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
         working-directory: apps/api
+        env:
+          DATABASE_HOST: localhost:8080
+          DATABASE_USERNAME: $DATABASE_USERNAME
+          DATABASE_PASSWORD: $DATABASE_PASSWORD
 
 
 
