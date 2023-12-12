@@ -5,11 +5,7 @@ on:
     branches: [main]
 
 concurrency: pr-${{ github.event.number }}
-env:
-  DATABASE_HOST: localhost
-  DATABASE_USERNAME: unkey
-  DATABASE_PASSWORD: password
-  DATABASE_NAME: unkey
+
 
 jobs:
   docs:
@@ -31,9 +27,9 @@ jobs:
            image: mysql:latest
            env:
              MYSQL_ROOT_PASSWORD: root
-             MYSQL_DATABASE: $DATABASE_NAME
-             MYSQL_USER: $DATABASE_USERNAME
-             MYSQL_PASSWORD: $DATABASE_PASSWORD
+             MYSQL_DATABASE: unkey
+             MYSQL_USER: unkey
+             MYSQL_PASSWORD: password
            ports:
              - 3306:3306
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -52,8 +48,7 @@ jobs:
         run: |
           go install github.com/mattrobenolt/ps-http-sim@latest
           # start the proxy in the background
-          ps-http-sim -mysql-dbname=$DATABASE_NAME -listen-addr=0.0.0.0 &
-
+          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 &
 
       - uses: pnpm/action-setup@v2
         name: Install pnpm
@@ -83,7 +78,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:3306/$DATABASE_NAME'
+          DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
 
 
       - name: Test
@@ -91,8 +86,9 @@ jobs:
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
-          DATABASE_USERNAME: $DATABASE_USERNAME
-          DATABASE_PASSWORD: $DATABASE_PASSWORD
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: unkey
 
 
 
