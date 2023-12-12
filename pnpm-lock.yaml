@@ -79,7 +79,7 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.28.6
-        version: 0.28.6(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(bun-types@1.0.16)
+        version: 0.28.6(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(bun-types@1.0.17)
       hono:
         specifier: ^3.11.0
         version: 3.11.4
@@ -95,7 +95,7 @@ importers:
         version: 4.20231121.0
       bun-types:
         specifier: ^1.0.15
-        version: 1.0.16
+        version: 1.0.17
       rollup-plugin-node-builtins:
         specifier: ^2.1.2
         version: 2.1.2
@@ -223,10 +223,10 @@ importers:
         version: 1.0.7(@types/react-dom@18.2.13)(@types/react@18.2.23)(react-dom@18.2.0)(react@18.2.0)
       '@stripe/react-stripe-js':
         specifier: ^2.4.0
-        version: 2.4.0(@stripe/stripe-js@2.2.0)(react-dom@18.2.0)(react@18.2.0)
+        version: 2.4.0(@stripe/stripe-js@2.2.1)(react-dom@18.2.0)(react@18.2.0)
       '@stripe/stripe-js':
         specifier: ^2.2.0
-        version: 2.2.0
+        version: 2.2.1
       '@tailwindcss/typography':
         specifier: ^0.5.10
         version: 0.5.10(tailwindcss@3.3.3)
@@ -355,7 +355,7 @@ importers:
         version: 9.0.0(postcss@8.4.31)
       posthog-js:
         specifier: ^1.93.3
-        version: 1.94.2
+        version: 1.94.4
       posthog-node:
         specifier: ^3.1.3
         version: 3.2.0
@@ -497,7 +497,7 @@ importers:
         version: link:../../internal/resend
       drizzle-orm:
         specifier: ^0.28.6
-        version: 0.28.6(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(bun-types@1.0.16)
+        version: 0.28.6(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(bun-types@1.0.17)
       inngest:
         specifier: ^3.6.2
         version: 3.7.0(typescript@5.3.3)
@@ -766,7 +766,7 @@ importers:
         version: link:../tsconfig
       bun-types:
         specifier: ^1.0.16
-        version: 1.0.16
+        version: 1.0.17
       typescript:
         specifier: ^5.2.2
         version: 5.3.3
@@ -813,7 +813,7 @@ importers:
         version: link:../tsconfig
       bun-types:
         specifier: ^1.0.13
-        version: 1.0.16
+        version: 1.0.17
       typescript:
         specifier: ^5.2.2
         version: 5.3.3
@@ -3663,11 +3663,11 @@ packages:
       react: 18.2.0
     dev: false
 
-  /@netlify/functions@2.4.0:
-    resolution: {integrity: sha512-dIqhdj5u4Lu/8qbYwtYpn8NfvIyPHbSTV2lAP4ocL+iwC9As06AXT0wa/xOpO2vRWJa0IMxdZaqCPnkyHlHiyg==}
+  /@netlify/functions@2.4.1:
+    resolution: {integrity: sha512-sRFYBaz6dJP1MdUtk/5QNmshhg5UDmB+DUssmH6v9WUG85MrwyExEfGfJA5eClXATjXm0coTvO5nLAlyCpK7QQ==}
     engines: {node: '>=14.0.0'}
     dependencies:
-      '@netlify/serverless-functions-api': 1.11.0
+      '@netlify/serverless-functions-api': 1.12.3
       is-promise: 4.0.0
     dev: true
 
@@ -3676,8 +3676,8 @@ packages:
     engines: {node: ^14.16.0 || >=16.0.0}
     dev: true
 
-  /@netlify/serverless-functions-api@1.11.0:
-    resolution: {integrity: sha512-3splAsr2CekL7VTwgo6yTvzD2+f269/s+TJafYazonqMNNo31yzvFxD5HpLtni4DNE1ppymVKZ4X/rLN3yl0vQ==}
+  /@netlify/serverless-functions-api@1.12.3:
+    resolution: {integrity: sha512-g1AZ78pCvMnalZtbnViVLGfG5ufjKyKoi3plLSUtZqh0wVuMR7ZGegeZHhOoY4wRfkkETVvWfhgfcpLMbGM5Lg==}
     engines: {node: ^14.18.0 || >=16.0.0}
     dependencies:
       '@netlify/node-cookies': 0.1.0
@@ -5039,7 +5039,6 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
-      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -7759,21 +7758,21 @@ packages:
     resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
     dev: false
 
-  /@stripe/react-stripe-js@2.4.0(@stripe/stripe-js@2.2.0)(react-dom@18.2.0)(react@18.2.0):
+  /@stripe/react-stripe-js@2.4.0(@stripe/stripe-js@2.2.1)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-1jVQEL3OuhuzNlf4OdfqovHt+MkWh8Uh8xpLxx/xUFUDdF+7/kDOrGKy+xJO3WLCfZUL7NAy+/ypwXbbYZi0tg==}
     peerDependencies:
       '@stripe/stripe-js': ^1.44.1 || ^2.0.0
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@stripe/stripe-js': 2.2.0
+      '@stripe/stripe-js': 2.2.1
       prop-types: 15.8.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /@stripe/stripe-js@2.2.0:
-    resolution: {integrity: sha512-YyXQbsXvnNRJ6MofFhCLIQ4W7UpfkfSOQhjIaHEiCMBv3IBxhzugXiYNNzceGTK/7DL31v7HtTnkJ+FI+6AIow==}
+  /@stripe/stripe-js@2.2.1:
+    resolution: {integrity: sha512-Wd81A0u8EwT3cf+Xv1mpMI18RbXVhgh19MtPcF9ojNTlG3kl36B1+XFe1KQfnJxD3WRnVfDuI0rNCK53mcGm6g==}
     dev: false
 
   /@swc/helpers@0.5.2:
@@ -9552,8 +9551,8 @@ packages:
       semver: 7.5.4
     dev: true
 
-  /bun-types@1.0.16:
-    resolution: {integrity: sha512-GnElqUSGWvFP1Hxv2FdxLuCDzUcHZ1ac/QrOOpZ18r2RHig+S+JXIOT0YIvrHo4XwqLeurlB6CqYminiCxQIEw==}
+  /bun-types@1.0.17:
+    resolution: {integrity: sha512-5dj7Pi0qmZB1gaY2LmtKKrKixgnxi/qDcawsA4ttWQhT0jWyecSEB8la7c6DIgrMkJciixAtyLLe3aj0SJaRAw==}
 
   /bundle-name@3.0.0:
     resolution: {integrity: sha512-PKA4BeSvBpQKQ8iPOGCSiell+N8P+Tf1DlwqmYhpe2gAhKPHn8EYOxVT+ShuGmhg8lN8XiSlS80yiExKXrURlw==}
@@ -11003,7 +11002,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.28.6(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(bun-types@1.0.16):
+  /drizzle-orm@0.28.6(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(bun-types@1.0.17):
     resolution: {integrity: sha512-yBe+F9htrlYER7uXgDJUQsTHFoIrI5yMm5A0bg0GiZ/kY5jNXTWoEy4KQtg35cE27sw1VbgzoMWHAgCckUUUww==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -11067,7 +11066,7 @@ packages:
     dependencies:
       '@cloudflare/workers-types': 4.20231121.0
       '@planetscale/database': 1.11.0
-      bun-types: 1.0.16
+      bun-types: 1.0.17
     dev: false
 
   /drizzle-orm@0.28.6(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0):
@@ -16103,10 +16102,6 @@ packages:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
     dev: false
 
-  /napi-wasm@1.1.0:
-    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
-    dev: true
-
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
@@ -16283,7 +16278,7 @@ packages:
         optional: true
     dependencies:
       '@cloudflare/kv-asset-handler': 0.3.0
-      '@netlify/functions': 2.4.0
+      '@netlify/functions': 2.4.1
       '@rollup/plugin-alias': 5.1.0(rollup@4.8.0)
       '@rollup/plugin-commonjs': 25.0.7(rollup@4.8.0)
       '@rollup/plugin-inject': 5.0.5(rollup@4.8.0)
@@ -17657,8 +17652,8 @@ packages:
       source-map-js: 1.0.2
     dev: true
 
-  /posthog-js@1.94.2:
-    resolution: {integrity: sha512-AgFe6JamNbKR7a3GcbRhUxCIyTDqPenWUGWsPUT8KbFSwUYVGMo64jMQTZtNpc5ZGgvUYz+sQDLtn0l+ZQ8yIQ==}
+  /posthog-js@1.94.4:
+    resolution: {integrity: sha512-1usqOEkGE0ntit99G4TM1iPoq4QBbd5KcuovWroTy0PRJU8cOAfAT3FaJu+lX4B7izWo4DFjvesM/MOaJzLW/Q==}
     dependencies:
       fflate: 0.4.8
     dev: false
@@ -21190,7 +21185,7 @@ packages:
       mlly: 1.4.2
       pathe: 1.1.1
       picocolors: 1.0.0
-      vite: 5.0.7(@types/node@20.10.4)
+      vite: 5.0.8(@types/node@20.10.4)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -21378,8 +21373,8 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vite@5.0.7(@types/node@20.10.4):
-    resolution: {integrity: sha512-B4T4rJCDPihrQo2B+h1MbeGL/k/GMAHzhQ8S0LjQ142s6/+l3hHTT095ORvsshj4QCkoWu3Xtmob5mazvakaOw==}
+  /vite@5.0.8(@types/node@20.10.4):
+    resolution: {integrity: sha512-jYMALd8aeqR3yS9xlHd0OzQJndS9fH5ylVgWdB+pxTwxLKdO1pgC5Dlb398BUxpfaBxa4M9oT7j1g503Gaj5IQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
     peerDependencies:
@@ -21466,7 +21461,7 @@ packages:
       strip-literal: 1.3.0
       tinybench: 2.5.1
       tinypool: 0.7.0
-      vite: 5.0.7(@types/node@20.10.4)
+      vite: 5.0.8(@types/node@20.10.4)
       vite-node: 0.34.6(@types/node@20.10.4)
       why-is-node-running: 2.2.2
     transitivePeerDependencies:

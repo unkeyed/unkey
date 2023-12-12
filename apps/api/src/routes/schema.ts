@@ -91,7 +91,7 @@ export const keySchema = z
       }),
     refill: z
       .object({
-        refillInterval: z.enum(["daily", "monthly"]).openapi({
+        refillInterval: z.enum(["null", "daily", "monthly"]).openapi({
           description: "Determines the rate at kills will be refilled.",
           example: "daily",
         }),

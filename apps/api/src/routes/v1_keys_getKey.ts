@@ -98,15 +98,18 @@ export const registerV1KeysGetKey = (app: App) =>
       workspaceId: data.key.workspaceId,
       name: data.key.name ?? undefined,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ?? undefined,
+      meta: data.key.meta ? JSON.parse(data.key.meta) : undefined,
       createdAt: data.key.createdAt.getTime() ?? undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
-      refill: {
-        refillInterval: data.key.refillInterval ?? undefined,
-        refillIncrement: data.key.refillIncrement ?? undefined,
-        lastRefillAt: data.key.lastRefillAt?.getTime() ?? undefined,
-      },
+      refill:
+        data.key.refillInterval && data.key.refillIncrement
+          ? {
+              refillInterval: data.key.refillInterval,
+              refillIncrement: data.key.refillIncrement,
+              lastRefillAt: data.key.lastRefillAt?.getTime(),
+            }
+          : undefined,
       ratelimit:
         data.key.ratelimitType &&
         data.key.ratelimitLimit &&
