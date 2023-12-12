@@ -38,7 +38,7 @@ jobs:
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
          planetscale:
           image: ghcr.io/mattrobenolt/ps-http-sim:latest
-          options: -mysql-addr=mysql:3306 -mysql-dbname=$DATABASE_NAME
+          options: --mysql-addr=mysql:3306 --mysql-dbname=$DATABASE_NAME
           ports:
             - 8080:8080
 
