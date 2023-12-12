@@ -35,6 +35,7 @@ jobs:
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v4
@@ -48,7 +49,7 @@ jobs:
         run: |
           go install github.com/mattrobenolt/ps-http-sim@latest
           # start the proxy in the background
-          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 &
+          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 > pscale.logs &
 
       - uses: pnpm/action-setup@v2
         name: Install pnpm
@@ -91,7 +92,8 @@ jobs:
           DATABASE_NAME: unkey
 
 
-
+      - run: cat pscale.logs
+        if: always()
 
 
   lint:
