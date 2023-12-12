@@ -75,7 +75,7 @@ jobs:
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://$DATABASE_HOST:$DATABASE_PASSWORD@localhost:8080/$DATABASE_NAME'
+          DRIZZLE_DATABASE_URL: 'mysql://$DATABASE_HOST:$DATABASE_PASSWORD@localhost:3306/$DATABASE_NAME'
 
 
       - name: Test
