@@ -36,16 +36,6 @@ jobs:
            ports:
              - 3306:3306
            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-         planetscale:
-          image: ghcr.io/mattrobenolt/ps-http-sim:latest
-          options: >-
-            -mysql-addr mysql:3306
-            -mysql-dbname $DATABASE_NAME
-
-
-          ports:
-            - 8080:8080
-
 
     steps:
       - uses: actions/checkout@v3
@@ -53,6 +43,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Run Planetscale Proxy
+        run: |
+          docker run -d --name planetscale ghcr.io/mattrobenolt/ps-http-sim:latest -mysql-addr mysql:3306 -mysql-dbname $DATABASE_NAME -p 8080:8080
 
       - uses: pnpm/action-setup@v2
         name: Install pnpm
