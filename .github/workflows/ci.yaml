@@ -93,17 +93,31 @@ jobs:
 
 
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - "@unkey/billing"
+          - "@unkey/hash"
+          - "@unkey/key"
+          - "api"
+          - "@unkey/api"
+          - "@unkey/nextjs"
+          - "@unkey/hono"
+          - "@unkey/nuxt"
 
+    name: Build ${{matrix.package}}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
 
       - name: Install
         uses: ./.github/actions/pnpm
 
-      - name: Test
-        run: pnpm turbo run test
+      - name: Build packages
+        run: pnpm turbo run test --filter=${{matrix.package}}
+
+
 
 
   # tinybird:
