@@ -8,6 +8,7 @@
       "dependsOn": ["fmt", "^build"],
       "env": [
         "NEXT_PUBLIC_*",
+        "!NEXT_PUBLIC_VERCEL_*",
         "CLERK_WEBHOOK_SECRET",
         "CLERK_SECRET_KEY",
         "DATABASE_PASSWORD",
