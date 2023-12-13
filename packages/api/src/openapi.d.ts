@@ -3,6 +3,7 @@
  * Do not make direct changes to the file.
  */
 
+
 export interface paths {
   "/v1/liveness": {
     get: {
@@ -545,7 +546,7 @@ export interface paths {
              *   "refillInterval": 60
              * }
              */
-            ratelimit?: {
+            ratelimit?: ({
               /**
                * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
                * @enum {string}
@@ -557,7 +558,7 @@ export interface paths {
               refillRate: number;
               /** @description Determines the speed at which tokens are refilled, in milliseconds. */
               refillInterval: number;
-            } | null;
+            }) | null;
             /**
              * @description The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.
              * @example 1000
@@ -1031,7 +1032,7 @@ export interface paths {
              *   "refillInterval": 60
              * }
              */
-            ratelimit?: {
+            ratelimit?: ({
               /**
                * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
                * @enum {string}
@@ -1043,7 +1044,7 @@ export interface paths {
               refillRate: number;
               /** @description Determines the speed at which tokens are refilled, in milliseconds. */
               refillInterval: number;
-            } | null;
+            }) | null;
             /**
              * @description The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.
              * @example 1000
@@ -2055,7 +2056,8 @@ export interface components {
     };
   };
   responses: never;
-  parameters: {};
+  parameters: {
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;

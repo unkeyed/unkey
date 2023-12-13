@@ -8,32 +8,31 @@ export function fillRange(
   data: { value: number; time: number }[],
   start: number,
   end: number,
+  granularity: number,
 ): { value: number; time: number }[] {
-  const t = new Date(start);
-  const series: { value: number; time: number }[] = [];
 
-  function toDay(unixmilli: number): string {
-    const d = new Date(unixmilli);
-    d.setUTCHours(0, 0, 0, 0);
-    return d.toUTCString();
+  function toStartOfInterval(unixmilli: number): number {
+    return Math.floor(unixmilli / granularity);
+
   }
+  const startWindow = toStartOfInterval(start);
+  const endWindow = toStartOfInterval(end);
 
-  const lookup = data.reduce((acc, d) => {
-    acc[toDay(d.time)] = d.value;
-    return acc;
-  }, {} as Record<string, number>);
-
-  while (t.getTime() <= end) {
-    const d = lookup[toDay(t.getTime())];
+  let cache = new Map<number, number>();
+  let series: { value: number; time: number }[] = [];
+  for (let i = startWindow; i < endWindow; i++) {
+    let value = cache.get(i);
+    if (!value) {
+      value = data.find((d) => toStartOfInterval(d.time) === i)?.value ?? 0,
+        cache.set(i, value);
+    }
     series.push({
-      time: t.getTime(),
-      value: d ?? 0,
+      time: i * granularity,
+      value,
     });
-
-    // Now increment the time
-    t.setUTCDate(t.getUTCDate() + 1);
   }
-  return series;
+  return series
+
 }
 
 export function cumulative(

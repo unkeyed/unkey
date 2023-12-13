@@ -1,24 +1,36 @@
-import { StackedColumnChart } from "@/components/dashboard/charts";
+import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from "@/components/ui/card";
+import { getTenantId } from "@/lib/auth";
+import { db, eq, schema, and, isNull } from "@/lib/db";
+import { formatNumber } from "@/lib/fmt";
+import { getActiveKeys, getActiveKeysDaily, getActiveKeysHourly, getLastUsed, getLatestVerifications, getTotalActiveKeys, getTotalVerifications, getVerificationsDaily, getVerificationsHourly, getVerificationsMonthly, getVerificationsWeekly } from "@/lib/tinybird";
+import { fillRange } from "@/lib/utils";
+import { sql } from "drizzle-orm";
+import { notFound } from "next/navigation";
+import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
+import { Separator } from "@/components/ui/separator";
+import ms from "ms";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info, Minus } from "lucide-react";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema } from "@/lib/db";
-import {
-  getDailyVerifications,
-  getLastUsed,
-  getLatestVerifications,
-  getTotalVerificationsForKey,
-} from "@/lib/tinybird";
-import { fillRange } from "@/lib/utils";
-import { Info, Minus } from "lucide-react";
-import ms from "ms";
-import { notFound } from "next/navigation";
 import { AccessTable } from "./table";
 
-export default async function KeyPage(props: { params: { keyId: string } }) {
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
+export default async function KeyPage(props: {
+  params: { keyId: string },
+  searchParams: {
+    interval?: Interval
+  }
+}) {
   const tenantId = getTenantId();
+
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
@@ -36,122 +48,210 @@ export default async function KeyPage(props: { params: { keyId: string } }) {
     return notFound();
   }
 
+  const interval = props.searchParams.interval ?? "24h";
+
+
+  const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval)
+  const query = {
+    workspaceId: api.workspaceId,
+    apiId: api.id,
+    keyId: key.id,
+    start,
+    end,
+  }
   const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
-    getDailyVerifications({
-      workspaceId: key.workspaceId,
-      apiId: api.id,
-      keyId: key.id,
-    }),
-    getTotalVerificationsForKey({ keyId: key.id }).then((res) => res.data.at(0)?.totalUsage ?? 0),
+    getVerificationsPerInterval(query),
+    getVerificationsPerInterval({ workspaceId: api.workspaceId, apiId: api.id, keyId: key.id }).then((res) => res.data.at(0) ?? { success: 0, rateLimited: 0, usageExceeded: 0 }), // no interval -> a
     getLatestVerifications({
       workspaceId: key.workspaceId,
       apiId: api.id,
       keyId: key.id,
     }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
-  ]);
+  ])
 
-  const end = new Date().setUTCHours(0, 0, 0, 0);
-  const start = end - 30 * 24 * 60 * 60 * 1000;
 
-  const usageOverTime = [
-    ...fillRange(
-      usage.data.map(({ time, success }) => ({ value: success, time })),
-      start,
-      end,
-    ).map((x) => ({ ...x, category: "Success" })),
-    ...fillRange(
-      usage.data.map(({ time, rateLimited }) => ({
-        value: rateLimited,
-        time,
-      })),
-      start,
-      end,
-    ).map((x) => ({ ...x, category: "Rate Limited" })),
-    ...fillRange(
-      usage.data.map(({ time, usageExceeded }) => ({
-        value: usageExceeded,
-        time,
-      })),
-      start,
-      end,
-    ).map((x) => ({ ...x, category: "Usage Exceeded" })),
-  ].map(({ value, time, category }) => ({
-    category,
-    x: new Date(time).toUTCString(),
+
+  const successOverTime = fillRange(
+    usage.data.map(({ time, success }) => ({ value: success, time })),
+    start,
+    end,
+    granularity,
+  ).map(({ value, time }) => ({
+    x: new Date(time).toISOString(),
     y: value,
   }));
 
-  const fmt = new Intl.NumberFormat("en-US", { notation: "compact" }).format;
-  const usage30Days = usage.data.reduce(
-    (acc, { success, rateLimited, usageExceeded }) => acc + success + rateLimited + usageExceeded,
-    0,
-  );
+  const ratelimitedOverTime = fillRange(
+    usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
+    start,
+    end,
+    granularity,
+  ).map(({ value, time }) => ({
+    x: new Date(time).toISOString(),
+    y: value,
+  }));
+
+  const usageExceededOverTime = fillRange(
+    usage.data.map(({ time, usageExceeded }) => ({ value: usageExceeded, time })),
+    start,
+    end,
+    granularity,
+  ).map(({ value, time }) => ({
+    x: new Date(time).toISOString(),
+    y: value,
+  }));
+
+  const verificationsData = [
+    ...successOverTime.map((d) => ({
+      ...d,
+      category: "Successful Verifications",
+    })),
+    ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
+    ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
+  ];
+
+
+
 
   return (
-    <div className="flex flex-col gap-8">
-      <Card>
-        <CardContent className="mx-auto grid grid-cols-2 gap-px md:grid-cols-3 xl:grid-cols-6 xl:divide-x ">
-          <Stat label="Usage 30 days" value={fmt(usage30Days)} />
-          <Stat
+    <div className="flex flex-col gap-4">
+      <Card >
+        <CardContent className="grid grid-cols-6 divide-x">
+          <Metric
             label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires"}
-            value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
-          />
-          <Stat
-            label="Remaining"
-            value={typeof key.remaining === "number" ? fmt(key.remaining) : <Minus />}
-          />
-          <Stat
+            value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />} />
+          <Metric label="Remaining" value={typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />} />
+
+          <Metric
             label="Last Used"
             value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
           />
-          <Stat label="Total Uses" value={fmt(totalUsage)} />
-          <Stat
-            label={
-              <Tooltip>
-                <TooltipTrigger className="flex items-center gap-1">
-                  Key ID <Info className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  This is not the secret key, but just a unique identifier used for interacting with
-                  our API.
-                </TooltipContent>
-              </Tooltip>
-            }
-            value={
-              <Badge
-                key="keyId"
-                variant="secondary"
-                className="flex justify-between font-mono font-medium "
-              >
-                <span className="truncate">{key.id}</span>
-                <CopyButton value={key.id} className="ph-no-capture ml-2" />
-              </Badge>
-            }
-          />
+          <Metric label="Success" value={formatNumber(totalUsage.success)} tooltip="The total number of successful verifications for this key" />
+          <Metric label="Ratelimited" value={formatNumber(totalUsage.rateLimited)} tooltip="The total number of ratelimited and therefore rejected verifications. These are not billed." />
+          <Metric label="Usage Exceeded" value={formatNumber(totalUsage.usageExceeded)} tooltip="The total number of verifications that exceeded the limit and were rejected. These are not billed." />
+
         </CardContent>
+
       </Card>
-      <Card>
+      <Separator className="my-8" />
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
+
+        <div>
+          <IntervalSelect defaultSelected={interval} />
+        </div>
+
+      </div>
+
+
+      <Card >
         <CardHeader>
-          <CardTitle>Usage in the last 30 days</CardTitle>
-          <CardDescription>See when this key was verified</CardDescription>
+          <div className="grid grid-cols-3 divide-x">
+            <Metric label="Successful Verifications" value={formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))} />
+            <Metric label="Ratelimited" value={formatNumber(usage.data.reduce((sum, day) => sum + day.rateLimited, 0))} />
+            <Metric label="Usage Exceeded" value={formatNumber(usage.data.reduce((sum, day) => sum + day.usageExceeded, 0))} />
+          </div>
         </CardHeader>
-        <CardContent className="h-64">
-          <StackedColumnChart data={usageOverTime} />
+        <CardContent>
+          <StackedColumnChart data={verificationsData} timeGranularity={granularity >= 1000 * 60 * 60 * 24 * 30 ? "month" : granularity >= 1000 * 60 * 60 * 24 ? "day" : "hour"} />
         </CardContent>
       </Card>
 
+
+      <Separator className="my-8" />
       <AccessTable verifications={latestVerifications.data} />
-    </div>
+    </div >
+
   );
 }
 
-const Stat: React.FC<{ label: React.ReactNode; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:px-8">
-    <dt className="text-content-subtle text-sm font-medium leading-6">{label}</dt>
 
-    <dd className="text-content w-full flex-none text-3xl font-medium leading-10 tracking-tight">
-      {value}
-    </dd>
+function prepareInterval(interval: Interval) {
+  const now = new Date()
+
+  switch (interval) {
+    case "24h": {
+      const end = now.setUTCHours(now.getUTCHours() + 1, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60,
+        getVerificationsPerInterval: getVerificationsHourly,
+      }
+    }
+    case "7d": {
+      now.setUTCDate(now.getUTCDate() + 1)
+      const end = now.setUTCHours(0, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24 * 7
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60 * 24,
+        getVerificationsPerInterval: getVerificationsDaily,
+
+
+      }
+    }
+    case "30d": {
+      now.setUTCDate(now.getUTCDate() + 1)
+      const end = now.setUTCHours(0, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24 * 30
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60 * 24,
+        getVerificationsPerInterval: getVerificationsDaily,
+
+
+      }
+    }
+    case "90d": {
+      now.setUTCDate(now.getUTCDate() + 1)
+      const end = now.setUTCHours(0, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24 * 90
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60 * 24,
+        getVerificationsPerInterval: getVerificationsDaily,
+
+
+      }
+    }
+
+  }
+}
+
+const Metric: React.FC<{ label: React.ReactNode, value: React.ReactNode, tooltip?: React.ReactNode }> = ({ label, value, tooltip }) => {
+
+  const component = <div className="flex flex-col items-start justify-center py-2 px-4">
+    <p className="text-sm text-content-subtle">{label}</p>
+    <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
+
   </div>
-);
+
+  if (tooltip) {
+
+
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {component}
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-sm text-content-subtle">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  return component
+};
+// pnpm install  20.92s user 44.80s system 167% cpu 39.265 total

@@ -1,24 +1,27 @@
-import { StackedColumnChart } from "@/components/dashboard/charts";
+import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
-  MetricCardTitle,
 } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { getDailyVerifications, getTotalActiveKeys } from "@/lib/tinybird";
+import { getActiveKeys, getActiveKeysDaily, getActiveKeysHourly, getTotalActiveKeys, getVerificationsDaily, getVerificationsHourly, getVerificationsMonthly, getVerificationsWeekly } from "@/lib/tinybird";
 import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { type Interval, IntervalSelect } from "./select";
+import { Separator } from "@/components/ui/separator";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-export default async function ApiPage(props: { params: { apiId: string } }) {
+export default async function ApiPage(props: {
+  params: { apiId: string }, searchParams: {
+    interval?: Interval
+  }
+}) {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
@@ -31,6 +34,9 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     return redirect("/new");
   }
 
+
+  const interval = props.searchParams.interval ?? "24h";
+
   const keysP = db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
@@ -38,30 +44,34 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     .execute()
     .then((res) => res.at(0)?.count ?? 0);
 
-  const end = new Date().setUTCHours(0, 0, 0, 0);
-  // start of the day 30 days ago
-  const start = end - 30 * 24 * 60 * 60 * 1000;
-  const activeP = getTotalActiveKeys({
+
+
+  const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } = prepareInterval(interval)
+  const query = {
     workspaceId: api.workspaceId,
     apiId: api.id,
     start,
     end,
-  });
+  }
+  console.log({ query })
+  const [usage, activeKeys, activeKeysTotal] = await Promise.all([
+    getVerificationsPerInterval(query),
+    getActiveKeysPerInterval(query),
+    getActiveKeys(query)
+  ])
 
-  const usage = await getDailyVerifications({
-    workspaceId: api.workspaceId,
-    apiId: api.id,
-  });
+  console.log({ activeKeys })
+
 
   const keys = await keysP;
-  const active = await activeP;
 
   const successOverTime = fillRange(
     usage.data.map(({ time, success }) => ({ value: success, time })),
     start,
     end,
+    granularity,
   ).map(({ value, time }) => ({
-    x: new Date(time).toUTCString(),
+    x: new Date(time).toISOString(),
     y: value,
   }));
 
@@ -69,21 +79,23 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
     start,
     end,
+    granularity,
   ).map(({ value, time }) => ({
-    x: new Date(time).toUTCString(),
+    x: new Date(time).toISOString(),
     y: value,
   }));
 
   const usageExceededOverTime = fillRange(
-    usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
+    usage.data.map(({ time, usageExceeded }) => ({ value: usageExceeded, time })),
     start,
     end,
+    granularity,
   ).map(({ value, time }) => ({
-    x: new Date(time).toUTCString(),
+    x: new Date(time).toISOString(),
     y: value,
   }));
 
-  const data = [
+  const verificationsData = [
     ...successOverTime.map((d) => ({
       ...d,
       category: "Successful Verifications",
@@ -92,39 +104,146 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
   ];
 
+
+  const activeKeysOverTime = fillRange(
+    activeKeys.data.map(({ time, keys }) => ({ value: keys, time })),
+    start,
+    end,
+    granularity,
+  ).map(({ value, time }) => ({
+    x: new Date(time).toISOString(),
+    y: value,
+  }));
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 md:gap-4">
-      <Card className="max-md:mb-4 max-md:mr-2 ">
-        <CardHeader className="pb-6 ">
-          <MetricCardTitle>{formatNumber(keys)}</MetricCardTitle>
-          <CardDescription>Total Keys</CardDescription>
-        </CardHeader>
+    <div className="flex flex-col gap-4">
+      <Card >
+        <CardContent className="grid grid-cols-3 divide-x">
+          <Metric label="Total Keys" value={formatNumber(keys)} />
+          {/* <Metric label="Ratelimited" value={formatNumber(usage.data.reduce((sum, day) => sum + day.rateLimited, 0))} />
+            <Metric label="Usage Exceeded" value={formatNumber(usage.data.reduce((sum, day) => sum + day.usageExceeded, 0))} /> */}
+
+        </CardContent>
+
       </Card>
-      <Card className="max-md:mb-4 max-md:ml-2">
-        <CardHeader className="pb-6">
-          <MetricCardTitle>
-            {formatNumber(active.data.reduce((sum, day) => sum + day.usage, 0))}
-          </MetricCardTitle>
-          <CardDescription>Active Keys (30 days)</CardDescription>
-        </CardHeader>
-      </Card>
-      <Card className="col-span-2 max-md:mb-4 md:col-span-1">
-        <CardHeader className="pb-6">
-          <MetricCardTitle>
-            {formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
-          </MetricCardTitle>
-          <CardDescription>Successful Verifications (30 days)</CardDescription>
-        </CardHeader>
-      </Card>
-      <Card className="relative col-span-3">
+      <Separator className="my-8" />
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
+
+        <div>
+          <IntervalSelect defaultSelected={interval} />
+        </div>
+
+      </div>
+
+
+      <Card >
         <CardHeader>
-          <CardTitle>Usage in the last 30 days</CardTitle>
-          <CardDescription>This includes all key verifications in this API</CardDescription>
+          <div className="grid grid-cols-3 divide-x">
+            <Metric label="Successful Verifications" value={formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))} />
+            <Metric label="Ratelimited" value={formatNumber(usage.data.reduce((sum, day) => sum + day.rateLimited, 0))} />
+            <Metric label="Usage Exceeded" value={formatNumber(usage.data.reduce((sum, day) => sum + day.usageExceeded, 0))} />
+          </div>
         </CardHeader>
         <CardContent>
-          <StackedColumnChart data={data} />
+          <StackedColumnChart data={verificationsData} timeGranularity={granularity >= 1000 * 60 * 60 * 24 * 30 ? "month" : granularity >= 1000 * 60 * 60 * 24 ? "day" : "hour"} />
         </CardContent>
       </Card>
-    </div>
+
+      <Separator className="my-8" />
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold leading-none tracking-tight">Active Keys</h2>
+
+        <div>
+          <IntervalSelect defaultSelected={interval} />
+        </div>
+
+
+
+      </div>
+      <Card >
+        <CardHeader><div className="grid grid-cols-4 divide-x">
+          <Metric label="Total Active Keys" value={formatNumber(activeKeysTotal.data.at(0)?.keys ?? 0)} />
+        </div>
+        </CardHeader>
+        <CardContent>
+          <AreaChart data={activeKeysOverTime} tooltipLabel="Active Keys" timeGranularity={granularity >= 1000 * 60 * 60 * 24 * 30 ? "month" : granularity >= 1000 * 60 * 60 * 24 ? "day" : "hour"} />
+        </CardContent>
+      </Card>
+    </div >
+
   );
 }
+
+
+function prepareInterval(interval: Interval) {
+  const now = new Date()
+
+  switch (interval) {
+    case "24h": {
+      const end = now.setUTCHours(now.getUTCHours() + 1, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60,
+        getVerificationsPerInterval: getVerificationsHourly,
+        getActiveKeysPerInterval: getActiveKeysHourly,
+      }
+    }
+    case "7d": {
+      now.setUTCDate(now.getUTCDate() + 1)
+      const end = now.setUTCHours(0, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24 * 7
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60 * 24,
+        getVerificationsPerInterval: getVerificationsDaily,
+        getActiveKeysPerInterval: getActiveKeysDaily,
+
+      }
+    }
+    case "30d": {
+      now.setUTCDate(now.getUTCDate() + 1)
+      const end = now.setUTCHours(0, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24 * 30
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60 * 24,
+        getVerificationsPerInterval: getVerificationsDaily,
+        getActiveKeysPerInterval: getActiveKeysDaily,
+
+      }
+    }
+    case "90d": {
+      now.setUTCDate(now.getUTCDate() + 1)
+      const end = now.setUTCHours(0, 0, 0, 0)
+      const intervalMs = 1000 * 60 * 60 * 24 * 90
+      return {
+        start: end - intervalMs,
+        end,
+        intervalMs,
+        granularity: 1000 * 60 * 60 * 24,
+        getVerificationsPerInterval: getVerificationsDaily,
+        getActiveKeysPerInterval: getActiveKeysDaily,
+
+      }
+    }
+
+  }
+}
+
+const Metric: React.FC<{ label: string, value: string }> = ({ label, value }) => {
+  return (
+    <div className="flex flex-col items-start justify-center py-2 px-4">
+      <p className="text-sm text-content-subtle">{label}</p>
+      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
+    </div>
+  );
+};

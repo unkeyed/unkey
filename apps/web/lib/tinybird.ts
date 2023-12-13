@@ -7,6 +7,14 @@ const tb = token ? new Tinybird({ token }) : new NoopTinybird();
 
 const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
+/**
+* `t` has the format `2021-01-01 00:00:00`
+*
+* If we transform it as is, we get `1609459200000` which is `2021-01-01 01:00:00` due to fun timezone stuff.
+* So we split the string at the space and take the date part, and then parse that.
+*/
+const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
+
 export const getDailyVerifications = tb.buildPipe({
   pipe: "endpoint__get_daily_verifications__v1",
   parameters: z.object({
@@ -171,6 +179,178 @@ export const verifications = tb.buildPipe({
     success: z.number().int().nullable().default(0),
     ratelimited: z.number().int().nullable().default(0),
     usageExceeded: z.number().int().nullable().default(0),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getVerificationsMonthly = tb.buildPipe({
+  pipe: "get_verifications_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    keyId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getVerificationsWeekly = tb.buildPipe({
+  pipe: "get_verifications_weekly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    keyId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getVerificationsDaily = tb.buildPipe({
+  pipe: "get_verifications_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    keyId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getVerificationsHourly = tb.buildPipe({
+  pipe: "get_verifications_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    keyId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+
+export const getActiveKeysHourly = tb.buildPipe({
+  pipe: "get_active_keys_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+
+export const getActiveKeysDaily = tb.buildPipe({
+  pipe: "get_active_keys_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getActiveKeysWeekly = tb.buildPipe({
+  pipe: "get_active_keys_weekly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+
+
+export const getActiveKeysMonthly = tb.buildPipe({
+  pipe: "get_active_keys_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+
+/**
+* Across the entire time period
+*/
+export const getActiveKeys = tb.buildPipe({
+  pipe: "get_active_keys__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    keys: z.number(),
   }),
   opts: {
     cache: "no-store",
