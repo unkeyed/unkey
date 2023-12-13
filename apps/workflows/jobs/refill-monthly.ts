@@ -1,33 +1,33 @@
-import { connectDatabase, eq, lte, schema } from "@/lib/db";
+import { connectDatabase, eq, gt, lte, schema } from "@/lib/db";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
 
 client.defineJob({
-  id: "refill.daily",
-  name: "Daily refill",
+  id: "refill.monthly",
+  name: "Monthly refill",
   version: "0.0.1",
   trigger: cronTrigger({
-    cron: "0 0 * * *", // Daily at midnight UTC
+    cron: "0 0 0 1 1/1 ? *", // First of each month at 00:00 UTC
   }),
 
   run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
     const t = new Date();
-    t.setUTCHours(t.getUTCHours() - 24);
+    t.setUTCMonth(t.getUTCMonth() - 1);
 
     const keys = await io.runTask("list keys", () =>
       db.query.keys.findMany({
-        where: (table, { isNotNull, eq, and, gt }) =>
+        where: (table, { isNotNull, eq, and }) =>
           and(
             isNotNull(table.refillInterval),
             isNotNull(table.refillIncrement),
-            eq(table.refillInterval, "daily"),
+            eq(table.refillInterval, "monthly"),
             gt(table.refillIncrement, table.remaining),
-            lte(table.lastRefillAt, t), // Check if more than 24 hours have passed
+            lte(table.lastRefillAt, t), // Check if more than 1 Month has passed
           ),
       }),
     );
-    io.logger.info(`found ${keys.length} keys with daily refill set`);
+    io.logger.info(`found ${keys.length} keys with monthly refill set`);
     // const keysWithRefill = keys.length;
     for (const key of keys) {
       await io.runTask(`refill for ${key.id}`, async () => {

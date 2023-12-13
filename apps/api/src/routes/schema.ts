@@ -63,7 +63,11 @@ export const keySchema = z
           example: "daily",
         }),
         refillIncrement: z.number().int().openapi({
-          description: "Sets how many verifications to refill during each refillInterval.",
+          description: "How many verifications to refill during each refillInterval.",
+          example: 100,
+        }),
+        lastRefillAt: z.number().optional().openapi({
+          description: "The unix timestamp in miliseconds when the key was last refilled.",
           example: 100,
         }),
       })

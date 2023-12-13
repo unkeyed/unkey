@@ -28,4 +28,4 @@ pnpm run dev
 pnpm dlx @trigger.dev/cli@latest dev
 ```
 
-5. Go
+5. Go to Trigger.dev, where you can test the runs

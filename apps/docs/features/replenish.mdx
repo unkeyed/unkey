@@ -1,19 +1,19 @@
 ---
 title: Replenishment
-description: "Refill remaining key verifications on set intervals"
+description: "Refill remaining key verifications on a set interval"
 ---
 
 This feature is useful for creating an API key that automatically refills daily or monthly.
-Daily refills trigger each night at midnight, while monthly refills are triggered on the first day of each month just after midnight.
+Daily refills trigger each night at midnight, while monthly refills are triggered on the first day of each month.
 
 Example:
-Suppose you are selling API access, and a customer has purchased 1000 API uses per month. On the first day of the month just after midnight, the 1000 uses will be replenished for that key.
+Suppose you are selling API access, and a customer has purchased 1000 API uses per month. On the first day of the month, the 1000 uses will be replenished for that key.
 
 Unkey allows you to set a refill interval and increment on individual keys, and we take care of replenishing a key on its set interval.
 
 ### Example
 
-Let's create a new key that can be used 100 times a day. The interval may also be set to "monthly" if that better meets your needs.
+Let's create a new key that can be used 100 times a day.
 
 ```bash
 curl --request POST \
@@ -25,12 +25,12 @@ curl --request POST \
 	"remaining": 100,
   "refill": {
       "interval": "daily",
-      "increment": 10
+      "increment": 100
   }
 }'
 ```
 
-Now, when you verify the new key, you will receive the remaining verifications. After all of them are used up, the key becomes invalid. The remaining count will be replenished based on the interval you provided.
+Now, when you verify the new key, you will receive the remaining verifications. After all of them are used up, the key becomes invalid.
 
 ```bash
 curl --request POST \
