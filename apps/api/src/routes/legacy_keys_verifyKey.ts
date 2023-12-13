@@ -65,7 +65,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   stripeCustomerId: "cus_1234",
                 },
               }),
-            createdAt: z.number().optional().openapi({
+            createdAt: z.number().openapi({
               description: "The unix timestamp in milliseconds when the key was created",
               example: Date.now(),
             }),
@@ -110,7 +110,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
               example: 1000,
             }),
             code: z
-              .enum(["NOT_FOUND", "FORBIDDEN", "USAGE_EXCEEDED", "RATE_LIMITED"])
+              .enum(["NOT_FOUND", "FORBIDDEN", "KEY_USAGE_EXCEEDED", "RATELIMITED"])
               .optional()
               .openapi({
                 description: `If the key is invalid this field will be set to the reason why it is invalid.
@@ -166,6 +166,5 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
       expires: value.key.expires?.getTime(),
       remaining: value.remaining ?? undefined,
       ratelimit: value.ratelimit ?? undefined,
-      createdAt: value.key.createdAt.getTime(),
     });
   });

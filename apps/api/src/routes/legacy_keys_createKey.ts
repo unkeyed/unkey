@@ -87,25 +87,6 @@ When validating a key, we will return this back to you, so you can clearly ident
                   url: "https://unkey.dev/docs/features/remaining",
                 },
               }),
-            refill: z
-              .object({
-                interval: z.enum(["daily", "monthly"]).openapi({
-                  description: "Unkey will automatically refill verifications at the set interval.",
-                }),
-                increment: z.number().int().min(1).positive().openapi({
-                  description:
-                    "The number of verifications to refill for each occurrence is determined individually for each key.",
-                }),
-              })
-              .optional()
-              .openapi({
-                description:
-                  "Unkey enables you to refill verifications for each key at regular intervals.",
-                example: {
-                  interval: "daily",
-                  increment: 100,
-                },
-              }),
             ratelimit: z
               .object({
                 type: z
@@ -258,9 +239,6 @@ export const registerLegacyKeysCreate = (app: App) =>
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
       remaining: req.remaining,
-      refillInterval: req.refill?.interval,
-      refillIncrement: req.refill?.increment,
-      lastRefillAt: req.refill?.interval ? new Date() : null,
       totalUses: 0,
       deletedAt: null,
     });

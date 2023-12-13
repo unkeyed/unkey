@@ -89,25 +89,6 @@ const route = createRoute({
                 "The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.",
               example: 1000,
             }),
-            refill: z
-              .object({
-                interval: z.enum(["daily", "monthly"]).openapi({
-                  description: "Unkey will automatically refill verifications at the set interval.",
-                }),
-                increment: z.number().int().min(1).positive().openapi({
-                  description:
-                    "The number of verifications to refill for each occurrence is determined individually for each key.",
-                }),
-              })
-              .optional()
-              .openapi({
-                description:
-                  "Unkey enables you to refill verifications for each key at regular intervals.",
-                example: {
-                  interval: "daily",
-                  increment: 100,
-                },
-              }),
           }),
         },
       },
@@ -196,9 +177,6 @@ export const registerLegacyKeysUpdate = (app: App) =>
         ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
         ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
         ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
-        refillInterval: req.refill === null ? null : req.refill?.interval,
-        refillIncrement: req.refill === null ? null : req.refill?.increment,
-        lastRefillAt: req.refill === null ? null : new Date(),
       })
       .where(eq(schema.keys.id, keyId));
 
