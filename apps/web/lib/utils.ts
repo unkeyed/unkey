@@ -8,30 +8,24 @@ export function fillRange(
   data: { value: number; time: number }[],
   start: number,
   end: number,
+  granularity: number,
 ): { value: number; time: number }[] {
-  const t = new Date(start);
-  const series: { value: number; time: number }[] = [];
-
-  function toDay(unixmilli: number): string {
-    const d = new Date(unixmilli);
-    d.setUTCHours(0, 0, 0, 0);
-    return d.toUTCString();
+  function toStartOfInterval(unixmilli: number): number {
+    return Math.floor(unixmilli / granularity);
   }
+  const startWindow = toStartOfInterval(start);
+  const endWindow = toStartOfInterval(end);
 
-  const lookup = data.reduce((acc, d) => {
-    acc[toDay(d.time)] = d.value;
-    return acc;
-  }, {} as Record<string, number>);
-
-  while (t.getTime() <= end) {
-    const d = lookup[toDay(t.getTime())];
+  const cache = new Map<number, number>();
+  for (const d of data) {
+    cache.set(toStartOfInterval(d.time), d.value);
+  }
+  const series: { value: number; time: number }[] = [];
+  for (let i = startWindow; i < endWindow; i++) {
     series.push({
-      time: t.getTime(),
-      value: d ?? 0,
+      time: i * granularity,
+      value: cache.get(i) ?? 0,
     });
-
-    // Now increment the time
-    t.setUTCDate(t.getUTCDate() + 1);
   }
   return series;
 }
