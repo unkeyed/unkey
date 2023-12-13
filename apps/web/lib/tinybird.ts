@@ -8,11 +8,11 @@ const tb = token ? new Tinybird({ token }) : new NoopTinybird();
 const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
 /**
-* `t` has the format `2021-01-01 00:00:00`
-*
-* If we transform it as is, we get `1609459200000` which is `2021-01-01 01:00:00` due to fun timezone stuff.
-* So we split the string at the space and take the date part, and then parse that.
-*/
+ * `t` has the format `2021-01-01 00:00:00`
+ *
+ * If we transform it as is, we get `1609459200000` which is `2021-01-01 01:00:00` due to fun timezone stuff.
+ * So we split the string at the space and take the date part, and then parse that.
+ */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
 export const getDailyVerifications = tb.buildPipe({
@@ -265,7 +265,6 @@ export const getVerificationsHourly = tb.buildPipe({
   },
 });
 
-
 export const getActiveKeysHourly = tb.buildPipe({
   pipe: "get_active_keys_hourly__v1",
   parameters: z.object({
@@ -282,7 +281,6 @@ export const getActiveKeysHourly = tb.buildPipe({
     cache: "no-store",
   },
 });
-
 
 export const getActiveKeysDaily = tb.buildPipe({
   pipe: "get_active_keys_daily__v1",
@@ -318,8 +316,6 @@ export const getActiveKeysWeekly = tb.buildPipe({
   },
 });
 
-
-
 export const getActiveKeysMonthly = tb.buildPipe({
   pipe: "get_active_keys_monthly__v1",
   parameters: z.object({
@@ -337,10 +333,9 @@ export const getActiveKeysMonthly = tb.buildPipe({
   },
 });
 
-
 /**
-* Across the entire time period
-*/
+ * Across the entire time period
+ */
 export const getActiveKeys = tb.buildPipe({
   pipe: "get_active_keys__v1",
   parameters: z.object({

@@ -10,29 +10,24 @@ export function fillRange(
   end: number,
   granularity: number,
 ): { value: number; time: number }[] {
-
   function toStartOfInterval(unixmilli: number): number {
     return Math.floor(unixmilli / granularity);
-
   }
   const startWindow = toStartOfInterval(start);
   const endWindow = toStartOfInterval(end);
 
-  let cache = new Map<number, number>();
-  let series: { value: number; time: number }[] = [];
+  const cache = new Map<number, number>();
+  for (const d of data) {
+    cache.set(toStartOfInterval(d.time), d.value);
+  }
+  const series: { value: number; time: number }[] = [];
   for (let i = startWindow; i < endWindow; i++) {
-    let value = cache.get(i);
-    if (!value) {
-      value = data.find((d) => toStartOfInterval(d.time) === i)?.value ?? 0,
-        cache.set(i, value);
-    }
     series.push({
       time: i * granularity,
-      value,
+      value: cache.get(i) ?? 0,
     });
   }
-  return series
-
+  return series;
 }
 
 export function cumulative(

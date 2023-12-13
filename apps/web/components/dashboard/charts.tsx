@@ -20,7 +20,7 @@ type Props = {
     x: string;
     y: number;
   }[];
-  timeGranularity: "hour" | "day" | "month"
+  timeGranularity: "hour" | "day" | "month";
   tooltipLabel: string;
 };
 
@@ -37,12 +37,11 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
       color={color}
       areaStyle={{
         fill: `l(270) 0:${color}00  1:${color}`,
-
       }}
       line={{
         style: {
-          lineWidth: 1
-        }
+          lineWidth: 1,
+        },
       }}
       xAxis={{
         tickLine: {
@@ -63,9 +62,12 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
               case "day":
                 return new Date(v).toLocaleDateString();
               case "month":
-                return new Date(v).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+                return new Date(v).toLocaleDateString(undefined, {
+                  month: "long",
+                  year: "numeric",
+                });
             }
-          }
+          },
         },
       }}
       yAxis={{
@@ -148,7 +150,7 @@ export const StackedColumnChart: React.FC<{
     x: string;
     y: number;
   }[];
-  timeGranularity: "hour" | "day" | "month"
+  timeGranularity: "hour" | "day" | "month";
 }> = ({ data, timeGranularity }) => {
   const { palette, axisColor } = useColors();
   return (
@@ -180,7 +182,6 @@ export const StackedColumnChart: React.FC<{
         },
       }}
       xAxis={{
-
         label: {
           formatter: (v: string) => {
             switch (timeGranularity) {
@@ -189,9 +190,12 @@ export const StackedColumnChart: React.FC<{
               case "day":
                 return new Date(v).toLocaleDateString();
               case "month":
-                return new Date(v).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+                return new Date(v).toLocaleDateString(undefined, {
+                  month: "long",
+                  year: "numeric",
+                });
             }
-          }
+          },
         },
         tickLine: {
           style: {

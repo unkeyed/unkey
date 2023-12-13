@@ -50,16 +50,20 @@ export default async function ApiPageLayout(props: Props) {
 
   return (
     <div>
-      <PageHeader title={props.params.keyId} description="Here is an overview of your key usage" actions={[
-        <Badge
-          key="keyId"
-          variant="secondary"
-          className="ph-no-capture flex w-full justify-between font-mono font-medium"
-        >
-          {key.id}
-          <CopyButton value={key.id} className="ml-2" />
-        </Badge>,
-      ]} />
+      <PageHeader
+        title={props.params.keyId}
+        description="Here is an overview of your key usage"
+        actions={[
+          <Badge
+            key="keyId"
+            variant="secondary"
+            className="ph-no-capture flex w-full justify-between font-mono font-medium"
+          >
+            {key.id}
+            <CopyButton value={key.id} className="ml-2" />
+          </Badge>,
+        ]}
+      />
       <Navbar navigation={navigation} />
       <main className="mb-20 mt-8">{props.children}</main>
     </div>
