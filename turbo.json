@@ -6,7 +6,35 @@
     },
     "build": {
       "dependsOn": ["fmt", "^build"],
-      "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**"]
+      "env": [
+        "NEXT_PUBLIC_*",
+        "!NEXT_PUBLIC_VERCEL_*",
+        "CLERK_WEBHOOK_SECRET",
+        "CLERK_SECRET_KEY",
+        "DATABASE_PASSWORD",
+        "DATABASE_USERNAME",
+        "DATABASE_HOST",
+        "PLAIN_API_KEY",
+        "QSTASH_CURRENT_SIGNING_KEY",
+        "QSTASH_NEXT_SIGNING_KEY",
+        "RESEND_AUDIENCE_ID",
+        "RESEND_API_KEY",
+        "SLACK_WEBHOOK_URL_SIGNUP",
+        "STRIPE_PRODUCT_ID_ACTIVE_KEYS",
+        "STRIPE_ACTIVE_KEYS_PRODUCT_ID",
+        "STRIPE_PRODUCT_ID_KEY_VERIFICATIONS",
+        "STRIPE_PRODUCT_ID_PRO_PLAN",
+        "STRIPE_PRODUCT_ID_SUPPORT",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "TINYBIRD_TOKEN",
+        "UNKEY_API_ID",
+        "UNKEY_KEY_AUTH_ID",
+        "UNKEY_WORKSPACE_ID",
+        "VERCEL_INTEGRATION_CLIENT_ID",
+        "VERCEL_INTEGRATION_CLIENT_SECRET"
+      ],
+      "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },
     "@unkey/nuxt#dev:prepare": {
       "outputs": ["dist/**", "playground/.nuxt/**"]
