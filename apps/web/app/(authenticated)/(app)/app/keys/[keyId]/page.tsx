@@ -45,7 +45,7 @@ export default async function KeyPage(props: {
     return notFound();
   }
 
-  const interval = props.searchParams.interval ?? "24h";
+  const interval = props.searchParams.interval ?? "7d";
 
   const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {

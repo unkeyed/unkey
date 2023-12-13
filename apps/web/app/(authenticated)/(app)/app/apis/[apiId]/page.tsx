@@ -37,14 +37,13 @@ export default async function ApiPage(props: {
     return redirect("/new");
   }
 
-  const interval = props.searchParams.interval ?? "24h";
+  const interval = props.searchParams.interval ?? "7d";
 
-  const keysP = db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.keys)
-    .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
-    .execute()
-    .then((res) => res.at(0)?.count ?? 0);
+  const t = new Date();
+  t.setUTCDate(1);
+  t.setUTCHours(0, 0, 0, 0);
+  const billingCycleStart = t.getTime();
+  const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
 
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
@@ -54,19 +53,39 @@ export default async function ApiPage(props: {
     start,
     end,
   };
-  console.log({ query });
-  const [usage, activeKeys, activeKeysTotal] = await Promise.all([
+  const [
+    keys,
+    verifications,
+    activeKeys,
+    activeKeysTotal,
+    _activeKeysInBillingCycle,
+    verificationsInBillingCycle,
+  ] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.keys)
+      .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
+      .execute()
+      .then((res) => res.at(0)?.count ?? 0),
     getVerificationsPerInterval(query),
     getActiveKeysPerInterval(query),
     getActiveKeys(query),
+    getActiveKeys({
+      workspaceId: api.workspaceId,
+      apiId: api.id,
+      start: billingCycleStart,
+      end: billingCycleEnd,
+    }).then((res) => res.data.at(0)),
+    getVerificationsPerInterval({
+      workspaceId: api.workspaceId,
+      apiId: api.id,
+      start: billingCycleStart,
+      end: billingCycleEnd,
+    }),
   ]);
 
-  console.log({ activeKeys });
-
-  const keys = await keysP;
-
   const successOverTime = fillRange(
-    usage.data.map(({ time, success }) => ({ value: success, time })),
+    verifications.data.map(({ time, success }) => ({ value: success, time })),
     start,
     end,
     granularity,
@@ -76,7 +95,7 @@ export default async function ApiPage(props: {
   }));
 
   const ratelimitedOverTime = fillRange(
-    usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
+    verifications.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
     start,
     end,
     granularity,
@@ -86,7 +105,7 @@ export default async function ApiPage(props: {
   }));
 
   const usageExceededOverTime = fillRange(
-    usage.data.map(({ time, usageExceeded }) => ({ value: usageExceeded, time })),
+    verifications.data.map(({ time, usageExceeded }) => ({ value: usageExceeded, time })),
     start,
     end,
     granularity,
@@ -117,10 +136,22 @@ export default async function ApiPage(props: {
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardContent className="grid grid-cols-3 divide-x">
+        <CardContent className="grid grid-cols-4 divide-x">
           <Metric label="Total Keys" value={formatNumber(keys)} />
-          {/* <Metric label="Ratelimited" value={formatNumber(usage.data.reduce((sum, day) => sum + day.rateLimited, 0))} />
-            <Metric label="Usage Exceeded" value={formatNumber(usage.data.reduce((sum, day) => sum + day.usageExceeded, 0))} /> */}
+          <Metric
+            label={`Verifications in ${new Date().toLocaleString("en-US", {
+              month: "long",
+            })}`}
+            value={formatNumber(
+              verificationsInBillingCycle.data.reduce((sum, day) => sum + day.success, 0),
+            )}
+          />
+          <Metric
+            label={`Active Keys in ${new Date().toLocaleString("en-US", {
+              month: "long",
+            })}`}
+            value={formatNumber(activeKeysTotal.data.at(0)?.keys ?? 0)}
+          />
         </CardContent>
       </Card>
       <Separator className="my-8" />
@@ -138,15 +169,19 @@ export default async function ApiPage(props: {
           <div className="grid grid-cols-3 divide-x">
             <Metric
               label="Successful Verifications"
-              value={formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
+              value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
             />
             <Metric
               label="Ratelimited"
-              value={formatNumber(usage.data.reduce((sum, day) => sum + day.rateLimited, 0))}
+              value={formatNumber(
+                verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
+              )}
             />
             <Metric
               label="Usage Exceeded"
-              value={formatNumber(usage.data.reduce((sum, day) => sum + day.usageExceeded, 0))}
+              value={formatNumber(
+                verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
+              )}
             />
           </div>
         </CardHeader>

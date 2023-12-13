@@ -13,10 +13,10 @@ import { usePathname } from "next/navigation";
 import React, { useCallback, useState } from "react";
 
 export const interval = {
-  "90d": "Last 3 Months",
-  "30d": "Last 30 Days",
-  "7d": "Last 7 Days",
   "24h": "Last 24 Hours",
+  "7d": "Last 7 Days",
+  "30d": "Last 30 Days",
+  "90d": "Last 3 Months",
 } as const;
 
 export type Interval = keyof typeof interval;
