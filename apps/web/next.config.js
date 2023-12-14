@@ -7,10 +7,11 @@ let nextConfig = {
   experimental: {
     esmExternals: "loose",
   },
-  webpack: {
-    cache: Object.freeze({
+  webpack: (config) => {
+    config.cache = Object.freeze({
       type: "memory",
-    }),
+    });
+    return config;
   },
 
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
