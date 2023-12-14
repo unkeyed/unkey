@@ -147,6 +147,20 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     }
 
     if (!value.valid) {
+      switch (value.code) {
+        case "NOT_FOUND": {
+          c.status(404);
+        }
+        case "FORBIDDEN": {
+          c.status(403);
+        }
+        case "USAGE_EXCEEDED": {
+          c.status(429);
+        }
+        case "RATE_LIMITED": {
+          c.status(429);
+        }
+      }
       return c.json({
         valid: false,
         code: value.code,
