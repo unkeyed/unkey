@@ -1,0 +1,11 @@
+# Data Source created from Pipe 't_d1b4586e4a134937bc6588f8a0e7c8b9'
+
+SCHEMA >
+    `workspaceId` String,
+    `apiId` String,
+    `keyId` String,
+    `time` Date
+
+ENGINE "AggregatingMergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(time)"
+ENGINE_SORTING_KEY "workspaceId, time, apiId, keyId"
