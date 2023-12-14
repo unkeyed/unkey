@@ -136,7 +136,7 @@ describe("with temporary key", () => {
         apiId: r.userApi.id,
       },
     });
-    expect(secondResponse.status).toEqual(200);
+    expect(secondResponse.status).toEqual(404);
     expect(secondResponse.body.valid).toBeFalse();
   });
 });
@@ -242,7 +242,7 @@ describe("with ip whitelist", () => {
           apiId: r.userApi.id,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status).toEqual(403);
       expect(res.body.valid).toBeFalse();
       expect(res.body.code).toEqual("FORBIDDEN");
     });
