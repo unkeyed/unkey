@@ -27,7 +27,7 @@ export const updateKeyRemaining = serverAction({
     enableRemaining: z.string().transform((s) => s === "true"),
     remaining: stringToIntOrNull,
     refillInterval: z.enum(["null", "daily", "monthly"]).optional(),
-    refillIncrement: stringToIntOrNull,
+    refillAmount: stringToIntOrNull,
   }),
 
   handler: async ({ input, ctx }) => {
@@ -48,7 +48,7 @@ export const updateKeyRemaining = serverAction({
       throw new Error("key not found");
     }
 
-    if (input?.enableRemaining === false) {
+    if (input?.enableRemaining === false || input?.remaining === null) {
       input.refillInterval = "null";
     }
 
@@ -57,7 +57,7 @@ export const updateKeyRemaining = serverAction({
       .set({
         remaining: input.enableRemaining ? input.remaining : null,
         refillInterval: input?.refillInterval !== "null" ? input.refillInterval : null,
-        refillIncrement: input?.refillInterval !== "null" ? input?.refillIncrement : null,
+        refillAmount: input?.refillInterval !== "null" ? input?.refillAmount : null,
         lastRefillAt: input?.refillInterval !== "null" ? new Date() : null,
       })
       .where(eq(schema.keys.id, input.keyId));

@@ -37,7 +37,7 @@ export const keySchema = z
           stripeCustomerId: "cus_1234",
         },
       }),
-    createdAt: z.number().openapi({
+    createdAt: z.number().optional().openapi({
       description: "The unix timestamp in milliseconds when the key was created",
       example: Date.now(),
     }),
@@ -58,12 +58,12 @@ export const keySchema = z
     }),
     refill: z
       .object({
-        refillInterval: z.enum(["null", "daily", "monthly"]).openapi({
+        interval: z.enum(["daily", "monthly"]).openapi({
           description: "Determines the rate verifications will be refilled.",
           example: "daily",
         }),
-        refillIncrement: z.number().int().openapi({
-          description: "How many verifications to refill during each refillInterval.",
+        amount: z.number().int().openapi({
+          description: "How many verifications to refill during each Interval.",
           example: 100,
         }),
         lastRefillAt: z.number().optional().openapi({
@@ -73,10 +73,11 @@ export const keySchema = z
       })
       .optional()
       .openapi({
-        description: "Unkey allows you to replenish verifications on a key on a refular interval.",
+        description:
+          "Unkey allows you to refill remaining verifications on a key on a regular interval.",
         example: {
-          refillInterval: "daily",
-          refillIncrement: 10,
+          interval: "daily",
+          amount: 10,
         },
       }),
     ratelimit: z

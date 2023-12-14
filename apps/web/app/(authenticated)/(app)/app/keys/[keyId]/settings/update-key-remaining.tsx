@@ -29,7 +29,7 @@ type Props = {
     workspaceId: string;
     remaining: number | null;
     refillInterval: string | null;
-    refillIncrement: number | null;
+    refillAmount: number | null;
   };
 };
 
@@ -103,12 +103,12 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
             </Select>
             <Input
               disabled={!refillEbabled}
-              name="refillIncrement"
+              name="refillAmount"
               placeholder="100"
               className="w-full"
               min={1}
               type="number"
-              defaultValue={apiKey?.refillIncrement ?? ""}
+              defaultValue={apiKey?.refillAmount ?? ""}
             />
           </div>
         </CardContent>

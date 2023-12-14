@@ -85,7 +85,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                 interval: z.enum(["daily", "monthly"]).openapi({
                   description: "Unkey will automatically refill verifications at the set interval.",
                 }),
-                increment: z.number().int().min(1).positive().openapi({
+                amount: z.number().int().min(1).positive().openapi({
                   description:
                     "The number of verifications to refill for each occurrence is determined individually for each key.",
                 }),
@@ -96,7 +96,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                   "Unkey enables you to refill verifications for each key at regular intervals.",
                 example: {
                   interval: "daily",
-                  increment: 100,
+                  amount: 100,
                 },
               }),
             ratelimit: z
@@ -222,7 +222,18 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: `api ${req.apiId} is not setup to handle keys`,
       });
     }
-
+    if (req.remaining === 0) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "remaining must be greater than 0.",
+      });
+    }
+    if ((req.remaining === null || req.remaining === undefined) && req.refill?.interval) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "remaining must be set if you are using refill.",
+      });
+    }
     /**
      * Set up an api for production
      */
@@ -251,7 +262,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
       refillInterval: req.refill?.interval,
-      refillIncrement: req.refill?.increment,
+      refillAmount: req.refill?.amount,
       lastRefillAt: req.refill?.interval ? new Date() : null,
       remaining: req.remaining,
       totalUses: 0,

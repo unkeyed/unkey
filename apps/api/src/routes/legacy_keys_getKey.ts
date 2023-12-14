@@ -108,7 +108,7 @@ export const registerLegacyKeysGet = (app: App) =>
       name: data.key.name ?? undefined,
       start: data.key.start,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ?? undefined,
+      meta: data.key.meta ? JSON.parse(data.key.meta) : undefined,
       createdAt: data.key.createdAt.getTime() ?? undefined,
       forWorkspaceId: data.key.forWorkspaceId ?? undefined,
       expiresAt: data.key.expires?.getTime() ?? undefined,

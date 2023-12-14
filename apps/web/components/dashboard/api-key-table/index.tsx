@@ -42,7 +42,7 @@ type Column = {
   ratelimitRefillInterval: number | null;
   remaining: number | null;
   refillInterval: string | null;
-  refillIncrement: number | null;
+  refillAmount: number | null;
 };
 
 type Props = {
@@ -166,7 +166,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       accessorKey: "refillInterval",
       header: "Refill Rate",
       cell: ({ row }) =>
-        row.original.refillInterval && row.original.refillIncrement && row.original.remaining ? (
+        row.original.refillInterval && row.original.refillAmount && row.original.remaining ? (
           <div>
             <span>{row.original.refillInterval}</span>
           </div>

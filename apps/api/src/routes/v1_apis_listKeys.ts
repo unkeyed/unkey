@@ -162,10 +162,10 @@ export const registerV1ApisListKeys = (app: App) =>
             : undefined,
         remaining: k.remaining ?? undefined,
         refill:
-          k.refillInterval && k.refillIncrement
+          k.refillInterval && k.refillAmount && k.lastRefillAt
             ? {
-                refillInterval: k.refillInterval,
-                refillIncrement: k.refillIncrement,
+                interval: k.refillInterval,
+                amount: k.refillAmount,
                 lastRefillAt: k.lastRefillAt?.getTime(),
               }
             : undefined,

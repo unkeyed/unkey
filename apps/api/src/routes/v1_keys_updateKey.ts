@@ -82,22 +82,23 @@ const route = createRoute({
             }),
             refill: z
               .object({
-                interval: z.enum(["null", "daily", "monthly"]).openapi({
+                interval: z.enum(["daily", "monthly"]).openapi({
                   description:
                     "Unkey will automatically refill verifications at the set interval. If null is used the refill functionality will be removed from the key.",
                 }),
-                increment: z.number().int().min(1).positive().openapi({
+                amount: z.number().int().min(1).positive().openapi({
                   description:
-                    "The number of verifications to refill for each occurrence is determined individually for each key.",
+                    "The amount of verifications to refill for each occurrence is determined individually for each key.",
                 }),
               })
+              .nullable()
               .optional()
               .openapi({
                 description:
                   "Unkey enables you to refill verifications for each key at regular intervals.",
                 example: {
                   interval: "daily",
-                  increment: 100,
+                  amount: 100,
                 },
               }),
           }),
@@ -171,6 +172,19 @@ export const registerV1KeysUpdate = (app: App) =>
       });
     }
 
+    if (req.remaining === null && req.refill) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Cannot set refill on a key with unlimited requests",
+      });
+    }
+    if (req.refill && key.remaining === null) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Cannot set refill on a key with unlimited requests",
+      });
+    }
+
     await db
       .update(schema.keys)
       .set({
@@ -188,16 +202,9 @@ export const registerV1KeysUpdate = (app: App) =>
         ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
         ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
         ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
-        refillIncrement:
-          req.refill?.increment === null || req.refill?.interval === "null"
-            ? null
-            : req.refill?.increment,
-        refillInterval:
-          req.refill?.interval == null || req.refill?.interval === "null"
-            ? null
-            : req.refill?.interval,
-        lastRefillAt:
-          req.refill?.interval == null || req.refill?.interval === "null" ? null : new Date(),
+        refillInterval: req.refill === null ? null : req.refill?.interval,
+        refillAmount: req.refill === null ? null : req.refill?.amount,
+        lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
       })
       .where(eq(schema.keys.id, req.keyId));
 

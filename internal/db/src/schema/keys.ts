@@ -52,9 +52,9 @@ export const keys = mysqlTable(
      * You can add uses to keys at a desired interval
      */
     refillInterval: text("refill_interval", {
-      enum: ["null", "daily", "monthly"],
+      enum: ["daily", "monthly"],
     }),
-    refillIncrement: int("refill_increment"),
+    refillAmount: int("refill_amount"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
     /**
      * You can limit the amount of times a key can be verified before it becomes invalid
