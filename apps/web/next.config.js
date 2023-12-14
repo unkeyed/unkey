@@ -7,6 +7,11 @@ let nextConfig = {
   experimental: {
     esmExternals: "loose",
   },
+  webpack: {
+    cache: Object.freeze({
+      type: "memory",
+    }),
+  },
 
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
   eslint: {
