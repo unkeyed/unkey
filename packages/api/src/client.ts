@@ -145,7 +145,7 @@ export class Unkey {
         err = e;
         return null; // set `res` to `null`
       });
-      if (res && res.status < 500) {
+      if (res?.ok) {
         return { result: (await res.json()) as TResult };
       }
       const backoff = this.retry.backoff(i);
