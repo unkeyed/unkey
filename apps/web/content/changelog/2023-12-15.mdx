@@ -35,7 +35,12 @@ We added a brand new billing page to the dashboard. Previously, you could change
 
 ### RPC methods
 
-With the move to Cloudflare workers, we decided to move to RPC methods. RPC makes it extremely easy to version our API and follow a standard. All our RPC methods are now in the format: 
+With the move to Cloudflare workers, we decided to move to RPC methods. RPC makes it extremely easy to version our API and follow a standard. 
+
+> Note: We will continue to support the old API for the next few months. We will send out a deprecation notice before we remove the old API.
+
+
+All our RPC methods are now in the format: 
 
 ```
 https://api.unkey.dev/{version}/{service}.{method}
@@ -55,7 +60,6 @@ curl -XPOST "https://api.unkey.dev/v1/keys.createKey" \
   -d '{"apiId": "api_123", "name": "My Key"}'
 ```
 
-> Note: We will continue to support the old API for the next few months. We will send out a deprecation notice before we remove the old API.
 
 ### Content you might have missed
 
