@@ -47,9 +47,17 @@ const formSchema = z.object({
   ownerId: z.string().optional(),
   name: z.string().optional(),
   meta: z.string().optional(),
-  remaining: z.coerce.number().positive().optional(),
-  refillInterval: z.coerce.number().positive().optional(),
-  refillIncrement: z.coerce.number().positive().optional(),
+  limit: z
+    .object({
+      remaining: z.coerce.number().positive(),
+      refill: z
+        .object({
+          interval: z.enum(["none", "daily", "monthly"]),
+          amount: z.coerce.number().int().min(1).positive(),
+        })
+        .optional(),
+    })
+    .optional(),
   expires: z.coerce.date().min(new Date(oneMinute)).optional(),
   ratelimit: z
     .object({
@@ -57,12 +65,6 @@ const formSchema = z.object({
       refillInterval: z.coerce.number().positive(),
       refillRate: z.coerce.number().positive(),
       limit: z.coerce.number().positive(),
-    })
-    .optional(),
-  refill: z
-    .object({
-      interval: z.enum(["null", "daily", "monthly"]),
-      amount: z.coerce.number().int().min(1).positive(),
     })
     .optional(),
 });
@@ -84,6 +86,18 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     },
   });
   const formData = form.watch();
+
+  useEffect(() => {
+    if (formData.limit?.remaining === undefined) {
+      form.resetField("limit");
+    }
+  }, [formData.limit]);
+  useEffect(() => {
+    if (formData.limit?.refill?.interval === "none") {
+      form.resetField("limit.refill.interval");
+      form.resetField("limit.refill.amount");
+    }
+  }, [formData.limit?.refill]);
   useEffect(() => {
     if (
       formData.ratelimit?.limit === undefined &&
@@ -132,16 +146,31 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
-    if (values.refill?.interval === "null" || values.refill?.amount === undefined) {
-      delete values.refill;
+    if (
+      values.limit &&
+      values.limit?.refill?.interval !== "daily" &&
+      values.limit?.refill?.interval !== "monthly"
+    ) {
+      delete values.limit.refill;
     }
+    if (values.limit?.remaining === undefined) {
+      delete values.limit;
+    }
+
     await key.mutateAsync({
       apiId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
-      refill: values.refill ?? undefined,
+      remaining: values.limit?.remaining ?? undefined,
+      refill:
+        values.limit?.refill && values.limit.refill.interval !== "none"
+          ? {
+              interval: values.limit.refill.interval,
+              amount: values.limit.refill.amount,
+            }
+          : undefined,
     });
   }
 
@@ -375,7 +404,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <AccordionContent>
                             <FormField
                               control={form.control}
-                              name="remaining"
+                              name="limit.remaining"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Number of uses</FormLabel>
@@ -396,16 +425,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             />
                             <FormField
                               control={form.control}
-                              name="refill.interval"
+                              name="limit.refill.interval"
                               render={({ field }) => (
                                 <FormItem className="mt-4">
                                   <FormLabel>Replenishment Rate</FormLabel>
-                                  <Select onValueChange={field.onChange}>
+                                  <Select onValueChange={field.onChange} defaultValue="">
                                     <SelectTrigger>
-                                      <SelectValue placeholder="Select Interval" />
+                                      <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="null">None</SelectItem>
+                                      <SelectItem value="none">None</SelectItem>
                                       <SelectItem value="daily">Daily</SelectItem>
                                       <SelectItem value="monthly">Monthly</SelectItem>
                                     </SelectContent>
@@ -416,7 +445,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             />
                             <FormField
                               control={form.control}
-                              name="refill.amount"
+                              name="limit.refill.amount"
                               render={({ field }) => (
                                 <FormItem className="mt-4">
                                   <FormLabel>Number of uses per interval</FormLabel>

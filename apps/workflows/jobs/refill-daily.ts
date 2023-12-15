@@ -20,9 +20,9 @@ client.defineJob({
         where: (table, { isNotNull, eq, and, gt }) =>
           and(
             isNotNull(table.refillInterval),
-            isNotNull(table.refillIncrement),
+            isNotNull(table.refillAmount),
             eq(table.refillInterval, "daily"),
-            gt(table.refillIncrement, table.remaining),
+            gt(table.refillAmount, table.remaining),
             lte(table.lastRefillAt, t), // Check if more than 24 hours have passed
           ),
       }),
@@ -34,7 +34,7 @@ client.defineJob({
         await db
           .update(schema.keys)
           .set({
-            remaining: key.refillIncrement,
+            remaining: key.refillAmount,
             lastRefillAt: new Date(),
           })
           .where(eq(schema.keys.id, key.id));
