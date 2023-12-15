@@ -9,6 +9,7 @@ const prefixes = {
   workspace: "ws",
   keyAuth: "key_auth",
   vercelBinding: "vb",
+  role: "role",
   test: "test", // for tests only
 } as const;
 

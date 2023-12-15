@@ -61,6 +61,13 @@ export const registerV1KeysGetKey = (app: App) =>
               api: true,
             },
           },
+          roles: {
+            with: {
+              role: {
+                columns: { name: true },
+              },
+            },
+          },
         },
       });
       if (!dbRes) {
@@ -76,6 +83,10 @@ export const registerV1KeysGetKey = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
+    let meta = data.key.meta ? JSON.parse(data.key.meta) : undefined;
+    if (Object.keys(meta).length === 0) {
+      meta = undefined;
+    }
     return c.json({
       id: data.key.id,
       start: data.key.start,
@@ -83,7 +94,7 @@ export const registerV1KeysGetKey = (app: App) =>
       workspaceId: data.key.workspaceId,
       name: data.key.name ?? undefined,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ?? undefined,
+      meta,
       createdAt: data.key.createdAt.getTime() ?? undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
@@ -99,5 +110,6 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
+      roles: data.key.roles?.map((r) => r.role.name) ?? undefined,
     });
   });

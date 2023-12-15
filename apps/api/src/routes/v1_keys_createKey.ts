@@ -3,7 +3,7 @@ import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { schema, sql } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -61,6 +61,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                   billingTier: "PRO",
                   trialEnds: "2023-06-16T17:16:37.161Z",
                 },
+              }),
+            roles: z
+              .array(z.string())
+              .optional()
+              .openapi({
+                description:
+                  "A list of roles that this key should have. New roles will be created if they don't exist yet.",
+                example: ["admin", "finance"],
               }),
             expires: z.number().int().optional().openapi({
               description:
@@ -197,7 +205,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const keyId = newId("key");
     const hash = await sha256(key.toString());
 
-    await db.insert(schema.keys).values({
+    const createKeyP = db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: api.keyAuthId,
       name: req.name,
@@ -217,6 +225,36 @@ export const registerV1KeysCreateKey = (app: App) =>
       totalUses: 0,
       deletedAt: null,
     });
+
+    if (req.roles) {
+      // if we don't define a workspaceId outside of the closure, it thinks it might not be defined
+      // https://twitter.com/OmgImAlexis/status/1735600492204691775
+      const workspaceId = rootKey.value.authorizedWorkspaceId;
+      const roles = req.roles.map((role) => {
+        return {
+          id: newId("role"),
+          workspaceId,
+          apiId: req.apiId,
+          name: role,
+        };
+      });
+
+      await db
+        .insert(schema.roles)
+        .values(roles)
+        // While MySQL does not directly support doing nothing on conflict, you can perform a no-op by setting any column’s value to itself and achieve the same effect:
+        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+
+      // await it now so it can run in parallel with creating the roles
+      await createKeyP;
+      await db.insert(schema.rolesToKeys).values(
+        roles.map((role) => ({
+          keyId,
+          roleId: role.id,
+        })),
+      );
+    }
+
     // TODO: emit event to tinybird
     return c.json({
       keyId,

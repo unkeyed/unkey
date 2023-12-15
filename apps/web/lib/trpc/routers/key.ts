@@ -106,6 +106,13 @@ export const keyRouter = t.router({
 
       const workspace = await db.query.workspaces.findFirst({
         where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+        with: {
+          apis: {
+            columns: {
+              id: true,
+            },
+          },
+        },
       });
       if (!workspace) {
         console.error(`workspace for tenant ${ctx.tenant.id} not found`);
@@ -133,6 +140,46 @@ export const keyRouter = t.router({
         totalUses: 0,
         deletedAt: null,
       });
+
+      const requiredRoles = workspace.apis.flatMap((api) => [
+        `${api.id}::read`,
+        `${api.id}::update`,
+        `${api.id}::listKeys`,
+        `${api.id}::keys::create`,
+        `${api.id}::keys::read`,
+        `${api.id}::keys::update`,
+        `${api.id}::keys::delete`,
+      ]);
+
+      const existingRoles = await db.query.roles.findMany({
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, workspace.id), eq(table.apiId, env().UNKEY_API_ID)),
+      });
+
+      const missingRoles = requiredRoles
+        .filter((role) => !existingRoles.find((existingRole) => existingRole.name === role))
+        .map((name) => {
+          return {
+            id: newId("role"),
+            workspaceId: workspace.id,
+            apiId: env().UNKEY_API_ID,
+            name,
+          };
+        });
+
+      if (missingRoles.length > 0) {
+        await db.insert(schema.roles).values(missingRoles);
+      }
+
+      const allRoles = [...existingRoles, ...missingRoles];
+
+      await db.insert(schema.rolesToKeys).values(
+        allRoles.map((role) => ({
+          keyId,
+          roleId: role.id,
+        })),
+      );
+
       return { key, keyId };
     }),
   delete: t.procedure

@@ -386,8 +386,6 @@ const MeteredLineItem: React.FC<{
   const currentTier = props.tiers.find((tier) => props.used >= tier.firstUnit);
   const max = props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
 
-  console.log({ currentTier, max, forecast, used: props.used });
-
   return (
     <div className="flex items-center justify-between">
       <div

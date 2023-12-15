@@ -2,7 +2,9 @@ import { Env, zEnv } from "@/pkg/env";
 import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
+import { cors } from "hono/cors";
 import { Metric } from "./pkg/metrics";
+
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -85,6 +87,7 @@ app.use("*", async (c, next) => {
     c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
   }
 });
+app.use("*", cors());
 
 /**
  * Registering all route handlers

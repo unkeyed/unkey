@@ -89,5 +89,12 @@ export const keySchema = z
           refillInterval: 60,
         },
       }),
+    roles: z
+      .array(z.string())
+      .optional()
+      .openapi({
+        description: "All roles this key belongs to",
+        example: ["admin", "finance"],
+      }),
   })
   .openapi("Key");

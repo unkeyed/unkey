@@ -22,6 +22,7 @@ type VerifyKeyResult =
   | {
       valid: false;
       code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+      publicMessage?: string;
       key: Key;
       api: Api;
       ratelimit?: {
@@ -80,7 +81,7 @@ export class KeyService {
 
   public async verifyKey(
     c: Context,
-    req: { key: string; apiId?: string },
+    req: { key: string; apiId?: string; roles?: { hasAll?: string[] } },
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req);
     if (res.error) {
@@ -126,7 +127,7 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    req: { key: string; apiId?: string },
+    req: { key: string; apiId?: string; roles?: { hasAll?: string[] } },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
@@ -135,6 +136,13 @@ export class KeyService {
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          roles: {
+            with: {
+              role: {
+                columns: { name: true },
+              },
+            },
+          },
           keyAuth: {
             with: {
               api: true,
@@ -176,6 +184,17 @@ export class KeyService {
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
         return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+      }
+    }
+
+    if (req.roles && data.key.roles) {
+      if (req.roles.hasAll) {
+        const ok = req.roles.hasAll.every((role) =>
+          data.key.roles?.some((r) => r.role.name === role),
+        );
+        if (!ok) {
+          return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+        }
       }
     }
 

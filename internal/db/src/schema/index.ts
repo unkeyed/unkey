@@ -4,4 +4,4 @@ export * from "./apis";
 export * from "./keyAuth";
 export * from "./vercel_integration";
 export * from "./audit";
-export * from "./permission_namespace";
+export * from "./rbac";

@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { auditLogs } from "./audit";
 import { keyAuth } from "./keyAuth";
+import { rolesToKeys } from "./rbac";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -79,6 +80,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
   }),
+  roles: many(rolesToKeys),
 
   auditLog: many(auditLogs),
 }));
