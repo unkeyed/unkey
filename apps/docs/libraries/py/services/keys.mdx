@@ -23,7 +23,7 @@ result = await client.keys.create_key(
 Verifies that a key is valid, and within ratelimit.
 
 ```py
-result = await client.keys.verify_key("test_123DEF")
+result = await client.keys.verify_key("test_123DEF", "api_789")
 ```
 
 ## Revoke key
@@ -46,3 +46,12 @@ result = await client.keys.update_key(
     expires=None,
 )
 ```
+
+## Get key
+
+Retrieves details for the key with the given ID.
+
+```py
+result = await client.keys.get_key("key_789JKL")
+```
+
