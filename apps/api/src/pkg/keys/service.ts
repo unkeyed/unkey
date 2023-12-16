@@ -82,7 +82,14 @@ export class KeyService {
     c: Context,
     req: { key: string; apiId?: string },
   ): Promise<Result<VerifyKeyResult>> {
-    const res = await this._verifyKey(c, req);
+    const res = await this._verifyKey(c, req).catch((e) => {
+      this.logger.error("Unhandled error while verifying key", {
+        error: e,
+        key: req.key,
+        apiId: req.apiId,
+      });
+      throw e;
+    });
     if (res.error) {
       this.metrics.emit("metric.key.verification", {
         valid: false,
