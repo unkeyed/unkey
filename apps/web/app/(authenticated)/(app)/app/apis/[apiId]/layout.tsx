@@ -1,11 +1,10 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 
@@ -62,9 +61,7 @@ export default async function ApiPageLayout(props: Props) {
             {api.id}
             <CopyButton value={api.id} className="ml-2" />
           </Badge>,
-          <Link key="new" href={`/app/apis/${api.id}/keys/new`}>
-            <Button variant="secondary">Create Key</Button>
-          </Link>,
+          <CreateKeyButton apiId={api.id} />,
         ]}
       />
       <div className="-mt-4 md:space-x-4 ">
