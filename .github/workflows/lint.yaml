@@ -4,6 +4,7 @@ on:
 
 jobs:
   lint_code:
+    name: Code
     runs-on: ubuntu-latest
 
     steps:
@@ -15,6 +16,7 @@ jobs:
       - run: pnpm biome ci .
 
   lint_docs:
+    name: Docs
     runs-on: ubuntu-latest
 
     steps:
