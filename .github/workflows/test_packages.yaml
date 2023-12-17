@@ -5,7 +5,8 @@ on:
 jobs:
   test:
     strategy:
-      matrix:
+     fail-fast: false
+     matrix:
         package:
           - "@unkey/billing"
           - "@unkey/hash"
