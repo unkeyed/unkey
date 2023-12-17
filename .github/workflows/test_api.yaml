@@ -1,14 +1,8 @@
-name: Check Pull Request
-
+name: Test API
 on:
-  pull_request:
-    branches: [main]
-
-concurrency: pr-${{ github.event.number }}
-
+  workflow_call:
 
 jobs:
-
 
   test_api_worker:
     name: Unit Test API
