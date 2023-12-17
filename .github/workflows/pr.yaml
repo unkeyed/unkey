@@ -1,0 +1,28 @@
+name: Check Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    branches: [main]
+  workflow_dispatch:
+
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    uses: ./.github/workflows/lint.yaml
+  lint_docs:
+    name: Lint DOcs
+    uses: ./.github/workflows/lint_docs.yaml
+  test_packages:
+    name: Test Packages
+    uses: ./.github/workflows/test_packages.yaml
+  build_apps:
+    name: Build Apps
+    uses: ./.github/workflows/build_apps.yaml
