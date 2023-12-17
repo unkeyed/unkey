@@ -52,7 +52,7 @@ jobs:
 
 
        - name: Install
-         uses: ./.github/actions/pnpm
+         uses: ./.github/actions/install
 
 
        - name: Test
@@ -79,7 +79,7 @@ jobs:
             version: latest
 
       - name: Install
-        uses: ./.github/actions/pnpm
+        uses: ./.github/actions/install
 
 
       - name: Build
@@ -102,7 +102,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install
-        uses: ./.github/actions/pnpm
+        uses: ./.github/actions/install
 
       - name: Install bun
         run: npm i -g bun
@@ -125,7 +125,7 @@ jobs:
         - uses: actions/checkout@v3
 
         - name: Install
-          uses: ./.github/actions/pnpm
+          uses: ./.github/actions/install
 
         - name: Build
           run: pnpm turbo run build --filter='./apps/api'
@@ -147,7 +147,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install
-        uses: ./.github/actions/pnpm
+        uses: ./.github/actions/install
 
       - name: Install bun
         run: npm i -g bun
@@ -171,7 +171,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install
-        uses: ./.github/actions/pnpm
+        uses: ./.github/actions/install
 
 
       - name: Build
