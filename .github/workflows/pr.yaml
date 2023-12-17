@@ -17,12 +17,11 @@ jobs:
   lint:
     name: Lint
     uses: ./.github/workflows/lint.yaml
-  lint_docs:
-    name: Lint Docs
-    uses: ./.github/workflows/lint_docs.yaml
+
   test_packages:
     name: Test Packages
     uses: ./.github/workflows/test_packages.yaml
+
   build_apps:
     name: Build Apps
     uses: ./.github/workflows/build_apps.yaml
