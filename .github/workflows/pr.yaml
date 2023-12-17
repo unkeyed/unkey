@@ -25,3 +25,7 @@ jobs:
   build_apps:
     name: Build Apps
     uses: ./.github/workflows/build_apps.yaml
+
+  test_api:
+    name: Test API
+    uses: ./.github/workflows/test_api.yaml
