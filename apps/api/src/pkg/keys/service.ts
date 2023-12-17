@@ -12,43 +12,43 @@ import { CacheNamespaces } from "../global";
 
 type VerifyKeyResult =
   | {
-      valid: false;
-      code: "NOT_FOUND";
-      key?: never;
-      api?: never;
-      ratelimit?: never;
-      remaining?: never;
-    }
+    valid: false;
+    code: "NOT_FOUND";
+    key?: never;
+    api?: never;
+    ratelimit?: never;
+    remaining?: never;
+  }
   | {
-      valid: false;
-      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
-      publicMessage?: string;
-      key: Key;
-      api: Api;
-      ratelimit?: {
-        remaining: number;
-        limit: number;
-        reset: number;
-      };
-      remaining?: number;
-    }
-  | {
-      code?: never;
-      valid: true;
-      key: Key;
-      api: Api;
-      ratelimit?: {
-        remaining: number;
-        limit: number;
-        reset: number;
-      };
-      remaining?: number;
-      isRootKey?: boolean;
-      /**
-       * the workspace of the user, even if this is a root key
-       */
-      authorizedWorkspaceId: string;
+    valid: false;
+    code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+    publicMessage?: string;
+    key: Key;
+    api: Api;
+    ratelimit?: {
+      remaining: number;
+      limit: number;
+      reset: number;
     };
+    remaining?: number;
+  }
+  | {
+    code?: never;
+    valid: true;
+    key: Key;
+    api: Api;
+    ratelimit?: {
+      remaining: number;
+      limit: number;
+      reset: number;
+    };
+    remaining?: number;
+    isRootKey?: boolean;
+    /**
+     * the workspace of the user, even if this is a root key
+     */
+    authorizedWorkspaceId: string;
+  };
 
 export class KeyService {
   private readonly cache: TieredCache<CacheNamespaces>;
@@ -83,10 +83,10 @@ export class KeyService {
     c: Context,
     req: { key: string; apiId?: string; roles?: { hasAll?: string[] } },
   ): Promise<Result<VerifyKeyResult>> {
-    const res = await this._verifyKey(c, req).catch((e) => {
+    const res = await this._verifyKey(c, req).catch(async (e) => {
       this.logger.error("Unhandled error while verifying key", {
         error: e,
-        key: req.key,
+        keyHash: await sha256(req.key),
         apiId: req.apiId,
       });
       throw e;

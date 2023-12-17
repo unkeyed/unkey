@@ -1,9 +1,8 @@
 name: Deploy
 
 on:
-  release:
-    types:
-      - published
+  push:
+    branches: [main]
 
 concurrency: "only one deploy at a time"
 
