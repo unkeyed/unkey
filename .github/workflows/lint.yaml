@@ -3,15 +3,22 @@ on:
   workflow_call:
 
 jobs:
-  lint:
+  lint_code:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
 
-
       - name: Install
         uses: ./.github/actions/install
 
-      - name: Format
-        run: pnpm biome ci .
+      - run: pnpm biome ci .
+
+  lint_docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: npx mintlify@latest broken-links
+        working-directory: apps/docs

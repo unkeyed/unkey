@@ -18,7 +18,7 @@ jobs:
     name: Lint
     uses: ./.github/workflows/lint.yaml
   lint_docs:
-    name: Lint DOcs
+    name: Lint Docs
     uses: ./.github/workflows/lint_docs.yaml
   test_packages:
     name: Test Packages
