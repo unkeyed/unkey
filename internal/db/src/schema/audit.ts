@@ -22,7 +22,7 @@ export const auditLogs = mysqlTable(
     /**
      * A machine readable description of what happened
      */
-    action: mysqlEnum("action", ["created", "updated", "deleted"]).notNull(),
+    action: mysqlEnum("action", ["create", "update", "delete"]).notNull(),
 
     /**
      * A human readable description of what happened.
@@ -31,7 +31,13 @@ export const auditLogs = mysqlTable(
     time: datetime("time", { fsp: 3 }).notNull(), // unix milli
     actorType: mysqlEnum("actor_type", ["user", "key"]).notNull(),
     actorId: varchar("actor_id", { length: 256 }).notNull(),
-    resourceType: mysqlEnum("resource_type", ["key", "api", "workspace"]).notNull(),
+    resourceType: mysqlEnum("resource_type", [
+      "key",
+      "api",
+      "workspace",
+      "vercelIntegration",
+      "keyAuth",
+    ]).notNull(),
     resourceId: varchar("resource_id", { length: 256 }).notNull(),
     /**
      * For any additional tags

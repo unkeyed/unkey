@@ -3,7 +3,7 @@ import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { KeyAuth, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 
 const route = createRoute({
@@ -69,9 +69,11 @@ export const registerLegacyApisCreateApi = (app: App) =>
 
     const { name } = c.req.valid("json");
 
-    const keyAuth = {
+    const keyAuth: KeyAuth = {
       id: newId("keyAuth"),
       workspaceId: rootKey.value.authorizedWorkspaceId,
+      createdAt: new Date(),
+      deletedAt: null,
     };
     await db.insert(schema.keyAuth).values(keyAuth);
 
@@ -85,6 +87,8 @@ export const registerLegacyApisCreateApi = (app: App) =>
       workspaceId: rootKey.value.authorizedWorkspaceId,
       authType: "key",
       keyAuthId: keyAuth.id,
+      createdAt: new Date(),
+      deletedAt: null,
     });
 
     return c.json({

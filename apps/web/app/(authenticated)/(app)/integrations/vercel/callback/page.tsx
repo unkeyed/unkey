@@ -52,6 +52,8 @@ export default async function Page(props: Props) {
       workspaceId: workspace.id,
       vercelTeamId: req.value.teamId,
       accessToken: req.value.accessToken,
+      createdAt: new Date(),
+      deletedAt: null,
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }

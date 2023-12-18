@@ -41,6 +41,8 @@ export const workspaceRouter = t.router({
         planLockedUntil: null,
         planChanged: null,
         subscriptions: defaultProSubscriptions(),
+        createdAt: new Date(),
+        deletedAt: null,
       };
       await db.insert(schema.workspaces).values(workspace);
 
