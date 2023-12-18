@@ -48,6 +48,7 @@ export const apiRouter = t.router({
       await db.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: workspace.id,
+        createdAt: new Date(),
       });
 
       const apiId = newId("api");
@@ -58,6 +59,7 @@ export const apiRouter = t.router({
         keyAuthId,
         authType: "key",
         ipWhitelist: null,
+        createdAt: new Date(),
       });
 
       return {

@@ -194,8 +194,8 @@ export const vercelRouter = t.router({
       } else {
         await db.insert(schema.vercelBindings).values({
           id: newId("vercelBinding"),
-          createdAt: new Date(Date.now()),
-          updatedAt: new Date(Date.now()),
+          createdAt: new Date(),
+          updatedAt: new Date(),
           resourceType: "apiId",
           resourceId: input.apiId,
           vercelEnvId: res.value.created.id,
@@ -298,8 +298,8 @@ export const vercelRouter = t.router({
       } else {
         await db.insert(schema.vercelBindings).values({
           id: newId("vercelBinding"),
-          createdAt: new Date(Date.now()),
-          updatedAt: new Date(Date.now()),
+          createdAt: new Date(),
+          updatedAt: new Date(),
           resourceType: "rootKey",
           resourceId: keyId,
           vercelEnvId: res.value.created.id,

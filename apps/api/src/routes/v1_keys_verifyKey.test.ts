@@ -153,6 +153,7 @@ describe("with ip whitelist", () => {
       await r.database.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: r.userWorkspace.id,
+        createdAt: new Date(),
       });
 
       const apiId = newId("api");
@@ -163,6 +164,7 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthId,
         ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        createdAt: new Date(),
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -205,6 +207,7 @@ describe("with ip whitelist", () => {
       await r.database.insert(schema.keyAuth).values({
         id: keyAuthid,
         workspaceId: r.userWorkspace.id,
+        createdAt: new Date(),
       });
 
       const apiId = newId("api");
@@ -215,6 +218,7 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthid,
         ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        createdAt: new Date(),
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
