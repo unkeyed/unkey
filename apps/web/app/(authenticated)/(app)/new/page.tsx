@@ -90,6 +90,7 @@ export default async function (props: Props) {
         features: {},
         betaFeatures: {},
         subscriptions: null,
+        createdAt: new Date(),
       });
       return redirect(`/new?workspaceId=${workspaceId}`);
     }

@@ -20,6 +20,10 @@ export const workspaces = mysqlTable(
     // This can be either a user_xxx or org_xxx id
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
+
+    createdAt: datetime("created_at", { fsp: 3 }),
+    deletedAt: datetime("deleted_at", { fsp: 3 }),
+
     slug: varchar("slug", { length: 256 }),
 
     // different plans, this should only be used for visualisations in the ui

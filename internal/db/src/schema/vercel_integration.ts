@@ -8,6 +8,8 @@ export const vercelIntegrations = mysqlTable("vercel_integrations", {
   workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   vercelTeamId: varchar("team_id", { length: 256 }),
   accessToken: varchar("access_token", { length: 256 }).notNull(),
+  createdAt: datetime("created_at", { fsp: 3 }),
+  deletedAt: datetime("deleted_at", { fsp: 3 }),
 });
 
 export const vercelBindings = mysqlTable(
@@ -23,6 +25,7 @@ export const vercelBindings = mysqlTable(
     vercelEnvId: varchar("vercel_env_id", { length: 256 }).notNull(),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(),
     updatedAt: datetime("updated_at", { fsp: 3 }).notNull(),
+    deletedAt: datetime("deleted_at", { fsp: 3 }),
     // userId
     lastEditedBy: varchar("last_edited_by", { length: 256 }).notNull(),
   },
