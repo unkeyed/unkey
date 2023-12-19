@@ -51,7 +51,7 @@ client.defineJob({
         name: "resources.keys.deleteKey",
         payload: {
           workspaceId,
-          apiid: api.id,
+          apiId: api.id,
           keyId: key.id,
           actor,
         },
