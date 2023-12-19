@@ -1,9 +1,9 @@
 ---
-title: "revoke_key"
-description: "revoke a key"
+title: "delete_key"
+description: "delete a key"
 ---
 
-> @spec revoke_key(binary) :: :ok
+> @spec delete_key(binary) :: :ok
 
 Delete an api key for your users
 
@@ -23,7 +23,7 @@ Returns an atom `:ok`
 
 ```elixir
    try do
-     :ok = UnkeyElixirSdk.revoke_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
+     :ok = UnkeyElixirSdk.delete_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
 
     catch
         err ->

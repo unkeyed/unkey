@@ -137,7 +137,10 @@
             },
             {
               "group": "APIs",
-              "pages": ["libraries/ts/sdk/apis/get", "libraries/ts/sdk/apis/list-keys"]
+              "pages": [
+                "libraries/ts/sdk/apis/get",
+                "libraries/ts/sdk/apis/list-keys"
+              ]
             }
           ]
         },
@@ -166,7 +169,8 @@
             "libraries/ex/functions/create_key",
             "libraries/ex/functions/verify_key",
             "libraries/ex/functions/revoke_key",
-            "libraries/ex/functions/update_key"
+            "libraries/ex/functions/update_key",
+            "libraries/ex/functions/update_remaining"
           ]
         }
       ]

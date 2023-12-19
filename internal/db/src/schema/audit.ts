@@ -8,7 +8,6 @@ import { workspaces } from "./workspaces";
 
 export const auditLogs = mysqlTable("audit_logs", {
   id: varchar("id", { length: 256 }).primaryKey(),
-  // under what workspace this happened
 
   /**
    * A machine readable description of what happened

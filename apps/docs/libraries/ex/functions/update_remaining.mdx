@@ -1,0 +1,56 @@
+---
+title: "update_remaining"
+description: "Updates the `remaining` value of a key"
+---
+
+> @spec update_remaining(map()) :: :ok
+
+Updates the `remaining` value for a specified key.
+
+## Request
+
+<ParamField path="keyId" type="string" required>
+  The ID of the key you want to revoke.
+</ParamField>
+
+<ParamField body="op" type="increment | decrement | set">
+ The operation you want to perform on the remaining count.
+
+Available options: "increment" | "decrement" | "set"
+
+</ParamField>
+
+<ParamField body="value" type="integer | nil">
+  The value you want to set, add or subtract the remaining count by
+</ParamField>
+
+## Response
+
+<ResponseField name="remaining" type="integer | nil" required>
+  The updated `remaining` value.
+</ResponseField>
+<RequestExample>
+
+```elixir
+   try do
+     opts = UnkeyElixirSdk.update_remaining(%{
+            "keyId": "key_123",
+            "op": "increment",
+            "value": 1
+            })
+
+    catch
+        err ->
+          Logger.error(err)
+      end
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```elixir
+%{"remaining"=> 100}
+```
+
+</ResponseExample>
