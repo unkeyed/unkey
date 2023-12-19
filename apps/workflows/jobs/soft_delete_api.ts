@@ -22,7 +22,6 @@ client.defineJob({
   }),
   run: async ({ workspaceId, apiId, actor }, io, _ctx) => {
     const db = connectDatabase();
-    io.logger.info(`deleting api ${apiId} for workspace ${workspaceId}`);
 
     const api = await io.runTask(`get api ${apiId}`, async () => {
       return db.query.apis.findFirst({
@@ -42,21 +41,36 @@ client.defineJob({
       return db.query.keys.findMany({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAt)),
+        columns: {
+          id: true,
+        },
       });
     });
 
-    await io.sendEvents(
-      "delegate key deletion",
-      keys.map((key) => ({
-        name: "resources.keys.deleteKey",
-        payload: {
+    for (const key of keys) {
+      await io.runTask(`soft delete key ${key.id}`, async () => {
+        await db
+          .update(schema.keys)
+          .set({ deletedAt: new Date() })
+          .where(eq(schema.keys.id, key.id));
+      });
+
+      await io.runTask(`create audit log for ${key.id}`, async () => {
+        const auditLogId = newId("auditLog");
+        await db.insert(schema.auditLogs).values({
+          id: auditLogId,
           workspaceId,
-          apiId: api.id,
+          apiId,
           keyId: key.id,
-          actor,
-        },
-      })),
-    );
+          event: "key.delete",
+          description: `Key ${key.id} deleted`,
+          time: new Date(),
+          actorType: actor.type,
+          actorId: actor.id,
+        });
+        return { auditLogId };
+      });
+    }
 
     await io.runTask(`soft delete api ${apiId}`, async () => {
       await db
@@ -64,7 +78,7 @@ client.defineJob({
         .set({ deletedAt: new Date(), state: null })
         .where(eq(schema.apis.id, api.id));
     });
-    await io.runTask("create audit log", async () => {
+    await io.runTask("create audit log for api", async () => {
       const auditLogId = newId("auditLog");
       await db.insert(schema.auditLogs).values({
         id: auditLogId,
