@@ -57,6 +57,11 @@ export const workspaces = mysqlTable(
          * undefined, 0 or negative means it's disabled
          */
         auditLogRetentionDays?: number;
+
+        /**
+         * Can access /app/success
+         */
+        successPage?: boolean;
       }>()
       .notNull(),
     // prevent plan changes for a certain time, should be 1 day
