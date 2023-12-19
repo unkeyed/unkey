@@ -21,7 +21,8 @@ export default async function StripeSuccess(props: Props) {
   const _user = await currentUser();
 
   const ws = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
   if (!ws) {
     return redirect("/new");

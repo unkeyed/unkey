@@ -39,7 +39,8 @@ client.defineJob({
 
     const workspace = await io.runTask(`get workspace ${workspaceId}`, async () =>
       db.query.workspaces.findFirst({
-        where: (table, { eq }) => eq(table.id, workspaceId),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, workspaceId), isNull(table.deletedAt)),
       }),
     );
 

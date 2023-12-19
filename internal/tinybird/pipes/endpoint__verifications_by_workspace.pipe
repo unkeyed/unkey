@@ -15,5 +15,3 @@ SQL >
         workspaceId = {{ String(workspaceId, required=True) }}
         and time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
     group by time
-
-

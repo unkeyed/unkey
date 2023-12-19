@@ -2,7 +2,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { UpdateWorkspaceImage } from "./update-workspace-image";
 import { UpdateWorkspaceName } from "./update-workspace-name";
@@ -12,7 +12,8 @@ export default async function SettingsPage() {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
   if (!workspace) {
     return redirect("/new");

@@ -26,6 +26,8 @@ export const env = () =>
 
       HEARTBEAT_UPDATE_USAGE_URL: z.string().optional(),
       PLAIN_API_KEY: z.string().optional(),
+
+      TRIGGER_API_KEY: z.string().optional(),
     })
     .parse(process.env);
 

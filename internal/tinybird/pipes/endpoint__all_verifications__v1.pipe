@@ -4,5 +4,3 @@ DESCRIPTION >
 
 SQL >
     SELECT countMerge(verifications) as verifications FROM mv__monthly_stats__v1
-
-

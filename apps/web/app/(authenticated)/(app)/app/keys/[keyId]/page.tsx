@@ -39,7 +39,8 @@ export default async function KeyPage(props: {
     return notFound();
   }
   const api = await db.query.apis.findFirst({
-    where: eq(schema.apis.keyAuthId, key.keyAuthId),
+    where: (table, { eq, and, isNull }) =>
+      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAt)),
   });
   if (!api) {
     return notFound();

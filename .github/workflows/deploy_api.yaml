@@ -104,9 +104,6 @@ jobs:
       - name: Install
         uses: ./.github/actions/install
 
-      - name: Install bun
-        run: npm i -g bun
-
       - name: Test
         run: bun test src/integration --timeout 10000 --rerun-each 10
         working-directory: apps/api
@@ -149,10 +146,6 @@ jobs:
       - name: Install
         uses: ./.github/actions/install
 
-      - name: Install bun
-        run: npm i -g bun
-
-
       - name: Test
         run: bun test src/integration --timeout 10000 --rerun-each 10
         working-directory: apps/api
@@ -172,7 +165,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install
         uses: ./.github/actions/install
-
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'

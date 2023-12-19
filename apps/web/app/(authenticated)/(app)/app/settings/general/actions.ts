@@ -12,7 +12,8 @@ export const updateWorkspaceName = serverAction({
   }),
   handler: async ({ input, ctx }) => {
     const ws = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.id, input.workspaceId),
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
     });
     if (!ws || ws.tenantId !== ctx.tenantId) {
       throw new Error("workspace not found");

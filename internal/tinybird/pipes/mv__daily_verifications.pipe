@@ -3,5 +3,3 @@ NODE mv__daily_verifications_pipe_5598_0
 SQL >
 
     SELECT apiId,countMerge(success), countMerge(rateLimited), countMerge(usageExceeded) FROM mv__daily_verifications where apiId='api_XsjtsbGw8fG6XyRrX8SnQ2' group by apiId
-
-

@@ -16,5 +16,3 @@ SQL >
                 {%end if %}
             and time >= toStartOfDay(fromUnixTimestamp64Milli({{ Int64(start, required=True) }}))
             and time <= toStartOfDay(fromUnixTimestamp64Milli({{ Int64(end, required=True) }}))+INTERVAL 1 DAY
-
-

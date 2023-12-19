@@ -10,6 +10,7 @@ const prefixes = {
   keyAuth: "key_auth",
   vercelBinding: "vb",
   test: "test", // for tests only
+  auditLog: "log",
 } as const;
 
 export function newId(prefix: keyof typeof prefixes): string {

@@ -44,7 +44,18 @@ export const workspaceRouter = t.router({
         createdAt: new Date(),
         deletedAt: null,
       };
-      await db.insert(schema.workspaces).values(workspace);
+      await db.transaction(async (tx) => {
+        await db.insert(schema.workspaces).values(workspace);
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: workspace.id,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "workspace.create",
+          description: `Workspace ${input.name} created`,
+        });
+      });
 
       return {
         workspace,
@@ -70,7 +81,8 @@ export const workspaceRouter = t.router({
         typescript: true,
       });
       const workspace = await db.query.workspaces.findFirst({
-        where: (table, { eq }) => eq(table.id, input.workspaceId),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
       });
 
       if (!workspace) {
@@ -101,14 +113,25 @@ export const workspaceRouter = t.router({
       switch (input.plan) {
         case "free": {
           // TODO: create invoice
-          await db
-            .update(schema.workspaces)
-            .set({
-              plan: "free",
-              planChanged: new Date(),
-              subscriptions: null,
-            })
-            .where(eq(schema.workspaces.id, input.workspaceId));
+          await db.transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                plan: "free",
+                planChanged: new Date(),
+                subscriptions: null,
+              })
+              .where(eq(schema.workspaces.id, input.workspaceId));
+            await tx.insert(schema.auditLogs).values({
+              id: newId("auditLog"),
+              time: new Date(),
+              workspaceId: workspace.id,
+              actorType: "user",
+              actorId: ctx.user.id,
+              event: "workspace.update",
+              description: `Workspace ${workspace.name} changed plan to free`,
+            });
+          });
           break;
         }
         case "pro": {
@@ -127,14 +150,25 @@ export const workspaceRouter = t.router({
               message: "Please add a payment method first",
             });
           }
-          await db
-            .update(schema.workspaces)
-            .set({
-              plan: "pro",
-              planChanged: new Date(),
-              subscriptions: defaultProSubscriptions(),
-            })
-            .where(eq(schema.workspaces.id, input.workspaceId));
+          await db.transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                plan: "pro",
+                planChanged: new Date(),
+                subscriptions: defaultProSubscriptions(),
+              })
+              .where(eq(schema.workspaces.id, input.workspaceId));
+            await tx.insert(schema.auditLogs).values({
+              id: newId("auditLog"),
+              time: new Date(),
+              workspaceId: workspace.id,
+              actorType: "user",
+              actorId: ctx.user.id,
+              event: "workspace.update",
+              description: `Workspace ${workspace.name} changed plan to pro`,
+            });
+          });
           break;
         }
       }
