@@ -1,0 +1,32 @@
+name: Test Packages
+on:
+  workflow_call:
+
+jobs:
+  test:
+    strategy:
+     fail-fast: false
+     matrix:
+        package:
+          - "@unkey/billing"
+          - "@unkey/hash"
+          - "@unkey/keys"
+          - "@unkey/api"
+          - "@unkey/nextjs"
+          - "@unkey/hono"
+          - "@unkey/nuxt"
+
+    name: Test ${{matrix.package}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter=${{matrix.package}}
+
+      - name: Test
+        run: pnpm turbo run test --filter=${{matrix.package}}

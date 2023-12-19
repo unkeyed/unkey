@@ -5,13 +5,13 @@ NODE endpoint
 SQL >
 
     %
-        SELECT time, 
-        countIfMerge(success) as success, 
-        countIfMerge(rateLimited) as rateLimited, 
+        SELECT time,
+        countIfMerge(success) as success,
+        countIfMerge(rateLimited) as rateLimited,
         countIfMerge(usageExceeded) as usageExceeded
         FROM mv__daily_verifications
- 
-    
+
+
         where
             workspaceId = {{ String(workspaceId, required=True )}}
             {% if defined(apiId) %}
@@ -22,5 +22,3 @@ SQL >
             {%end if %}
             and time > now() - INTERVAL 30 day
         GROUP BY time
-
-

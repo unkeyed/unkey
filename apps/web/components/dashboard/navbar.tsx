@@ -17,14 +17,14 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, c
 
   return (
     <nav className={cn("sticky top-0 bg-background z-20", className)}>
-      <div className="flex overflow-x-auto items-center w-full">
+      <div className="flex overflow-x-auto items-center w-full pl-1">
         <ul className="flex flex-row gap-4">
           {navigation.map(({ label, href, segment }) => {
             const active = segment === selectedSegment;
             return (
               <li
                 key={label}
-                className={cn("flex shrink-0 list-none border-b-2 border-transparent p-2 ", {
+                className={cn("flex shrink-0 list-none border-b-2 border-transparent p-2", {
                   "border-primary ": active,
                 })}
               >
@@ -44,7 +44,7 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, c
           })}
         </ul>
       </div>
-      <Separator />
+      <Separator className="ml-1" />
     </nav>
   );
 };

@@ -10,8 +10,6 @@ SQL >
             {% if defined(apiId) %}
             and apiId ={{ String(apiId) }}
             {%end if %}
-           
+
             and time > now() - INTERVAL 30 day
         GROUP BY  time,keyId
-
-

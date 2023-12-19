@@ -20,7 +20,8 @@ export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       apis: {
         where: eq(schema.apis.id, props.params.apiId),

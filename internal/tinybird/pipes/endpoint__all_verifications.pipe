@@ -29,5 +29,3 @@ NODE endpoint
 SQL >
 
     (SELECT * FROM all_verifications_in_v1 ) UNION DISTINCT ( SELECT * FROM all_verifications_in_v2 )
-
-

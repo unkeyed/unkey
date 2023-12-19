@@ -204,7 +204,8 @@ export const registerV1KeysCreateKey = (app: App) =>
     const api = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, req.apiId),
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });

@@ -136,7 +136,7 @@ describe("with temporary key", () => {
         apiId: r.userApi.id,
       },
     });
-    expect(secondResponse.status).toEqual(200);
+    expect(secondResponse.status).toEqual(404);
     expect(secondResponse.body.valid).toBeFalse();
   });
 });
@@ -156,6 +156,8 @@ describe("with ip whitelist", () => {
       await r.database.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: r.userWorkspace.id,
+        createdAt: new Date(),
+        deletedAt: null,
       });
 
       const apiId = newId("api");
@@ -166,6 +168,8 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthId,
         ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        createdAt: new Date(),
+        deletedAt: null,
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -208,6 +212,8 @@ describe("with ip whitelist", () => {
       await r.database.insert(schema.keyAuth).values({
         id: keyAuthid,
         workspaceId: r.userWorkspace.id,
+        createdAt: new Date(),
+        deletedAt: null,
       });
 
       const apiId = newId("api");
@@ -218,6 +224,8 @@ describe("with ip whitelist", () => {
         authType: "key",
         keyAuthId: keyAuthid,
         ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        createdAt: new Date(),
+        deletedAt: null,
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

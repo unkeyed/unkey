@@ -1,5 +1,5 @@
 import { Readable } from "node:stream";
-import { db, eq, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
 import { Resend } from "@unkey/resend";
@@ -61,7 +61,8 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
           break;
         }
         const ws = await db.query.workspaces.findFirst({
-          where: eq(schema.workspaces.stripeCustomerId, invoice.customer!.toString()),
+          where: (table, { and, eq, isNull }) =>
+            and(eq(table.stripeCustomerId, invoice.customer!.toString()), isNull(table.deletedAt)),
         });
         if (!ws) {
           throw new Error("workspace does not exist");

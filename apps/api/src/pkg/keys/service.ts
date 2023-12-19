@@ -82,7 +82,14 @@ export class KeyService {
     c: Context,
     req: { key: string; apiId?: string },
   ): Promise<Result<VerifyKeyResult>> {
-    const res = await this._verifyKey(c, req);
+    const res = await this._verifyKey(c, req).catch(async (e) => {
+      this.logger.error("Unhandled error while verifying key", {
+        error: (e as Error).message,
+        keyHash: await sha256(req.key),
+        apiId: req.apiId,
+      });
+      throw e;
+    });
     if (res.error) {
       this.metrics.emit("metric.key.verification", {
         valid: false,
@@ -146,6 +153,9 @@ export class KeyService {
         query: "getKeyAndApiByHash",
         latency: performance.now() - dbStart,
       });
+      if (!dbRes?.keyAuth.api) {
+        this.logger.error("database did not return api for key", dbRes);
+      }
       return dbRes ? { key: dbRes, api: dbRes.keyAuth.api } : null;
     });
 
@@ -159,10 +169,11 @@ export class KeyService {
 
     /**
      * Expiration
+     *
+     * There is an issue with our zone cache, that returns dates as strings, so we need to handle that
      */
-    if (data.key.expires) {
-      // The zone cache can not deserialize dates and returns them as string, so we need to do it manually
-      const expires = new Date(data.key.expires).getTime();
+    const expires = data.key.expires ? new Date(data.key.expires).getTime() : undefined;
+    if (expires) {
       if (expires < Date.now()) {
         return result.success({ valid: false, code: "NOT_FOUND" });
       }
@@ -206,7 +217,7 @@ export class KeyService {
           keyId: data.key.id,
           apiId: data.api.id,
           ownerId: data.key.ownerId ?? undefined,
-          expires: data.key.expires?.getTime() ?? undefined,
+          expires,
           remaining,
           ratelimit,
           isRootKey: !!data.key.forWorkspaceId,
@@ -221,7 +232,7 @@ export class KeyService {
       api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,
-      expires: data.key.expires?.getTime() ?? undefined,
+      expires,
       ratelimit,
       remaining,
       isRootKey: !!data.key.forWorkspaceId,
