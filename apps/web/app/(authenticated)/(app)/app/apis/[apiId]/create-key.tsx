@@ -455,12 +455,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       className="w-full"
                                       type="number"
                                       {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
                                     />
                                   </FormControl>
                                   <FormDescription>
-                                    Enter the amount of uses added per replenish interval.
+                                    Enter the number of uses to replenish per interval.
                                   </FormDescription>
-                                  <FormMessage />
+                                  <FormMessage defaultValue="Please enter a value if interval is selected" />
                                 </FormItem>
                               )}
                             />

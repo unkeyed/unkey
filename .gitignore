@@ -18,4 +18,4 @@ dist
 .vscode
 .dev.vars
 .wrangler
-
+.infisical.json
