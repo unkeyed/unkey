@@ -11,5 +11,3 @@ SQL >
         workspaceId = {{ String(workspaceId, required=True) }}
         and time >= toStartOfHour(fromUnixTimestamp64Milli({{ Int64(start, required=True) }}))
         and time < toStartOfHour(fromUnixTimestamp64Milli({{ Int64(end, required=True) }}))
-
-

@@ -20,5 +20,3 @@ SQL >
               and time <= fromUnixTimestamp64Milli({{ Int64(end)}})
             {%end if %}
     group by time
-
-

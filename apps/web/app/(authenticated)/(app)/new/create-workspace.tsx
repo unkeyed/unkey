@@ -46,10 +46,10 @@ export const CreateWorkspace: React.FC = () => {
       }
       router.push(`/new?workspaceId=${workspace.id}`);
     },
-    onError(_err) {
+    onError(err) {
       toast({
         title: "Error",
-        description: "An error occured while creating your workspace, please contact support.",
+        description: `An error occured while creating your workspace, please contact support: ${err.message}`,
         variant: "alert",
       });
     },

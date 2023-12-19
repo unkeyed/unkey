@@ -14,11 +14,12 @@ client.defineJob({
 
     let workspaces = await io.runTask("list workspaces", async () =>
       db.query.workspaces.findMany({
-        where: (table, { isNotNull, not, eq, and }) =>
+        where: (table, { isNotNull, isNull, not, eq, and }) =>
           and(
             isNotNull(table.stripeCustomerId),
             isNotNull(table.subscriptions),
             not(eq(table.plan, "free")),
+            isNull(table.deletedAt),
           ),
       }),
     );

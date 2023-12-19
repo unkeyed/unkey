@@ -10,4 +10,3 @@ TYPE materialized
 DATASOURCE mv__total_verifications
 ENGINE "MergeTree"
 ENGINE_SORTING_KEY "count"
-

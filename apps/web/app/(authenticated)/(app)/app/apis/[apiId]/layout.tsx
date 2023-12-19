@@ -1,11 +1,15 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { CircleDashed } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PropsWithChildren } from "react";
 
 type Props = PropsWithChildren<{
@@ -21,13 +25,14 @@ export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
-    where: eq(schema.apis.id, props.params.apiId),
+    where: (table, { eq, and, isNull }) =>
+      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
     with: {
       workspace: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/new");
+    return notFound();
   }
   const navigation = [
     {
@@ -46,6 +51,29 @@ export default async function ApiPageLayout(props: Props) {
       segment: "settings",
     },
   ];
+
+  if (api.state === "DELETION_IN_PROGRESS") {
+    return (
+      <div>
+        <PageHeader title={api.name} />
+        <EmptyPlaceholder>
+          <EmptyPlaceholder.Icon>
+            <CircleDashed className="h-8 w-8 animate-spin" />
+          </EmptyPlaceholder.Icon>
+          <EmptyPlaceholder.Title>Deletion in progress</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Description>
+            This API is currently being deleted. It will be removed from the system shortly.
+          </EmptyPlaceholder.Description>
+
+          <div className="mt-8 flex justify-center">
+            <Link href="/app/apis">
+              <Button>Back to APIs</Button>
+            </Link>
+          </div>
+        </EmptyPlaceholder>
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -28,7 +28,8 @@ export default async function ApiPage(props: {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
-    where: eq(schema.apis.id, props.params.apiId),
+    where: (table, { eq, and, isNull }) =>
+      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
     with: {
       workspace: true,
     },

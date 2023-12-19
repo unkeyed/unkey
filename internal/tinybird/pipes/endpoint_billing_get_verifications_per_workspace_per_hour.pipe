@@ -9,5 +9,3 @@ SQL >
     FROM mv_billing_hourly_verifications
     where time > now() - INTERVAL 32 DAY and time <= now()
     group by workspaceId, time
-
-
