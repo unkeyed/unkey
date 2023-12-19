@@ -137,10 +137,7 @@
             },
             {
               "group": "APIs",
-              "pages": [
-                "libraries/ts/sdk/apis/get",
-                "libraries/ts/sdk/apis/list-keys"
-              ]
+              "pages": ["libraries/ts/sdk/apis/get", "libraries/ts/sdk/apis/list-keys"]
             }
           ]
         },
