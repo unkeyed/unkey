@@ -59,9 +59,9 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
     onSuccess() {
       toast({
         title: "API Deleted",
-        description: "Your API and all its keys have been deleted",
+        description: "Your API and all its keys are being deleted now.",
       });
-      router.push("/app/apis");
+
       router.refresh();
     },
     onError(err) {

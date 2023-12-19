@@ -43,12 +43,20 @@ export const workspaces = mysqlTable(
      */
     betaFeatures: json("beta_features")
       .$type<{
-        auditLog?: boolean;
+        /**
+         * enable audit log retention by specifiying the number of days
+         * undefined, 0 or negative means it's disabled
+         */
+        auditLogRetentionDays?: number;
       }>()
       .notNull(),
     features: json("features")
       .$type<{
-        auditLog?: boolean;
+        /**
+         * enable audit log retention by specifiying the number of days
+         * undefined, 0 or negative means it's disabled
+         */
+        auditLogRetentionDays?: number;
       }>()
       .notNull(),
     // prevent plan changes for a certain time, should be 1 day

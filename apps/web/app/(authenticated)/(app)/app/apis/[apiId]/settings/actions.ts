@@ -2,6 +2,7 @@
 
 import { serverAction } from "@/lib/actions";
 import { db, eq, schema } from "@/lib/db";
+import { newId } from "@unkey/id";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -13,7 +14,8 @@ export const updateApiName = serverAction({
   }),
   handler: async ({ input, ctx }) => {
     const ws = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.id, input.workspaceId),
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
       with: {
         apis: {
           where: eq(schema.apis.id, input.apiId),
@@ -55,7 +57,8 @@ export const updateIpWhitelist = serverAction({
   }),
   handler: async ({ input, ctx }) => {
     const ws = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.id, input.workspaceId),
+      where: (table, { eq, and, isNull }) =>
+        and(eq(schema.workspaces.id, input.workspaceId), isNull(table.deletedAt)),
       with: {
         apis: {
           where: eq(schema.apis.id, input.apiId),
@@ -70,12 +73,24 @@ export const updateIpWhitelist = serverAction({
       throw new Error("api not found");
     }
 
-    await db
-      .update(schema.apis)
-      .set({
-        ipWhitelist: input.ips.join(","),
-      })
-      .where(eq(schema.apis.id, input.apiId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.apis)
+        .set({
+          ipWhitelist: input.ips.join(","),
+        })
+        .where(eq(schema.apis.id, input.apiId));
+      await db.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        workspaceId: ws.id,
+        apiId: api.id,
+        event: "api.update",
+        description: "IP whitelist updated",
+        time: new Date(),
+        actorType: "user",
+        actorId: ctx.userId,
+      });
+    });
 
     revalidatePath(`/apps/api/${input.apiId}`);
   },

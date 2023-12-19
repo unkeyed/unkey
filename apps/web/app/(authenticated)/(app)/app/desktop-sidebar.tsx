@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { BookOpen, Code, LucideIcon, Settings } from "lucide-react";
+import { Activity, BookOpen, Code, LucideIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import React from "react";
@@ -20,11 +20,14 @@ type Props = {
 };
 
 type NavItem = {
+  disabled?: boolean;
+  tooltip?: string;
   icon: LucideIcon;
   href: string;
   external?: boolean;
   label: string;
   active?: boolean;
+  tag?: React.ReactNode;
 };
 
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
@@ -47,6 +50,20 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "https://unkey.dev/docs",
       external: true,
       label: "Docs",
+    },
+    {
+      icon: Activity,
+      href: "/app/audit",
+      label: "Audit Log",
+      active: segments.at(0) === "audit",
+      disabled: !workspace.betaFeatures.auditLogRetentionDays,
+      tooltip:
+        "Audit logs are in private beta, please contact support@unkey.dev if you want early access.",
+      tag: (
+        <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5 font-mono">
+          beta
+        </div>
+      ),
     },
   ];
 
@@ -97,21 +114,37 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 };
 
 const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
-  return (
+  const link = (
     <Link
       href={item.href}
       target={item.external ? "_blank" : undefined}
       className={cn(
-        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800",
+        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 justify-between",
         {
           "bg-gray-200 dark:bg-gray-800": item.active,
+          "text-content-subtle pointer-events-none": item.disabled,
         },
       )}
     >
-      <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
-        <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
-      </span>
-      <p className="whitespace-nowrap truncate">{item.label}</p>
+      <div className="group flex gap-x-2">
+        <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
+          <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+        </span>
+        <p className="whitespace-nowrap truncate">{item.label}</p>
+      </div>
+      {item.tag}
     </Link>
   );
+
+  if (item.tooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger className="w-full">
+          {link}
+          <TooltipContent>{item.tooltip}</TooltipContent>
+        </TooltipTrigger>
+      </Tooltip>
+    );
+  }
+  return link;
 };

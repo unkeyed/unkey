@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
-import { db, eq, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { ArrowRight } from "lucide-react";
@@ -45,7 +45,8 @@ export default async function (props: Props) {
   }
   if (props.searchParams.workspaceId) {
     const workspace = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.id, props.searchParams.workspaceId),
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
     });
     if (!workspace) {
       return redirect("/new");
@@ -73,7 +74,8 @@ export default async function (props: Props) {
 
   if (userId) {
     const personalWorkspace = await db.query.workspaces.findFirst({
-      where: eq(schema.workspaces.tenantId, userId),
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.tenantId, userId), isNull(table.deletedAt)),
     });
 
     // if no personal workspace exists, we create one

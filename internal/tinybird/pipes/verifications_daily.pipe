@@ -23,4 +23,3 @@ ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(time)"
 ENGINE_SORTING_KEY "workspaceId, apiId, time, keyId"
 ENGINE_TTL "time + toIntervalDay(90)"
-

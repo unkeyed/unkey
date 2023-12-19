@@ -1,87 +1,75 @@
 import { relations } from "drizzle-orm";
-import {
-  datetime,
-  index,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  primaryKey,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { datetime, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
+import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 import { workspaces } from "./workspaces";
 
-export const auditLogs = mysqlTable(
-  "audit_logs",
-  {
-    id: varchar("id", { length: 256 }).primaryKey(),
-    // under what workspace this happened
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+export const auditLogs = mysqlTable("audit_logs", {
+  id: varchar("id", { length: 256 }).primaryKey(),
+  // under what workspace this happened
 
-    /**
-     * A machine readable description of what happened
-     */
-    action: mysqlEnum("action", ["create", "update", "delete"]).notNull(),
+  /**
+   * A machine readable description of what happened
+   */
+  event: mysqlEnum("event", [
+    "workspace.create",
+    "workspace.update",
+    "workspace.delete",
+    "api.create",
+    "api.update",
+    "api.delete",
+    "key.create",
+    "key.update",
+    "key.delete",
+    "vercelIntegration.create",
+    "vercelIntegration.update",
+    "vercelIntegration.delete",
+    "vercelBinding.create",
+    "vercelBinding.update",
+    "vercelBinding.delete",
+  ]).notNull(),
 
-    /**
-     * A human readable description of what happened.
-     */
-    description: varchar("description", { length: 512 }).notNull(),
-    time: datetime("time", { fsp: 3 }).notNull(), // unix milli
-    actorType: mysqlEnum("actor_type", ["user", "key"]).notNull(),
-    actorId: varchar("actor_id", { length: 256 }).notNull(),
-    resourceType: mysqlEnum("resource_type", [
-      "key",
-      "api",
-      "workspace",
-      "vercelIntegration",
-      "keyAuth",
-    ]).notNull(),
-    resourceId: varchar("resource_id", { length: 256 }).notNull(),
-    /**
-     * For any additional tags
-     */
-    tags: json("tags").$type<unknown>(),
-  },
-  (table) => ({
-    resourceIdIdx: index("resource_id_idx").on(table.resourceId),
-    actorIdIdx: index("actor_id_idx").on(table.actorId),
-  }),
-);
+  /**
+   * A human readable description of what happened.
+   */
+  description: varchar("description", { length: 512 }).notNull(),
+  time: datetime("time", { fsp: 3 }).notNull(), // unix milli
 
-export const auditLogsRelations = relations(auditLogs, ({ one, many }) => ({
+  actorType: mysqlEnum("actor_type", ["user", "key"]).notNull(),
+  actorId: varchar("actor_id", { length: 256 }).notNull(),
+
+  workspaceId: varchar("workspace_id", { length: 256 })
+    .references(() => workspaces.id)
+    .notNull(),
+  apiId: varchar("api_id", { length: 256 }).references(() => apis.id),
+  keyId: varchar("key_id", { length: 256 }).references(() => keys.id),
+  keyAuthId: varchar("key_auth_id", { length: 256 }).references(() => keyAuth.id),
+  vercelIntegrationId: varchar("vercel_integration_id", { length: 256 }).references(
+    () => vercelIntegrations.id,
+  ),
+  vercelBindingId: varchar("vercel_binding_id", { length: 256 }).references(
+    () => vercelBindings.id,
+  ),
+
+  /**
+   * For any additional tags
+   */
+  tags: json("tags").$type<unknown>(),
+});
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   key: one(keys, {
-    fields: [auditLogs.resourceId],
+    fields: [auditLogs.keyId],
     references: [keys.id],
   }),
   api: one(apis, {
-    fields: [auditLogs.resourceId],
+    fields: [auditLogs.apiId],
     references: [apis.id],
   }),
   workspace: one(workspaces, {
-    fields: [auditLogs.resourceId],
+    fields: [auditLogs.workspaceId],
     references: [workspaces.id],
-  }),
-  changes: many(auditLogChanges),
-}));
-
-export const auditLogChanges = mysqlTable(
-  "audit_log_changes",
-  {
-    auditLogId: varchar("audit_log_id", { length: 256 }),
-    field: varchar("field", { length: 256 }),
-    old: varchar("old", { length: 1024 }),
-    new: varchar("new", { length: 1024 }),
-  },
-  (table) => ({
-    primary: primaryKey(table.auditLogId, table.field),
-  }),
-);
-
-export const auditLogChangesRelations = relations(auditLogChanges, ({ one }) => ({
-  auditLog: one(auditLogs, {
-    fields: [auditLogChanges.auditLogId],
-    references: [auditLogs.id],
   }),
 }));

@@ -79,7 +79,7 @@ export const registerV1ApisListKeys = (app: App) =>
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, apiId),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });
