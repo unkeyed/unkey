@@ -150,6 +150,10 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     }
 
     if (!value.valid) {
+      if (value.code === "NOT_FOUND") {
+        c.status(404);
+      }
+
       return c.json({
         valid: false,
         code: value.code,

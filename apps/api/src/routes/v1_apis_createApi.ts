@@ -72,6 +72,8 @@ export const registerV1ApisCreateApi = (app: App) =>
     const keyAuth = {
       id: newId("keyAuth"),
       workspaceId: rootKey.value.authorizedWorkspaceId,
+      createdAt: new Date(),
+      deletedAt: null,
     };
     await db.insert(schema.keyAuth).values(keyAuth);
 
@@ -85,6 +87,8 @@ export const registerV1ApisCreateApi = (app: App) =>
       workspaceId: rootKey.value.authorizedWorkspaceId,
       authType: "key",
       keyAuthId: keyAuth.id,
+      createdAt: new Date(),
+      deletedAt: null,
     });
 
     return c.json({

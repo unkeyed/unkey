@@ -38,7 +38,10 @@ async function main() {
     console.log(++i, "/", keys.length);
     console.table(key);
 
-    const api = await db.query.apis.findFirst({ where: eq(schema.apis.id, key.apiId) });
+    const api = await db.query.apis.findFirst({
+      where: (_table, { eq, and, isNull }) =>
+        and(eq(schema.apis.keyAuthId, key.keyAuthId), isNull(schema.apis.deletedAt)),
+    });
     if (!api) {
       console.error("api doesn't exist", key);
       continue;

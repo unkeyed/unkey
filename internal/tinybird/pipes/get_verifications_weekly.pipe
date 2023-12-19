@@ -5,10 +5,10 @@ NODE endpoint
 SQL >
 
     %
-        SELECT 
-        time, 
-        countIfMerge(success) as success, 
-        countIfMerge(rateLimited) as rateLimited, 
+        SELECT
+        time,
+        countIfMerge(success) as success,
+        countIfMerge(rateLimited) as rateLimited,
         countIfMerge(usageExceeded) as usageExceeded
         FROM verifications_weekly_mv
         WHERE
@@ -24,5 +24,3 @@ SQL >
               and time <= fromUnixTimestamp64Milli({{ Int64(end)}})
             {%end if %}
         GROUP BY time
-
-

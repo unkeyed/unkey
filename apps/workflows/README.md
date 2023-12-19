@@ -21,6 +21,10 @@ cp .env.example .env
 ```bash
 pnpm run dev
 ```
+Or if you have infisical access:
+```bash
+infisical run --env=dev -- pnpm dev
+```
 
 4. In a different terminal, run the trigger tunnel
 

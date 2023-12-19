@@ -21,4 +21,3 @@ DATASOURCE mv__daily_usage
 ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(time)"
 ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"
-

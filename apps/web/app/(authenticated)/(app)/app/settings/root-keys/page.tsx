@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { getTenantId } from "@/lib/auth";
-import { Key, db, eq, schema } from "@/lib/db";
+import { type Key, db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
@@ -13,7 +13,8 @@ export default async function SettingsKeysPage(props: {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       apis: {
         limit: 1,
@@ -24,26 +25,13 @@ export default async function SettingsKeysPage(props: {
     return redirect("/new");
   }
 
-  const allKeys = await db.query.keys.findMany({
-    where: eq(schema.keys.forWorkspaceId, workspace.id),
+  const _allKeys = await db.query.keys.findMany({
+    where: (table, { eq, and, isNull }) =>
+      and(eq(table.forWorkspaceId, workspace.id), isNull(table.deletedAt)),
     limit: 100,
   });
 
   const keys: Key[] = [];
-  const expired: Key[] = [];
-
-  for (const k of allKeys) {
-    if (k.expires && k.expires.getTime() < Date.now()) {
-      expired.push(k);
-    }
-    // remove temp keys from the list of keys.
-    if (!k.expires) {
-      keys.push(k);
-    }
-  }
-  if (expired.length > 0) {
-    await Promise.all(expired.map((k) => db.delete(schema.keys).where(eq(schema.keys.id, k.id))));
-  }
 
   return (
     <div className="min-h-screen ">

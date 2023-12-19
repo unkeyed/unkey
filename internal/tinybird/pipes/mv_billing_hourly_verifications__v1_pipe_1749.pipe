@@ -2,5 +2,3 @@ NODE mv_billing_hourly_verifications_pipe_1749_0
 SQL >
 
     SELECT time, countMerge(count)  FROM mv_billing_hourly_verifications where workspaceId ='ws_G4Y7yBVpEiFVq9tDVjsuSN' group by time
-
-

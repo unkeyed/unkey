@@ -40,7 +40,7 @@ async def main() -> None:
     client = unkey.Client(api_key=os.environ["API_KEY"])
     await client.start()
 
-    result = await client.keys.verify_key("prefix_123ABC")
+    result = await client.keys.verify_key("prefix_123ABC", "api_345")
 
     if result.is_ok:
         data = result.unwrap()
@@ -58,6 +58,8 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 ```
+
+Other examples may omit the async main function, setup, and imports for brevity.
 
 ## Guides
 

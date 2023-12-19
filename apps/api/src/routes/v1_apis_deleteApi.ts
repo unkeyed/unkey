@@ -68,7 +68,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, apiId),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });
@@ -76,7 +76,8 @@ export const registerV1ApisDeleteApi = (app: App) =>
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
-    await db.delete(schema.apis).where(eq(schema.apis.id, apiId));
+    await db.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
+    // TODO: Delete all keys for this api
     await cache.remove(c, "apiById", apiId);
 
     return c.json({});

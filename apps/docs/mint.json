@@ -109,6 +109,7 @@
             "api-reference/keys/verify",
             "api-reference/keys/get",
             "api-reference/keys/update",
+            "api-reference/keys/update-remaining",
             "api-reference/keys/delete"
           ]
         },
@@ -166,7 +167,8 @@
             "libraries/ex/functions/create_key",
             "libraries/ex/functions/verify_key",
             "libraries/ex/functions/revoke_key",
-            "libraries/ex/functions/update_key"
+            "libraries/ex/functions/update_key",
+            "libraries/ex/functions/update_remaining"
           ]
         }
       ]

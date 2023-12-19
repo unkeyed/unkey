@@ -51,6 +51,8 @@ describe("when api exists", () => {
         name: "with ip whitelist",
         workspaceId: r.userWorkspace.id,
         ipWhitelist: JSON.stringify(["127.0.0.1"]),
+        createdAt: new Date(),
+        deletedAt: null,
       };
 
       await r.database.insert(schema.apis).values(api);

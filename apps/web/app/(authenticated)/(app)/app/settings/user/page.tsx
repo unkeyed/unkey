@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { UpdateTheme } from "./update-theme";
 import { UpdateUserEmail } from "./update-user-email";
@@ -11,7 +11,8 @@ export default async function SettingsPage() {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
   if (!workspace) {
     return redirect("/new");

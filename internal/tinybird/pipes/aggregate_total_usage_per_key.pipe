@@ -12,4 +12,3 @@ TYPE materialized
 DATASOURCE mv_key_total_usage
 ENGINE "AggregatingMergeTree"
 ENGINE_SORTING_KEY "keyId"
-
