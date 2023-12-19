@@ -36,7 +36,7 @@ test("deletes the api", async () => {
   expect(res.body).toEqual({});
 
   const found = await r.database.query.apis.findFirst({
-    where: (table, { eq }) => eq(table.id, r.userApi.id),
+    where: (table, { eq, and, isNull }) => and(eq(table.id, r.userApi.id), isNull(table.deletedAt)),
   });
   expect(found).toBeUndefined();
 });
