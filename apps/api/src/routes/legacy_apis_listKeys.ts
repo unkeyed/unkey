@@ -106,23 +106,18 @@ export const registerLegacyApisListKeys = (app: App) =>
       keysWhere.push(eq(schema.keys.ownerId, ownerId));
     }
 
-    const [keys, total] = await Promise.all([
-      db.query.keys.findMany({
-        where: and(...keysWhere),
-        limit: parseInt(limit),
-        orderBy: schema.keys.id,
-        offset: offset ? parseInt(offset) : undefined,
-      }),
-      db
-        // @ts-ignore, mysql sucks
-        .select({ count: sql<string>`count(*)` })
-        .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt))),
-    ]);
+    const keys = await db.query.keys.findMany({
+      where: and(...keysWhere),
+      limit: parseInt(limit),
+      orderBy: schema.keys.id,
+      offset: offset ? parseInt(offset) : undefined,
+    });
 
-    if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
-    }
+    const total = await db
+      // @ts-ignore, mysql sucks
+      .select({ count: sql<string>`count(*)` })
+      .from(schema.keys)
+      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
 
     return c.json({
       keys: keys.map((k) => ({
