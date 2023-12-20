@@ -84,8 +84,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: input.ratelimit?.refillInterval,
           ratelimitType: input.ratelimit?.type,
           remaining: input.remaining,
-          refillInterval: input.refill?.interval,
-          refillAmount: input.refill?.amount,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
           totalUses: 0,
           deletedAt: null,
         });
@@ -166,6 +167,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: 1000,
           ratelimitType: "fast",
           remaining: null,
+          refillInterval: null,
+          refillAmount: null,
+          lastRefillAt: null,
           totalUses: 0,
           deletedAt: null,
         });

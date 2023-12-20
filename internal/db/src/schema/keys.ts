@@ -49,7 +49,7 @@ export const keys = mysqlTable(
      */
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
-     * You can add uses to keys at a desired interval
+     * You can refill uses to keys at a desired interval
      */
     refillInterval: text("refill_interval", {
       enum: ["daily", "monthly"],
