@@ -1,10 +1,12 @@
+import { AreaChart } from "@/components/dashboard/charts";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+
 import { db } from "@/lib/db";
 import { getQ1ActiveWorkspaces } from "@/lib/tinybird";
-import { notFound } from "next/navigation";
+// import { notFound } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 async function getPaidCustomerCount() {
   const ws = await db.query.workspaces.findMany({
@@ -13,9 +15,31 @@ async function getPaidCustomerCount() {
   });
   console.log(ws);
 
-  return 10;
+  return ws.length;
 }
 
+const chartData = [
+  {
+    x: "2010-01",
+    y: 1998,
+  },
+  {
+    x: "2010-02",
+    y: 1850,
+  },
+  {
+    x: "2010-03",
+    y: 1720,
+  },
+  {
+    x: "2010-04",
+    y: 1818,
+  },
+  {
+    x: "2010-05",
+    y: 1920,
+  },
+];
 export default async function SuccessPage() {
   const activeWorkspaces = await getQ1ActiveWorkspaces({});
   const activeWorkspaceValue = activeWorkspaces.data[0];
@@ -25,6 +49,10 @@ export default async function SuccessPage() {
       <PageHeader title="Success Metrics" description="Unkey success metrics" />
       <h1 className="text-2xl font-semibold mb-8" />
       <Separator />
+      <div />
+      <div>
+        <AreaChart data={chartData} timeGranularity="day" tooltipLabel="Active Workspaces" />
+      </div>
       <div className="flex flex-row gap-6">
         <Card className="flex w-72 mt-6">
           <div className="flex-col w-full py-4 px-6">
