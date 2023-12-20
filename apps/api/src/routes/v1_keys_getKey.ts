@@ -62,11 +62,7 @@ export const registerV1KeysGetKey = (app: App) =>
             },
           },
           roles: {
-            with: {
-              role: {
-                columns: { name: true },
-              },
-            },
+            columns: { role: true },
           },
         },
       });
@@ -110,6 +106,6 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
-      roles: data.key.roles?.map((r) => r.role.name) ?? undefined,
+      roles: data.key.roles?.map((r) => r.role.role) ?? undefined,
     });
   });

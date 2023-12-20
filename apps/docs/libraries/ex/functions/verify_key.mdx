@@ -3,14 +3,19 @@ title: "verify_key"
 description: "Verify a key"
 ---
 
-> @spec verify_key(binary) :: map()
+> @spec verify_key(binary, map()) :: map()
 
 Verify a key from your users. You only need to send the api key from your user.
+Optionally, pass in a second param, a map with the key `apiId` which sends the `apiId` along.
 
 ## Request
 
 <ParamField body="key" type="string" required>
   The key you want to verify.
+</ParamField>
+
+<ParamField body="apiId" type="string" required>
+  The `API` of the key you want to verify.
 </ParamField>
 
 ## Response
@@ -42,7 +47,9 @@ Example:
 
 ```elixir
    try do
-     is_verified = UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
+     is_verified = UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL", %{
+      "apiId" => "api_7oKUUscTZy22jmVf9THxDA"
+     })
 
     catch
         err ->

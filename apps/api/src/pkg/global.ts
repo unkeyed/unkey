@@ -24,11 +24,11 @@ import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimi
 export type KeyHash = string;
 export type CacheNamespaces = {
   keyById: {
-    key: Key & { roles?: { role: Pick<Role, "name"> }[] };
+    key: Key & { roles?: { role: Pick<Role, "role"> }[] };
     api: Api;
   } | null;
   keyByHash: {
-    key: Key & { roles?: { role: Pick<Role, "name"> }[] };
+    key: Key & { roles?: { role: Pick<Role, "role"> }[] };
     api: Api;
   } | null;
   apiById: Api | null;

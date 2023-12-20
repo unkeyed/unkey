@@ -16,6 +16,3 @@ SQL >
             {% if defined(end)%}
               and time <= fromUnixTimestamp64Milli({{ Int64(end)}})
             {%end if %}
-
-
-

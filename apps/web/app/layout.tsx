@@ -61,19 +61,7 @@ export default function RootLayout({
         <PostHogPageview />
       </Suspense>
       <PHProvider>
-        <body>
-          <head>
-            {(process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "preview") && (
-              // eslint-disable-next-line @next/next/no-sync-scripts
-              <script
-                data-project-id="LgLkKSvYgWMJ231LDMvubknwDBTikeK7C7y9FEtb"
-                data-is-production-environment="false"
-                src="https://snippet.meticulous.ai/v1/meticulous.js"
-              />
-            )}
-          </head>
-          {children}
-        </body>
+        <body>{children}</body>
       </PHProvider>
     </html>
   );

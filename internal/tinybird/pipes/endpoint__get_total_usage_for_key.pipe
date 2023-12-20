@@ -6,5 +6,3 @@ SQL >
 
     %
     SELECT countMerge(totalUsage) as totalUsage FROM mv_key_total_usage where keyId = {{String(keyId, required=True)}}
-
-

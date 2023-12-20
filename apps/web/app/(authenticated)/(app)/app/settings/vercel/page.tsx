@@ -16,9 +16,12 @@ type Props = {
 
 export default async function Page(props: Props) {
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, getTenantId()),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAt)),
     with: {
-      apis: true,
+      apis: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
+      },
       vercelIntegrations: {
         with: {
           vercelBindings: true,

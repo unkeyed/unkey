@@ -12,43 +12,43 @@ import { CacheNamespaces } from "../global";
 
 type VerifyKeyResult =
   | {
-    valid: false;
-    code: "NOT_FOUND";
-    key?: never;
-    api?: never;
-    ratelimit?: never;
-    remaining?: never;
-  }
+      valid: false;
+      code: "NOT_FOUND";
+      key?: never;
+      api?: never;
+      ratelimit?: never;
+      remaining?: never;
+    }
   | {
-    valid: false;
-    code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
-    publicMessage?: string;
-    key: Key;
-    api: Api;
-    ratelimit?: {
-      remaining: number;
-      limit: number;
-      reset: number;
-    };
-    remaining?: number;
-  }
+      valid: false;
+      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+      publicMessage?: string;
+      key: Key;
+      api: Api;
+      ratelimit?: {
+        remaining: number;
+        limit: number;
+        reset: number;
+      };
+      remaining?: number;
+    }
   | {
-    code?: never;
-    valid: true;
-    key: Key;
-    api: Api;
-    ratelimit?: {
-      remaining: number;
-      limit: number;
-      reset: number;
+      code?: never;
+      valid: true;
+      key: Key;
+      api: Api;
+      ratelimit?: {
+        remaining: number;
+        limit: number;
+        reset: number;
+      };
+      remaining?: number;
+      isRootKey?: boolean;
+      /**
+       * the workspace of the user, even if this is a root key
+       */
+      authorizedWorkspaceId: string;
     };
-    remaining?: number;
-    isRootKey?: boolean;
-    /**
-     * the workspace of the user, even if this is a root key
-     */
-    authorizedWorkspaceId: string;
-  };
 
 export class KeyService {
   private readonly cache: TieredCache<CacheNamespaces>;
@@ -85,7 +85,7 @@ export class KeyService {
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req).catch(async (e) => {
       this.logger.error("Unhandled error while verifying key", {
-        error: e,
+        error: (e as Error).message,
         keyHash: await sha256(req.key),
         apiId: req.apiId,
       });
@@ -161,6 +161,9 @@ export class KeyService {
         query: "getKeyAndApiByHash",
         latency: performance.now() - dbStart,
       });
+      if (!dbRes?.keyAuth.api) {
+        this.logger.error("database did not return api for key", dbRes);
+      }
       return dbRes ? { key: dbRes, api: dbRes.keyAuth.api } : null;
     });
 
@@ -174,10 +177,11 @@ export class KeyService {
 
     /**
      * Expiration
+     *
+     * There is an issue with our zone cache, that returns dates as strings, so we need to handle that
      */
-    if (data.key.expires) {
-      // The zone cache can not deserialize dates and returns them as string, so we need to do it manually
-      const expires = new Date(data.key.expires).getTime();
+    const expires = data.key.expires ? new Date(data.key.expires).getTime() : undefined;
+    if (expires) {
       if (expires < Date.now()) {
         return result.success({ valid: false, code: "NOT_FOUND" });
       }
@@ -232,7 +236,7 @@ export class KeyService {
           keyId: data.key.id,
           apiId: data.api.id,
           ownerId: data.key.ownerId ?? undefined,
-          expires: data.key.expires?.getTime() ?? undefined,
+          expires,
           remaining,
           ratelimit,
           isRootKey: !!data.key.forWorkspaceId,
@@ -247,7 +251,7 @@ export class KeyService {
       api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,
-      expires: data.key.expires?.getTime() ?? undefined,
+      expires,
       ratelimit,
       remaining,
       isRootKey: !!data.key.forWorkspaceId,

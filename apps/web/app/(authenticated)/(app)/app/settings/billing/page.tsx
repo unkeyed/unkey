@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
-import { Workspace, db, eq, schema } from "@/lib/db";
+import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,8 @@ export default async function BillingPage() {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
   if (!workspace) {
     return redirect("/new");

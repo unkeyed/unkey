@@ -31,7 +31,8 @@ export default async function RootKeyPage(props: {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
   if (!workspace) {
     return notFound();

@@ -41,6 +41,8 @@ export async function seed(env: {
     subscriptions: null,
     planLockedUntil: null,
     planChanged: null,
+    createdAt: new Date(),
+    deletedAt: null,
   };
   const userWorkspace: Workspace = {
     id: newId("workspace"),
@@ -56,15 +58,21 @@ export async function seed(env: {
     subscriptions: null,
     planLockedUntil: null,
     planChanged: null,
+    createdAt: new Date(),
+    deletedAt: null,
   };
 
   const unkeyKeyAuth: KeyAuth = {
     id: newId("keyAuth"),
     workspaceId: unkeyWorkspace.id,
+    createdAt: new Date(),
+    deletedAt: null,
   };
   const userKeyAuth: KeyAuth = {
     id: newId("keyAuth"),
     workspaceId: userWorkspace.id,
+    createdAt: new Date(),
+    deletedAt: null,
   };
 
   const unkeyApi: Api = {
@@ -74,6 +82,9 @@ export async function seed(env: {
     authType: "key",
     keyAuthId: unkeyKeyAuth.id,
     ipWhitelist: null,
+    createdAt: new Date(),
+    deletedAt: null,
+    state: null,
   };
   const userApi: Api = {
     id: newId("api"),
@@ -82,6 +93,9 @@ export async function seed(env: {
     authType: "key",
     keyAuthId: userKeyAuth.id,
     ipWhitelist: null,
+    createdAt: new Date(),
+    deletedAt: null,
+    state: null,
   };
 
   await database.insert(schema.workspaces).values(unkeyWorkspace);

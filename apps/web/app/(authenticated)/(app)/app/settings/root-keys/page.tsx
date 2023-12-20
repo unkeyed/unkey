@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { type Key, db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
@@ -13,7 +13,8 @@ export default async function SettingsKeysPage(props: {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       apis: {
         limit: 1,
