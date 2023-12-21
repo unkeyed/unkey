@@ -81,14 +81,28 @@ export const registerLegacyApisCreateApi = (app: App) =>
      * Set up an api for production
      */
     const apiId = newId("api");
-    await db.insert(schema.apis).values({
-      id: apiId,
-      name,
-      workspaceId: rootKey.value.authorizedWorkspaceId,
-      authType: "key",
-      keyAuthId: keyAuth.id,
-      createdAt: new Date(),
-      deletedAt: null,
+    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
+    const rootKeyId = rootKey.value.key.id;
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.apis).values({
+        id: apiId,
+        name,
+        workspaceId: authorizedWorkspaceId,
+        authType: "key",
+        keyAuthId: keyAuth.id,
+        createdAt: new Date(),
+        deletedAt: null,
+      });
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "api.create",
+        description: `API ${name} created`,
+        apiId: apiId,
+      });
     });
 
     return c.json({
