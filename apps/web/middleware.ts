@@ -15,7 +15,6 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
   const privateMatch = "^/app/";
-  console.log("middleware running");
   const res = await authMiddleware({
     debug: process.env.CLERK_DEBUG === "true",
     afterAuth: async (auth, req) => {
