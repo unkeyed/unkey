@@ -15,14 +15,11 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
   const privateMatch = "^/app/";
+  console.log("middleware running");
   const res = await authMiddleware({
     debug: process.env.CLERK_DEBUG === "true",
     afterAuth: async (auth, req) => {
-      if (
-        !auth.userId &&
-        req.nextUrl.pathname !== "/" &&
-        privateMatch.match(req.nextUrl.pathname)
-      ) {
+      if (!auth.userId && privateMatch.match(req.nextUrl.pathname)) {
         return redirectToSignIn({ returnBackUrl: req.url });
       }
       userId = auth.userId ?? undefined;
@@ -37,7 +34,7 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
         }
         // this stops users if they haven't paid.
         if (
-          !["/app/settings/billing/stripe", "/app/apis", "/app", "/new", "/"].includes(
+          !["/app/settings/billing/stripe", "/app/apis", "/app", "/new"].includes(
             req.nextUrl.pathname,
           )
         ) {
@@ -62,5 +59,10 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    "/app",
+    "/app/(.*)",
+    "/auth/(.*)",
+    "/(api|trpc)(.*), '/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
