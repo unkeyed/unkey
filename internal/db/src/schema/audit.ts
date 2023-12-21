@@ -40,16 +40,20 @@ export const auditLogs = mysqlTable("audit_logs", {
   actorId: varchar("actor_id", { length: 256 }).notNull(),
 
   workspaceId: varchar("workspace_id", { length: 256 })
-    .references(() => workspaces.id)
+    .references(() => workspaces.id, { onDelete: "cascade" })
     .notNull(),
-  apiId: varchar("api_id", { length: 256 }).references(() => apis.id),
-  keyId: varchar("key_id", { length: 256 }).references(() => keys.id),
-  keyAuthId: varchar("key_auth_id", { length: 256 }).references(() => keyAuth.id),
+  apiId: varchar("api_id", { length: 256 }).references(() => apis.id, { onDelete: "cascade" }),
+  keyId: varchar("key_id", { length: 256 }).references(() => keys.id, { onDelete: "cascade" }),
+  keyAuthId: varchar("key_auth_id", { length: 256 }).references(() => keyAuth.id, {
+    onDelete: "cascade",
+  }),
   vercelIntegrationId: varchar("vercel_integration_id", { length: 256 }).references(
     () => vercelIntegrations.id,
+    { onDelete: "cascade" },
   ),
   vercelBindingId: varchar("vercel_binding_id", { length: 256 }).references(
     () => vercelBindings.id,
+    { onDelete: "cascade" },
   ),
 
   /**
