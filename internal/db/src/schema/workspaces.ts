@@ -24,8 +24,6 @@ export const workspaces = mysqlTable(
     createdAt: datetime("created_at", { fsp: 3 }),
     deletedAt: datetime("deleted_at", { fsp: 3 }),
 
-    slug: varchar("slug", { length: 256 }),
-
     // different plans, this should only be used for visualisations in the ui
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
 
@@ -67,7 +65,7 @@ export const workspaces = mysqlTable(
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
-    slugIdx: uniqueIndex("slug_idx").on(table.slug),
+    // slugIdx: uniqueIndex("slug_idx").on(table.slug),
   }),
 );
 
