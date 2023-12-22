@@ -148,6 +148,7 @@ export const keyRouter = t.router({
       const keyId = newId("key");
 
       const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,

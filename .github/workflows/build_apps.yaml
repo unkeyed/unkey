@@ -24,7 +24,6 @@ jobs:
           - "./apps/api"
           - "./apps/workflows"
 
-
     name: Build ${{matrix.app}}
     runs-on: ubuntu-latest
     steps:
