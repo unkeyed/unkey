@@ -86,7 +86,7 @@ jobs:
         run: pnpm turbo run build --filter='./apps/api'
 
       - name: Deploy
-        run: wrangler deploy --env=preview --var VERSION:${GITHUB_REF#refs/*/}
+        run: wrangler deploy --env=preview --var VERSION:$(git rev-parse --short HEAD)
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -128,7 +128,7 @@ jobs:
           run: pnpm turbo run build --filter='./apps/api'
 
         - name: Deploy
-          run: wrangler deploy --env=canary --var VERSION:${GITHUB_REF#refs/*/}
+          run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
           working-directory: apps/api
           env:
             CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -170,7 +170,7 @@ jobs:
         run: pnpm turbo run build --filter='./apps/api'
 
       - name: Deploy
-        run: wrangler deploy --env=production --var VERSION:${GITHUB_REF#refs/*/}
+        run: wrangler deploy --env=production --var VERSION:$(git rev-parse --short HEAD)
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
