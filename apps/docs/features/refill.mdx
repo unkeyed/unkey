@@ -1,0 +1,57 @@
+---
+title: Refill
+description: "Refill remaining key verifications on a set interval"
+---
+
+This feature is useful for creating an API key that automatically refills daily or monthly.
+Daily refills trigger each night at midnight, while monthly refills are triggered on the first day of each month.
+
+Example:
+Suppose you are selling API access, and a customer has purchased 1000 API uses per month. On the first day of the month, the 1000 uses will be refilled for that key.
+
+Unkey allows you to set a refill interval and increment on individual keys, and we take care of refilling a key on its set interval.
+
+### Example
+
+Let's create a new key that can be used 100 times a day.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"apiId":"<API_ID>",
+	"remaining": 100,
+  "refill": {
+      "interval": "daily",
+      "amount": 100
+  }
+}'
+```
+
+Now, when you verify the new key, you will receive the remaining verifications. After all of them are used up, the key becomes invalid.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+		"key": "<NEW_KEY>"
+	}'
+```
+
+```json
+{
+  "keyId": "<KEY_ID>",
+  "valid": true,
+  "meta": {},
+  "remaining": 99
+}
+```
+
+<Note>
+  The returned `remaining` value represents how many verifications are remaining
+  after the current one. A value of 3, means you can verify the key successfully
+  3 more times.
+</Note>

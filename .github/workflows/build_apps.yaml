@@ -47,10 +47,6 @@ jobs:
         env:
           DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
 
-
-      - name: Install
-        uses: ./.github/actions/install
-
       - name: Build
         run: pnpm turbo run build --filter=${{matrix.app}}
         env:

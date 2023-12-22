@@ -162,17 +162,29 @@ export const registerLegacyKeysCreate = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const req = c.req.valid("json");
@@ -187,7 +199,10 @@ export const registerLegacyKeysCreate = (app: App) =>
     });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `api ${req.apiId} not found`,
+      });
     }
 
     if (!api.keyAuthId) {
@@ -200,7 +215,10 @@ export const registerLegacyKeysCreate = (app: App) =>
     /**
      * Set up an api for production
      */
-    const key = new KeyV1({ byteLength: req.byteLength, prefix: req.prefix }).toString();
+    const key = new KeyV1({
+      byteLength: req.byteLength,
+      prefix: req.prefix,
+    }).toString();
     const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
     const keyId = newId("key");
     const hash = await sha256(key.toString());

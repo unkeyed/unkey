@@ -38,23 +38,38 @@ export const registerLegacyKeysGet = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const { keyId } = c.req.param();
 
     if (!keyId) {
-      throw new UnkeyApiError({ code: "BAD_REQUEST", message: "no key id given" });
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "no key id given",
+      });
     }
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
@@ -80,7 +95,10 @@ export const registerLegacyKeysGet = (app: App) =>
     });
 
     if (!data || data.key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${keyId} not found`,
+      });
     }
 
     return c.json({
@@ -90,8 +108,8 @@ export const registerLegacyKeysGet = (app: App) =>
       name: data.key.name ?? undefined,
       start: data.key.start,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ?? undefined,
-      createdAt: data.key.createdAt.getTime() ?? undefined,
+      meta: data.key.meta ? JSON.parse(data.key.meta) : undefined,
+      createdAt: data.key.createdAt.getTime(),
       forWorkspaceId: data.key.forWorkspaceId ?? undefined,
       expiresAt: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
