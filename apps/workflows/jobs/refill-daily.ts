@@ -1,4 +1,5 @@
 import { connectDatabase, eq, lte, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
 
@@ -11,19 +12,23 @@ client.defineJob({
   }),
 
   run: async (_payload, io, _ctx) => {
+    console.log(env());
     const db = connectDatabase();
     const t = new Date();
     t.setUTCHours(t.getUTCHours() - 24);
 
     const keys = await io.runTask("list keys", () =>
       db.query.keys.findMany({
-        where: (table, { isNotNull, eq, and, gt }) =>
+        where: (table, { isNotNull, isNull, eq, and, gt, or }) =>
           and(
             isNotNull(table.refillInterval),
             isNotNull(table.refillAmount),
             eq(table.refillInterval, "daily"),
             gt(table.refillAmount, table.remaining),
-            lte(table.lastRefillAt, t), // Check if more than 24 hours have passed
+            or(
+              isNull(table.lastRefillAt),
+              lte(table.lastRefillAt, t), // Check if more than 24 hours have passed
+            ),
           ),
       }),
     );
