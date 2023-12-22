@@ -12,6 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -21,17 +28,21 @@ type Props = {
     id: string;
     workspaceId: string;
     remaining: number | null;
+    refillInterval: string | null;
+    refillAmount: number | null;
   };
 };
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-
   const [enabled, setEnabled] = useState(apiKey.remaining !== null);
+  const [refillEbabled, setRefillEnabled] = useState(apiKey.remaining !== null);
+
   return (
     <form
       action={async (formData: FormData) => {
         const res = await updateKeyRemaining(formData);
+
         if (res.error) {
           toast({
             title: "Error",
@@ -54,7 +65,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col space-y-2", { "opacity-50": !enabled })}>
+          <div
+            className={cn("flex flex-col space-y-2", {
+              "opacity-50": !enabled,
+            })}
+          >
             <input type="hidden" name="keyId" value={apiKey.id} />
             <input type="hidden" name="enableRemaining" value={enabled ? "true" : "false"} />
 
@@ -65,8 +80,35 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               min={0}
               name="remaining"
               className="max-w-sm"
-              defaultValue={apiKey.remaining ?? ""}
+              defaultValue={apiKey?.remaining ?? ""}
               autoComplete="off"
+            />
+            <Label htmlFor="refillInterval" className="pt-4">
+              Refill Rate
+            </Label>
+            <Select
+              disabled={!enabled}
+              name="refillInterval"
+              defaultValue={apiKey?.refillInterval ?? "null"}
+              onValueChange={(value) => setRefillEnabled(value !== "null")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="null">None</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              disabled={!refillEbabled}
+              name="refillAmount"
+              placeholder="100"
+              className="w-full"
+              min={1}
+              type="number"
+              defaultValue={apiKey?.refillAmount ?? ""}
             />
           </div>
         </CardContent>

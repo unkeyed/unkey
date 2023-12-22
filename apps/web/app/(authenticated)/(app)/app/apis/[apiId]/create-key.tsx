@@ -47,12 +47,14 @@ import { z } from "zod";
 const currentTime = new Date();
 const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
-  bytes: z.coerce.number().positive(),
-  prefix: z.string().max(8).optional(),
+  bytes: z.coerce.number().positive({ message: "Please enter a positive number" }),
+  prefix: z
+    .string()
+    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
   meta: z.string().optional(),
-  // remaining: z.coerce.number().positive().optional(),
   limit: z
     .object({
       remaining: z.coerce.number().positive({ message: "Please enter a positive number" }),
@@ -93,7 +95,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
 
   const { toast } = useToast();
   const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -116,6 +117,18 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   // if(!ratelimitEnabled) {
   //   delete formData.ratelimit;
   // }
+
+  useEffect(() => {
+    if (formData.limit?.remaining === undefined) {
+      form.resetField("limit");
+    }
+  }, [formData.limit]);
+  useEffect(() => {
+    if (formData.limit?.refill?.interval === "none") {
+      form.resetField("limit.refill.interval");
+      form.resetField("limit.refill.amount");
+    }
+  }, [formData.limit?.refill]);
   useEffect(() => {
     if (
       formData.ratelimit?.limit === undefined &&
@@ -125,6 +138,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
+
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast({
@@ -165,12 +179,39 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
+    if (values.limit?.refill?.interval !== "none" && values.limit?.remaining === undefined) {
+      form.setError("limit.remaining", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+
+    if (
+      values.limit &&
+      values.limit?.refill?.interval !== "daily" &&
+      values.limit?.refill?.interval !== "monthly"
+    ) {
+      delete values.limit.refill;
+    }
+    if (values.limit?.remaining === undefined) {
+      delete values.limit;
+    }
+
     await key.mutateAsync({
       apiId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
+      remaining: values.limit?.remaining ?? undefined,
+      refill:
+        values.limit?.refill && values.limit.refill.interval !== "none"
+          ? {
+              interval: values.limit.refill.interval,
+              amount: values.limit.refill.amount,
+            }
+          : undefined,
     });
   }
 
@@ -239,7 +280,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       ) : (
         <>
           <div>
-            <div>
+            <div className="w-full overflow-scroll">
               <Form {...form}>
                 <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
                   <h2 className="mb-2 text-2xl">Create a new Key</h2>
