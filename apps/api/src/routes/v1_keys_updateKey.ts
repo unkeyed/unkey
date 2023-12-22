@@ -81,6 +81,27 @@ const route = createRoute({
                 "The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.",
               example: 1000,
             }),
+            refill: z
+              .object({
+                interval: z.enum(["daily", "monthly"]).openapi({
+                  description:
+                    "Unkey will automatically refill verifications at the set interval. If null is used the refill functionality will be removed from the key.",
+                }),
+                amount: z.number().int().min(1).openapi({
+                  description:
+                    "The amount of verifications to refill for each occurrence is determined individually for each key.",
+                }),
+              })
+              .nullable()
+              .optional()
+              .openapi({
+                description:
+                  "Unkey enables you to refill verifications for each key at regular intervals.",
+                example: {
+                  interval: "daily",
+                  amount: 100,
+                },
+              }),
           }),
         },
       },
@@ -112,19 +133,31 @@ export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
 
     // Get root key and check for API errors
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const req = c.req.valid("json");
@@ -134,7 +167,23 @@ export const registerV1KeysUpdate = (app: App) =>
     });
 
     if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${req.keyId} not found`,
+      });
+    }
+
+    if (req.remaining === null && req.refill) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Cannot set refill on a key with unlimited requests",
+      });
+    }
+    if (req.refill && key.remaining === null) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Cannot set refill on a key with unlimited requests",
+      });
     }
 
     const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
@@ -158,6 +207,9 @@ export const registerV1KeysUpdate = (app: App) =>
           ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
           ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
           ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
+          refillInterval: req.refill === null ? null : req.refill?.interval,
+          refillAmount: req.refill === null ? null : req.refill?.amount,
+          lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
         })
         .where(eq(schema.keys.id, req.keyId));
 

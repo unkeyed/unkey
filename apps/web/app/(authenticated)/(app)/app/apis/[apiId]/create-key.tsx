@@ -21,6 +21,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -35,12 +42,31 @@ import { z } from "zod";
 const currentTime = new Date();
 const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
-  bytes: z.coerce.number().positive(),
-  prefix: z.string().max(8).optional(),
+  bytes: z.coerce.number().positive({ message: "Please enter a positive number" }),
+  prefix: z
+    .string()
+    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
   meta: z.string().optional(),
-  remaining: z.coerce.number().positive().optional(),
+  limit: z
+    .object({
+      remaining: z.coerce.number().positive({ message: "Please enter a positive number" }),
+      refill: z
+        .object({
+          interval: z.enum(["none", "daily", "monthly"]),
+          amount: z.coerce
+            .number()
+            .int()
+            .min(1, {
+              message: "Please enter the number of uses per interval",
+            })
+            .positive(),
+        })
+        .optional(),
+    })
+    .optional(),
   expires: z.coerce.date().min(new Date(oneMinute)).optional(),
   ratelimit: z
     .object({
@@ -59,7 +85,6 @@ type Props = {
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
   const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -70,6 +95,18 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     },
   });
   const formData = form.watch();
+
+  useEffect(() => {
+    if (formData.limit?.remaining === undefined) {
+      form.resetField("limit");
+    }
+  }, [formData.limit]);
+  useEffect(() => {
+    if (formData.limit?.refill?.interval === "none") {
+      form.resetField("limit.refill.interval");
+      form.resetField("limit.refill.amount");
+    }
+  }, [formData.limit?.refill]);
   useEffect(() => {
     if (
       formData.ratelimit?.limit === undefined &&
@@ -79,6 +116,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
+
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast({
@@ -117,12 +155,39 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
+    if (values.limit?.refill?.interval !== "none" && values.limit?.remaining === undefined) {
+      form.setError("limit.remaining", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+
+    if (
+      values.limit &&
+      values.limit?.refill?.interval !== "daily" &&
+      values.limit?.refill?.interval !== "monthly"
+    ) {
+      delete values.limit.refill;
+    }
+    if (values.limit?.remaining === undefined) {
+      delete values.limit;
+    }
+
     await key.mutateAsync({
       apiId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
+      remaining: values.limit?.remaining ?? undefined,
+      refill:
+        values.limit?.refill && values.limit.refill.interval !== "none"
+          ? {
+              interval: values.limit.refill.interval,
+              amount: values.limit.refill.amount,
+            }
+          : undefined,
     });
   }
 
@@ -191,9 +256,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         <>
           <div>
             <div className="w-full overflow-scroll">
-              <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
                 <form className="mx-auto max-w-6xl" onSubmit={form.handleSubmit(onSubmit)}>
+                  <h2 className="mb-2 text-2xl">Create a New Key</h2>
                   <div className="flex flex-col justify-evenly gap-4 md:flex-row">
                     <FormField
                       control={form.control}
@@ -296,7 +361,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 </FormItem>
                               )}
                             />
-
                             <div className="mt-8 flex items-center gap-4">
                               <FormField
                                 control={form.control}
@@ -357,7 +421,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <AccordionContent>
                             <FormField
                               control={form.control}
-                              name="remaining"
+                              name="limit.remaining"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Number of uses</FormLabel>
@@ -367,12 +431,63 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       className="w-full"
                                       type="number"
                                       {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
                                     />
                                   </FormControl>
                                   <FormDescription>
                                     Enter the remaining amount of uses for this key.
                                   </FormDescription>
                                   <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="limit.refill.interval"
+                              render={({ field }) => (
+                                <FormItem className="mt-4">
+                                  <FormLabel>Refill Rate</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue="">
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="daily">Daily</SelectItem>
+                                      <SelectItem value="monthly">Monthly</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="limit.refill.amount"
+                              render={({ field }) => (
+                                <FormItem className="mt-4">
+                                  <FormLabel>Number of uses per interval</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="100"
+                                      className="w-full"
+                                      type="number"
+                                      {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Enter the number of uses to refill per interval.
+                                  </FormDescription>
+                                  <FormMessage defaultValue="Please enter a value if interval is selected" />
                                 </FormItem>
                               )}
                             />

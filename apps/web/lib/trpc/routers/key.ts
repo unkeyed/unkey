@@ -17,6 +17,12 @@ export const keyRouter = t.router({
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
+        refill: z
+          .object({
+            interval: z.enum(["daily", "monthly"]),
+            amount: z.coerce.number().int().min(1),
+          })
+          .optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
         name: z.string().optional(),
         ratelimit: z
@@ -35,7 +41,10 @@ export const keyRouter = t.router({
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const api = await db.query.apis.findFirst({
@@ -75,6 +84,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: input.ratelimit?.refillInterval,
           ratelimitType: input.ratelimit?.type,
           remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
           totalUses: 0,
           deletedAt: null,
         });
@@ -109,7 +121,10 @@ export const keyRouter = t.router({
         },
       });
       if (!unkeyApi) {
-        throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `api ${env().UNKEY_API_ID} not found`,
+        });
       }
       if (!unkeyApi.keyAuthId) {
         throw new TRPCError({
@@ -124,11 +139,16 @@ export const keyRouter = t.router({
       });
       if (!workspace) {
         console.error(`workspace for tenant ${ctx.tenant.id} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const keyId = newId("key");
+
       const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
@@ -146,6 +166,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: 1000,
           ratelimitType: "fast",
           remaining: null,
+          refillInterval: null,
+          refillAmount: null,
+          lastRefillAt: null,
           totalUses: 0,
           deletedAt: null,
         });
@@ -176,7 +199,10 @@ export const keyRouter = t.router({
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       await Promise.all(
@@ -237,7 +263,10 @@ export const keyRouter = t.router({
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       await Promise.all(
