@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { getTenantId } from "@/lib/auth";
-import { type Key, db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CreateRootKeyButton } from "./create-root-key-button";
 
@@ -25,13 +25,15 @@ export default async function SettingsKeysPage(props: {
     return redirect("/new");
   }
 
-  const _allKeys = await db.query.keys.findMany({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.forWorkspaceId, workspace.id), isNull(table.deletedAt)),
+  const keys = await db.query.keys.findMany({
+    where: (table, { eq, and, or, isNull, gt }) =>
+      and(
+        eq(table.forWorkspaceId, workspace.id),
+        isNull(table.deletedAt),
+        or(isNull(table.expires), gt(table.expires, new Date())),
+      ),
     limit: 100,
   });
-
-  const keys: Key[] = [];
 
   return (
     <div className="min-h-screen ">
