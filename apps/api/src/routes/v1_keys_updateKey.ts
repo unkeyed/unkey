@@ -186,7 +186,6 @@ export const registerV1KeysUpdate = (app: App) =>
       });
     }
 
-
     const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
     const rootKeyId = rootKey.value.key.id;
 
@@ -225,7 +224,6 @@ export const registerV1KeysUpdate = (app: App) =>
         keyAuthId: key.keyAuthId,
       });
     });
-
 
     await usageLimiter.revalidate({ keyId: key.id });
 
