@@ -17,14 +17,17 @@ client.defineJob({
 
     const keys = await io.runTask("list keys", () =>
       db.query.keys.findMany({
-        where: (table, { isNull, isNotNull, eq, and, gt }) =>
+        where: (table, { isNotNull, isNull, eq, and, gt, or }) =>
           and(
             isNull(table.deletedAt),
             isNotNull(table.refillInterval),
             isNotNull(table.refillAmount),
             eq(table.refillInterval, "daily"),
             gt(table.refillAmount, table.remaining),
-            lte(table.lastRefillAt, t), // Check if more than 24 hours have passed
+            or(
+              isNull(table.lastRefillAt),
+              lte(table.lastRefillAt, t), // Check if more than 24 hours have passed
+            ),
           ),
       }),
     );
