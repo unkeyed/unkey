@@ -4,6 +4,7 @@ import {
   datetime,
   index,
   int,
+  mysqlEnum,
   mysqlTable,
   text,
   uniqueIndex,
@@ -49,8 +50,15 @@ export const keys = mysqlTable(
      */
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
+     * You can refill uses to keys at a desired interval
+     */
+    refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
+    refillAmount: int("refill_amount"),
+    lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
+    /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
+
     remaining: int("remaining_requests"),
 
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
