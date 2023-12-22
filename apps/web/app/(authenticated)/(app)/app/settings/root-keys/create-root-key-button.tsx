@@ -42,7 +42,7 @@ export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
     },
   });
 
-  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.verifyKey' \\
+  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.createKey' \\
   -H 'Authorization: Bearer ${key.data?.key}' \\
   -H 'Content-Type: application/json' \\
   -d '{
