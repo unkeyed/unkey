@@ -153,10 +153,13 @@ export class KeyService {
         query: "getKeyAndApiByHash",
         latency: performance.now() - dbStart,
       });
-      if (!dbRes?.keyAuth.api) {
+      if (!dbRes) {
+        return null;
+      }
+      if (!dbRes.keyAuth.api) {
         this.logger.error("database did not return api for key", dbRes);
       }
-      return dbRes ? { key: dbRes, api: dbRes.keyAuth.api } : null;
+      return { key: dbRes, api: dbRes.keyAuth.api };
     });
 
     if (!data) {
