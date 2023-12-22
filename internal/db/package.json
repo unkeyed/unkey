@@ -15,7 +15,7 @@
     "@types/node": "^20.8.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.3.0",
-    "drizzle-kit": "0.20.7-c9519c9",
+    "drizzle-kit": "beta",
     "drizzle-orm": "^0.29.1",
     "typescript": "^5.2.2"
   },

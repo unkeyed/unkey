@@ -805,7 +805,7 @@ importers:
         specifier: ^7.3.0
         version: 7.3.0
       drizzle-kit:
-        specifier: 0.20.7-c9519c9
+        specifier: beta
         version: 0.20.7-c9519c9
       drizzle-orm:
         specifier: ^0.29.1

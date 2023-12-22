@@ -65,6 +65,7 @@ export const workspaces = mysqlTable(
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
+    // slugIdx: uniqueIndex("slug_idx").on(table.slug),
   }),
 );
 

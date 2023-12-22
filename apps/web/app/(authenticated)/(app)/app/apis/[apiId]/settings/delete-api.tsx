@@ -62,7 +62,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
         description: "Your API and all its keys are being deleted now.",
       });
 
-      router.refresh();
+      router.replace("/app/apis");
     },
     onError(err) {
       console.error(err);
