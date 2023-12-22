@@ -1,5 +1,4 @@
 import { connectDatabase, eq, lte, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
 
@@ -12,7 +11,6 @@ client.defineJob({
   }),
 
   run: async (_payload, io, _ctx) => {
-    console.log(env());
     const db = connectDatabase();
     const t = new Date();
     t.setUTCHours(t.getUTCHours() - 24);
