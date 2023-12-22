@@ -83,7 +83,6 @@ export default async function (props: Props) {
       const workspaceId = newId("workspace");
       await db.insert(schema.workspaces).values({
         id: workspaceId,
-        slug: null,
         tenantId: userId,
         name: "Personal",
         plan: "free",

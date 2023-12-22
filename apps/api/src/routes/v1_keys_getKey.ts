@@ -106,6 +106,6 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
-      roles: data.key.roles?.map((r) => r.role.role) ?? undefined,
+      roles: data.key.roles?.map((r) => r.role) ?? undefined,
     });
   });

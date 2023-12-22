@@ -22,7 +22,7 @@ export const roles = mysqlTable(
   }),
 );
 
-export const rolesRelations = relations(roles, ({ one, many }) => ({
+export const rolesRelations = relations(roles, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [roles.workspaceId],
     references: [workspaces.id],

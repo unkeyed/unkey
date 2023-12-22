@@ -3,7 +3,7 @@ import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema, sql } from "@unkey/db";
+import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -63,7 +63,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                 },
               }),
             roles: z
-              .array(z.string())
+              .array(z.string().min(1).max(512))
               .optional()
               .openapi({
                 description:
@@ -206,56 +206,52 @@ export const registerV1KeysCreateKey = (app: App) =>
     const keyId = newId("key");
     const hash = await sha256(key.toString());
 
-    const createKeyP = db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: api.keyAuthId,
-      name: req.name,
-      hash,
-      start,
-      ownerId: req.ownerId,
-      meta: JSON.stringify(req.meta ?? {}),
-      workspaceId: rootKey.value.authorizedWorkspaceId,
-      forWorkspaceId: null,
-      expires: req.expires ? new Date(req.expires) : null,
-      createdAt: new Date(),
-      ratelimitLimit: req.ratelimit?.limit,
-      ratelimitRefillRate: req.ratelimit?.refillRate,
-      ratelimitRefillInterval: req.ratelimit?.refillInterval,
-      ratelimitType: req.ratelimit?.type,
-      remaining: req.remaining,
-      totalUses: 0,
-      deletedAt: null,
-    });
+    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
+    const rootKeyId = rootKey.value.key.id;
 
-    if (req.roles) {
-      // if we don't define a workspaceId outside of the closure, it thinks it might not be defined
-      // https://twitter.com/OmgImAlexis/status/1735600492204691775
-      const workspaceId = rootKey.value.authorizedWorkspaceId;
-      const roles = req.roles.map((role) => {
-        return {
-          id: newId("role"),
-          workspaceId,
-          apiId: req.apiId,
-          name: role,
-        };
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.keys).values({
+        id: keyId,
+        keyAuthId: api.keyAuthId!,
+        name: req.name,
+        hash,
+        start,
+        ownerId: req.ownerId,
+        meta: JSON.stringify(req.meta ?? {}),
+        workspaceId: authorizedWorkspaceId,
+        forWorkspaceId: null,
+        expires: req.expires ? new Date(req.expires) : null,
+        createdAt: new Date(),
+        ratelimitLimit: req.ratelimit?.limit,
+        ratelimitRefillRate: req.ratelimit?.refillRate,
+        ratelimitRefillInterval: req.ratelimit?.refillInterval,
+        ratelimitType: req.ratelimit?.type,
+        remaining: req.remaining,
+        totalUses: 0,
+        deletedAt: null,
       });
-
-      await db
-        .insert(schema.roles)
-        .values(roles)
-        // While MySQL does not directly support doing nothing on conflict, you can perform a no-op by setting any column’s value to itself and achieve the same effect:
-        .onDuplicateKeyUpdate({ set: { id: sql`id` } });
-
-      // await it now so it can run in parallel with creating the roles
-      await createKeyP;
-      await db.insert(schema.rolesToKeys).values(
-        roles.map((role) => ({
-          keyId,
-          roleId: role.id,
-        })),
-      );
-    }
-
+      if (req.roles && req.roles.length > 0) {
+        await tx.insert(schema.roles).values(
+          req.roles.map((role) => ({
+            id: newId("role"),
+            workspaceId: authorizedWorkspaceId,
+            keyId,
+            role,
+          })),
+        );
+      }
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "key.create",
+        description: "Key created",
+        apiId: api.id,
+        keyAuthId: api.keyAuthId,
+      });
+    });
     // TODO: emit event to tinybird
     return c.json({
       keyId,

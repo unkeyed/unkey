@@ -24,6 +24,7 @@
     "@unkey/hash": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/keys": "workspace:^",
+    "@unkey/rbac": "workspace:^",
     "@unkey/result": "workspace:^",
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.28.6",

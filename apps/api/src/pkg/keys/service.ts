@@ -5,8 +5,10 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { sha256 } from "@unkey/hash";
+import { roleQuery } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
+import { z } from "zod";
 import { Analytics } from "../analytics";
 import { CacheNamespaces } from "../global";
 
@@ -81,7 +83,7 @@ export class KeyService {
 
   public async verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roles?: { hasAll?: string[] } },
+    req: { key: string; apiId?: string; roles?: z.infer<typeof roleQuery> },
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req).catch(async (e) => {
       this.logger.error("Unhandled error while verifying key", {
@@ -134,7 +136,7 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roles?: { hasAll?: string[] } },
+    req: { key: string; apiId?: string; roles?: z.infer<typeof roleQuery> },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
@@ -144,11 +146,7 @@ export class KeyService {
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
           roles: {
-            with: {
-              role: {
-                columns: { name: true },
-              },
-            },
+            columns: { role: true },
           },
           keyAuth: {
             with: {
@@ -161,10 +159,13 @@ export class KeyService {
         query: "getKeyAndApiByHash",
         latency: performance.now() - dbStart,
       });
-      if (!dbRes?.keyAuth.api) {
+      if (!dbRes) {
+        return null;
+      }
+      if (!dbRes.keyAuth.api) {
         this.logger.error("database did not return api for key", dbRes);
       }
-      return dbRes ? { key: dbRes, api: dbRes.keyAuth.api } : null;
+      return { key: dbRes, api: dbRes.keyAuth.api };
     });
 
     if (!data) {
@@ -200,9 +201,7 @@ export class KeyService {
 
     if (req.roles && data.key.roles) {
       if (req.roles.hasAll) {
-        const ok = req.roles.hasAll.every((role) =>
-          data.key.roles?.some((r) => r.role.name === role),
-        );
+        const ok = req.roles.hasAll.every((role) => data.key.roles?.some((r) => r.role === role));
         if (!ok) {
           return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
         }

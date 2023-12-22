@@ -53,20 +53,20 @@ export type Resources = {
 
 export type Roles = Flatten<Resources, "::">;
 
-const queries = {
-  and: (...args: unknown[]) => {
-    return {
-      op: "and",
-      set: args,
-    };
-  },
-  or: (...args: unknown[]) => {
-    return {
-      op: "or",
-      set: args,
-    };
-  },
-};
+// const queries = {
+//   and: (...args: unknown[]) => {
+//     return {
+//       op: "and",
+//       set: args,
+//     };
+//   },
+//   or: (...args: unknown[]) => {
+//     return {
+//       op: "or",
+//       set: args,
+//     };
+//   },
+// };
 
 // root_key::*::read_root_key
 // root_key::*::create_root_key // a root key MUST NOT be allowed to create another key with more permissions than itself

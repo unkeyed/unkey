@@ -26,23 +26,6 @@ The key will be verified against the api's configuration. If the key does not be
               description: "The key to verify",
               example: "sk_1234",
             }),
-            roles: z
-              .object({
-                hasAll: z
-                  .array(z.string())
-                  .optional()
-                  .openapi({
-                    description: "The key must have all of these roles",
-                    example: ["admin", "user"],
-                  }),
-              })
-              .optional()
-              .openapi({
-                description: "Roles to check for",
-                example: {
-                  hasAll: ["admin", "user"],
-                },
-              }),
           }),
         },
       },
@@ -147,9 +130,9 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, roles } = c.req.valid("json");
+    const { apiId, key } = c.req.valid("json");
 
-    const { value, error } = await keyService.verifyKey(c, { key, apiId, roles });
+    const { value, error } = await keyService.verifyKey(c, { key, apiId });
     if (error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
     }
