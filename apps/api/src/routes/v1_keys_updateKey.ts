@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
+import { newId } from "@unkey/id";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -136,25 +137,41 @@ export const registerV1KeysUpdate = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        name: req.name,
-        ownerId: req.ownerId,
-        meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
-        expires:
-          typeof req.expires === "undefined"
-            ? undefined
-            : req.expires === null
-            ? null
-            : new Date(req.expires),
-        remaining: req.remaining,
-        ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
-        ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
-        ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
-        ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
-      })
-      .where(eq(schema.keys.id, req.keyId));
+    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
+    const rootKeyId = rootKey.value.key.id;
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.keys)
+        .set({
+          name: req.name,
+          ownerId: req.ownerId,
+          meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
+          expires:
+            typeof req.expires === "undefined"
+              ? undefined
+              : req.expires === null
+              ? null
+              : new Date(req.expires),
+          remaining: req.remaining,
+          ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
+          ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
+          ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
+          ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
+        })
+        .where(eq(schema.keys.id, req.keyId));
+
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "key.update",
+        description: "Key was updated",
+        keyAuthId: key.keyAuthId,
+      });
+    });
 
     await usageLimiter.revalidate({ keyId: key.id });
 

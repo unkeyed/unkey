@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
+  const { setActive, userMemberships, isLoaded: clerkLoaded } = useOrganizationList();
   const { organization: currentOrg } = useOrganization();
   const { user } = useUser();
   const [isLoading, setLoading] = useState(false);
@@ -78,17 +78,21 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {organizationList?.map(({ organization }) => (
+          {userMemberships?.data?.map((membership) => (
             <DropdownMenuItem
-              key={organization.id}
+              key={membership.id}
               className="flex items-center justify-between"
-              onClick={() => changeOrg(organization.id)}
+              onClick={() => changeOrg(membership.organization.id)}
             >
-              <span className={organization.id === currentOrg?.id ? "font-semibold" : undefined}>
+              <span
+                className={
+                  membership.organization.id === currentOrg?.id ? "font-semibold" : undefined
+                }
+              >
                 {" "}
-                {organization.name}
+                {membership.organization.name}
               </span>
-              {organization.id === currentOrg?.id ? <Check className="w-4 h-4" /> : null}
+              {membership.organization.id === currentOrg?.id ? <Check className="w-4 h-4" /> : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>
