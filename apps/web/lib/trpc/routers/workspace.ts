@@ -29,7 +29,6 @@ export const workspaceRouter = t.router({
 
       const workspace: Workspace = {
         id: newId("workspace"),
-        slug: null,
         tenantId: org.id,
         name: input.name,
         plan: "pro",
