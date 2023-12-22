@@ -11,7 +11,6 @@ import {
   getVerificationsDaily,
   getVerificationsHourly,
 } from "@/lib/tinybird";
-import { fillRange } from "@/lib/utils";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
@@ -85,35 +84,16 @@ export default async function ApiPage(props: {
     }),
   ]);
 
-  const successOverTime = fillRange(
-    verifications.data.map(({ time, success }) => ({ value: success, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
-    x: new Date(time).toISOString(),
-    y: value,
-  }));
+  const successOverTime: { x: string; y: number }[] = [];
+  const ratelimitedOverTime: { x: string; y: number }[] = [];
+  const usageExceededOverTime: { x: string; y: number }[] = [];
 
-  const ratelimitedOverTime = fillRange(
-    verifications.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
-    x: new Date(time).toISOString(),
-    y: value,
-  }));
-
-  const usageExceededOverTime = fillRange(
-    verifications.data.map(({ time, usageExceeded }) => ({ value: usageExceeded, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
-    x: new Date(time).toISOString(),
-    y: value,
-  }));
+  for (const d of verifications.data.sort((a, b) => a.time - b.time)) {
+    const x = new Date(d.time).toISOString();
+    successOverTime.push({ x, y: d.success });
+    ratelimitedOverTime.push({ x, y: d.rateLimited });
+    usageExceededOverTime.push({ x, y: d.usageExceeded });
+  }
 
   const verificationsData = [
     ...successOverTime.map((d) => ({
@@ -124,14 +104,9 @@ export default async function ApiPage(props: {
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
   ];
 
-  const activeKeysOverTime = fillRange(
-    activeKeys.data.map(({ time, keys }) => ({ value: keys, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
+  const activeKeysOverTime = activeKeys.data.map(({ time, keys }) => ({
     x: new Date(time).toISOString(),
-    y: value,
+    y: keys,
   }));
 
   return (
