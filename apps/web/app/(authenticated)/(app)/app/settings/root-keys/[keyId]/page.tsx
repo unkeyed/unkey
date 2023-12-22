@@ -12,7 +12,6 @@ import {
   getVerificationsDaily,
   getVerificationsHourly,
 } from "@/lib/tinybird";
-import { fillRange } from "@/lib/utils";
 import { Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
@@ -55,7 +54,7 @@ export default async function RootKeyPage(props: {
     start,
     end,
   };
-  const [usage, totalUsage, latestVerifications, lastUsed] = await Promise.all([
+  const [verifications, totalUsage, latestVerifications, lastUsed] = await Promise.all([
     getVerificationsPerInterval(query),
     getVerificationsPerInterval({
       workspaceId: env().UNKEY_WORKSPACE_ID,
@@ -70,35 +69,16 @@ export default async function RootKeyPage(props: {
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
   ]);
 
-  const successOverTime = fillRange(
-    usage.data.map(({ time, success }) => ({ value: success, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
-    x: new Date(time).toISOString(),
-    y: value,
-  }));
+  const successOverTime: { x: string; y: number }[] = [];
+  const ratelimitedOverTime: { x: string; y: number }[] = [];
+  const usageExceededOverTime: { x: string; y: number }[] = [];
 
-  const ratelimitedOverTime = fillRange(
-    usage.data.map(({ time, rateLimited }) => ({ value: rateLimited, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
-    x: new Date(time).toISOString(),
-    y: value,
-  }));
-
-  const usageExceededOverTime = fillRange(
-    usage.data.map(({ time, usageExceeded }) => ({ value: usageExceeded, time })),
-    start,
-    end,
-    granularity,
-  ).map(({ value, time }) => ({
-    x: new Date(time).toISOString(),
-    y: value,
-  }));
+  for (const d of verifications.data.sort((a, b) => a.time - b.time)) {
+    const x = new Date(d.time).toISOString();
+    successOverTime.push({ x, y: d.success });
+    ratelimitedOverTime.push({ x, y: d.rateLimited });
+    usageExceededOverTime.push({ x, y: d.usageExceeded });
+  }
 
   const verificationsData = [
     ...successOverTime.map((d) => ({
@@ -158,15 +138,19 @@ export default async function RootKeyPage(props: {
           <div className="grid grid-cols-3 divide-x">
             <Metric
               label="Successful Verifications"
-              value={formatNumber(usage.data.reduce((sum, day) => sum + day.success, 0))}
+              value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
             />
             <Metric
               label="Ratelimited"
-              value={formatNumber(usage.data.reduce((sum, day) => sum + day.rateLimited, 0))}
+              value={formatNumber(
+                verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
+              )}
             />
             <Metric
               label="Usage Exceeded"
-              value={formatNumber(usage.data.reduce((sum, day) => sum + day.usageExceeded, 0))}
+              value={formatNumber(
+                verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
+              )}
             />
           </div>
         </CardHeader>
