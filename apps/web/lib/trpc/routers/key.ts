@@ -17,6 +17,12 @@ export const keyRouter = t.router({
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
+        refill: z
+          .object({
+            interval: z.enum(["daily", "monthly"]),
+            amount: z.coerce.number().int().min(1).positive(),
+          })
+          .optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
         name: z.string().optional(),
         ratelimit: z
@@ -25,12 +31,6 @@ export const keyRouter = t.router({
             refillInterval: z.number().int().positive(),
             refillRate: z.number().int().positive(),
             limit: z.number().int().positive(),
-          })
-          .optional(),
-        refill: z
-          .object({
-            interval: z.enum(["daily", "monthly"]),
-            amount: z.number().int().min(1).positive(),
           })
           .optional(),
       }),
@@ -83,10 +83,10 @@ export const keyRouter = t.router({
           ratelimitRefillRate: input.ratelimit?.refillRate,
           ratelimitRefillInterval: input.ratelimit?.refillInterval,
           ratelimitType: input.ratelimit?.type,
-          refillAmount: input.refill?.amount,
-          refillInterval: input.refill?.interval,
-          lastRefillAt: input.refill ? new Date() : null,
           remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
           totalUses: 0,
           deletedAt: null,
         });
@@ -165,6 +165,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: 1000,
           ratelimitType: "fast",
           remaining: null,
+          refillInterval: null,
+          refillAmount: null,
+          lastRefillAt: null,
           totalUses: 0,
           deletedAt: null,
         });

@@ -21,37 +21,39 @@ import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  const { setActive, organizationList, isLoaded: clerkLoaded } = useOrganizationList();
+  const { isLoaded, setActive, userMemberships } = useOrganizationList({
+    userMemberships: {
+      infinite: true,
+      pageSize: 100,
+    },
+  });
   const { organization: currentOrg, membership } = useOrganization();
   const { user } = useUser();
-  const [isLoading, setLoading] = useState(false);
-  const _router = useRouter();
+  const router = useRouter();
   async function changeOrg(orgId: string | null) {
     if (!setActive) {
       return;
     }
     try {
-      setLoading(true);
       await setActive({
         organization: orgId,
       });
     } finally {
-      setLoading(false);
-      _router.refresh();
+      router.refresh();
     }
   }
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {
-    if (!organizationList) {
+    if (!userMemberships.data) {
       return [];
     }
     if (search === "") {
-      return organizationList;
+      return userMemberships.data;
     }
-    return organizationList?.filter(({ organization }) =>
+    return userMemberships.data?.filter(({ organization }) =>
       organization.name.toLowerCase().includes(search.toLowerCase()),
     );
-  }, [search, organizationList])!;
+  }, [search, userMemberships])!;
 
   return (
     <DropdownMenu>
@@ -72,7 +74,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
                 .toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>
-          {!clerkLoaded || isLoading ? (
+          {!isLoaded ? (
             <Loading />
           ) : (
             <Tooltip>
@@ -102,7 +104,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           onClick={() => changeOrg(null)}
         >
           <span className={currentOrg === null ? "font-semibold" : undefined}>
-            {user?.username ?? user?.fullName ?? ""}
+            {user?.username ?? user?.fullName ?? "Personal Workspace"}
           </span>
           {currentOrg === null ? <Check className="h-4 w-4" /> : null}
         </DropdownMenuItem>
@@ -110,17 +112,21 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {filteredOrgs.map(({ organization }) => (
+          {filteredOrgs.map((membership) => (
             <DropdownMenuItem
-              key={organization.id}
+              key={membership.id}
               className="flex items-center justify-between"
-              onClick={() => changeOrg(organization.id)}
+              onClick={() => changeOrg(membership.organization.id)}
             >
-              <span className={organization.id === currentOrg?.id ? "font-semibold" : undefined}>
+              <span
+                className={
+                  membership.organization.id === currentOrg?.id ? "font-semibold" : undefined
+                }
+              >
                 {" "}
-                {organization.name}
+                {membership.organization.name}
               </span>
-              {organization.id === currentOrg?.id ? <Check className="h-4 w-4" /> : null}
+              {membership.organization.id === currentOrg?.id ? <Check className="h-4 w-4" /> : null}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
@@ -132,7 +138,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             </Link>
           </DropdownMenuItem>
           {membership?.role === "admin" ? (
-            <Link href="/app/settings/team/invite">
+            <Link href="/app/settings/team">
               <DropdownMenuItem>
                 <UserPlus className="w-4 h-4 mr-2 " />
                 <span className="cursor-pointer">Invite Member</span>

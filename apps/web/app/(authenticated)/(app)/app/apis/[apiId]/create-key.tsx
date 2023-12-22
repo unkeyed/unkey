@@ -42,18 +42,27 @@ import { z } from "zod";
 const currentTime = new Date();
 const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
-  bytes: z.coerce.number().positive(),
-  prefix: z.string().max(8).optional(),
+  bytes: z.coerce.number().positive({ message: "Please enter a positive number" }),
+  prefix: z
+    .string()
+    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
   meta: z.string().optional(),
   limit: z
     .object({
-      remaining: z.coerce.number().positive(),
+      remaining: z.coerce.number().positive({ message: "Please enter a positive number" }),
       refill: z
         .object({
           interval: z.enum(["none", "daily", "monthly"]),
-          amount: z.coerce.number().int().min(1).positive(),
+          amount: z.coerce
+            .number()
+            .int()
+            .min(1, {
+              message: "Please enter the number of uses per interval",
+            })
+            .positive(),
         })
         .optional(),
     })
@@ -146,6 +155,14 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
+    if (values.limit?.refill?.interval !== "none" && values.limit?.remaining === undefined) {
+      form.setError("limit.remaining", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+
     if (
       values.limit &&
       values.limit?.refill?.interval !== "daily" &&
@@ -414,6 +431,11 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       className="w-full"
                                       type="number"
                                       {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
                                     />
                                   </FormControl>
                                   <FormDescription>
@@ -428,7 +450,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               name="limit.refill.interval"
                               render={({ field }) => (
                                 <FormItem className="mt-4">
-                                  <FormLabel>Replenishment Rate</FormLabel>
+                                  <FormLabel>Refill Rate</FormLabel>
                                   <Select onValueChange={field.onChange} defaultValue="">
                                     <SelectTrigger>
                                       <SelectValue />
@@ -455,12 +477,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       className="w-full"
                                       type="number"
                                       {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
                                     />
                                   </FormControl>
                                   <FormDescription>
-                                    Enter the amount of uses added per replenish interval.
+                                    Enter the number of uses to refill per interval.
                                   </FormDescription>
-                                  <FormMessage />
+                                  <FormMessage defaultValue="Please enter a value if interval is selected" />
                                 </FormItem>
                               )}
                             />

@@ -109,36 +109,24 @@ export const registerV1ApisListKeys = (app: App) =>
         message: `api ${apiId} is not setup to handle keys`,
       });
     }
-    const keysWhere: Parameters<typeof and> = [
-      isNull(schema.keys.deletedAt),
-      eq(schema.keys.keyAuthId, api.keyAuthId),
-    ];
-    if (cursor) {
-      keysWhere.push(gt(schema.keys.id, cursor));
-    }
-    if (ownerId) {
-      keysWhere.push(eq(schema.keys.ownerId, ownerId));
-    }
 
-    const [keys, total] = await Promise.all([
-      db.query.keys.findMany({
-        where: and(...keysWhere),
-        limit: parseInt(limit),
-        orderBy: schema.keys.id,
-      }),
-      db
-        // @ts-ignore, mysql sucks
-        .select({ count: sql<string>`count(*)` })
-        .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt))),
-    ]);
+    const keys = await db.query.keys.findMany({
+      where: and(
+        ...[
+          eq(schema.keys.keyAuthId, api.keyAuthId),
+          isNull(schema.keys.deletedAt),
+          cursor ? gt(schema.keys.id, cursor) : undefined,
+          ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
+        ].filter(Boolean),
+      ),
+      limit: parseInt(limit),
+      orderBy: schema.keys.id,
+    });
 
-    if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: `api ${apiId} not found`,
-      });
-    }
+    const total = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(schema.keys)
+      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
 
     return c.json({
       keys: keys.map((k) => ({

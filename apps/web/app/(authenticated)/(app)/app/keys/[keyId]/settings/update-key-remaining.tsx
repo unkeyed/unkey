@@ -83,8 +83,8 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               defaultValue={apiKey?.remaining ?? ""}
               autoComplete="off"
             />
-            <Label htmlFor="replenish" className="pt-4">
-              Replenishment Rate
+            <Label htmlFor="refillInterval" className="pt-4">
+              Refill Rate
             </Label>
             <Select
               disabled={!enabled}
