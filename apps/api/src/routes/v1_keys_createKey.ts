@@ -198,25 +198,41 @@ export const registerV1KeysCreateKey = (app: App) =>
     const keyId = newId("key");
     const hash = await sha256(key.toString());
 
-    await db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: api.keyAuthId,
-      name: req.name,
-      hash,
-      start,
-      ownerId: req.ownerId,
-      meta: JSON.stringify(req.meta ?? {}),
-      workspaceId: rootKey.value.authorizedWorkspaceId,
-      forWorkspaceId: null,
-      expires: req.expires ? new Date(req.expires) : null,
-      createdAt: new Date(),
-      ratelimitLimit: req.ratelimit?.limit,
-      ratelimitRefillRate: req.ratelimit?.refillRate,
-      ratelimitRefillInterval: req.ratelimit?.refillInterval,
-      ratelimitType: req.ratelimit?.type,
-      remaining: req.remaining,
-      totalUses: 0,
-      deletedAt: null,
+    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
+    const rootKeyId = rootKey.value.key.id;
+
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.keys).values({
+        id: keyId,
+        keyAuthId: api.keyAuthId!,
+        name: req.name,
+        hash,
+        start,
+        ownerId: req.ownerId,
+        meta: JSON.stringify(req.meta ?? {}),
+        workspaceId: authorizedWorkspaceId,
+        forWorkspaceId: null,
+        expires: req.expires ? new Date(req.expires) : null,
+        createdAt: new Date(),
+        ratelimitLimit: req.ratelimit?.limit,
+        ratelimitRefillRate: req.ratelimit?.refillRate,
+        ratelimitRefillInterval: req.ratelimit?.refillInterval,
+        ratelimitType: req.ratelimit?.type,
+        remaining: req.remaining,
+        totalUses: 0,
+        deletedAt: null,
+      });
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "key.create",
+        description: "Key created",
+        apiId: api.id,
+        keyAuthId: api.keyAuthId,
+      });
     });
     // TODO: emit event to tinybird
     return c.json({

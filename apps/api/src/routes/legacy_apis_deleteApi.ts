@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
+import { newId } from "@unkey/id";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -73,7 +74,19 @@ export const registerLegacyApisDeleteApi = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
 
-    await db.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
+    await db.transaction(async (tx) => {
+      await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: api.workspaceId,
+        actorType: "key",
+        actorId: rootKey.value.key!.id,
+        event: "api.delete",
+        description: "API deleted",
+        apiId: apiId,
+      });
+    });
     // TODO: delete all keys for this api
     await cache.remove(c, "apiById", apiId);
 
