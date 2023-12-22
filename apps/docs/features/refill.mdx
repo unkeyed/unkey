@@ -17,7 +17,7 @@ Let's create a new key that can be used 100 times a day.
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys \
+  --url https://api.unkey.dev/v1/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -25,7 +25,7 @@ curl --request POST \
 	"remaining": 100,
   "refill": {
       "interval": "daily",
-      "increment": 100
+      "amount": 100
   }
 }'
 ```
@@ -34,7 +34,7 @@ Now, when you verify the new key, you will receive the remaining verifications. 
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys/verify \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
 		"key": "<NEW_KEY>"

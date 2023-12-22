@@ -75,7 +75,7 @@
         "features/ratelimiting",
         "features/temp-keys",
         "features/remaining",
-        "features/replenish",
+        "features/refill",
         "features/analytics"
       ]
     },

@@ -17,8 +17,9 @@ client.defineJob({
 
     const keys = await io.runTask("list keys", () =>
       db.query.keys.findMany({
-        where: (table, { isNotNull, eq, and }) =>
+        where: (table, { isNull, isNotNull, eq, and }) =>
           and(
+            isNull(table.deletedAt),
             isNotNull(table.refillInterval),
             isNotNull(table.refillAmount),
             eq(table.refillInterval, "monthly"),

@@ -20,7 +20,7 @@ export const keyRouter = t.router({
         refill: z
           .object({
             interval: z.enum(["daily", "monthly"]),
-            amount: z.coerce.number().int().min(1).positive(),
+            amount: z.coerce.number().int().min(1),
           })
           .optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds

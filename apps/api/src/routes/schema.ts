@@ -59,11 +59,11 @@ export const keySchema = z
     refill: z
       .object({
         interval: z.enum(["daily", "monthly"]).openapi({
-          description: "Determines the rate verifications will be refilled.",
+          description: "Determines the rate at which verifications will be refilled.",
           example: "daily",
         }),
         amount: z.number().int().openapi({
-          description: "How many verifications to refill during each Interval.",
+          description: "Resets `remaining` to this value every interval.",
           example: 100,
         }),
         lastRefillAt: z.number().optional().openapi({

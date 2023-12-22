@@ -86,7 +86,7 @@ const route = createRoute({
                   description:
                     "Unkey will automatically refill verifications at the set interval. If null is used the refill functionality will be removed from the key.",
                 }),
-                amount: z.number().int().min(1).positive().openapi({
+                amount: z.number().int().min(1).openapi({
                   description:
                     "The amount of verifications to refill for each occurrence is determined individually for each key.",
                 }),
