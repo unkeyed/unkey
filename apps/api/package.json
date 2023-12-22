@@ -26,7 +26,7 @@
     "@unkey/keys": "workspace:^",
     "@unkey/result": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.28.6",
+    "drizzle-orm": "^0.29.1",
     "hono": "^3.11.7",
     "zod": "^3.22.4",
     "zod-error": "^1.5.0"
