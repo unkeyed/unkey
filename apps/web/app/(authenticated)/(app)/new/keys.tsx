@@ -78,7 +78,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
 
   const createKeySnippet = `curl -XPOST '${
     process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys' \\
+  }/v1/keys.createKey' \\
   -H 'Authorization: Bearer ${rootKey.data?.key}' \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -88,7 +88,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
 
   const verifyKeySnippet = `curl -XPOST '${
     process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys/verify' \\
+  }/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key ?? "<YOUR_KEY>"}"
