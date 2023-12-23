@@ -12,13 +12,6 @@ const route = createRoute({
   method: "post",
   path: "/v1/keys.createKey",
   request: {
-    headers: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
-
     body: {
       required: true,
       content: {
@@ -85,6 +78,25 @@ When validating a key, we will return this back to you, so you can clearly ident
                 externalDocs: {
                   description: "Learn more",
                   url: "https://unkey.dev/docs/features/remaining",
+                },
+              }),
+            refill: z
+              .object({
+                interval: z.enum(["daily", "monthly"]).openapi({
+                  description: "Unkey will automatically refill verifications at the set interval.",
+                }),
+                amount: z.number().int().min(1).positive().openapi({
+                  description:
+                    "The number of verifications to refill for each occurrence is determined individually for each key.",
+                }),
+              })
+              .optional()
+              .openapi({
+                description:
+                  "Unkey enables you to refill verifications for each key at regular intervals.",
+                example: {
+                  interval: "daily",
+                  amount: 100,
                 },
               }),
             ratelimit: z
@@ -160,16 +172,31 @@ export type V1KeysCreateKeyResponse = z.infer<
 
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
+    }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const req = c.req.valid("json");
@@ -177,13 +204,17 @@ export const registerV1KeysCreateKey = (app: App) =>
     const api = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, req.apiId),
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `api ${req.apiId} not found`,
+      });
     }
 
     if (!api.keyAuthId) {
@@ -192,37 +223,70 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: `api ${req.apiId} is not setup to handle keys`,
       });
     }
-
+    if (req.remaining === 0) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "remaining must be greater than 0.",
+      });
+    }
+    if ((req.remaining === null || req.remaining === undefined) && req.refill?.interval) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "remaining must be set if you are using refill.",
+      });
+    }
     /**
      * Set up an api for production
      */
-    const key = new KeyV1({ byteLength: req.byteLength, prefix: req.prefix }).toString();
+    const key = new KeyV1({
+      byteLength: req.byteLength,
+      prefix: req.prefix,
+    }).toString();
     const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
     const keyId = newId("key");
     const hash = await sha256(key.toString());
 
-    await db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: api.keyAuthId,
-      name: req.name,
-      hash,
-      start,
-      ownerId: req.ownerId,
-      meta: JSON.stringify(req.meta ?? {}),
-      workspaceId: rootKey.value.authorizedWorkspaceId,
-      forWorkspaceId: null,
-      expires: req.expires ? new Date(req.expires) : null,
-      createdAt: new Date(),
-      ratelimitLimit: req.ratelimit?.limit,
-      ratelimitRefillRate: req.ratelimit?.refillRate,
-      ratelimitRefillInterval: req.ratelimit?.refillInterval,
-      ratelimitType: req.ratelimit?.type,
-      remainingRequests: req.remaining,
-      totalUses: 0,
-      deletedAt: null,
+    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
+    const rootKeyId = rootKey.value.key.id;
+
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.keys).values({
+        id: keyId,
+        keyAuthId: api.keyAuthId!,
+        name: req.name,
+        hash,
+        start,
+        ownerId: req.ownerId,
+        meta: JSON.stringify(req.meta ?? {}),
+        workspaceId: authorizedWorkspaceId,
+        forWorkspaceId: null,
+        expires: req.expires ? new Date(req.expires) : null,
+        createdAt: new Date(),
+        ratelimitLimit: req.ratelimit?.limit,
+        ratelimitRefillRate: req.ratelimit?.refillRate,
+        ratelimitRefillInterval: req.ratelimit?.refillInterval,
+        ratelimitType: req.ratelimit?.type,
+        remaining: req.remaining,
+        refillInterval: req.refill?.interval,
+        refillAmount: req.refill?.amount,
+        lastRefillAt: req.refill?.interval ? new Date() : null,
+        totalUses: 0,
+        deletedAt: null,
+      });
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "key.create",
+        description: "Key created",
+        apiId: api.id,
+        keyAuthId: api.keyAuthId,
+      });
     });
     // TODO: emit event to tinybird
-    return c.jsonT({
+    return c.json({
       keyId,
       key,
     });

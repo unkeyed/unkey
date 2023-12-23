@@ -64,7 +64,25 @@ In milliseconds
   Update the remaining usage of a key.
 
 </ParamField>
+<ParamField body="refill" type="Object" >
 
+Unkey allows automatic refill on 'remaining' on a 'daily' or 'monthly' interval.
+
+  <Expandable title="properties">
+
+  <ParamField body="interval" type="string" required>
+  Either `daily` or `monthly`.
+
+
+
+  </ParamField>
+  <ParamField body="amount" type="int" required>
+  The amount to refill 'remaining'.
+  
+Read more [here](/features/refill)
+  </ParamField>
+ </Expandable>
+</ParamField>
 ## Response
 
 <ResponseField name="result">
@@ -87,6 +105,10 @@ await unkey.keys.update({
   keyId: "xyz_AS5HDkXXPot2MMoPHD8jnL",
   ownerId: "new owner",
   remaining: 300,
+  refil: {
+    interval: "daily",
+    amount: 100
+  }
 });
 ```
 

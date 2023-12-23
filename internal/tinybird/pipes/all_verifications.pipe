@@ -1,0 +1,34 @@
+VERSION 2
+NODE all_verifications_in_v2
+DESCRIPTION >
+    undefined
+
+SQL >
+
+    SELECT countIfMerge(success) + countIfMerge(rateLimited) + countIfMerge(usageExceeded) as totalVerifications
+    FROM mv__daily_verifications
+    where
+        time > toUnixTimestamp64Milli(toDateTime64('2023-09-07 07:00:00', 3))
+        and workspaceId != 'ws_QXaikfWEdwe1uvYw1QXpSa'
+        and workspaceId != 'ws_4GKWTRr6vyEyh4wEAZJsPg'
+        and workspaceId != 'ws_GcQBeZ51Z1VPDxX3TSSi9t'
+
+
+
+NODE all_verifications_in_v1
+SQL >
+
+    SELECT count(*)
+    FROM key_verifications
+    where
+        time < toUnixTimestamp64Milli(toDateTime64('2023-09-07 07:00:00', 3))
+        and workspaceId != 'ws_QXaikfWEdwe1uvYw1QXpSa'
+        and workspaceId != 'ws_4GKWTRr6vyEyh4wEAZJsPg'
+        and workspaceId != 'ws_GcQBeZ51Z1VPDxX3TSSi9t'
+
+
+
+NODE endpoint
+SQL >
+
+    (SELECT * FROM all_verifications_in_v1 ) UNION DISTINCT ( SELECT * FROM all_verifications_in_v2 )

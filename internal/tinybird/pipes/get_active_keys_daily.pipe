@@ -1,0 +1,22 @@
+VERSION 1
+TOKEN "get_activeKeys_daily__v1_endpoint_read_7257" READ
+
+NODE endpoint
+SQL >
+
+    %
+    SELECT count(DISTINCT keyId) as keys, time
+    FROM verifications_daily_mv
+    where
+            workspaceId = {{ String(workspaceId, required=True )}}
+            and apiId ={{ String(apiId) }}
+            {% if defined(keyId) %}
+            and keyId ={{ String(keyId) }}
+            {%end if %}
+          {% if defined(start)%}
+              and time >= fromUnixTimestamp64Milli({{ Int64(start) }})
+            {%end if %}
+            {% if defined(end)%}
+              and time <= fromUnixTimestamp64Milli({{ Int64(end)}})
+            {%end if %}
+    group by time

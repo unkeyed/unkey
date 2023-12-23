@@ -63,7 +63,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
             Create New API
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-sm: w-11/12 ">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <FormField

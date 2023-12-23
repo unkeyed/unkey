@@ -1,16 +1,16 @@
-import { testEnv } from "@/pkg/testutil/env";
+import { integrationTestEnv } from "@/pkg/testutil/env";
 import { step } from "@/pkg/testutil/request";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import type {
-  V1KeysUpdateKeyRequest,
-  V1KeysUpdateKeyResponse,
+  V1KeysUpdateKeyRemainingRequest,
+  V1KeysUpdateKeyRemainingResponse,
 } from "@/routes/v1_keys_updateRemaining";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { expect, test } from "bun:test";
 
-const env = testEnv();
+const env = integrationTestEnv.parse(process.env);
 test("update a key's remaining limit", async () => {
   const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
     url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,
@@ -56,6 +56,7 @@ test("update a key's remaining limit", async () => {
         key: createKeyResponse.body.key,
       },
     });
+
     expect(valid.status).toEqual(200);
     expect(valid.body.valid).toBeTrue();
     expect(valid.body.remaining).toEqual(i);
@@ -77,7 +78,10 @@ test("update a key's remaining limit", async () => {
   expect(invalid.body.valid).toBeFalse();
   expect(invalid.body.remaining).toEqual(0);
 
-  const updateKeyResponse = await step<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+  const updateKeyResponse = await step<
+    V1KeysUpdateKeyRemainingRequest,
+    V1KeysUpdateKeyRemainingResponse
+  >({
     url: `${env.UNKEY_BASE_URL}/v1/keys.updateRemaining`,
     method: "POST",
     headers: {

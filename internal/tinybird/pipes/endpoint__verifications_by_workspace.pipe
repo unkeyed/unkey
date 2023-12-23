@@ -1,0 +1,17 @@
+VERSION 1
+TOKEN "endpoint__verifications_by_workspace__v1_endpoint_read_7956" READ
+
+NODE endpoint
+SQL >
+
+    %
+    SELECT
+        countIfMerge(success) as success,
+        countIfMerge(rateLimited) as rateLimited,
+        countIfMerge(usageExceeded) as usageExceeded,
+        time
+    FROM mv__monthly_verifications
+    where
+        workspaceId = {{ String(workspaceId, required=True) }}
+        and time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
+    group by time

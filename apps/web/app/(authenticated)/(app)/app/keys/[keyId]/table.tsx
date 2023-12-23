@@ -33,7 +33,7 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
           <TableHead>Time</TableHead>
           <TableHead>Resource</TableHead>
           <TableHead>User Agent</TableHead>
-          <TableHead className="flex items-center">
+          <TableHead className="flex h-full items-center">
             IP Address{" "}
             <Button
               onClick={() => {
@@ -42,7 +42,7 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
               size="icon"
               variant="link"
             >
-              {showIp ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              {showIp ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
           </TableHead>
           <TableHead>Region</TableHead>
@@ -55,13 +55,13 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
           <TableRow key={i}>
             <TableCell className="flex flex-col">
               <span className="text-content">{new Date(verification.time).toDateString()}</span>
-              <span className="text-xs text-content-subtle">
+              <span className="text-content-subtle text-xs">
                 {new Date(verification.time).toTimeString().split("(").at(0)}
               </span>
             </TableCell>
             <TableCell>{verification.requestedResource}</TableCell>
             <TableCell className="max-w-sm truncate">{verification.userAgent}</TableCell>
-            <TableCell className="font-mono">
+            <TableCell className="ph-no-capture font-mono">
               {showIp ? verification.ipAddress : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
             </TableCell>
             <TableCell>{verification.region}</TableCell>

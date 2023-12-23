@@ -54,12 +54,14 @@ async function main() {
     internal: true,
     betaFeatures: {},
     features: {},
+    createdAt: new Date(),
   };
   await db.insert(schema.workspaces).values(workspace);
 
   const keyAuth = {
     id: newId("key_auth"),
     workspaceId: workspace.id,
+    createdAt: new Date(),
   };
 
   await db.insert(schema.keyAuth).values(keyAuth);
@@ -74,6 +76,7 @@ async function main() {
     workspaceId,
     authType: "key",
     keyAuthId: keyAuth.id,
+    createdAt: new Date(),
   });
 
   console.log("Add these to /apps/agent/.env and /apps/web/.env");

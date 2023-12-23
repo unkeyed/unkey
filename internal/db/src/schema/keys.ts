@@ -4,6 +4,7 @@ import {
   datetime,
   index,
   int,
+  mysqlEnum,
   mysqlTable,
   text,
   uniqueIndex,
@@ -49,9 +50,16 @@ export const keys = mysqlTable(
      */
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
+     * You can refill uses to keys at a desired interval
+     */
+    refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
+    refillAmount: int("refill_amount"),
+    lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
+    /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
-    remainingRequests: int("remaining_requests"),
+
+    remaining: int("remaining_requests"),
 
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
@@ -71,6 +79,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     references: [keyAuth.id],
   }),
   workspace: one(workspaces, {
+    relationName: "workspace_key_relation",
     fields: [keys.workspaceId],
     references: [workspaces.id],
   }),
@@ -78,5 +87,6 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
   }),
+
   auditLog: many(auditLogs),
 }));

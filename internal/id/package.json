@@ -2,11 +2,8 @@
   "name": "@unkey/id",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc"
-  },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "ISC",
@@ -17,6 +14,6 @@
   },
   "dependencies": {
     "base-x": "^4.0.0",
-    "@unkey/hash": "workspace:*"
+    "nanoid": "^5.0.4"
   }
 }

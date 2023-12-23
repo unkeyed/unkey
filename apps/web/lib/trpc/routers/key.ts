@@ -1,10 +1,11 @@
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
+import { newKey } from "@unkey/keys";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
-import { unkeyRoot, unkeyScoped } from "@/lib/api";
 export const keyRouter = t.router({
   create: t.procedure
     .use(auth)
@@ -16,6 +17,12 @@ export const keyRouter = t.router({
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
+        refill: z
+          .object({
+            interval: z.enum(["daily", "monthly"]),
+            amount: z.coerce.number().int().min(1),
+          })
+          .optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
         name: z.string().optional(),
         ratelimit: z
@@ -30,36 +37,72 @@ export const keyRouter = t.router({
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
-      const newRootKey = await unkeyRoot._internal.createRootKey({
-        forWorkspaceId: workspace.id,
-        name: "Dashboard",
-        expires: Date.now() + 60000, // expires in 1 minute
+      const api = await db.query.apis.findFirst({
+        where: (table, { eq }) => eq(table.id, input.apiId),
       });
-      if (newRootKey.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
+      if (!api) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
+      }
+      if (!api.keyAuthId) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "api is not setup to handle keys",
+        });
       }
 
-      const { error, result } = await unkeyScoped(newRootKey.result.key).keys.create({
-        apiId: input.apiId,
-        name: input.name ?? undefined,
+      const keyId = newId("key");
+      const { key, hash, start } = await newKey({
         prefix: input.prefix,
         byteLength: input.bytesLength,
-        ownerId: input.ownerId ?? undefined,
-        meta: input.meta,
-        remaining: input.remaining,
-        expires: input.expires ?? undefined,
-        ratelimit: input.ratelimit,
       });
-      if (error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
-      }
-      return result;
+
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.keys).values({
+          id: keyId,
+          keyAuthId: api.keyAuthId!,
+          name: input.name,
+          hash,
+          start,
+          ownerId: input.ownerId,
+          meta: JSON.stringify(input.meta ?? {}),
+          workspaceId: workspace.id,
+          forWorkspaceId: null,
+          expires: input.expires ? new Date(input.expires) : null,
+          createdAt: new Date(),
+          ratelimitLimit: input.ratelimit?.limit,
+          ratelimitRefillRate: input.ratelimit?.refillRate,
+          ratelimitRefillInterval: input.ratelimit?.refillInterval,
+          ratelimitType: input.ratelimit?.type,
+          remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
+          totalUses: 0,
+          deletedAt: null,
+        });
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: workspace.id,
+          apiId: api.id,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.create",
+          description: `created key ${keyId} for api ${api.id}`,
+          keyId: keyId,
+        });
+      });
+      return { keyId, key };
     }),
   createInternalRootKey: t.procedure
     .use(auth)
@@ -78,31 +121,70 @@ export const keyRouter = t.router({
         },
       });
       if (!unkeyApi) {
-        console.error(`api ${env().UNKEY_API_ID} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
-      }
-
-      const workspace = await db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
-      });
-      if (!workspace) {
-        console.error(`workspace for tenant ${ctx.tenant.id} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
-      }
-
-      const { error, result } = await unkeyRoot._internal.createRootKey({
-        forWorkspaceId: workspace.id,
-        name: input?.name,
-      });
-
-      if (error) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `unable to create root key: ${error.message}`,
+          code: "NOT_FOUND",
+          message: `api ${env().UNKEY_API_ID} not found`,
+        });
+      }
+      if (!unkeyApi.keyAuthId) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `api ${env().UNKEY_API_ID} is not setup to handle keys`,
         });
       }
 
-      return result;
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      });
+      if (!workspace) {
+        console.error(`workspace for tenant ${ctx.tenant.id} not found`);
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+
+      const keyId = newId("key");
+
+      const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.keys).values({
+          id: keyId,
+          keyAuthId: unkeyApi.keyAuthId!,
+          name: input?.name,
+          hash,
+          start,
+          ownerId: ctx.user.id,
+          workspaceId: env().UNKEY_WORKSPACE_ID,
+          forWorkspaceId: workspace.id,
+          expires: null,
+          createdAt: new Date(),
+          ratelimitLimit: 10,
+          ratelimitRefillRate: 10,
+          ratelimitRefillInterval: 1000,
+          ratelimitType: "fast",
+          remaining: null,
+          refillInterval: null,
+          refillAmount: null,
+          lastRefillAt: null,
+          totalUses: 0,
+          deletedAt: null,
+        });
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: workspace.id,
+          apiId: unkeyApi.id,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.create",
+          description: `created key ${keyId} for api ${unkeyApi.id}`,
+          keyId: keyId,
+        });
+      });
+      return { key, keyId };
     }),
   delete: t.procedure
     .use(auth)
@@ -113,31 +195,57 @@ export const keyRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       const workspace = await db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
-
-      const newRootKey = await unkeyRoot._internal.createRootKey({
-        forWorkspaceId: workspace.id,
-        name: "Dashboard",
-        expires: Date.now() + 60000, // expires in 1 minute
-      });
-      if (newRootKey.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
-      }
-
-      const sdk = unkeyScoped(newRootKey.result.key);
 
       await Promise.all(
         input.keyIds.map(async (keyId) => {
-          const { error } = await sdk.keys.revoke({
-            keyId,
+          const key = await db.query.keys.findFirst({
+            where: (table, { eq, and }) =>
+              and(eq(table.id, keyId), eq(table.workspaceId, workspace.id)),
+            with: {
+              keyAuth: {
+                with: {
+                  api: true,
+                },
+              },
+            },
           });
-          if (error) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+          if (!key) {
+            console.warn(`key ${keyId} not found, skipping deletion`);
+            return;
           }
+          if (key.deletedAt !== null) {
+            console.warn(`key ${keyId} already deleted, skipping deletion`);
+            return;
+          }
+          await db.transaction(async (tx) => {
+            await db
+              .update(schema.keys)
+              .set({
+                deletedAt: new Date(),
+              })
+              .where(eq(schema.keys.id, keyId));
+            await tx.insert(schema.auditLogs).values({
+              id: newId("auditLog"),
+              time: new Date(),
+              workspaceId: workspace.id,
+              apiId: key.keyAuth.api?.id,
+              actorType: "user",
+              actorId: ctx.user.id,
+              event: "key.delete",
+              description: `deleted key ${keyId}`,
+
+              keyId: keyId,
+            });
+          });
         }),
       );
       return;
@@ -151,32 +259,36 @@ export const keyRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       const workspace = await db.query.workspaces.findFirst({
-        where: eq(schema.workspaces.tenantId, ctx.tenant.id),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
-
-      const newRootKey = await unkeyRoot._internal.createRootKey({
-        forWorkspaceId: workspace.id,
-        name: "Dashboard",
-        expires: Date.now() + 60000, // expires in 1 minute
-      });
-      if (newRootKey.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: newRootKey.error.message });
-      }
-
-      const sdk = unkeyScoped(newRootKey.result.key);
 
       await Promise.all(
         input.keyIds.map(async (keyId) => {
-          const { error } = await sdk._internal.deleteRootKey({
-            keyId,
+          const key = await db.query.keys.findFirst({
+            where: (table, { eq, and }) =>
+              and(eq(table.id, keyId), eq(table.forWorkspaceId, workspace.id)),
           });
-          if (error) {
-            console.error(error);
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+          if (!key) {
+            console.warn(`key ${keyId} not found, skipping deletion`);
+            return;
           }
+          if (key.deletedAt !== null) {
+            console.warn(`key ${keyId} already deleted, skipping deletion`);
+            return;
+          }
+          await db
+            .update(schema.keys)
+            .set({
+              deletedAt: new Date(),
+            })
+            .where(eq(schema.keys.id, keyId));
         }),
       );
       return;

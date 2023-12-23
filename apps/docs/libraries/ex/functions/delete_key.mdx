@@ -1,0 +1,42 @@
+---
+title: "delete_key"
+description: "delete a key"
+---
+
+> @spec delete_key(binary) :: :ok
+
+Delete an api key for your users
+
+Returns `:ok`
+
+## Request
+
+<ParamField path="keyId" type="string" required>
+  The ID of the key you want to revoke.
+</ParamField>
+
+## Response
+
+Returns an atom `:ok`
+
+<RequestExample>
+
+```elixir
+   try do
+     :ok = UnkeyElixirSdk.delete_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
+
+    catch
+        err ->
+          Logger.error(err)
+      end
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```elixir
+:ok
+```
+
+</ResponseExample>

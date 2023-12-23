@@ -21,6 +21,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
@@ -35,12 +42,31 @@ import { z } from "zod";
 const currentTime = new Date();
 const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
-  bytes: z.coerce.number().positive(),
-  prefix: z.string().max(8).optional(),
+  bytes: z.coerce.number().positive({ message: "Please enter a positive number" }),
+  prefix: z
+    .string()
+    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
   meta: z.string().optional(),
-  remaining: z.coerce.number().positive().optional(),
+  limit: z
+    .object({
+      remaining: z.coerce.number().positive({ message: "Please enter a positive number" }),
+      refill: z
+        .object({
+          interval: z.enum(["none", "daily", "monthly"]),
+          amount: z.coerce
+            .number()
+            .int()
+            .min(1, {
+              message: "Please enter the number of uses per interval",
+            })
+            .positive(),
+        })
+        .optional(),
+    })
+    .optional(),
   expires: z.coerce.date().min(new Date(oneMinute)).optional(),
   ratelimit: z
     .object({
@@ -59,7 +85,6 @@ type Props = {
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const { toast } = useToast();
   const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -70,6 +95,18 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     },
   });
   const formData = form.watch();
+
+  useEffect(() => {
+    if (formData.limit?.remaining === undefined) {
+      form.resetField("limit");
+    }
+  }, [formData.limit]);
+  useEffect(() => {
+    if (formData.limit?.refill?.interval === "none") {
+      form.resetField("limit.refill.interval");
+      form.resetField("limit.refill.amount");
+    }
+  }, [formData.limit?.refill]);
   useEffect(() => {
     if (
       formData.ratelimit?.limit === undefined &&
@@ -79,6 +116,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
+
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast({
@@ -117,12 +155,39 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
+    if (values.limit?.refill?.interval !== "none" && values.limit?.remaining === undefined) {
+      form.setError("limit.remaining", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
+
+    if (
+      values.limit &&
+      values.limit?.refill?.interval !== "daily" &&
+      values.limit?.refill?.interval !== "monthly"
+    ) {
+      delete values.limit.refill;
+    }
+    if (values.limit?.remaining === undefined) {
+      delete values.limit;
+    }
+
     await key.mutateAsync({
       apiId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
+      remaining: values.limit?.remaining ?? undefined,
+      refill:
+        values.limit?.refill && values.limit.refill.interval !== "none"
+          ? {
+              interval: values.limit.refill.interval,
+              amount: values.limit.refill.amount,
+            }
+          : undefined,
     });
   }
 
@@ -148,37 +213,39 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   return (
     <>
       {key.data ? (
-        <div className="w-full">
+        <div className="w-full max-sm:p-4">
           <div>
             <p className="mb-4 text-xl font-bold">Your API Key</p>
             <Alert>
-              <AlertCircle className="w-4 h-4" />
+              <AlertCircle className="h-4 w-4" />
               <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
               <AlertDescription>
                 Please pass it on to your user or store it somewhere safe.
               </AlertDescription>
             </Alert>
 
-            <Code className="flex items-center justify-between w-full gap-4 my-8 ">
-              <pre data-sentry-mask>{showKey ? key.data.key : maskedKey}</pre>
-              <div className="flex items-start justify-between gap-4">
+            <Code className="ph-no-capture my-8 flex w-full items-center justify-between gap-4 max-sm:text-xs sm:overflow-hidden">
+              <pre>{showKey ? key.data.key : maskedKey}</pre>
+              <div className="flex items-start justify-between gap-4 max-sm:absolute  max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
               </div>
             </Code>
           </div>
 
-          <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
-          <Code className="flex items-start justify-between w-full gap-4 my-8 ">
-            <pre data-sentry-mask>
-              {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
-            </pre>
-            <div className="flex items-start justify-between gap-4">
+          <p className="my-2 text-center font-medium text-gray-700 ">Try verifying it:</p>
+          <Code className="my-8 flex w-full items-start justify-between gap-4 overflow-hidden max-sm:text-xs ">
+            <div className="max-sm:mt-10">
+              <pre className="ph-no-capture">
+                {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
+              </pre>
+            </div>
+            <div className="max-ms:top-2 flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11 ">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
           </Code>
-          <div className="flex justify-end my-4 space-x-4">
+          <div className="my-4 flex justify-end space-x-4">
             <Link href={`/app/apis/${apiId}`}>
               <Button variant="secondary">Back</Button>
             </Link>
@@ -189,10 +256,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         <>
           <div>
             <div className="w-full overflow-scroll">
-              <h2 className="mb-2 text-2xl">Create a new Key</h2>
               <Form {...form}>
-                <form className="max-w-6xl mx-auto" onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="flex flex-col gap-4 md:flex-row justify-evenly">
+                <form className="mx-auto max-w-6xl" onSubmit={form.handleSubmit(onSubmit)}>
+                  <h2 className="mb-2 text-2xl">Create a New Key</h2>
+                  <div className="flex flex-col justify-evenly gap-4 md:flex-row">
                     <FormField
                       control={form.control}
                       name="prefix"
@@ -294,8 +361,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 </FormItem>
                               )}
                             />
-
-                            <div className="flex items-center gap-4 mt-8">
+                            <div className="mt-8 flex items-center gap-4">
                               <FormField
                                 control={form.control}
                                 name="ratelimit.refillRate"
@@ -355,7 +421,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <AccordionContent>
                             <FormField
                               control={form.control}
-                              name="remaining"
+                              name="limit.remaining"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Number of uses</FormLabel>
@@ -365,12 +431,63 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       className="w-full"
                                       type="number"
                                       {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
                                     />
                                   </FormControl>
                                   <FormDescription>
                                     Enter the remaining amount of uses for this key.
                                   </FormDescription>
                                   <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="limit.refill.interval"
+                              render={({ field }) => (
+                                <FormItem className="mt-4">
+                                  <FormLabel>Refill Rate</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue="">
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="daily">Daily</SelectItem>
+                                      <SelectItem value="monthly">Monthly</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="limit.refill.amount"
+                              render={({ field }) => (
+                                <FormItem className="mt-4">
+                                  <FormLabel>Number of uses per interval</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="100"
+                                      className="w-full"
+                                      type="number"
+                                      {...field}
+                                      onBlur={(e) => {
+                                        if (e.target.value === "") {
+                                          return;
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Enter the number of uses to refill per interval.
+                                  </FormDescription>
+                                  <FormMessage defaultValue="Please enter a value if interval is selected" />
                                 </FormItem>
                               )}
                             />
@@ -390,7 +507,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormItem>
                                   <FormControl>
                                     <Textarea
-                                      className="w-full m-4 border rounded-md shadow-sm mx-auto"
+                                      className="m-4 mx-auto w-full rounded-md border shadow-sm"
                                       rows={3}
                                       placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
                                       {...field}
@@ -456,7 +573,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </Accordion>
                     </div>
                   </div>
-                  <div className="flex justify-end mt-8">
+                  <div className="mt-8 flex justify-end">
                     <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>

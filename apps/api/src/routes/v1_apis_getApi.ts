@@ -8,12 +8,6 @@ const route = createRoute({
   method: "get",
   path: "/v1/apis.getApi",
   request: {
-    header: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
     query: z.object({
       apiId: z.string().min(1).openapi({
         description: "The id of the api to fetch",
@@ -55,7 +49,10 @@ export type V1ApisGetApiResponse = z.infer<
 >;
 export const registerV1ApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
@@ -72,7 +69,7 @@ export const registerV1ApisGetApi = (app: App) =>
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, apiId),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });
@@ -81,7 +78,7 @@ export const registerV1ApisGetApi = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
 
-    return c.jsonT({
+    return c.json({
       id: api.id,
       workspaceId: api.workspaceId,
       name: api.name,

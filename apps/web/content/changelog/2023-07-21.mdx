@@ -8,7 +8,7 @@
   features: "Yes"
 ---
 
-### A shiny new web experience
+## A shiny new web experience
 
 We just spent the last week making our website, well not just a random one page of ideas we had in the beginning. Unkey makes API management easy, and we wanted our site to reflect that. Our site now has a cohesive feel, and is easy to navigate.
 
@@ -20,7 +20,7 @@ AI is incredible popular, and part of creating your AI product is finding a way 
 
 ```bash
 curl --request POST \
---url https://api.unkey.dev/v1/keys \
+--url https://api.unkey.dev/v1/keys.createKey \
 --header 'Authorization: Bearer <UNKEY>' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -33,7 +33,7 @@ Then when you validate your key we will return two properties, is it valid and h
 
 ```bash
 curl --request POST \
---url https://api.unkey.dev/v1/keys/verify \
+--url https://api.unkey.dev/v1/keys.verifyKey \
 --header 'Content-Type: application/json' \
 --data '{
 "key": "<NEW_KEY>"
@@ -44,8 +44,8 @@ Which will return if the key is valid, and the **`remaining`** value which rep
 
 ```json
 {
-"valid": true,
-"remaining": 99
+  "valid": true,
+  "remaining": 99
 }
 ```
 
@@ -54,17 +54,18 @@ Which will return if the key is valid, and the **`remaining`** value which rep
 Need to update ratelimits? Change some metadata? Maybe you want to use our new remaining to create tokens and update them when a user pays. This is all now possible with our update endpoint.
 
 ```bash
-curl --request PUT \
-  --url https://api.unkey.dev/v1/keys/key_123 \
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateLey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   -d '{
+    "keyId": "<KEY_ID>",
     "remaining": 200,
   }'
 ```
 
-You can read about this in our documentation: https://unkey.dev/docs/api-reference/keys/update
+You can read about this in our [documentation](https://unkey.dev/docs/api-reference/keys/update).
 
-### Community Shoutout
+## Community Shoutout
 
 A huge shoutout to **[Wilfred Almeida](https://twitter.com/WilfredAlmeida_)** who spent some time creating the Go SDK. You can check out the Go code on [GitHub](https://github.com/WilfredAlmeida/unkey-go) and even help with some remaining items.

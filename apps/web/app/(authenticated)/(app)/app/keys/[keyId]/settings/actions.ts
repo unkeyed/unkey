@@ -1,7 +1,7 @@
 "use server";
 
 import { serverAction } from "@/lib/actions";
-import { unkeyScoped } from "@/lib/api";
+import { db, eq, schema } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -26,19 +26,41 @@ export const updateKeyRemaining = serverAction({
     keyId: z.string(),
     enableRemaining: z.string().transform((s) => s === "true"),
     remaining: stringToIntOrNull,
+    refillInterval: z.enum(["null", "daily", "monthly"]).optional(),
+    refillAmount: stringToIntOrNull,
   }),
+
   handler: async ({ input, ctx }) => {
     if (input.enableRemaining && typeof input.remaining !== "number") {
       throw new Error("provide a number");
     }
 
-    const res = await unkeyScoped(ctx.rootKey).keys.update({
-      keyId: input.keyId,
-      remaining: input.enableRemaining ? input.remaining : null,
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
     });
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (!key) {
+      throw new Error("key not found");
     }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+
+    if (input?.enableRemaining === false || input?.remaining === null) {
+      input.refillInterval = "null";
+    }
+
+    await db
+      .update(schema.keys)
+      .set({
+        remaining: input.enableRemaining ? input.remaining : null,
+        refillInterval: input?.refillInterval !== "null" ? input.refillInterval : null,
+        refillAmount: input?.refillInterval !== "null" ? input?.refillAmount : null,
+        lastRefillAt: input?.refillInterval !== "null" ? new Date() : null,
+      })
+      .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -79,22 +101,27 @@ export const updateKeyRatelimit = serverAction({
       }
       ratelimitRefillInterval = input.ratelimitRefillInterval;
     }
-
-    const res = await unkeyScoped(ctx.rootKey).keys.update({
-      keyId: input.keyId,
-      ratelimit:
-        ratelimitType && ratelimitLimit && ratelimitRefillRate && ratelimitRefillInterval
-          ? {
-              type: ratelimitType,
-              limit: ratelimitLimit,
-              refillRate: ratelimitRefillRate,
-              refillInterval: ratelimitRefillInterval,
-            }
-          : null,
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
     });
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (!key) {
+      throw new Error("key not found");
     }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+    await db
+      .update(schema.keys)
+      .set({
+        ratelimitType,
+        ratelimitLimit,
+        ratelimitRefillRate,
+        ratelimitRefillInterval,
+      })
+      .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -116,17 +143,28 @@ export const updateExpiration = serverAction({
         expires = new Date(input.expiration);
       } catch (e) {
         console.error(e);
-        throw new Error(`you must enter a valid date: ${(e as Error).message}`);
+        throw new Error(`you must enter a valid ${(e as Error).message}`);
       }
     }
 
-    const res = await unkeyScoped(ctx.rootKey).keys.update({
-      keyId: input.keyId,
-      expires: expires?.getTime() ?? null,
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
     });
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (!key) {
+      throw new Error("key not found");
     }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+    await db
+      .update(schema.keys)
+      .set({
+        expires,
+      })
+      .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -144,17 +182,28 @@ export const updateMetadata = serverAction({
       try {
         meta = JSON.parse(input.metadata);
       } catch (e) {
-        throw new Error(`Metadata is not valid json: ${(e as Error).message}`);
+        throw new Error(`Metadata is not valid ${(e as Error).message}`);
       }
     }
 
-    const res = await unkeyScoped(ctx.rootKey).keys.update({
-      keyId: input.keyId,
-      meta: meta,
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
     });
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (!key) {
+      throw new Error("key not found");
     }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+    await db
+      .update(schema.keys)
+      .set({
+        meta: meta ? JSON.stringify(meta) : null,
+      })
+      .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -166,13 +215,24 @@ export const updateKeyName = serverAction({
     name: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const res = await unkeyScoped(ctx.rootKey).keys.update({
-      keyId: input.keyId,
-      name: input.name ?? null,
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
     });
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (!key) {
+      throw new Error("key not found");
     }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+    await db
+      .update(schema.keys)
+      .set({
+        name: input.name ?? null,
+      })
+      .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },
@@ -184,13 +244,24 @@ export const updateKeyOwnerId = serverAction({
     ownerId: z.string().nullish(),
   }),
   handler: async ({ input, ctx }) => {
-    const res = await unkeyScoped(ctx.rootKey).keys.update({
-      keyId: input.keyId,
-      ownerId: input.ownerId ?? null,
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
     });
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (!key) {
+      throw new Error("key not found");
     }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+    await db
+      .update(schema.keys)
+      .set({
+        ownerId: input.ownerId ?? null,
+      })
+      .where(eq(schema.keys.id, input.keyId));
 
     revalidatePath(`/apps/keys/${input.keyId}`);
   },

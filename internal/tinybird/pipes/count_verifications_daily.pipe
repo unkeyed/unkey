@@ -1,0 +1,7 @@
+NODE count_daily
+DESCRIPTION >
+    undefined
+
+SQL >
+
+    SELECT countState() as verifications, toStartOfDay(fromUnixTimestamp64Milli(time)) as time FROM key_verifications group by time

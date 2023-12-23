@@ -2,11 +2,7 @@
 date: 2023-07-04
 title: Why we built Unkey
 description: Why we built Unkey, the open source API management tool and what features we have.
-author: {
-    name: 'James Perkins',
-    role: 'Co-Founder / CEO',
-    image: { src: '/james.jpg' },
-  }
+author: james
 ---
 
 ## What is Unkey?
@@ -54,7 +50,7 @@ Once the key expires, we revoke the key and the user can no longer access your c
 
 Rate limiting is essential to all businesses that have an API. Unkey gives you the ability to set each key to a different rate limit. We handle the rate limiting for you, it's as simple as telling us the total amount of burstable requests, the refill rate, and how quickly they should be refilled.
 
-Once you have the key with the limits, with each request we return the amount the request limit, how many remaining, and the reset time. Once a user hits the rate limit we will return `json "valid": false` alongside a code `RATELIMITED` if the rate limit has been hit, so you know that this user shouldn't be able to access your endpoints.
+Once you have the key with the limits, with each request we return the amount the request limit, how many remaining, and the reset time. Once a user hits the rate limit we will return `json "valid": false` alongside a code `RATE_LIMITED` if the rate limit has been hit, so you know that this user shouldn't be able to access your endpoints.
 
 
 ### Metadata attached to keys

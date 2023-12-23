@@ -8,5 +8,3 @@ SQL >
     FROM pageviews
     group by sessionId, time, path
     order by time desc
-
-

@@ -1,4 +1,4 @@
-import { type UnkeyError, verifyKey } from "@unkey/api";
+import { type ErrorResponse, verifyKey } from "@unkey/api";
 import { type NextFetchEvent, NextRequest, NextResponse } from "next/server";
 
 export type WithUnkeyConfig = {
@@ -31,7 +31,7 @@ export type WithUnkeyConfig = {
   /**
    * What to do if things go wrong
    */
-  onError?: (req: NextRequest, err: UnkeyError) => NextResponse | Promise<NextResponse>;
+  onError?: (req: NextRequest, err: ErrorResponse["error"]) => NextResponse | Promise<NextResponse>;
 };
 
 export type UnkeyContext = {
@@ -47,7 +47,7 @@ export type UnkeyContext = {
         reset: number;
       }
     | undefined;
-  code?: "NOT_FOUND" | "RATELIMITED" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | undefined;
+  code?: "NOT_FOUND" | "RATE_LIMITED" | "FORBIDDEN" | "USAGE_EXCEEDED" | undefined;
 };
 
 export type NextRequestWithUnkeyContext = NextRequest & { unkey: UnkeyContext };

@@ -1,5 +1,23 @@
 # @unkey/api
 
+## 0.13.1
+
+### Patch Changes
+
+- 153bd10: send name and version in header
+
+## 0.13.0
+
+### Minor Changes
+
+- 0bfbc54: autogenerate types
+
+## 0.12.1
+
+### Patch Changes
+
+- 2347efd: Fix `@unkey/client` types
+
 ## 0.12.0
 
 ### Minor Changes

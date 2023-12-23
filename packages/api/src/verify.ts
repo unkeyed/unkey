@@ -24,6 +24,6 @@ import { Unkey } from "./client";
 export function verifyKey(req: string | { key: string; apiId: string }) {
   // yes this is empty to make typescript happy but we don't need a token for verifying keys
   // it's not the cleanest but it works for now :)
-  const unkey = new Unkey({ token: "public" });
+  const unkey = new Unkey({ rootKey: "public" });
   return unkey.keys.verify(typeof req === "string" ? { key: req } : req);
 }

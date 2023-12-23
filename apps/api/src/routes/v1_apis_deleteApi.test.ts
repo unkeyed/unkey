@@ -2,7 +2,7 @@ import { newApp } from "@/pkg/hono/app";
 import { expect, test } from "bun:test";
 
 import { init } from "@/pkg/global";
-import { testEnv } from "@/pkg/testutil/env";
+import { unitTestEnv } from "@/pkg/testutil/env";
 import { fetchRoute } from "@/pkg/testutil/request";
 import { seed } from "@/pkg/testutil/seed";
 import {
@@ -12,7 +12,7 @@ import {
 } from "./v1_apis_deleteApi";
 
 test("deletes the api", async () => {
-  const env = testEnv();
+  const env = unitTestEnv.parse(process.env);
   // @ts-ignore
   init({ env });
 
@@ -36,7 +36,7 @@ test("deletes the api", async () => {
   expect(res.body).toEqual({});
 
   const found = await r.database.query.apis.findFirst({
-    where: (table, { eq }) => eq(table.id, r.userApi.id),
+    where: (table, { eq, and, isNull }) => and(eq(table.id, r.userApi.id), isNull(table.deletedAt)),
   });
   expect(found).toBeUndefined();
 });

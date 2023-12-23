@@ -21,12 +21,27 @@ result = await client.apis.get_api("api_123")
 Retrieve a paginated list of api keys for a given api ID.
 
 ```py
-# retrieve the first 100 api keys for this api
-result = await client.apis.list_keys("api_123")
+# Page through keys 10 at a time
+exhausted = False
+cursor = unkey.UNDEFINED # Must import unkey
 
-# retrieve the second 100 keys for this api
-result = await client.apis.list_keys("api_123", offset=100)
+while not exhausted:
+    # Fetch the next 10 keys
+    result = await client.apis.list_keys("api_123", limit=10, cursor=cursor)
 
-# retrieve the second 10 api keys
-result = await client.apis.list_keys("api_123", offset=10, limit=10)
+    if result.is_ok:
+        data = result.unwrap()
+
+        if not data.cursor:
+            # No cursor means no more keys exist after this page
+            exhausted = True
+            continue
+
+        cursor = data.cursor
+        print(data.keys)
+        await asyncio.sleep(1) # Sleep 1 second, must import asyncio
+    else:
+        # Something went wrong
+        print(result.unwrap_err())
+        exhausted = True
 ```

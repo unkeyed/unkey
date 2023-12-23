@@ -22,13 +22,13 @@
       "url": "https://unkey.dev/discord"
     },
     {
-      "name": "GitHub",
-      "url": "https://github.com/unkeyed/unkey"
+      "name": "Dashboard",
+      "url": "https://unkey.dev/app"
     }
   ],
   "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://unkey.dev/app"
+    "type": "github",
+    "url": "https://github.com/unkeyed/unkey"
   },
   "tabs": [
     {
@@ -64,7 +64,7 @@
         "onboarding",
         {
           "group": "Quickstart",
-          "pages": ["quickstart/bun", "quickstart/nextjs", "quickstart/express"]
+          "pages": ["quickstart/nextjs", "quickstart/express", "quickstart/bun"]
         },
         "security"
       ]
@@ -75,6 +75,7 @@
         "features/ratelimiting",
         "features/temp-keys",
         "features/remaining",
+        "features/refill",
         "features/analytics"
       ]
     },
@@ -87,20 +88,18 @@
       "group": "API Documentation",
       "icon": "code",
       "pages": [
+        "api-reference/overview",
         "api-reference/authentication",
         {
           "group": "Errors",
           "pages": [
             "api-reference/errors/introduction",
             "api-reference/errors/code/BAD_REQUEST",
+            "api-reference/errors/code/UNAUTHORIZED",
             "api-reference/errors/code/FORBIDDEN",
-            "api-reference/errors/code/INTERNAL_SERVER_ERROR",
-            "api-reference/errors/code/INVALID_KEY_TYPE",
-            "api-reference/errors/code/KEY_USAGE_EXCEEDED",
             "api-reference/errors/code/NOT_FOUND",
-            "api-reference/errors/code/NOT_UNIQUE",
-            "api-reference/errors/code/RATELIMITED",
-            "api-reference/errors/code/UNAUTHORIZED"
+            "api-reference/errors/code/CONFLICT",
+            "api-reference/errors/code/INTERNAL_SERVER_ERROR"
           ]
         },
         {
@@ -110,17 +109,13 @@
             "api-reference/keys/verify",
             "api-reference/keys/get",
             "api-reference/keys/update",
+            "api-reference/keys/update-remaining",
             "api-reference/keys/delete"
           ]
         },
         {
           "group": "APIs",
-          "pages": [
-            "api-reference/apis/get",
-            "api-reference/apis/create",
-            "api-reference/apis/list-keys",
-            "api-reference/apis/delete"
-          ]
+          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
         }
       ]
     },
@@ -172,7 +167,8 @@
             "libraries/ex/functions/create_key",
             "libraries/ex/functions/verify_key",
             "libraries/ex/functions/revoke_key",
-            "libraries/ex/functions/update_key"
+            "libraries/ex/functions/update_key",
+            "libraries/ex/functions/update_remaining"
           ]
         }
       ]
@@ -208,23 +204,16 @@
       "pages": ["libraries/rs/overview"]
     },
     {
-      "group": "Spring Boot",
+      "group": "Springboot",
       "icon": "code",
       "pages": [
         "libraries/springboot-java/overview",
-        {
-          "group": "Functions",
-          "pages": [
-            "libraries/springboot-java/functions/create",
-            "libraries/springboot-java/functions/verify",
-            "libraries/springboot-java/functions/revoke",
-            "libraries/springboot-java/functions/update"
-          ]
-        },
-        {
-          "group": "API",
-          "pages": ["libraries/springboot-java/api/get", "libraries/springboot-java/api/list"]
-        }
+        "libraries/springboot-java/api/get",
+        "libraries/springboot-java/api/list",
+        "libraries/springboot-java/functions/create",
+        "libraries/springboot-java/functions/revoke",
+        "libraries/springboot-java/functions/update",
+        "libraries/springboot-java/functions/verify"
       ]
     },
     {
@@ -241,11 +230,13 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "https://api.unkey.app/openapi.json",
+  "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
-    "baseUrl": "https://api.unkey.app",
-    "auth": {
-      "method": "bearer"
+    "baseUrl": "https://api.unkey.dev"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
     }
   }
 }

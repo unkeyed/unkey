@@ -37,7 +37,7 @@ const tiers = {
   custom: {
     name: "Enterprise Tier",
     id: "enterprise",
-    href: "https://cal.com/james-unkey/enterprise",
+    href: "https://cal.com/team/unkey/unkey-chat",
     price: "Let's talk",
     description: "We offer custom pricing for those with high volume needs.",
     buttonText: "Schedule a call",
@@ -105,12 +105,12 @@ export default async function PricingPage() {
                   }
                 >
                   <div className="flex items-center justify-between gap-x-4">
-                    <h1
+                    <h2
                       id={tiers[tier].id}
                       className={"text-gray-900 text-2xl font-semibold leading-8"}
                     >
                       {tiers[tier].name}
-                    </h1>
+                    </h2>
                   </div>
                   <p className="mt-4 min-h-[3rem] text-sm leading-6 text-gray-600 tex">
                     {tiers[tier].description}

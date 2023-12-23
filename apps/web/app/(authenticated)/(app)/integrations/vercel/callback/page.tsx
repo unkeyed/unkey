@@ -16,6 +16,7 @@ type Props = {
     configurationId: string;
   };
 };
+
 export default async function Page(props: Props) {
   const vercelEnv = vercelIntegrationEnv();
   if (!vercelEnv) {
@@ -27,11 +28,13 @@ export default async function Page(props: Props) {
   }
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, getTenantId()),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAt)),
     with: {
-      apis: true,
+      apis: { where: (table, { isNull }) => isNull(table.deletedAt) },
     },
   });
+
   if (!workspace) {
     return <div>no workspace</div>;
   }
@@ -51,6 +54,8 @@ export default async function Page(props: Props) {
       workspaceId: workspace.id,
       vercelTeamId: req.value.teamId,
       accessToken: req.value.accessToken,
+      createdAt: new Date(),
+      deletedAt: null,
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }

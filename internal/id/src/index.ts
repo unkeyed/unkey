@@ -1,4 +1,5 @@
-import baseX from "base-x";
+import { customAlphabet } from "nanoid";
+export const nanoid = customAlphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 
 const prefixes = {
   key: "key",
@@ -9,13 +10,9 @@ const prefixes = {
   keyAuth: "key_auth",
   vercelBinding: "vb",
   test: "test", // for tests only
+  auditLog: "log",
 } as const;
 
 export function newId(prefix: keyof typeof prefixes): string {
-  const buf = new Uint8Array(16);
-  crypto.getRandomValues(buf);
-  return [
-    prefixes[prefix],
-    baseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz").encode(buf),
-  ].join("_");
+  return [prefixes[prefix], nanoid(16)].join("_");
 }

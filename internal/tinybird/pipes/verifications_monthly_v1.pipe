@@ -1,0 +1,24 @@
+NODE aggregate
+SQL >
+
+    SELECT
+        workspaceId,
+        apiId,
+        keyId,
+        countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
+        countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
+        countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded,
+        toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time
+    FROM key_verifications
+    GROUP BY
+        workspaceId,
+        apiId,
+        keyId,
+        time
+
+TYPE materialized
+DATASOURCE verifications_monthly_mv
+ENGINE "AggregatingMergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(time)"
+ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"
+ENGINE_TTL "time + toIntervalDay(365)"

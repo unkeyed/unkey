@@ -1,0 +1,13 @@
+VERSION 1
+TOKEN "endpoint__active_keys_by_workspace__v1_endpoint_read_5754" READ
+
+NODE endpoint
+SQL >
+
+    %
+    SELECT count(DISTINCT keyId) as keys
+    FROM mv__monthly_active_keys
+    where
+        workspaceId = {{ String(workspaceId, required=True) }}
+        and time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
+    group by  time

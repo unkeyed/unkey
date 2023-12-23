@@ -2,21 +2,14 @@ import { db, keyService, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { eq, schema, sql } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
-import { eq, sql } from "drizzle-orm";
+import { newId } from "@unkey/id";
 
 const route = createRoute({
   method: "post",
   path: "/v1/keys.updateRemaining",
   request: {
-    headers: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
-
     body: {
       required: true,
       content: {
@@ -44,15 +37,11 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            remaining: z
-              .number()
-              .int()
-              .nullable()
-              .openapi({
-                description:
-                  "The number of remaining requests for this key after updating it. `null` means unlimited.",
-                examples: [1, null],
-              }),
+            remaining: z.number().int().nullable().openapi({
+              description:
+                "The number of remaining requests for this key after updating it. `null` means unlimited.",
+              example: 100,
+            }),
           }),
         },
       },
@@ -62,16 +51,19 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysUpdateKeyRequest = z.infer<
+export type V1KeysUpdateKeyRemainingRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type V1KeysUpdateKeyResponse = z.infer<
+export type V1KeysUpdateKeyRemainingResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1KeysUpdateRemaining = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")!.replace("Bearer ", "");
+    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
+    if (!authorization) {
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+    }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
       throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
@@ -93,60 +85,76 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
     }
 
-    switch (req.op) {
-      case "increment": {
-        if (key.remainingRequests === null) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message:
-              "cannot increment a key with unlimited remaining requests, please 'set' a value instead.",
-          });
+    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
+    const rootKeyId = rootKey.value.key.id;
+    await db.transaction(async (tx) => {
+      switch (req.op) {
+        case "increment": {
+          if (key.remaining === null) {
+            throw new UnkeyApiError({
+              code: "BAD_REQUEST",
+              message:
+                "cannot increment a key with unlimited remaining requests, please 'set' a value instead.",
+            });
+          }
+          if (req.value === null) {
+            throw new UnkeyApiError({
+              code: "BAD_REQUEST",
+              message: "cannot increment a key by null.",
+            });
+          }
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: sql`remaining_requests + ${req.value}`,
+            })
+            .where(eq(schema.keys.id, req.keyId));
         }
-        if (req.value === null) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message: "cannot increment a key by null.",
-          });
+        case "decrement": {
+          if (key.remaining === null) {
+            throw new UnkeyApiError({
+              code: "BAD_REQUEST",
+              message:
+                "cannot decrement a key with unlimited remaining requests, please 'set' a value instead.",
+            });
+          }
+          if (req.value === null) {
+            throw new UnkeyApiError({
+              code: "BAD_REQUEST",
+              message: "cannot decrement a key by null.",
+            });
+          }
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: sql`remaining_requests - ${req.value}`,
+            })
+            .where(eq(schema.keys.id, req.keyId));
         }
-        await db
-          .update(schema.keys)
-          .set({
-            remainingRequests: sql`remaining_requests + ${req.value}`,
-          })
-          .where(eq(schema.keys.id, req.keyId));
+        case "set": {
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: req.value,
+            })
+            .where(eq(schema.keys.id, req.keyId));
+        }
       }
-      case "decrement": {
-        if (key.remainingRequests === null) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message:
-              "cannot decrement a key with unlimited remaining requests, please 'set' a value instead.",
-          });
-        }
-        if (req.value === null) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message: "cannot decrement a key by null.",
-          });
-        }
-        await db
-          .update(schema.keys)
-          .set({
-            remainingRequests: sql`remaining_requests - ${req.value}`,
-          })
-          .where(eq(schema.keys.id, req.keyId));
-      }
-      case "set": {
-        await db
-          .update(schema.keys)
-          .set({
-            remainingRequests: req.value,
-          })
-          .where(eq(schema.keys.id, req.keyId));
-      }
-    }
+
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "api.create",
+        description: `updated remaining requests for key ${req.keyId}`,
+        keyAuthId: key.keyAuthId,
+      });
+    });
 
     await usageLimiter.revalidate({ keyId: key.id });
+
     const keyAfterUpdate = await db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
     });
@@ -157,7 +165,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       });
     }
 
-    return c.jsonT({
-      remaining: keyAfterUpdate.remainingRequests,
+    return c.json({
+      remaining: keyAfterUpdate.remaining,
     });
   });

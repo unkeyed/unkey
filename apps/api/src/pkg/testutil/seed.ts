@@ -1,8 +1,8 @@
-import { type Api, type Database, type KeyAuth, type Workspace, schema } from "@unkey/db";
+import { type Api, type KeyAuth, type Workspace, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { createConnection } from "../db";
+import { type Database, createConnection } from "../db";
 
 export type Resources = {
   unkeyWorkspace: Workspace;
@@ -19,6 +19,7 @@ export async function seed(env: {
   DATABASE_HOST: string;
   DATABASE_USERNAME: string;
   DATABASE_PASSWORD: string;
+  DATABASE_MODE: "planetscale" | "mysql";
 }): Promise<Resources> {
   const database = createConnection({
     host: env.DATABASE_HOST,
@@ -33,45 +34,43 @@ export async function seed(env: {
     plan: "enterprise",
     features: {},
     betaFeatures: {},
-    slug: null,
     stripeCustomerId: null,
     stripeSubscriptionId: null,
-    maxActiveKeys: 1000,
-    usageActiveKeys: 0,
-    maxVerifications: 1000,
-    usageVerifications: 0,
-    lastUsageUpdate: null,
-    billingPeriodStart: null,
-    billingPeriodEnd: null,
     trialEnds: null,
+    subscriptions: null,
+    planLockedUntil: null,
+    planChanged: null,
+    createdAt: new Date(),
+    deletedAt: null,
   };
   const userWorkspace: Workspace = {
     id: newId("workspace"),
     name: "user",
     tenantId: newId("test"),
     plan: "pro",
-    slug: null,
     features: {},
     betaFeatures: {},
     stripeCustomerId: null,
     stripeSubscriptionId: null,
-    maxActiveKeys: 1000,
-    usageActiveKeys: 0,
-    maxVerifications: 1000,
-    usageVerifications: 0,
-    lastUsageUpdate: null,
-    billingPeriodStart: null,
-    billingPeriodEnd: null,
     trialEnds: null,
+    subscriptions: null,
+    planLockedUntil: null,
+    planChanged: null,
+    createdAt: new Date(),
+    deletedAt: null,
   };
 
   const unkeyKeyAuth: KeyAuth = {
     id: newId("keyAuth"),
     workspaceId: unkeyWorkspace.id,
+    createdAt: new Date(),
+    deletedAt: null,
   };
   const userKeyAuth: KeyAuth = {
     id: newId("keyAuth"),
     workspaceId: userWorkspace.id,
+    createdAt: new Date(),
+    deletedAt: null,
   };
 
   const unkeyApi: Api = {
@@ -81,6 +80,9 @@ export async function seed(env: {
     authType: "key",
     keyAuthId: unkeyKeyAuth.id,
     ipWhitelist: null,
+    createdAt: new Date(),
+    deletedAt: null,
+    state: null,
   };
   const userApi: Api = {
     id: newId("api"),
@@ -89,6 +91,9 @@ export async function seed(env: {
     authType: "key",
     keyAuthId: userKeyAuth.id,
     ipWhitelist: null,
+    createdAt: new Date(),
+    deletedAt: null,
+    state: null,
   };
 
   await database.insert(schema.workspaces).values(unkeyWorkspace);

@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Loading } from "./loading";
 
 export type ConfirmProps = {
@@ -19,11 +19,11 @@ export type ConfirmProps = {
   trigger: React.ReactNode;
   onConfirm: () => void | Promise<void>;
   variant?: "alert";
+  disabled?: boolean;
 };
 
 export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
   const [isOpen, setIsOpen] = useState(false);
-  const [wantOpen, _setWantOpen] = useState(isOpen);
 
   const [loading, setLoading] = useState(false);
 
@@ -31,17 +31,14 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
     setLoading(true);
     await props.onConfirm();
     setLoading(false);
+    setIsOpen(false);
   };
 
-  useEffect(() => {
-    if (!loading) {
-      setIsOpen(wantOpen);
-    }
-  }, [wantOpen, loading]);
-
   return (
-    <Dialog>
-      <DialogTrigger asChild>{props.trigger}</DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild disabled={props.disabled}>
+        {props.trigger}
+      </DialogTrigger>
       <DialogContent
         className={cn("sm:max-w-[425px]", { "border-alert": props.variant === "alert" })}
       >

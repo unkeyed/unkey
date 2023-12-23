@@ -1,0 +1,26 @@
+VERSION 1
+TOKEN "get_verifications_hourly__v1_endpoint_read_0976" READ
+
+NODE endpoint
+SQL >
+
+    %
+        SELECT
+        time,
+        countIfMerge(success) as success,
+        countIfMerge(rateLimited) as rateLimited,
+        countIfMerge(usageExceeded) as usageExceeded
+        FROM verifications_hourly_mv
+        WHERE
+            workspaceId = {{ String(workspaceId, required=True )}}
+            and apiId ={{ String(apiId) }}
+            {% if defined(keyId) %}
+            and keyId ={{ String(keyId) }}
+            {%end if %}
+            {% if defined(start)%}
+              and time >= fromUnixTimestamp64Milli({{ Int64(start) }})
+            {%end if %}
+            {% if defined(end)%}
+              and time <= fromUnixTimestamp64Milli({{ Int64(end)}})
+            {%end if %}
+        GROUP BY time

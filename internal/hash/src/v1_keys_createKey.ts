@@ -177,7 +177,8 @@ export const registerV1KeysCreateKey = (app: App) =>
     const api = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
         (await db.query.apis.findFirst({
-          where: (table, { eq }) => eq(table.id, req.apiId),
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });
@@ -217,12 +218,12 @@ export const registerV1KeysCreateKey = (app: App) =>
       ratelimitRefillRate: req.ratelimit?.refillRate,
       ratelimitRefillInterval: req.ratelimit?.refillInterval,
       ratelimitType: req.ratelimit?.type,
-      remainingRequests: req.remaining,
+      remaining: req.remaining,
       totalUses: 0,
       deletedAt: null,
     });
     // TODO: emit event to tinybird
-    return c.jsonT({
+    return c.json({
       keyId,
       key,
     });

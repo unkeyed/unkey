@@ -1,19 +1,20 @@
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { CreateKey } from "../../create-key";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
-    where: eq(schema.apis.id, props.params.apiId),
+    where: (table, { eq, and, isNull }) =>
+      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
     with: {
       workspace: true,
     },
   });
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/onboarding");
+    return notFound();
   }
 
   return (

@@ -1,6 +1,7 @@
 import { Banner } from "@/components/banner";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { db } from "@/lib/db";
+import { activeKeys, verifications } from "@/lib/tinybird";
 import ms from "ms";
 import Link from "next/link";
 /**
@@ -9,18 +10,83 @@ import Link from "next/link";
 export const UsageBanner: React.FC = async () => {
   const tenantId = getTenantId();
 
+  const freeTierQuota = {
+    activeKeys: 100,
+    verifications: 2500,
+  };
+
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      apis: true,
+      apis: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
+      },
     },
   });
   if (!workspace) {
     return null;
   }
 
+  const t = new Date();
+
+  const year = t.getUTCFullYear();
+  const month = t.getUTCMonth() + 1;
+
   const fmt = new Intl.NumberFormat("en-US").format;
 
+  if (workspace.plan === "free") {
+    const [usedActiveKeys, usedVerifications] = await Promise.all([
+      activeKeys({
+        workspaceId: workspace.id,
+        year,
+        month,
+      }).then((res) => res.data.at(0)?.keys ?? 0),
+      verifications({
+        workspaceId: workspace.id,
+        year,
+        month,
+      }).then((res) => res.data.at(0)?.success ?? 0),
+    ]);
+
+    if (usedActiveKeys >= freeTierQuota.activeKeys) {
+      return (
+        <Banner variant="alert">
+          <p className="text-xs text-center">
+            You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
+            <strong>{fmt(usedActiveKeys)}</strong> /{" "}
+            <strong>{fmt(freeTierQuota.activeKeys)}</strong>.{" "}
+            <Link href="/app/settings/billing/stripe" className="underline">
+              Upgrade your plan
+            </Link>{" "}
+            or{" "}
+            <Link href="mailto:support@unkey.dev" className="underline">
+              contact us.
+            </Link>
+          </p>
+        </Banner>
+      );
+    }
+
+    if (usedVerifications >= freeTierQuota.verifications) {
+      return (
+        <Banner variant="alert">
+          <p className="text-xs text-center">
+            You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
+            <strong>{fmt(usedVerifications)}</strong> /{" "}
+            <strong>{fmt(freeTierQuota.verifications)}</strong>.{" "}
+            <Link href="/app/settings/billing/stripe" className="underline">
+              Upgrade your plan
+            </Link>{" "}
+            or{" "}
+            <Link href="mailto:support@unkey.dev" className="underline">
+              contact us.
+            </Link>
+          </p>
+        </Banner>
+      );
+    }
+  }
   // Show a banner if their trial is ending within 7 days
   if (workspace.trialEnds && workspace.trialEnds.getTime() < Date.now() + 1000 * 60 * 60 * 24 * 7) {
     return (
@@ -31,54 +97,8 @@ export const UsageBanner: React.FC = async () => {
             : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
                 long: true,
               })}.`}{" "}
-          <Link href="/app/stripe" className="underline">
+          <Link href="/app/settings/billing/stripe" className="underline">
             Add a payment method
-          </Link>
-        </p>
-      </Banner>
-    );
-  }
-
-  if (
-    workspace.maxActiveKeys &&
-    workspace.usageActiveKeys &&
-    (workspace.usageActiveKeys ?? 0) >= workspace.maxActiveKeys
-  ) {
-    return (
-      <Banner variant="alert">
-        <p className="text-xs text-center">
-          You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
-          <strong>{fmt(workspace.usageActiveKeys)}</strong> /{" "}
-          <strong>{fmt(workspace.maxActiveKeys)}</strong>.{" "}
-          <Link href="/app/stripe" className="underline">
-            Upgrade your plan
-          </Link>{" "}
-          or{" "}
-          <Link href="mailto:support@unkey.dev" className="underline">
-            contact us.
-          </Link>
-        </p>
-      </Banner>
-    );
-  }
-
-  if (
-    workspace.maxVerifications &&
-    workspace.usageVerifications &&
-    (workspace.usageVerifications ?? 0) >= workspace.maxVerifications
-  ) {
-    return (
-      <Banner variant="alert">
-        <p className="text-xs text-center">
-          You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
-          <strong>{fmt(workspace.usageVerifications)}</strong> /{" "}
-          <strong>{fmt(workspace.maxVerifications)}</strong>.{" "}
-          <Link href="/app/stripe" className="underline">
-            Upgrade your plan
-          </Link>{" "}
-          or{" "}
-          <Link href="mailto:support@unkey.dev" className="underline">
-            contact us.
           </Link>
         </p>
       </Banner>

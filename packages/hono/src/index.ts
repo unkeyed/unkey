@@ -1,4 +1,4 @@
-import { UnkeyError, verifyKey } from "@unkey/api";
+import { ErrorResponse, verifyKey } from "@unkey/api";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 
@@ -15,7 +15,7 @@ export type UnkeyContext = {
         reset: number;
       }
     | undefined;
-  code?: "NOT_FOUND" | "RATELIMITED" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | undefined;
+  code?: "NOT_FOUND" | "RATE_LIMITED" | "FORBIDDEN" | "USAGE_EXCEEDED" | undefined;
 };
 
 export type UnkeyConfig<TContext = Context> = {
@@ -39,7 +39,7 @@ export type UnkeyConfig<TContext = Context> = {
   /**
    * What to do if things go wrong
    */
-  onError?: (c: TContext, err: UnkeyError) => Response | Promise<Response>;
+  onError?: (c: TContext, err: ErrorResponse["error"]) => Response | Promise<Response>;
 };
 
 export function unkey(config?: UnkeyConfig): MiddlewareHandler {
@@ -59,7 +59,7 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
         return config.onError(c, res.error);
       }
       throw new HTTPException(500, {
-        message: `unkey error: [CODE: ${res.error.code}] - [TRACE: ${res.error.requestId}] - ${res.error.message} - read more at ${res.error.docs}`,
+        message: `unkey error: [CODE: ${res.error.code}] - [REQUEST_ID: ${res.error.requestId}] - ${res.error.message} - read more at ${res.error.docs}`,
       });
     }
 

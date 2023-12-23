@@ -3,13 +3,11 @@
 import { Loading } from "@/components/dashboard/loading";
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
-export const runtime = "edge";
-
 export default function SSOCallback() {
   return (
-    <div className="flex items-center justify-center h-screen ">
-      <Loading className="w-16 h-16" />
-      <AuthenticateWithRedirectCallback afterSignInUrl="/app/apis" afterSignUpUrl="/onboarding" />
+    <div className="flex h-screen items-center justify-center ">
+      <Loading className="h-12 w-12" />
+      <AuthenticateWithRedirectCallback afterSignInUrl="/app/apis" afterSignUpUrl="/new" />
     </div>
   );
 }

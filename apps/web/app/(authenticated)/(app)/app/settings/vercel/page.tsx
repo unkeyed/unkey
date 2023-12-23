@@ -13,14 +13,22 @@ type Props = {
     configurationId?: string;
   };
 };
+
 export default async function Page(props: Props) {
+  const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, getTenantId()),
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      apis: true,
+      apis: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
+      },
       vercelIntegrations: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
         with: {
-          vercelBindings: true,
+          vercelBindings: {
+            where: (table, { isNull }) => isNull(table.deletedAt),
+          },
         },
       },
     },
@@ -100,25 +108,31 @@ export default async function Page(props: Props) {
       name: p.name,
       bindings: integration.vercelBindings
         .filter((binding) => binding.projectId === p.id)
-        .reduce((acc, binding) => {
-          if (!acc[binding.environment]) {
-            acc[binding.environment] = {
-              apiId: null,
-              rootKey: null,
+        .reduce(
+          (acc, binding) => {
+            if (!acc[binding.environment]) {
+              acc[binding.environment] = {
+                apiId: null,
+                rootKey: null,
+              };
+            }
+            acc[binding.environment][binding.resourceType] = {
+              ...binding,
+              updatedBy: users[binding.lastEditedBy],
             };
-          }
-          acc[binding.environment][binding.resourceType] = {
-            ...binding,
-            updatedBy: users[binding.lastEditedBy],
-          };
-          return acc;
-        }, {} as Record<
-          VercelBinding["environment"],
-          Record<
-            VercelBinding["resourceType"],
-            (VercelBinding & { updatedBy: { id: string; name: string; image: string } }) | null
-          >
-        >),
+            return acc;
+          },
+          {} as Record<
+            VercelBinding["environment"],
+            Record<
+              VercelBinding["resourceType"],
+              | (VercelBinding & {
+                  updatedBy: { id: string; name: string; image: string };
+                })
+              | null
+            >
+          >,
+        ),
     })),
   );
 

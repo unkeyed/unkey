@@ -1,0 +1,58 @@
+name: Build Apps
+on:
+  workflow_call:
+
+jobs:
+  build:
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: unkey
+          MYSQL_USER: unkey
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - "./apps/web"
+          - "./apps/api"
+          - "./apps/workflows"
+
+    name: Build ${{matrix.app}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '^1.20'
+
+      - name: Run Planetscale Proxy
+        run: |
+          go install github.com/mattrobenolt/ps-http-sim@latest
+          # start the proxy in the background
+          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 > pscale.logs &
+
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Load Schema into MySQL
+        run: pnpm drizzle-kit push:mysql
+        working-directory: internal/db
+        env:
+          DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
+
+      - name: Build
+        run: pnpm turbo run build --filter=${{matrix.app}}
+        env:
+          DATABASE_HOST: localhost:8080
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: unkey
+          UNKEY_WORKSPACE_ID: "not-empty"
+          UNKEY_API_ID: "not-empty"
