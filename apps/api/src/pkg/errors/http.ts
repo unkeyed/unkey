@@ -8,11 +8,11 @@ const ErrorCode = z.enum([
   "BAD_REQUEST",
   "FORBIDDEN",
   "INTERNAL_SERVER_ERROR",
-  "KEY_USAGE_EXCEEDED",
+  "USAGE_EXCEEDED",
   "INVALID_KEY_TYPE",
   "NOT_FOUND",
   "NOT_UNIQUE",
-  "RATELIMITED",
+  "RATE_LIMITED",
   "UNAUTHORIZED",
   "PRECONDITION_FAILED",
 ]);
@@ -69,13 +69,13 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): number {
       return 412;
     case "INVALID_KEY_TYPE":
       return 500;
-    case "KEY_USAGE_EXCEEDED":
+    case "USAGE_EXCEEDED":
       return 500;
     case "NOT_FOUND":
       return 404;
     case "NOT_UNIQUE":
       return 500;
-    case "RATELIMITED":
+    case "RATE_LIMITED":
       return 500;
     case "UNAUTHORIZED":
       return 403;
