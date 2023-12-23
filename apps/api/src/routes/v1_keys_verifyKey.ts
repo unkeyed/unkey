@@ -109,8 +109,8 @@ A key could be invalid for a number of reasons, for example if it has expired, h
 Possible values are:
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
-- KEY_USAGE_EXCEEDED: the key has exceeded its request limit
-- RATELIMITED: the key has been ratelimited,
+- USAGE_EXCEEDED: the key has exceeded its request limit
+- RATE_LIMITED: the key has been ratelimited,
 `,
               }),
           }),

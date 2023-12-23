@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { Activity, BookOpen, Code, LucideIcon, Settings } from "lucide-react";
+import { Activity, BookOpen, Code, Crown, LucideIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import React from "react";
@@ -66,6 +66,19 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       ),
     },
   ];
+  if (workspace.features.successPage) {
+    navigation.push({
+      icon: Crown,
+      href: "/app/success",
+      label: "Success",
+      active: segments.at(0) === "success",
+      tag: (
+        <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5 font-mono">
+          internal
+        </div>
+      ),
+    });
+  }
 
   return (
     <aside className={cn("fixed inset-y-0 w-64 px-6 z-10", className)}>

@@ -351,3 +351,15 @@ export const getActiveKeys = tb.buildPipe({
     cache: "no-store",
   },
 });
+
+export const getQ1ActiveWorkspaces = tb.buildPipe({
+  pipe: "get_q1_goal_distinct_workspaces__v1",
+  parameters: z.object({}),
+  data: z.object({
+    workspaces: z.number(),
+    time: datetimeToUnixMilli,
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
