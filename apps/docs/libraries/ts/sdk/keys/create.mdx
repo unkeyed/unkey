@@ -89,6 +89,25 @@ In milliseconds
   [here](/features/remaining)
 </ParamField>
 
+<ParamField body="refill" type="Object" >
+
+Unkey allows automatic refill on 'remaining' on a 'daily' or 'monthly' interval.
+
+  <Expandable title="properties">
+
+  <ParamField body="interval" type="string" required>
+  Either `daily` or `monthly`.
+
+
+
+  </ParamField>
+  <ParamField body="amount" type="int" required>
+  The amount to refill 'remaining'.
+
+Read more [here](/features/refill)
+  </ParamField>
+ </Expandable>
+</ParamField>
 ## Response
 
 <ResponseField name="result">
@@ -121,8 +140,12 @@ const created = await unkey.keys.create({
 		limit:10,
 		refillRate: 1,
 		refillInterval: 1000
-	}
-	remaining: 1000
+	},
+	remaining: 1000,
+    refill: {
+      interval: "daily",
+      amount: 100
+    }
 })
 
 console.log(created)

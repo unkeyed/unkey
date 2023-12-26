@@ -80,6 +80,25 @@ When validating a key, we will return this back to you, so you can clearly ident
                   url: "https://unkey.dev/docs/features/remaining",
                 },
               }),
+            refill: z
+              .object({
+                interval: z.enum(["daily", "monthly"]).openapi({
+                  description: "Unkey will automatically refill verifications at the set interval.",
+                }),
+                amount: z.number().int().min(1).positive().openapi({
+                  description:
+                    "The number of verifications to refill for each occurrence is determined individually for each key.",
+                }),
+              })
+              .optional()
+              .openapi({
+                description:
+                  "Unkey enables you to refill verifications for each key at regular intervals.",
+                example: {
+                  interval: "daily",
+                  amount: 100,
+                },
+              }),
             ratelimit: z
               .object({
                 type: z
@@ -155,17 +174,29 @@ export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const req = c.req.valid("json");
@@ -180,7 +211,10 @@ export const registerV1KeysCreateKey = (app: App) =>
     });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${req.apiId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `api ${req.apiId} not found`,
+      });
     }
 
     if (!api.keyAuthId) {
@@ -189,11 +223,25 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: `api ${req.apiId} is not setup to handle keys`,
       });
     }
-
+    if (req.remaining === 0) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "remaining must be greater than 0.",
+      });
+    }
+    if ((req.remaining === null || req.remaining === undefined) && req.refill?.interval) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "remaining must be set if you are using refill.",
+      });
+    }
     /**
      * Set up an api for production
      */
-    const key = new KeyV1({ byteLength: req.byteLength, prefix: req.prefix }).toString();
+    const key = new KeyV1({
+      byteLength: req.byteLength,
+      prefix: req.prefix,
+    }).toString();
     const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
     const keyId = newId("key");
     const hash = await sha256(key.toString());
@@ -219,6 +267,9 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitRefillInterval: req.ratelimit?.refillInterval,
         ratelimitType: req.ratelimit?.type,
         remaining: req.remaining,
+        refillInterval: req.refill?.interval,
+        refillAmount: req.refill?.amount,
+        lastRefillAt: req.refill?.interval ? new Date() : null,
         totalUses: 0,
         deletedAt: null,
       });

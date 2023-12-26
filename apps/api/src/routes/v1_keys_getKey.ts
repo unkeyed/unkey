@@ -37,17 +37,29 @@ export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const { keyId } = c.req.query();
@@ -73,7 +85,10 @@ export const registerV1KeysGetKey = (app: App) =>
     });
 
     if (!data || data.key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${keyId} not found`,
+      });
     }
 
     return c.json({
@@ -83,10 +98,18 @@ export const registerV1KeysGetKey = (app: App) =>
       workspaceId: data.key.workspaceId,
       name: data.key.name ?? undefined,
       ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ?? undefined,
-      createdAt: data.key.createdAt.getTime() ?? undefined,
+      meta: data.key.meta ? JSON.parse(data.key.meta) : undefined,
+      createdAt: data.key.createdAt?.getTime() ?? undefined,
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
+      refill:
+        data.key.refillInterval && data.key.refillAmount
+          ? {
+              interval: data.key.refillInterval,
+              amount: data.key.refillAmount,
+              lastRefillAt: data.key.lastRefillAt?.getTime(),
+            }
+          : undefined,
       ratelimit:
         data.key.ratelimitType &&
         data.key.ratelimitLimit &&

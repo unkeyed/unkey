@@ -121,19 +121,31 @@ export const registerLegacyKeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
 
     // Get root key and check for API errors
     const rootKey = await keyService.verifyKey(c, { key: authorization });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "the root key is not valid",
+      });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
     const keyId = c.req.param("keyId");
     const req = c.req.valid("json");
@@ -143,7 +155,10 @@ export const registerLegacyKeysUpdate = (app: App) =>
     });
 
     if (!key || key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${keyId} not found`,
+      });
     }
 
     const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
