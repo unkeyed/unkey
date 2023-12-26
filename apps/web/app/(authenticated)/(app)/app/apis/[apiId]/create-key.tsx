@@ -104,40 +104,52 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       bytes: 16,
     },
   });
-  const formData = form.watch();
-  // if (!expireEnabled) {
-  //   delete formData.expires;
-  // }
-  // if(!metaEnabled) {
-  //   delete formData.meta;
-  // }
-  // if(!limitEnabled) {
-  //   delete formData.limit;
-  // }
-  // if(!ratelimitEnabled) {
-  //   delete formData.ratelimit;
-  // }
 
+  const formData = form.watch();
   useEffect(() => {
-    if (formData.limit?.remaining === undefined) {
-      form.resetField("limit");
+    if (!ratelimitEnabled) {
+      delete formData.ratelimit;
+      form.resetField("ratelimit");
     }
-  }, [formData.limit]);
+  }, [ratelimitEnabled]);
+  useEffect(() => {
+    delete formData.limit;
+    form.resetField("limit");
+  }, [limitEnabled]);
+  useEffect(() => {
+    if (!expireEnabled) {
+      delete formData.expires;
+      form.resetField("expires");
+    }
+  }, [formData.expires]);
+  useEffect(() => {
+    delete formData.expires;
+    form.resetField("meta");
+  }, [formData.meta]);
+
   useEffect(() => {
     if (formData.limit?.refill?.interval === "none") {
       form.resetField("limit.refill.interval");
       form.resetField("limit.refill.amount");
     }
   }, [formData.limit?.refill]);
+
   useEffect(() => {
     if (
-      formData.ratelimit?.limit === undefined &&
-      formData.ratelimit?.refillRate === undefined &&
-      formData.ratelimit?.refillInterval === undefined
+      (formData.ratelimit?.limit === undefined &&
+        formData.ratelimit?.refillRate === undefined &&
+        formData.ratelimit?.refillInterval === undefined) ||
+      ratelimitEnabled === false
     ) {
       form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
+  useEffect(() => {}, []);
+  console.log(`form status${form.formState.isValid}`);
+  console.log(`Expires Field  ${JSON.stringify(formData.expires?.toISOString())}`);
+  console.log(`Refill Data  ${JSON.stringify(formData.limit?.refill)}`);
+  console.log(`Ratelimit Data  ${JSON.stringify(formData.ratelimit)}`);
+  console.log(`Meta Data  ${JSON.stringify(formData.meta)}`);
 
   const key = trpc.key.create.useMutation({
     onSuccess() {
@@ -168,7 +180,18 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+    if (!expireEnabled) {
+      delete formData.expires;
+    }
+    if (!metaEnabled) {
+      delete formData.meta;
+    }
+    if (!limitEnabled) {
+      delete formData.limit;
+    }
+    if (!ratelimitEnabled) {
+      delete formData.ratelimit;
+    }
 
     const _metaVal = null;
     if (values.ratelimit?.limit === undefined) {
@@ -387,7 +410,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 </CardHeader>
                                 <div className="flex items-center gap-4 pt-6 pl-6">
                                   <Switch
-                                    id="enabled"
+                                    name="rateLimit.Enabled"
                                     checked={ratelimitEnabled}
                                     onCheckedChange={setRatelimitEnabled}
                                   />
@@ -538,7 +561,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                           <Select
                                             disabled={!limitEnabled}
                                             onValueChange={field.onChange}
-                                            defaultValue=""
+                                            defaultValue="none"
                                           >
                                             <SelectTrigger>
                                               <SelectValue />
