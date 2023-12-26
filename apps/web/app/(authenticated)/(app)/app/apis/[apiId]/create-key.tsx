@@ -179,7 +179,11 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     if (!values.meta) {
       delete values.meta;
     }
-    if (values.limit?.refill?.interval !== "none" && values.limit?.remaining === undefined) {
+    if (
+      values.limit?.refill &&
+      values.limit?.refill?.interval !== "none" &&
+      values.limit?.remaining === undefined
+    ) {
       form.setError("limit.remaining", {
         type: "manual",
         message: "Please enter a value if interval is selected",
