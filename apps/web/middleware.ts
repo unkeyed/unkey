@@ -23,7 +23,7 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
       }
       userId = auth.userId ?? undefined;
       tenantId = auth.orgId ?? auth.userId ?? undefined;
-      if (auth.orgId && req.nextUrl.pathname !== "/" && privateMatch.match(req.nextUrl.pathname)) {
+      if (auth.orgId && privateMatch.match(req.nextUrl.pathname)) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
         if (!workspace && req.nextUrl.pathname !== "/new") {
           console.error("Workspace not found for orgId", auth.orgId);
@@ -63,6 +63,6 @@ export const config = {
     "/app/(.*)",
     "/auth/(.*)",
     "/(api|trpc)(.*)",
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|images|favicon.ico|$).*)",
   ],
 };

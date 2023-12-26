@@ -19,7 +19,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
     );
     const template = templates[params.slug];
     if (!template) {
-      return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+      return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
         width: 1280,
         height: 720,
       });
@@ -234,7 +234,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
     );
   } catch (e) {
     console.error(`Error generating image using fallback for blog route ${params.slug}`, e);
-    return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+    return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
       width: 1280,
       height: 720,
     });

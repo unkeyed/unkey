@@ -11,12 +11,12 @@ export const authors = {
   james: {
     name: "James Perkins",
     role: "Co-Founder / CEO",
-    image: { src: "/james.jpg" },
+    image: { src: "/images/team/james.jpg" },
   },
   andreas: {
     name: "Andreas Thomas",
     role: "Co-Founder",
-    image: { src: "/andreas.jpeg" },
+    image: { src: "/images/team/andreas.jpeg" },
   },
   wilfred: {
     name: "Wilfred Almeida",
