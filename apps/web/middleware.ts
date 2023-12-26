@@ -18,16 +18,12 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
   const res = await authMiddleware({
     debug: process.env.CLERK_DEBUG === "true",
     afterAuth: async (auth, req) => {
-      if (
-        !auth.userId &&
-        req.nextUrl.pathname !== "/" &&
-        privateMatch.match(req.nextUrl.pathname)
-      ) {
+      if (!auth.userId && privateMatch.match(req.nextUrl.pathname)) {
         return redirectToSignIn({ returnBackUrl: req.url });
       }
       userId = auth.userId ?? undefined;
       tenantId = auth.orgId ?? auth.userId ?? undefined;
-      if (auth.orgId && req.nextUrl.pathname !== "/" && privateMatch.match(req.nextUrl.pathname)) {
+      if (auth.orgId && privateMatch.match(req.nextUrl.pathname)) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
         if (!workspace && req.nextUrl.pathname !== "/new") {
           console.error("Workspace not found for orgId", auth.orgId);
@@ -37,7 +33,7 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
         }
         // this stops users if they haven't paid.
         if (
-          !["/app/settings/billing/stripe", "/app/apis", "/app", "/new", "/"].includes(
+          !["/app/settings/billing/stripe", "/app/apis", "/app", "/new"].includes(
             req.nextUrl.pathname,
           )
         ) {
@@ -62,5 +58,11 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    "/app",
+    "/app/(.*)",
+    "/auth/(.*)",
+    "/(api|trpc)(.*)",
+    "/((?!_next/static|_next/image|images|favicon.ico|$).*)",
+  ],
 };
