@@ -62,6 +62,7 @@ export const config = {
     "/app",
     "/app/(.*)",
     "/auth/(.*)",
-    "/(api|trpc)(.*), '/((?!_next/static|_next/image|favicon.ico).*)",
+    "/(api|trpc)(.*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
