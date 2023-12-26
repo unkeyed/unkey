@@ -28,12 +28,12 @@ export const metadata = {
     description: "Accelerate your API development ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
-    images: ["https://unkey.dev/og.png"],
+    images: ["https://unkey.dev/images/landing/og.png"],
   },
   twitter: {
     title: "Unkey",
     card: "summary_large_image",
-    images: ["https://unkey.dev/og.png"],
+    images: ["https://unkey.dev/images/landing/og.png"],
   },
   robots: {
     index: true,

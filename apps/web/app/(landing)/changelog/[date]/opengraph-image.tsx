@@ -26,7 +26,7 @@ export default async function Image({ params }: { params: { date: string } }) {
 
     // Rare case where the changelog is not found?
     if (!changelog) {
-      return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+      return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
         width: 1280,
         height: 720,
       });
@@ -220,7 +220,7 @@ export default async function Image({ params }: { params: { date: string } }) {
     );
   } catch (e) {
     console.error(`Error generating image using fallback for changelog route ${params.date}`, e);
-    return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+    return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
       width: 1280,
       height: 720,
     });
