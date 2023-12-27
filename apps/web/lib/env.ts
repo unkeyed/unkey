@@ -48,12 +48,21 @@ export const vercelIntegrationEnv = () =>
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
-  STRIPE_WEBHOOK_SECRET: z.string(),
+  STRIPE_PRICE_ID_PRO_PLAN: z.string(),
+  STRIPE_PRICE_ID_ACTIVE_KEYS: z.string(),
+  STRIPE_PRICE_ID_KEY_VERIFICATIONS: z.string(),
+
   STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
   STRIPE_PRODUCT_ID_ACTIVE_KEYS: z.string(),
   STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
   STRIPE_PRODUCT_ID_SUPPORT: z.string(),
 });
 
-const stripeParsed = stripeSchema.safeParse(process.env);
-export const stripeEnv = () => (stripeParsed.success ? stripeParsed.data : null);
+export const stripeEnv = () => {
+  const stripeParsed = stripeSchema.safeParse(process.env);
+  if (!stripeParsed.success) {
+    console.warn(stripeParsed.error);
+    return null;
+  }
+  return stripeParsed.data;
+};

@@ -74,6 +74,7 @@ export default async function StripeSuccess(props: Props) {
     .set({
       stripeCustomerId: customer.id,
       stripeSubscriptionId: session.subscription as string,
+      plan: "pro",
       trialEnds: null,
     })
     .where(eq(schema.workspaces.id, ws.id));

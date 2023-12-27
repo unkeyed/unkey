@@ -1,3 +1,4 @@
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,13 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { BillingTier, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -36,7 +35,7 @@ export default async function BillingPage() {
   return (
     <div className="flex gap-8 flex-col lg:flex-row ">
       <div className="w-full">
-        {workspace.plan === "free" ? (
+        {workspace.stripeSubscriptionId === null ? (
           <FreeUsage workspace={workspace} />
         ) : (
           <ProUsage workspace={workspace} />
@@ -84,13 +83,31 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col space-y-6 w-2/3">
           <MeteredLineItem
             title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: null }]}
+            tiers={[
+              {
+                up_to: 100,
+                unit_amount: null,
+                unit_amount_decimal: null,
+                flat_amount: null,
+                flat_amount_decimal: null,
+              },
+            ]}
             used={usedActiveKeys}
+            cents={0}
           />
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: null }]}
+            tiers={[
+              {
+                up_to: 2500,
+                unit_amount: null,
+                unit_amount_decimal: null,
+                flat_amount: null,
+                flat_amount_decimal: null,
+              },
+            ]}
             used={usedVerifications}
+            cents={0}
           />
         </ol>
         <div className="w-1/3">
@@ -127,6 +144,7 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const env = stripeEnv();
   if (!env) {
+    console.error("Missing stripe env");
     return null;
   }
 
@@ -198,61 +216,25 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 };
 
 const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
-  const startOfMonth = new Date();
-  startOfMonth.setUTCDate(1);
-  startOfMonth.setUTCHours(0, 0, 0, 0);
-
-  const year = startOfMonth.getUTCFullYear();
-  const month = startOfMonth.getUTCMonth() + 1;
-
-  let [usedActiveKeys, usedVerifications] = await Promise.all([
-    activeKeys({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.keys ?? 0),
-    verifications({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.success ?? 0),
-  ]);
-
-  usedActiveKeys += 2;
-  usedVerifications += usedActiveKeys * 151;
-  let currentPrice = 0;
-  let estimatedTotalPrice = 0;
-  if (workspace.subscriptions?.plan) {
-    const cost = parseFloat(workspace.subscriptions.plan.cents);
-    currentPrice += cost;
-    estimatedTotalPrice += cost; // does not scale
-  }
-  if (workspace.subscriptions?.support) {
-    const cost = parseFloat(workspace.subscriptions.support.cents);
-    currentPrice += cost;
-    estimatedTotalPrice += cost; // does not scale
-  }
-  if (workspace.subscriptions?.activeKeys) {
-    const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
-    if (cost.error) {
-      return <div className="text-red-500">{cost.error.message}</div>;
-    } else {
-      currentPrice += cost.value.totalCentsEstimate;
-      estimatedTotalPrice += cost.value.totalCentsEstimate; // does not necessarily scale
-    }
-  }
-  if (workspace.subscriptions?.verifications) {
-    const cost = calculateTieredPrices(
-      workspace.subscriptions.verifications.tiers,
-      usedVerifications,
+  const e = stripeEnv();
+  if (!e) {
+    return (
+      <EmptyPlaceholder>
+        <EmptyPlaceholder.Title>Stripe is not configured</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
+        </EmptyPlaceholder.Description>
+      </EmptyPlaceholder>
     );
-    if (cost.error) {
-      return <div className="text-red-500">{cost.error.message}</div>;
-    } else {
-      currentPrice += cost.value.totalCentsEstimate;
-      estimatedTotalPrice += forecastUsage(cost.value.totalCentsEstimate);
-    }
   }
+  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
+    apiVersion: "2022-11-15",
+    typescript: true,
+  });
+
+  const subscription = await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId!, {
+    expand: ["items.data.price.product", "items.data.price.tiers"],
+  });
 
   return (
     <Card>
@@ -261,73 +243,56 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardDescription>
           Current billing cycle:{" "}
           <span className="text-primary font-medium">
-            {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            {new Date(subscription.current_period_start * 1000).toLocaleString("en-US", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}{" "}
+            -{" "}
+            {new Date(subscription.current_period_end * 1000).toLocaleString("en-US", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
           </span>{" "}
         </CardDescription>
       </CardHeader>
 
       <CardContent>
         <ol className="flex flex-col space-y-6">
-          {workspace.subscriptions?.plan ? (
-            <LineItem title="Pro plan" cents={workspace.subscriptions.plan.cents} />
-          ) : null}
-          {workspace.subscriptions?.support ? (
-            <LineItem title="Professional support" cents={workspace.subscriptions.support.cents} />
-          ) : null}
-          {workspace.subscriptions?.activeKeys ? (
-            <MeteredLineItem
-              displayPrice
-              title="Active keys"
-              tiers={workspace.subscriptions.activeKeys.tiers}
-              used={usedActiveKeys}
-              max={workspace.plan === "free" ? 100 : undefined}
-            />
-          ) : null}
-          {workspace.subscriptions?.verifications ? (
-            <MeteredLineItem
-              displayPrice
-              title="Verifications"
-              tiers={[
-                {
-                  firstUnit: 1,
-                  lastUnit: 2500,
-                  centsPerUnit: null,
-                },
-                {
-                  firstUnit: 2501,
-                  lastUnit: 100000,
-                  centsPerUnit: "0.02",
-                },
-                {
-                  firstUnit: 100001,
-                  lastUnit: 1000000,
-                  centsPerUnit: "0.005",
-                },
-                {
-                  firstUnit: 1000001,
-                  lastUnit: null,
-                  centsPerUnit: "0.0001",
-                },
-              ]}
-              used={usedVerifications}
-              max={workspace.plan === "free" ? 2500 : undefined}
-              forecast
-            />
-          ) : null}
+          {subscription.items.data.map(async (item) => {
+            // @ts-ignore Stripe knows nothing
+            const productName = item.price.product.name;
+
+            if (item.price.billing_scheme === "per_unit") {
+              return <LineItem title={productName} cents={item.price.unit_amount ?? 0} />;
+            } else if (item.price.billing_scheme === "tiered") {
+              const usage = await stripe.subscriptionItems.listUsageRecordSummaries(item.id);
+
+              return (
+                <MeteredLineItem
+                  displayPrice
+                  title={productName}
+                  used={usage.data.at(0)?.total_usage ?? 0}
+                  tiers={item.price.tiers ?? []}
+                  cents={item.price.unit_amount ?? 0}
+                />
+              );
+            }
+            return null;
+          })}
         </ol>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         <div className="flex items-center justify-between w-full">
           <span className="font-semibold text-content text-sm">Current Total</span>
           <span className="font-semibold tabular-nums text-content text-sm">
-            {formatCentsToDollar(currentPrice)}
+            {formatCentsToDollar(0)}
           </span>
         </div>
         <div className="flex items-center justify-between w-full">
           <span className="text-content-subtle text-xs">Estimated by end of month</span>
-          <span className="tabular-nums text-content-subtle text-xs">
-            {formatCentsToDollar(estimatedTotalPrice)}
-          </span>
+          <span className="tabular-nums text-content-subtle text-xs">{formatCentsToDollar(0)}</span>
         </div>
       </CardFooter>
     </Card>
@@ -337,7 +302,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 const LineItem: React.FC<{
   title: string;
   subtitle?: string;
-  cents: string;
+  cents: number;
 }> = (props) => (
   <div className="flex items-center justify-between">
     <div>
@@ -347,7 +312,7 @@ const LineItem: React.FC<{
       <div className="text-sm text-secondary">{props.subtitle}</div>
     </div>
     <span className="font-semibold tabular-nums text-content text-sm">
-      {formatCentsToDollar(parseFloat(props.cents))}
+      {formatCentsToDollar(props.cents)}
     </span>
   </div>
 );
@@ -370,24 +335,20 @@ const MeteredLineItem: React.FC<{
   displayPrice?: boolean;
   title: string;
   used: number;
-  max?: number | null;
-  tiers: BillingTier[];
+  tiers: Stripe.Price.Tier[];
   forecast?: boolean;
+  cents: number;
 }> = (props) => {
   const firstTier = props.tiers.at(0);
-  const included = firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
-
-  const price = calculateTieredPrices(props.tiers, props.used);
-  if (price.error) {
-    return <div className="text-red-500">{price.error.message}</div>;
-  }
+  const included = !firstTier?.unit_amount ? firstTier?.up_to ?? 0 : 0;
 
   const forecast = forecastUsage(props.used);
 
-  const currentTier = props.tiers.find((tier) => props.used >= tier.firstUnit);
-  const max = props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
-
-  console.log({ currentTier, max, forecast, used: props.used });
+  const _freeTier = props.tiers.find(
+    (t) =>
+      !t.flat_amount && !t.unit_amount && !t.flat_amount_decimal && t.unit_amount_decimal === "0",
+  );
+  const currentTier = props.tiers.find((tier) => tier.up_to === null || props.used <= tier.up_to);
 
   return (
     <div className="flex items-center justify-between">
@@ -406,45 +367,16 @@ const MeteredLineItem: React.FC<{
           ) : null}
         </div>
         <div className="h-2 flex rounded-full bg-gray-200 dark:bg-gray-800 relative">
-          {props.tiers
-            .filter((tier) => props.used >= tier.firstUnit)
-            .map((tier, i) => (
-              <Tooltip key={tier.firstUnit}>
-                <TooltipTrigger style={{ width: percentage(props.used - tier.firstUnit, max) }}>
-                  <div
-                    className={cn("relative bg-primary hover:bg-brand duration-500 h-2", {
-                      "opacity-100": i === 0,
-                      "opacity-80": i === 1,
-                      "opacity-60": i === 2,
-                      "opacity-40": i === 3,
-                      "opacity-20": i === 4,
-                      "rounded-l-full": i === 0,
-                    })}
-                  >
-                    <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 dark:via-gray-100 to-transparent" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {tier.centsPerUnit ? (
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:px-8">
-                      <dt className="text-content-subtle text-sm font-medium leading-6">
-                        {" "}
-                        {tier.centsPerUnit
-                          ? formatCentsToDollar(parseFloat(tier.centsPerUnit), 4)
-                          : "free"}{" "}
-                        per unit
-                      </dt>
+          <div
+            style={{
+              width: percentage(props.used, currentTier?.up_to ?? props.used),
+            }}
+          >
+            <div className="relative bg-primary h-2 rounded-l-full">
+              <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 dark:via-gray-100 to-transparent" />
+            </div>
+          </div>
 
-                      <dd className="text-content w-full flex-none text-3xl font-medium leading-10 tracking-tight">
-                        {tier.firstUnit} - {tier.lastUnit ?? "∞"}
-                      </dd>
-                    </div>
-                  ) : (
-                    `${tier.lastUnit} included`
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            ))}
           <div className="bg-gradient-to-r max-w-[4rem] w-full from-primary to-transparent opacity-50" />
         </div>
         <div className="flex items-center justify-between">
@@ -461,11 +393,11 @@ const MeteredLineItem: React.FC<{
       {props.displayPrice ? (
         <span
           className={cn("tabular-nums text-sm", {
-            "text-content font-semibold ": price.value.totalCentsEstimate > 0,
-            "text-content-subtle": price.value.totalCentsEstimate === 0,
+            "text-content font-semibold ": props.cents > 0,
+            "text-content-subtle": !props.cents || props.cents === 0,
           })}
         >
-          {formatCentsToDollar(price.value.totalCentsEstimate)}
+          {formatCentsToDollar(props.cents)}
         </span>
       ) : null}
     </div>
@@ -489,7 +421,7 @@ function percentage(num: number, total: number): `${number}%` {
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
-  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
+  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border shadow-lg p-8 ">
     <div className="mt-16 font-mono text-content whitespace-nowrap">
       •••• •••• •••• {paymentMethod.card?.last4}
     </div>
