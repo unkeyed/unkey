@@ -1,14 +1,7 @@
 "use client";
-
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +16,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -106,50 +98,27 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   const formData = form.watch();
-  useEffect(() => {
-    if (!ratelimitEnabled) {
-      delete formData.ratelimit;
-      form.resetField("ratelimit");
-    }
-  }, [ratelimitEnabled]);
-  useEffect(() => {
-    delete formData.limit;
-    form.resetField("limit");
-  }, [limitEnabled]);
-  useEffect(() => {
-    if (!expireEnabled) {
-      delete formData.expires;
-      form.resetField("expires");
-    }
-  }, [formData.expires]);
-  useEffect(() => {
-    delete formData.expires;
-    form.resetField("meta");
-  }, [formData.meta]);
 
+  useEffect(() => {
+    if (formData.limit?.remaining === undefined) {
+      form.resetField("limit");
+    }
+  }, [formData.limit]);
   useEffect(() => {
     if (formData.limit?.refill?.interval === "none") {
       form.resetField("limit.refill.interval");
       form.resetField("limit.refill.amount");
     }
   }, [formData.limit?.refill]);
-
   useEffect(() => {
     if (
-      (formData.ratelimit?.limit === undefined &&
-        formData.ratelimit?.refillRate === undefined &&
-        formData.ratelimit?.refillInterval === undefined) ||
-      ratelimitEnabled === false
+      formData.ratelimit?.limit === undefined &&
+      formData.ratelimit?.refillRate === undefined &&
+      formData.ratelimit?.refillInterval === undefined
     ) {
       form.resetField("ratelimit");
     }
   }, [formData.ratelimit]);
-  useEffect(() => {}, []);
-  console.log(`form status${form.formState.isValid}`);
-  console.log(`Expires Field  ${JSON.stringify(formData.expires?.toISOString())}`);
-  console.log(`Refill Data  ${JSON.stringify(formData.limit?.refill)}`);
-  console.log(`Ratelimit Data  ${JSON.stringify(formData.ratelimit)}`);
-  console.log(`Meta Data  ${JSON.stringify(formData.meta)}`);
 
   const key = trpc.key.create.useMutation({
     onSuccess() {
@@ -181,16 +150,16 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!expireEnabled) {
-      delete formData.expires;
+      delete values.expires;
     }
     if (!metaEnabled) {
-      delete formData.meta;
+      delete values.meta;
     }
     if (!limitEnabled) {
-      delete formData.limit;
+      delete values.limit;
     }
     if (!ratelimitEnabled) {
-      delete formData.ratelimit;
+      delete values.ratelimit;
     }
 
     const _metaVal = null;
@@ -311,82 +280,360 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               <Form {...form}>
                 <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
                   <h2 className="mb-2 text-2xl">Create a new Key</h2>
-                  <div className="flex-col gap-y-4">
-                    <Card className="p-2">
+
+                  <div className="flex-col gap-y-4 w-full">
+                    <Card className="mb-6">
                       <CardHeader>
                         <CardTitle>Key Details</CardTitle>
                         <CardDescription />
                       </CardHeader>
-                      <CardContent className="flex justify-between item-center gap-4">
-                        <div className="flex w-1/4 ">
+                      <CardContent className="flex flex-col justify-between">
+                        <div className="gap-6 lg:flex">
+                          <div className="flex flex-col max-w-lg">
+                            <FormField
+                              control={form.control}
+                              name="prefix"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Prefix</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Using a prefix can make it easier for your users to distinguish
+                                    between apis. Don't add a trailing underscore, we'll do that
+                                    automatically.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="flex w-auto max-w-md">
+                            <FormField
+                              control={form.control}
+                              name="bytes"
+                              rules={{ required: true }}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Bytes</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" {...field} />
+                                  </FormControl>
+                                  <FormDescription>How many bytes to use.</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="flex w-auto max-w-md">
+                            <FormField
+                              control={form.control}
+                              name="ownerId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Owner</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormDescription>
+                                    This is the id of the user or workspace in your system, so you
+                                    can identify users from an API key.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="flex w-auto max-w-md">
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Name</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormDescription>
+                                    To make it easier to identify a particular key, you can provide
+                                    a name.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex pt-6 flex-wrap justify-between w-full">
+                          <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
+                            <p>Ratelimit</p>
+                            <Switch
+                              name="rateLimit.Enabled"
+                              checked={ratelimitEnabled}
+                              onCheckedChange={setRatelimitEnabled}
+                            />
+                          </div>
+
+                          <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
+                            <p>Remaining Uses</p>
+                            <Switch
+                              name="remaining.Enabled"
+                              checked={limitEnabled}
+                              onCheckedChange={setLimitEnabled}
+                            />
+                          </div>
+
+                          <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
+                            <p className="">Experation</p>
+                            <Switch
+                              name="expiration.Enabled"
+                              checked={expireEnabled}
+                              onCheckedChange={setExpireEnabled}
+                            />
+                          </div>
+
+                          <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
+                            <p>Metadata</p>
+                            <Switch
+                              name="metadata.Enabled"
+                              checked={metaEnabled}
+                              onCheckedChange={setMetaEnabled}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <Card
+                      className={cn("h-full max-sm:w-full", {
+                        hidden: !ratelimitEnabled,
+                      })}
+                    >
+                      <CardHeader>
+                        <div>
+                          <CardTitle>Ratelimit</CardTitle>
+                        </div>
+                        <CardDescription>How frequently this key can be used.</CardDescription>
+                      </CardHeader>
+
+                      <CardContent className="w-full justify-between item-center">
+                        <div>
                           <FormField
                             control={form.control}
-                            name="prefix"
+                            name="ratelimit.limit"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Prefix</FormLabel>
+                              <FormItem className="w-full mt-2">
+                                <FormLabel>Limit</FormLabel>
                                 <FormControl>
-                                  <Input {...field} />
+                                  <Input
+                                    disabled={!ratelimitEnabled}
+                                    placeholder="10"
+                                    type="number"
+                                    {...field}
+                                    onBlur={(e) => {
+                                      if (e.target.value === "") {
+                                        //don't trigger validation if the field is empty
+                                        return;
+                                      }
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormDescription>
-                                  Using a prefix can make it easier for your users to distinguish
-                                  between apis. Don't add a trailing underscore, we'll do that
-                                  automatically.
+                                  The maximum number of requests possible during a burst.
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                        <div className="flex-col w-1/4">
+
                           <FormField
                             control={form.control}
-                            name="bytes"
-                            rules={{ required: true }}
+                            name="ratelimit.refillRate"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Bytes</FormLabel>
+                              <FormItem className="w-full mt-4">
+                                <FormLabel>Refill Rate</FormLabel>
                                 <FormControl>
-                                  <Input type="number" {...field} />
+                                  <Input
+                                    disabled={!ratelimitEnabled}
+                                    placeholder="5"
+                                    type="number"
+                                    {...field}
+                                    onBlur={(e) => {
+                                      if (e.target.value === "") {
+                                        return;
+                                      }
+                                    }}
+                                  />
                                 </FormControl>
-                                <FormDescription>How many bytes to use.</FormDescription>
+
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                        <div className="flex-col w-1/4">
                           <FormField
                             control={form.control}
-                            name="ownerId"
+                            name="ratelimit.refillInterval"
+                            render={({ field }) => (
+                              <FormItem className="w-full mt-6">
+                                <FormLabel>Refill Interval (milliseconds)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    disabled={!ratelimitEnabled}
+                                    placeholder="1000"
+                                    type="number"
+                                    {...field}
+                                    onBlur={(e) => {
+                                      if (e.target.value === "") {
+                                        return;
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormDescription>
+                            How many requests may be performed in a given interval
+                          </FormDescription>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className={cn("h-full max-sm:w-full", {
+                        hidden: !limitEnabled,
+                      })}
+                    >
+                      <CardHeader>
+                        <CardTitle>Remaining Uses</CardTitle>
+                        <CardDescription>
+                          How many times this key can be used before it gets disabled automatically.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="justify-between item-center">
+                        <div>
+                          <FormField
+                            control={form.control}
+                            name="limit.remaining"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Owner</FormLabel>
+                                <FormLabel>Number of uses</FormLabel>
                                 <FormControl>
-                                  <Input {...field} />
+                                  <Input
+                                    disabled={!limitEnabled}
+                                    placeholder="100"
+                                    className="w-full"
+                                    type="number"
+                                    {...field}
+                                    onBlur={(e) => {
+                                      if (e.target.value === "") {
+                                        return;
+                                      }
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormDescription>
-                                  This is the id of the user or workspace in your system, so you can
-                                  identify users from an API key.
+                                  Enter the remaining amount of uses for this key.
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                        <div className="flex-col w-1/4">
                           <FormField
                             control={form.control}
-                            name="name"
+                            name="limit.refill.interval"
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Name</FormLabel>
+                              <FormItem className="">
+                                <FormLabel>Refill Rate</FormLabel>
+                                <Select
+                                  disabled={!limitEnabled}
+                                  onValueChange={field.onChange}
+                                  defaultValue="none"
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="limit.refill.amount"
+                            render={({ field }) => (
+                              <FormItem className="mt-4">
+                                <FormLabel>Number of uses per interval</FormLabel>
                                 <FormControl>
-                                  <Input {...field} />
+                                  <Input
+                                    disabled={!limitEnabled}
+                                    placeholder="100"
+                                    className="w-full"
+                                    type="number"
+                                    {...field}
+                                    onBlur={(e) => {
+                                      if (e.target.value === "") {
+                                        return;
+                                      }
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormDescription>
-                                  To make it easier to identify a particular key, you can provide a
-                                  name.
+                                  Enter the number of uses to refill per interval.
+                                </FormDescription>
+                                <FormMessage defaultValue="Please enter a value if interval is selected" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className={cn("h-full max-sm:w-full", {
+                        hidden: !expireEnabled,
+                      })}
+                    >
+                      <CardHeader>
+                        <CardTitle>Expiration</CardTitle>
+                        <CardDescription>
+                          Automatically revoke this key after a certain date.
+                        </CardDescription>
+                      </CardHeader>
+
+                      <CardContent className="justify-between item-center">
+                        <div
+                          className={cn("flex flex-col gap-2 w-full", {
+                            "opacity-50": !expireEnabled,
+                          })}
+                        >
+                          <FormField
+                            control={form.control}
+                            name="expires"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Expiry Date</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    disabled={!expireEnabled}
+                                    min={getDatePlusTwoMinutes()}
+                                    type="datetime-local"
+                                    {...field}
+                                    defaultValue={getDatePlusTwoMinutes()}
+                                    value={field.value?.toLocaleString()}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  This api key will automatically be revoked after the given date.
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -395,347 +642,70 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         </div>
                       </CardContent>
                     </Card>
-                    <Accordion type="multiple" className="w-full">
-                      <AccordionItem value="advanced">
-                        <AccordionTrigger dir="">Advanced</AccordionTrigger>
-                        <AccordionContent className="w-full">
-                          <div className="flex gap-4 mb-4">
-                            <div className="lg:w-1/3">
-                              <Card className="h-full">
-                                <CardHeader>
-                                  <CardTitle>Ratelimit</CardTitle>
-                                  <CardDescription>
-                                    How frequently this key can be used.
-                                  </CardDescription>
-                                </CardHeader>
-                                <div className="flex items-center gap-4 pt-6 pl-6">
-                                  <Switch
-                                    name="rateLimit.Enabled"
-                                    checked={ratelimitEnabled}
-                                    onCheckedChange={setRatelimitEnabled}
+                    <Card
+                      className={cn("h-full max-sm:w-full", {
+                        hidden: !metaEnabled,
+                      })}
+                    >
+                      <CardHeader>
+                        <CardTitle>Metadata</CardTitle>
+                        <CardDescription>
+                          Store json, or any other data you want to associate with this key.
+                          Whenever you verify this key, we'll return the metadata to you.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="justify-between item-center">
+                        <div
+                          className={cn("flex flex-col gap-2 w-full h-full", {
+                            "opacity-50": !metaEnabled,
+                          })}
+                        >
+                          <FormField
+                            control={form.control}
+                            name="meta"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Textarea
+                                    disabled={!metaEnabled}
+                                    className="m-4 mx-auto rounded-md border shadow-sm"
+                                    rows={7}
+                                    placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
+                                    {...field}
                                   />
-                                  <Label htmlFor="enabled">
-                                    {ratelimitEnabled ? "Enabled" : "Disabled"}
-                                  </Label>
-                                </div>
-                                <CardContent className="w-full justify-between item-center">
-                                  <div className="">
-                                    <FormField
-                                      control={form.control}
-                                      name="ratelimit.limit"
-                                      render={({ field }) => (
-                                        <FormItem className="w-full mt-2">
-                                          <FormLabel>Limit</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              disabled={!ratelimitEnabled}
-                                              placeholder="10"
-                                              type="number"
-                                              {...field}
-                                              onBlur={(e) => {
-                                                if (e.target.value === "") {
-                                                  //don't trigger validation if the field is empty
-                                                  return;
-                                                }
-                                              }}
-                                            />
-                                          </FormControl>
-                                          <FormDescription>
-                                            The maximum number of requests possible during a burst.
-                                          </FormDescription>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-
-                                    <FormField
-                                      control={form.control}
-                                      name="ratelimit.refillRate"
-                                      render={({ field }) => (
-                                        <FormItem className="w-full mt-4">
-                                          <FormLabel>Refill Rate</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              disabled={!ratelimitEnabled}
-                                              placeholder="5"
-                                              type="number"
-                                              {...field}
-                                              onBlur={(e) => {
-                                                if (e.target.value === "") {
-                                                  return;
-                                                }
-                                              }}
-                                            />
-                                          </FormControl>
-
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormField
-                                      control={form.control}
-                                      name="ratelimit.refillInterval"
-                                      render={({ field }) => (
-                                        <FormItem className="w-full mt-6">
-                                          <FormLabel>Refill Interval (milliseconds)</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              disabled={!ratelimitEnabled}
-                                              placeholder="1000"
-                                              type="number"
-                                              {...field}
-                                              onBlur={(e) => {
-                                                if (e.target.value === "") {
-                                                  return;
-                                                }
-                                              }}
-                                            />
-                                          </FormControl>
-
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormDescription>
-                                      How many requests may be performed in a given interval
-                                    </FormDescription>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
-
-                            <div className="lg:w-1/3">
-                              <Card className="h-full">
-                                <CardHeader>
-                                  <CardTitle>Remaining Uses</CardTitle>
-                                  <CardDescription>
-                                    How many times this key can be used before it gets disabled
-                                    automatically.
-                                  </CardDescription>
-                                </CardHeader>
-                                <div className="flex items-center gap-4 pt-6 pl-6">
-                                  <Switch
-                                    id="enableRemaining"
-                                    checked={limitEnabled}
-                                    onCheckedChange={setLimitEnabled}
-                                  />
-                                  <Label htmlFor="enableRemaining">
-                                    {limitEnabled ? "Enabled" : "Disabled"}
-                                  </Label>
-                                </div>
-                                <CardContent className="justify-between item-center">
-                                  <div>
-                                    <FormField
-                                      control={form.control}
-                                      name="limit.remaining"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Number of uses</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              disabled={!limitEnabled}
-                                              placeholder="100"
-                                              className="w-full"
-                                              type="number"
-                                              {...field}
-                                              onBlur={(e) => {
-                                                if (e.target.value === "") {
-                                                  return;
-                                                }
-                                              }}
-                                            />
-                                          </FormControl>
-                                          <FormDescription>
-                                            Enter the remaining amount of uses for this key.
-                                          </FormDescription>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormField
-                                      control={form.control}
-                                      name="limit.refill.interval"
-                                      render={({ field }) => (
-                                        <FormItem className="">
-                                          <FormLabel>Refill Rate</FormLabel>
-                                          <Select
-                                            disabled={!limitEnabled}
-                                            onValueChange={field.onChange}
-                                            defaultValue="none"
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="none">None</SelectItem>
-                                              <SelectItem value="daily">Daily</SelectItem>
-                                              <SelectItem value="monthly">Monthly</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormField
-                                      control={form.control}
-                                      name="limit.refill.amount"
-                                      render={({ field }) => (
-                                        <FormItem className="mt-4">
-                                          <FormLabel>Number of uses per interval</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              disabled={!limitEnabled}
-                                              placeholder="100"
-                                              className="w-full"
-                                              type="number"
-                                              {...field}
-                                              onBlur={(e) => {
-                                                if (e.target.value === "") {
-                                                  return;
-                                                }
-                                              }}
-                                            />
-                                          </FormControl>
-                                          <FormDescription>
-                                            Enter the number of uses to refill per interval.
-                                          </FormDescription>
-                                          <FormMessage defaultValue="Please enter a value if interval is selected" />
-                                        </FormItem>
-                                      )}
-                                    />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
-                            <div className="lg:w-1/3">
-                              <Card className="h-full">
-                                <CardHeader>
-                                  <CardTitle>Expiration</CardTitle>
-                                  <CardDescription>
-                                    Automatically revoke this key after a certain date.
-                                  </CardDescription>
-                                </CardHeader>
-                                <div className="flex items-center gap-4 pl-6 pt-6">
-                                  <Switch
-                                    id="enableExpiration"
-                                    checked={expireEnabled}
-                                    onCheckedChange={setExpireEnabled}
-                                  />
-                                  <Label htmlFor="enableExpiration">
-                                    {expireEnabled ? "Enabled" : "Disabled"}
-                                  </Label>
-                                </div>
-
-                                <CardContent className="justify-between item-center h-[328px]">
-                                  <div
-                                    className={cn("flex flex-col gap-2 w-full", {
-                                      "opacity-50": !expireEnabled,
-                                    })}
-                                  >
-                                    <FormField
-                                      control={form.control}
-                                      name="expires"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Expiry Date</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              disabled={!expireEnabled}
-                                              min={getDatePlusTwoMinutes()}
-                                              type="datetime-local"
-                                              {...field}
-                                              defaultValue={getDatePlusTwoMinutes()}
-                                              value={field.value?.toLocaleString()}
-                                            />
-                                          </FormControl>
-                                          <FormDescription>
-                                            This api key will automatically be revoked after the
-                                            given date.
-                                          </FormDescription>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
-                          </div>
-                          <div className="flex flex-col w-full">
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>Metadata</CardTitle>
-                                <CardDescription>
-                                  Store json, or any other data you want to associate with this key.
-                                  Whenever you verify this key, we'll return the metadata to you.
-                                </CardDescription>
-                              </CardHeader>
-                              <div className="flex items-center gap-4 pl-6 pt-6">
-                                <Switch
-                                  id="enableMetadata"
-                                  checked={metaEnabled}
-                                  onCheckedChange={setMetaEnabled}
-                                />
-                                <Label htmlFor="enableMetadata">
-                                  {!metaEnabled ? "Enabled" : "Disabled"}
-                                </Label>
-                              </div>
-                              <CardContent className="justify-between item-center">
-                                <div
-                                  className={cn("flex flex-col gap-2 w-full", {
-                                    "opacity-50": !metaEnabled,
-                                  })}
+                                </FormControl>
+                                <FormDescription>
+                                  Enter custom metadata as a JSON object.
+                                </FormDescription>
+                                <FormMessage />
+                                <Button
+                                  disabled={!metaEnabled}
+                                  variant="secondary"
+                                  type="button"
+                                  onClick={(_e) => {
+                                    try {
+                                      if (field.value) {
+                                        const parsed = JSON.parse(field.value);
+                                        field.onChange(JSON.stringify(parsed, null, 2));
+                                      }
+                                    } catch (_e) {
+                                      form.setError("meta", {
+                                        type: "manual",
+                                        message: "Invalid JSON",
+                                      });
+                                    }
+                                  }}
                                 >
-                                  <FormField
-                                    control={form.control}
-                                    name="meta"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormControl>
-                                          <Textarea
-                                            disabled={!metaEnabled}
-                                            className="m-4 mx-auto rounded-md border shadow-sm"
-                                            rows={7}
-                                            placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormDescription>
-                                          Enter custom metadata as a JSON object.
-                                        </FormDescription>
-                                        <FormMessage />
-                                        <Button
-                                          disabled={!metaEnabled}
-                                          variant="secondary"
-                                          type="button"
-                                          onClick={(_e) => {
-                                            try {
-                                              if (field.value) {
-                                                const parsed = JSON.parse(field.value);
-                                                field.onChange(JSON.stringify(parsed, null, 2));
-                                              }
-                                            } catch (_e) {
-                                              form.setError("meta", {
-                                                type: "manual",
-                                                message: "Invalid JSON",
-                                              });
-                                            }
-                                          }}
-                                        >
-                                          Format Json
-                                        </Button>
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                                  Format Json
+                                </Button>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <div className="mt-8 flex justify-end">
+                  <div className="mr-4 mb-4 flex justify-end">
                     <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>
