@@ -73,7 +73,7 @@ export const metadata = {
     card: "summary_large_image",
   },
   icons: {
-    shortcut: "/unkey.png",
+    shortcut: "/images/landing/unkey.png",
   },
 };
 
