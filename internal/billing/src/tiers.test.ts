@@ -46,7 +46,7 @@ describe("calculateTieredPrices", () => {
       expected: 391637.5,
     },
     {
-      name: "idk",
+      name: "real world usage",
       tiers: [
         { firstUnit: 1, lastUnit: 2_500, centsPerUnit: null },
         { firstUnit: 2_501, lastUnit: 100_000, centsPerUnit: "0.02" },
