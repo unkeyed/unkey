@@ -5,10 +5,9 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { sha256 } from "@unkey/hash";
-import { roleQuery } from "@unkey/rbac";
+import { RoleQuery, evaluateRoles } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
-import { z } from "zod";
 import { Analytics } from "../analytics";
 import { CacheNamespaces } from "../global";
 
@@ -83,7 +82,7 @@ export class KeyService {
 
   public async verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roles?: z.infer<typeof roleQuery> },
+    req: { key: string; apiId?: string; roleQuery?: RoleQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req).catch(async (e) => {
       this.logger.error("Unhandled error while verifying key", {
@@ -136,7 +135,7 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roles?: z.infer<typeof roleQuery> },
+    req: { key: string; apiId?: string; roles?: RoleQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
@@ -199,12 +198,13 @@ export class KeyService {
       }
     }
 
-    if (req.roles && data.key.roles) {
-      if (req.roles.hasAll) {
-        const ok = req.roles.hasAll.every((role) => data.key.roles?.some((r) => r.role === role));
-        if (!ok) {
-          return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
-        }
+    if (req.roles) {
+      const roleResp = evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
+      if (roleResp.error) {
+        return result.fail({ message: roleResp.error.message, code: "INTERNAL_SERVER_ERROR" });
+      }
+      if (!roleResp.value.valid) {
+        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
       }
     }
 

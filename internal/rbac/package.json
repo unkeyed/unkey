@@ -16,6 +16,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@unkey/result": "workspace:^",
     "zod": "^3.22.4"
   }
 }

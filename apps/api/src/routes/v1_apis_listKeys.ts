@@ -61,24 +61,33 @@ export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "key required",
+      });
     }
     const { apiId, limit, cursor, ownerId } = c.req.query();
 
     const rootKey = await keyService.verifyKey(c, {
       key: authorization,
-      roles: {
-        hasAll: [`${apiId}::listKeys`],
-      },
+      // roles: {
+      //   hasAll: [`${apiId}::listKeys`],
+      // },
     });
     if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: rootKey.error.message,
+      });
     }
     if (!rootKey.value.valid) {
       throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "insufficient permissions" });
     }
     if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "root key required",
+      });
     }
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
@@ -90,7 +99,10 @@ export const registerV1ApisListKeys = (app: App) =>
     });
 
     if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `api ${apiId} not found`,
+      });
     }
 
     if (!api.keyAuthId) {
@@ -139,6 +151,14 @@ export const registerV1ApisListKeys = (app: App) =>
               }
             : undefined,
         remaining: k.remaining ?? undefined,
+        refill:
+          k.refillInterval && k.refillAmount && k.lastRefillAt
+            ? {
+                interval: k.refillInterval,
+                amount: k.refillAmount,
+                lastRefillAt: k.lastRefillAt?.getTime(),
+              }
+            : undefined,
       })),
       // @ts-ignore, mysql sucks
       total: parseInt(total.at(0)?.count ?? "0"),

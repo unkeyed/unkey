@@ -3,16 +3,16 @@
  * That's why we can assume the highest scope of a role is an `api` or later `gateway`
  *
  * role identifiers can look like this:
- * - `api_id::xxx`
- * - `gateway_id::xxx`
+ * - `api_id.xxx`
+ * - `gateway_id.xxx`
  *
  */
 
 import { z } from "zod";
 import { Flatten } from "./types";
 
-export function buildIdSchema<TPrefix extends string>(prefix: TPrefix) {
-  return z.custom<`${TPrefix}_${string}` | `*`>((s) => {
+export function buildIdSchema(prefix: string) {
+  return z.string().refine((s) => {
     if (typeof s !== "string") {
       return false;
     }
@@ -46,37 +46,9 @@ const apiActions = z.enum([
 ]);
 
 export type Resources = {
-  [resourceId in `api::${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
+  [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
 } & {
-  [resourceId in `root_key::${z.infer<typeof keyId>}`]: z.infer<typeof rootKeyActions>;
+  [resourceId in `root_key.${z.infer<typeof keyId>}`]: z.infer<typeof rootKeyActions>;
 };
 
-export type Roles = Flatten<Resources, "::">;
-
-// const queries = {
-//   and: (...args: unknown[]) => {
-//     return {
-//       op: "and",
-//       set: args,
-//     };
-//   },
-//   or: (...args: unknown[]) => {
-//     return {
-//       op: "or",
-//       set: args,
-//     };
-//   },
-// };
-
-// root_key::*::read_root_key
-// root_key::*::create_root_key // a root key MUST NOT be allowed to create another key with more permissions than itself
-// root_key::*::delete_root_key
-// root_key::*::update_root_key
-// api::*::create_api
-// api::*::delete_api // either wildcard or a specific id -> api::api_123::delete_api
-// api::*::read_api
-// api::*::update_api
-// api::*::read_key
-// api::*::create_key
-// api::*::update_key
-// api::*::delete_key
+export type Role = Flatten<Resources>;

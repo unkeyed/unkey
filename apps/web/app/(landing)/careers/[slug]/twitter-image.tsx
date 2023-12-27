@@ -22,7 +22,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
     );
     const job = allJobs.find((job) => job._raw.flattenedPath === `careers/${params.slug}`);
     if (!job) {
-      return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+      return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
         width: 1280,
         height: 720,
       });
@@ -216,7 +216,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
     );
   } catch (e) {
     console.error(`Error generating image using fallback for Careers route ${params.slug}`, e);
-    return new ImageResponse(<img src="https://unkey.dev/og.png" alt="Unkey" />, {
+    return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
       width: 1280,
       height: 720,
     });

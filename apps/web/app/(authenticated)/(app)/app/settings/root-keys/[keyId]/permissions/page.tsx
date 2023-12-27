@@ -1,7 +1,5 @@
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Code } from "@/components/ui/code";
 import { Label } from "@/components/ui/label";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
@@ -36,66 +34,29 @@ export default async function RootKeyPage(props: {
 
   const key = await db.query.keys.findFirst({
     where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
-    with: {
-      roles: {
-        with: {
-          role: {
-            columns: {
-              name: true,
-            },
-          },
-        },
-      },
-    },
   });
   if (!key) {
     return notFound();
   }
 
-  type Root = {
-    children: Record<string, Node>;
-  };
-  type Node = {
-    role: string;
-    path: string[];
-    children: Record<string, Node>;
-  };
+  const roles = await db.query.roles.findMany({
+    where: (table, { eq }) => eq(table.keyId, props.params.keyId),
+  });
 
-  const roleNames = key.roles.map((r) => r.role.name);
+  console.log({ key, roles });
 
-  type WorkspaceId = string;
-  type ApiId = string;
-  type Action = string;
-  type UnkeyRoleName =
-    | `${WorkspaceId}::apis:${ApiId}::keys:${Action}`
-    | `${WorkspaceId}::apis:${ApiId}::${Action}`
-    | `${WorkspaceId}::${Action}`;
+  const permissionsByApi = roles.reduce((acc, { role }) => {
+    if (!role.startsWith("api.")) {
+      return acc;
+    }
+    const [_, apiId, permission] = role.split(".");
 
-  type UnkeyPermissions = {
-    [workspaceId: string]: {
-      actions: {
-        createApi?: boolean;
-      };
-      apis: {
-        [apiId: string]: {
-          actions: {
-            read?: boolean;
-            update?: boolean;
-            createKey?: boolean;
-          };
-          keys: {
-            [keyId: string]: {
-              actions: {
-                read?: boolean;
-                update?: boolean;
-                delete?: boolean;
-              };
-            };
-          };
-        };
-      };
-    };
-  };
+    if (!acc[apiId]) {
+      acc[apiId] = [];
+    }
+    acc[apiId].push(permission);
+    return acc;
+  }, {} as { [apiId: string]: string[] });
 
   return (
     <div className="">
@@ -104,11 +65,22 @@ export default async function RootKeyPage(props: {
           <CardTitle>Permissions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
-          {roleNames.map((role) => (
-            <Badge variant="secondary" key={role}>
-              {" "}
-              {role}
-            </Badge>
+          {Object.entries(permissionsByApi).map(([apiId, permissions]) => (
+            <Card key={apiId}>
+              <CardHeader>
+                <CardTitle>{apiId}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-1">
+                  {permissions.map((permission) => (
+                    <div key={permission} className="flex items-center gap-1">
+                      <Checkbox checked={true} />
+                      <Label>{permission}</Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </CardContent>
       </Card>

@@ -18,6 +18,6 @@
  * type MyResult = Flatten<Resources>; // type MyResult = "team::read" | "team::write"
  */
 
-export type Flatten<T extends Record<string, string>, Delimiter extends string> = {
+export type Flatten<T extends Record<string, string>, Delimiter extends string = "."> = {
   [K in keyof T]: `${K & string}${Delimiter}${T[K] & string}`;
 }[keyof T];

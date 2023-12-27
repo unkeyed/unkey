@@ -277,9 +277,9 @@ const verifyApiKey = async (
 
       if (
         !verifyKeyResponseJson.valid &&
-        verifyKeyResponseJson.code === "RATELIMITED"
+        verifyKeyResponseJson.code === "RATE_LIMITED"
       )
-        return res.status(429).json({ message: "RATELIMITED" });
+        return res.status(429).json({ message: "RATE_LIMITED" });
 
       if (!verifyKeyResponseJson.valid)
         return res.status(401).json({ message: "Unauthorized" });

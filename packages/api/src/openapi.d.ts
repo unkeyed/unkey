@@ -258,6 +258,22 @@ export interface paths {
              */
             remaining?: number;
             /**
+             * @description Unkey enables you to refill verifications for each key at regular intervals.
+             * @example {
+             *   "interval": "daily",
+             *   "amount": 100
+             * }
+             */
+            refill?: {
+              /**
+               * @description Unkey will automatically refill verifications at the set interval.
+               * @enum {string}
+               */
+              interval: "daily" | "monthly";
+              /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
+              amount: number;
+            };
+            /**
              * @description Unkey comes with per-key ratelimiting out of the box.
              * @example {
              *   "type": "fast",
@@ -444,12 +460,12 @@ export interface paths {
                * Possible values are:
                * - NOT_FOUND: the key does not exist or has expired
                * - FORBIDDEN: the key is not allowed to access the api
-               * - KEY_USAGE_EXCEEDED: the key has exceeded its request limit
-               * - RATELIMITED: the key has been ratelimited,
+               * - USAGE_EXCEEDED: the key has exceeded its request limit
+               * - RATE_LIMITED: the key has been ratelimited,
                *
                * @enum {string}
                */
-              code?: "NOT_FOUND" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | "RATELIMITED";
+              code?: "NOT_FOUND" | "FORBIDDEN" | "USAGE_EXCEEDED" | "RATE_LIMITED";
             };
           };
         };
@@ -563,6 +579,22 @@ export interface paths {
              * @example 1000
              */
             remaining?: number | null;
+            /**
+             * @description Unkey enables you to refill verifications for each key at regular intervals.
+             * @example {
+             *   "interval": "daily",
+             *   "amount": 100
+             * }
+             */
+            refill?: {
+              /**
+               * @description Unkey will automatically refill verifications at the set interval. If null is used the refill functionality will be removed from the key.
+               * @enum {string}
+               */
+              interval: "daily" | "monthly";
+              /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
+              amount: number;
+            } | null;
           };
         };
       };
@@ -1430,7 +1462,7 @@ export interface paths {
                * @description The unix timestamp in milliseconds when the key was created
                * @example 0
                */
-              createdAt: number;
+              createdAt?: number;
               /**
                * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
                * @example 0
@@ -1476,13 +1508,13 @@ export interface paths {
                * Possible values are:
                * - NOT_FOUND: the key does not exist or has expired
                * - FORBIDDEN: the key is not allowed to access the api
-               * - KEY_USAGE_EXCEEDED: the key has exceeded its request limit
-               * - RATELIMITED: the key has been ratelimited,
+               * - USAGE_EXCEEDED: the key has exceeded its request limit
+               * - RATE_LIMITED: the key has been ratelimited,
                *
                * @example NOT_FOUND
                * @enum {string}
                */
-              code?: "NOT_FOUND" | "FORBIDDEN" | "KEY_USAGE_EXCEEDED" | "RATELIMITED";
+              code?: "NOT_FOUND" | "FORBIDDEN" | "USAGE_EXCEEDED" | "RATE_LIMITED";
             };
           };
         };
@@ -2013,7 +2045,7 @@ export interface components {
        * @description The unix timestamp in milliseconds when the key was created
        * @example 0
        */
-      createdAt: number;
+      createdAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
        * @example 0
@@ -2029,6 +2061,31 @@ export interface components {
        * @example 1000
        */
       remaining?: number;
+      /**
+       * @description Unkey allows you to refill remaining verifications on a key on a regular interval.
+       * @example {
+       *   "interval": "daily",
+       *   "amount": 10
+       * }
+       */
+      refill?: {
+        /**
+         * @description Determines the rate at which verifications will be refilled.
+         * @example daily
+         * @enum {string}
+         */
+        interval: "daily" | "monthly";
+        /**
+         * @description Resets `remaining` to this value every interval.
+         * @example 100
+         */
+        amount: number;
+        /**
+         * @description The unix timestamp in miliseconds when the key was last refilled.
+         * @example 100
+         */
+        lastRefillAt?: number;
+      };
       /**
        * @description Unkey comes with per-key ratelimiting out of the box.
        * @example {

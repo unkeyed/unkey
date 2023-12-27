@@ -4,6 +4,7 @@ import {
   datetime,
   index,
   int,
+  mysqlEnum,
   mysqlTable,
   text,
   uniqueIndex,
@@ -40,7 +41,7 @@ export const keys = mysqlTable(
     ownerId: varchar("owner_id", { length: 256 }),
     meta: text("meta"),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
-    expires: datetime("expires", { fsp: 3 }), // unix,
+    expires: datetime("expires", { fsp: 3 }), // unix milli,
     /**
      * When a key is revoked, we set this time field to mark it as deleted.
      *
@@ -50,8 +51,15 @@ export const keys = mysqlTable(
      */
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
+     * You can refill uses to keys at a desired interval
+     */
+    refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
+    refillAmount: int("refill_amount"),
+    lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
+    /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
+
     remaining: int("remaining_requests"),
 
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
@@ -80,7 +88,9 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
   }),
-  roles: many(roles),
+  roles: many(roles, {
+    relationName: "key_roles_relation",
+  }),
 
   auditLog: many(auditLogs),
 }));

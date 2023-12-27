@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
+import { type Role } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
@@ -17,6 +18,12 @@ export const keyRouter = t.router({
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
+        refill: z
+          .object({
+            interval: z.enum(["daily", "monthly"]),
+            amount: z.coerce.number().int().min(1),
+          })
+          .optional(),
         expires: z.number().int().nullish(), // unix timestamp in milliseconds
         name: z.string().optional(),
         ratelimit: z
@@ -35,7 +42,10 @@ export const keyRouter = t.router({
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const api = await db.query.apis.findFirst({
@@ -75,6 +85,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: input.ratelimit?.refillInterval,
           ratelimitType: input.ratelimit?.type,
           remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
           totalUses: 0,
           deletedAt: null,
         });
@@ -109,7 +122,10 @@ export const keyRouter = t.router({
         },
       });
       if (!unkeyApi) {
-        throw new TRPCError({ code: "NOT_FOUND", message: `api ${env().UNKEY_API_ID} not found` });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `api ${env().UNKEY_API_ID} not found`,
+        });
       }
       if (!unkeyApi.keyAuthId) {
         throw new TRPCError({
@@ -131,11 +147,28 @@ export const keyRouter = t.router({
       });
       if (!workspace) {
         console.error(`workspace for tenant ${ctx.tenant.id} not found`);
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       const keyId = newId("key");
+
       const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+
+      const roles: Role[] = [];
+      for (const api of workspace.apis) {
+        roles.push(
+          `api.${api.id}.read_api`,
+          `api.${api.id}.update_api`,
+          `api.${api.id}.create_key`,
+          `api.${api.id}.read_key`,
+          `api.${api.id}.update_key`,
+          `api.${api.id}.delete_key`,
+        );
+      }
+
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
@@ -153,6 +186,9 @@ export const keyRouter = t.router({
           ratelimitRefillInterval: 1000,
           ratelimitType: "fast",
           remaining: null,
+          refillInterval: null,
+          refillAmount: null,
+          lastRefillAt: null,
           totalUses: 0,
           deletedAt: null,
         });
@@ -167,46 +203,16 @@ export const keyRouter = t.router({
           description: `created key ${keyId} for api ${unkeyApi.id}`,
           keyId: keyId,
         });
-      });
 
-      const requiredRoles = workspace.apis.flatMap((api) => [
-        `${api.id}::read`,
-        `${api.id}::update`,
-        `${api.id}::listKeys`,
-        `${api.id}::keys::create`,
-        `${api.id}::keys::read`,
-        `${api.id}::keys::update`,
-        `${api.id}::keys::delete`,
-      ]);
-
-      const existingRoles = await db.query.roles.findMany({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, workspace.id), eq(table.apiId, env().UNKEY_API_ID)),
-      });
-
-      const missingRoles = requiredRoles
-        .filter((role) => !existingRoles.find((existingRole) => existingRole.name === role))
-        .map((name) => {
-          return {
+        await tx.insert(schema.roles).values(
+          roles.map((role) => ({
             id: newId("role"),
             workspaceId: workspace.id,
-            apiId: env().UNKEY_API_ID,
-            name,
-          };
-        });
-
-      if (missingRoles.length > 0) {
-        await db.insert(schema.roles).values(missingRoles);
-      }
-
-      const allRoles = [...existingRoles, ...missingRoles];
-
-      await db.insert(schema.rolesToKeys).values(
-        allRoles.map((role) => ({
-          keyId,
-          roleId: role.id,
-        })),
-      );
+            keyId,
+            role,
+          })),
+        );
+      });
 
       return { key, keyId };
     }),
@@ -223,7 +229,10 @@ export const keyRouter = t.router({
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       await Promise.all(
@@ -284,7 +293,10 @@ export const keyRouter = t.router({
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
 
       await Promise.all(

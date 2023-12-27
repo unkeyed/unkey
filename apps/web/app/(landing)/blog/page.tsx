@@ -19,7 +19,7 @@ export const metadata = {
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og.png",
+        url: "https://unkey.dev/images/landing/og.png",
         width: 1200,
         height: 675,
       },
@@ -30,7 +30,7 @@ export const metadata = {
     card: "summary_large_image",
   },
   icons: {
-    shortcut: "/unkey.png",
+    shortcut: "/images/landing/unkey.png",
   },
 };
 

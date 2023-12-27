@@ -37,7 +37,7 @@ export const keySchema = z
           stripeCustomerId: "cus_1234",
         },
       }),
-    createdAt: z.number().openapi({
+    createdAt: z.number().optional().openapi({
       description: "The unix timestamp in milliseconds when the key was created",
       example: Date.now(),
     }),
@@ -56,6 +56,30 @@ export const keySchema = z
         "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
       example: 1000,
     }),
+    refill: z
+      .object({
+        interval: z.enum(["daily", "monthly"]).openapi({
+          description: "Determines the rate at which verifications will be refilled.",
+          example: "daily",
+        }),
+        amount: z.number().int().openapi({
+          description: "Resets `remaining` to this value every interval.",
+          example: 100,
+        }),
+        lastRefillAt: z.number().optional().openapi({
+          description: "The unix timestamp in miliseconds when the key was last refilled.",
+          example: 100,
+        }),
+      })
+      .optional()
+      .openapi({
+        description:
+          "Unkey allows you to refill remaining verifications on a key on a regular interval.",
+        example: {
+          interval: "daily",
+          amount: 10,
+        },
+      }),
     ratelimit: z
       .object({
         type: z
