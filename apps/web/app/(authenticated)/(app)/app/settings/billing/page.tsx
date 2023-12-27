@@ -238,7 +238,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       return <div className="text-red-500">{cost.error.message}</div>;
     } else {
       currentPrice += cost.value.totalCentsEstimate;
-      estimatedTotalPrice += cost.value.totalCentsEstimate; // does not necessarily scale
     }
   }
   if (workspace.subscriptions?.verifications) {
@@ -287,28 +286,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
             <MeteredLineItem
               displayPrice
               title="Verifications"
-              tiers={[
-                {
-                  firstUnit: 1,
-                  lastUnit: 2500,
-                  centsPerUnit: null,
-                },
-                {
-                  firstUnit: 2501,
-                  lastUnit: 100000,
-                  centsPerUnit: "0.02",
-                },
-                {
-                  firstUnit: 100001,
-                  lastUnit: 1000000,
-                  centsPerUnit: "0.005",
-                },
-                {
-                  firstUnit: 1000001,
-                  lastUnit: null,
-                  centsPerUnit: "0.0001",
-                },
-              ]}
+              tiers={workspace.subscriptions.verifications.tiers}
               used={usedVerifications}
               max={workspace.plan === "free" ? 2500 : undefined}
               forecast
@@ -386,8 +364,6 @@ const MeteredLineItem: React.FC<{
 
   const currentTier = props.tiers.find((tier) => props.used >= tier.firstUnit);
   const max = props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
-
-  console.log({ currentTier, max, forecast, used: props.used });
 
   return (
     <div className="flex items-center justify-between">
