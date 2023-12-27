@@ -96,7 +96,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="left"
-        className="w-96 absolute left-0 lg:left-8 top-8 lg:top-20 max-sm:left-0"
+        className="w-96 absolute left-0 lg:left-8 top-8 max-sm:left-0"
       >
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem

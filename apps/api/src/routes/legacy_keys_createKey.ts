@@ -233,7 +233,7 @@ export const registerLegacyKeysCreate = (app: App) =>
         hash,
         start,
         ownerId: req.ownerId,
-        meta: JSON.stringify(req.meta ?? {}),
+        meta: req.meta ? JSON.stringify(req.meta) : null,
         workspaceId: authorizedWorkspaceId,
         forWorkspaceId: null,
         expires: req.expires ? new Date(req.expires) : null,
