@@ -70,7 +70,9 @@ const formSchema = z.object({
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
-      refillInterval: z.coerce.number().positive(),
+      refillInterval: z.coerce
+        .number()
+        .positive({ message: "Refill interval must be greater than 0" }),
       refillRate: z.coerce.number().positive(),
       limit: z.coerce.number().positive(),
     })
@@ -102,16 +104,15 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const formData = form.watch();
 
   useEffect(() => {
-    if (formData.limit?.remaining === undefined) {
-      form.resetField("limit");
+    if (
+      formData.limit?.refill?.amount === undefined &&
+      formData.limit?.refill?.interval === "none"
+    ) {
+      form.resetField("limit.refill");
+    } else {
+      form.formState.isDirty && form.trigger();
     }
-  }, [formData.limit]);
-  useEffect(() => {
-    if (formData.limit?.refill?.interval === "none") {
-      form.resetField("limit.refill.interval");
-      form.resetField("limit.refill.amount");
-    }
-  }, [formData.limit?.refill]);
+  }, [formData.limit?.refill?.amount]);
   useEffect(() => {
     if (
       formData.ratelimit?.limit === undefined &&
@@ -393,7 +394,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           </div>
 
                           <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
-                            <p>Remaining Uses</p>
+                            <p>Limited Use</p>
                             <Switch
                               name="remaining.Enabled"
                               checked={limitEnabled}
@@ -406,8 +407,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               <HoverCardContent>
                                 <div>
                                   <p>
-                                    Enable refill options. Refill options will allow the key
-                                    "remaining" to be topped up daily or monthly.
+                                    How many times a key can be used and optionally refill amount.
                                   </p>
                                 </div>
                               </HoverCardContent>
@@ -415,7 +415,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           </div>
 
                           <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
-                            <p className="">Experation</p>
+                            <p className="">Expiration</p>
                             <Switch
                               name="expiration.Enabled"
                               checked={expireEnabled}
@@ -486,6 +486,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                   <Input
                                     disabled={!ratelimitEnabled}
                                     placeholder="10"
+                                    defaultValue={undefined}
                                     type="number"
                                     {...field}
                                     onBlur={(e) => {
@@ -565,7 +566,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       })}
                     >
                       <CardHeader>
-                        <CardTitle>Remaining Uses</CardTitle>
+                        <CardTitle>Limited Use</CardTitle>
                         <CardDescription>
                           How many times this key can be used before it gets disabled automatically.
                         </CardDescription>
@@ -707,7 +708,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         <CardTitle>Metadata</CardTitle>
                         <CardDescription>
                           Store json, or any other data you want to associate with this key.
-                          Whenever you verify this key, we'll return the metadata to you.
+                          Whenever you verify this key, we'll return the metadata to you. Enter
+                          custom metadata as a JSON object.Format Json
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="justify-between item-center">
@@ -762,7 +764,11 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     </Card>
                   </div>
                   <div className="mr-4 mb-4 flex justify-end">
-                    <Button disabled={!form.formState.isValid || key.isLoading} type="submit">
+                    <Button
+                      disabled={!form.formState.isValid || key.isLoading}
+                      type="submit"
+                      variant={key.isLoading || !form.formState.isValid ? "disabled" : "primary"}
+                    >
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>
                   </div>
