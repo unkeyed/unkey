@@ -66,7 +66,7 @@ export default async function SuccessPage() {
     x: new Date(time).toLocaleDateString(),
     y: workspaces,
   }));
-  const customerGoal = 7;
+  const customerGoal = 6;
   const activeWorkspaceGoal = 300;
   return (
     <div>
