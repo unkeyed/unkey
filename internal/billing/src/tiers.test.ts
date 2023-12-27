@@ -45,6 +45,18 @@ describe("calculateTieredPrices", () => {
       units: 12125,
       expected: 391637.5,
     },
+    {
+      name: "idk",
+      tiers: [
+        { firstUnit: 1, lastUnit: 2_500, centsPerUnit: null },
+        { firstUnit: 2_501, lastUnit: 100_000, centsPerUnit: "0.02" },
+        { firstUnit: 100_001, lastUnit: 500_000, centsPerUnit: "0.015" },
+        { firstUnit: 500_001, lastUnit: 1_000_000, centsPerUnit: "0.01" },
+        { firstUnit: 1_000_001, lastUnit: null, centsPerUnit: "0.005" },
+      ],
+      units: 3899437,
+      expected: 27447.185,
+    },
   ];
   for (const tc of testCases) {
     test(tc.name, () => {
