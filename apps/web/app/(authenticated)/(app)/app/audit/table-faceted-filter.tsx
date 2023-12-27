@@ -158,7 +158,6 @@ export function useModifySearchParams() {
   return {
     set: (key: string, value: string) => {
       const href = hrefWithSearchparam(key, value);
-      console.log("SETTING", href);
       router.push(href, { scroll: false });
     },
   };
