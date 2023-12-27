@@ -39,6 +39,7 @@ export default async function SuccessPage() {
     await stripe.invoices
       .list({
         starting_after: startingAfter,
+        status: "paid",
       })
       .then((res) => {
         allInvoices.push(...res.data);
@@ -49,9 +50,7 @@ export default async function SuccessPage() {
 
   const billableInvoices = allInvoices.filter(
     (invoice) =>
-      invoice.status !== "draft" &&
-      invoice.total > 0 &&
-      invoice.created >= Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60,
+      invoice.total > 0 && invoice.created >= Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60,
   );
   let customers = 0;
   const customerIds = new Set();
