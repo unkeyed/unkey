@@ -32,7 +32,35 @@ export default async function SuccessPage() {
     return notFound();
   }
 
-  const customers = await stripe.customers.list().then((res) => res.data.length);
+  const allInvoices: Stripe.Invoice[] = [];
+  let hasMore = true;
+  let startingAfter: string | undefined = undefined;
+  while (hasMore) {
+    await stripe.invoices
+      .list({
+        starting_after: startingAfter,
+      })
+      .then((res) => {
+        allInvoices.push(...res.data);
+        hasMore = res.has_more;
+        startingAfter = res.data.at(-1)?.id;
+      });
+  }
+
+  const billableInvoices = allInvoices.filter(
+    (invoice) =>
+      invoice.status !== "draft" &&
+      invoice.total > 0 &&
+      invoice.created >= Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60,
+  );
+  let customers = 0;
+  const customerIds = new Set();
+  billableInvoices.forEach((invoice) => {
+    if (!customerIds.has(invoice.customer)) {
+      customers += 1;
+      customerIds.add(invoice.customer);
+    }
+  });
 
   const activeWorkspaces = await getQ1ActiveWorkspaces({});
   const chartData = activeWorkspaces.data.map(({ time, workspaces }) => ({
