@@ -15,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,6 +30,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Info } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -367,12 +369,27 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         </div>
                         <div className="flex pt-6 flex-wrap justify-between w-full">
                           <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
-                            <p>Ratelimit</p>
+                            <p>Ratelimit </p>
+
                             <Switch
                               name="rateLimit.Enabled"
                               checked={ratelimitEnabled}
                               onCheckedChange={setRatelimitEnabled}
                             />
+                            <HoverCard>
+                              <HoverCardTrigger>
+                                <Info size="20px" className="pt-1" />
+                              </HoverCardTrigger>
+                              <HoverCardContent>
+                                <div>
+                                  <p>
+                                    Enable ratelimit options. Ratelimit will limit number of
+                                    requests per burst and set a refill rate and interval for
+                                    allowing more requests.
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
                           </div>
 
                           <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
@@ -382,6 +399,19 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               checked={limitEnabled}
                               onCheckedChange={setLimitEnabled}
                             />
+                            <HoverCard>
+                              <HoverCardTrigger>
+                                <Info size="20px" className="pt-1" />
+                              </HoverCardTrigger>
+                              <HoverCardContent>
+                                <div>
+                                  <p>
+                                    Enable refill options. Refill options will allow the key
+                                    "remaining" to be topped up daily or monthly.
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
                           </div>
 
                           <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
@@ -390,7 +420,20 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               name="expiration.Enabled"
                               checked={expireEnabled}
                               onCheckedChange={setExpireEnabled}
-                            />
+                            />{" "}
+                            <HoverCard>
+                              <HoverCardTrigger>
+                                <Info size="20px" className="pt-1" />
+                              </HoverCardTrigger>
+                              <HoverCardContent>
+                                <div>
+                                  <p>
+                                    Enable expiration options. Will set a key expiration date and
+                                    time. this key.
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
                           </div>
 
                           <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
@@ -400,6 +443,19 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               checked={metaEnabled}
                               onCheckedChange={setMetaEnabled}
                             />
+                            <HoverCard>
+                              <HoverCardTrigger>
+                                <Info size="20px" className="pt-1" />
+                              </HoverCardTrigger>
+                              <HoverCardContent>
+                                <div>
+                                  <p>
+                                    Enable metadata options. You can add custom metadata object to
+                                    your key.
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
                           </div>
                         </div>
                       </CardContent>
