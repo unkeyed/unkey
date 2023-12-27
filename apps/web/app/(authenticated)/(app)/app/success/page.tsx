@@ -4,13 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNotNull, not, schema, sql } from "@/lib/db";
+import { db } from "@/lib/db";
+import { stripeEnv } from "@/lib/env";
 import { getQ1ActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
+import Stripe from "stripe";
 
 export const revalidate = 60;
 
 export default async function SuccessPage() {
+  const e = stripeEnv();
+  if (!e) {
+    return <div>no stripe env</div>;
+  }
+  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
+    apiVersion: "2022-11-15",
+    typescript: true,
+  });
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -22,27 +32,14 @@ export default async function SuccessPage() {
     return notFound();
   }
 
-  const payingWorkspaces = await db
-    .select({ count: sql<string>`count(*)` })
-    .from(schema.workspaces)
-    .where(
-      and(
-        isNotNull(schema.workspaces.subscriptions),
-        not(eq(schema.workspaces.plan, "free")),
-        isNotNull(schema.workspaces.subscriptions),
-      ),
-    )
-    .then((rows) => {
-      const count = rows.at(0)?.count;
-      return count ? parseInt(count) : 0;
-    });
+  const customers = await stripe.customers.list().then((res) => res.data.length);
 
   const activeWorkspaces = await getQ1ActiveWorkspaces({});
   const chartData = activeWorkspaces.data.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
     y: workspaces,
   }));
-  const customerGoal = 6;
+  const customerGoal = 7;
   const activeWorkspaceGoal = 300;
   return (
     <div>
@@ -71,10 +68,10 @@ export default async function SuccessPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold leading-none tracking-tight mt-2">
-              {payingWorkspaces}
+              {customers}
             </div>
             <div className="mt-4">
-              <Progress value={(payingWorkspaces / customerGoal) * 100} />
+              <Progress value={(customers / customerGoal) * 100} />
             </div>
           </CardContent>
         </Card>
