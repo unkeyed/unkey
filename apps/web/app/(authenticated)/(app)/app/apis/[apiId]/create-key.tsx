@@ -15,7 +15,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,25 +29,26 @@ import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Info } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const currentTime = new Date();
 const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
-  bytes: z.coerce.number().positive({ message: "Please enter a positive number" }),
+  bytes: z.coerce.number(),
   prefix: z
     .string()
     .max(8, { message: "Please limit the prefix to under 8 characters." })
     .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
+  metaEnabled: z.boolean(),
   meta: z.string().optional(),
+  limitEnabled: z.boolean(),
   limit: z
     .object({
       remaining: z.coerce.number().positive({ message: "Please enter a positive number" }),
@@ -66,7 +66,9 @@ const formSchema = z.object({
         .optional(),
     })
     .optional(),
+  expireEnabled: z.boolean().default(false),
   expires: z.coerce.date().min(new Date(oneMinute)).optional(),
+  ratelimitEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
@@ -84,11 +86,6 @@ type Props = {
 };
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
-  const [expireEnabled, setExpireEnabled] = useState(false);
-  const [metaEnabled, setMetaEnabled] = useState(false);
-  const [limitEnabled, setLimitEnabled] = useState(false);
-  const [ratelimitEnabled, setRatelimitEnabled] = useState(false);
-
   const { toast } = useToast();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -98,30 +95,27 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     delayError: 100,
     defaultValues: {
       bytes: 16,
+      limitEnabled: false,
+      metaEnabled: false,
+      expireEnabled: false,
+      ratelimitEnabled: false,
+      ratelimit: {
+        type: undefined,
+        refillInterval: undefined,
+        refillRate: undefined,
+        limit: undefined,
+      },
+      limit: {
+        refill: {
+          amount: undefined,
+          interval: undefined,
+        },
+        remaining: undefined,
+      },
+      meta: undefined,
+      expires: undefined,
     },
   });
-
-  const formData = form.watch();
-
-  useEffect(() => {
-    if (
-      formData.limit?.refill?.amount === undefined &&
-      formData.limit?.refill?.interval === "none"
-    ) {
-      form.resetField("limit.refill");
-    } else {
-      form.formState.isDirty && form.trigger();
-    }
-  }, [formData.limit?.refill?.amount]);
-  useEffect(() => {
-    if (
-      formData.ratelimit?.limit === undefined &&
-      formData.ratelimit?.refillRate === undefined &&
-      formData.ratelimit?.refillInterval === undefined
-    ) {
-      form.resetField("ratelimit");
-    }
-  }, [formData.ratelimit]);
 
   const key = trpc.key.create.useMutation({
     onSuccess() {
@@ -152,27 +146,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!expireEnabled) {
+    if (!values.expireEnabled) {
       delete values.expires;
     }
-    if (!metaEnabled) {
+    if (!values.metaEnabled) {
       delete values.meta;
     }
-    if (!limitEnabled) {
+    if (!values.limitEnabled) {
       delete values.limit;
     }
-    if (!ratelimitEnabled) {
+    if (!values.ratelimitEnabled) {
       delete values.ratelimit;
-    }
-
-    const _metaVal = null;
-    if (values.ratelimit?.limit === undefined) {
-      // delete the value to stop the server from validating it
-      // as it's not required
-      delete values.ratelimit;
-    }
-    if (!values.meta) {
-      delete values.meta;
     }
     if (
       values.limit?.refill &&
@@ -234,6 +218,22 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     return futureDate.toISOString().slice(0, -8);
   }
 
+  const resetRateLimit = () => {
+    // set them to undefined so the form resets properly.
+    form.resetField("ratelimit.refillRate", undefined);
+    form.resetField("ratelimit.refillInterval", undefined);
+    form.resetField("ratelimit.limit", undefined);
+    form.resetField("ratelimit", undefined);
+  };
+
+  const resetLimited = () => {
+    // set them to undefined so the form resets properly.
+    form.resetField("limit.refill", undefined);
+    form.resetField("limit.refill.amount", undefined);
+    form.resetField("limit.refill.interval", undefined);
+    form.resetField("limit.remaining", undefined);
+    form.resetField("limit", undefined);
+  };
   return (
     <>
       {key.data ? (
@@ -370,92 +370,81 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         </div>
                         <div className="flex pt-6 flex-wrap justify-between w-full">
                           <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
-                            <p>Ratelimit </p>
-
-                            <Switch
-                              name="rateLimit.Enabled"
-                              checked={ratelimitEnabled}
-                              onCheckedChange={setRatelimitEnabled}
+                            <FormField
+                              control={form.control}
+                              name="ratelimitEnabled"
+                              render={({ field }) => (
+                                <FormItem className="w-full mt-2">
+                                  <FormLabel>Ratelimit</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                        resetRateLimit();
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
                             />
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <Info size="20px" className="pt-1" />
-                              </HoverCardTrigger>
-                              <HoverCardContent>
-                                <div>
-                                  <p>
-                                    Enable ratelimit options. Ratelimit will limit number of
-                                    requests per burst and set a refill rate and interval for
-                                    allowing more requests.
-                                  </p>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
                           </div>
 
                           <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
-                            <p>Limited Use</p>
-                            <Switch
-                              name="remaining.Enabled"
-                              checked={limitEnabled}
-                              onCheckedChange={setLimitEnabled}
+                            <FormField
+                              control={form.control}
+                              name="limitEnabled"
+                              render={({ field }) => (
+                                <FormItem className="w-full">
+                                  <FormLabel className="ml-2">Limited use</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                        resetLimited();
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
                             />
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <Info size="20px" className="pt-1" />
-                              </HoverCardTrigger>
-                              <HoverCardContent>
-                                <div>
-                                  <p>
-                                    How many times a key can be used and optionally refill amount.
-                                  </p>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
                           </div>
 
                           <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
-                            <p className="">Expiration</p>
-                            <Switch
-                              name="expiration.Enabled"
-                              checked={expireEnabled}
-                              onCheckedChange={setExpireEnabled}
-                            />{" "}
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <Info size="20px" className="pt-1" />
-                              </HoverCardTrigger>
-                              <HoverCardContent>
-                                <div>
-                                  <p>
-                                    Enable expiration options. Will set a key expiration date and
-                                    time. this key.
-                                  </p>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
+                            <FormField
+                              control={form.control}
+                              name="expireEnabled"
+                              render={({ field }) => (
+                                <FormItem className="w-full mt-2">
+                                  <FormLabel>Expiration</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
                           </div>
 
                           <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
-                            <p>Metadata</p>
-                            <Switch
-                              name="metadata.Enabled"
-                              checked={metaEnabled}
-                              onCheckedChange={setMetaEnabled}
+                            <FormField
+                              control={form.control}
+                              name="metaEnabled"
+                              render={({ field }) => (
+                                <FormItem className="w-full mt-2">
+                                  <FormLabel>Metadata</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
                             />
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <Info size="20px" className="pt-1" />
-                              </HoverCardTrigger>
-                              <HoverCardContent>
-                                <div>
-                                  <p>
-                                    Enable metadata options. You can add custom metadata object to
-                                    your key.
-                                  </p>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
                           </div>
                         </div>
                       </CardContent>
@@ -464,7 +453,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                   <div className="flex flex-wrap gap-4 mb-4">
                     <Card
                       className={cn("h-full max-sm:w-full", {
-                        hidden: !ratelimitEnabled,
+                        hidden: !form.watch("ratelimitEnabled"),
                       })}
                     >
                       <CardHeader>
@@ -484,17 +473,12 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Limit</FormLabel>
                                 <FormControl>
                                   <Input
-                                    disabled={!ratelimitEnabled}
+                                    disabled={!form.watch("ratelimitEnabled")}
                                     placeholder="10"
-                                    defaultValue={undefined}
-                                    type="number"
                                     {...field}
-                                    onBlur={(e) => {
-                                      if (e.target.value === "") {
-                                        //don't trigger validation if the field is empty
-                                        return;
-                                      }
-                                    }}
+                                    value={
+                                      form.watch("ratelimitEnabled") === true ? field.value : ""
+                                    }
                                   />
                                 </FormControl>
                                 <FormDescription>
@@ -513,7 +497,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Refill Rate</FormLabel>
                                 <FormControl>
                                   <Input
-                                    disabled={!ratelimitEnabled}
+                                    disabled={!form.watch("ratelimitEnabled")}
                                     placeholder="5"
                                     type="number"
                                     {...field}
@@ -522,6 +506,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                         return;
                                       }
                                     }}
+                                    value={form.watch("ratelimitEnabled") ? field.value : ""}
                                   />
                                 </FormControl>
 
@@ -537,7 +522,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Refill Interval (milliseconds)</FormLabel>
                                 <FormControl>
                                   <Input
-                                    disabled={!ratelimitEnabled}
+                                    disabled={!form.watch("ratelimitEnabled")}
                                     placeholder="1000"
                                     type="number"
                                     {...field}
@@ -546,6 +531,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                         return;
                                       }
                                     }}
+                                    value={form.watch("ratelimitEnabled") ? field.value : ""}
                                   />
                                 </FormControl>
 
@@ -562,7 +548,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
 
                     <Card
                       className={cn("h-full max-sm:w-full", {
-                        hidden: !limitEnabled,
+                        hidden: !form.watch("limitEnabled"),
                       })}
                     >
                       <CardHeader>
@@ -581,7 +567,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Number of uses</FormLabel>
                                 <FormControl>
                                   <Input
-                                    disabled={!limitEnabled}
+                                    disabled={!form.watch("limitEnabled")}
                                     placeholder="100"
                                     className="w-full"
                                     type="number"
@@ -591,6 +577,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                         return;
                                       }
                                     }}
+                                    value={form.watch("limitEnabled") === true ? field.value : ""}
                                   />
                                 </FormControl>
                                 <FormDescription>
@@ -607,9 +594,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               <FormItem className="">
                                 <FormLabel>Refill Rate</FormLabel>
                                 <Select
-                                  disabled={!limitEnabled}
+                                  disabled={!form.watch("limitEnabled")}
                                   onValueChange={field.onChange}
                                   defaultValue="none"
+                                  value={form.watch("limitEnabled") === true ? field.value : "none"}
                                 >
                                   <SelectTrigger>
                                     <SelectValue />
@@ -632,7 +620,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Number of uses per interval</FormLabel>
                                 <FormControl>
                                   <Input
-                                    disabled={!limitEnabled}
+                                    disabled={!form.watch("limitEnabled")}
                                     placeholder="100"
                                     className="w-full"
                                     type="number"
@@ -642,6 +630,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                         return;
                                       }
                                     }}
+                                    value={form.watch("limitEnabled") === true ? field.value : ""}
                                   />
                                 </FormControl>
                                 <FormDescription>
@@ -657,7 +646,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
 
                     <Card
                       className={cn("h-full max-sm:w-full", {
-                        hidden: !expireEnabled,
+                        hidden: !form.watch("expireEnabled"),
                       })}
                     >
                       <CardHeader>
@@ -670,7 +659,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       <CardContent className="justify-between item-center">
                         <div
                           className={cn("flex flex-col gap-2 w-full", {
-                            "opacity-50": !expireEnabled,
+                            "opacity-50": !form.watch("expireEnabled"),
                           })}
                         >
                           <FormField
@@ -681,7 +670,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Expiry Date</FormLabel>
                                 <FormControl>
                                   <Input
-                                    disabled={!expireEnabled}
+                                    disabled={!form.watch("expireEnabled")}
                                     min={getDatePlusTwoMinutes()}
                                     type="datetime-local"
                                     {...field}
@@ -701,7 +690,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     </Card>
                     <Card
                       className={cn("h-full max-sm:w-full", {
-                        hidden: !metaEnabled,
+                        hidden: !form.watch("metaEnabled"),
                       })}
                     >
                       <CardHeader>
@@ -715,7 +704,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       <CardContent className="justify-between item-center">
                         <div
                           className={cn("flex flex-col gap-2 w-full h-full", {
-                            "opacity-50": !metaEnabled,
+                            "opacity-50": !form.watch("metaEnabled"),
                           })}
                         >
                           <FormField
@@ -725,7 +714,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               <FormItem>
                                 <FormControl>
                                   <Textarea
-                                    disabled={!metaEnabled}
+                                    disabled={!form.watch("metaEnabled")}
                                     className="m-4 mx-auto rounded-md border shadow-sm"
                                     rows={7}
                                     placeholder={`{"stripeCustomerId" : "cus_9s6XKzkNRiz8i3"}`}
@@ -737,7 +726,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 </FormDescription>
                                 <FormMessage />
                                 <Button
-                                  disabled={!metaEnabled}
+                                  disabled={!form.watch("metaEnabled")}
                                   variant="secondary"
                                   type="button"
                                   onClick={(_e) => {
@@ -753,6 +742,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                       });
                                     }
                                   }}
+                                  value={form.watch("metaEnabled") === true ? field.value : ""}
                                 >
                                   Format Json
                                 </Button>
@@ -764,11 +754,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                     </Card>
                   </div>
                   <div className="mr-4 mb-4 flex justify-end">
-                    <Button
-                      disabled={!form.formState.isValid || key.isLoading}
-                      type="submit"
-                      variant={key.isLoading || !form.formState.isValid ? "disabled" : "primary"}
-                    >
+                    <Button disabled={key.isLoading} type="submit" variant={"primary"}>
                       {key.isLoading ? <Loading /> : "Create"}
                     </Button>
                   </div>
