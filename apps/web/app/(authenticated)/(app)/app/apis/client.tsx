@@ -56,9 +56,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
               <Card className="hover:border-primary/50 group relative overflow-hidden duration-500 ">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="overflow-hidden text-ellipsis whitespace-nowrap pb-2">
-                      {api.name}
-                    </CardTitle>
+                    <CardTitle className="truncate">{api.name}</CardTitle>
                   </div>
                   <CardDescription>{api.id}</CardDescription>
                 </CardHeader>
