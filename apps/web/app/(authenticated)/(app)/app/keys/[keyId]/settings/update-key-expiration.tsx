@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { updateExpiration } from "./actions";
 type Props = {
@@ -25,8 +25,6 @@ type Props = {
 };
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
-
   const [enabled, setEnabled] = useState(apiKey.expires !== null);
 
   const placeholder = useMemo(() => {
@@ -41,17 +39,10 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
       action={async (formData: FormData) => {
         const res = await updateExpiration(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Expiration updated",
-        });
+        toast.success("Expiration updated");
       }}
     >
       <Card>

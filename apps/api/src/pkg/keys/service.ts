@@ -5,7 +5,7 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { sha256 } from "@unkey/hash";
-import { RoleQuery, evaluateRoles } from "@unkey/rbac";
+import { RBAC, RoleQuery } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
@@ -60,6 +60,7 @@ export class KeyService {
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
+  private readonly rbac: RBAC;
 
   constructor(opts: {
     cache: TieredCache<CacheNamespaces>;
@@ -78,6 +79,7 @@ export class KeyService {
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
     this.analytics = opts.analytics;
+    this.rbac = new RBAC();
   }
 
   public async verifyKey(
@@ -199,7 +201,7 @@ export class KeyService {
     }
 
     if (req.roles) {
-      const roleResp = evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
+      const roleResp = this.rbac.evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
       if (roleResp.error) {
         return result.fail({ message: roleResp.error.message, code: "INTERNAL_SERVER_ERROR" });
       }

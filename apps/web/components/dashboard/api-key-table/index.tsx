@@ -19,8 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, FileClock, Minus, MoreHorizontal, Trash } from "lucide-react";
@@ -51,19 +51,14 @@ type Props = {
 
 export const ApiKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
-  const { toast } = useToast();
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess: () => {
-      toast({
-        title: "Key was deleted",
-      });
+      toast.success("Key was deleted");
       router.refresh();
     },
     onError: (err, variables) => {
-      toast({
-        title: `Could not delete key ${JSON.stringify(variables)}`,
+      toast.error(`Could not delete key ${JSON.stringify(variables)}`, {
         description: err.message,
-        variant: "default",
       });
       router.refresh();
     },

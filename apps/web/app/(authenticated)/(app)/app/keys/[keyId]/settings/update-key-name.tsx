@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { updateKeyName } from "./actions";
 type Props = {
@@ -24,23 +24,16 @@ type Props = {
 };
 
 export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
   return (
     <form
       action={async (formData: FormData) => {
         const res = await updateKeyName(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Name has been updated",
-        });
+
+        toast.success("Name has been updated");
       }}
     >
       <Card>

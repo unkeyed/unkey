@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -27,18 +27,12 @@ type Props = {
 };
 
 export const CreateRootKeyButton: React.FC<Props> = ({ apiId }) => {
-  const { toast } = useToast();
-
   const router = useRouter();
 
   const key = trpc.key.createInternalRootKey.useMutation({
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 

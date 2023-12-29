@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { updateKeyOwnerId } from "./actions";
@@ -23,23 +23,16 @@ type Props = {
 };
 
 export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
   return (
     <form
       action={async (formData: FormData) => {
         const res = await updateKeyOwnerId(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Owner ID has been updated",
-        });
+
+        toast.success("Owner ID has been updated");
       }}
     >
       <Card>

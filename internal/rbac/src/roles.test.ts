@@ -4,7 +4,8 @@ import { describe, expect, test } from "bun:test";
 describe("apiIdSchema", () => {
   const testCases = [
     { input: "123456789012", valid: false },
-    { input: "a1234asfas12", valid: true },
+    { input: "a1234asfas12", valid: false },
+    { input: "api_123456789ABCDEFGHJKLMNPQRS", valid: true },
     { input: "*", valid: true },
   ];
 

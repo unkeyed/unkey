@@ -1,6 +1,6 @@
 "use client";
 
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
 import React, { PropsWithChildren } from "react";
 
@@ -23,7 +23,6 @@ type Props = {
 export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, children }) => {
   const deleteKey = trpc.key.delete.useMutation();
 
-  const { toast } = useToast();
   const router = useRouter();
 
   return (
@@ -46,15 +45,9 @@ export const DeleteKeyButton: React.FC<PropsWithChildren<Props>> = ({ keyId, chi
                   await deleteKey.mutateAsync({ keyIds: [keyId] });
 
                   router.refresh();
-                  toast({
-                    title: "Key deleted",
-                  });
+                  toast.success("Key deleted");
                 } catch (e) {
-                  toast({
-                    title: "Error deleting key",
-                    description: (e as Error).message,
-                    variant: "alert",
-                  });
+                  toast.error((e as Error).message);
                 }
               }}
             >

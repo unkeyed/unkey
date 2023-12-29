@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { updateKeyRemaining } from "./actions";
 type Props = {
@@ -34,7 +34,6 @@ type Props = {
 };
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
   const [enabled, setEnabled] = useState(apiKey.remaining !== null);
   const [refillEbabled, setRefillEnabled] = useState(apiKey.remaining !== null);
 
@@ -44,17 +43,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
         const res = await updateKeyRemaining(formData);
 
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Remaining uses updated",
-        });
+
+        toast.success("Remaining uses updated");
       }}
     >
       <Card>

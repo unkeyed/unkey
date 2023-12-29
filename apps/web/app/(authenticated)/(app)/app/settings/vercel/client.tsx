@@ -22,8 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Api, Key, VercelBinding } from "@unkey/db";
@@ -205,58 +205,37 @@ const ConnectedResource: React.FC<{
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {
-  const { toast } = useToast();
   const router = useRouter();
   const [selectedResourceId, setSelectedResourceId] = useState(props.binding?.resourceId);
 
   const updateApiId = trpc.vercel.upsertApiId.useMutation({
     onSuccess: () => {
       router.refresh();
-      toast({
-        title: "Updated",
-        description: "Successfully updated the environment variable in Vercel",
-      });
+      toast.success("Updated the environment variable in Vercel");
     },
     onError: (err) => {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 
   const rerollRootKey = trpc.vercel.upsertNewRootKey.useMutation({
     onSuccess: () => {
       router.refresh();
-      toast({
-        title: "Re-rolled",
-        description:
-          "Successfully rolled your root key and updated the environment variable in Vercel",
-      });
+      toast.success(
+        "Successfully rolled your root key and updated the environment variable in Vercel",
+      );
     },
     onError: (err) => {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
   const unbind = trpc.vercel.unbind.useMutation({
     onSuccess: () => {
       router.refresh();
-      toast({
-        title: "Unbound",
-        description: `Successfully unbound ${props.type} from Vercel`,
-      });
+      toast.success(`Successfully unbound ${props.type} from Vercel`);
     },
     onError: (err) => {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 

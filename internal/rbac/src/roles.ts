@@ -13,9 +13,6 @@ import { Flatten } from "./types";
 
 export function buildIdSchema(prefix: string) {
   return z.string().refine((s) => {
-    if (typeof s !== "string") {
-      return false;
-    }
     if (s === "*") {
       return true;
     }
@@ -26,15 +23,16 @@ export function buildIdSchema(prefix: string) {
   });
 }
 const apiId = buildIdSchema("api");
-const keyId = buildIdSchema("key");
+const rootKeyId = buildIdSchema("unkey");
 
-const rootKeyActions = z.enum([
+export const rootKeyActions = z.enum([
   "read_root_key",
   "create_root_key",
   "delete_root_key",
   "update_root_key",
 ]);
-const apiActions = z.enum([
+
+export const apiActions = z.enum([
   "read_api",
   "create_api",
   "delete_api",
@@ -48,7 +46,29 @@ const apiActions = z.enum([
 export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
 } & {
-  [resourceId in `root_key.${z.infer<typeof keyId>}`]: z.infer<typeof rootKeyActions>;
+  [resourceId in `root_key.${z.infer<typeof rootKeyId>}`]: z.infer<typeof rootKeyActions>;
 };
 
 export type Role = Flatten<Resources>;
+
+/**
+ * Validation for roles used for our root keys
+ */
+export const unkeyRoleValidation = z.string().refine((s) => {
+  const split = s.split(".");
+  if (split.length !== 3) {
+    return false;
+  }
+  const [resource, id, action] = split;
+  switch (resource) {
+    case "api": {
+      return apiId.safeParse(id).success && apiActions.safeParse(action).success;
+    }
+    case "root_key": {
+      return rootKeyId.safeParse(id).success && rootKeyActions.safeParse(action).success;
+    }
+    default: {
+      return false;
+    }
+  }
+});

@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { Key } from "@unkey/db";
 import React, { useState } from "react";
@@ -28,25 +28,17 @@ type Props = {
 };
 
 export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
-
   const [enabled, setEnabled] = useState(apiKey.ratelimitType !== null);
   return (
     <form
       action={async (formData: FormData) => {
         const res = await updateKeyRatelimit(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Ratelimit updated",
-        });
+
+        toast.success("Ratelimit updated");
       }}
     >
       <Card>

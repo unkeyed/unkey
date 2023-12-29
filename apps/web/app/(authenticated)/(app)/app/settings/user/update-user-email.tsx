@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
@@ -47,7 +47,6 @@ const verificationSchema = z.object({
 });
 
 export const UpdateUserEmail: React.FC = () => {
-  const { toast } = useToast();
   const { user } = useUser();
   const [sendingVerification, setSendingVerification] = useState(false);
   const [promotingEmail, setPromotingEmail] = useState(false);
@@ -155,18 +154,11 @@ export const UpdateUserEmail: React.FC = () => {
                                     onClick={() => {
                                       destroy()
                                         .then(() => {
-                                          toast({
-                                            title: "Success",
-                                            description: "Email removed",
-                                          });
+                                          toast.success("Email removed");
                                           user.reload();
                                         })
                                         .catch((e) => {
-                                          toast({
-                                            title: "Error",
-                                            description: (e as Error).message,
-                                            variant: "alert",
-                                          });
+                                          toast.error((e as Error).message);
                                         });
                                     }}
                                   >
@@ -183,11 +175,7 @@ export const UpdateUserEmail: React.FC = () => {
                                   await user.update({ primaryEmailAddressId: id });
                                   user.reload();
                                 } catch (e) {
-                                  toast({
-                                    title: "Error",
-                                    description: (e as Error).message,
-                                    variant: "alert",
-                                  });
+                                  toast.error((e as Error).message);
                                 } finally {
                                   setPromotingEmail(false);
                                 }
@@ -213,11 +201,7 @@ export const UpdateUserEmail: React.FC = () => {
                                   });
                                   setVerifyEmail(emailAddress);
                                 } catch (e) {
-                                  toast({
-                                    title: "Error",
-                                    description: (e as Error).message,
-                                    variant: "alert",
-                                  });
+                                  toast.error((e as Error).message);
                                 } finally {
                                   setSendingVerification(false);
                                 }
@@ -256,11 +240,7 @@ export const UpdateUserEmail: React.FC = () => {
 
                   setVerifyEmail(email);
                 } catch (e) {
-                  toast({
-                    title: "Error",
-                    description: (e as Error).message,
-                    variant: "alert",
-                  });
+                  toast.error((e as Error).message);
                 } finally {
                   setSendingVerification(false);
                 }
@@ -324,7 +304,6 @@ type VerificationFormProps = {
 };
 
 const VerificationForm: React.FC<VerificationFormProps> = ({ email, onSuccess }) => {
-  const { toast } = useToast();
   const { user } = useClerk();
   const verificationForm = useForm<z.infer<typeof verificationSchema>>({
     resolver: zodResolver(verificationSchema),
@@ -349,11 +328,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ email, onSuccess })
 
             onSuccess();
           } catch (e) {
-            toast({
-              title: "Error",
-              description: (e as Error).message,
-              variant: "alert",
-            });
+            toast.error((e as Error).message);
           }
         })}
       >

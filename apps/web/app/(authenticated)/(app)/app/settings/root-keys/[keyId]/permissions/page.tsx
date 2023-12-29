@@ -1,10 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-
+import { UNKEY_ROLES, apiActions } from "@unkey/rbac";
 import { notFound } from "next/navigation";
+import { Api } from "./api";
+import { Permission } from "./permission";
+import { Workspace } from "./workspace";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -59,31 +62,12 @@ export default async function RootKeyPage(props: {
   }, {} as { [apiId: string]: string[] });
 
   return (
-    <div className="">
-      <Card>
-        <CardHeader>
-          <CardTitle>Permissions</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1">
-          {Object.entries(permissionsByApi).map(([apiId, permissions]) => (
-            <Card key={apiId}>
-              <CardHeader>
-                <CardTitle>{apiId}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-1">
-                  {permissions.map((permission) => (
-                    <div key={permission} className="flex items-center gap-1">
-                      <Checkbox checked={true} />
-                      <Label>{permission}</Label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-4">
+      <Workspace keyId={key.id} permissions={roles.map((r) => r.role)} />
+
+      {workspace.apis.map((api) => (
+        <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
+      ))}
     </div>
   );
 }
