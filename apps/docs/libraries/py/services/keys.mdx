@@ -39,12 +39,26 @@ result = await client.keys.revoke_key("key_456GHI")
 Updates the key with the given ID.
 
 ```py
+from unkey import Refill, RefillInterval
+
 result = await client.keys.update_key(
     "key_456GHI",
     meta={"billing_tier": "premium"},
-    remaining=None,
+    ratelimit=None,
     expires=None,
+    remaining=1000,
+    refill=Refill(1000, RefillInterval.Daily)
 )
+```
+
+## Update remaining
+
+Updates the number of verifications remaining for the key with the given ID.
+
+```py
+from unkey import UpdateOp
+
+result = await client.keys.update_remaining("key_456GHI", 100, UpdateOp.Set)
 ```
 
 ## Get key
@@ -54,4 +68,3 @@ Retrieves details for the key with the given ID.
 ```py
 result = await client.keys.get_key("key_789JKL")
 ```
-
