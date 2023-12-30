@@ -4,8 +4,8 @@ import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import type {
-  V1KeysUpdateKeyRemainingRequest,
-  V1KeysUpdateKeyRemainingResponse,
+  V1KeysUpdateRemainingRequest,
+  V1KeysUpdateRemainingResponse,
 } from "@/routes/v1_keys_updateRemaining";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { expect, test } from "bun:test";
@@ -78,22 +78,21 @@ test("update a key's remaining limit", async () => {
   expect(invalid.body.valid).toBeFalse();
   expect(invalid.body.remaining).toEqual(0);
 
-  const updateKeyResponse = await step<
-    V1KeysUpdateKeyRemainingRequest,
-    V1KeysUpdateKeyRemainingResponse
-  >({
-    url: `${env.UNKEY_BASE_URL}/v1/keys.updateRemaining`,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+  const updateKeyResponse = await step<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>(
+    {
+      url: `${env.UNKEY_BASE_URL}/v1/keys.updateRemaining`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      },
+      body: {
+        keyId: createKeyResponse.body.keyId,
+        op: "increment",
+        value: 5,
+      },
     },
-    body: {
-      keyId: createKeyResponse.body.keyId,
-      op: "increment",
-      value: 5,
-    },
-  });
+  );
 
   expect(updateKeyResponse.status).toEqual(200);
   expect(updateKeyResponse.body.remaining).toEqual(5);
