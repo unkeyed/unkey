@@ -51,10 +51,10 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysUpdateKeyRemainingRequest = z.infer<
+export type V1KeysUpdateRemainingRequest = z.infer<
   typeof route.request.body.content["application/json"]["schema"]
 >;
-export type V1KeysUpdateKeyRemainingResponse = z.infer<
+export type V1KeysUpdateRemainingResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
 
@@ -109,6 +109,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
               remaining: sql`remaining_requests + ${req.value}`,
             })
             .where(eq(schema.keys.id, req.keyId));
+          break;
         }
         case "decrement": {
           if (key.remaining === null) {
@@ -130,6 +131,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
               remaining: sql`remaining_requests - ${req.value}`,
             })
             .where(eq(schema.keys.id, req.keyId));
+          break;
         }
         case "set": {
           await tx
@@ -138,6 +140,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
               remaining: req.value,
             })
             .where(eq(schema.keys.id, req.keyId));
+          break;
         }
       }
 
