@@ -26,36 +26,158 @@ $ cargo add unkey
 Add the following to your `Cargo.toml` dependencies array:
 
 ```toml
-unkey = "0.1"
+unkey = "0.3"
 ```
 
-## Getting started
+## Getting Started
 
-More examples can be found in the documentation.
+### Examples
 
-### Example
+#### Verifying a key
 
 ```rust
 use unkey::models::{VerifyKeyRequest, Wrapped};
 use unkey::Client;
 
-#[tokio::main]
-async fn main() {
-    // Create a new client with your root api key
-    let client = Client::new(env!("UNKEY_ROOT_KEY"));
+async fn verify_key() {
+    let c = Client::new("unkey_ABC");
+    let req = VerifyKeyRequest::new("test_DEF", "api_JJJ");
 
-    // Create the request you want to send
-    let req = VerifyKeyRequest::new("invalid_key42");
-
-    // Check the response
-    match client.verify_key(req).await {
-        // Success, we know this key shouldn't be valid
-        Wrapped::Ok(res) => assert!(!res.valid),
-        // Error, something went wrong
+    match c.verify_key(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
         Wrapped::Err(err) => eprintln!("{err:?}"),
     }
 }
 ```
+
+#### Creating a key
+
+```rust
+use unkey::models::{CreateKeyRequest, Wrapped};
+use unkey::Client;
+
+async fn create_key() {
+    let c = Client::new("unkey_ABC");
+    let req = CreateKeyRequest::new("api_123")
+        .set_prefix("test")
+        .set_remaining(100)
+        .set_name("test_name")
+        .set_owner_id("jonxslays");
+
+    match c.create_key(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+#### Updating a key
+
+```rust
+use unkey::models::{Refill, RefillInterval, UpdateKeyRequest, Wrapped};
+use unkey::Client;
+
+async fn update_key() {
+    let c = Client::new("unkey_ABC");
+    let req = UpdateKeyRequest::new("key_XYZ")
+        .set_name(Some("new_name")) // Update the keys name
+        .set_ratelimit(None) // Remove any ratelimit on the key
+        .set_expires(None) // Remove any expiration date
+        .set_refill(Some(Refill::new(100, RefillInterval::Daily)));
+
+    match c.update_key(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+#### Revoking a key
+
+```rust
+use unkey::models::{RevokeKeyRequest, Wrapped};
+use unkey::Client;
+
+async fn revoke_key() {
+    let c = Client::new("unkey_ABC");
+    let req = RevokeKeyRequest::new("key_XYZ");
+
+    match c.revoke_key(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+#### Listing api keys
+
+```rust
+use unkey::models::{ListKeysRequest, Wrapped};
+use unkey::Client;
+
+async fn list_keys() {
+    let c = Client::new("unkey_ABC");
+    let req = ListKeysRequest::new("api_123");
+
+    match c.list_keys(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+#### Getting api information
+
+```rust
+use unkey::models::{GetApiRequest, Wrapped};
+use unkey::Client;
+
+async fn get_api() {
+    let c = Client::new("unkey_ABC");
+    let req = GetApiRequest::new("api_123");
+
+    match c.get_api(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+#### Getting key details
+
+```rust
+use unkey::models::{GetKeyRequest, Wrapped};
+use unkey::Client;
+
+async fn get_key() {
+    let c = Client::new("unkey_ABC");
+    let req = GetKeyRequest::new("key_123");
+
+    match c.get_key(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+#### Update remaining verifications
+
+```rust
+use unkey::models::{UpdateOp, UpdateRemainingRequest, Wrapped};
+use unkey::Client;
+
+async fn update_remaining() {
+    let c = Client::new("unkey_ABC");
+    let req = UpdateRemainingRequest::new("key_123", Some(100), UpdateOp::Set);
+
+    match c.update_remaining(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+```
+
+---
 
 ### Project Links
 
