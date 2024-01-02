@@ -5,6 +5,7 @@ import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
+import { UpdateKeyEnabled } from "./update-key-enabled";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
 import { UpdateKeyName } from "./update-key-name";
@@ -40,7 +41,7 @@ export default async function SettingsPage(props: Props) {
       <UpdateKeyMetadata apiKey={key} />
       <UpdateKeyName apiKey={key} />
       <UpdateKeyOwnerId apiKey={key} />
-
+      <UpdateKeyEnabled apiKey={key} />
       <Card>
         <CardHeader>
           <CardTitle>Key ID</CardTitle>

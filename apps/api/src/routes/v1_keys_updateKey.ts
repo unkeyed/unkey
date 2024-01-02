@@ -102,6 +102,11 @@ const route = createRoute({
                   amount: 100,
                 },
               }),
+            enabled: z.boolean().openapi({
+              description:
+                "Sets if key is enabled or disabled. If disabled, the key cannot be used to verify. Enabled by default.",
+              example: true,
+            }),
           }),
         },
       },
@@ -210,6 +215,7 @@ export const registerV1KeysUpdate = (app: App) =>
           refillInterval: req.refill === null ? null : req.refill?.interval,
           refillAmount: req.refill === null ? null : req.refill?.amount,
           lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
+          enabled: req.enabled === null ? undefined : req.enabled,
         })
         .where(eq(schema.keys.id, req.keyId));
 

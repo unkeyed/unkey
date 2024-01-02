@@ -113,5 +113,8 @@ export const keySchema = z
           refillInterval: 60,
         },
       }),
+    enabled: z.boolean().openapi({
+      description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
+    }),
   })
   .openapi("Key");

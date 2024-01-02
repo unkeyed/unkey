@@ -34,6 +34,7 @@ describe("simple", () => {
       body: {
         byteLength: 16,
         apiId: r.userApi.id,
+        enabled: true,
       },
     });
 
@@ -100,6 +101,7 @@ describe("with prefix", () => {
         byteLength: 16,
         apiId: r.userApi.id,
         prefix: "prefix",
+        enabled: true,
       },
     });
 

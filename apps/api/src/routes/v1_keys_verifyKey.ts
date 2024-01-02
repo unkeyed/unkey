@@ -113,6 +113,9 @@ Possible values are:
 - RATE_LIMITED: the key has been ratelimited,
 `,
               }),
+            enabled: z.boolean().optional().openapi({
+              description: "Whether the key is enabled or not.",
+            }),
           }),
         },
       },

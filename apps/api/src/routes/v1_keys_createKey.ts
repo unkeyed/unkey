@@ -133,6 +133,9 @@ When validating a key, we will return this back to you, so you can clearly ident
                   refillInterval: 60,
                 },
               }),
+            enabled: z.boolean().optional().default(true).openapi({
+              description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
+            }),
           }),
         },
       },
@@ -272,6 +275,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         lastRefillAt: req.refill?.interval ? new Date() : null,
         totalUses: 0,
         deletedAt: null,
+        enabled: true,
       });
       await tx.insert(schema.auditLogs).values({
         id: newId("auditLog"),

@@ -21,6 +21,37 @@ const stringToIntOrNull = z
     return parsed.data;
   });
 
+export const updateKeyEnabled = serverAction({
+  input: z.object({
+    keyId: z.string(),
+    enabled: z.string().transform((s) => s === "true"),
+  }),
+
+  handler: async ({ input, ctx }) => {
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, input.keyId),
+      with: {
+        workspace: true,
+      },
+    });
+    if (!key) {
+      throw new Error("key not found");
+    }
+    if (key.workspace.tenantId !== ctx.tenantId) {
+      throw new Error("key not found");
+    }
+
+    await db
+      .update(schema.keys)
+      .set({
+        enabled: input.enabled,
+      })
+      .where(eq(schema.keys.id, input.keyId));
+
+    revalidatePath(`/apps/keys/${input.keyId}`);
+  },
+});
+
 export const updateKeyRemaining = serverAction({
   input: z.object({
     keyId: z.string(),

@@ -48,6 +48,7 @@ test("returns 200", async () => {
       ownerId: "test2",
       meta: { test: "test" },
       expires: Date.now(),
+      enabled: true,
     },
   });
 
@@ -94,6 +95,7 @@ test("update all", async () => {
         refillInterval: 1000,
       },
       remaining: 0,
+      enabled: true,
     },
   });
 
@@ -148,6 +150,7 @@ test("update ratelimit", async () => {
         refillRate: 5,
         refillInterval: 1000,
       },
+      enabled: true,
     },
   });
 
@@ -198,6 +201,7 @@ test("delete expires", async () => {
     body: {
       keyId: key.id,
       expires: null,
+      enabled: true,
     },
   });
 
@@ -245,6 +249,7 @@ test("update should not affect undefined fields", async () => {
     body: {
       keyId: key.id,
       ownerId: "newOwnerId",
+      enabled: true,
     },
   });
 
