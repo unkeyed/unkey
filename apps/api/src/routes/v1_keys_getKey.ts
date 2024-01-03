@@ -91,6 +91,8 @@ export const registerV1KeysGetKey = (app: App) =>
       });
     }
 
+    console.log(JSON.stringify(data, null, 2));
+
     return c.json({
       id: data.key.id,
       start: data.key.start,
@@ -99,7 +101,7 @@ export const registerV1KeysGetKey = (app: App) =>
       name: data.key.name ?? undefined,
       ownerId: data.key.ownerId ?? undefined,
       meta: data.key.meta ? JSON.parse(data.key.meta) : undefined,
-      createdAt: data.key.createdAt?.getTime() ?? undefined,
+      createdAt: data.key.createdAt.getTime(),
       expires: data.key.expires?.getTime() ?? undefined,
       remaining: data.key.remaining ?? undefined,
       refill:
