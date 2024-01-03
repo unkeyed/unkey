@@ -19,7 +19,7 @@ export const keySchema = z
       example: "api_1234",
     }),
     name: z.string().optional().openapi({
-      description: "The name of the key, give keys a name to easily identifiy their purpose",
+      description: "The name of the key, give keys a name to easily identify their purpose",
       example: "Customer X",
     }),
     ownerId: z.string().optional().openapi({
