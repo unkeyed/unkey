@@ -460,8 +460,8 @@ export interface paths {
                * Possible values are:
                * - NOT_FOUND: the key does not exist or has expired
                * - FORBIDDEN: the key is not allowed to access the api
-               * - KEY_USAGE_EXCEEDED: the key has exceeded its request limit
-               * - RATELIMITED: the key has been ratelimited,
+               * - USAGE_EXCEEDED: the key has exceeded its request limit
+               * - RATE_LIMITED: the key has been ratelimited,
                *
                * @enum {string}
                */
