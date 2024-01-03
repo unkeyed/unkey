@@ -40,7 +40,7 @@ export class DurableRateLimiter implements RateLimiter {
         pass: current <= req.limit,
       };
     } catch (e) {
-      logger.error("ratelimit failed", { keyId: req.keyId, error: e });
+      logger.error("ratelimit failed", { keyId: req.keyId, error: (e as Error).message });
       return {
         current: 0,
         reset,

@@ -26,10 +26,7 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
   return (
     <button
       type="button"
-      className={cn(
-        "relative z-20 h-8 inline-flex items-center justify-center rounded-md border-border p-1 text-sm font-medium text-primary transition-all hover:border-primary hover:bg-secondary focus:outline-none ",
-        className,
-      )}
+      className={cn("relative p-1 text-primary focus:outline-none ", className)}
       onClick={() => {
         copyToClipboardWithMeta(value, {
           component: src,
