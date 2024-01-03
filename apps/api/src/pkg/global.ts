@@ -78,7 +78,7 @@ export async function init(opts: { env: Env }): Promise<void> {
     opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
       ? new CacheWithMetrics<CacheNamespaces>({
           cache: new ZoneCache<CacheNamespaces>({
-            domain: "unkey.dev",
+            domain: "cache.unkey.dev",
             fresh,
             stale,
             zoneId: opts.env.CLOUDFLARE_ZONE_ID,
