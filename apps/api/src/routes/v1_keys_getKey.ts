@@ -62,6 +62,8 @@ export const registerV1KeysGetKey = (app: App) =>
       });
     }
 
+    const { keyId } = c.req.query();
+
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
@@ -88,8 +90,6 @@ export const registerV1KeysGetKey = (app: App) =>
         message: `key ${keyId} not found`,
       });
     }
-
-    console.log(JSON.stringify(data, null, 2));
 
     return c.json({
       id: data.key.id,
