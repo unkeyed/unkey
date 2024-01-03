@@ -49,7 +49,7 @@ export default async function SettingsPage(props: Props) {
           <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
             <pre>{api.id}</pre>
             <div className="flex items-start justify-between gap-4">
-              <CopyButton value={api.id} />
+              <CopyButton className="hover:bg-transparent" value={api.id} />
             </div>
           </Code>
         </CardContent>
