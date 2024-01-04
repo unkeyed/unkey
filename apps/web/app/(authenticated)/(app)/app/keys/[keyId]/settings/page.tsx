@@ -50,7 +50,7 @@ export default async function SettingsPage(props: Props) {
           <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
             <pre>{key.id}</pre>
             <div className="flex items-start justify-between gap-4">
-              <CopyButton className="ph-no-capture" value={key.id} />
+              <CopyButton value={key.id} />
             </div>
           </Code>
         </CardContent>
