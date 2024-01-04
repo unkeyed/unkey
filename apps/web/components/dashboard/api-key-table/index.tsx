@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, FileClock, Minus, MoreHorizontal, Trash } from "lucide-react";
+import { ArrowUpDown, FileClock, Minus, MoreHorizontal, Trash, BarChart3 } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -230,6 +230,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                   }}
                 >
                   <Link href={`/app/keys/${row.original.id}`} className="w-full">
+                    <BarChart3 className="w-4 h-4 mr-2" />
                     Details
                   </Link>
                 </DropdownMenuItem>
