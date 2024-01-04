@@ -32,7 +32,7 @@ export default async function SettingsPage() {
           <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
             <pre>{workspace.id}</pre>
             <div className="flex items-start justify-between gap-4">
-              <CopyButton className="hover:bg-transparent" value={workspace.id} />
+              <CopyButton value={workspace.id} />
             </div>
           </Code>
         </CardContent>

@@ -58,10 +58,10 @@ export default async function ApiPageLayout(props: Props) {
           <Badge
             key="keyId"
             variant="secondary"
-            className="ph-no-capture flex w-full justify-between font-mono font-medium"
+            className="ph-no-capture flex w-full justify-between font-mono font-medium gap-2"
           >
             {key.id}
-            <CopyButton value={key.id} className="ml-2" />
+            <CopyButton value={key.id} />
           </Badge>,
         ]}
       />
