@@ -2,7 +2,7 @@ import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import {
   getActiveKeys,
@@ -11,7 +11,6 @@ import {
   getVerificationsDaily,
   getVerificationsHourly,
 } from "@/lib/tinybird";
-import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
 
@@ -64,7 +63,7 @@ export default async function ApiPage(props: {
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.keys)
-      .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
+      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
       .execute()
       .then((res) => res.at(0)?.count ?? 0),
     getVerificationsPerInterval(query),

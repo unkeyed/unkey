@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { UNKEY_ROLES, apiActions } from "@unkey/rbac";
+import { apiActions } from "@unkey/rbac";
 import { notFound } from "next/navigation";
 import { Api } from "./api";
 import { Permission } from "./permission";

@@ -32,6 +32,10 @@ export type CacheNamespaces = {
     api: Api;
   } | null;
   apiById: Api | null;
+  keysByOwnerId: {
+    key: Key;
+    api: Api;
+  }[];
 };
 
 const fresh = 1 * 60 * 1000; // 1 minute
@@ -74,7 +78,7 @@ export async function init(opts: { env: Env }): Promise<void> {
     opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
       ? new CacheWithMetrics<CacheNamespaces>({
           cache: new ZoneCache<CacheNamespaces>({
-            domain: "unkey.dev",
+            domain: "cache.unkey.dev",
             fresh,
             stale,
             zoneId: opts.env.CLOUDFLARE_ZONE_ID,
