@@ -9,7 +9,7 @@ const tiers = {
     description: "Everything you need to start your next API!",
     features: [
       "100 Monthly Active Keys",
-      "2500 Successful Verifications per month*",
+      "2500 Successful Verifications per month",
       "Unlimited APIs",
       "7 Days Analytics Retention",
     ],
@@ -24,15 +24,15 @@ const tiers = {
     buttonText: "Upgrade now",
     features: [
       "250 Monthly Active keys included *",
-      "150,000 Successful Verifications included *",
+      "150,000 Successful Verifications included **",
       "Unlimited APIs",
       "Workspaces with team members",
       "90 Days Analytics Retention",
       "90 Days Audit Log Retention",
     ],
     footnotes: [
-      " * Additional active keys are billed at $0.10",
-      " * Additional verifications are billed at $10 per 150,000",
+      " *  Additional active keys are billed at $0.10",
+      " ** Additional verifications are billed at $10 per 100,000",
     ],
   },
   custom: {
