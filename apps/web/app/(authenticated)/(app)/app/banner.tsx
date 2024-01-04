@@ -2,18 +2,15 @@ import { Banner } from "@/components/banner";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { activeKeys, verifications } from "@/lib/tinybird";
+import { QUOTA } from "@unkey/billing";
 import ms from "ms";
 import Link from "next/link";
+
 /**
  * Shows a banner if necessary
  */
 export const UsageBanner: React.FC = async () => {
   const tenantId = getTenantId();
-
-  const freeTierQuota = {
-    activeKeys: 100,
-    verifications: 2500,
-  };
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -49,13 +46,13 @@ export const UsageBanner: React.FC = async () => {
       }).then((res) => res.data.at(0)?.success ?? 0),
     ]);
 
-    if (usedActiveKeys >= freeTierQuota.activeKeys) {
+    if (usedActiveKeys >= QUOTA.free.maxActiveKeys) {
       return (
         <Banner variant="alert">
           <p className="text-xs text-center">
             You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
             <strong>{fmt(usedActiveKeys)}</strong> /{" "}
-            <strong>{fmt(freeTierQuota.activeKeys)}</strong>.{" "}
+            <strong>{fmt(QUOTA.free.maxActiveKeys)}</strong>.{" "}
             <Link href="/app/settings/billing/stripe" className="underline">
               Upgrade your plan
             </Link>{" "}
@@ -68,13 +65,13 @@ export const UsageBanner: React.FC = async () => {
       );
     }
 
-    if (usedVerifications >= freeTierQuota.verifications) {
+    if (usedVerifications >= QUOTA.free.maxVerifications) {
       return (
         <Banner variant="alert">
           <p className="text-xs text-center">
             You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
             <strong>{fmt(usedVerifications)}</strong> /{" "}
-            <strong>{fmt(freeTierQuota.verifications)}</strong>.{" "}
+            <strong>{fmt(QUOTA.free.maxVerifications)}</strong>.{" "}
             <Link href="/app/settings/billing/stripe" className="underline">
               Upgrade your plan
             </Link>{" "}

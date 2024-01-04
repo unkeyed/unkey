@@ -9,8 +9,8 @@ const tiers = {
     description: "Everything you need to start your next API!",
     features: [
       "100 Monthly Active Keys",
-      "2500 Verifications per month",
-      "Discord Support",
+      "2500 Successful Verifications per month",
+      "Unlimited APIs",
       "7 Days Analytics Retention",
     ],
     footnotes: [],
@@ -24,22 +24,23 @@ const tiers = {
     buttonText: "Upgrade now",
     features: [
       "250 Monthly Active keys included *",
-      "10,000 Verifications included *",
+      "150,000 Successful Verifications included **",
+      "Unlimited APIs",
       "Workspaces with team members",
-      "Priority Support",
       "90 Days Analytics Retention",
+      "90 Days Audit Log Retention",
     ],
     footnotes: [
-      " * Additional active keys are billed at $0.10",
-      " * Additional verifications are billed at $1 per 5000",
+      " *  Additional active keys are billed at $0.10",
+      " ** Additional verifications are billed at $10 per 100,000",
     ],
   },
   custom: {
-    name: "Enterprise Tier",
+    name: "Custom",
     id: "enterprise",
     href: "https://cal.com/team/unkey/unkey-chat",
     price: "Let's talk",
-    description: "We offer custom pricing for those with high volume needs.",
+    description: "We offer custom pricing for those with volume needs",
     buttonText: "Schedule a call",
     features: [
       "Custom Verification Limits",
@@ -192,21 +193,6 @@ export default async function PricingPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-center overflow-auto">
-        <div className="relative w-full max-w-6xl px-6 pb-4 isolate lg:px-8">
-          <div>
-            <div className="text-center">
-              <p className="text-gray-900 text-md sm:text-lg">
-                Volume discounts are available on request,{" "}
-                <a className="text-gray-600 underline" href="mailto:support@unkey.dev">
-                  contact us
-                </a>{" "}
-                for more information.
-              </p>
             </div>
           </div>
         </div>
