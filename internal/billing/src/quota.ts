@@ -1,11 +1,9 @@
-type Plan = "free" | "pro" | "enterprise";
-
 export type Quotas = {
-  maxActiveKeys: number | null;
-  maxVerifications: number | null;
+  maxActiveKeys: number;
+  maxVerifications: number;
 };
 
-export const QUOTA: Record<Plan, Quotas> = {
+export const QUOTA = {
   free: {
     maxActiveKeys: 100,
     maxVerifications: 2500,
@@ -14,8 +12,4 @@ export const QUOTA: Record<Plan, Quotas> = {
     maxActiveKeys: 100_000,
     maxVerifications: 100_000_000,
   },
-  enterprise: {
-    maxActiveKeys: null,
-    maxVerifications: null,
-  },
-};
+} as const;
