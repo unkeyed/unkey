@@ -13,7 +13,7 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { BillingTier, calculateTieredPrices } from "@unkey/billing";
+import { BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -84,12 +84,12 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col space-y-6 w-2/3">
           <MeteredLineItem
             title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: 100, centsPerUnit: null }]}
+            tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxActiveKeys, centsPerUnit: null }]}
             used={usedActiveKeys}
           />
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: 2500, centsPerUnit: null }]}
+            tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxVerifications, centsPerUnit: null }]}
             used={usedVerifications}
           />
         </ol>
@@ -279,7 +279,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               title="Active keys"
               tiers={workspace.subscriptions.activeKeys.tiers}
               used={usedActiveKeys}
-              max={workspace.plan === "free" ? 100 : undefined}
+              max={workspace.plan === "free" ? QUOTA.free.maxActiveKeys : undefined}
             />
           ) : null}
           {workspace.subscriptions?.verifications ? (
@@ -288,7 +288,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               title="Verifications"
               tiers={workspace.subscriptions.verifications.tiers}
               used={usedVerifications}
-              max={workspace.plan === "free" ? 2500 : undefined}
+              max={workspace.plan === "free" ? QUOTA.free.maxVerifications : undefined}
               forecast
             />
           ) : null}
