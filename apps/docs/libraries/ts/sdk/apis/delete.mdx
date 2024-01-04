@@ -1,0 +1,23 @@
+---
+title: "Delete"
+description: "Permanently delete an API and revoke all keys associated with it."
+---
+
+## Request
+
+<ParamField body="apiId" type="string" required>
+  The id of the api to be deleted.
+</ParamField>
+
+## Response
+
+No response, but if no error is returned the API has been deleted successfully.
+
+<RequestExample>
+
+```ts
+await unkey.apis.delete({ apiId: "api_123" });
+```
+
+</RequestExample>
+
