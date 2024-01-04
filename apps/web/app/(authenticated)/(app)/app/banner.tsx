@@ -92,8 +92,8 @@ export const UsageBanner: React.FC = async () => {
           {workspace.trialEnds.getTime() <= Date.now()
             ? "Your trial has expired."
             : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
-              long: true,
-            })}.`}{" "}
+                long: true,
+              })}.`}{" "}
           <Link href="/app/settings/billing/stripe" className="underline">
             Add a payment method
           </Link>
