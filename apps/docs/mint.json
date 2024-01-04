@@ -76,7 +76,10 @@
         "features/temp-keys",
         "features/remaining",
         "features/refill",
-        "features/analytics"
+        "features/analytics",
+        "features/audit-log",
+        "features/whitelist",
+        "features/revocation"
       ]
     },
     {
@@ -115,7 +118,12 @@
         },
         {
           "group": "APIs",
-          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
+          "pages": [
+            "api-reference/apis/create",
+            "api-reference/apis/get",
+            "api-reference/apis/list-keys",
+            "api-reference/apis/delete"
+          ]
         }
       ]
     },
@@ -138,7 +146,12 @@
             },
             {
               "group": "APIs",
-              "pages": ["libraries/ts/sdk/apis/get", "libraries/ts/sdk/apis/list-keys"]
+              "pages": [
+                "libraries/ts/sdk/apis/create",
+                "libraries/ts/sdk/apis/get",
+                "libraries/ts/sdk/apis/list-keys",
+                "libraries/ts/sdk/apis/delete"
+              ]
             }
           ]
         },
