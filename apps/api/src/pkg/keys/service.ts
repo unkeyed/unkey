@@ -21,7 +21,7 @@ type VerifyKeyResult =
     }
   | {
       valid: false;
-      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "UNAUTHORIZED";
       key: Key;
       api: Api;
       ratelimit?: {
@@ -170,6 +170,18 @@ export class KeyService {
       return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
     }
 
+    /**
+     * Enabled
+     */
+    const enabled = data.key.enabled;
+    if (!enabled) {
+      return result.success({
+        key: data.key,
+        api: data.api,
+        valid: false,
+        code: "UNAUTHORIZED",
+      });
+    }
     /**
      * Expiration
      *

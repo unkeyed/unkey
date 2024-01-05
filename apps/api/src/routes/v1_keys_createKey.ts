@@ -275,7 +275,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         lastRefillAt: req.refill?.interval ? new Date() : null,
         totalUses: 0,
         deletedAt: null,
-        enabled: true,
+        enabled: req.enabled,
       });
       await tx.insert(schema.auditLogs).values({
         id: newId("auditLog"),

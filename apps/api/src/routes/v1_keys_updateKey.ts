@@ -102,9 +102,9 @@ const route = createRoute({
                   amount: 100,
                 },
               }),
-            enabled: z.boolean().openapi({
+            enabled: z.boolean().optional().openapi({
               description:
-                "Sets if key is enabled or disabled. If disabled, the key cannot be used to verify. Enabled by default.",
+                "Set if key is enabled or disabled. If disabled, the key cannot be used to verify.",
               example: true,
             }),
           }),

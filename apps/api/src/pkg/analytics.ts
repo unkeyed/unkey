@@ -25,7 +25,9 @@ export class Analytics {
         workspaceId: z.string(),
         apiId: z.string(),
         keyId: z.string(),
-        deniedReason: z.enum(["RATE_LIMITED", "USAGE_EXCEEDED", "FORBIDDEN"]).optional(),
+        deniedReason: z
+          .enum(["RATE_LIMITED", "USAGE_EXCEEDED", "FORBIDDEN", "UNAUTHORIZED"])
+          .optional(),
         time: z.number(),
         ipAddress: z.string().default(""),
         userAgent: z.string().default(""),
