@@ -165,11 +165,6 @@ export class KeyService {
     if (!data) {
       return result.success({ valid: false, code: "NOT_FOUND" });
     }
-
-    if (req.apiId && data.api.id !== req.apiId) {
-      return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
-    }
-
     /**
      * Enabled
      */
@@ -182,6 +177,16 @@ export class KeyService {
         code: "UNAUTHORIZED",
       });
     }
+
+    if (req.apiId && data.api.id !== req.apiId) {
+      return result.success({
+        key: data.key,
+        api: data.api,
+        valid: false,
+        code: "FORBIDDEN",
+      });
+    }
+
     /**
      * Expiration
      *
@@ -197,11 +202,21 @@ export class KeyService {
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
       if (!ip) {
-        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+        return result.success({
+          key: data.key,
+          api: data.api,
+          valid: false,
+          code: "FORBIDDEN",
+        });
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
-        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+        return result.success({
+          key: data.key,
+          api: data.api,
+          valid: false,
+          code: "FORBIDDEN",
+        });
       }
     }
 

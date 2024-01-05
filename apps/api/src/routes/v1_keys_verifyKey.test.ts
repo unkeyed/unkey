@@ -249,3 +249,112 @@ describe("with ip whitelist", () => {
     });
   });
 });
+
+describe("with enabled key", () => {
+  test("returns valid", async () => {
+    const env = unitTestEnv.parse(process.env);
+    // @ts-ignore
+    init({ env });
+    const app = newApp();
+    registerV1KeysVerifyKey(app);
+
+    const r = await seed(env);
+
+    const keyAuthId = newId("keyAuth");
+    await r.database.insert(schema.keyAuth).values({
+      id: keyAuthId,
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+    });
+
+    const apiId = newId("api");
+    await r.database.insert(schema.apis).values({
+      id: apiId,
+      workspaceId: r.userWorkspace.id,
+      name: "test",
+      authType: "key",
+      keyAuthId: keyAuthId,
+      createdAt: new Date(),
+    });
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await r.database.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: keyAuthId,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+      enabled: true,
+    });
+
+    const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+      method: "POST",
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId,
+      },
+    });
+    expect(res.status).toEqual(200);
+    expect(res.body.valid).toBeTrue();
+  });
+});
+
+describe("with disabled key", () => {
+  test("returns invalid", async () => {
+    const env = unitTestEnv.parse(process.env);
+    // @ts-ignore
+    init({ env });
+    const app = newApp();
+    registerV1KeysVerifyKey(app);
+
+    const r = await seed(env);
+
+    const keyAuthid = newId("keyAuth");
+    await r.database.insert(schema.keyAuth).values({
+      id: keyAuthid,
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+    });
+
+    const apiId = newId("api");
+    await r.database.insert(schema.apis).values({
+      id: apiId,
+      workspaceId: r.userWorkspace.id,
+      name: "test",
+      authType: "key",
+      keyAuthId: keyAuthid,
+      createdAt: new Date(),
+    });
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await r.database.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: keyAuthid,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+      enabled: false,
+    });
+
+    const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+      method: "POST",
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: r.userApi.id,
+      },
+    });
+    expect(res.status).toEqual(200);
+    expect(res.body.valid).toBeFalse();
+    expect(res.body.code).toEqual("UNAUTHORIZED");
+  });
+});

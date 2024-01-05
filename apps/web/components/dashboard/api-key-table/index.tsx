@@ -23,15 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  ArrowUpDown,
-  CheckCircle2,
-  FileClock,
-  Minus,
-  MoreHorizontal,
-  Trash,
-  XCircle,
-} from "lucide-react";
+import { ArrowUpDown, Check, FileClock, Minus, MoreHorizontal, Trash, X } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -137,11 +129,11 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) =>
         row.original.enabled ? (
           <span>
-            <CheckCircle2 />
+            <Check />
           </span>
         ) : (
           <span>
-            <XCircle />
+            <X />
           </span>
         ),
     },

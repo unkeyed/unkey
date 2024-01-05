@@ -35,13 +35,13 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div className="mb-20 flex flex-col gap-8 ">
+      <UpdateKeyEnabled apiKey={key} />
       <UpdateKeyRemaining apiKey={key} />
       <UpdateKeyRatelimit apiKey={key} />
       <UpdateKeyExpiration apiKey={key} />
       <UpdateKeyMetadata apiKey={key} />
       <UpdateKeyName apiKey={key} />
       <UpdateKeyOwnerId apiKey={key} />
-      <UpdateKeyEnabled apiKey={key} />
       <Card>
         <CardHeader>
           <CardTitle>Key ID</CardTitle>
