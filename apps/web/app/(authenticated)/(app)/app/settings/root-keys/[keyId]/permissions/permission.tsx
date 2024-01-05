@@ -1,13 +1,12 @@
 "use client";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Loading } from "@/components/dashboard/loading";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 type Props = {
@@ -28,6 +27,7 @@ export const Permission: React.FC<Props> = ({ rootKeyId, role, label, checked, d
     },
     onSuccess: () => {
       toast.success("Role added", {
+        description: "Changes may take up to 60 seconds to take effect.",
         cancel: {
           label: "Undo",
           onClick: () => {
@@ -49,6 +49,7 @@ export const Permission: React.FC<Props> = ({ rootKeyId, role, label, checked, d
     },
     onSuccess: () => {
       toast.success("Role removed", {
+        description: "Changes may take up to 60 seconds to take effect.",
         cancel: {
           label: "Undo",
           onClick: () => {
@@ -70,18 +71,21 @@ export const Permission: React.FC<Props> = ({ rootKeyId, role, label, checked, d
       <div className="w-1/3 ">
         <Tooltip>
           <TooltipTrigger className="flex items-center gap-2">
-            <Checkbox
-              disabled={addRole.isLoading || removeRole.isLoading}
-              checked={optimisticChecked}
-              onClick={() => {
-                if (checked) {
-                  removeRole.mutate({ rootKeyId, role });
-                } else {
-                  addRole.mutate({ rootKeyId, role });
-                }
-              }}
-            />
-
+            {addRole.isLoading || removeRole.isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Checkbox
+                disabled={addRole.isLoading || removeRole.isLoading}
+                checked={optimisticChecked}
+                onClick={() => {
+                  if (checked) {
+                    removeRole.mutate({ rootKeyId, role });
+                  } else {
+                    addRole.mutate({ rootKeyId, role });
+                  }
+                }}
+              />
+            )}
             <Label className="text-xs font-mono text-content">{label}</Label>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">

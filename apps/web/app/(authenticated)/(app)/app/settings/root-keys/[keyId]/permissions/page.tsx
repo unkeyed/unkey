@@ -1,12 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
-import { apiActions } from "@unkey/rbac";
 import { notFound } from "next/navigation";
 import { Api } from "./api";
-import { Permission } from "./permission";
 import { Workspace } from "./workspace";
 
 export const dynamic = "force-dynamic";
@@ -45,8 +40,6 @@ export default async function RootKeyPage(props: {
   const roles = await db.query.roles.findMany({
     where: (table, { eq }) => eq(table.keyId, props.params.keyId),
   });
-
-  console.log({ key, roles });
 
   const permissionsByApi = roles.reduce((acc, { role }) => {
     if (!role.startsWith("api.")) {
