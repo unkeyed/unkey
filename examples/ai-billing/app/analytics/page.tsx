@@ -142,7 +142,6 @@ export default async function AnalyticsPage(props: Props) {
   );
 }
 
-// TODO deal with start and end not set
 async function getVerifications(keyId: string, start: number, end: number) {
   const url = new URL("https://api.unkey.dev/vx/keys.getVerifications");
   url.searchParams.set("keyId", keyId);
