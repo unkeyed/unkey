@@ -7,7 +7,9 @@ import { PageIntro } from "@/components/landing/page-intro";
 import { PageLinks } from "@/components/landing/page-links";
 import { SectionIntro } from "@/components/landing/section-intro";
 import imageAndreas from "@/images/team/andreas.jpeg";
+import imageDom from "@/images/team/dom.jpeg";
 import imageJamesPerkins from "@/images/team/james.jpg";
+import imageMichael from "@/images/team/michael.png";
 import Image from "next/image";
 function AboutUnkey() {
   return (
@@ -50,6 +52,16 @@ const team = [
         role: "Co-Founder / CTO",
         image: { src: imageAndreas },
       },
+      {
+        name: "Michael Silva",
+        role: "Developer",
+        image: { src: imageMichael },
+      },
+      {
+        name: "Dom Eccleston",
+        role: "Developer",
+        image: { src: imageDom },
+      },
     ],
   },
 ];
@@ -67,8 +79,8 @@ function Team() {
                   {group.title}
                 </h2>
               </FadeIn>
-              <div className="lg:col-span-3">
-                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-8">
+              <div className="lg:col-span-4">
+                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-8">
                   {group.people.map((person) => (
                     <li key={person.name}>
                       <FadeIn>
@@ -101,11 +113,11 @@ function Team() {
 export const metadata = {
   title: "About Us | Unkey",
   description:
-    "Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.",
+    "Learn about the Unkey team and our mission to build a better API authentication solution.",
   openGraph: {
     title: "About Us | Unkey",
     description:
-      "Unkey is a fully open source project, we believe that open source leads to better products and better communities. We are committed to building a great open source community around Unkey and providing the ability to self host for those who want it.",
+      "Learn about the Unkey team and our mission to build a better API authentication solution.",
     url: "https://unkey.dev/pricing",
     siteName: "unkey.dev",
     images: [
@@ -133,16 +145,15 @@ export default async function About() {
     <>
       <PageIntro eyebrow="" title="About us">
         <p>
-          Unkey is a fully open source project, we believe that open source leads to better products
-          and better communities. We are committed to building a great open source community around
-          Unkey and providing the ability to self host for those who want it.
+          Unkey is an <span className="font-semibold">open source</span> API authentication and
+          authorization platform for scaling user facing APIs. Create, verify, and manage low
+          latency API keys in seconds.
         </p>
         <div className="max-w-2xl mt-10 space-y-6 text-base">
           <p>
-            Unkey was started by James Perkins and Andreas Thomas in 2023. We are a small team of
-            serial builders who love to innovate. We are always looking for new ways to improve our
-            product and our community. If we aren&apos;t working on Unkey, we are probably learning
-            about something new.
+            Unkey was started by James Perkins and Andreas Thomas in 2023. We were frustrated by the
+            lack of a simple, easy to use API authentication solution that was also fast and
+            scalable. We decided to build our own solution and Unkey was born.
           </p>
         </div>
       </PageIntro>
