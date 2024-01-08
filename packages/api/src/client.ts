@@ -255,6 +255,19 @@ export class Unkey {
           query: req,
         });
       },
+      getVerifications: async (
+        req: paths["/v1/keys.getVerifications"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/keys.getVerifications"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "keys.getVerifications"],
+          method: "GET",
+          query: req,
+        });
+      },
     };
   }
 
