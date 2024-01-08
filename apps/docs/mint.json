@@ -111,6 +111,7 @@
             "api-reference/keys/create",
             "api-reference/keys/verify",
             "api-reference/keys/get",
+            "api-reference/keys/verifications",
             "api-reference/keys/update",
             "api-reference/keys/update-remaining",
             "api-reference/keys/delete"
