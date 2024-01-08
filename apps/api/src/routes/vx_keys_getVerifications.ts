@@ -7,6 +7,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 const route = createRoute({
   method: "get",
   path: "/vx/keys.getVerifications",
+  security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
       keyId: z.string().optional().openapi({

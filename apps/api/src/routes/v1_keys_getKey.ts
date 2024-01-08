@@ -8,6 +8,7 @@ import { keySchema } from "./schema";
 const route = createRoute({
   method: "get",
   path: "/v1/keys.getKey",
+  security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
       keyId: z.string().min(1).openapi({
