@@ -269,3 +269,134 @@ test("update should not affect undefined fields", async () => {
   expect(found?.ratelimitRefillInterval).toBeNull();
   expect(found?.remaining).toBeNull();
 });
+
+test("update enabled true", async () => {
+  const env = unitTestEnv.parse(process.env);
+  // @ts-ignore
+  init({ env });
+  const app = newApp();
+  registerV1KeysUpdate(app);
+
+  const r = await seed(env);
+
+  const key = {
+    id: newId("key"),
+    keyAuthId: r.userKeyAuth.id,
+    workspaceId: r.userWorkspace.id,
+    start: "test",
+    name: "test",
+    hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+    createdAt: new Date(),
+    enabled: false,
+  };
+  await r.database.insert(schema.keys).values(key);
+
+  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
+    method: "POST",
+    url: "/v1/keys.updateKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${r.rootKey}`,
+    },
+    body: {
+      keyId: key.id,
+      enabled: true,
+    },
+  });
+
+  expect(res.status).toEqual(200);
+
+  const found = await r.database.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, key.id),
+  });
+  expect(found).toBeDefined();
+  expect(found?.name).toEqual("test");
+  expect(found?.enabled).toEqual(true);
+});
+
+test("update enabled false", async () => {
+  const env = unitTestEnv.parse(process.env);
+  // @ts-ignore
+  init({ env });
+  const app = newApp();
+  registerV1KeysUpdate(app);
+
+  const r = await seed(env);
+
+  const key = {
+    id: newId("key"),
+    keyAuthId: r.userKeyAuth.id,
+    workspaceId: r.userWorkspace.id,
+    start: "test",
+    name: "test",
+    hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+    createdAt: new Date(),
+    enabled: true,
+  };
+  await r.database.insert(schema.keys).values(key);
+
+  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
+    method: "POST",
+    url: "/v1/keys.updateKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${r.rootKey}`,
+    },
+    body: {
+      keyId: key.id,
+      enabled: false,
+    },
+  });
+
+  expect(res.status).toEqual(200);
+
+  const found = await r.database.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, key.id),
+  });
+  expect(found).toBeDefined();
+  expect(found?.name).toEqual("test");
+  expect(found?.enabled).toEqual(false);
+});
+
+test("omit enabled update", async () => {
+  const env = unitTestEnv.parse(process.env);
+  // @ts-ignore
+  init({ env });
+  const app = newApp();
+  registerV1KeysUpdate(app);
+
+  const r = await seed(env);
+
+  const key = {
+    id: newId("key"),
+    keyAuthId: r.userKeyAuth.id,
+    workspaceId: r.userWorkspace.id,
+    start: "test",
+    name: "test",
+    hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+    createdAt: new Date(),
+    enabled: true,
+  };
+  await r.database.insert(schema.keys).values(key);
+
+  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
+    method: "POST",
+    url: "/v1/keys.updateKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${r.rootKey}`,
+    },
+    body: {
+      keyId: key.id,
+    },
+  });
+
+  expect(res.status).toEqual(200);
+
+  const found = await r.database.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, key.id),
+  });
+  expect(found).toBeDefined();
+  expect(found?.name).toEqual("test");
+  expect(found?.enabled).toEqual(true);
+});

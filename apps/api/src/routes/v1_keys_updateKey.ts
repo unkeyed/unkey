@@ -215,7 +215,7 @@ export const registerV1KeysUpdate = (app: App) =>
           refillInterval: req.refill === null ? null : req.refill?.interval,
           refillAmount: req.refill === null ? null : req.refill?.amount,
           lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
-          enabled: req.enabled === null ? undefined : req.enabled,
+          enabled: req.enabled,
         })
         .where(eq(schema.keys.id, req.keyId));
 
