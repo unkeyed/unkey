@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.15.0
+
+### Minor Changes
+
+- a1e82245: add getVerifications method
+
 ## 0.14.0
 
 ### Minor Changes
