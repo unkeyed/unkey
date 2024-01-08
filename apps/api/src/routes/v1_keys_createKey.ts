@@ -11,6 +11,7 @@ import { KeyV1 } from "@unkey/keys";
 const route = createRoute({
   method: "post",
   path: "/v1/keys.createKey",
+  security: [{ bearerAuth: [] }],
   request: {
     body: {
       required: true,
