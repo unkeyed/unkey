@@ -88,7 +88,7 @@ export const templates: Record<string, Template> = {
     authors: ["domeccleston"],
     repository: "https://github.com/unkeyed/unkey/tree/main/examples/ai-billing",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/ai-billing#readme",
-    image: "/images/templates/unkey-stripe.png",
+    image: "/images/templates/ai-billing.png",
     language: "Typescript",
     framework: "Next.js",
   },
