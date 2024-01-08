@@ -6,7 +6,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 
 const route = createRoute({
   method: "get",
-  path: "/v1/keys.getVerifications",
+  path: "/vx/keys.getVerifications",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
@@ -68,10 +68,10 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysGetVerificationsResponse = z.infer<
+export type VXKeysGetVerificationsResponse = z.infer<
   typeof route.responses[200]["content"]["application/json"]["schema"]
 >;
-export const registerV1KeysGetVerifications = (app: App) =>
+export const registerVXKeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const authorization = c.req.header("authorization")?.replace("Bearer ", "");
     if (!authorization) {
