@@ -81,7 +81,16 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/elixir_mix_supervision_example/README.md",
     language: "Elixir",
   },
-
+  "ai-billing": {
+    title: "Next.js AI application with Unkey for billing credits",
+    description:
+      "Simple AI image generation application. Contains example code of generating and refilling Unkey API keys in response to a Stripe payment link, and using the `remaining` field for measuring usage.",
+    authors: ["domeccleston"],
+    repository: "https://github.com/unkeyed/unkey/tree/main/examples/ai-billing",
+    readmeUrl: "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/ai-billing#readme",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   openstatus: {
     title: "OpenStatus.dev",
     description:
