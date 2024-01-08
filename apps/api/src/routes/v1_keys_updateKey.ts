@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 const route = createRoute({
   method: "post",
   path: "/v1/keys.updateKey",
+  security: [{ bearerAuth: [] }],
   request: {
     body: {
       required: true,
