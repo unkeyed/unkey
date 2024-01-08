@@ -25,7 +25,6 @@ export function ImageGenerator({ credits }: { credits: number }) {
         throw new Error(await res.text());
       }
       const { images } = await res.json();
-      console.log(images);
       setImages(images);
       revalidate("/");
       setLoading(false);

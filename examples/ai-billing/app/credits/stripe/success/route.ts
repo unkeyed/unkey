@@ -34,8 +34,6 @@ export async function GET(request: NextRequest, _response: Response) {
     revalidate("/credits");
     return response;
   } else {
-    console.log("refill");
-    console.log(keys);
     const currentKey = keys[0];
     await updateKey(currentKey);
     revalidate("/credits");

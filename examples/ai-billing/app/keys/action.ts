@@ -26,10 +26,8 @@ export async function revokeKey(formData: FormData) {
   if (!ownerId) {
     throw new Error("No owner id");
   }
-  console.log("ownerId", ownerId);
-  const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
-  console.log({ keyId });
+  const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
   const { error, result } = await unkey.keys.get({
     keyId,

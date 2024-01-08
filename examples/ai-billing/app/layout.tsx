@@ -27,12 +27,10 @@ export default async function RootLayout({
 }) {
   const handleSignIn = async () => {
     "use server";
-    console.log("firing");
     await signIn("github");
   };
   const handleSignOut = async () => {
     "use server";
-    console.log("firing");
     await signOut();
   };
   const sess = await auth();

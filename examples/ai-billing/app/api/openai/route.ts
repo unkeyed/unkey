@@ -12,68 +12,75 @@ const openai = new OpenAI({
 // Set the runtime to edge for best performance
 export const runtime = "edge";
 
-export async function POST(req: Request, _res: Response) {
+function readKeyFromCookie(cookieName: string) {
   const cookieStore = cookies();
+  const cookie = cookieStore.get(cookieName)?.value as string;
+  if (!cookie) {
+    return null;
+  }
+  return cookie;
+}
+
+async function resetCookieIfDeleted({ ownerId }: { ownerId: string }) {
+  const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+  const { error, result } = await unkey.apis.listKeys({
+    apiId: process.env.UNKEY_API_ID!,
+    ownerId,
+  });
+
+  if (error) {
+    throw new Error("Error reading from Unkey: check your API ID");
+  }
+
+  const keys = result?.keys;
+
+  if (keys.length) {
+    const key = keys[0];
+    const remaining = key.remaining;
+
+    const newKey = await unkey.keys.create({
+      apiId: process.env.UNKEY_API_ID!,
+      ownerId,
+      remaining,
+    });
+
+    if (newKey.error) {
+      throw new Error("Error creating new key");
+    }
+
+    const newCookie = { key: newKey.result?.key, keyId: newKey.result?.keyId };
+
+    await unkey.keys.delete({
+      keyId: key.id,
+    });
+
+    return newCookie;
+  } else {
+    return null;
+  }
+}
+
+export async function POST(req: Request, _res: Response) {
   const sess = await auth();
   const ownerId = sess?.user?.id;
 
-  const cookie = cookieStore.get("unkey")?.value as string;
+  if (!ownerId) {
+    return new Response("Unauthorized: please supply an owner ID", { status: 401 });
+  }
+
+  const cookie = readKeyFromCookie("unkey");
   let cookieObj;
 
   if (!cookie) {
-    const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
-
-    const { error, result } = await unkey.apis.listKeys({
-      apiId: process.env.UNKEY_API_ID!,
-      ownerId,
-    });
-
-    if (error) {
-      return new Response("Error reading from Unkey – check your API ID", {
-        status: 500,
-      });
-    }
-
-    const keys = result?.keys;
-
-    if (keys.length) {
-      const key = keys[0];
-      const remaining = key.remaining;
-
-      console.log({ remaining });
-
-      const newKey = await unkey.keys.create({
-        apiId: process.env.UNKEY_API_ID!,
-        ownerId,
-        remaining,
-      });
-
-      if (newKey.error) {
-        return new Response("Error creating new key", { status: 500 });
-      }
-
-      cookieObj = { key: newKey.result?.key, keyId: newKey.result?.keyId };
-
-      await unkey.keys.delete({
-        keyId: key.id,
-      });
-
-      cookieStore.set("unkey", JSON.stringify(cookieObj));
-    } else {
-      return new Response("Unauthorized", { status: 401 });
-    }
-  }
-
-  // setting cookie is async, so we can read a cookie if already set, but not if we had to set it in if statement above
-  if (!cookieObj) {
+    cookieObj = await resetCookieIfDeleted({ ownerId });
+    const cookieStore = cookies();
+    cookieStore.set("unkey", JSON.stringify(cookieObj));
+  } else {
     cookieObj = JSON.parse(cookie);
   }
 
-  const key = cookieObj?.key;
-
-  if (!key) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const { key } = cookieObj;
 
   const { result, error } = await verifyKey({
     key,

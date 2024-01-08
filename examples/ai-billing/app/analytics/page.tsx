@@ -95,7 +95,6 @@ export default async function AnalyticsPage(props: Props) {
     ...keys,
   }));
 
-  // console.log(JSON.stringify(data, null, 2))
   const categories = new Set<string>();
   Object.values(times).forEach((keys) => Object.keys(keys).forEach((key) => categories.add(key)));
 

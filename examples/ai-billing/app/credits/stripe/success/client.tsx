@@ -23,14 +23,11 @@ export function Client({
         const keys = await listKeys();
         if (!keys.length) {
           const { key, keyId } = await createKey();
-          console.log({ key, keyId });
           const data = { key, keyId };
           setCookie("unkey", JSON.stringify(data));
           revalidate("/credits");
           router.push("/credits");
         } else {
-          console.log("refill");
-          console.log(keys);
           const currentKey = keys[0];
           await updateKey(currentKey);
           revalidate("/credits");

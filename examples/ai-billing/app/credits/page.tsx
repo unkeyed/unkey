@@ -36,8 +36,8 @@ export default async function CreditsPage() {
           Please select the number of credits you want to purchase.
         </p>
         <p className="text-gray-600 mt-2">
-          For demo purposes, enter '4242 4242 4242 4242' as your credit card, and any data for the
-          other fields. This will not charge your card.
+          For demo purposes, enter '4242 4242 4242 4242' as your credit card, any future expiry
+          date, and any CVC.
         </p>
         <SelectCredits />
       </Card>

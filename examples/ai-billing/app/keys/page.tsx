@@ -7,7 +7,6 @@ export default async function KeysPage() {
   const sess = await auth();
 
   const ownerId = sess?.user?.id ?? sess?.user?.email;
-  console.log("ownerId", ownerId);
   if (!ownerId) {
     return redirect("/sign-in");
   }
