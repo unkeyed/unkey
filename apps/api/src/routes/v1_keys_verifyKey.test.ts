@@ -362,6 +362,6 @@ describe("with disabled key", () => {
     });
     expect(res.status).toEqual(200);
     expect(res.body.valid).toBeFalse();
-    expect(res.body.code).toEqual("UNAUTHORIZED");
+    expect(res.body.code).toEqual("DISABLED");
   });
 });
