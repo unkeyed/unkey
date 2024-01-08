@@ -1,12 +1,9 @@
-import { redirect } from "next/navigation";
-
 import { revalidate } from "@/app/revalidate";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { setCookie } from "./cookies";
 import { createKey, listKeys, updateKey } from "./keys";
 
-export async function GET(request: NextRequest, response: Response) {
+export async function GET(request: NextRequest, _response: Response) {
   const url = new URL(request.url);
   const session_id = url.searchParams.get("session_id") as string;
 
