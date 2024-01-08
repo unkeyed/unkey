@@ -64,7 +64,11 @@
         "onboarding",
         {
           "group": "Quickstart",
-          "pages": ["quickstart/nextjs", "quickstart/express", "quickstart/bun"]
+          "pages": [
+            "quickstart/nextjs",
+            "quickstart/express",
+            "quickstart/bun"
+          ]
         },
         "security"
       ]
@@ -85,7 +89,9 @@
     {
       "group": "Integrations",
       "icon": "bolt",
-      "pages": ["integrations/vercel"]
+      "pages": [
+        "integrations/vercel"
+      ]
     },
     {
       "group": "API Documentation",
@@ -165,7 +171,10 @@
         "libraries/py/overview",
         {
           "group": "Services",
-          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+          "pages": [
+            "libraries/py/services/keys",
+            "libraries/py/services/apis"
+          ]
         }
       ]
     },
@@ -202,19 +211,26 @@
         },
         {
           "group": "API",
-          "pages": ["libraries/go/api/list", "libraries/go/api/get"]
+          "pages": [
+            "libraries/go/api/list",
+            "libraries/go/api/get"
+          ]
         }
       ]
     },
     {
       "group": "Nuxt",
       "icon": "code",
-      "pages": ["libraries/nuxt/overview"]
+      "pages": [
+        "libraries/nuxt/overview"
+      ]
     },
     {
       "group": "Rust",
       "icon": "code",
-      "pages": ["libraries/rs/overview"]
+      "pages": [
+        "libraries/rs/overview"
+      ]
     },
     {
       "group": "Springboot",
@@ -243,7 +259,7 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "http://localhost:8787/openapi.json",
+  "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
   },
