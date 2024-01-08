@@ -9,4 +9,4 @@ Example of a generative AI application using Unkey for billing.
 
 ### Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Funkeyed%2Fhackbill&env=AUTH_SECRET,AUTH_GITHUB_ID,AUTH_GITHUB_SECRET,UNKEY_ROOT_KEY,UNKEY_API_ID,OPENAI_API_KEY,STRIPE_SECRET_KEY,STRIPE_PUBLISHABLE_KEY,STRIPE_PRICE_ID&demo-title=Billing%20%26%20Analytics%20with%20Unkey&demo-url=https%3A%2F%2Fhackbill.vercel.app%2F&integration-ids=oac_pBxhD462CCUdby4F6vTacGrd&skippable-integrations=1)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Funkeyed%2Fhackbill&env=AUTH_SECRET,AUTH_GITHUB_ID,AUTH_GITHUB_SECRET,UNKEY_ROOT_KEY,UNKEY_API_ID,OPENAI_API_KEY,STRIPE_SECRET_KEY,STRIPE_PUBLISHABLE_KEY,STRIPE_PRICE_ID&demo-title=Billing%20%26%20Analytics%20with%20Unkey&demo-url=https%3A%2F%2Fhackbill.vercel.app%2F&integration-ids=oac_YCHbaAYEZtArpdfP6DloSdkO&skippable-integrations=1)
