@@ -18,11 +18,11 @@ const route = createRoute({
         description: "The owner id to fetch keys for, either `keyId` or `ownerId` must be provided",
         example: "chronark",
       }),
-      start: z.coerce.number().int().optional().openapi({
+      start: z.number().int().optional().openapi({
         description: "The start of the period to fetch usage for as unix milliseconds timestamp",
         example: 1620000000000,
       }),
-      end: z.coerce.number().int().optional().openapi({
+      end: z.number().int().optional().openapi({
         description: "The end of the period to fetch usage for as unix milliseconds timestamp",
         example: 1620000000000,
       }),
