@@ -8,7 +8,6 @@ import { TrialEnded } from "../emails/trial_ended";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   public readonly client: Client;
-  private readonly domain = "updates.unkey.dev";
   private readonly replyTo = "support@unkey.dev";
 
   constructor(opts: { apiKey: string }) {
@@ -24,7 +23,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: `andreas@${this.domain}`,
+      from: "andreas@unkey.dev",
       reply_to: this.replyTo,
       subject: "Your Unkey trial has ended",
       html,
@@ -39,7 +38,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: `andreas@${this.domain}`,
+      from: "andreas@unkey.dev",
       reply_to: this.replyTo,
       subject: "Your Unkey trial has ended",
       html,
@@ -53,7 +52,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: `james@${this.domain}`,
+      from: "james@unkey.dev",
       reply_to: this.replyTo,
       subject: "Welcome to Unkey",
       html,
@@ -65,7 +64,7 @@ export class Resend {
 
     await this.client.emails.send({
       to: req.email,
-      from: `andreas@${this.domain}`,
+      from: "andreas@unkey.dev",
       reply_to: this.replyTo,
       subject: "There was an issue with your payment",
       html,
