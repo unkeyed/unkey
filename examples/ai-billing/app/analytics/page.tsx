@@ -142,7 +142,7 @@ export default async function AnalyticsPage(props: Props) {
 }
 
 async function getVerifications(keyId: string, start: number, end: number) {
-  const url = new URL("https://api.unkey.dev/vx/keys.getVerifications");
+  const url = new URL("https://api.unkey.dev/v1/keys.getVerifications");
   url.searchParams.set("keyId", keyId);
   url.searchParams.set("start", start.toString());
   url.searchParams.set("end", end.toString());
