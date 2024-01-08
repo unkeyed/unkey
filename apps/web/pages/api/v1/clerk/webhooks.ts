@@ -9,8 +9,6 @@ import { Webhook } from "svix";
 export const config = {
   runtime: "nodejs",
 };
-const _domain = "updates.unkey.dev";
-const _replyTo = "support@unkey.dev";
 
 const { CLERK_WEBHOOK_SECRET, RESEND_API_KEY, RESEND_AUDIENCE_ID } = env();
 export default async function handler(
