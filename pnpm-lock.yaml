@@ -51,8 +51,8 @@ importers:
         specifier: 1.0.0-rc.1
         version: 1.0.0-rc.1
       '@chronark/zod-bird':
-        specifier: 0.3.1
-        version: 0.3.1
+        specifier: 0.3.3-canary.0
+        version: 0.3.3-canary.0
       '@hono/zod-openapi':
         specifier: ^0.9.0
         version: 0.9.0(hono@3.11.7)(zod@3.22.4)
@@ -123,8 +123,8 @@ importers:
         specifier: ^1.3.3
         version: 1.3.3
       '@chronark/zod-bird':
-        specifier: ^0.3.1
-        version: 0.3.1
+        specifier: 0.3.3-canary.0
+        version: 0.3.3-canary.0
       '@clerk/nextjs':
         specifier: ^4.27.2
         version: 4.27.2(next@14.0.3)(react-dom@18.2.0)(react@18.2.0)
@@ -475,8 +475,8 @@ importers:
   apps/workflows:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.1
-        version: 0.3.1
+        specifier: 0.3.3-canary.0
+        version: 0.3.3-canary.0
       '@clerk/nextjs':
         specifier: ^4.27.2
         version: 4.27.2(next@14.0.3)(react-dom@18.2.0)(react@18.2.0)
@@ -2027,8 +2027,8 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@chronark/zod-bird@0.3.1:
-    resolution: {integrity: sha512-4PNJx41m37Psk/3XAxdXxMb9VGAep43/puiwxAyFWYzIoQ1kq3Cwh1sA51LkTFSVHm+B2peMmW+p3/+oCHH9zg==}
+  /@chronark/zod-bird@0.3.3-canary.0:
+    resolution: {integrity: sha512-RJGandVjPv9ndtVtGwLWO+k8Ys+8GTBkT6x/KUbnoC8i3Xv/3VyQLQOHcP3s98ei46QnXnpIEYVNDgWQNwDKNg==}
     dependencies:
       zod: 3.22.4
     dev: false
