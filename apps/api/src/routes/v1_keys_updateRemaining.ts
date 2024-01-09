@@ -9,6 +9,7 @@ import { newId } from "@unkey/id";
 const route = createRoute({
   method: "post",
   path: "/v1/keys.updateRemaining",
+  security: [{ bearerAuth: [] }],
   request: {
     body: {
       required: true,

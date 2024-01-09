@@ -4,7 +4,6 @@ import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
-  security: [], // The key in the request body is enough to authenticate the request
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {
