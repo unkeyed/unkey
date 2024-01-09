@@ -2,7 +2,7 @@
 import { auth } from "@/auth";
 import { Unkey } from "@unkey/api";
 
-export async function createKey() {
+export async function createKey(amount: number) {
   const sess = await auth();
   const ownerId = sess?.user?.id;
   if (!ownerId) {
@@ -13,13 +13,13 @@ export async function createKey() {
   const key = await unkey.keys.create({
     apiId: process.env.UNKEY_API_ID!,
     ownerId,
-    remaining: 10,
+    remaining: amount / 100,
   });
 
   return { key: key.result?.key, keyId: key.result?.keyId };
 }
 
-export async function updateKey(key: any) {
+export async function updateKey(key: any, amount: number) {
   const sess = await auth();
   const ownerId = sess?.user?.id;
   if (!ownerId) {
@@ -30,7 +30,7 @@ export async function updateKey(key: any) {
   await unkey.keys.updateRemaining({
     keyId: key.id,
     op: "increment",
-    value: 10,
+    value: amount / 100,
   });
 }
 
