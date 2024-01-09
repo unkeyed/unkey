@@ -7,6 +7,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 const route = createRoute({
   method: "get",
   path: "/v1/apis.getApi",
+  security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
       apiId: z.string().min(1).openapi({

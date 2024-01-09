@@ -1,0 +1,138 @@
+---
+title: "Get"
+description: "Get the configuration for an api key"
+---
+
+## Request
+
+<ParamField path="keyId" type="string" required>
+  The ID of the key you want to revoke.
+</ParamField>
+
+## Response
+
+<ResponseField name="result" type="object">
+
+<Expandable defaultOpen>
+
+
+<ResponseField name="id" type="string" required >
+  The id of the key
+</ResponseField>
+
+<ResponseField name="start" type="string" required>
+The first few characters of the key to visually identify it.
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required example="ws_1234">
+ The id of the workspace that owns the key
+</ResponseField>
+
+<ResponseField name="apiId" type="string" >
+The id of the api that this key is for
+</ResponseField>
+
+<ResponseField name="name" type="string">
+The name of the key, give keys a name to easily identify their purpose
+</ResponseField>
+
+<ResponseField name="ownerId" type="string" example="user_1234">
+The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
+</ResponseField>
+<ResponseField name="meta" type="JSON">
+Any additional metadata you want to store with the key
+</ResponseField>
+
+<ResponseField name="createdAt" type="integer" required >
+The unix timestamp in milliseconds when the key was created
+</ResponseField>
+
+<ResponseField name="deletedAt" type="integer" >
+The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
+</ResponseField>
+<ResponseField name="expires" type="integer"  >
+The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
+</ResponseField>
+<ResponseField name="remaining" type="integer" >
+The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.
+</ResponseField>
+<ResponseField name="refill" type="object">
+Unkey allows you to refill remaining verifications on a key on a regular interval.
+<Expandable>
+<ResponseField name="interval" type={"daily" | "monthly"} required >
+Determines the rate at which verifications will be refilled.
+</ResponseField>
+<ResponseField name="amount" type="number" required >
+Resets `remaining` to this value every interval.
+</ResponseField>
+
+<ResponseField name="lastRefillAt" type="number" required >
+The unix timestamp in miliseconds when the key was last refilled.
+</ResponseField>
+</Expandable>
+
+</ResponseField>
+<ResponseField name="ratelimit" type="object" required>
+<Expandable>
+<ResponseField name="type" type="fast | consistent" required  default="fast">
+Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+</ResponseField>
+
+<ResponseField name="limit" type="integer" required >
+The total amount of burstable requests.
+</ResponseField>
+<ResponseField name="refillRate" type="integer" required >
+How many tokens to refill during each refillInterval.
+</ResponseField>
+
+<ResponseField name="refillInterval" type="integer" required >
+Determines the speed at which tokens are refilled, in milliseconds.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+
+
+<RequestExample>
+
+```ts
+const { result, error } = await unkey.keys.get({ keyId: "key_123" });
+```
+
+
+
+</RequestExample>
+
+<ResponseExample>
+```ts Success
+
+const { result, error } = await unkey.keys.get({ keyId: "key_123" });
+
+if (error){
+  // error will be undefined if the request was successful
+}
+
+
+// result
+{
+  keyId: "key_123",
+  apiId: "api_123",
+  remaining: 1024,
+  expires: 1630540800000,
+}
+```
+
+```ts Error
+const { result, error } = await unkey.keys.get({ keyId: "key_123" });
+
+if (error){
+  console.log(error.message);
+  // => "Key not found"
+}
+
+
+```
+</ResponseExample>
