@@ -81,7 +81,16 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/elixir_mix_supervision_example/README.md",
     language: "Elixir",
   },
-
+  "CLI auth": {
+    title: "CLI Auth example with Unkey",
+    description: "CLI application that generates a new Unkey API key and writes it to a file.",
+    authors: ["domeccleston"],
+    repository: "https://github.com/unkeyed/unkey/tree/main/examples/unkey-cli",
+    language: "Typescript",
+    framework: "Next.js",
+    readmeUrl: "https://raw.githubusercontent.com/unkeyed/unkey/main/examples/unkey-cli/README.md",
+    image: "/images/templates/unkey-cli.png",
+  },
   openstatus: {
     title: "OpenStatus.dev",
     description:
