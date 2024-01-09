@@ -1,7 +1,6 @@
 "use client";
-
-import { addEmail } from "@/app/actions/addEmail";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc";
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { Loading } from "../dashboard/loading";
@@ -36,28 +35,34 @@ const SubmitButton = () => {
 export function NewsletterForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
-  return (
-    <form
-      ref={formRef}
-      className="max-w-md"
-      action={async (formData) => {
-        const test = await addEmail(formData);
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const email = formData.get("email");
+
+    console.log(email);
+    const _addEmail = trpc.newsletter.signup
+      .mutate({
+        email: email as string,
+      })
+      .then((response) => {
+        console.log(response);
         formRef.current?.reset();
-        if (test.success) {
+        if (response) {
           toast({
             title: "Success",
-            description: "Thanks for signing up!",
-            variant: "default",
+            description: "Your email has been added to our newsletter!",
           });
         } else {
           toast({
             title: "Error",
-            description: "Something went wrong, please try again later.",
-            variant: "alert",
+            description: "Something went wrong. Please try again later",
           });
         }
-      }}
-    >
+      });
+  }
+  return (
+    <form onSubmit={handleSubmit} className="max-w-md">
       <h2 className="font-display text-sm font-semibold tracking-wider text-gray-950">
         Sign up for our newsletter
       </h2>
