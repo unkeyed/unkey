@@ -1,22 +1,10 @@
 import { auth } from "@/auth";
 import { Unkey } from "@unkey/api";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { ImageGenerator } from "../components/image-generator";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IdCardIcon } from "@radix-ui/react-icons";
-
-export const metadata: Metadata = {
-  metadataBase: new URL("https://unkey.dev"),
-  title: "AI billing example with Unkey",
-  description:
-    "Simple AI image generation application. Contains example code of generating and refilling Unkey API keys in response to a Stripe payment link, and using the `remaining` field for measuring usage.",
-  openGraph: {
-    title: "AI billing example with Unkey",
-    images: ["https://unkey.dev/images/templates/unkey-stripe.png"],
-  },
-};
 
 export default async function GeneratePage() {
   const sess = await auth();

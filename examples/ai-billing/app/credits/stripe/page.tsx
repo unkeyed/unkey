@@ -16,7 +16,9 @@ export default async function StripePage({
     typescript: true,
   });
 
-  const baseUrl = process.env.VERCEL_URL ? "https://hackbill.vercel.app" : "http://localhost:3000";
+  const baseUrl = process.env.VERCEL_URL
+    ? `https:${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
 
   const successUrl = `${baseUrl}/credits/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
 

@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
-import { Unkey, verifyKey } from "@unkey/api";
+import { verifyKey } from "@unkey/api";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
+import { readKeyFromCookie, resetCookieIfDeleted } from "./cookies";
 // Create an OpenAI API client (that's edge friendly!)
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -11,55 +12,6 @@ const openai = new OpenAI({
 
 // Set the runtime to edge for best performance
 export const runtime = "edge";
-
-function readKeyFromCookie(cookieName: string) {
-  const cookieStore = cookies();
-  const cookie = cookieStore.get(cookieName)?.value as string;
-  if (!cookie) {
-    return null;
-  }
-  return cookie;
-}
-
-async function resetCookieIfDeleted({ ownerId }: { ownerId: string }) {
-  const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
-
-  const { error, result } = await unkey.apis.listKeys({
-    apiId: process.env.UNKEY_API_ID!,
-    ownerId,
-  });
-
-  if (error) {
-    throw new Error("Error reading from Unkey: check your API ID");
-  }
-
-  const keys = result?.keys;
-
-  if (keys.length) {
-    const key = keys[0];
-    const remaining = key.remaining;
-
-    const newKey = await unkey.keys.create({
-      apiId: process.env.UNKEY_API_ID!,
-      ownerId,
-      remaining,
-    });
-
-    if (newKey.error) {
-      throw new Error("Error creating new key");
-    }
-
-    const newCookie = { key: newKey.result?.key, keyId: newKey.result?.keyId };
-
-    await unkey.keys.delete({
-      keyId: key.id,
-    });
-
-    return newCookie;
-  } else {
-    return null;
-  }
-}
 
 export async function POST(req: Request, _res: Response) {
   const sess = await auth();

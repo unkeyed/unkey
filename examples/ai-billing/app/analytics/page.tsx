@@ -68,6 +68,7 @@ export default async function AnalyticsPage(props: Props) {
   const keys = await Promise.all(
     allKeys.result.keys.map(async (key) => ({
       verifications: await getVerifications(key.id, start, end),
+      // verifications: await unkey.keys.getVerifications({ keyId: key.id, start, end }),
       keyId: key.id,
     })),
   );
@@ -142,7 +143,7 @@ export default async function AnalyticsPage(props: Props) {
 }
 
 async function getVerifications(keyId: string, start: number, end: number) {
-  const url = new URL("https://api.unkey.dev/v1/keys.getVerifications");
+  const url = new URL("https://api.unkey.dev/vx/keys.getVerifications");
   url.searchParams.set("keyId", keyId);
   url.searchParams.set("start", start.toString());
   url.searchParams.set("end", end.toString());
@@ -160,6 +161,8 @@ async function getVerifications(keyId: string, start: number, end: number) {
       usageExceeded: number;
     }[];
   };
+
+  console.log(data);
 
   return data.verifications;
 }

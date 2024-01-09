@@ -19,7 +19,7 @@ export async function createKey(amount: number) {
   return { key: key.result?.key, keyId: key.result?.keyId };
 }
 
-export async function updateKey(key: any, amount: number) {
+export async function updateKey(key: { id: string }, amount: number) {
   const sess = await auth();
   const ownerId = sess?.user?.id;
   if (!ownerId) {
