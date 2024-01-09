@@ -110,7 +110,7 @@ importers:
         version: 5.3.3
       wrangler:
         specifier: ^3.19.0
-        version: 3.22.3
+        version: 3.22.4
 
   apps/docs: {}
 
@@ -364,7 +364,7 @@ importers:
         version: 9.0.1(postcss@8.4.31)
       posthog-js:
         specifier: ^1.93.3
-        version: 1.97.0
+        version: 1.97.1
       posthog-node:
         specifier: ^3.1.3
         version: 3.5.0
@@ -671,7 +671,7 @@ importers:
         version: 5.3.3
       wrangler:
         specifier: ^3.14.0
-        version: 3.22.3
+        version: 3.22.4
 
   examples/express:
     dependencies:
@@ -19333,8 +19333,8 @@ packages:
       picocolors: 1.0.0
       source-map-js: 1.0.2
 
-  /posthog-js@1.97.0:
-    resolution: {integrity: sha512-kp1xGrL5m4MbVKpF33E5qDqWE4wl/D843W3un4QEe2V4dSvAmpRfP0t0X4EyM79ALZ3EDE+SGbJWdVQEJo9ldA==}
+  /posthog-js@1.97.1:
+    resolution: {integrity: sha512-N5r7sm4EiSxBgFTZuReR7wvHgzK/UkPbIsy/nZuIexLD+oa94ZQFNY/i1o8utDNmXHFWVKv4rwFmzRmPZYc8Zw==}
     dependencies:
       fflate: 0.4.8
     dev: false
@@ -23902,8 +23902,8 @@ packages:
       '@cloudflare/workerd-windows-64': 1.20231218.0
     dev: true
 
-  /wrangler@3.22.3:
-    resolution: {integrity: sha512-EhGEQLoMcQm71v6XrtnKfMG2B8BTM7RxhoS9iWIkc1hc3l9cOWyoN0cJnoBqcGTgtQk5V7+cRECTfwh08IEjBQ==}
+  /wrangler@3.22.4:
+    resolution: {integrity: sha512-AhqraOHTcIV9rrm0z5tlxFDhx+l+O6g4QnKL08J1wnLg3mdvTWwMm5QmhxN0JQ0YgS2jgRCwg0PR+Fa5cumP8A==}
     engines: {node: '>=16.17.0'}
     hasBin: true
     dependencies:
