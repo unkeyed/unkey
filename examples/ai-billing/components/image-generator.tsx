@@ -7,7 +7,7 @@ import { revalidate } from "../app/revalidate";
 export function ImageGenerator({ credits }: { credits: number }) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState([] as string[]);
+  const [images, setImages] = useState<string[]>([]);
 
   async function generate() {
     setLoading(true);

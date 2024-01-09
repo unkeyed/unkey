@@ -9,7 +9,7 @@ export const config = {
     signIn: "/sign-in",
   },
   theme: {
-    logo: "https://next-auth.js.org/img/logo/logo-sm.png",
+    logo: "https://unkey.dev/images/landing/unkey.png",
   },
   providers: [GitHub],
   session: { strategy: "jwt" },

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, _response: Response) {
     }
 
     const keys = await listKeys();
-    if (!keys.length) {
+    if (keys.length === 0) {
       const { key, keyId } = await createKey(session.amount_total);
       const data = { key, keyId };
       const response = NextResponse.redirect(new URL("/credits", request.url));
