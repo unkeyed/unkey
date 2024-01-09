@@ -2,6 +2,7 @@
 
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
+import { readFileSync } from "fs";
 import http from "http";
 import { ParsedUrlQuery } from "node:querystring";
 import os from "os";
@@ -13,6 +14,7 @@ import { customAlphabet } from "nanoid";
 import pc from "picocolors";
 
 const FILENAME = ".unkey";
+
 // const CLIENT_URL = "http://localhost:3000";
 const CLIENT_URL = "https://unkey-cli.vercel.app";
 
@@ -33,10 +35,17 @@ async function writeToConfigFile(data: ParsedUrlQuery) {
   }
 }
 
+function getVersion() {
+  const packageJson = readFileSync(path.join(__dirname, "..", "package.json"), "utf-8");
+  const { version } = JSON.parse(packageJson);
+  return version;
+}
+
 const program = new Command();
 const nanoid = customAlphabet("123456789QAZWSXEDCRFVTGBYHNUJMIKOLP", 8);
+const version = getVersion();
 
-program.name("unkey-cli").description("Example CLI application with Unkey auth").version("0.0.1");
+program.name("unkey-cli").description("Example CLI application with Unkey auth").version(version);
 
 program
   .command("login")
@@ -61,7 +70,7 @@ program
       server.on("request", (req, res) => {
         // Set CORS headers for all responses
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
         res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         if (req.method === "OPTIONS") {
