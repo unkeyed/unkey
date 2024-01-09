@@ -85,7 +85,7 @@ program
             reject(new UserCancellationError("Login process cancelled by user."));
           } else {
             res.writeHead(200);
-            res.end(JSON.stringify(queryParams));
+            res.end();
             resolve(queryParams);
           }
         } else {
