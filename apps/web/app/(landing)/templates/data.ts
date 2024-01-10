@@ -92,7 +92,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Next.js",
   },
-  "CLI auth": {
+  "cli-auth": {
     title: "CLI Auth example with Unkey",
     description: "CLI application that generates a new Unkey API key and writes it to a file.",
     authors: ["domeccleston"],

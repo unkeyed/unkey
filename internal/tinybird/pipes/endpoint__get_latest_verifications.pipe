@@ -5,12 +5,10 @@ NODE endpoint
 SQL >
 
     %
-    SELECT time,requestedResource, ratelimited, region, ipAddress, usageExceeded, userAgent 
-    FROM key_verifications 
-    where 
-    workspaceId = {{String(workspaceId, required=True)}} 
-   and apiId = {{String(apiId, required=True)}} 
-    and keyId = {{String(keyId, required=True)}} 
+    SELECT time,requestedResource, ratelimited, region, ipAddress, usageExceeded, userAgent
+    FROM key_verifications
+    where
+    workspaceId = {{String(workspaceId, required=True)}}
+   and apiId = {{String(apiId, required=True)}}
+    and keyId = {{String(keyId, required=True)}}
     order by time desc limit 20
-
-
