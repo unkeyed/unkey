@@ -21,7 +21,7 @@ type VerifyKeyResult =
     }
   | {
       valid: false;
-      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED";
+      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED";
       key: Key;
       api: Api;
       ratelimit?: {
@@ -165,9 +165,26 @@ export class KeyService {
     if (!data) {
       return result.success({ valid: false, code: "NOT_FOUND" });
     }
+    /**
+     * Enabled
+     */
+    const enabled = data.key.enabled;
+    if (!enabled) {
+      return result.success({
+        key: data.key,
+        api: data.api,
+        valid: false,
+        code: "DISABLED",
+      });
+    }
 
     if (req.apiId && data.api.id !== req.apiId) {
-      return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+      return result.success({
+        key: data.key,
+        api: data.api,
+        valid: false,
+        code: "FORBIDDEN",
+      });
     }
 
     /**
@@ -185,11 +202,21 @@ export class KeyService {
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
       if (!ip) {
-        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+        return result.success({
+          key: data.key,
+          api: data.api,
+          valid: false,
+          code: "FORBIDDEN",
+        });
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
-        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+        return result.success({
+          key: data.key,
+          api: data.api,
+          valid: false,
+          code: "FORBIDDEN",
+        });
       }
     }
 
