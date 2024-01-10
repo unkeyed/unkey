@@ -68,7 +68,7 @@ type ApiRequest = {
   | {
       method: "GET";
       body?: never;
-      query?: Record<string, string | number | boolean>;
+      query?: Record<string, string | number | boolean | null>;
     }
   | {
       method: "POST";
@@ -129,6 +129,9 @@ export class Unkey {
       const url = new URL(`${this.baseUrl}/${req.path.join("/")}`);
       if (req.query) {
         for (const [k, v] of Object.entries(req.query)) {
+          if (v === null) {
+            continue;
+          }
           url.searchParams.set(k, v.toString());
         }
       }
