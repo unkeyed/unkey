@@ -87,6 +87,7 @@ export default function Page() {
         setLoading(false);
         setSuccess(true);
       } catch (_error) {
+        console.error(_error);
         setLoading(false);
         toast.error("Error redirecting back to local CLI. Is your CLI running?");
       }
