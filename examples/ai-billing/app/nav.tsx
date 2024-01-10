@@ -13,7 +13,7 @@ export type NavLinkProps = {
 };
 
 // TODO convert to function
-export const NavLink: React.FC<NavLinkProps> = ({ label, href, target }) => {
+export function NavLink({ label, href, target }: NavLinkProps) {
   const path = usePathname();
   return (
     <Link
@@ -29,4 +29,4 @@ export const NavLink: React.FC<NavLinkProps> = ({ label, href, target }) => {
       {label}
     </Link>
   );
-};
+}
