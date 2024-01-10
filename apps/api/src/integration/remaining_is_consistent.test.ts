@@ -39,6 +39,7 @@ test("remaining consistently counts down", async () => {
       byteLength: 32,
       prefix: "test",
       remaining,
+      enabled: true,
     },
   });
   expect(createKeyResponse.status).toEqual(200);
