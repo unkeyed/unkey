@@ -32,17 +32,7 @@ export default async function AnalyticsPage(props: Props) {
   t.setUTCMonth(t.getUTCMonth() - 1);
   const end = props.searchParams.end ? parseInt(props.searchParams.end) : Date.now();
 
-  const verifications = (await unkey.keys.getVerifications({ ownerId, start, end })) as {
-    error?: { message: string };
-    result: {
-      verifications: Array<{
-        time: string;
-        success: number;
-        rateLimited: number;
-        usageExceeded: number;
-      }>;
-    };
-  };
+  const verifications = await unkey.keys.getVerifications({ ownerId, start, end });
 
   if (verifications.error) {
     throw new Error(`Error loading verifications: ${verifications.error.message}`);

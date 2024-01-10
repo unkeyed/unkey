@@ -51,7 +51,7 @@ export default async function RootLayout({
               <NavLink href="/analytics" label="Analytics" />
               <NavLink href="/credits" label="Credits" />
             </div>
-            <div className="ml-auto flex items-center space-x-4 ">
+            {/* <div className="ml-auto flex items-center space-x-4 ">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -102,7 +102,7 @@ export default async function RootLayout({
                   ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+            </div> */}
           </div>
         </nav>
         <main className="container mx-auto mt-8">{children}</main>

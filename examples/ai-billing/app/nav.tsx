@@ -11,6 +11,8 @@ export type NavLinkProps = {
   href: string;
   target?: string;
 };
+
+// TODO convert to function
 export const NavLink: React.FC<NavLinkProps> = ({ label, href, target }) => {
   const path = usePathname();
   return (
