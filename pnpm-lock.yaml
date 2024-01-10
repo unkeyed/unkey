@@ -9591,6 +9591,15 @@ packages:
     resolution: {integrity: sha512-GjAwOydZV6UyVBi1lYW5v4jjfU6wOeyi3vBATKJOwV7muYF0/nZi4kfdJc0pwdT5lXwbbx57lyA2Y356rFpw1A==}
     dependencies:
       '@babel/parser': 7.23.6
+      '@vue/shared': 3.3.6
+      estree-walker: 2.0.2
+      source-map-js: 1.0.2
+    dev: true
+
+  /@vue/compiler-core@3.4.8:
+    resolution: {integrity: sha512-GjAwOydZV6UyVBi1lYW5v4jjfU6wOeyi3vBATKJOwV7muYF0/nZi4kfdJc0pwdT5lXwbbx57lyA2Y356rFpw1A==}
+    dependencies:
+      '@babel/parser': 7.23.6
       '@vue/shared': 3.4.8
       entities: 4.5.0
       estree-walker: 2.0.2
@@ -9602,6 +9611,27 @@ packages:
     dependencies:
       '@vue/compiler-core': 3.4.8
       '@vue/shared': 3.4.8
+    dev: true
+
+  /@vue/compiler-dom@3.4.8:
+    resolution: {integrity: sha512-GsPyji42zmkSJlaDFKXvwB97ukTlHzlFH/iVzPFYz/APnSzuhu/CMFQbsYmrtsnc2yscF39eC4rKzvKR27aBug==}
+    dependencies:
+      '@vue/compiler-core': 3.4.8
+      '@vue/shared': 3.4.8
+    dev: true
+
+  /@vue/compiler-sfc@3.3.6:
+    resolution: {integrity: sha512-/Kms6du2h1VrXFreuZmlvQej8B1zenBqIohP0690IUBkJjsFvJxY0crcvVRJ0UhMgSR9dewB+khdR1DfbpArJA==}
+    dependencies:
+      '@babel/parser': 7.23.6
+      '@vue/compiler-core': 3.4.8
+      '@vue/compiler-dom': 3.4.8
+      '@vue/compiler-ssr': 3.4.8
+      '@vue/shared': 3.4.8
+      estree-walker: 2.0.2
+      magic-string: 0.30.5
+      postcss: 8.4.33
+      source-map-js: 1.0.2
     dev: true
 
   /@vue/compiler-sfc@3.4.8:
@@ -9616,6 +9646,13 @@ packages:
       magic-string: 0.30.5
       postcss: 8.4.33
       source-map-js: 1.0.2
+    dev: true
+
+  /@vue/compiler-ssr@3.3.6:
+    resolution: {integrity: sha512-QTIHAfDCHhjXlYGkUg5KH7YwYtdUM1vcFl/FxFDlD6d0nXAmnjizka3HITp8DGudzHndv2PjKVS44vqqy0vP4w==}
+    dependencies:
+      '@vue/compiler-dom': 3.3.6
+      '@vue/shared': 3.3.6
     dev: true
 
   /@vue/compiler-ssr@3.4.8:
@@ -9658,6 +9695,10 @@ packages:
       '@vue/compiler-ssr': 3.4.8
       '@vue/shared': 3.4.8
       vue: 3.4.8(typescript@5.3.3)
+    dev: true
+
+  /@vue/shared@3.3.6:
+    resolution: {integrity: sha512-Xno5pEqg8SVhomD0kTSmfh30ZEmV/+jZtyh39q6QflrjdJCXah5lrnOLi9KB6a5k5aAHXMXjoMnxlzUkCNfWLQ==}
     dev: true
 
   /@vue/shared@3.4.8:
@@ -21864,7 +21905,7 @@ packages:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.33)(ts-node@10.9.2)
+      postcss-load-config: 4.0.2(postcss@8.4.32)(ts-node@10.9.1)
       resolve-from: 5.0.0
       rollup: 4.9.4
       source-map: 0.8.0-beta.0
