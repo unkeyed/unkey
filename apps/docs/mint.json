@@ -142,7 +142,7 @@
                 "libraries/ts/sdk/keys/create",
                 "libraries/ts/sdk/keys/verify",
                 "libraries/ts/sdk/keys/update",
-                "libraries/ts/sdk/keys/revoke"
+                "libraries/ts/sdk/keys/delete"
               ]
             },
             {
