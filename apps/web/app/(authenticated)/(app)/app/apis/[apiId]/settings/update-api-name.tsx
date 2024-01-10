@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { trpc } from "@/lib/trpc";
-
+import { trpc } from "@/lib/trpc/client";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useFormStatus } from "react-dom";
 
@@ -27,7 +27,24 @@ type Props = {
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
   const { toast } = useToast();
   const { pending } = useFormStatus();
-
+  const router = useRouter();
+  const updateName = trpc.apiSettings.updateName.useMutation({
+    onSuccess: (_data) => {
+      toast({
+        title: "Success",
+        description: "Your Api name has been updated!",
+      });
+      router.refresh();
+    },
+    onError: (err, variables) => {
+      router.refresh();
+      toast({
+        title: `Could not update Api name on ApiId ${variables.apiId}`,
+        description: err.message,
+        variant: "alert",
+      });
+    },
+  });
   function handleSubmit(event: any) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -35,25 +52,11 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     const apiId = formData.get("apiId");
     const workspaceId = formData.get("workspaceId");
 
-    const _updateName = trpc.apiSettings.updateName.mutate({
+    updateName.mutate({
       name: apiName as string,
       apiId: apiId as string,
       workspaceId: workspaceId as string,
     });
-    // .then((response) => {
-    //   if (response) {
-    //     // revalidatePath(`/apps/api/${apiId}`);
-    //     toast({
-    //       title: "Success",
-    //       description: "Your email has been added to our newsletter!",
-    //     });
-    //   } else {
-    //     toast({
-    //       title: "Error",
-    //       description: "Something went wrong. Please try again later",
-    //     });
-    //   }
-    // });
   }
   return (
     <form onSubmit={handleSubmit}>

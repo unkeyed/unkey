@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { trpc } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc/client";
 import React from "react";
 import { useFormStatus } from "react-dom";
 
@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Workspace } from "@unkey/db";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 type Props = {
   workspace: {
     plan: Workspace["plan"];
@@ -34,8 +35,25 @@ type Props = {
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   const { toast } = useToast();
   const { pending } = useFormStatus();
-
+  const router = useRouter();
   const isEnabled = workspace.plan === "enterprise";
+  const updateIps = trpc.apiSettings.updateIpWhitelist.useMutation({
+    onSuccess: (_data) => {
+      toast({
+        title: "Success",
+        description: "Your ip whitelist has been updated!",
+      });
+      router.refresh();
+    },
+    onError: (err, variables) => {
+      toast({
+        title: `Could not update ip whitelist on ApiId ${variables.apiId}`,
+        description: err.message,
+        variant: "alert",
+      });
+    },
+  });
+
   function handleSubmit(event: any) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -43,24 +61,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     const apiId = formData.get("apiId");
     const workspaceId = formData.get("workspaceId");
 
-    const _updateIps = trpc.apiSettings.updateIpWhitelist.mutate({
+    updateIps.mutate({
       ips: ipWhitelist as string,
       apiId: apiId as string,
       workspaceId: workspaceId as string,
     });
-    // .then((response) => {
-    //   if (response) {
-    //     toast({
-    //       title: "Success",
-    //       description: "Your ip whitelist has been updated!",
-    //     });
-    //   } else {
-    //     toast({
-    //       title: "Error",
-    //       description: "There was a problem updating your whitelist. Please try again later",
-    //     });
-    //   }
-    // });
   }
   return (
     <form onSubmit={handleSubmit}>
