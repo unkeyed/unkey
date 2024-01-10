@@ -59,21 +59,25 @@ export const apiRouter = t.router({
             message: "unable to emit event to trigger.dev",
           });
         }
-        await db
-          .update(schema.apis)
-          .set({ state: "DELETION_IN_PROGRESS" })
-          .where(eq(schema.apis.id, input.apiId));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.apis)
+            .set({ state: "DELETION_IN_PROGRESS" })
+            .where(eq(schema.apis.id, input.apiId));
+        });
       } else {
         console.warn("TRIGGER_API_KEY not set");
         // For local development when contributors don't have access to the trigger.dev account
-        await db
-          .update(schema.apis)
-          .set({ deletedAt: new Date() })
-          .where(eq(schema.apis.id, input.apiId));
-        await db
-          .update(schema.keys)
-          .set({ deletedAt: new Date() })
-          .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.apis)
+            .set({ deletedAt: new Date() })
+            .where(eq(schema.apis.id, input.apiId));
+          await tx
+            .update(schema.keys)
+            .set({ deletedAt: new Date() })
+            .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+        });
       }
     }),
   create: t.procedure
@@ -93,10 +97,12 @@ export const apiRouter = t.router({
       }
 
       const keyAuthId = newId("keyAuth");
-      await db.insert(schema.keyAuth).values({
-        id: keyAuthId,
-        workspaceId: workspace.id,
-        createdAt: new Date(),
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.keyAuth).values({
+          id: keyAuthId,
+          workspaceId: workspace.id,
+          createdAt: new Date(),
+        });
       });
 
       const apiId = newId("api");

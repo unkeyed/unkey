@@ -1,9 +1,6 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React from "react";
-import { useFormStatus } from "react-dom";
-
 import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,7 +11,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { updateApiName } from "./actions";
+import { trpc } from "@/lib/trpc";
+
+import React from "react";
+import { useFormStatus } from "react-dom";
+
 type Props = {
   api: {
     id: string;
@@ -27,24 +28,35 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   const { toast } = useToast();
   const { pending } = useFormStatus();
 
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const apiName = formData.get("name");
+    const apiId = formData.get("apiId");
+    const workspaceId = formData.get("workspaceId");
+
+    const _updateName = trpc.apiSettings.updateName.mutate({
+      name: apiName as string,
+      apiId: apiId as string,
+      workspaceId: workspaceId as string,
+    });
+    // .then((response) => {
+    //   if (response) {
+    //     // revalidatePath(`/apps/api/${apiId}`);
+    //     toast({
+    //       title: "Success",
+    //       description: "Your email has been added to our newsletter!",
+    //     });
+    //   } else {
+    //     toast({
+    //       title: "Error",
+    //       description: "Something went wrong. Please try again later",
+    //     });
+    //   }
+    // });
+  }
   return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateApiName(formData);
-        if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
-          return;
-        }
-        toast({
-          title: "Success",
-          description: "Api name updated",
-        });
-      }}
-    >
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Api Name</CardTitle>

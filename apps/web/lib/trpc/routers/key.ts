@@ -227,7 +227,7 @@ export const keyRouter = t.router({
             return;
           }
           await db.transaction(async (tx) => {
-            await db
+            await tx
               .update(schema.keys)
               .set({
                 deletedAt: new Date(),
@@ -242,7 +242,6 @@ export const keyRouter = t.router({
               actorId: ctx.user.id,
               event: "key.delete",
               description: `deleted key ${keyId}`,
-
               keyId: keyId,
             });
           });

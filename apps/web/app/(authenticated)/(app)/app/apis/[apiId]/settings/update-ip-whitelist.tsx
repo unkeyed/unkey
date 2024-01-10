@@ -1,9 +1,6 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React from "react";
-import { useFormStatus } from "react-dom";
-
 import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,7 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { updateIpWhitelist } from "./actions";
+import { trpc } from "@/lib/trpc";
+import React from "react";
+import { useFormStatus } from "react-dom";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,25 +36,34 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   const { pending } = useFormStatus();
 
   const isEnabled = workspace.plan === "enterprise";
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const ipWhitelist = formData.get("ipWhitelist");
+    const apiId = formData.get("apiId");
+    const workspaceId = formData.get("workspaceId");
 
+    const _updateIps = trpc.apiSettings.updateIpWhitelist.mutate({
+      ips: ipWhitelist as string,
+      apiId: apiId as string,
+      workspaceId: workspaceId as string,
+    });
+    // .then((response) => {
+    //   if (response) {
+    //     toast({
+    //       title: "Success",
+    //       description: "Your ip whitelist has been updated!",
+    //     });
+    //   } else {
+    //     toast({
+    //       title: "Error",
+    //       description: "There was a problem updating your whitelist. Please try again later",
+    //     });
+    //   }
+    // });
+  }
   return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateIpWhitelist(formData);
-        if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
-          return;
-        }
-        toast({
-          title: "Success",
-          description: "Api name updated",
-        });
-      }}
-    >
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader className={cn({ "opacity-40": !isEnabled })}>
           <CardTitle>IP Whitelist</CardTitle>
