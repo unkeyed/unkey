@@ -11,9 +11,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { updateKeyOwnerId } from "./actions";
+
 type Props = {
   apiKey: {
     id: string;
@@ -24,24 +25,33 @@ type Props = {
 
 export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateKeyOwnerId(formData);
-        if (res.error) {
+
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const keyId = event.target.keyId.value;
+
+    const _updateOwnerId = trpc.keySettings.updateOwnerId
+      .mutate({
+        keyId: keyId as string,
+        ownerId: formData.get("ownerId") as string,
+      })
+      .then((response) => {
+        if (response) {
+          toast({
+            title: "Success",
+            description: "Your owner ID has been updated!",
+          });
+        } else {
           toast({
             title: "Error",
-            description: res.error.message,
-            variant: "alert",
+            description: "Something went wrong. Please try again later",
           });
-          return;
         }
-        toast({
-          title: "Success",
-          description: "Owner ID has been updated",
-        });
-      }}
-    >
+      });
+  }
+  return (
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Owner ID</CardTitle>

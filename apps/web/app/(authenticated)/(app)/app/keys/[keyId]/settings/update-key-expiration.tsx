@@ -14,8 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { updateExpiration } from "./actions";
+
 type Props = {
   apiKey: {
     id: string;
@@ -36,24 +37,34 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
     return t.toISOString();
   }, []);
 
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateExpiration(formData);
-        if (res.error) {
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const keyId = event.target.keyId.value;
+
+    const _updateExpiration = trpc.keySettings.updateExpiration
+      .mutate({
+        keyId: keyId as string,
+        enableExpiration: enabled as boolean,
+        expiration: formData.get("expiration") as string,
+      })
+      .then((response) => {
+        if (response) {
+          toast({
+            title: "Success",
+            description: "Your remaining uses has been updated!",
+          });
+        } else {
           toast({
             title: "Error",
-            description: res.error.message,
-            variant: "alert",
+            description: "Something went wrong. Please try again later",
           });
-          return;
         }
-        toast({
-          title: "Success",
-          description: "Expiration updated",
-        });
-      }}
-    >
+      });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Expiration</CardTitle>

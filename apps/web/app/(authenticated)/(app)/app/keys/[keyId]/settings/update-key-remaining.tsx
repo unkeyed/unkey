@@ -1,6 +1,4 @@
 "use client";
-import React, { useState } from "react";
-
 import { SubmitButton } from "@/components/dashboard/submit-button";
 import {
   Card,
@@ -21,14 +19,15 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { updateKeyRemaining } from "./actions";
+import React, { useState } from "react";
 type Props = {
   apiKey: {
     id: string;
     workspaceId: string;
     remaining: number | null;
-    refillInterval: string | null;
+    refillInterval: "daily" | "monthly" | "null";
     refillAmount: number | null;
   };
 };
@@ -37,26 +36,40 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
   const [enabled, setEnabled] = useState(apiKey.remaining !== null);
   const [refillEbabled, setRefillEnabled] = useState(apiKey.remaining !== null);
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const keyId = event.target.keyId.value;
 
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateKeyRemaining(formData);
-
-        if (res.error) {
+    const enableRemaining = formData.get("enableRemaining") === "true" ? true : false;
+    const remaining = formData.get("remaining");
+    const refillInterval = formData.get("refillInterval");
+    const refillAmount = formData.get("refillAmount");
+    const _updateRemaining = trpc.keySettings.updateRemaining
+      .mutate({
+        keyId: keyId as string,
+        enableRemaining: enableRemaining as boolean,
+        remaining: remaining === null ? undefined : Number(remaining),
+        refillInterval: refillInterval as "daily" | "monthly" | "null" | undefined,
+        refillAmount: refillInterval !== null ? Number(refillAmount) : undefined,
+      })
+      .then((response) => {
+        if (response) {
+          toast({
+            title: "Success",
+            description: "Your remaining uses has been updated!",
+          });
+        } else {
           toast({
             title: "Error",
-            description: res.error.message,
-            variant: "alert",
+            description: "Something went wrong. Please try again later",
           });
-          return;
         }
-        toast({
-          title: "Success",
-          description: "Remaining uses updated",
-        });
-      }}
-    >
+      });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Remaining Uses</CardTitle>

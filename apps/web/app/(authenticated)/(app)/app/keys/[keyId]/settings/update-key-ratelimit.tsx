@@ -12,10 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { Key } from "@unkey/db";
 import React, { useState } from "react";
-import { updateKeyRatelimit } from "./actions";
+
 type Props = {
   apiKey: {
     id: string;
@@ -29,26 +30,42 @@ type Props = {
 
 export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-
   const [enabled, setEnabled] = useState(apiKey.ratelimitType !== null);
+  function handleSubmit(event: any) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const keyId = event.target.keyId.value;
+    const limit = formData.get("ratelimitLimit");
+    const rate = formData.get("ratelimitRefillRate");
+    const interval = formData.get("ratelimitRefillInterval");
+
+    const _updateRatelimit = trpc.keySettings.updateRatelimit.mutate({
+      keyId: keyId as string,
+      enabled: enabled.toString(),
+      ratelimitType: "fast",
+      ratelimitLimit: limit === undefined || limit === null ? "null" : limit.toString(),
+      ratelimitRefillRate: rate?.toString(),
+      ratelimitRefillInterval:
+        interval === undefined || interval === null ? "null" : interval?.toString(),
+    });
+
+    // .then((response) => {
+    //   if (response) {
+    //     toast({
+    //       title: "Success",
+    //       description: "Your ratelimit has been updated!",
+    //     });
+    //   } else {
+    //     toast({
+    //       title: "Error",
+    //       description: "Something went wrong. Please try again later",
+    //     });
+    //   }
+    // });
+  }
   return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateKeyRatelimit(formData);
-        if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
-          return;
-        }
-        toast({
-          title: "Success",
-          description: "Ratelimit updated",
-        });
-      }}
-    >
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Ratelimit</CardTitle>

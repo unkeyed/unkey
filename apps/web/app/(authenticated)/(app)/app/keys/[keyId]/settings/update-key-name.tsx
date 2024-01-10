@@ -13,8 +13,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { updateKeyName } from "./actions";
+
 type Props = {
   apiKey: {
     id: string;
@@ -25,24 +26,32 @@ type Props = {
 
 export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateKeyName(formData);
-        if (res.error) {
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const keyId = event.target.keyId.value;
+
+    const _updateName = trpc.keySettings.updateName
+      .mutate({
+        keyId: keyId as string,
+        name: formData.get("name") as string,
+      })
+      .then((response) => {
+        if (response) {
+          toast({
+            title: "Success",
+            description: "Your key name uses has been updated!",
+          });
+        } else {
           toast({
             title: "Error",
-            description: res.error.message,
-            variant: "alert",
+            description: "Something went wrong. Please try again later",
           });
-          return;
         }
-        toast({
-          title: "Success",
-          description: "Name has been updated",
-        });
-      }}
-    >
+      });
+  }
+  return (
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Name</CardTitle>

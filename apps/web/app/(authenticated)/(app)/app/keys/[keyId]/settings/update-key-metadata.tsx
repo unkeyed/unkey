@@ -14,7 +14,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { updateMetadata } from "./actions";
+import { trpc } from "@/lib/trpc";
+
 type Props = {
   apiKey: {
     id: string;
@@ -27,24 +28,34 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
 
   const [content, setContent] = useState<string>(apiKey.meta ?? "");
   const rows = Math.max(3, content.split("\n").length);
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateMetadata(formData);
-        if (res.error) {
+
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    const _formData = new FormData(event.target);
+    const keyId = event.target.keyId.value;
+
+    const _updateMetadata = trpc.keySettings.updateMetadata
+      .mutate({
+        keyId: keyId as string,
+        metadata: content,
+      })
+      .then((response) => {
+        if (response) {
+          toast({
+            title: "Success",
+            description: "Your remaining uses has been updated!",
+          });
+        } else {
           toast({
             title: "Error",
-            description: res.error.message,
-            variant: "alert",
+            description: "Something went wrong. Please try again later",
           });
-          return;
         }
-        toast({
-          title: "Success",
-          description: "Metadata updated",
-        });
-      }}
-    >
+      });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle>Metadata</CardTitle>
