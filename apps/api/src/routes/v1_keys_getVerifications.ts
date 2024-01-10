@@ -107,7 +107,6 @@ export const registerV1KeysGetVerifications = (app: App) =>
       apiId: string;
     }[] = [];
 
-    console.log({ keyId, ownerId, start, end });
     if (keyId) {
       const data = await cache.withCache(c, "keyById", keyId, async () => {
         const dbRes = await db.query.keys.findFirst({
