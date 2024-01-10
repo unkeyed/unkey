@@ -737,8 +737,8 @@ export interface paths {
         query?: {
           keyId?: string;
           ownerId?: string;
-          start?: number;
-          end?: number;
+          start?: number | null;
+          end?: number | null;
           granularity?: "day";
         };
       };
