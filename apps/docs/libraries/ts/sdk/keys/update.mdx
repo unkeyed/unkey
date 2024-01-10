@@ -82,6 +82,10 @@ Unkey allows automatic refill on 'remaining' on a 'daily' or 'monthly' interval.
 Read more [here](/features/refill)
   </ParamField>
  </Expandable>
+  <ParamField body="enabled" type="boolean" >
+  Sets if the key is enabled or disabled.
+
+</ParamField>
 </ParamField>
 ## Response
 
@@ -108,7 +112,8 @@ await unkey.keys.update({
   refil: {
     interval: "daily",
     amount: 100
-  }
+  },
+  enabled: true
 });
 ```
 

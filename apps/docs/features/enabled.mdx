@@ -1,0 +1,53 @@
+---
+title: Enabled
+description: "Enable or disable a key. Disabled keys will not validate."
+---
+
+This feature is useful for disabling a key temperarily. While disabled the key will act as an invalid key until re enabled. 
+
+Example:
+Suppose you have a customer that has not paid thier bill. You may not want to delete the key in this case, However the key can be disabled preventing access until enabled again.
+
+Unkey allows you to disable a key on an individual basis. 
+
+### Example
+
+Let's disable a key temperarily blocking access with that key. 
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "enabled": false,
+  "keyId": "<keyId>"
+}'
+```
+
+Now, when you verify the new key, you will get an invalid response.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+		"key": "<NEW_KEY>"
+	}'
+```
+
+```json
+{
+  "error": {
+    "code": "DISABLED",
+    "docs": "https://unkey.dev/docs/api-reference/errors/code/DISABLED",
+    "message": "<string>",
+    "requestId": "req_1234"
+  }
+}
+```
+
+<Note>
+  The returned `remaining` value represents how many verifications are remaining
+  after the current one. A value of 3, means you can verify the key successfully
+  3 more times.
+</Note>

@@ -79,7 +79,8 @@
         "features/analytics",
         "features/audit-log",
         "features/whitelist",
-        "features/revocation"
+        "features/revocation",
+        "features/enabled"
       ]
     },
     {
@@ -111,7 +112,6 @@
             "api-reference/keys/create",
             "api-reference/keys/verify",
             "api-reference/keys/get",
-            "api-reference/keys/verifications",
             "api-reference/keys/update",
             "api-reference/keys/update-remaining",
             "api-reference/keys/delete"
@@ -141,10 +141,8 @@
               "pages": [
                 "libraries/ts/sdk/keys/create",
                 "libraries/ts/sdk/keys/verify",
-                "libraries/ts/sdk/keys/get",
-                "libraries/ts/sdk/keys/verifications",
                 "libraries/ts/sdk/keys/update",
-                "libraries/ts/sdk/keys/delete"
+                "libraries/ts/sdk/keys/revoke"
               ]
             },
             {
