@@ -13,7 +13,7 @@ export async function createKey(amount: number) {
   const key = await unkey.keys.create({
     apiId: process.env.UNKEY_API_ID!,
     ownerId,
-    remaining: amount / 100,
+    remaining: Math.round(amount / 100),
   });
 
   return { key: key.result?.key, keyId: key.result?.keyId };
@@ -30,7 +30,7 @@ export async function updateKey(key: { id: string }, amount: number) {
   await unkey.keys.updateRemaining({
     keyId: key.id,
     op: "increment",
-    value: amount / 100,
+    value: Math.round(amount / 100),
   });
 }
 
