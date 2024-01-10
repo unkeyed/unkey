@@ -12,6 +12,7 @@ import { apis } from "./apis";
 import { auditLogs } from "./audit";
 import { keys } from "./keys";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
+
 export const workspaces = mysqlTable(
   "workspaces",
   {
@@ -60,6 +61,8 @@ export const workspaces = mysqlTable(
          * Can access /app/success
          */
         successPage?: boolean;
+
+        ipWhitelist?: boolean;
       }>()
       .notNull(),
     // prevent plan changes for a certain time, should be 1 day
@@ -70,7 +73,6 @@ export const workspaces = mysqlTable(
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
-    // slugIdx: uniqueIndex("slug_idx").on(table.slug),
   }),
 );
 

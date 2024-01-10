@@ -296,6 +296,12 @@ export interface paths {
               /** @description Determines the speed at which tokens are refilled, in milliseconds. */
               refillInterval: number;
             };
+            /**
+             * @description Sets if key is enabled or disabled. Disabled keys are not valid.
+             * @default true
+             * @example false
+             */
+            enabled?: boolean;
           };
         };
       };
@@ -461,11 +467,20 @@ export interface paths {
                * - NOT_FOUND: the key does not exist or has expired
                * - FORBIDDEN: the key is not allowed to access the api
                * - USAGE_EXCEEDED: the key has exceeded its request limit
-               * - RATE_LIMITED: the key has been ratelimited,
-               *
+               * - RATE_LIMITED: the key has been ratelimited
+               * - UNAUTHORIZED: the key is not authorized
+               * - DISABLED: the key is disabled
                * @enum {string}
                */
-              code?: "NOT_FOUND" | "FORBIDDEN" | "USAGE_EXCEEDED" | "RATE_LIMITED";
+              code?:
+                | "NOT_FOUND"
+                | "FORBIDDEN"
+                | "USAGE_EXCEEDED"
+                | "RATE_LIMITED"
+                | "UNAUTHORIZED"
+                | "DISABLED";
+              /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
+              enabled?: boolean;
             };
           };
         };
@@ -595,6 +610,11 @@ export interface paths {
               /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
               amount: number;
             } | null;
+            /**
+             * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.
+             * @example true
+             */
+            enabled?: boolean;
           };
         };
       };
@@ -737,8 +757,8 @@ export interface paths {
         query?: {
           keyId?: string;
           ownerId?: string;
-          start?: number;
-          end?: number;
+          start?: number | null;
+          end?: number | null;
           granularity?: "day";
         };
       };
@@ -2281,6 +2301,11 @@ export interface components {
         /** @description Determines the speed at which tokens are refilled, in milliseconds. */
         refillInterval: number;
       };
+      /**
+       * @description Sets if key is enabled or disabled. Disabled keys are not valid.
+       * @example true
+       */
+      enabled?: boolean;
     };
   };
   responses: never;

@@ -15,7 +15,14 @@ export type UnkeyContext = {
         reset: number;
       }
     | undefined;
-  code?: "NOT_FOUND" | "RATE_LIMITED" | "FORBIDDEN" | "USAGE_EXCEEDED" | undefined;
+  code?:
+    | "NOT_FOUND"
+    | "RATE_LIMITED"
+    | "FORBIDDEN"
+    | "USAGE_EXCEEDED"
+    | "UNAUTHORIZED"
+    | "DISABLED"
+    | undefined;
 };
 
 export type UnkeyConfig<TContext = Context> = {

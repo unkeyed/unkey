@@ -87,55 +87,62 @@ describe("bad request", () => {
 });
 
 describe("with temporary key", () => {
-  test("returns valid", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerV1KeysVerifyKey(app);
+  test(
+    "returns valid",
+    async () => {
+      const env = unitTestEnv.parse(process.env);
+      // @ts-ignore
+      init({ env });
+      const app = newApp();
+      registerV1KeysVerifyKey(app);
 
-    const r = await seed(env);
+      const r = await seed(env);
 
-    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await r.database.insert(schema.keys).values({
-      id: newId("key"),
-      keyAuthId: r.userKeyAuth.id,
-      hash: await sha256(key),
-      start: key.slice(0, 8),
-      workspaceId: r.userWorkspace.id,
-      createdAt: new Date(),
-      expires: new Date(Date.now() + 5000),
-    });
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await r.database.insert(schema.keys).values({
+        id: newId("key"),
+        keyAuthId: r.userKeyAuth.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: r.userWorkspace.id,
+        createdAt: new Date(),
+        expires: new Date(Date.now() + 5000),
+      });
 
-    const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
-      method: "POST",
-      url: "/v1/keys.verifyKey",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: {
-        key,
-        apiId: r.userApi.id,
-      },
-    });
-    expect(res.status).toEqual(200);
-    expect(res.body.valid).toBeTrue();
+      const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+        method: "POST",
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: r.userApi.id,
+        },
+      });
+      expect(res.status).toEqual(200);
+      expect(res.body.valid).toBeTrue();
 
-    await new Promise((resolve) => setTimeout(resolve, 6000));
-    const secondResponse = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
-      method: "POST",
-      url: "/v1/keys.verifyKey",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: {
-        key,
-        apiId: r.userApi.id,
-      },
-    });
-    expect(secondResponse.status).toEqual(200);
-    expect(secondResponse.body.valid).toBeFalse();
-  });
+      await new Promise((resolve) => setTimeout(resolve, 6000));
+      const secondResponse = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(
+        app,
+        {
+          method: "POST",
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key,
+            apiId: r.userApi.id,
+          },
+        },
+      );
+      expect(secondResponse.status).toEqual(200);
+      expect(secondResponse.body.valid).toBeFalse();
+    },
+    { timeout: 20000 },
+  );
 });
 
 describe("with ip whitelist", () => {
@@ -251,5 +258,114 @@ describe("with ip whitelist", () => {
       },
       { timeout: 20000 },
     );
+  });
+});
+
+describe("with enabled key", () => {
+  test("returns valid", async () => {
+    const env = unitTestEnv.parse(process.env);
+    // @ts-ignore
+    init({ env });
+    const app = newApp();
+    registerV1KeysVerifyKey(app);
+
+    const r = await seed(env);
+
+    const keyAuthId = newId("keyAuth");
+    await r.database.insert(schema.keyAuth).values({
+      id: keyAuthId,
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+    });
+
+    const apiId = newId("api");
+    await r.database.insert(schema.apis).values({
+      id: apiId,
+      workspaceId: r.userWorkspace.id,
+      name: "test",
+      authType: "key",
+      keyAuthId: keyAuthId,
+      createdAt: new Date(),
+    });
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await r.database.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: keyAuthId,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+      enabled: true,
+    });
+
+    const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+      method: "POST",
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId,
+      },
+    });
+    expect(res.status).toEqual(200);
+    expect(res.body.valid).toBeTrue();
+  });
+});
+
+describe("with disabled key", () => {
+  test("returns invalid", async () => {
+    const env = unitTestEnv.parse(process.env);
+    // @ts-ignore
+    init({ env });
+    const app = newApp();
+    registerV1KeysVerifyKey(app);
+
+    const r = await seed(env);
+
+    const keyAuthid = newId("keyAuth");
+    await r.database.insert(schema.keyAuth).values({
+      id: keyAuthid,
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+    });
+
+    const apiId = newId("api");
+    await r.database.insert(schema.apis).values({
+      id: apiId,
+      workspaceId: r.userWorkspace.id,
+      name: "test",
+      authType: "key",
+      keyAuthId: keyAuthid,
+      createdAt: new Date(),
+    });
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await r.database.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: keyAuthid,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: r.userWorkspace.id,
+      createdAt: new Date(),
+      enabled: false,
+    });
+
+    const res = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(app, {
+      method: "POST",
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: r.userApi.id,
+      },
+    });
+    expect(res.status).toEqual(200);
+    expect(res.body.valid).toBeFalse();
+    expect(res.body.code).toEqual("DISABLED");
   });
 });
