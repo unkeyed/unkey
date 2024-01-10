@@ -18,11 +18,11 @@ const route = createRoute({
         description: "The owner id to fetch keys for, either `keyId` or `ownerId` must be provided",
         example: "chronark",
       }),
-      start: z.number().int().optional().openapi({
+      start: z.coerce.number().int().optional().openapi({
         description: "The start of the period to fetch usage for as unix milliseconds timestamp",
         example: 1620000000000,
       }),
-      end: z.number().int().optional().openapi({
+      end: z.coerce.number().int().optional().openapi({
         description: "The end of the period to fetch usage for as unix milliseconds timestamp",
         example: 1620000000000,
       }),
@@ -106,6 +106,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
       keyId: string;
       apiId: string;
     }[] = [];
+
+    console.log({ keyId, ownerId, start, end });
     if (keyId) {
       const data = await cache.withCache(c, "keyById", keyId, async () => {
         const dbRes = await db.query.keys.findFirst({
@@ -173,34 +175,37 @@ export const registerV1KeysGetVerifications = (app: App) =>
       ids.push(...keys.map(({ key, api }) => ({ keyId: key.id, apiId: api.id })));
     }
 
-    const verifications = await Promise.all(
-      ids.map(({ keyId, apiId }) =>
-        analytics.getVerificationsDaily({
-          workspaceId: authorizedWorkspaceId,
-          apiId: apiId,
-          keyId: keyId,
-          start: start ? parseInt(start) : undefined,
-          end: end ? parseInt(end) : undefined,
-        }),
-      ),
+    const verificationsFromAllKeys = await Promise.all(
+      ids.map(({ keyId, apiId }) => {
+        return cache.withCache(c, "verificationsByKeyId", `${keyId}:${start}-${end}`, async () => {
+          const res = await analytics.getVerificationsDaily({
+            workspaceId: authorizedWorkspaceId,
+            apiId: apiId,
+            keyId: keyId,
+            start: start ? parseInt(start) : undefined,
+            end: end ? parseInt(end) : undefined,
+          });
+          return res.data;
+        });
+      }),
     );
 
-    const totalVerifications: {
+    const verifications: {
       [time: number]: { success: number; rateLimited: number; usageExceeded: number };
     } = {};
-    for (const keyVerifications of verifications) {
-      for (const verification of keyVerifications.data) {
-        if (!totalVerifications[verification.time]) {
-          totalVerifications[verification.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
+    for (const dataPoint of verificationsFromAllKeys) {
+      for (const d of dataPoint) {
+        if (!verifications[d.time]) {
+          verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
         }
-        totalVerifications[verification.time].success += verification.success;
-        totalVerifications[verification.time].rateLimited += verification.rateLimited;
-        totalVerifications[verification.time].usageExceeded += verification.usageExceeded;
+        verifications[d.time].success += d.success;
+        verifications[d.time].rateLimited += d.rateLimited;
+        verifications[d.time].usageExceeded += d.usageExceeded;
       }
     }
 
     return c.json({
-      verifications: Object.entries(totalVerifications).map(
+      verifications: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
           time: parseInt(time),
           success,

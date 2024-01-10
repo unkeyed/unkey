@@ -36,6 +36,12 @@ export type CacheNamespaces = {
     key: Key;
     api: Api;
   }[];
+  verificationsByKeyId: {
+    time: number;
+    success: number;
+    rateLimited: number;
+    usageExceeded: number;
+  }[];
 };
 
 const fresh = 1 * 60 * 1000; // 1 minute

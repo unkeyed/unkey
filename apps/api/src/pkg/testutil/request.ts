@@ -51,6 +51,9 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
     {}, // Env
     eCtx,
   );
+  if (!res.headers.get("Content-Type")?.includes("application/json")) {
+    throw new Error(`${req.url} didn't return a json response: ${await res.text()}`);
+  }
 
   return {
     status: res.status,

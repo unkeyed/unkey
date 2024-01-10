@@ -9,29 +9,34 @@ const route = createRoute({
   path: "/vx/keys.getVerifications",
   security: [{ bearerAuth: [] }],
   request: {
-    query: z.object({
-      keyId: z.string().optional().openapi({
-        description: "The id of the key to fetch, either `keyId` or `ownerId` must be provided",
-        example: "key_1234",
+    query: z
+      .object({
+        keyId: z.string().optional().openapi({
+          description: "The id of the key to fetch, either `keyId` or `ownerId` must be provided",
+          example: "key_1234",
+        }),
+        ownerId: z.string().optional().openapi({
+          description:
+            "The owner id to fetch keys for, either `keyId` or `ownerId` must be provided",
+          example: "chronark",
+        }),
+        start: z.coerce.number().int().optional().openapi({
+          description: "The start of the period to fetch usage for as unix milliseconds timestamp",
+          example: 1620000000000,
+        }),
+        end: z.coerce.number().int().optional().openapi({
+          description: "The end of the period to fetch usage for as unix milliseconds timestamp",
+          example: 1620000000000,
+        }),
+        granularity: z.enum(["day"]).optional().default("day").openapi({
+          description:
+            "The granularity of the usage data to fetch, currently only `day` is supported",
+          example: "day",
+        }),
+      })
+      .openapi({
+        description: "The query parameters for the request",
       }),
-      ownerId: z.string().optional().openapi({
-        description: "The owner id to fetch keys for, either `keyId` or `ownerId` must be provided",
-        example: "chronark",
-      }),
-      start: z.coerce.number().int().optional().openapi({
-        description: "The start of the period to fetch usage for as unix milliseconds timestamp",
-        example: 1620000000000,
-      }),
-      end: z.coerce.number().int().optional().openapi({
-        description: "The end of the period to fetch usage for as unix milliseconds timestamp",
-        example: 1620000000000,
-      }),
-      granularity: z.enum(["day"]).optional().default("day").openapi({
-        description:
-          "The granularity of the usage data to fetch, currently only `day` is supported",
-        example: "day",
-      }),
-    }),
   },
   responses: {
     200: {
