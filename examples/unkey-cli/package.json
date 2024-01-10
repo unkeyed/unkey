@@ -1,10 +1,10 @@
 {
-	"name": "unkey-cli",
-	"version": "1.2.3",
+	"name": "@unkey/cli-demo",
+	"version": "1.2.4",
 	"description": "Template for building CLI applications with Unkey",
 	"main": "./dist/index.js",
 	"bin": {
-		"unkey-cli": "./dist/index.js"
+		"@unkey/cli-demo": "./dist/index.js"
 	},
 	"types": "./dist/index.d.ts",
 	"module": "./dist/index.mjs",
