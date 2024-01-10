@@ -37,7 +37,7 @@ export default async function SettingsPage(props: Props) {
   }
 
   return (
-    <div className="mb-20 flex flex-col gap-8 ">
+    <div className="flex flex-col gap-8 mb-20 ">
       <UpdateApiName api={api} />
       <UpdateIpWhitelist api={api} workspace={workspace} />
       <Card>
@@ -46,7 +46,7 @@ export default async function SettingsPage(props: Props) {
           <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
+          <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
             <pre>{api.id}</pre>
             <div className="flex items-start justify-between gap-4">
               <CopyButton value={api.id} />
