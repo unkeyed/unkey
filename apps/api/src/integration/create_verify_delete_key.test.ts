@@ -33,6 +33,7 @@ test("create, verify and delete a key", async () => {
     body: {
       apiId: createApiResponse.body.apiId,
       byteLength: 16,
+      enabled: true,
     },
   });
   expect(key.status).toEqual(200);

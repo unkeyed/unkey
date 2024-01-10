@@ -36,6 +36,7 @@ test("create and list keys", async () => {
         apiId: createApiResponse.body.apiId,
         byteLength: 32,
         prefix: "test",
+        enabled: true,
       },
     });
     expect(createKeyResponse.status).toEqual(200);
@@ -102,6 +103,7 @@ test("list keys does not return revoked keys", async () => {
         apiId: createApiResponse.body.apiId,
         byteLength: 32,
         prefix: "test",
+        enabled: true,
       },
     });
     expect(createKeyResponse.status).toEqual(200);

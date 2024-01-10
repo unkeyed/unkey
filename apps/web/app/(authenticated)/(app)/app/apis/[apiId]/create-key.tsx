@@ -192,6 +192,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               amount: values.limit.refill.amount,
             }
           : undefined,
+      enabled: true,
     });
   }
 

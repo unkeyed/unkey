@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, FileClock, Minus, MoreHorizontal, Trash } from "lucide-react";
+import { ArrowUpDown, Check, FileClock, Minus, MoreHorizontal, Trash, X } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,7 @@ type Column = {
   start: string;
   createdAt: Date;
   expires: Date | null;
+  enabled: boolean;
   ownerId: string | null;
   name: string | null;
   ratelimitType: string | null;
@@ -121,6 +122,20 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
         </Button>
       ),
       cell: ({ row }) => row.original.createdAt.toUTCString(),
+    },
+    {
+      accessorKey: "enabled",
+      header: "Enabled",
+      cell: ({ row }) =>
+        row.original.enabled ? (
+          <span>
+            <Check />
+          </span>
+        ) : (
+          <span>
+            <X />
+          </span>
+        ),
     },
     {
       accessorKey: "expires",
