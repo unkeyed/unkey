@@ -288,6 +288,5 @@ export const keySettingsRouter = t.router({
           .where(eq(schema.keys.id, input.keyId));
       });
       return true;
-      // revalidatePath(`/apps/keys/${input.keyId}`);
     }),
 });
