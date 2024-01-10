@@ -46,7 +46,7 @@ describe("when a key does not exist", () => {
   });
 });
 
-describe("when the key exits", () => {
+describe("when the key exists", () => {
   test("returns an empty verifications array", async () => {
     const env = unitTestEnv.parse(process.env);
     // @ts-ignore
