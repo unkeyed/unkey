@@ -82,7 +82,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <div className="flex flex-col space-y-2">
               <input type="hidden" name="workspaceId" value={api.workspaceId} />
               <input type="hidden" name="apiId" value={api.id} />
-              <label className="sr-only hidden">Name</label>
+              <label className="hidden sr-only">Name</label>
               <Textarea
                 name="ipWhitelist"
                 className="max-w-sm"
