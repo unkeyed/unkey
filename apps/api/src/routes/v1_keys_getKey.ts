@@ -123,5 +123,6 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
+      enabled: data.key.enabled,
     });
   });

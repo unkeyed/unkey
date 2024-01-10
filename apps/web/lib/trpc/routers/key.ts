@@ -33,6 +33,7 @@ export const keyRouter = t.router({
             limit: z.number().int().positive(),
           })
           .optional(),
+        enabled: z.boolean().default(true),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -89,6 +90,7 @@ export const keyRouter = t.router({
           lastRefillAt: input.refill?.interval ? new Date() : null,
           totalUses: 0,
           deletedAt: null,
+          enabled: input.enabled,
         });
         await tx.insert(schema.auditLogs).values({
           id: newId("auditLog"),
@@ -171,6 +173,7 @@ export const keyRouter = t.router({
           lastRefillAt: null,
           totalUses: 0,
           deletedAt: null,
+          enabled: true,
         });
         await tx.insert(schema.auditLogs).values({
           id: newId("auditLog"),
