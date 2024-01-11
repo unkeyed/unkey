@@ -13,8 +13,17 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { useRouter } from "next/navigation";
-import React from "react";
-import { useFormStatus } from "react-dom";
+
+import { FormField } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+const formSchema = z.object({
+  name: z.string(),
+  apiId: z.string(),
+  workspaceId: z.string(),
+});
 
 type Props = {
   api: {
@@ -26,40 +35,44 @@ type Props = {
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
   const { toast } = useToast();
-  const { pending } = useFormStatus();
-  const router = useRouter();
-  const updateName = trpc.apiSettings.updateName.useMutation({
-    onSuccess: (_data) => {
+  const updateName = trpc.api.updateName.useMutation();
+  const [isLoading, setLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: api.name,
+      apiId: api.id,
+      workspaceId: api.workspaceId,
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setLoading(true);
+      await updateName.mutate({
+        name: values.name,
+        apiId: values.apiId,
+        workspaceId: values.workspaceId,
+      });
       toast({
         title: "Success",
         description: "Your Api name has been updated!",
       });
       router.refresh();
-    },
-    onError: (err, variables) => {
-      router.refresh();
+    } catch (err) {
       toast({
-        title: `Could not update Api name on ApiId ${variables.apiId}`,
-        description: err.message,
+        title: "Error",
+        description: (err as Error).message,
         variant: "alert",
       });
-    },
-  });
-  function handleSubmit(event: any) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const apiName = formData.get("name");
-    const apiId = formData.get("apiId");
-    const workspaceId = formData.get("workspaceId");
-
-    updateName.mutate({
-      name: apiName as string,
-      apiId: apiId as string,
-      workspaceId: workspaceId as string,
-    });
+    } finally {
+      setLoading(false);
+    }
   }
+  const router = useRouter();
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
           <CardTitle>Api Name</CardTitle>
@@ -73,12 +86,27 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
             <label className="sr-only hidden">Name</label>
-            <Input name="name" className="max-w-sm" defaultValue={api.name} autoComplete="off" />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <Input
+                  className="max-w-sm"
+                  {...field}
+                  autoComplete="off"
+                  defaultValue={field.value}
+                />
+              )}
+            />
           </div>
         </CardContent>
         <CardFooter className="justify-end">
-          <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
-            {pending ? <Loading /> : "Save"}
+          <Button
+            variant={form.formState.isValid && !isLoading ? "primary" : "disabled"}
+            disabled={!form.formState.isValid || isLoading}
+            type="submit"
+          >
+            {isLoading ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>

@@ -11,15 +11,25 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
-import React from "react";
-import { useFormStatus } from "react-dom";
+import React, { useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Workspace } from "@unkey/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const formSchema = z.object({
+  ipWhitelist: z.string(),
+  apiId: z.string(),
+  workspaceId: z.string(),
+});
+
 type Props = {
   workspace: {
     plan: Workspace["plan"];
@@ -34,41 +44,46 @@ type Props = {
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   const { toast } = useToast();
-  const { pending } = useFormStatus();
-  const router = useRouter();
+  const [isLoading, setLoading] = useState(false);
   const isEnabled = workspace.plan === "enterprise";
-  const updateIps = trpc.apiSettings.updateIpWhitelist.useMutation({
-    onSuccess: (_data) => {
+  const updateIps = trpc.api.updateIpWhitelist.useMutation();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      ipWhitelist: api.ipWhitelist ?? "",
+      apiId: api.id,
+      workspaceId: api.workspaceId,
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setLoading(true);
+      await updateIps.mutate({
+        ips: values.ipWhitelist,
+        apiId: values.apiId,
+        workspaceId: values.workspaceId,
+      });
       toast({
         title: "Success",
         description: "Your ip whitelist has been updated!",
       });
       router.refresh();
-    },
-    onError: (err, variables) => {
+    } catch (err) {
       toast({
-        title: `Could not update ip whitelist on ApiId ${variables.apiId}`,
-        description: err.message,
+        title: "Error",
+        description: (err as Error).message,
         variant: "alert",
       });
-    },
-  });
-
-  function handleSubmit(event: any) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const ipWhitelist = formData.get("ipWhitelist");
-    const apiId = formData.get("apiId");
-    const workspaceId = formData.get("workspaceId");
-
-    updateIps.mutate({
-      ips: ipWhitelist as string,
-      apiId: apiId as string,
-      workspaceId: workspaceId as string,
-    });
+    } finally {
+      setLoading(false);
+    }
   }
+  const router = useRouter();
+
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader className={cn({ "opacity-40": !isEnabled })}>
           <CardTitle>IP Whitelist</CardTitle>
@@ -83,13 +98,19 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               <input type="hidden" name="workspaceId" value={api.workspaceId} />
               <input type="hidden" name="apiId" value={api.id} />
               <label className="hidden sr-only">Name</label>
-              <Textarea
+              <FormField
+                control={form.control}
                 name="ipWhitelist"
-                className="max-w-sm"
-                defaultValue={api.ipWhitelist ?? ""}
-                autoComplete="off"
-                placeholder={`127.0.0.1
+                render={({ field }) => (
+                  <Textarea
+                    className="max-w-sm"
+                    {...field}
+                    defaultValue={field.value}
+                    autoComplete="off"
+                    placeholder={`127.0.0.1
 1.1.1.1`}
+                  />
+                )}
               />
             </div>
           ) : (
@@ -108,11 +129,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         </CardContent>
         <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
-            variant={!isEnabled || pending ? "disabled" : "primary"}
+            variant={!isEnabled || isLoading ? "disabled" : "primary"}
             type="submit"
-            disabled={pending}
+            disabled={isLoading}
           >
-            {pending ? <Loading /> : "Save"}
+            {isLoading ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>

@@ -1,6 +1,5 @@
 import { t } from "../trpc";
 import { apiRouter } from "./api";
-import { apiSettingsRouter } from "./apiSettings";
 import { keyRouter } from "./key";
 import { plainRouter } from "./plain";
 import { vercelRouter } from "./vercel";
@@ -11,7 +10,6 @@ export const router = t.router({
   workspace: workspaceRouter,
   vercel: vercelRouter,
   plain: plainRouter,
-  apiSettings: apiSettingsRouter,
 });
 
 // export type definition of API
