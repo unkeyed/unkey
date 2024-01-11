@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.16.0
+
+### Minor Changes
+
+- 5de3ae76: add enabled flag
+
 ## 0.15.0
 
 ### Minor Changes
