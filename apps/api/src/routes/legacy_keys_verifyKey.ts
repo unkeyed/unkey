@@ -110,7 +110,14 @@ A key could be invalid for a number of reasons, for example if it has expired, h
               example: 1000,
             }),
             code: z
-              .enum(["NOT_FOUND", "FORBIDDEN", "USAGE_EXCEEDED", "RATE_LIMITED"])
+              .enum([
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "USAGE_EXCEEDED",
+                "RATE_LIMITED",
+                "UNAUTHORIZED",
+                "DISABLED",
+              ])
               .optional()
               .openapi({
                 description: `If the key is invalid this field will be set to the reason why it is invalid.
