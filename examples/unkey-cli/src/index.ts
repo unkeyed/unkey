@@ -10,13 +10,11 @@ import path from "path";
 import url from "url";
 import { listen } from "async-listen";
 import { Command } from "commander";
+import "dotenv/config";
 import { customAlphabet } from "nanoid";
 import pc from "picocolors";
 
 const FILENAME = ".unkey";
-
-// const CLIENT_URL = "http://localhost:3000";
-const CLIENT_URL = "https://unkey-cli-demo-qg31kyib6-unkey.vercel.app";
 
 class UserCancellationError extends Error {
   constructor(message: string) {
@@ -99,7 +97,7 @@ program
     const redirect = `http://127.0.0.1:${port}`;
 
     const code = nanoid();
-    const confirmationUrl = new URL(`${CLIENT_URL}/auth/devices`);
+    const confirmationUrl = new URL(`${process.env.CLIENT_URL}/auth/devices`);
     confirmationUrl.searchParams.append("code", code);
     confirmationUrl.searchParams.append("redirect", redirect);
     console.log(`Confirmation code: ${pc.bold(code)}\n`);

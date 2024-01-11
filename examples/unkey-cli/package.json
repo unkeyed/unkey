@@ -12,7 +12,11 @@
 		"build": "tsup",
 		"dev": "ts-node src/index.ts"
 	},
-	"files": ["README.md", "LICENSE", "./dist"],
+	"files": [
+		"README.md",
+		"LICENSE",
+		"./dist"
+	],
 	"license": "ISC",
 	"devDependencies": {
 		"@swc/core": "^1.3.99",
@@ -24,6 +28,7 @@
 	},
 	"dependencies": {
 		"async-listen": "^3.0.1",
+		"dotenv": "^16.3.1",
 		"nanoid": "^3.3.7",
 		"ora": "^7.0.1",
 		"picocolors": "^1.0.0"
