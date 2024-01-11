@@ -32,6 +32,13 @@ To develop locally:
    ```
 3. Follow our getting started guide in our [documentation](https://unkey.dev/docs/contributing/getting-started)
 
+## Installing
+
+Unkey uses [Corepack](https://nodejs.org/api/corepack.html) and [PNPM](https://pnpm.io/) for package management.
+
+To set the correct version of PNPM, run `corepack enable` from the monorepo root. This will set your PNPM
+version correctly. To install the project's dependencies, run `pnpm install`.
+
 ## Building
 
 You can build the project with:
