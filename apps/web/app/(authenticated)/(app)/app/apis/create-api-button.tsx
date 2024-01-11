@@ -25,7 +25,27 @@ const formSchema = z.object({
   name: z.string().min(2).max(50),
 });
 
-export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+type ApiWithKeys = {
+  id: string;
+  name: string;
+  keys: {
+    count: number;
+  }[];
+}[];
+
+type CreateApiButtonProps = {
+  apiList?: ApiWithKeys;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+const checkForDuplicateApi = (name: string, apiList?: ApiWithKeys): boolean => {
+  if (!apiList) {
+    return false;
+  }
+  const isDuplicate = apiList.some((api) => api.name === name);
+  return isDuplicate;
+};
+
+export const CreateApiButton: React.FC<CreateApiButtonProps> = ({ apiList, ...rest }) => {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,6 +70,13 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (checkForDuplicateApi(values.name, apiList)) {
+      toast({
+        title: "WARNING",
+        description: "Api with this name already exsit",
+      });
+    }
+
     create.mutate(values);
   }
   const router = useRouter();
