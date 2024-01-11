@@ -1706,7 +1706,13 @@ export interface paths {
                * @example NOT_FOUND
                * @enum {string}
                */
-              code?: "NOT_FOUND" | "FORBIDDEN" | "USAGE_EXCEEDED" | "RATE_LIMITED";
+              code?:
+                | "NOT_FOUND"
+                | "FORBIDDEN"
+                | "USAGE_EXCEEDED"
+                | "RATE_LIMITED"
+                | "UNAUTHORIZED"
+                | "DISABLED";
             };
           };
         };
