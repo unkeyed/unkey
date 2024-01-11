@@ -134,7 +134,6 @@ When validating a key, we will return this back to you, so you can clearly ident
                   refillInterval: 60,
                 },
               }),
-
             enabled: z.boolean().default(true).optional().openapi({
               description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
               example: false,
