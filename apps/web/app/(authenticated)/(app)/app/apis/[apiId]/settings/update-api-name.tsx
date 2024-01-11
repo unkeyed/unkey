@@ -89,14 +89,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             <FormField
               control={form.control}
               name="name"
-              render={({ field }) => (
-                <Input
-                  className="max-w-sm"
-                  {...field}
-                  autoComplete="off"
-                  defaultValue={field.value}
-                />
-              )}
+              render={({ field }) => <Input className="max-w-sm" {...field} autoComplete="off" />}
             />
           </div>
         </CardContent>

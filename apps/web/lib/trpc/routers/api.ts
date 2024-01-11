@@ -175,21 +175,26 @@ export const apiRouter = t.router({
           })
           .where(eq(schema.apis.id, input.apiId));
       });
-      return;
     }),
   updateIpWhitelist: t.procedure
     .use(auth)
     .input(
       z.object({
-        ips: z.string().transform((s, ctx) => {
-          const ips = s.split(/,|\n/).map((ip) => ip.trim());
-          const parsedIps = z.array(z.string().ip()).safeParse(ips);
-          if (!parsedIps.success) {
-            ctx.addIssue(parsedIps.error.issues[0]);
-            return z.NEVER;
-          }
-          return parsedIps.data;
-        }),
+        ips: z
+          .string()
+          .transform((s, ctx) => {
+            if (s === "") {
+              return null;
+            }
+            const ips = s.split(/,|\n/).map((ip) => ip.trim());
+            const parsedIps = z.array(z.string().ip()).safeParse(ips);
+            if (!parsedIps.success) {
+              ctx.addIssue(parsedIps.error.issues[0]);
+              return z.NEVER;
+            }
+            return parsedIps.data;
+          })
+          .nullable(),
         apiId: z.string(),
         workspaceId: z.string(),
       }),
@@ -220,7 +225,7 @@ export const apiRouter = t.router({
         await tx
           .update(schema.apis)
           .set({
-            ipWhitelist: input.ips.join(","),
+            ipWhitelist: input.ips === null ? null : input.ips.join(","),
           })
           .where(eq(schema.apis.id, input.apiId));
         await tx.insert(schema.auditLogs).values({
@@ -234,6 +239,5 @@ export const apiRouter = t.router({
           actorId: ctx.user.id,
         });
       });
-      return;
     }),
 });

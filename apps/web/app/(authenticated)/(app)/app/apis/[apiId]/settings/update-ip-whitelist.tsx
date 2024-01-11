@@ -60,7 +60,9 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
-      await updateIps.mutate({
+      console.log(`Value of whitelist${values.ipWhitelist}`);
+
+      const _result = await updateIps.mutate({
         ips: values.ipWhitelist,
         apiId: values.apiId,
         workspaceId: values.workspaceId,
@@ -105,7 +107,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
                   <Textarea
                     className="max-w-sm"
                     {...field}
-                    defaultValue={field.value}
                     autoComplete="off"
                     placeholder={`127.0.0.1
 1.1.1.1`}
@@ -129,9 +130,9 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         </CardContent>
         <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
-            variant={!isEnabled || isLoading ? "disabled" : "primary"}
+            variant={form.formState.isValid && !isLoading ? "primary" : "disabled"}
+            disabled={!form.formState.isValid || isLoading}
             type="submit"
-            disabled={isLoading}
           >
             {isLoading ? <Loading /> : "Save"}
           </Button>
