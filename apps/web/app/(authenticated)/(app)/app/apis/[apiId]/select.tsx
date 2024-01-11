@@ -61,7 +61,7 @@ export function useModifySearchParams() {
 
   const hrefWithSearchparam = useCallback(
     (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams);
+      const params = new URLSearchParams(searchParams.toString());
       params.set(name, value);
       return `${pathname}?${params.toString()}`;
     },
