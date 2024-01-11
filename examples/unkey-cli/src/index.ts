@@ -2,7 +2,7 @@
 
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import http from "http";
 import { ParsedUrlQuery } from "node:querystring";
 import os from "os";
@@ -15,8 +15,8 @@ import pc from "picocolors";
 
 const FILENAME = ".unkey";
 
-// const CLIENT_URL = "http://localhost:3000";
-const CLIENT_URL = "https://unkey-cli.vercel.app";
+const CLIENT_URL = "http://localhost:3000";
+// const CLIENT_URL = "https://unkey-cli.vercel.app";
 
 class UserCancellationError extends Error {
   constructor(message: string) {
@@ -26,10 +26,11 @@ class UserCancellationError extends Error {
 }
 
 async function writeToConfigFile(data: ParsedUrlQuery) {
+  console.log(data);
   try {
     const homeDir = os.homedir();
     const filePath = path.join(homeDir, FILENAME);
-    await fs.writeFile(filePath, JSON.stringify(data));
+    writeFileSync(filePath, JSON.stringify(data));
   } catch (error) {
     console.error("Error writing to local config file", error);
   }
@@ -115,7 +116,9 @@ program
       const authData = await authPromise;
       spinner.stop();
       writeToConfigFile(authData);
-      console.log("Authentication successful.\n");
+      console.log(
+        `Authentication successful: wrote key to config file. To view it, type 'cat ~/${FILENAME}'.\n`,
+      );
       server.close();
       process.exit(0);
     } catch (error) {
