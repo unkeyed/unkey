@@ -15,8 +15,8 @@ import pc from "picocolors";
 
 const FILENAME = ".unkey";
 
-const CLIENT_URL = "http://localhost:3000";
-// const CLIENT_URL = "https://unkey-cli.vercel.app";
+// const CLIENT_URL = "http://localhost:3000";
+const CLIENT_URL = "https://unkey-cli-demo-qg31kyib6-unkey.vercel.app";
 
 class UserCancellationError extends Error {
   constructor(message: string) {
