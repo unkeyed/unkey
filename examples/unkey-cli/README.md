@@ -7,7 +7,8 @@ CLI login example built with [Unkey](https://unkey.dev/)
 This template involves a deployed Next.js web app in `examples/nextjs` and a command-line script in `/src/index.ts.`. To run through the auth flow locally:
 
 1. Install dependencies
-2. Run the script in dev mode from the monorepo root: `pnpm dev login`
+2. Navigate to `apps/nextjs` and run the app: `pnpm dev`
+2. In a separate terminal window, navigate back to `unkey-cli` and run the script in dev mode from the monorepo root: `pnpm dev login`
 3. This will open the web app in your browser, where you can confirm or cancel the auth flow
 
 # About
@@ -22,7 +23,7 @@ This template involves a deployed Next.js web app in `examples/nextjs` and a com
 
 See the diagram below:
 
-[diagram]
+![diagram](https://raw.githubusercontent.com/domeccleston/unkey-cli/main/design.png)
 
 ## Login
 
