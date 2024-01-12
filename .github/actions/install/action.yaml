@@ -15,6 +15,7 @@ runs:
         version: latest
         run_install: false
     - name: Enable corepack
+      shell: bash
       run: corepack enable
 
     - name: Get pnpm store directory
