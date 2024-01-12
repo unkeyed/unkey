@@ -3,5 +3,3 @@
   - "internal/*"
   - "apps/*"
   - "tools/*"
-  - "examples/*"
-  - "examples/unkey-cli/"
