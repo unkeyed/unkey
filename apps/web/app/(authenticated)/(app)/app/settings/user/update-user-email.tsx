@@ -32,10 +32,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
+import { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
@@ -47,9 +49,11 @@ const verificationSchema = z.object({
 });
 
 export const UpdateUserEmail: React.FC = () => {
+  const router = useRouter();
   const { toast } = useToast();
   const { user } = useUser();
   const [sendingVerification, setSendingVerification] = useState(false);
+  const [resetPointerEvents, setResetPointerEvents] = useState(false);
   const [promotingEmail, setPromotingEmail] = useState(false);
   const [openRemoveModal, setOpenRemoveModal] = React.useState(false);
   const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
@@ -60,6 +64,14 @@ export const UpdateUserEmail: React.FC = () => {
       email: user?.primaryEmailAddress?.emailAddress ?? "",
     },
   });
+
+  useEffect(() => {
+    if (resetPointerEvents) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "";
+      });
+    }
+  }, [resetPointerEvents]);
 
   if (!user) {
     return (
@@ -160,6 +172,7 @@ export const UpdateUserEmail: React.FC = () => {
                                             description: "Email removed",
                                           });
                                           user.reload();
+                                          setResetPointerEvents(true);
                                         })
                                         .catch((e) => {
                                           toast({
@@ -258,7 +271,8 @@ export const UpdateUserEmail: React.FC = () => {
                 } catch (e) {
                   toast({
                     title: "Error",
-                    description: (e as Error).message,
+                    description:
+                      (e as ClerkError)?.errors[0]?.longMessage ?? "Error creating email address",
                     variant: "alert",
                   });
                 } finally {
