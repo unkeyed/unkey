@@ -14,6 +14,8 @@ runs:
       with:
         version: latest
         run_install: false
+    - name: Enable corepack
+      run: corepack enable
 
     - name: Get pnpm store directory
       id: pnpm-cache
