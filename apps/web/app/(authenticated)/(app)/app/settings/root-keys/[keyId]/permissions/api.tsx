@@ -29,7 +29,7 @@ export const Api: React.FC<Props> = ({ keyId, api, permissions }) => {
             return (
               <div className="flex flex-col gap-2">
                 <span className="font-medium">{category}</span>
-                <div className="flex flex-col gap-1 ml-4">
+                <div className="flex flex-col gap-1">
                   {Object.entries(roles).map(([action, { description, role }]) => {
                     return (
                       <Permission

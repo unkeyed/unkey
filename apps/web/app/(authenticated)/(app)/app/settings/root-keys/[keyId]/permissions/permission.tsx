@@ -15,9 +15,19 @@ type Props = {
   label: string;
   description: string;
   checked: boolean;
+  preventEnabling?: boolean;
+  preventDisabling?: boolean;
 };
 
-export const Permission: React.FC<Props> = ({ rootKeyId, role, label, checked, description }) => {
+export const Permission: React.FC<Props> = ({
+  rootKeyId,
+  role,
+  label,
+  checked,
+  description,
+  preventEnabling,
+  preventDisabling,
+}) => {
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
@@ -75,18 +85,27 @@ export const Permission: React.FC<Props> = ({ rootKeyId, role, label, checked, d
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Checkbox
-                disabled={addRole.isLoading || removeRole.isLoading}
+                disabled={
+                  addRole.isLoading ||
+                  removeRole.isLoading ||
+                  (preventEnabling && !checked) ||
+                  (preventDisabling && checked)
+                }
                 checked={optimisticChecked}
                 onClick={() => {
                   if (checked) {
-                    removeRole.mutate({ rootKeyId, role });
+                    if (!preventDisabling) {
+                      removeRole.mutate({ rootKeyId, role });
+                    }
                   } else {
-                    addRole.mutate({ rootKeyId, role });
+                    if (!preventEnabling) {
+                      addRole.mutate({ rootKeyId, role });
+                    }
                   }
                 }}
               />
             )}
-            <Label className="text-xs font-mono text-content">{label}</Label>
+            <Label className="text-xs text-content">{label}</Label>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
             <span className="font-mono font-medium text-sm">{role}</span>

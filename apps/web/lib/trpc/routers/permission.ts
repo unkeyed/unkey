@@ -62,6 +62,7 @@ export const permissionRouter = t.router({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
+
       if (!workspace) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -70,15 +71,18 @@ export const permissionRouter = t.router({
       }
 
       const role = await db.query.roles.findFirst({
-        where: (table, { eq, and }) =>
-          and(
-            eq(table.keyId, input.rootKeyId),
-            eq(table.workspaceId, workspace.id),
-            eq(table.role, input.role),
-          ),
+        where: (table, { and, eq }) =>
+          and(eq(table.role, input.role), eq(table.keyId, input.rootKeyId)),
+        with: {
+          key: true,
+        },
       });
-      if (!role) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "role not found" });
+
+      if (!role || role.key.forWorkspaceId !== workspace.id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "role not found",
+        });
       }
 
       await db.delete(schema.roles).where(eq(schema.roles.id, role.id));

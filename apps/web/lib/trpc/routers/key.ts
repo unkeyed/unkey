@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { type Role } from "@unkey/rbac";
+import { unkeyRoleValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
@@ -110,11 +110,10 @@ export const keyRouter = t.router({
   createInternalRootKey: t.procedure
     .use(auth)
     .input(
-      z
-        .object({
-          name: z.string().optional(),
-        })
-        .optional(),
+      z.object({
+        name: z.string().optional(),
+        roles: z.array(unkeyRoleValidation),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const unkeyApi = await db.query.apis.findFirst({
@@ -159,18 +158,6 @@ export const keyRouter = t.router({
 
       const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
 
-      const roles: Role[] = [];
-      for (const api of workspace.apis) {
-        roles.push(
-          `api.${api.id}.read_api`,
-          `api.${api.id}.update_api`,
-          `api.${api.id}.create_key`,
-          `api.${api.id}.read_key`,
-          `api.${api.id}.update_key`,
-          `api.${api.id}.delete_key`,
-        );
-      }
-
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
@@ -208,9 +195,9 @@ export const keyRouter = t.router({
         });
 
         await tx.insert(schema.roles).values(
-          roles.map((role) => ({
+          input.roles.map((role) => ({
             id: newId("role"),
-            workspaceId: workspace.id,
+            workspaceId: env().UNKEY_WORKSPACE_ID,
             keyId,
             role,
           })),

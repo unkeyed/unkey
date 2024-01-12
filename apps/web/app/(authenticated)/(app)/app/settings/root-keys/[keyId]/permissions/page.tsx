@@ -2,6 +2,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Api } from "./api";
+import { Legacy } from "./legacy";
 import { Workspace } from "./workspace";
 
 export const dynamic = "force-dynamic";
@@ -54,9 +55,15 @@ export default async function RootKeyPage(props: {
     return acc;
   }, {} as { [apiId: string]: string[] });
 
+  const permissions = roles.map((r) => r.role);
+  console.log({ roles });
   return (
     <div className="flex flex-col gap-4">
-      <Workspace keyId={key.id} permissions={roles.map((r) => r.role)} />
+      {permissions.some((p) => p === "*") ? (
+        <Legacy keyId={key.id} permissions={permissions} />
+      ) : null}
+
+      <Workspace keyId={key.id} permissions={permissions} />
 
       {workspace.apis.map((api) => (
         <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />

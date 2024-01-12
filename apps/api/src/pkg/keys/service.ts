@@ -227,7 +227,7 @@ export class KeyService {
       }
     }
 
-    if (req.roles) {
+    if (typeof req.roles !== "undefined") {
       const roleResp = this.rbac.evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
       if (roleResp.error) {
         return result.fail({ message: roleResp.error.message, code: "INTERNAL_SERVER_ERROR" });
