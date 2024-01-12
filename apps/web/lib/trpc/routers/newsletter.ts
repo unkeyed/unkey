@@ -34,6 +34,7 @@ export const newsletterRouter = t.router({
         email: email,
       });
       if (res.error) {
+        console.error(res.error)
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Resend Error. Please try again.",
