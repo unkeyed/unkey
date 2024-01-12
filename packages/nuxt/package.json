@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nuxt",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "private": false,
   "publishConfig": {
     "access": "public"

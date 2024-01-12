@@ -120,5 +120,9 @@ export const keySchema = z
         description: "All roles this key belongs to",
         example: ["admin", "finance"],
       }),
+    enabled: z.boolean().optional().openapi({
+      description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
+      example: true,
+    }),
   })
   .openapi("Key");

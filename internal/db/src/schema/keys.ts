@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   datetime,
   index,
   int,
@@ -56,6 +57,11 @@ export const keys = mysqlTable(
     refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
     refillAmount: int("refill_amount"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
+    /**
+     * sets if key is enabled or disabled
+     */
+    enabled: boolean("enabled").default(true).notNull(),
+
     /**
      * You can limit the amount of times a key can be verified before it becomes invalid
      */

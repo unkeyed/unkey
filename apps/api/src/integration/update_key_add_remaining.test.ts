@@ -39,6 +39,7 @@ test("update a key's remaining limit", async () => {
       byteLength: 32,
       prefix: "test",
       remaining: 5,
+      enabled: true,
     },
   });
   expect(createKeyResponse.status).toEqual(200);

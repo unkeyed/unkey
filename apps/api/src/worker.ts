@@ -17,6 +17,7 @@ import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
+import { registerVXKeysGetVerifications } from "./routes/vx_keys_getVerifications";
 
 // Legacy Routes
 import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
@@ -104,6 +105,7 @@ registerV1KeysVerifyKey(app);
 registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 registerV1KeysGetVerifications(app);
+registerVXKeysGetVerifications(app);
 
 // apis
 registerV1ApisGetApi(app);

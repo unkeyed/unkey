@@ -4,7 +4,6 @@ import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
-  security: [], // The key in the request body is enough to authenticate the request
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {
@@ -102,7 +101,14 @@ A key could be invalid for a number of reasons, for example if it has expired, h
               example: 1000,
             }),
             code: z
-              .enum(["NOT_FOUND", "FORBIDDEN", "USAGE_EXCEEDED", "RATE_LIMITED"])
+              .enum([
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "USAGE_EXCEEDED",
+                "RATE_LIMITED",
+                "UNAUTHORIZED",
+                "DISABLED",
+              ])
               .optional()
               .openapi({
                 description: `If the key is invalid this field will be set to the reason why it is invalid.
@@ -110,9 +116,13 @@ Possible values are:
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
 - USAGE_EXCEEDED: the key has exceeded its request limit
-- RATE_LIMITED: the key has been ratelimited,
-`,
+- RATE_LIMITED: the key has been ratelimited
+- UNAUTHORIZED: the key is not authorized
+- DISABLED: the key is disabled`,
               }),
+            enabled: z.boolean().optional().openapi({
+              description: "Sets the key to be enabled or disabled. Disabled keys will not verify.",
+            }),
           }),
         },
       },
@@ -157,5 +167,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       expires: value.key.expires?.getTime(),
       remaining: value.remaining ?? undefined,
       ratelimit: value.ratelimit ?? undefined,
+      enabled: value.key.enabled,
     });
   });

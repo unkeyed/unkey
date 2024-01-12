@@ -69,13 +69,13 @@ export class TieredCache<TNamespaces extends Record<string, unknown>> implements
     c: Context,
     namespace: TName,
     key: string,
-    loadFromDatabase: (key: string) => Promise<TNamespaces[TName]>,
+    loadFromOrigin: (key: string) => Promise<TNamespaces[TName]>,
   ): Promise<TNamespaces[TName]> {
     const [cached, stale] = await this.get<TName>(c, namespace, key);
     if (typeof cached !== "undefined") {
       if (stale) {
         c.executionCtx.waitUntil(
-          loadFromDatabase(key)
+          loadFromOrigin(key)
             .then((value) => this.set(c, namespace, key, value))
             .catch((err) => {
               console.error(err);
@@ -85,7 +85,7 @@ export class TieredCache<TNamespaces extends Record<string, unknown>> implements
       return cached;
     }
 
-    const value = await loadFromDatabase(key);
+    const value = await loadFromOrigin(key);
     this.set(c, namespace, key, value);
 
     return value;

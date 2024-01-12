@@ -11,7 +11,7 @@
   "scripts": {
     "prepare": "is-ci || husky install",
     "dev": "turbo run dev",
-    "build": "pnpm turbo run build --filter=!./examples/*",
+    "build": "pnpm turbo run build",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
@@ -49,5 +49,6 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "biome check --apply"
-  }
+  },
+  "packageManager": "pnpm@8.6.9"
 }

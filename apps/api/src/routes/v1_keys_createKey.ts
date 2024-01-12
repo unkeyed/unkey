@@ -11,6 +11,7 @@ import { KeyV1 } from "@unkey/keys";
 const route = createRoute({
   method: "post",
   path: "/v1/keys.createKey",
+  security: [{ bearerAuth: [] }],
   request: {
     body: {
       required: true,
@@ -141,6 +142,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                   refillInterval: 60,
                 },
               }),
+            enabled: z.boolean().default(true).optional().openapi({
+              description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
+              example: false,
+            }),
           }),
         },
       },
@@ -280,6 +285,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         lastRefillAt: req.refill?.interval ? new Date() : null,
         totalUses: 0,
         deletedAt: null,
+        enabled: req.enabled,
       });
       if (req.roles && req.roles.length > 0) {
         await tx.insert(schema.roles).values(

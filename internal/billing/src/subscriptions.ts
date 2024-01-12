@@ -59,13 +59,13 @@ export function defaultProSubscriptions(): Subscriptions | null {
       tiers: [
         {
           firstUnit: 1,
-          lastUnit: 2500,
+          lastUnit: 100_000,
           centsPerUnit: null,
         },
         {
-          firstUnit: 2501,
+          firstUnit: 100_001,
           lastUnit: null,
-          centsPerUnit: "0.02", // $0.0002 per verification or  $1 per 5k verifications
+          centsPerUnit: "0.01", // $0.0001 per verification or  $10 per 100k verifications
         },
       ],
     },

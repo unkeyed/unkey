@@ -1,0 +1,122 @@
+---
+title: "Verifications"
+description: "Get usage information about your API keys"
+---
+
+## Request
+
+<Warning>
+Either `ownerId` or `keyId` is required. Not both.
+</Warning>
+
+<ParamField body="keyId" type="string" required>
+  The ID of the key you want to check.
+</ParamField>
+
+
+<ParamField body="ownerId" type="string" required>
+  The `ownerId` associated with one or more keys you want to check.
+</ParamField>
+
+
+<ParamField body="start" type="integer">
+  The unix timestamp in milliseconds to start the query from. Defaults to 30 days ago.
+</ParamField>
+
+<ParamField body="end" type="integer">
+  The unix timestamp in milliseconds to end the query at. Defaults to now.
+  </ParamField>
+
+
+  <ParamField body="granularity" type={"day"} default="day">
+   The granularity of the data. Only `day` is supported at this time.
+    </ParamField>
+
+
+## Response
+
+<ResponseField name="result" type="object">
+
+<Expandable defaultOpen>
+
+<ResponseField name="verifications" type="Array" required>
+
+<Expandable defaultOpen>
+
+<ResponseField name="time" type="integer" required>
+The timestamp of the usage data
+</ResponseField>
+
+<ResponseField name="success" type="integer" required>
+The number of successful requests.
+</ResponseField>
+
+<ResponseField name="rateLimited" type="integer" required>
+The number of requests that were rate limited
+</ResponseField>
+
+<ResponseField name="usageExceeded" type="integer" required>
+The number of requests that exceeded the usage limit.
+</ResponseField>
+</Expandable>
+
+</ResponseField>
+
+
+</Expandable>
+</ResponseField>
+
+
+
+<RequestExample>
+
+```ts
+const { result, error } = await unkey.keys.get({ keyId: "key_123" });
+```
+
+
+
+</RequestExample>
+
+<ResponseExample>
+```ts Success
+
+const { result, error } = await unkey.keys.getVerifications({ keyId: "key_123" });
+
+if (error){
+  // error will be undefined if the request was successful
+}
+
+
+// result
+{
+  verifications: [
+    {
+      time: 1620000000000,
+      success: 100,
+      rateLimited: 0,
+      usageExceeded: 0
+    },
+    {
+      time: 1640000000000,
+      success: 142,
+      rateLimited: 11,
+      usageExceeded: 20
+    },
+    // ...
+  ]
+
+}
+```
+
+```ts Error
+const { result, error } = await unkey.keys.getVerifications({ keyId: "key_123" });
+
+if (error){
+  console.log(error.message);
+  // => "Key not found"
+}
+
+
+```
+</ResponseExample>

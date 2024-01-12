@@ -13,8 +13,6 @@ export const config = {
   },
   runtime: "nodejs",
 };
-const _domain = "updates.unkey.dev";
-const _replyTo = "support@unkey.dev";
 
 async function buffer(readable: Readable) {
   const chunks = [];
