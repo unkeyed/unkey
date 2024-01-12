@@ -8,7 +8,7 @@ export const newsletterRouter = t.router({
   signup: t.procedure
     .input(
       z.object({
-        email: z.string(),
+        email: z.string().email(),
       }),
     )
     .mutation(async ({ input }) => {
