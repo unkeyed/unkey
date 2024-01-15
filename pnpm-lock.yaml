@@ -660,8 +660,8 @@ importers:
         specifier: workspace:^
         version: link:../api
       defu:
-        specifier: ^6.1.2
-        version: 6.1.2
+        specifier: ^6.1.4
+        version: 6.1.4
     devDependencies:
       '@nuxt/module-builder':
         specifier: ^0.5.2
@@ -669,9 +669,6 @@ importers:
       '@types/node':
         specifier: ^20.8.7
         version: 20.10.5
-      h3:
-        specifier: ^1.8.2
-        version: 1.8.2
       nuxt:
         specifier: ^3.8.0
         version: 3.8.0(@types/node@20.10.5)(rollup@3.29.4)(typescript@5.3.3)(vite@4.5.1)
@@ -3393,7 +3390,7 @@ packages:
       '@nuxt/schema': 3.8.0(rollup@3.29.4)
       c12: 1.6.1
       consola: 3.2.3
-      defu: 6.1.2
+      defu: 6.1.4
       globby: 13.2.2
       hash-sum: 2.0.0
       ignore: 5.3.0
@@ -3465,7 +3462,7 @@ packages:
     dependencies:
       '@nuxt/ui-templates': 1.3.1
       consola: 3.2.3
-      defu: 6.1.2
+      defu: 6.1.4
       hookable: 5.5.3
       pathe: 1.1.2
       pkg-types: 1.0.3
@@ -3541,7 +3538,7 @@ packages:
       clear: 0.1.0
       consola: 3.2.3
       cssnano: 6.0.3(postcss@8.4.33)
-      defu: 6.1.2
+      defu: 6.1.4
       esbuild: 0.19.11
       escape-string-regexp: 5.0.0
       estree-walker: 3.0.3
@@ -8942,9 +8939,6 @@ packages:
     resolution: {integrity: sha512-hsBd2qSVCRE+5PmNdHt1uzyrFu5d3RwmFDKzyNZMFq/EwDNJF7Ee5+D5oEKF0hU6LhtoUF1macFvOe4AskQC1Q==}
     dev: false
 
-  /defu@6.1.2:
-    resolution: {integrity: sha512-+uO4+qr7msjNNWKYPHqN/3+Dx3NFkmIzayk2L1MyZQlvgZb/J1A0fo410dpKrN2SnqFjt8n4JL8fDJE0wIgjFQ==}
-
   /defu@6.1.4:
     resolution: {integrity: sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg==}
 
@@ -10622,7 +10616,7 @@ packages:
     resolution: {integrity: sha512-1Ca0orJJlCaiFY68BvzQtP2lKLk46kcLAxVM8JgYbtm2cUg6IY7pjpYgWMwUvDO9QI30N5JAukOKoT8KD3Q0PQ==}
     dependencies:
       cookie-es: 1.0.0
-      defu: 6.1.2
+      defu: 6.1.4
       destr: 2.0.2
       iron-webcrypto: 0.10.1
       radix3: 1.1.0
@@ -13719,7 +13713,7 @@ packages:
       c12: 1.6.1
       chokidar: 3.5.3
       cookie-es: 1.0.0
-      defu: 6.1.2
+      defu: 6.1.4
       destr: 2.0.2
       devalue: 4.3.2
       esbuild: 0.19.11
@@ -14975,7 +14969,7 @@ packages:
   /rc9@2.1.1:
     resolution: {integrity: sha512-lNeOl38Ws0eNxpO3+wD1I9rkHGQyj1NU1jlzv4go2CtEnEQEUfqnIvZG7W+bC/aXdJ27n5x/yUjb6RoT9tko+Q==}
     dependencies:
-      defu: 6.1.2
+      defu: 6.1.4
       destr: 2.0.2
       flat: 5.0.2
 
@@ -15779,7 +15773,7 @@ packages:
   /serve-placeholder@2.0.1:
     resolution: {integrity: sha512-rUzLlXk4uPFnbEaIz3SW8VISTxMuONas88nYWjAWaM2W9VDbt9tyFOr3lq8RhVOFrT3XISoBw8vni5una8qMnQ==}
     dependencies:
-      defu: 6.1.2
+      defu: 6.1.4
     dev: true
 
   /serve-static@1.15.0:
@@ -17215,7 +17209,7 @@ packages:
       chalk: 5.3.0
       citty: 0.1.5
       consola: 3.2.3
-      defu: 6.1.2
+      defu: 6.1.4
       esbuild: 0.19.11
       globby: 13.2.2
       hookable: 5.5.3
@@ -17585,7 +17579,7 @@ packages:
       '@babel/core': 7.23.7
       '@babel/standalone': 7.23.8
       '@babel/types': 7.23.6
-      defu: 6.1.2
+      defu: 6.1.4
       jiti: 1.21.0
       mri: 1.2.0
       scule: 1.2.0
