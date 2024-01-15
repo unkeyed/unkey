@@ -18,18 +18,12 @@
   },
   "main": "./dist/module.cjs",
   "types": "./dist/types.d.ts",
-  "keywords": [
-    "unkey",
-    "client",
-    "api"
-  ],
+  "keywords": ["unkey", "client", "api"],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
   "homepage": "https://github.com/unkeyed/unkey#readme",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "nuxt-module-build",
     "dev": "nuxi dev playground",
@@ -40,22 +34,16 @@
   "dependencies": {
     "@nuxt/kit": "^3.8.0",
     "@unkey/api": "workspace:^",
-    "defu": "^6.1.2"
+    "defu": "^6.1.4"
   },
   "devDependencies": {
-    "@nuxt/devtools": "^0.8.5",
     "@nuxt/module-builder": "^0.5.2",
-    "@nuxt/schema": "^3.8.0",
-    "@nuxt/test-utils": "^3.8.0",
     "@types/node": "^20.8.7",
-    "@vue/reactivity": "^3.3.6",
-    "@vue/runtime-core": "^3.3.6",
-    "@vue/runtime-dom": "^3.3.6",
-    "@vue/shared": "^3.3.6",
+    "@nuxt/test-utils": "^3.8.0",
     "dotenv": "^16.3.1",
-    "h3": "^1.8.2",
     "nuxt": "^3.8.0",
-    "unctx": "^2.3.1",
+    "@nuxt/schema": "^3.8.0",
+    "h3": "^1.8.2",
     "vitest": "^0.34.3",
     "vue": "^3.3.6"
   }
