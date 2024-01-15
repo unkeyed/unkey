@@ -18,23 +18,20 @@ export type WithUnkeyConfig = {
    *
    * @default `req.headers.get("authorization")?.replace("Bearer ", "") ?? null`
    */
-  getKey?: (req: Request | NextRequest) => string | null | NextResponse;
+  getKey?: (req: NextRequest) => string | null | NextResponse;
 
   /**
    * Automatically return a custom response when a key is invalid
    */
   handleInvalidKey?: (
-    req: Request | NextRequest,
+    req: NextRequest,
     result: UnkeyContext,
   ) => NextResponse | Promise<NextResponse>;
 
   /**
    * What to do if things go wrong
    */
-  onError?: (
-    req: Request | NextRequest,
-    err: ErrorResponse["error"],
-  ) => NextResponse | Promise<NextResponse>;
+  onError?: (req: NextRequest, err: ErrorResponse["error"]) => NextResponse | Promise<NextResponse>;
 };
 
 export type UnkeyContext = {
@@ -60,13 +57,18 @@ export type UnkeyContext = {
     | undefined;
 };
 
+export type NextContext = { params: string };
+
 export type NextRequestWithUnkeyContext = NextRequest & { unkey: UnkeyContext };
 
 export function withUnkey(
-  handler: (req: NextRequestWithUnkeyContext, response?: Response) => Response | Promise<Response>,
+  handler: (
+    req: NextRequestWithUnkeyContext,
+    context: NextContext,
+  ) => Response | NextResponse | Promise<Response | NextResponse>,
   config?: WithUnkeyConfig,
 ) {
-  return async (req: Request | NextRequest, response: Response) => {
+  return async (req: NextRequest, context: NextContext) => {
     /**
      * Get key from request and return a response early if not found
      */
@@ -97,6 +99,6 @@ export function withUnkey(
     // @ts-ignore
     req.unkey = res.result;
 
-    return handler(req as NextRequestWithUnkeyContext, response);
+    return handler(req as NextRequestWithUnkeyContext, context);
   };
 }
