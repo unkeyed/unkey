@@ -1,8 +1,14 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  ignore: ["*.test.ts", "*.config.ts"],
+  ignore: ["**/*.test.ts", "**/*.spec.ts"],
   workspaces: {
+    ".": {
+      entry: "checkly.config.ts",
+    },
+    "apps/web": {
+      entry: ["contentlayer.config.ts", "lib/trpc/index.ts", "trpc.config.ts"],
+    },
     "apps/api": {
       entry: "src/worker.ts",
       ignore: ["**/*.test.ts", "src/pkg/testutil/*.ts"],
@@ -30,9 +36,6 @@ const config: KnipConfig = {
     },
     "packages/nuxt": {
       entry: "src/module.ts",
-    },
-    "packages/nuxt/playground": {
-      ignore: [".nuxt/**/*", ".output/**/*"],
     },
     "tools/bootstrap": {
       entry: "main.ts",

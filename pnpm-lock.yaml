@@ -524,9 +524,6 @@ importers:
       '@react-email/html':
         specifier: 0.0.6
         version: 0.0.6(react@18.2.0)
-      '@react-email/img':
-        specifier: ^0.0.6
-        version: 0.0.6(react@18.2.0)
       '@react-email/link':
         specifier: ^0.0.6
         version: 0.0.6(react@18.2.0)
@@ -693,9 +690,6 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
-      '@unkey/id':
-        specifier: workspace:^
-        version: link:../../internal/id
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
@@ -739,9 +733,6 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
-      '@unkey/id':
-        specifier: workspace:^
-        version: link:../../internal/id
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
@@ -5914,15 +5905,6 @@ packages:
 
   /@react-email/html@0.0.6(react@18.2.0):
     resolution: {integrity: sha512-8Fo20VOqxqc087gGEPjT8uos06fTXIC8NSoiJxpiwAkwiKtQnQH/jOdoLv6XaWh5Zt2clj1uokaoklnaM5rY1w==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: 18.2.0
-    dependencies:
-      react: 18.2.0
-    dev: false
-
-  /@react-email/img@0.0.6(react@18.2.0):
-    resolution: {integrity: sha512-Wd7xKI3b1Jvb2ZEHyVpJ9D98u0GHrRl+578b8LV24PavM/65V61Q5LN5Fr9sAhj+4VGqnHDIVeXIYEzVbWaa3Q==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: 18.2.0
