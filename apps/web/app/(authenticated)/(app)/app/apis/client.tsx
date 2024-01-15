@@ -47,7 +47,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             }}
           />
         </div>
-        <CreateApiButton key="createApi" />
+        <CreateApiButton key="createApi" apiList={apis} />
       </section>
       {apis.length ? (
         <ul className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3">

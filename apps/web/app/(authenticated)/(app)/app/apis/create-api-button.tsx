@@ -1,5 +1,6 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -17,7 +18,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -25,7 +26,28 @@ const formSchema = z.object({
   name: z.string().min(2).max(50),
 });
 
-export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+type ApiWithKeys = {
+  id: string;
+  name: string;
+  keys: {
+    count: number;
+  }[];
+}[];
+
+type CreateApiButtonProps = {
+  apiList?: ApiWithKeys;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+const checkForDuplicateApi = (name: string, apiList?: ApiWithKeys): boolean => {
+  if (!apiList) {
+    return false;
+  }
+  const isDuplicate = apiList.some((api) => api.name === name);
+  return isDuplicate;
+};
+
+export const CreateApiButton: React.FC<CreateApiButtonProps> = ({ apiList, ...rest }) => {
+  const [showAlert, setShowAlert] = useState<boolean>(false);
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,6 +72,11 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (checkForDuplicateApi(values.name, apiList)) {
+      setShowAlert(true);
+      return;
+    }
+
     create.mutate(values);
   }
   const router = useRouter();
@@ -86,6 +113,16 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                   </FormItem>
                 )}
               />
+
+              {showAlert && (
+                <Alert variant="alert" className="mt-4">
+                  <AlertTitle>Warning</AlertTitle>
+                  <AlertDescription>
+                    An API with this name already exists, are you sure you want to create another
+                    one?
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
                 <Button
