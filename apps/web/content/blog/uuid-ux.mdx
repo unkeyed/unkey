@@ -83,11 +83,11 @@ const id = `prefix_${nanoid(22)}`
 // prefix_KSPKGySWPqJWWWa37RqGaX
 ```
 
-We generated a 22 character long ID here, which can encode nearly twice as many states as a UUID while being 10 characters shorter.
+We generated a 22 character long ID here, which can encode ~100x as many states as a UUID while being 10 characters shorter.
 
 |         | Characters  | Length  | Total States    |
 | ------- | ----------- | ------- | --------------- |
-| UUID    | 16          | 32      | 16^32 = 3.4e+38 |
+| UUID    | 16          | 32      | 2^122 = 5.3e+36 |
 | Base58  | 58          | 22      | 58^22 = 6.2e+38 |
 
 *The more states, the higher your collision resistance is because it takes more generations to generate the same ID twice (on average and if your algorithm is truly random)*
