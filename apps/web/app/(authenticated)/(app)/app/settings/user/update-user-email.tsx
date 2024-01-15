@@ -32,10 +32,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
+import { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
@@ -49,6 +50,7 @@ const verificationSchema = z.object({
 export const UpdateUserEmail: React.FC = () => {
   const { user } = useUser();
   const [sendingVerification, setSendingVerification] = useState(false);
+  const [resetPointerEvents, setResetPointerEvents] = useState(false);
   const [promotingEmail, setPromotingEmail] = useState(false);
   const [openRemoveModal, setOpenRemoveModal] = React.useState(false);
   const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
@@ -59,6 +61,15 @@ export const UpdateUserEmail: React.FC = () => {
       email: user?.primaryEmailAddress?.emailAddress ?? "",
     },
   });
+
+  // https://github.com/radix-ui/primitives/issues/1241#issuecomment-1888232392
+  useEffect(() => {
+    if (resetPointerEvents) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "";
+      });
+    }
+  }, [resetPointerEvents]);
 
   if (!user) {
     return (
@@ -156,6 +167,7 @@ export const UpdateUserEmail: React.FC = () => {
                                         .then(() => {
                                           toast.success("Email removed");
                                           user.reload();
+                                          setResetPointerEvents(true);
                                         })
                                         .catch((e) => {
                                           toast.error((e as Error).message);
@@ -240,7 +252,7 @@ export const UpdateUserEmail: React.FC = () => {
 
                   setVerifyEmail(email);
                 } catch (e) {
-                  toast.error((e as Error).message);
+                  toast.error((e as ClerkError)?.errors.at(0)?.longMessage ?? "Error creating email address");
                 } finally {
                   setSendingVerification(false);
                 }

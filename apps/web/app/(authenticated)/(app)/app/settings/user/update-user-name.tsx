@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { ClerkError } from "@/lib/clerk";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
@@ -61,7 +62,7 @@ export const UpdateUserName: React.FC = () => {
               user.reload();
             })
             .catch((err) => {
-              toast.error((err as Error).message);
+              toast.error((error as ClerkError).errors.at(0)?.longMessage ?? "Sorry there was an error updating your username");
             });
         })}
       >

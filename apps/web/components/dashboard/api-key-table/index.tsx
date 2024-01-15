@@ -23,7 +23,16 @@ import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Check, FileClock, Minus, MoreHorizontal, Trash, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  Check,
+  FileClock,
+  Minus,
+  MoreHorizontal,
+  MoreVertical,
+  Trash,
+  X,
+} from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -239,9 +248,8 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/keys/${row.original.id}`} className="w-full">
-                    Details
-                  </Link>
+                  <MoreVertical className="w-4 h-4 mr-2" />
+                  <Link href={`/app/keys/${row.original.id}`}>Details</Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem
