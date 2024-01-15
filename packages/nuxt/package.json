@@ -38,14 +38,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.8.0",
-    "@unkey/api": "workspace:^",
-    "defu": "^6.1.2"
+    "@nuxt/kit": "^3.8.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.5.2",
     "@types/node": "^20.8.7",
-    "h3": "^1.8.2",
     "nuxt": "^3.8.0",
     "vitest": "^0.34.3",
     "vue": "^3.3.6"

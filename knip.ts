@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  ignore: ["**/*.test.ts", "**/*.spec.ts"],
+  ignore: ["**/*.test.ts", "**/*.spec.ts", "packages/nuxt/**/*"],
   workspaces: {
     ".": {
       entry: "checkly.config.ts",
