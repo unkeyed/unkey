@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  ignore: ["packages/nuxt/*.json", "packages/nuxt/playground/**/*"],
+  ignoreWorkspaces: ["packages/nuxt"],
   workspaces: {
     ".": {
       entry: "checkly.config.ts",
@@ -32,15 +32,6 @@ const config: KnipConfig = {
     },
     "internal/vercel": {
       entry: "src/index.ts",
-    },
-    "packages/nuxt": {
-      entry: [
-        "src/module.ts",
-        "src/runtime/server/middleware/unkey.ts",
-        "src/runtime/server/types.d.ts",
-        "src/runtime/server/utils/unkey.ts",
-        "test/index.spec.ts",
-      ],
     },
     "packages/*": {
       entry: ["**/*.test.ts"],
