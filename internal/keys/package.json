@@ -6,12 +6,10 @@
   "types": "./src/index.ts",
   "author": "Andreas Thomas",
   "devDependencies": {
-    "@unkey/tsconfig": "workspace:^",
     "typescript": "^5.2.2"
   },
   "dependencies": {
     "@unkey/hash": "workspace:^",
-    "@unkey/id": "workspace:^",
     "base-x": "^4.0.0"
   }
 }
