@@ -1,5 +1,6 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -17,7 +18,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -46,6 +47,7 @@ const checkForDuplicateApi = (name: string, apiList?: ApiWithKeys): boolean => {
 };
 
 export const CreateApiButton: React.FC<CreateApiButtonProps> = ({ apiList, ...rest }) => {
+  const [showAlert, setShowAlert] = useState<boolean>(false);
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,10 +73,8 @@ export const CreateApiButton: React.FC<CreateApiButtonProps> = ({ apiList, ...re
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (checkForDuplicateApi(values.name, apiList)) {
-      toast({
-        title: "WARNING",
-        description: "Api with this name already exsit",
-      });
+      setShowAlert(true);
+      return;
     }
 
     create.mutate(values);
@@ -113,6 +113,16 @@ export const CreateApiButton: React.FC<CreateApiButtonProps> = ({ apiList, ...re
                   </FormItem>
                 )}
               />
+
+              {showAlert && (
+                <Alert variant="alert" className="mt-4">
+                  <AlertTitle>Warning</AlertTitle>
+                  <AlertDescription>
+                    An API with this name already exists, are you sure you want to create another
+                    one?
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
                 <Button
