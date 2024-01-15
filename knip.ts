@@ -18,6 +18,9 @@ const config: KnipConfig = {
     "internal/db": {
       entry: "src/index.ts",
     },
+    "internal/rbac": {
+      entry: "src/index.ts",
+    },
     "internal/hash": {
       entry: ["src/index.ts", "**/*.test.ts"],
     },
@@ -39,6 +42,7 @@ const config: KnipConfig = {
     "tools/bootstrap": {
       entry: "main.ts",
     },
+
     "tools/k6": {
       entry: "load.js",
     },
