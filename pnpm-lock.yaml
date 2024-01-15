@@ -288,8 +288,8 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       rehype-pretty-code:
-        specifier: ^0.12.3
-        version: 0.12.3(shikiji@0.9.19)
+        specifier: ^0.10.1
+        version: 0.10.1(shiki@0.14.7)
       rehype-raw:
         specifier: ^7.0.0
         version: 7.0.0
@@ -666,9 +666,15 @@ importers:
       '@nuxt/module-builder':
         specifier: ^0.5.2
         version: 0.5.2(@nuxt/kit@3.8.0)(nuxi@3.10.0)(typescript@5.3.3)
+      '@nuxt/schema':
+        specifier: ^3.8.0
+        version: 3.8.0(rollup@3.29.4)
       '@types/node':
         specifier: ^20.8.7
         version: 20.10.5
+      h3:
+        specifier: ^1.8.2
+        version: 1.10.0
       nuxt:
         specifier: ^3.8.0
         version: 3.8.0(@types/node@20.10.5)(rollup@3.29.4)(typescript@5.3.3)(vite@4.5.1)
@@ -792,7 +798,7 @@ packages:
     engines: {node: '>=6.0.0'}
     dependencies:
       '@jridgewell/gen-mapping': 0.3.3
-      '@jridgewell/trace-mapping': 0.3.20
+      '@jridgewell/trace-mapping': 0.3.21
 
   /@ant-design/plots@1.2.5(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-8Jvu2xC5y5/B38/9Qr6CBiXCZopsGEA3IR4pjLFlkLoT4OHIKr4y8oIvhahM9mh9ZATyjkrZLWJBI8yETrReGg==}
@@ -1053,7 +1059,7 @@ packages:
     dependencies:
       '@babel/types': 7.23.6
       '@jridgewell/gen-mapping': 0.3.3
-      '@jridgewell/trace-mapping': 0.3.20
+      '@jridgewell/trace-mapping': 0.3.21
       jsesc: 2.5.2
 
   /@babel/helper-annotate-as-pure@7.22.5:
@@ -1803,7 +1809,7 @@ packages:
       '@contentlayer/core': 0.3.4(esbuild@0.19.11)
       '@contentlayer/utils': 0.3.4
       chokidar: 3.5.3
-      fast-glob: 3.3.1
+      fast-glob: 3.3.2
       gray-matter: 4.0.3
       imagescript: 1.2.18
       micromatch: 4.0.5
@@ -2928,7 +2934,6 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
-    dev: true
 
   /@jridgewell/trace-mapping@0.3.9:
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
@@ -3545,7 +3550,7 @@ packages:
       externality: 1.0.2
       fs-extra: 11.2.0
       get-port-please: 3.1.2
-      h3: 1.8.2
+      h3: 1.10.0
       knitwork: 1.0.0
       magic-string: 0.30.5
       mlly: 1.4.2
@@ -9952,16 +9957,6 @@ packages:
       unzipper: 0.10.14
     dev: false
 
-  /fast-glob@3.3.1:
-    resolution: {integrity: sha512-kNFPyjhh5cKjrUltxs+wFx+ZkbRaxxmZ+X0ZU31SOsxCEtP9VPgtq2teZw1DebupL5GmDaNQ6yKMMVcM41iqDg==}
-    engines: {node: '>=8.6.0'}
-    dependencies:
-      '@nodelib/fs.stat': 2.0.5
-      '@nodelib/fs.walk': 1.2.8
-      glob-parent: 5.1.2
-      merge2: 1.4.1
-      micromatch: 4.0.5
-
   /fast-glob@3.3.2:
     resolution: {integrity: sha512-oX2ruAFQwf/Orj8m737Y5adxDQO0LAB7/S5MnxCdTNDd4p6BsyIVsv9JQsATbTSq8KHRpLwIHbVlUNatxd+1Ow==}
     engines: {node: '>=8.6.0'}
@@ -10612,19 +10607,6 @@ packages:
       unenv: 1.9.0
     dev: true
 
-  /h3@1.8.2:
-    resolution: {integrity: sha512-1Ca0orJJlCaiFY68BvzQtP2lKLk46kcLAxVM8JgYbtm2cUg6IY7pjpYgWMwUvDO9QI30N5JAukOKoT8KD3Q0PQ==}
-    dependencies:
-      cookie-es: 1.0.0
-      defu: 6.1.4
-      destr: 2.0.2
-      iron-webcrypto: 0.10.1
-      radix3: 1.1.0
-      ufo: 1.3.2
-      uncrypto: 0.1.3
-      unenv: 1.9.0
-    dev: true
-
   /hanji@0.0.5:
     resolution: {integrity: sha512-Abxw1Lq+TnYiL4BueXqMau222fPSPMFtya8HdpWsz/xVAhifXou71mPh/kY2+08RgFcVccjG3uZHs6K5HAe3zw==}
     dependencies:
@@ -10692,6 +10674,15 @@ packages:
     engines: {node: '>= 0.4.0'}
     dev: false
 
+  /hash-obj@4.0.0:
+    resolution: {integrity: sha512-FwO1BUVWkyHasWDW4S8o0ssQXjvyghLV2rfVhnN36b2bbcj45eGiuzdn9XOvOpjV3TKQD7Gm2BWNXdE9V4KKYg==}
+    engines: {node: '>=12'}
+    dependencies:
+      is-obj: 3.0.0
+      sort-keys: 5.0.0
+      type-fest: 1.4.0
+    dev: false
+
   /hash-sum@2.0.0:
     resolution: {integrity: sha512-WdZTbAByD+pHfl/g9QSsBIIwy8IT+EsPiKDs0KNX+zSHhdDLFKdZu0BQHljvO+0QI/BasbMSUa8wYNCZTvhslg==}
 
@@ -10704,17 +10695,6 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       function-bind: 1.1.2
-
-  /hast-util-from-html@2.0.1:
-    resolution: {integrity: sha512-RXQBLMl9kjKVNkJTIO6bZyb2n+cUH8LFaSSzo82jiLT6Tfc+Pt7VQCS+/h3YwG4jaNE2TA2sdJisGWR+aJrp0g==}
-    dependencies:
-      '@types/hast': 3.0.3
-      devlop: 1.1.0
-      hast-util-from-parse5: 8.0.1
-      parse5: 7.1.2
-      vfile: 6.0.1
-      vfile-message: 4.0.2
-    dev: false
 
   /hast-util-from-parse5@7.1.2:
     resolution: {integrity: sha512-Nz7FfPBuljzsN3tCQ4kCBKqdNhQE2l0Tn+X1ubgKBPRoiDIu1mL08Cfw4k7q71+Duyaw7DXDN+VTAp4Vh3oCOw==}
@@ -11195,10 +11175,6 @@ packages:
     resolution: {integrity: sha512-WKa+XuLG1A1R0UWhl2+1XQSi+fZWMsYKffMZTTYsiZaUD8k2yDAj5atimTUD2TZkyCkNEeYE5NhFZmupOGtjYQ==}
     dev: true
 
-  /iron-webcrypto@0.10.1:
-    resolution: {integrity: sha512-QGOS8MRMnj/UiOa+aMIgfyHcvkhqNUsUxb1XzskENvbo+rEfp6TOwqd1KPuDzXC4OnGHcMSVxDGRoilqB8ViqA==}
-    dev: true
-
   /iron-webcrypto@1.0.0:
     resolution: {integrity: sha512-anOK1Mktt8U1Xi7fCM3RELTuYbnFikQY5VtrDj7kPgpejV7d43tWKhzgioO0zpkazLEL/j/iayRqnJhrGfqUsg==}
     dev: true
@@ -11392,6 +11368,11 @@ packages:
     resolution: {integrity: sha512-drqDG3cbczxxEJRoOXcOjtdp1J/lyp1mNn0xaznRs8+muBhgQcrnbspox5X5fOw0HnMnbfDzvnEMEtqDEJEo8w==}
     engines: {node: '>=8'}
     dev: true
+
+  /is-obj@3.0.0:
+    resolution: {integrity: sha512-IlsXEHOjtKhpN8r/tRFj2nDyTmHvcfNeu/nrRIcXE17ROeatXchkojffa1SpdqW4cr/Fj6QkEf/Gn4zf6KKvEQ==}
+    engines: {node: '>=12'}
+    dev: false
 
   /is-path-inside@4.0.0:
     resolution: {integrity: sha512-lJJV/5dYS+RcL8uQdBDW9c9uWFLLBNRyFhnAKXw5tVqLlKZ4RMGZKv+YQ/IA3OhD+RpbJa1LLFM1FQPGyIXvOA==}
@@ -13708,7 +13689,7 @@ packages:
       '@unhead/dom': 1.8.9
       '@unhead/ssr': 1.8.9
       '@unhead/vue': 1.8.9(vue@3.3.6)
-      '@vue/shared': 3.3.6
+      '@vue/shared': 3.4.10
       acorn: 8.10.0
       c12: 1.6.1
       chokidar: 3.5.3
@@ -13721,7 +13702,7 @@ packages:
       estree-walker: 3.0.3
       fs-extra: 11.2.0
       globby: 13.2.2
-      h3: 1.8.2
+      h3: 1.10.0
       hookable: 5.5.3
       jiti: 1.21.0
       klona: 2.0.6
@@ -15281,27 +15262,16 @@ packages:
       unist-util-visit: 4.1.2
     dev: false
 
-  /rehype-parse@9.0.0:
-    resolution: {integrity: sha512-WG7nfvmWWkCR++KEkZevZb/uw41E8TsH4DsY9UxsTbIXCVGbAs4S+r8FrQ+OtH5EEQAs+5UxKC42VinkmpA1Yw==}
-    dependencies:
-      '@types/hast': 3.0.3
-      hast-util-from-html: 2.0.1
-      unified: 11.0.4
-    dev: false
-
-  /rehype-pretty-code@0.12.3(shikiji@0.9.19):
-    resolution: {integrity: sha512-6NbIit8A3hLrkKBEbNs862jVnTLeIOM2AmM0VZ/MtyHb+OuNMeCa6UZSx6UG4zrobm5tY9efTwhih1exsGYsiw==}
-    engines: {node: '>=18'}
+  /rehype-pretty-code@0.10.1(shiki@0.14.7):
+    resolution: {integrity: sha512-WHjRvGlqPXG8BVRB9mK0255WvIOnzvHivAWhFkA2OG+NTkQWtTbCULZMokOHLf3Yy8q8I8/F8QNjDSQBhjMK5w==}
+    engines: {node: '>=16'}
     peerDependencies:
-      shikiji: ^0.7.0 || ^0.8.0 || ^0.9.0
+      shiki: 0.x
     dependencies:
-      '@types/hast': 3.0.3
-      hast-util-to-string: 3.0.0
+      '@types/hast': 2.3.9
+      hash-obj: 4.0.0
       parse-numeric-range: 1.3.0
-      rehype-parse: 9.0.0
-      shikiji: 0.9.19
-      unified: 11.0.4
-      unist-util-visit: 5.0.0
+      shiki: 0.14.7
     dev: false
 
   /rehype-raw@7.0.0:
@@ -15866,16 +15836,6 @@ packages:
       vscode-textmate: 8.0.0
     dev: false
 
-  /shikiji-core@0.9.19:
-    resolution: {integrity: sha512-AFJu/vcNT21t0e6YrfadZ+9q86gvPum6iywRyt1OtIPjPFe25RQnYJyxHQPMLKCCWA992TPxmEmbNcOZCAJclw==}
-    dev: false
-
-  /shikiji@0.9.19:
-    resolution: {integrity: sha512-Kw2NHWktdcdypCj1GkKpXH4o6Vxz8B8TykPlPuLHOGSV8VkhoCLcFOH4k19K4LXAQYRQmxg+0X/eM+m2sLhAkg==}
-    dependencies:
-      shikiji-core: 0.9.19
-    dev: false
-
   /side-channel@1.0.4:
     resolution: {integrity: sha512-q5XPytqFEIKHkGdiMIrY10mvLRvnQh42/+GoBlFW3b2LXLE2xxJpZFdm94we0BaoV3RwJyGqg5wS7epxTv0Zvw==}
     dependencies:
@@ -16033,6 +15993,13 @@ packages:
       ip: 2.0.0
       smart-buffer: 4.2.0
     dev: true
+
+  /sort-keys@5.0.0:
+    resolution: {integrity: sha512-Pdz01AvCAottHTPQGzndktFNdbRA75BgOfeT1hH+AMnJFv8lynkPi42rfeEhpx1saTEI3YNMWxfqu0sFD1G8pw==}
+    engines: {node: '>=12'}
+    dependencies:
+      is-plain-obj: 4.1.0
+    dev: false
 
   /source-map-js@1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
@@ -16524,7 +16491,7 @@ packages:
       chokidar: 3.5.3
       didyoumean: 1.2.2
       dlv: 1.1.3
-      fast-glob: 3.3.1
+      fast-glob: 3.3.2
       glob-parent: 6.0.2
       is-glob: 4.0.3
       jiti: 1.21.0
@@ -17546,7 +17513,7 @@ packages:
       anymatch: 3.1.3
       chokidar: 3.5.3
       destr: 2.0.2
-      h3: 1.8.2
+      h3: 1.10.0
       ioredis: 5.3.2
       listhen: 1.5.6
       lru-cache: 10.1.0

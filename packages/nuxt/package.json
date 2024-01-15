@@ -46,6 +46,8 @@
     "@nuxt/module-builder": "^0.5.2",
     "@types/node": "^20.8.7",
     "nuxt": "^3.8.0",
+    "h3": "^1.8.2",
+    "@nuxt/schema": "^3.8.0",
     "vitest": "^0.34.3",
     "vue": "^3.3.6"
   }
