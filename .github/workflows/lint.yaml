@@ -4,13 +4,16 @@ on:
 
 jobs:
   check_for_unused:
-    name: CheckUnused
+    name: Check for unused files and dependencies
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
 
-      - run: npx knip --include files,dependencies
+      - name: Install
+        uses: ./.github/actions/install
+
+      - run: pnpm knip
 
   lint_code:
     name: Code
@@ -23,7 +26,6 @@ jobs:
         uses: ./.github/actions/install
 
       - run: pnpm biome ci .
-      - run: pnpm knip
 
   lint_docs:
     name: Docs
