@@ -271,7 +271,7 @@ export const UpdateUserEmail: React.FC = () => {
                   toast({
                     title: "Error",
                     description:
-                      (e as ClerkError)?.errors[0]?.longMessage ?? "Error creating email address",
+                      (e as ClerkError)?.errors.at(0)?.longMessage ?? "Error creating email address",
                     variant: "alert",
                   });
                 } finally {
