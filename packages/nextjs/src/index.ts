@@ -1,10 +1,10 @@
 import { type ErrorResponse, verifyKey } from "@unkey/api";
-import { type NextFetchEvent, NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 export type WithUnkeyConfig = {
   /**
    * The apiId to verify against.
-   *
+   *Tbf
    * This will be required soon.
    */
   apiId?: string;
@@ -18,20 +18,23 @@ export type WithUnkeyConfig = {
    *
    * @default `req.headers.get("authorization")?.replace("Bearer ", "") ?? null`
    */
-  getKey?: (req: NextRequest) => string | null | NextResponse;
+  getKey?: (req: Request | NextRequest) => string | null | NextResponse;
 
   /**
    * Automatically return a custom response when a key is invalid
    */
   handleInvalidKey?: (
-    req: NextRequest,
+    req: Request | NextRequest,
     result: UnkeyContext,
   ) => NextResponse | Promise<NextResponse>;
 
   /**
    * What to do if things go wrong
    */
-  onError?: (req: NextRequest, err: ErrorResponse["error"]) => NextResponse | Promise<NextResponse>;
+  onError?: (
+    req: Request | NextRequest,
+    err: ErrorResponse["error"],
+  ) => NextResponse | Promise<NextResponse>;
 };
 
 export type UnkeyContext = {
@@ -60,13 +63,10 @@ export type UnkeyContext = {
 export type NextRequestWithUnkeyContext = NextRequest & { unkey: UnkeyContext };
 
 export function withUnkey(
-  handler: (
-    req: NextRequestWithUnkeyContext,
-    nfe?: NextFetchEvent,
-  ) => NextResponse | Promise<NextResponse>,
+  handler: (req: NextRequestWithUnkeyContext, response?: Response) => Response | Promise<Response>,
   config?: WithUnkeyConfig,
 ) {
-  return async (req: NextRequest, nfe: NextFetchEvent) => {
+  return async (req: Request | NextRequest, response: Response) => {
     /**
      * Get key from request and return a response early if not found
      */
@@ -97,6 +97,6 @@ export function withUnkey(
     // @ts-ignore
     req.unkey = res.result;
 
-    return handler(req as NextRequestWithUnkeyContext, nfe);
+    return handler(req as NextRequestWithUnkeyContext, response);
   };
 }
