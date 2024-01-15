@@ -32,7 +32,7 @@ export async function collectPageViewAnalytics(args: {
   tenantId?: string;
 }): Promise<void> {
   try {
-    const host = new URL(args.req.nextUrl).host;
+    const host = args.req.nextUrl.host;
     if (host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
       // console.debug(`not collecting analytics for ${host}`);
       return;
