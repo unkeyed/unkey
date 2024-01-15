@@ -1,6 +1,6 @@
+import { beforeEach, describe, test } from "vitest";
 import { verifyKey } from "../src";
 import { resetFetchMock, testOneFetchCall } from "./mock-fetch.test";
-import { beforeEach, describe, test } from "bun:test";
 
 describe("verifyKey() function", () => {
   beforeEach(() => resetFetchMock());

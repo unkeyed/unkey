@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, mock, test } from "vitest";
 import { Unkey, type UnkeyError } from "../src";
 import { resetFetchMock, testOneFetchCall } from "./mock-fetch.test";
-import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 describe("Unkey client", () => {
   test("default config", () => {

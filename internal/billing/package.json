@@ -14,7 +14,8 @@
     "@types/node": "^20.8.7",
     "@unkey/tsconfig": "workspace:*",
     "bun-types": "^1.0.16",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.3"
   },
   "dependencies": {
     "@unkey/result": "workspace:^",

@@ -5,9 +5,13 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "author": "Andreas Thomas",
+  "scripts": {
+    "test": "vitest run"
+  },
   "devDependencies": {
     "@unkey/tsconfig": "workspace:^",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.3"
   },
   "dependencies": {
     "@unkey/hash": "workspace:^",

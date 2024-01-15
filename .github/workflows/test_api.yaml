@@ -4,8 +4,8 @@ on:
 
 jobs:
 
-  test_api_worker:
-    name: Unit Test API
+  test_routes:
+    name: Test API Routes
     runs-on: ubuntu-latest
     services:
          mysql:
@@ -34,8 +34,6 @@ jobs:
       - name: Install
         uses: ./.github/actions/install
 
-      - name: Install bun
-        run:  npm i -g bun
 
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push:mysql
@@ -45,7 +43,7 @@ jobs:
 
 
       - name: Test
-        run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
+        run: pnpm test:e2e
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080

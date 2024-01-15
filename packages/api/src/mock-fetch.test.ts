@@ -1,5 +1,5 @@
 import { type AnyFunction } from "bun";
-import { type Mock, expect, mock } from "bun:test";
+import { type Mock, expect, mock } from "vitest";
 
 interface TestOneFetchCallArgs<T> {
   url: string;

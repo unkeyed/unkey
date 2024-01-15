@@ -1,6 +1,6 @@
+import { describe, expect, test } from "vitest";
 import { NestedQuery, and, or } from "./queries";
 import { RBAC } from "./rbac";
-import { describe, expect, test } from "bun:test";
 
 describe("evaluating a query", () => {
   const testCases: {

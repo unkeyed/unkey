@@ -8,12 +8,13 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "scripts": {
-    "test": "bun test"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.8.7",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.3"
   },
   "dependencies": {
     "@unkey/result": "workspace:^",

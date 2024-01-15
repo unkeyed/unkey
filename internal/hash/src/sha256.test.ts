@@ -1,5 +1,5 @@
+import { expect, test } from "vitest";
 import { sha256 } from "./sha256";
-import { expect, test } from "bun:test";
 
 test("compatibility with resend's keys", async () => {
   expect(sha256("MVgWNsyPmv6VthC9moCNAPwS")).resolves.toEqual(
