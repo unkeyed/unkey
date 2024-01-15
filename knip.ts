@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  ignore: ["**/*.test.ts", "packages/nuxt/package.json", "packages/nuxt/playground/**/*"],
+  ignore: ["packages/nuxt/*.json", "packages/nuxt/playground/**/*"],
   workspaces: {
     ".": {
       entry: "checkly.config.ts",
@@ -10,23 +10,22 @@ const config: KnipConfig = {
       entry: ["contentlayer.config.ts", "lib/trpc/index.ts", "trpc.config.ts"],
     },
     "apps/api": {
-      entry: "src/worker.ts",
-      ignore: ["**/*.test.ts", "src/pkg/testutil/*.ts"],
+      entry: ["**/*.test.ts", "src/pkg/testutil/*.ts", "src/worker.ts"],
     },
     "internal/billing": {
-      entry: "src/index.ts",
+      entry: ["src/index.ts", "**/*.test.ts"],
     },
     "internal/db": {
       entry: "src/index.ts",
     },
     "internal/hash": {
-      entry: "src/index.ts",
+      entry: ["src/index.ts", "**/*.test.ts"],
     },
     "internal/id": {
       entry: "src/index.ts",
     },
     "internal/keys": {
-      entry: "src/index.ts",
+      entry: ["src/index.ts", "**/*.test.ts"],
     },
     "internal/resend": {
       entry: "src/index.ts",
@@ -42,6 +41,9 @@ const config: KnipConfig = {
         "src/runtime/server/utils/unkey.ts",
         "test/index.spec.ts",
       ],
+    },
+    "packages/*": {
+      entry: ["**/*.test.ts"],
     },
     "tools/bootstrap": {
       entry: "main.ts",

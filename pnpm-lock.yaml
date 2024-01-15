@@ -666,6 +666,9 @@ importers:
       '@nuxt/module-builder':
         specifier: ^0.5.2
         version: 0.5.2(@nuxt/kit@3.8.0)(nuxi@3.10.0)(typescript@5.3.3)
+      '@nuxt/schema':
+        specifier: ^3.8.0
+        version: 3.8.0(rollup@3.29.4)
       '@nuxt/test-utils':
         specifier: ^3.8.0
         version: 3.8.0(rollup@3.29.4)(vitest@0.34.3)(vue@3.3.6)
