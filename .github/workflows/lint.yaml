@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - run: pnpm knip
+      - run: npx knip --include files,dependencies
 
   lint_code:
     name: Code
@@ -23,6 +23,7 @@ jobs:
         uses: ./.github/actions/install
 
       - run: pnpm biome ci .
+      - run: pnpm knip
 
   lint_docs:
     name: Docs
