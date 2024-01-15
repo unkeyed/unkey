@@ -16,7 +16,8 @@
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
-    "bump-versions": "pnpm changeset version && pnpm install"
+    "bump-versions": "pnpm changeset version && pnpm install",
+    "knip": "knip --include files,dependencies"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
