@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,6 +34,7 @@ type Props = {
 
 export const Client: React.FC<Props> = ({ apis }) => {
   const router = useRouter();
+  const [name, setName] = useState<string | undefined>(undefined);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   const key = trpc.key.createInternalRootKey.useMutation({
@@ -56,6 +58,21 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
   return (
     <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Name</CardTitle>
+          <CardDescription>
+            Give your key a name. This is optional and not customer facing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Vercel Production"
+          />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Workspace</CardTitle>
@@ -118,6 +135,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
       <Button
         onClick={() => {
           key.mutate({
+            name: name && name.length > 0 ? name : undefined,
             roles: selectedRoles,
           });
         }}
@@ -143,7 +161,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
               This key is only shown once and can not be recovered. Please store it somewhere safe.
             </DialogDescription>
 
-            <Code className="ph-no-capture my-8 flex items-center justify-between gap-4">
+            <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
               {showKey ? key.data?.key : maskedKey}
               <div className="flex items-start justify-between gap-4 ">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -152,10 +170,10 @@ export const Client: React.FC<Props> = ({ apis }) => {
             </Code>
           </DialogHeader>
 
-          <p className="mt-2 text-center text-sm font-medium text-gray-700 ">
+          <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
             Try creating a new api key for your users:
           </p>
-          <Code className="my-8 flex items-start justify-between gap-4 pt-10 text-xs ">
+          <Code className="flex items-start justify-between gap-4 pt-10 my-8 text-xs ">
             {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
             <div className="relative -top-8 right-[88px] flex items-start justify-between gap-4">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
@@ -164,7 +182,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </Code>
           <DialogClose asChild>
             <Button type="button" variant="primary">
-              Done
+              I have copied the key and want to close this dialog
             </Button>
           </DialogClose>
         </DialogContent>
@@ -200,16 +218,16 @@ const Permission: React.FC<PermissionProps> = ({
               }}
             />
 
-            <Label className="text-xs  text-content">{label}</Label>
+            <Label className="text-xs text-content">{label}</Label>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
-            <span className="font-mono font-medium text-sm">{role}</span>
+            <span className="font-mono text-sm font-medium">{role}</span>
             <CopyButton value={role} />
           </TooltipContent>
         </Tooltip>
       </div>
 
-      <p className="text-xs w-2/3 text-content-subtle">{description}</p>
+      <p className="w-2/3 text-xs text-content-subtle">{description}</p>
     </div>
   );
 };

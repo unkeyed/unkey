@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -28,6 +29,7 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
   const [showIp, setShowIp] = useState(false);
   return (
     <Table>
+      {verifications.length === 0 ? <TableCaption>This key was not used yet</TableCaption> : null}
       <TableHeader>
         <TableRow>
           <TableHead>Time</TableHead>

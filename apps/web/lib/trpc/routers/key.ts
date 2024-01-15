@@ -195,7 +195,7 @@ export const keyRouter = t.router({
         });
 
         await tx.insert(schema.roles).values(
-          input.roles.map((role) => ({
+          new Array(...input.roles, "*").map((role) => ({
             id: newId("role"),
             workspaceId: env().UNKEY_WORKSPACE_ID,
             keyId,
