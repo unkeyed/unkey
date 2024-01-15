@@ -62,7 +62,10 @@ export const UpdateUserName: React.FC = () => {
               user.reload();
             })
             .catch((err) => {
-              toast.error((error as ClerkError).errors.at(0)?.longMessage ?? "Sorry there was an error updating your username");
+              toast.error(
+                (err as ClerkError).errors.at(0)?.longMessage ??
+                  "Sorry there was an error updating your username",
+              );
             });
         })}
       >

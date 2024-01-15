@@ -252,7 +252,9 @@ export const UpdateUserEmail: React.FC = () => {
 
                   setVerifyEmail(email);
                 } catch (e) {
-                  toast.error((e as ClerkError)?.errors.at(0)?.longMessage ?? "Error creating email address");
+                  toast.error(
+                    (e as ClerkError)?.errors.at(0)?.longMessage ?? "Error creating email address",
+                  );
                 } finally {
                   setSendingVerification(false);
                 }
