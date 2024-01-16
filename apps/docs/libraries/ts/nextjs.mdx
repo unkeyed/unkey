@@ -77,7 +77,7 @@ export const GET = withUnkey(async (req) => {
 	onError: async (req, res) => {
       await analytics.trackEvent(`Error ${res.code}: ${res.message}`)
       return new NextResponse("Unkey error", { status: 500 })
-  }
+    }
 });
 ```
 
@@ -91,6 +91,6 @@ export const GET = withUnkey(async (req) => {
 }, {
 	handleInvalidKey: (req, res) => {
       return new Response("Unauthorized", { status: 401 })
-  }
+    }
 });
 ```
