@@ -15,7 +15,6 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
@@ -33,8 +32,9 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
-  const updateName = trpc.api.updateName.useMutation();
-  const [isLoading, setLoading] = useState(false);
+  const { formState } = useForm();
+  const { isSubmitting } = formState;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,21 +44,18 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      setLoading(true);
-      await updateName.mutate({
-        name: values.name,
-        apiId: values.apiId,
-        workspaceId: values.workspaceId,
-      });
-      toast.success("Your Api name has been updated!");
+  const updateName = trpc.api.updateName.useMutation({
+    onSuccess() {
+      toast.success("Your API name has been renamed!");
       router.refresh();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    },
+    onError(err) {
+      console.log(err);
+      toast.error(err.message);
+    },
+  });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateName.mutateAsync(values);
   }
   const router = useRouter();
   return (
@@ -85,11 +82,11 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
         </CardContent>
         <CardFooter className="justify-end">
           <Button
-            variant={form.formState.isValid && !isLoading ? "primary" : "disabled"}
-            disabled={!form.formState.isValid || isLoading}
+            variant={form.formState.isValid && !isSubmitting ? "primary" : "disabled"}
+            disabled={!form.formState.isValid || isSubmitting}
             type="submit"
           >
-            {isLoading ? <Loading /> : "Save"}
+            {isSubmitting ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>

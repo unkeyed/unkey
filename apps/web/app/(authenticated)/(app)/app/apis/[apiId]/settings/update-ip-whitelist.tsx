@@ -19,7 +19,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Workspace } from "@unkey/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -42,10 +41,9 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
-  const [isLoading, setLoading] = useState(false);
+  const { formState } = useForm();
+  const { isSubmitting } = formState;
   const isEnabled = workspace.plan === "enterprise";
-  const updateIps = trpc.api.updateIpWhitelist.useMutation();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,21 +53,19 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      setLoading(true);
-      const _result = await updateIps.mutate({
-        ips: values.ipWhitelist,
-        apiId: values.apiId,
-        workspaceId: values.workspaceId,
-      });
+  const updateIps = trpc.api.updateIpWhitelist.useMutation({
+    onSuccess() {
       toast.success("Your ip whitelist has been updated!");
       router.refresh();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    },
+    onError(err) {
+      console.log(err);
+      toast.error(err.message);
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateIps.mutateAsync(values);
   }
   const router = useRouter();
 
@@ -119,11 +115,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         </CardContent>
         <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
-            variant={form.formState.isValid && !isLoading ? "primary" : "disabled"}
-            disabled={!form.formState.isValid || isLoading}
+            variant={form.formState.isValid && !isSubmitting ? "primary" : "disabled"}
+            disabled={!form.formState.isValid || isSubmitting}
             type="submit"
           >
-            {isLoading ? <Loading /> : "Save"}
+            {isSubmitting ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>

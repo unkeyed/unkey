@@ -180,7 +180,7 @@ export const apiRouter = t.router({
     .use(auth)
     .input(
       z.object({
-        ips: z
+        ipWhitelist: z
           .string()
           .transform((s, ctx) => {
             if (s === "") {
@@ -225,7 +225,7 @@ export const apiRouter = t.router({
         await tx
           .update(schema.apis)
           .set({
-            ipWhitelist: input.ips === null ? null : input.ips.join(","),
+            ipWhitelist: input.ipWhitelist === null ? null : input.ipWhitelist.join(","),
           })
           .where(eq(schema.apis.id, input.apiId));
         await tx.insert(schema.auditLogs).values({
