@@ -5,6 +5,7 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { sha256 } from "@unkey/hash";
+import { RBAC, RoleQuery } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
@@ -21,6 +22,7 @@ type VerifyKeyResult =
     }
   | {
       valid: false;
+      publicMessage?: string;
       code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED";
       key: Key;
       api: Api;
@@ -58,6 +60,7 @@ export class KeyService {
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
+  private readonly rbac: RBAC;
 
   constructor(opts: {
     cache: TieredCache<CacheNamespaces>;
@@ -76,11 +79,12 @@ export class KeyService {
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
     this.analytics = opts.analytics;
+    this.rbac = new RBAC();
   }
 
   public async verifyKey(
     c: Context,
-    req: { key: string; apiId?: string },
+    req: { key: string; apiId?: string; roleQuery?: RoleQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req).catch(async (e) => {
       this.logger.error("Unhandled error while verifying key", {
@@ -133,7 +137,7 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    req: { key: string; apiId?: string },
+    req: { key: string; apiId?: string; roles?: RoleQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
@@ -142,6 +146,9 @@ export class KeyService {
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          roles: {
+            columns: { role: true },
+          },
           keyAuth: {
             with: {
               api: true,
@@ -217,6 +224,16 @@ export class KeyService {
           valid: false,
           code: "FORBIDDEN",
         });
+      }
+    }
+
+    if (typeof req.roles !== "undefined") {
+      const roleResp = this.rbac.evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
+      if (roleResp.error) {
+        return result.fail({ message: roleResp.error.message, code: "INTERNAL_SERVER_ERROR" });
+      }
+      if (!roleResp.value.valid) {
+        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
       }
     }
 

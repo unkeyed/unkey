@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
@@ -52,25 +52,15 @@ export const Client: React.FC<Props> = ({
   const disabled =
     !projectId || !(selectedApis.development || selectedApis.preview || selectedApis.production);
 
-  const { toast } = useToast();
-
   const create = trpc.vercel.setupProject.useMutation({
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Successfully added environment variables to your Vercel project",
-      });
-      toast({
-        title: "Redirecting back to Vercel",
-      });
+      toast.success("Successfully added environment variables to your Vercel project");
+
+      toast("Redirecting back to Vercel");
       router.push(returnUrl);
     },
     onError: (err) => {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 

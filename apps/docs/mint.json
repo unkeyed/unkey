@@ -79,7 +79,8 @@
         "features/analytics",
         "features/audit-log",
         "features/whitelist",
-        "features/revocation"
+        "features/revocation",
+        "features/enabled"
       ]
     },
     {
@@ -102,6 +103,7 @@
             "api-reference/errors/code/FORBIDDEN",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/CONFLICT",
+            "api-reference/errors/code/DISABLED",
             "api-reference/errors/code/INTERNAL_SERVER_ERROR"
           ]
         },
@@ -111,7 +113,6 @@
             "api-reference/keys/create",
             "api-reference/keys/verify",
             "api-reference/keys/get",
-            "api-reference/keys/verifications",
             "api-reference/keys/update",
             "api-reference/keys/update-remaining",
             "api-reference/keys/delete"
@@ -142,8 +143,6 @@
               "pages": [
                 "libraries/ts/sdk/keys/create",
                 "libraries/ts/sdk/keys/verify",
-                "libraries/ts/sdk/keys/get",
-                "libraries/ts/sdk/keys/verifications",
                 "libraries/ts/sdk/keys/update",
                 "libraries/ts/sdk/keys/delete"
               ]
@@ -239,7 +238,8 @@
       "pages": [
         "contributing/getting-started",
         "contributing/versions",
-        "contributing/editor-setup"
+        "contributing/editor-setup",
+        "contributing/testing"
       ]
     }
   ],

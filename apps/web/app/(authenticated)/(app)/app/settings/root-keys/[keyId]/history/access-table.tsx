@@ -1,0 +1,84 @@
+"use client";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Check, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+
+type Props = {
+  verifications: {
+    time: number;
+    requestedResource?: string;
+    ipAddress: string;
+    region: string;
+    userAgent: string;
+    usageExceeded: boolean;
+    ratelimited: boolean;
+  }[];
+};
+
+export const AccessTable: React.FC<Props> = ({ verifications }) => {
+  const [showIp, setShowIp] = useState(false);
+  return (
+    <Table>
+      {verifications.length === 0 ? <TableCaption>This key was not used yet</TableCaption> : null}
+      <TableHeader>
+        <TableRow>
+          <TableHead>Time</TableHead>
+          <TableHead>Resource</TableHead>
+          <TableHead>User Agent</TableHead>
+          <TableHead className="flex items-center h-full">
+            IP Address{" "}
+            <Button
+              onClick={() => {
+                setShowIp(!showIp);
+              }}
+              size="icon"
+              variant="link"
+            >
+              {showIp ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </Button>
+          </TableHead>
+          <TableHead>Region</TableHead>
+          <TableHead>Valid</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {verifications.map((verification, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+          <TableRow key={i}>
+            <TableCell className="flex flex-col">
+              <span className="text-content">{new Date(verification.time).toDateString()}</span>
+              <span className="text-xs text-content-subtle">
+                {new Date(verification.time).toTimeString().split("(").at(0)}
+              </span>
+            </TableCell>
+            <TableCell>{verification.requestedResource}</TableCell>
+            <TableCell className="max-w-sm truncate">{verification.userAgent}</TableCell>
+            <TableCell className="font-mono">
+              {showIp ? verification.ipAddress : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
+            </TableCell>
+            <TableCell>{verification.region}</TableCell>
+            <TableCell>
+              {verification.usageExceeded ? (
+                <Badge>Usage Exceede</Badge>
+              ) : verification.ratelimited ? (
+                <Badge>Ratelimited</Badge>
+              ) : (
+                <Check />
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};

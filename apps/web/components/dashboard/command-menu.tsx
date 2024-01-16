@@ -26,7 +26,7 @@ import { Button } from "../ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import { useToast } from "../ui/use-toast";
+import { toast } from "../ui/toaster";
 import { Loading } from "./loading";
 
 export function CommandMenu() {
@@ -124,7 +124,6 @@ const Feedback: React.FC = () => {
     issueType: z.enum(["bug", "feature", "security", "payment", "question"]),
     message: z.string(),
   });
-  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -138,14 +137,10 @@ const Feedback: React.FC = () => {
   const create = trpc.plain.createIssue.useMutation({
     onSuccess: () => {
       setOpen(false);
-      toast({
-        title: "Issue created",
-        description: "Your issue has been created, we'll get back to you as soon as possible",
-      });
+      toast("Your issue has been created, we'll get back to you as soon as possible");
     },
     onError: (err) => {
-      toast({
-        title: "Issue creation failed",
+      toast.error("Issue creation failed", {
         description: err.message,
       });
     },

@@ -22,7 +22,7 @@ export async function step<TRequestBody = unknown, TResponseBody = unknown>(
 
   return {
     status: res.status,
-    headers: Object.fromEntries(res.headers.entries()),
+    headers: headersToRecord(res.headers),
     body: (await res.json().catch((err) => {
       console.error(`${req.url} didn't return json`, err);
       return {};
@@ -54,10 +54,18 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
 
   return {
     status: res.status,
-    headers: Object.fromEntries(res.headers.entries()),
+    headers: headersToRecord(res.headers),
     body: (await res.json().catch((err) => {
       console.error(`${req.url} didn't return json`, err);
       return {};
     })) as TResponseBody,
   };
+}
+
+function headersToRecord(headers: Headers): Record<string, string> {
+  const rec: Record<string, string> = {};
+  headers.forEach((v, k) => {
+    rec[k] = v;
+  });
+  return rec;
 }
