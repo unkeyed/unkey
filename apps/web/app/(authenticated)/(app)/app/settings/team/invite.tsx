@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useOrganization } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
@@ -42,7 +42,7 @@ const formSchema = z.object({
 
 export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { toast } = useToast();
+
   const { organization } = useOrganization();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,18 +61,13 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
         role: values.role,
       });
 
-      toast({
-        title: "User Invited",
-        description: `We have sent an email to ${values.email} with instructions on how to join your workspace`,
-      });
+      toast.success(
+        `We have sent an email to ${values.email} with instructions on how to join your workspace`,
+      );
       router.refresh();
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: (err as Error).message,
-        variant: "alert",
-      });
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }

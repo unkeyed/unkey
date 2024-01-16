@@ -7,11 +7,10 @@ import * as React from "react";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 
 export function EmailCode() {
   const router = useRouter();
-  const { toast } = useToast();
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -38,11 +37,7 @@ export function EmailCode() {
       .catch((err) => {
         setIsLoading(false);
         if (err.errors[0].code === "form_code_incorrect") {
-          toast({
-            title: "Error",
-            description: "Please check the 6 digit code, the one you entered is incorrect",
-            variant: "alert",
-          });
+          toast.error("Please check the 6 digit code, the one you entered is incorrect");
         }
       });
   };
@@ -61,11 +56,7 @@ export function EmailCode() {
         emailAddressId: firstFactor.emailAddressId,
       });
       setTimeLeft(30);
-      toast({
-        title: "Success",
-        description: "A new code has been sent to your email",
-        variant: "default",
-      });
+      toast.success("A new code has been sent to your email");
       const _interval = setInterval(() => {
         setTimeLeft((time) => {
           if (time === 0) {

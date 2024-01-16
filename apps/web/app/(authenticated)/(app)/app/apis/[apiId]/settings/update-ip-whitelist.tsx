@@ -9,10 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import React, { useState } from "react";
-
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +45,7 @@ type Props = {
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   const { toast } = useToast();
   const [isLoading, setLoading] = useState(false);
+
   const isEnabled = workspace.plan === "enterprise";
   const updateIps = trpc.api.updateIpWhitelist.useMutation();
 

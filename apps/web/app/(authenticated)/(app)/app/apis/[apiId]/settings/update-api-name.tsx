@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,8 @@ const formSchema = z.object({
   workspaceId: z.string(),
 });
 
+import { toast } from "@/components/ui/toaster";
+
 type Props = {
   api: {
     id: string;
@@ -34,7 +37,7 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
-  const { toast } = useToast();
+
   const updateName = trpc.api.updateName.useMutation();
   const [isLoading, setLoading] = useState(false);
 

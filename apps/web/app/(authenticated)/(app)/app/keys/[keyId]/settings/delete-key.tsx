@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
 
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -24,25 +24,16 @@ type Props = {
 };
 
 export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
-
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
-      toast({
-        title: "Success",
-        description: "Key deleted",
-      });
+      toast.success("Key deleted");
       router.push("/app");
     },
     onError(error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "alert",
-      });
+      toast.error(error.message);
     },
   });
 
