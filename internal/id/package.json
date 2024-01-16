@@ -7,9 +7,6 @@
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "ISC",
-  "scripts": {
-    "test": "vitest run"
-  },
   "devDependencies": {
     "@types/node": "^20.8.7",
     "@unkey/tsconfig": "workspace:*",
