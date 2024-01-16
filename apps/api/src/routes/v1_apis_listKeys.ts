@@ -67,7 +67,14 @@ export const registerV1ApisListKeys = (app: App) =>
         message: "key required",
       });
     }
-    const rootKey = await keyService.verifyKey(c, { key: authorization });
+    const { apiId, limit, cursor, ownerId } = c.req.query();
+
+    const rootKey = await keyService.verifyKey(c, {
+      key: authorization,
+      // roles: {
+      //   hasAll: [`${apiId}::listKeys`],
+      // },
+    });
     if (rootKey.error) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
@@ -75,10 +82,7 @@ export const registerV1ApisListKeys = (app: App) =>
       });
     }
     if (!rootKey.value.valid) {
-      throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
-        message: "the root key is not valid",
-      });
+      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "insufficient permissions" });
     }
     if (!rootKey.value.isRootKey) {
       throw new UnkeyApiError({
@@ -86,8 +90,6 @@ export const registerV1ApisListKeys = (app: App) =>
         message: "root key required",
       });
     }
-
-    const { apiId, limit, cursor, ownerId } = c.req.query();
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (

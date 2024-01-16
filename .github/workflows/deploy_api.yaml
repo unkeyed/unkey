@@ -2,8 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency: "only one deploy at a time"
 

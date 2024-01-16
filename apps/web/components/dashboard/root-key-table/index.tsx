@@ -19,8 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
@@ -49,19 +49,14 @@ type Props = {
 
 export const RootKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
-  const { toast } = useToast();
   const deleteKey = trpc.key.deleteRootKey.useMutation({
     onSuccess: () => {
-      toast({
-        title: "Root Key was deleted",
-      });
+      toast.success("Root Key was deleted");
       router.refresh();
     },
     onError: (err, variables) => {
-      toast({
-        title: `Could not delete key ${JSON.stringify(variables)}`,
+      toast(`Could not delete key ${JSON.stringify(variables)}`, {
         description: err.message,
-        variant: "alert",
       });
       router.refresh();
     },

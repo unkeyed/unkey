@@ -1,13 +1,14 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
+import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CreateRootKeyButton } from "./create-root-key-button";
 
 export const revalidate = 0;
 
-export default async function SettingsKeysPage(props: {
+export default async function SettingsKeysPage(_props: {
   params: { apiId: string };
 }) {
   const tenantId = getTenantId();
@@ -16,9 +17,7 @@ export default async function SettingsKeysPage(props: {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      apis: {
-        limit: 1,
-      },
+      apis: true,
     },
   });
   if (!workspace) {
@@ -40,7 +39,11 @@ export default async function SettingsKeysPage(props: {
       <PageHeader
         title="Root Keys"
         description="Root keys are used to interact with the Unkey API."
-        actions={[<CreateRootKeyButton key="create-root-key" apiId={props.params.apiId} />]}
+        actions={[
+          <Link key="create-root-key" href="/app/settings/root-keys/new">
+            <Button variant="primary">Create New Root Key</Button>
+          </Link>,
+        ]}
       />
       <div className="mb-20 grid w-full grid-cols-1 gap-8">
         <RootKeyTable data={keys} />

@@ -4,8 +4,8 @@ on:
 
 jobs:
 
-  test_api_worker:
-    name: Unit Test API
+  test_routes:
+    name: Routes
     runs-on: ubuntu-latest
     services:
          mysql:
