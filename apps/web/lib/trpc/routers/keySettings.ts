@@ -185,7 +185,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        metadata: z.string().nullable(),
+        metadata: z.string(),
       }),
     )
     .mutation(async ({ input, ctx }) => {

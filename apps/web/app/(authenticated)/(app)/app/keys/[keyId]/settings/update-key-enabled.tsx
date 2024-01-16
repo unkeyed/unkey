@@ -34,7 +34,6 @@ type Props = {
 };
 
 export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
   const router = useRouter();
   const [enabled, setEnabled] = useState(apiKey.enabled);
   const [isLoading, _setIsLoading] = useState(false);
@@ -43,20 +42,13 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
     resolver: zodResolver(formSchema),
   });
   const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
-    onSuccess(_res) {
-      toast({
-        title: "Success",
-        description: "Your key has been updated!",
-      });
+    onSuccess() {
+      toast.success("Your key has been updated!");
       router.refresh();
     },
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 

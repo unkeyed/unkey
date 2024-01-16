@@ -8,12 +8,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import { Form, useForm } from "react-hook-form";
+import { z } from "zod";
+
+const formSchema = z.object({
+  keyId: z.string(),
+  ownerId: z.string(),
+});
 
 type Props = {
   apiKey: {
@@ -24,59 +34,60 @@ type Props = {
 };
 
 export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
+  const router = useRouter();
+  const [isLoading, _setIsLoading] = useState(false);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
 
-  function handleSubmit(event: any) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const keyId = event.target.keyId.value;
+  const updateOwnerId = trpc.keySettings.updateOwnerId.useMutation({
+    onSuccess() {
+      toast.success("Your owner ID has been updated!");
+      router.refresh();
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
 
-    const _updateOwnerId = trpc.keySettings.updateOwnerId
-      .mutate({
-        keyId: keyId as string,
-        ownerId: formData.get("ownerId") as string,
-      })
-      .then((response) => {
-        if (response) {
-          toast({
-            title: "Success",
-            description: "Your owner ID has been updated!",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "Something went wrong. Please try again later",
-          });
-        }
-      });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateOwnerId.mutate(values);
   }
   return (
-    <form onSubmit={handleSubmit}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Owner ID</CardTitle>
-          <CardDescription>
-            Use this to identify the owner of the key. For example by setting the userId of the user
-            in your system.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col space-y-2 w-full ")}>
-            <input type="hidden" name="keyId" value={apiKey.id} />
-            <Label htmlFor="ownerId">OwnerId</Label>
-            <Input
-              type="string"
-              name="ownerId"
-              className="h-8 max-w-sm"
-              defaultValue={apiKey.ownerId ?? ""}
-              autoComplete="off"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <SubmitButton label="Save" />
-        </CardFooter>
-      </Card>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Owner ID</CardTitle>
+            <CardDescription>
+              Use this to identify the owner of the key. For example by setting the userId of the
+              user in your system.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-between item-center">
+            <div className={cn("flex flex-col space-y-2 w-full ")}>
+              <input type="hidden" name="keyId" value={apiKey.id} />
+              <Label htmlFor="ownerId">OwnerId</Label>
+              <FormField
+                control={form.control}
+                name="ownerId"
+                render={({ field }) => (
+                  <Input
+                    type="string"
+                    className="h-8 max-w-sm"
+                    defaultValue={apiKey.ownerId ?? ""}
+                    autoComplete="off"
+                  />
+                )}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <SubmitButton label="Save" />
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };
