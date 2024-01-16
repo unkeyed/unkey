@@ -1,5 +1,5 @@
 "use client";
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,7 +8,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -18,17 +25,28 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Key } from "@unkey/db";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
   enabled: z.boolean(),
-  ratelimitType: z.string().optional(),
-  ratelimitLimit: z.string().optional(),
-  ratelimitRefillRate: z.string().optional(),
-  ratelimitRefillInterval: z.string().optional(),
+  ratelimitType: z.enum(["fast", "consistent"]).optional().default("fast"),
+  ratelimitLimit: z.coerce
+    .number()
+    .positive({ message: "This refill limit must be a positive number." })
+    .int()
+    .optional(),
+  ratelimitRefillRate: z.coerce
+    .number()
+    .positive({ message: "This refill rate must be a positive number." })
+    .int()
+    .optional(),
+  ratelimitRefillInterval: z.coerce
+    .number()
+    .positive({ message: "This refill interval must be a positive number." })
+    .int()
+    .optional(),
 });
 
 type Props = {
@@ -44,10 +62,21 @@ type Props = {
 
 export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  const [enabled, setEnabled] = useState(apiKey.ratelimitType !== null);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id,
+      enabled: apiKey.ratelimitType !== null,
+      ratelimitType: apiKey.ratelimitType ? apiKey.ratelimitType : undefined,
+      ratelimitLimit: apiKey.ratelimitLimit ? apiKey.ratelimitLimit : undefined,
+      ratelimitRefillRate: apiKey.ratelimitRefillRate ? apiKey.ratelimitRefillRate : undefined,
+      ratelimitRefillInterval: apiKey.ratelimitRefillInterval
+        ? apiKey.ratelimitRefillInterval
+        : undefined,
+    },
   });
   const updateRatelimit = trpc.keySettings.updateRatelimit.useMutation({
     onSuccess() {
@@ -60,7 +89,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateRatelimit.mutate(values);
+    updateRatelimit.mutateAsync(values);
   }
   return (
     <Form {...form}>
@@ -71,29 +100,33 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             <CardDescription>How frequently this key can be used.</CardDescription>
           </CardHeader>
           <CardContent className="relative flex justify-between item-center">
-            <div className={cn("flex flex-col", { "opacity-50": !enabled })}>
-              <input type="hidden" name="keyId" value={apiKey.id} />
-              <input type="hidden" name="enabled" value={enabled ? "true" : "false"} />
-              <input type="hidden" name="ratelimitType" value={enabled ? "fast" : undefined} />
-
+            <div
+              className={cn("flex flex-col", {
+                "opacity-50": !form.getValues("enabled"),
+              })}
+            >
               <div className="flex flex-col gap-1">
                 <Label htmlFor="ratelimitLimit">Limit</Label>
                 <FormField
                   control={form.control}
                   name="ratelimitLimit"
                   render={({ field }) => (
-                    <Input
-                      disabled={!enabled}
-                      {...field}
-                      type="number"
-                      min={0}
-                      className="max-w-sm"
-                      defaultValue={apiKey.ratelimitLimit ?? undefined}
-                      autoComplete="off"
-                    />
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={!form.getValues("enabled")}
+                          type="number"
+                          min={0}
+                          className="max-w-sm"
+                          defaultValue={apiKey.ratelimitLimit ?? undefined}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
-
                 <p className="mt-1 text-xs text-content-subtle">
                   The maximum number of requests possible during a burst.
                 </p>
@@ -105,15 +138,20 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                     control={form.control}
                     name="ratelimitRefillRate"
                     render={({ field }) => (
-                      <Input
-                        disabled={!enabled}
-                        {...field}
-                        type="number"
-                        min={0}
-                        className="max-w-sm"
-                        defaultValue={apiKey.ratelimitRefillRate ?? undefined}
-                        autoComplete="off"
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={!form.getValues("enabled")}
+                            type="number"
+                            min={0}
+                            className="max-w-sm"
+                            defaultValue={apiKey.ratelimitRefillRate ?? undefined}
+                            autoComplete="off"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>
@@ -126,14 +164,20 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                     control={form.control}
                     name="ratelimitRefillInterval"
                     render={({ field }) => (
-                      <Input
-                        disabled={!enabled}
-                        type="number"
-                        min={0}
-                        className="max-w-sm"
-                        defaultValue={apiKey.ratelimitRefillInterval ?? undefined}
-                        autoComplete="off"
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={!form.getValues("enabled")}
+                            type="number"
+                            min={0}
+                            className="max-w-sm"
+                            defaultValue={apiKey.ratelimitRefillInterval ?? undefined}
+                            autoComplete="off"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>
@@ -144,11 +188,28 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             </div>
           </CardContent>
           <CardFooter className="justify-between">
-            <div className="flex items-center gap-4">
-              <Switch id="enabled" checked={enabled} onCheckedChange={setEnabled} />
-              <Label htmlFor="enabled">{enabled ? "Enabled" : "Disabled"}</Label>
-            </div>
-            <SubmitButton label="Save" />
+            <FormField
+              control={form.control}
+              name="enabled"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <div className="flex items-center gap-4">
+                    <FormControl>
+                      <Switch
+                        checked={form.getValues("enabled")}
+                        onCheckedChange={(e) => {
+                          field.onChange(e);
+                        }}
+                      />
+                    </FormControl>{" "}
+                    <FormLabel htmlFor="enabled">
+                      {form.getValues("enabled") ? "Enabled" : "Disabled"}
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+            <Button type="submit">Save</Button>
           </CardFooter>
         </Card>
       </form>
