@@ -1,7 +1,3 @@
-/// <reference lib="dom" />
-/// <reference lib="dom.iterable" />
-// ^ https://bun.sh/docs/typescript#dom-types
-
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import { HydrationOverlay } from "@builder.io/react-hydration-overlay";
 

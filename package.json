@@ -24,12 +24,16 @@
   "devDependencies": {
     "@biomejs/biome": "1.2.2",
     "@changesets/cli": "^2.26.2",
+    "@types/node": "^20.11.4",
+    "@vitest/ui": "^1.2.0",
+    "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.3",
     "is-ci": "^3.0.1",
+    "knip": "^3.13.2",
     "lint-staged": "^15.0.2",
     "turbo": "^1.10.16",
     "typescript": "^5.2.2",
-    "knip": "^3.13.2"
+    "vitest": "^0.34.3"
   },
   "pnpm": {
     "overrides": {
