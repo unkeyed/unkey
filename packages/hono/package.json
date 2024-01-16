@@ -24,7 +24,7 @@
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
     "build": "tsup",
-    "test": "bun test"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.8.7",
