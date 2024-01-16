@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
@@ -109,6 +109,6 @@ describe("with prefix", () => {
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();
-    expect(key!.start).toStartWith("prefix_");
+    expect(key!.start.startsWith("prefix_")).toBe(true);
   });
 });

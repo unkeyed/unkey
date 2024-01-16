@@ -12,7 +12,7 @@
     "studio": "dotenv -e .env drizzle-kit studio "
   },
   "devDependencies": {
-    "@types/node": "^20.8.7",
+    "@types/node": "^20.11.4",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.3.0",
     "drizzle-kit": "^0.20.9",
