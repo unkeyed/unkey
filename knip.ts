@@ -8,7 +8,7 @@ const config: KnipConfig = {
       entry: "checkly.config.ts",
     },
     "apps/web": {
-      entry: ["contentlayer.config.ts", "lib/trpc/index.ts", "trpc.config.ts"],
+      entry: ["contentlayer.config.ts", "lib/trpc/index.ts", "trpc.config.ts", "next-env.d.ts"],
     },
     "apps/api": {
       entry: ["**/*.test.ts", "src/pkg/testutil/*.ts", "src/worker.ts", "./vitest.*.ts"],
