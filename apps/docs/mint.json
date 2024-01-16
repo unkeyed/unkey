@@ -132,6 +132,7 @@
       "group": "Typescript",
       "icon": "code",
       "pages": [
+        "libraries/ts/nextjs",
         {
           "group": "@unkey/api",
           "pages": [
