@@ -103,6 +103,7 @@
             "api-reference/errors/code/FORBIDDEN",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/CONFLICT",
+            "api-reference/errors/code/DISABLED",
             "api-reference/errors/code/INTERNAL_SERVER_ERROR"
           ]
         },
@@ -245,7 +246,7 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "http://localhost:8787/openapi.json",
+  "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
   },
