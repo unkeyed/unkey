@@ -18,7 +18,4 @@ dist
 .vscode
 .dev.vars
 .wrangler
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
+.vitest

@@ -15,7 +15,6 @@
     "@unkey/tsconfig": "workspace:^",
     "@vitest/ui": "^1.2.0",
     "bun-types": "^1.0.15",
-    "rollup-plugin-node-builtins": "^2.1.2",
     "typescript": "^5.3.2",
     "vitest": "^0.34.3",
     "wrangler": "^3.19.0"
@@ -31,7 +30,6 @@
     "@unkey/keys": "workspace:^",
     "@unkey/rbac": "workspace:^",
     "@unkey/result": "workspace:^",
-    "base-x": "^4.0.0",
     "drizzle-orm": "^0.29.2",
     "hono": "^3.11.7",
     "superjson": "^1.13.3",
