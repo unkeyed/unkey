@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { auditLogs } from "./audit";
 import { keyAuth } from "./keyAuth";
+import { roles } from "./rbac";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -41,7 +42,7 @@ export const keys = mysqlTable(
     ownerId: varchar("owner_id", { length: 256 }),
     meta: text("meta"),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
-    expires: datetime("expires", { fsp: 3 }), // unix,
+    expires: datetime("expires", { fsp: 3 }), // unix milli,
     /**
      * When a key is revoked, we set this time field to mark it as deleted.
      *
@@ -92,6 +93,9 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   forWorkspace: one(workspaces, {
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
+  }),
+  roles: many(roles, {
+    relationName: "key_roles_relation",
   }),
 
   auditLog: many(auditLogs),

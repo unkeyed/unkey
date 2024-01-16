@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { MembershipRole } from "@clerk/types";
 import Link from "next/link";
 
@@ -174,7 +174,6 @@ const Invitations: React.FC = () => {
   const { isLoaded, invitationList } = useOrganization({
     invitationList: { limit: 20, offset: 0 },
   });
-  const { toast } = useToast();
 
   if (!isLoaded) {
     return (
@@ -222,10 +221,7 @@ const Invitations: React.FC = () => {
                 size="sm"
                 onClick={async () => {
                   await invitation.revoke();
-                  toast({
-                    title: "Success",
-                    description: "Invitation revoked",
-                  });
+                  toast.success("Invitation revoked");
                 }}
               >
                 Revoke
@@ -244,7 +240,6 @@ const RoleSwitcher: React.FC<{
   const [role, setRole] = useState(member.role);
   const [isLoading, setLoading] = useState(false);
   const { organization, membership } = useOrganization();
-  const { toast } = useToast();
   const { userId } = useAuth();
   async function updateRole(role: Member["role"]) {
     try {
@@ -255,17 +250,10 @@ const RoleSwitcher: React.FC<{
       await organization?.updateMember({ userId: member.id, role });
 
       setRole(role);
-      toast({
-        title: "Success",
-        description: "Role updated",
-      });
+      toast.success("Role updated");
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: "An error occured while updating the role",
-        variant: "alert",
-      });
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }

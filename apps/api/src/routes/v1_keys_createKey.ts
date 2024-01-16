@@ -1,7 +1,8 @@
-import { cache, db, keyService } from "@/pkg/global";
+import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -62,6 +63,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                   billingTier: "PRO",
                   trialEnds: "2023-06-16T17:16:37.161Z",
                 },
+              }),
+            roles: z
+              .array(z.string().min(1).max(512))
+              .optional()
+              .openapi({
+                description:
+                  "A list of roles that this key should have. New roles will be created if they don't exist yet.",
+                example: ["admin", "finance"],
               }),
             expires: z.number().int().optional().openapi({
               description:
@@ -177,32 +186,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
-    if (!authorization) {
-      throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
-        message: "key required",
-      });
-    }
-    const rootKey = await keyService.verifyKey(c, { key: authorization });
-    if (rootKey.error) {
-      throw new UnkeyApiError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: rootKey.error.message,
-      });
-    }
-    if (!rootKey.value.valid) {
-      throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
-        message: "the root key is not valid",
-      });
-    }
-    if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
-        message: "root key required",
-      });
-    }
+    const auth = await rootKeyAuth(c);
 
     const req = c.req.valid("json");
 
@@ -215,7 +199,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       );
     });
 
-    if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
+    if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `api ${req.apiId} not found`,
@@ -251,8 +235,8 @@ export const registerV1KeysCreateKey = (app: App) =>
     const keyId = newId("key");
     const hash = await sha256(key.toString());
 
-    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
-    const rootKeyId = rootKey.value.key.id;
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const rootKeyId = auth.key.id;
 
     await db.transaction(async (tx) => {
       await tx.insert(schema.keys).values({
@@ -279,6 +263,16 @@ export const registerV1KeysCreateKey = (app: App) =>
         deletedAt: null,
         enabled: req.enabled,
       });
+      if (req.roles && req.roles.length > 0) {
+        await tx.insert(schema.roles).values(
+          req.roles.map((role) => ({
+            id: newId("role"),
+            workspaceId: authorizedWorkspaceId,
+            keyId,
+            role,
+          })),
+        );
+      }
       await tx.insert(schema.auditLogs).values({
         id: newId("auditLog"),
         time: new Date(),

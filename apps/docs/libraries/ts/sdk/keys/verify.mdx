@@ -36,6 +36,7 @@ Verify a key from your users.
   checks like `IP whitelists`
   - `USAGE_EXCEEDED` - The key has been used up and is no longer valid
   - `RATE_LIMITED` - The verification has been blocked due to ratelimiting
+  - `DISABLED` - the key is disabled
 </ResponseField>
 
 <ResponseField name="ownerId" type="string">
@@ -87,10 +88,12 @@ Example:
     Shows how many more times this key may be verified before being invalidated.
     Only applies to keys where you have set a `remaining` count.
     </ResponseField>
-
+<ResponseField name="enabled" type="bool" required>
+    Shows if the key is enabled or disabled.
+    </ResponseField>
 </Expandable>
 </ResponseField>
-
+ 
 <RequestExample>
 
 ```ts

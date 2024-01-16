@@ -3,7 +3,7 @@
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -15,7 +15,6 @@ export function EmailSignIn(props: {
   emailValue: string;
 }) {
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
-  const { toast } = useToast();
   const param = "__clerk_ticket";
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
@@ -81,11 +80,7 @@ export function EmailSignIn(props: {
           props.dialog(true);
           props.email(email);
         } else {
-          toast({
-            title: "Error",
-            description: "Sorry, We couldn't sign you in. Please try again later",
-            variant: "alert",
-          });
+          toast.error("Sorry, We couldn't sign you in. Please try again later");
         }
       });
   };

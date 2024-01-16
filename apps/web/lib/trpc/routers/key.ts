@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
+import { unkeyRoleValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
@@ -109,11 +110,10 @@ export const keyRouter = t.router({
   createInternalRootKey: t.procedure
     .use(auth)
     .input(
-      z
-        .object({
-          name: z.string().optional(),
-        })
-        .optional(),
+      z.object({
+        name: z.string().optional(),
+        roles: z.array(unkeyRoleValidation),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const unkeyApi = await db.query.apis.findFirst({
@@ -138,6 +138,13 @@ export const keyRouter = t.router({
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          apis: {
+            columns: {
+              id: true,
+            },
+          },
+        },
       });
       if (!workspace) {
         console.error(`workspace for tenant ${ctx.tenant.id} not found`);
@@ -186,7 +193,17 @@ export const keyRouter = t.router({
           description: `created key ${keyId} for api ${unkeyApi.id}`,
           keyId: keyId,
         });
+
+        await tx.insert(schema.roles).values(
+          new Array(...input.roles, "*").map((role) => ({
+            id: newId("role"),
+            workspaceId: env().UNKEY_WORKSPACE_ID,
+            keyId,
+            role,
+          })),
+        );
       });
+
       return { key, keyId };
     }),
   delete: t.procedure

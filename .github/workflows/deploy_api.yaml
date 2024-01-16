@@ -2,8 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency: "only one deploy at a time"
 
@@ -13,7 +12,7 @@ env:
   PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
 jobs:
-  test_api_worker:
+  test_routes:
      name: Unit Test API
      runs-on: ubuntu-latest
 
@@ -55,8 +54,8 @@ jobs:
          uses: ./.github/actions/install
 
 
-       - name: Test
-         run: bun test src/routes --coverage --timeout 10000 --rerun-each 3
+       - name: Test Routes
+         run: pnpm test:routes
          working-directory: apps/api
          env:
            UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
@@ -105,7 +104,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Test
-        run: bun test src/integration --timeout 10000 --rerun-each 10
+        run: pnpm test:e2e
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -113,7 +112,7 @@ jobs:
 
   canary:
       needs:
-        - test_api_worker
+        - test_routes
         - preview-tests
       environment: Canary
       runs-on: ubuntu-latest
@@ -139,7 +138,6 @@ jobs:
     name: End to End Test Canary
     runs-on: ubuntu-latest
 
-
     steps:
       - uses: actions/checkout@v3
 
@@ -147,7 +145,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Test
-        run: bun test src/integration --timeout 10000 --rerun-each 10
+        run: pnpm test:e2e
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev

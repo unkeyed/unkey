@@ -2,7 +2,7 @@
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useSignIn } from "@clerk/nextjs";
 import type { OAuthStrategy } from "@clerk/types";
 import * as React from "react";
@@ -10,7 +10,6 @@ import * as React from "react";
 export function OAuthSignIn() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const { signIn, isLoaded: signInLoaded } = useSignIn();
-  const { toast } = useToast();
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     if (!signInLoaded) {
@@ -23,14 +22,10 @@ export function OAuthSignIn() {
         redirectUrl: "/auth/sso-callback",
         redirectUrlComplete: "/app/apis",
       });
-    } catch (cause) {
-      console.error(cause);
+    } catch (err) {
+      console.error(err);
       setIsLoading(null);
-      toast({
-        variant: "alert",
-        title: "Error",
-        description: "Something went wrong, please try again.",
-      });
+      toast.error((err as Error).message);
     }
   };
 

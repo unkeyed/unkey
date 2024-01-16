@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
@@ -79,7 +79,7 @@ describe("enabled", () => {
       });
       expect(found).toBeDefined();
       expect(found!.hash).toEqual(await sha256(res.body.key));
-      expect(found!.enabled).toBeTrue();
+      expect(found!.enabled).toBe(true);
     });
   });
   describe("false", () => {
@@ -113,7 +113,7 @@ describe("enabled", () => {
       });
       expect(found).toBeDefined();
       expect(found!.hash).toEqual(await sha256(res.body.key));
-      expect(found!.enabled).toBeFalse();
+      expect(found!.enabled).toBe(false);
     });
   });
   describe("true", () => {
@@ -147,7 +147,7 @@ describe("enabled", () => {
       });
       expect(found).toBeDefined();
       expect(found!.hash).toEqual(await sha256(res.body.key));
-      expect(found!.enabled).toBeTrue();
+      expect(found!.enabled).toBe(true);
     });
   });
 });
@@ -214,6 +214,6 @@ describe("with prefix", () => {
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();
-    expect(key!.start).toStartWith("prefix_");
+    expect(key!.start.startsWith("prefix_")).toBe(true);
   });
 });

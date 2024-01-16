@@ -9,10 +9,11 @@ const prefixes = {
   workspace: "ws",
   keyAuth: "key_auth",
   vercelBinding: "vb",
+  role: "role",
   test: "test", // for tests only
   auditLog: "log",
 } as const;
 
-export function newId(prefix: keyof typeof prefixes): string {
-  return [prefixes[prefix], nanoid(16)].join("_");
+export function newId(prefix: keyof typeof prefixes) {
+  return `${prefixes[prefix]}_${nanoid(16)}` as const;
 }

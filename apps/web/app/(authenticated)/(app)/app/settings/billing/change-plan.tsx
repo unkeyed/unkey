@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { type Workspace } from "@unkey/db";
@@ -25,16 +25,12 @@ type Props = {
 };
 
 export const ChangePlan: React.FC<Props> = ({ workspace, trigger }) => {
-  const { toast } = useToast();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const changePlan = trpc.workspace.changePlan.useMutation({
     onSuccess: (_data, variables, _context) => {
-      toast({
-        title: "Plan changed",
-        description: "Your plan has been changed",
-      });
+      toast.success("Your plan has been changed");
       PostHogEvent({
         name: "plan_changed",
         properties: { plan: variables.plan, workspace: variables.workspaceId },
@@ -43,11 +39,7 @@ export const ChangePlan: React.FC<Props> = ({ workspace, trigger }) => {
       setOpen(false);
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "alert",
-      });
+      toast.error(error.message);
       setOpen(false);
     },
   });
