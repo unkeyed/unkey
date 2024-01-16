@@ -1,8 +1,9 @@
-import { cache, db, keyService } from "@/pkg/global";
+import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 
+import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { newId } from "@unkey/id";
 import { eq } from "drizzle-orm";
@@ -50,20 +51,7 @@ export type V1KeysDeleteKeyResponse = z.infer<
 
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
-    if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
-    }
-    const rootKey = await keyService.verifyKey(c, { key: authorization });
-    if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
-    }
-    if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
-    }
-    if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
-    }
+    const auth = await rootKeyAuth(c);
 
     const { keyId } = c.req.valid("json");
 
@@ -87,12 +75,12 @@ export const registerV1KeysDeleteKey = (app: App) =>
       };
     });
 
-    if (!data || data.key.workspaceId !== rootKey.value.authorizedWorkspaceId) {
+    if (!data || data.key.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
 
-    const authorizedWorkspaceId = rootKey.value.authorizedWorkspaceId;
-    const rootKeyId = rootKey.value.key.id;
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const rootKeyId = auth.key.id;
     await db.transaction(async (tx) => {
       await tx
         .update(schema.keys)
