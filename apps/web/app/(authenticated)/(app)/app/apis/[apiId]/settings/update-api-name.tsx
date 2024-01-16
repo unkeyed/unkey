@@ -36,7 +36,6 @@ type Props = {
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
   const updateName = trpc.api.updateName.useMutation();
   const [isLoading, setLoading] = useState(false);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,17 +53,10 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
         apiId: values.apiId,
         workspaceId: values.workspaceId,
       });
-      toast({
-        title: "Success",
-        description: "Your Api name has been updated!",
-      });
+      toast.success("Your Api name has been updated!");
       router.refresh();
     } catch (err) {
-      toast({
-        title: "Error",
-        description: (err as Error).message,
-        variant: "alert",
-      });
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }

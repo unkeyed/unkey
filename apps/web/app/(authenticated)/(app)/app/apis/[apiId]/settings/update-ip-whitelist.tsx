@@ -43,7 +43,6 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
-  const { toast } = useToast();
   const [isLoading, setLoading] = useState(false);
   const isEnabled = workspace.plan === "enterprise";
   const updateIps = trpc.api.updateIpWhitelist.useMutation();
@@ -67,17 +66,10 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         apiId: values.apiId,
         workspaceId: values.workspaceId,
       });
-      toast({
-        title: "Success",
-        description: "Your ip whitelist has been updated!",
-      });
+      toast.success("Your ip whitelist has been updated!");
       router.refresh();
     } catch (err) {
-      toast({
-        title: "Error",
-        description: (err as Error).message,
-        variant: "alert",
-      });
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
