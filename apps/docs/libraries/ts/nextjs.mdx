@@ -74,8 +74,8 @@ You can specify custom error handling. By default errors will be logged to the c
 export const GET = withUnkey(async (req) => {
   // ...
 }, {
-	onError: (req, res) => {
-      await analytics.trackEvent(res.error)
+	onError: async (req, res) => {
+      await analytics.trackEvent(`Error ${res.code}: ${res.message}`)
       return new NextResponse("Unkey error", { status: 500 })
   }
 });

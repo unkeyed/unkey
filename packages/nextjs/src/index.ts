@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 export type WithUnkeyConfig = {
   /**
    * The apiId to verify against.
-   *Tbf
+   *
    * This will be required soon.
    */
   apiId?: string;
