@@ -1,5 +1,4 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -29,14 +28,6 @@ export default async function SettingsKeysPage(_props: {
         title="Create a new Root Key"
         description="Select the permissions you want to grant to your new api key and click the button below to create it."
       />
-
-      <Alert variant="warn">
-        <AlertTitle>Preview</AlertTitle>
-        <AlertDescription>
-          While we are in beta, you can already assign permissions to your keys, but they are not
-          yet enforced.
-        </AlertDescription>
-      </Alert>
 
       <Client apis={workspace.apis} />
     </div>

@@ -3,6 +3,7 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 
@@ -58,6 +59,13 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
   return (
     <div className="flex flex-col gap-4">
+      <Alert variant="warn">
+        <AlertTitle>Preview</AlertTitle>
+        <AlertDescription>
+          While we are in beta, you can already assign permissions to your keys, but they are not
+          yet enforced.
+        </AlertDescription>
+      </Alert>
       <Card>
         <CardHeader>
           <CardTitle>Name</CardTitle>
