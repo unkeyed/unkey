@@ -1,0 +1,41 @@
+---
+title: Testing
+description: James loves writing tests
+---
+
+
+We use [vitest](https://vitest.dev/) for our unit and integration tests. You can run the tests with:
+
+```bash
+pnpm install
+pnpm test
+```
+
+## API Tests
+
+`/apps/api` is our core product and needs to be heavily tested. Unit tests are not enough and we use two types of integration tests:
+
+### `routes`
+
+Spins up a local server within the tests and makes requests to it. 
+
+Routes test require a planetscale compatible database to be running. You can set the following environment variables to configure the database:
+  ```bash
+  cd apps/api
+
+  DATABASE_HOST=
+  DATABASE_USERNAME=
+  DATABASE_PASSWORD=
+  pnpm test:routes
+  ```
+### `e2e`
+
+Full end to end tests require a running API either locally or in a deployed environment.
+  ```bash
+  cd apps/api
+
+  UNKEY_BASE_URL=
+  UNKEY_ROOT_KEY=
+  pnpm test:e2e
+  ```
+

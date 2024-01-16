@@ -96,7 +96,7 @@ export const registerV1KeysGetKey = (app: App) =>
     }
 
     let meta = data.key.meta ? JSON.parse(data.key.meta) : undefined;
-    if (Object.keys(meta).length === 0) {
+    if (!meta || Object.keys(meta).length === 0) {
       meta = undefined;
     }
     return c.json({

@@ -1,5 +1,5 @@
 import { newApp } from "@/pkg/hono/app";
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";

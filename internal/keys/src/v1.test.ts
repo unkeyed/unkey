@@ -1,5 +1,5 @@
+import { expect, test } from "vitest";
 import { KeyV1 } from "./v1";
-import { expect, test } from "bun:test";
 
 test("create v1 key", () => {
   const key = new KeyV1({ byteLength: 16 });

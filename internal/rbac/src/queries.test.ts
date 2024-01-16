@@ -1,5 +1,5 @@
+import { describe, expect, test } from "vitest";
 import { NestedQuery, and, or } from "./queries";
-import { describe, expect, test } from "bun:test";
 
 describe("serialising the schema", () => {
   const testCases: {

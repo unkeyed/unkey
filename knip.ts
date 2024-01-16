@@ -2,6 +2,7 @@ import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
   ignoreWorkspaces: ["packages/nuxt"],
+  ignoreDependencies: ["cz-conventional-changelog"],
   workspaces: {
     ".": {
       entry: "checkly.config.ts",
@@ -10,7 +11,7 @@ const config: KnipConfig = {
       entry: ["contentlayer.config.ts", "lib/trpc/index.ts", "trpc.config.ts"],
     },
     "apps/api": {
-      entry: ["**/*.test.ts", "src/pkg/testutil/*.ts", "src/worker.ts"],
+      entry: ["**/*.test.ts", "src/pkg/testutil/*.ts", "src/worker.ts", "./vitest.*.ts"],
     },
     "internal/billing": {
       entry: ["src/index.ts", "**/*.test.ts"],
@@ -19,7 +20,7 @@ const config: KnipConfig = {
       entry: "src/index.ts",
     },
     "internal/rbac": {
-      entry: "src/index.ts",
+      entry: ["src/index.ts", "**/*.test.ts"],
     },
     "internal/hash": {
       entry: ["src/index.ts", "**/*.test.ts"],

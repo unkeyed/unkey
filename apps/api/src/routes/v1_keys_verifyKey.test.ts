@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
@@ -48,7 +48,7 @@ test("returns 200", async () => {
   });
 
   expect(res.status).toEqual(200);
-  expect(res.body.valid).toBeTrue();
+  expect(res.body.valid).toBe(true);
 });
 
 describe("bad request", () => {
@@ -121,7 +121,7 @@ describe("with temporary key", () => {
         },
       });
       expect(res.status).toEqual(200);
-      expect(res.body.valid).toBeTrue();
+      expect(res.body.valid).toBe(true);
 
       await new Promise((resolve) => setTimeout(resolve, 6000));
       const secondResponse = await fetchRoute<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>(
@@ -139,7 +139,7 @@ describe("with temporary key", () => {
         },
       );
       expect(secondResponse.status).toEqual(200);
-      expect(secondResponse.body.valid).toBeFalse();
+      expect(secondResponse.body.valid).toBe(false);
     },
     { timeout: 20000 },
   );
@@ -197,7 +197,7 @@ describe("with ip whitelist", () => {
         },
       });
       expect(res.status).toEqual(200);
-      expect(res.body.valid).toBeTrue();
+      expect(res.body.valid).toBe(true);
     });
   });
   describe("with invalid ip", () => {
@@ -253,7 +253,7 @@ describe("with ip whitelist", () => {
           },
         });
         expect(res.status).toEqual(200);
-        expect(res.body.valid).toBeFalse();
+        expect(res.body.valid).toBe(false);
         expect(res.body.code).toEqual("FORBIDDEN");
       },
       { timeout: 20000 },
@@ -311,7 +311,7 @@ describe("with enabled key", () => {
       },
     });
     expect(res.status).toEqual(200);
-    expect(res.body.valid).toBeTrue();
+    expect(res.body.valid).toBe(true);
   });
 });
 
@@ -365,7 +365,7 @@ describe("with disabled key", () => {
       },
     });
     expect(res.status).toEqual(200);
-    expect(res.body.valid).toBeFalse();
+    expect(res.body.valid).toBe(false);
     expect(res.body.code).toEqual("DISABLED");
   });
 });
