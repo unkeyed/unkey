@@ -43,7 +43,7 @@ jobs:
 
 
       - name: Test
-        run: pnpm test:e2e
+        run: pnpm test:routes
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
