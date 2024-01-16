@@ -34,118 +34,63 @@ The official Next.js SDK for Unkey. Use this within your [route handlers](https:
   </Tab>
 </Tabs>
 
-Let's dive straight in. The minimal setup looks like this.
-By default it tries to grab the api key from the `Authorization` header and then verifies it with unkey.
-The result of the verification will be written to the context and can be access with `c.get("unkey")`.
+Protecting API routes is as simple as wrapping them with the `withUnkey` handler:
 
 ```ts
-import { Hono } from "hono"
-import { UnkeyContext, unkey } from "@unkey/hono";
+import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
 
-const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+export const POST = withUnkey(async (req) => {
 
-app.use("*", unkey());
-
-
-app.get("/somewhere", (c) => {
-  // access the unkey response here to get metadata of the key etc
-  const ... = c.get("unkey")
-
-  return c.text("yo")
-})
+  // Process the request here
+  // You have access to the verification response using `req.unkey`
+  console.log(req.unkey);
+  
+  return new Response('Your API key is valid!');
+});
 ```
 
-## Customizing the middleware
+That's it! Since this is just handling key verification, there's no need to specify a root key as an environment variable.
 
-### Header
+If you want to customize how `withUnkey` processes incoming requests, you can do so as follows:
 
-By default the middleware tries to grab the api key from the `Authorization` header. You can change this by passing a custom header name to the middleware.
+### `getKey`
+
+By default, withUnkey will look for a bearer token located in the `authorization` header. If you want to customize this, you can do so by passing a getter
+in the configuration object:
 
 ```ts
-app.use(
-  "*",
-  unkey({
-    getKey: (c) => c.req.header("x-api-key"),
-  })
-);
+export const GET = withUnkey(async (req) => {
+  // ...
+}, {
+	getKey: (req) => new URL(req.url).searchParams.get("key"),
+});
 ```
 
-If the header is missing the middleware will return a `401` error response like this
+### `onError`
+
+You can specify custom error handling. By default errors will be logged to the console, and `withUnkey` will return a NextResponse with status 500.
 
 ```ts
-c.json({ error: "unauthorized" }, { status: 401 });
+export const GET = withUnkey(async (req) => {
+  // ...
+}, {
+	onError: (req, res) => {
+      await analytics.trackEvent(res.error)
+      return new NextResponse("Unkey error", { status: 500 })
+  }
+});
 ```
 
-To customize the response in case the header is missing, just return a response from the `getKey` function.
+### `handleInvalidKey`
+
+Specify what to do if Unkey reports that your key is invalid. 
 
 ```ts
-app.use(
-  "*",
-  unkey({
-    getKey: (c) => {
-      const key = c.req.header("x-api-key");
-      if (!key) {
-        return c.text("missing api key", 401);
-      }
-      return key;
-    },
-  })
-);
-```
-
-### Handle errors
-
-If omited, the middleware will throw an `HTTPException` like hono [recommends](https://hono.dev/api/exception)
-
-To handle errors globally you can pass an `onError` handler to the middleware.
-The handler will be called with the context and the error.
-
-<Expandable title="UnkeyError">
-  <ResponseField name="code" type="string" required>
-    The machine readable error code
-  </ResponseField>
-  <ResponseField name="docs" type="string" required>
-    A link to the docs to read more about this error type.
-  </ResponseField>
-  <ResponseField name="message" type="string" required>
-    A human readable message to help debugging the error.
-  </ResponseField>
-  <ResponseField name="requestId" type="string" required>
-    A trace id useful to debug it on Unkey's side, please provide this to
-    support if you need help.
-  </ResponseField>
-</Expandable>
-
-```ts
-app.use(
-  "*",
-  unkey({
-    onError: (c: Context, err: UnkeyError) => {
-      // handle error
-      return c.text("unauthorized", 401);
-    },
-  })
-);
-```
-
-### Handle invalid keys
-
-By default the middleware will not do anything with the verification response other than writing it to the context.
-However you most likely would like to just return a `401` response if the key is invalid and not continue with the request.
-
-To do this you can pass a `handleInvalidKey` handler to the middleware.
-See [here](http://localhost:3000/libraries/ts/sdk/keys/verify#response) for the full `result` object.
-
-```ts
-app.use(
-  "*",
-  unkey({
-    handleInvalidKey: (c, result) => {
-      return c.json({
-          error: "unauthorized",
-          reason: result.code,
-        }, 401);
-    },
-  })
-);
+export const GET = withUnkey(async (req) => {
+  // ...
+}, {
+	handleInvalidKey: (req, res) => {
+      return new Response("Unauthorized", { status: 401 })
+  }
+});
 ```

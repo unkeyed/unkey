@@ -18,7 +18,7 @@ export type WithUnkeyConfig = {
    *
    * @default `req.headers.get("authorization")?.replace("Bearer ", "") ?? null`
    */
-  getKey?: (req: NextRequest) => string | null | NextResponse;
+  getKey?: (req: NextRequest) => string | null | Response | NextResponse;
 
   /**
    * Automatically return a custom response when a key is invalid
@@ -26,12 +26,15 @@ export type WithUnkeyConfig = {
   handleInvalidKey?: (
     req: NextRequest,
     result: UnkeyContext,
-  ) => NextResponse | Promise<NextResponse>;
+  ) => Response | NextResponse | Promise<Response> | Promise<NextResponse>;
 
   /**
    * What to do if things go wrong
    */
-  onError?: (req: NextRequest, err: ErrorResponse["error"]) => NextResponse | Promise<NextResponse>;
+  onError?: (
+    req: NextRequest,
+    err: ErrorResponse["error"],
+  ) => Response | NextResponse | Promise<Response> | Promise<NextResponse>;
 };
 
 export type UnkeyContext = {
@@ -92,8 +95,14 @@ export function withUnkey(
       return new NextResponse("Internal Server Error", { status: 500 });
     }
 
-    if (config?.handleInvalidKey && !res.result.valid) {
-      return config.handleInvalidKey(req, res.result);
+    if (!res.result.valid) {
+      if (config?.handleInvalidKey) {
+        return config.handleInvalidKey(req, res.result);
+      }
+
+      console.log(`Invalid key - ${res.result.code}`);
+
+      return new NextResponse("Unauthorized", { status: 500 });
     }
 
     // @ts-ignore
