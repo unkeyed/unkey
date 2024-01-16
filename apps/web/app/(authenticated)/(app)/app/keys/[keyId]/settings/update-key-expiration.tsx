@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -26,8 +26,6 @@ type Props = {
 };
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
-
   const [enabled, setEnabled] = useState(apiKey.expires !== null);
 
   const placeholder = useMemo(() => {

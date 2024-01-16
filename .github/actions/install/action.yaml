@@ -14,6 +14,9 @@ runs:
       with:
         version: latest
         run_install: false
+    - name: Enable corepack
+      shell: bash
+      run: corepack enable
 
     - name: Get pnpm store directory
       id: pnpm-cache
@@ -33,5 +36,4 @@ runs:
       shell: bash
       run: |
         pnpm install --recursive
-        npm i -g bun
         npm i -g wrangler

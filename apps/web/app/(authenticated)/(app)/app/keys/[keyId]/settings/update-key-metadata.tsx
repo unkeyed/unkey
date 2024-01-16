@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc";
 
 type Props = {
@@ -24,8 +24,6 @@ type Props = {
 };
 
 export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
-
   const [content, setContent] = useState<string>(apiKey.meta ?? "");
   const rows = Math.max(3, content.split("\n").length);
 
@@ -89,11 +87,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
                 const parsed = JSON.parse(content);
                 setContent(JSON.stringify(parsed, null, 2));
               } catch (e) {
-                toast({
-                  title: "Error",
-                  description: (e as Error).message,
-                  variant: "alert",
-                });
+                toast.error((e as Error).message);
               }
             }}
           >

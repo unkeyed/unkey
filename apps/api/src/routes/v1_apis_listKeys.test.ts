@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
@@ -84,7 +84,7 @@ describe("filter by ownerId", () => {
 
     expect(res.status).toEqual(200);
     expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
-    expect(res.body.keys).toBeArrayOfSize(5);
+    expect(res.body.keys).toHaveLength(5);
   });
 });
 
@@ -120,7 +120,7 @@ describe("with limit", () => {
     });
     expect(res.status).toEqual(200);
     expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
-    expect(res.body.keys).toBeArrayOfSize(2);
+    expect(res.body.keys).toHaveLength(2);
   }, 10_000);
 });
 

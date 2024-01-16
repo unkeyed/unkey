@@ -13,7 +13,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
+import { ClerkError } from "@/lib/clerk";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
@@ -32,7 +33,6 @@ const formSchema = z.object({
 });
 
 export const UpdateUserName: React.FC = () => {
-  const { toast } = useToast();
   const { user } = useUser();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -58,18 +58,14 @@ export const UpdateUserName: React.FC = () => {
           user
             .update({ username })
             .then(() => {
-              toast({
-                title: "Success",
-                description: "Workspace name updated",
-              });
+              toast.success("Workspace name updated");
               user.reload();
             })
-            .catch(() => {
-              toast({
-                title: "Error",
-                description: "Sorry there was an error updating your username",
-                variant: "alert",
-              });
+            .catch((err) => {
+              toast.error(
+                (err as ClerkError).errors.at(0)?.longMessage ??
+                  "Sorry there was an error updating your username",
+              );
             });
         })}
       >

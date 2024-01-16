@@ -1,6 +1,6 @@
 {
   "name": "@unkey/hono",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
@@ -24,13 +24,12 @@
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
     "build": "tsup",
-    "test": "bun test"
+    "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.8.7",
+    "@types/node": "^20.11.4",
     "hono": "^3.11.7",
     "tsup": "^7.2.0",
-    "tsx": "^3.14.0",
     "typescript": "^5.2.2"
   },
   "dependencies": {

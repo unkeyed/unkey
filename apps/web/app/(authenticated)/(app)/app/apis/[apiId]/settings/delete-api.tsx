@@ -4,7 +4,7 @@ import React, { useState } from "react";
 
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -41,8 +41,6 @@ type Props = {
 const intent = "delete my api";
 
 export const DeleteApi: React.FC<Props> = ({ api }) => {
-  const { toast } = useToast();
-
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
@@ -57,8 +55,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
 
   const deleteApi = trpc.api.delete.useMutation({
     onSuccess() {
-      toast({
-        title: "API Deleted",
+      toast.message("API Deleted", {
         description: "Your API and all its keys are being deleted now.",
       });
 
@@ -66,11 +63,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
     },
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 

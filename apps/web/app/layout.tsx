@@ -1,8 +1,6 @@
-/// <reference lib="dom" />
-/// <reference lib="dom.iterable" />
-// ^ https://bun.sh/docs/typescript#dom-types
-
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
+import { HydrationOverlay } from "@builder.io/react-hydration-overlay";
+
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -55,14 +53,24 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
+  const components = (
+    <>
       <Suspense>
         <PostHogPageview />
       </Suspense>
       <PHProvider>
         <body>{children}</body>
       </PHProvider>
+    </>
+  );
+
+  return (
+    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
+      {process.env.NODE_ENV !== "production" ? (
+        <HydrationOverlay>{components}</HydrationOverlay>
+      ) : (
+        components
+      )}
     </html>
   );
 }

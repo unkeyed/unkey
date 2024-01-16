@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
@@ -33,7 +33,6 @@ type Props = {
 };
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
   const [enabled, setEnabled] = useState(apiKey.remaining !== null);
   const [refillEbabled, setRefillEnabled] = useState(apiKey.remaining !== null);
   function handleSubmit(event: any) {

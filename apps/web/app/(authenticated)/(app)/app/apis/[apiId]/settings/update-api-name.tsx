@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { updateApiName } from "./actions";
 type Props = {
   api: {
@@ -24,7 +24,6 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
-  const { toast } = useToast();
   const { pending } = useFormStatus();
 
   return (
@@ -32,17 +31,10 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
       action={async (formData: FormData) => {
         const res = await updateApiName(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Api name updated",
-        });
+        toast.success("Api name updated");
       }}
     >
       <Card>

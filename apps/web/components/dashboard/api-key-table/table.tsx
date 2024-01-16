@@ -39,10 +39,10 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "../../ui/use-toast";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -57,20 +57,17 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess: (_data, variables) => {
       setRowSelection({});
-      toast({
-        title:
-          variables.keyIds.length > 1
-            ? `All ${variables.keyIds.length} keys were deleted`
-            : "Key deleted",
-      });
+      toast(
+        variables.keyIds.length > 1
+          ? `All ${variables.keyIds.length} keys were deleted`
+          : "Key deleted",
+      );
       router.refresh();
     },
     onError: (err, variables) => {
       router.refresh();
-      toast({
-        title: `Could not delete key ${JSON.stringify(variables)}`,
+      toast.error(`Could not delete key ${JSON.stringify(variables)}`, {
         description: err.message,
-        variant: "alert",
       });
     },
   });
