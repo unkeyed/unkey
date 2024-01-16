@@ -11,25 +11,29 @@
   "scripts": {
     "prepare": "is-ci || husky install",
     "dev": "turbo run dev",
-    "build": "pnpm turbo run build --filter=!./examples/*",
+    "build": "pnpm turbo run build",
     "fmt": "pnpm biome format . --write && pnpm biome check . --apply-unsafe ",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
-    "bump-versions": "pnpm changeset version && pnpm install"
+    "bump-versions": "pnpm changeset version && pnpm install",
+    "knip": "knip --include files,dependencies"
   },
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
     "@biomejs/biome": "1.2.2",
     "@changesets/cli": "^2.26.2",
+    "@types/node": "^20.11.4",
+    "@vitest/ui": "^1.2.0",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.3",
     "is-ci": "^3.0.1",
+    "knip": "^3.13.2",
     "lint-staged": "^15.0.2",
-    "ts-node": "^10.9.1",
     "turbo": "^1.10.16",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.3"
   },
   "pnpm": {
     "overrides": {
@@ -49,5 +53,6 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "biome check --apply"
-  }
+  },
+  "packageManager": "pnpm@8.6.9"
 }

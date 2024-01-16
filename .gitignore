@@ -18,3 +18,5 @@ dist
 .vscode
 .dev.vars
 .wrangler
+.vitest
+.react-email

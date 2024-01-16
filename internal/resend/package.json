@@ -11,7 +11,7 @@
     "dev": "email dev"
   },
   "devDependencies": {
-    "@types/node": "^20.8.7",
+    "@types/node": "^20.11.4",
     "@types/react": "^18.2.33",
     "@unkey/tsconfig": "workspace:^",
     "typescript": "^5.2.2"
@@ -23,7 +23,6 @@
     "@react-email/heading": "^0.0.9",
     "@react-email/hr": "^0.0.6",
     "@react-email/html": "0.0.6",
-    "@react-email/img": "^0.0.6",
     "@react-email/link": "^0.0.6",
     "@react-email/render": "^0.0.9",
     "@react-email/section": "^0.0.10",

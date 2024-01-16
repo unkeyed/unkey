@@ -25,6 +25,7 @@
       }
     },
     "ignore": [
+      ".vitest",
       "node_modules",
       ".next",
       "dist",

@@ -5,6 +5,7 @@ import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
+import { UpdateKeyEnabled } from "./update-key-enabled";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
 import { UpdateKeyName } from "./update-key-name";
@@ -34,13 +35,13 @@ export default async function SettingsPage(props: Props) {
 
   return (
     <div className="mb-20 flex flex-col gap-8 ">
+      <UpdateKeyEnabled apiKey={key} />
       <UpdateKeyRemaining apiKey={key} />
       <UpdateKeyRatelimit apiKey={key} />
       <UpdateKeyExpiration apiKey={key} />
       <UpdateKeyMetadata apiKey={key} />
       <UpdateKeyName apiKey={key} />
       <UpdateKeyOwnerId apiKey={key} />
-
       <Card>
         <CardHeader>
           <CardTitle>Key ID</CardTitle>
@@ -50,7 +51,7 @@ export default async function SettingsPage(props: Props) {
           <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">
             <pre>{key.id}</pre>
             <div className="flex items-start justify-between gap-4">
-              <CopyButton className="ph-no-capture" value={key.id} />
+              <CopyButton value={key.id} />
             </div>
           </Code>
         </CardContent>

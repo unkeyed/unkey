@@ -76,7 +76,11 @@
         "features/temp-keys",
         "features/remaining",
         "features/refill",
-        "features/analytics"
+        "features/analytics",
+        "features/audit-log",
+        "features/whitelist",
+        "features/revocation",
+        "features/enabled"
       ]
     },
     {
@@ -99,6 +103,7 @@
             "api-reference/errors/code/FORBIDDEN",
             "api-reference/errors/code/NOT_FOUND",
             "api-reference/errors/code/CONFLICT",
+            "api-reference/errors/code/DISABLED",
             "api-reference/errors/code/INTERNAL_SERVER_ERROR"
           ]
         },
@@ -115,7 +120,12 @@
         },
         {
           "group": "APIs",
-          "pages": ["api-reference/apis/get", "api-reference/apis/list-keys"]
+          "pages": [
+            "api-reference/apis/create",
+            "api-reference/apis/get",
+            "api-reference/apis/list-keys",
+            "api-reference/apis/delete"
+          ]
         }
       ]
     },
@@ -133,12 +143,17 @@
                 "libraries/ts/sdk/keys/create",
                 "libraries/ts/sdk/keys/verify",
                 "libraries/ts/sdk/keys/update",
-                "libraries/ts/sdk/keys/revoke"
+                "libraries/ts/sdk/keys/delete"
               ]
             },
             {
               "group": "APIs",
-              "pages": ["libraries/ts/sdk/apis/get", "libraries/ts/sdk/apis/list-keys"]
+              "pages": [
+                "libraries/ts/sdk/apis/create",
+                "libraries/ts/sdk/apis/get",
+                "libraries/ts/sdk/apis/list-keys",
+                "libraries/ts/sdk/apis/delete"
+              ]
             }
           ]
         },
@@ -222,7 +237,8 @@
       "pages": [
         "contributing/getting-started",
         "contributing/versions",
-        "contributing/editor-setup"
+        "contributing/editor-setup",
+        "contributing/testing"
       ]
     }
   ],

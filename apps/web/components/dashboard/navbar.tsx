@@ -44,7 +44,7 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, c
           })}
         </ul>
       </div>
-      <Separator className="ml-1" />
+      <Separator />
     </nav>
   );
 };

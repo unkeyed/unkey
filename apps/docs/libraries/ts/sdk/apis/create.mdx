@@ -1,0 +1,42 @@
+---
+title: "Create"
+description: "Create a new API"
+---
+
+## Request
+
+<ParamField body="name" type="string" required>
+    The name of the API
+</ParamField>
+
+## Response
+
+<ResponseField name="result">
+<Expandable title="properties" defaultOpen>
+
+<ResponseField name="apiId" type="string" required>
+   The id of the newly created API
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```ts
+await unkey.apis.create({ name: "Unkey production" });
+```
+
+</RequestExample>
+
+## 
+<ResponseExample>
+```ts
+{
+  result: {
+    apiId : "api_123"
+  }
+}
+```
+
+</ResponseExample>

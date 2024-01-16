@@ -4,7 +4,9 @@ import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "@/routes/v1_keys_deleteKey";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "vitest";
+
+const apiIds: string[] = [];
 
 const env = integrationTestEnv.parse(process.env);
 test("create, verify and delete a key", async () => {
@@ -21,6 +23,7 @@ test("create, verify and delete a key", async () => {
   });
   expect(createApiResponse.status).toEqual(200);
   expect(createApiResponse.body.apiId).toBeDefined();
+  apiIds.push(createApiResponse.body.apiId);
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
 
   const key = await step<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -33,6 +36,7 @@ test("create, verify and delete a key", async () => {
     body: {
       apiId: createApiResponse.body.apiId,
       byteLength: 16,
+      enabled: true,
     },
   });
   expect(key.status).toEqual(200);
@@ -79,20 +83,20 @@ test("create, verify and delete a key", async () => {
   });
   expect(validAfterRevoke.status).toEqual(200);
   expect(validAfterRevoke.body.valid).toEqual(false);
+});
 
-  /**
-   * Tear down
-   */
-  const deleteApi = await step({
-    url: `${env.UNKEY_BASE_URL}/v1/apis.deleteApi`,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
-    },
-    body: {
-      apiId: createApiResponse.body.apiId,
-    },
-  });
-  expect(deleteApi.status).toEqual(200);
+afterAll(async () => {
+  for (const apiId of apiIds) {
+    await step({
+      url: `${env.UNKEY_BASE_URL}/v1/apis.deleteApi`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      },
+      body: {
+        apiId,
+      },
+    });
+  }
 });

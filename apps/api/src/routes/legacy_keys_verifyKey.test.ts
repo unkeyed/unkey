@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { init } from "@/pkg/global";
@@ -48,7 +48,7 @@ test("returns 200", async () => {
   });
 
   expect(res.status).toEqual(200);
-  expect(res.body.valid).toBeTrue();
+  expect(res.body.valid).toBe(true);
 });
 
 describe("bad request", () => {
@@ -87,58 +87,62 @@ describe("bad request", () => {
 });
 
 describe("with temporary key", () => {
-  test("returns valid", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerLegacyKeysVerifyKey(app);
+  test(
+    "returns valid",
+    async () => {
+      const env = unitTestEnv.parse(process.env);
+      // @ts-ignore
+      init({ env });
+      const app = newApp();
+      registerLegacyKeysVerifyKey(app);
 
-    const r = await seed(env);
+      const r = await seed(env);
 
-    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await r.database.insert(schema.keys).values({
-      id: newId("key"),
-      keyAuthId: r.userKeyAuth.id,
-      hash: await sha256(key),
-      start: key.slice(0, 8),
-      workspaceId: r.userWorkspace.id,
-      createdAt: new Date(),
-      expires: new Date(Date.now() + 5000),
-    });
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await r.database.insert(schema.keys).values({
+        id: newId("key"),
+        keyAuthId: r.userKeyAuth.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: r.userWorkspace.id,
+        createdAt: new Date(),
+        expires: new Date(Date.now() + 5000),
+      });
 
-    const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
-      method: "POST",
-      url: "/v1/keys/verify",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: {
-        key,
-        apiId: r.userApi.id,
-      },
-    });
-    expect(res.status).toEqual(200);
-    expect(res.body.valid).toBeTrue();
+      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
+        method: "POST",
+        url: "/v1/keys/verify",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: r.userApi.id,
+        },
+      });
+      expect(res.status).toEqual(200);
+      expect(res.body.valid).toBe(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 6000));
-    const secondResponse = await fetchRoute<
-      LegacyKeysVerifyKeyRequest,
-      LegacyKeysVerifyKeyResponse
-    >(app, {
-      method: "POST",
-      url: "/v1/keys/verify",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: {
-        key,
-        apiId: r.userApi.id,
-      },
-    });
-    expect(secondResponse.status).toEqual(404);
-    expect(secondResponse.body.valid).toBeFalse();
-  });
+      await new Promise((resolve) => setTimeout(resolve, 6000));
+      const secondResponse = await fetchRoute<
+        LegacyKeysVerifyKeyRequest,
+        LegacyKeysVerifyKeyResponse
+      >(app, {
+        method: "POST",
+        url: "/v1/keys/verify",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: r.userApi.id,
+        },
+      });
+      expect(secondResponse.status).toEqual(404);
+      expect(secondResponse.body.valid).toBe(false);
+    },
+    { timeout: 10_000 },
+  );
 });
 
 describe("with ip whitelist", () => {
@@ -195,7 +199,7 @@ describe("with ip whitelist", () => {
         },
       });
       expect(res.status).toEqual(200);
-      expect(res.body.valid).toBeTrue();
+      expect(res.body.valid).toBe(true);
     });
   });
   describe("with invalid ip", () => {
@@ -251,7 +255,7 @@ describe("with ip whitelist", () => {
         },
       });
       expect(res.status).toEqual(200);
-      expect(res.body.valid).toBeFalse();
+      expect(res.body.valid).toBe(false);
       expect(res.body.code).toEqual("FORBIDDEN");
     });
   });

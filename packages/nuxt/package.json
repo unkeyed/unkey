@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nuxt",
-  "version": "1.0.6",
+  "version": "1.0.9",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -40,22 +40,16 @@
   "dependencies": {
     "@nuxt/kit": "^3.8.0",
     "@unkey/api": "workspace:^",
-    "defu": "^6.1.2"
+    "defu": "^6.1.4"
   },
   "devDependencies": {
-    "@nuxt/devtools": "^0.8.5",
     "@nuxt/module-builder": "^0.5.2",
     "@nuxt/schema": "^3.8.0",
     "@nuxt/test-utils": "^3.8.0",
-    "@types/node": "^20.8.7",
-    "@vue/reactivity": "^3.3.6",
-    "@vue/runtime-core": "^3.3.6",
-    "@vue/runtime-dom": "^3.3.6",
-    "@vue/shared": "^3.3.6",
+    "@types/node": "^20.11.4",
     "dotenv": "^16.3.1",
     "h3": "^1.8.2",
     "nuxt": "^3.8.0",
-    "unctx": "^2.3.1",
     "vitest": "^0.34.3",
     "vue": "^3.3.6"
   }

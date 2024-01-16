@@ -7,12 +7,11 @@ import { Loading } from "@/components/dashboard/loading";
 import { FadeInStagger } from "@/components/landing/fade-in";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
 
 export function EmailSignUp(props: { verification: (value: boolean) => void }) {
   const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
-  const { toast } = useToast();
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [transferLoading, setTransferLoading] = React.useState(true);
@@ -58,11 +57,7 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
           .catch((err) => {
             setTransferLoading(false);
             if (err.errors[0].code === "form_identifier_exists") {
-              toast({
-                title: "Error",
-                description: "Sorry, it looks like you have an account. Please use sign in",
-                variant: "alert",
-              });
+              toast.error("Sorry, it looks like you have an account. Please use sign in");
             } else {
               console.log("Supress error");
             }
@@ -104,17 +99,9 @@ export function EmailSignUp(props: { verification: (value: boolean) => void }) {
         .catch((err) => {
           setIsLoading(false);
           if (err.errors[0].code === "form_identifier_exists") {
-            toast({
-              title: "Error",
-              description: "Sorry, it looks like you have an account. Please use sign in",
-              variant: "alert",
-            });
+            toast.error("Sorry, it looks like you have an account. Please use sign in");
           } else {
-            toast({
-              title: "Error",
-              description: "Sorry, We couldn't sign you up. Please try again later",
-              variant: "alert",
-            });
+            toast.error("Sorry, We couldn't sign you up. Please try again later");
           }
         });
     } catch (error) {

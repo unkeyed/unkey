@@ -19,11 +19,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, FileClock, Minus, MoreHorizontal, Trash } from "lucide-react";
+import {
+  ArrowUpDown,
+  Check,
+  FileClock,
+  Minus,
+  MoreHorizontal,
+  MoreVertical,
+  Trash,
+  X,
+} from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +43,7 @@ type Column = {
   start: string;
   createdAt: Date;
   expires: Date | null;
+  enabled: boolean;
   ownerId: string | null;
   name: string | null;
   ratelimitType: string | null;
@@ -51,19 +61,14 @@ type Props = {
 
 export const ApiKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
-  const { toast } = useToast();
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess: () => {
-      toast({
-        title: "Key was deleted",
-      });
+      toast.success("Key was deleted");
       router.refresh();
     },
     onError: (err, variables) => {
-      toast({
-        title: `Could not delete key ${JSON.stringify(variables)}`,
+      toast.error(`Could not delete key ${JSON.stringify(variables)}`, {
         description: err.message,
-        variant: "default",
       });
       router.refresh();
     },
@@ -121,6 +126,20 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
         </Button>
       ),
       cell: ({ row }) => row.original.createdAt.toUTCString(),
+    },
+    {
+      accessorKey: "enabled",
+      header: "Enabled",
+      cell: ({ row }) =>
+        row.original.enabled ? (
+          <span>
+            <Check />
+          </span>
+        ) : (
+          <span>
+            <X />
+          </span>
+        ),
     },
     {
       accessorKey: "expires",
@@ -229,9 +248,8 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Link href={`/app/keys/${row.original.id}`} className="w-full">
-                    Details
-                  </Link>
+                  <MoreVertical className="w-4 h-4 mr-2" />
+                  <Link href={`/app/keys/${row.original.id}`}>Details</Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem

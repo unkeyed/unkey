@@ -1,11 +1,12 @@
 "use client";
 
 import { addEmail } from "@/app/actions/addEmail";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { Loading } from "../dashboard/loading";
 import { Button } from "../ui/button";
+
 function ArrowIcon(props: any) {
   return (
     <svg viewBox="0 0 16 6" aria-hidden="true" {...props}>
@@ -35,7 +36,6 @@ const SubmitButton = () => {
 
 export function NewsletterForm() {
   const formRef = useRef<HTMLFormElement>(null);
-  const { toast } = useToast();
   return (
     <form
       ref={formRef}
@@ -44,17 +44,9 @@ export function NewsletterForm() {
         const test = await addEmail(formData);
         formRef.current?.reset();
         if (test.success) {
-          toast({
-            title: "Success",
-            description: "Thanks for signing up!",
-            variant: "default",
-          });
+          toast.success("Thanks for signing up!");
         } else {
-          toast({
-            title: "Error",
-            description: "Something went wrong, please try again later.",
-            variant: "alert",
-          });
+          toast.error("Something went wrong, please try again later.");
         }
       }}
     >

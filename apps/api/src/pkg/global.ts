@@ -12,7 +12,7 @@ import { MemoryCache } from "./cache/memory";
 import { CacheWithMetrics } from "./cache/metrics";
 import { TieredCache } from "./cache/tiered";
 import { ZoneCache } from "./cache/zone";
-import { Api, Database, Key, createConnection } from "./db";
+import { type Api, type Database, type Key, createConnection } from "./db";
 import { Env } from "./env";
 import { KeyService } from "./keys/service";
 import { ConsoleLogger, Logger } from "./logging";
@@ -24,14 +24,24 @@ import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimi
 export type KeyHash = string;
 export type CacheNamespaces = {
   keyById: {
-    key: Key;
+    key: Key & { roles?: { role: string }[] };
     api: Api;
   } | null;
   keyByHash: {
-    key: Key;
+    key: Key & { roles?: { role: string }[] };
     api: Api;
   } | null;
   apiById: Api | null;
+  keysByOwnerId: {
+    key: Key;
+    api: Api;
+  }[];
+  verificationsByKeyId: {
+    time: number;
+    success: number;
+    rateLimited: number;
+    usageExceeded: number;
+  }[];
 };
 
 const fresh = 1 * 60 * 1000; // 1 minute
@@ -74,7 +84,7 @@ export async function init(opts: { env: Env }): Promise<void> {
     opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
       ? new CacheWithMetrics<CacheNamespaces>({
           cache: new ZoneCache<CacheNamespaces>({
-            domain: "unkey.dev",
+            domain: "cache.unkey.dev",
             fresh,
             stale,
             zoneId: opts.env.CLOUDFLARE_ZONE_ID,

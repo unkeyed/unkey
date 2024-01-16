@@ -1,5 +1,23 @@
 # @unkey/api
 
+## 0.16.0
+
+### Minor Changes
+
+- 5de3ae76: add enabled flag
+
+## 0.15.0
+
+### Minor Changes
+
+- a1e82245: add getVerifications method
+
+## 0.14.0
+
+### Minor Changes
+
+- 2e26a07e: Add refill options
+
 ## 0.13.1
 
 ### Patch Changes

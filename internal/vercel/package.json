@@ -8,10 +8,7 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.8.7",
-    "rome": "^12.1.2",
-    "tsup": "^6.7.0",
-    "tsx": "^3.14.0",
+    "@types/node": "^20.11.4",
     "typescript": "^5.0.4"
   },
   "dependencies": {

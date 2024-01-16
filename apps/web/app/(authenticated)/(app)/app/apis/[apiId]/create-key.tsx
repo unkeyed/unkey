@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -86,7 +86,6 @@ type Props = {
 };
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
-  const { toast } = useToast();
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -119,8 +118,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
 
   const key = trpc.key.create.useMutation({
     onSuccess() {
-      toast({
-        title: "Key Created",
+      toast("Key Created", {
         description: "Your Key has been created",
       });
       form.reset();
@@ -130,18 +128,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       const errors = JSON.parse(err.message);
 
       if (err.data?.code === "BAD_REQUEST" && errors[0].path[0] === "ratelimit") {
-        toast({
-          title: "Error",
-          description: "You need to include all ratelimit fields",
-          variant: "alert",
-        });
+        toast.error("You need to include all ratelimit fields");
         return;
       }
-      toast({
-        title: "Error",
-        description: "An error occured, please try again",
-        variant: "alert",
-      });
+      toast.error("An error occured, please try again");
     },
   });
 
@@ -195,6 +185,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
               amount: values.limit.refill.amount,
             }
           : undefined,
+      enabled: true,
     });
   }
 

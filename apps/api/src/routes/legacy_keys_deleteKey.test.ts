@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
@@ -48,5 +48,5 @@ test("soft deletes key", async () => {
   });
   expect(found).toBeDefined();
   expect(found!.deletedAt).toBeDefined();
-  expect(found!.deletedAt!.getTime()).toBeWithin(Date.now() - 10_000, Date.now());
+  expect(found!.deletedAt!.getTime() - Date.now()).toBeLessThan(10_000); // 10s play
 });

@@ -20,7 +20,7 @@ jobs:
 
   test_packages:
     name: Test Packages
-    uses: ./.github/workflows/test_packages.yaml
+    uses: ./.github/workflows/unit_test.yaml
 
   build_apps:
     name: Build Apps

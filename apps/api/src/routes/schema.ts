@@ -19,7 +19,7 @@ export const keySchema = z
       example: "api_1234",
     }),
     name: z.string().optional().openapi({
-      description: "The name of the key, give keys a name to easily identifiy their purpose",
+      description: "The name of the key, give keys a name to easily identify their purpose",
       example: "Customer X",
     }),
     ownerId: z.string().optional().openapi({
@@ -113,5 +113,16 @@ export const keySchema = z
           refillInterval: 60,
         },
       }),
+    roles: z
+      .array(z.string())
+      .optional()
+      .openapi({
+        description: "All roles this key belongs to",
+        example: ["admin", "finance"],
+      }),
+    enabled: z.boolean().optional().openapi({
+      description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
+      example: true,
+    }),
   })
   .openapi("Key");

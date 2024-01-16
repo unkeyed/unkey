@@ -2,7 +2,9 @@ import { Env, zEnv } from "@/pkg/env";
 import { init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
+import { cors } from "hono/cors";
 import { Metric } from "./pkg/metrics";
+
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -10,10 +12,12 @@ import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
 import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
 import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
+import { registerV1KeysGetVerifications } from "./routes/v1_keys_getVerifications";
 import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
+import { registerVXKeysGetVerifications } from "./routes/vx_keys_getVerifications";
 
 // Legacy Routes
 import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
@@ -85,6 +89,7 @@ app.use("*", async (c, next) => {
     c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
   }
 });
+app.use("*", cors());
 
 /**
  * Registering all route handlers
@@ -99,6 +104,8 @@ registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
 registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
+registerV1KeysGetVerifications(app);
+registerVXKeysGetVerifications(app);
 
 // apis
 registerV1ApisGetApi(app);

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
@@ -44,7 +44,6 @@ type Props = {
 };
 
 export const Keys: React.FC<Props> = ({ apiId }) => {
-  const { toast } = useToast();
   const [step, setStep] = useState<Steps>({ step: "CREATE_ROOT_KEY" });
   const rootKey = trpc.key.createInternalRootKey.useMutation({
     onSuccess(res) {
@@ -52,11 +51,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
     },
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
   const key = trpc.key.create.useMutation({
@@ -65,11 +60,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
     },
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
 
@@ -143,7 +134,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               Let's begin by creating a root key
             </EmptyPlaceholder.Description>
 
-            <Button disabled={rootKey.isLoading} onClick={() => rootKey.mutate()}>
+            <Button disabled={rootKey.isLoading} onClick={() => rootKey.mutate({ roles: ["*"] })}>
               {rootKey.isLoading ? <Loading /> : "Create Root Key"}
             </Button>
           </EmptyPlaceholder>
