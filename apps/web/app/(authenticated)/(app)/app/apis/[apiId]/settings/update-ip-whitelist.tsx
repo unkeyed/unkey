@@ -1,5 +1,6 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,18 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { toast } from "@/components/ui/toaster";
-import { trpc } from "@/lib/trpc/client";
-import React, { useState } from "react";
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Workspace } from "@unkey/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -59,8 +58,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
-      console.log(`Value of whitelist${values.ipWhitelist}`);
-
       const _result = await updateIps.mutate({
         ips: values.ipWhitelist,
         apiId: values.apiId,
