@@ -96,7 +96,13 @@ export const Client: React.FC<Props> = ({ apis }) => {
                   label={action}
                   description={description}
                   checked={selectedRoles.includes(role)}
-                  setChecked={() => setSelectedRoles([...selectedRoles, role])}
+                  setChecked={(c) => {
+                    if (c) {
+                      setSelectedRoles([...selectedRoles, role]);
+                    } else {
+                      setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                    }
+                  }}
                 />
               );
             })}
