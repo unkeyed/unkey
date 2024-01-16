@@ -60,6 +60,31 @@ export type UnkeyOptions = (
    * You can leave this blank unless you are building a wrapper around this SDK.
    */
   wrapperSdkVersion?: `v${string}`;
+
+  /** Unkey collects anonymous telemetry data on the platform and SDK versions it is used in.
+   *
+   *  This can be disabled via setting the UNKEY_DISABLE_TELEMETRY environment variable to any value.
+   *
+   */
+  telemetryData?: Telemetry;
+};
+
+type Telemetry = {
+  /**
+   * Unkey-Telemetry-Sdk
+   * @example @unkey/api@v1.1.1
+   */
+  sdkVersions: string[];
+  /**
+   * Unkey-Telemetry-Platform
+   * @example cloudflare
+   */
+  platform: string;
+  /**
+   * Unkey-Telemetry-Runtime
+   * @example node@v18
+   */
+  runtime: string;
 };
 
 type ApiRequest = {
@@ -87,11 +112,20 @@ type Result<R> =
       error: ErrorResponse["error"];
     };
 
+function getDefaultTelemetry(): Telemetry {
+  return {
+    platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
+    // @ts-ignore
+    runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
+    sdkVersions: [`@unkey/nextjs@${version}`],
+  };
+}
+
 export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
   private readonly cache?: RequestCache;
-  private readonly sdkVersions: `v${string}`[] = [];
+  private readonly telemetry: Telemetry;
 
   public readonly retry: {
     attempts: number;
@@ -101,10 +135,8 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
-    this.sdkVersions.push(`v${version}`);
-    if (opts.wrapperSdkVersion) {
-      this.sdkVersions.push(opts.wrapperSdkVersion);
-    }
+    this.telemetry = opts.telemetryData ? opts.telemetryData : getDefaultTelemetry();
+    this.telemetry.sdkVersions.push(`@unkey/api@${version}`);
 
     this.cache = opts.cache;
     /**
@@ -140,7 +172,9 @@ export class Unkey {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.rootKey}`,
-          "Unkey-SDK": this.sdkVersions.join(","),
+          "Unkey-Telemetry-SDK": this.telemetry.sdkVersions.join(","),
+          "Unkey-Telemetry-Platform": this.telemetry.platform,
+          "Unkey-Telemetry-Runtime": this.telemetry.runtime,
         },
         cache: this.cache,
         body: JSON.stringify(req.body),
