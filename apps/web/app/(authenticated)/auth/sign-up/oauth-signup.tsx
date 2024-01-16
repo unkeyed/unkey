@@ -2,7 +2,7 @@
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useSignUp } from "@clerk/nextjs";
 import type { OAuthStrategy } from "@clerk/types";
 import * as React from "react";
@@ -10,7 +10,6 @@ import * as React from "react";
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const { signUp, isLoaded: signupLoaded } = useSignUp();
-  const { toast } = useToast();
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     if (!signupLoaded) {
@@ -26,11 +25,7 @@ export function OAuthSignUp() {
     } catch (cause) {
       console.error(cause);
       setIsLoading(null);
-      toast({
-        variant: "alert",
-        title: "Error",
-        description: "Something went wrong, please try again.",
-      });
+      toast.error("Something went wrong, please try again.");
     }
   };
 

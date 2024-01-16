@@ -74,6 +74,9 @@ export const registerV1KeysGetKey = (app: App) =>
               api: true,
             },
           },
+          roles: {
+            columns: { role: true },
+          },
         },
       });
       if (!dbRes) {
@@ -92,6 +95,10 @@ export const registerV1KeysGetKey = (app: App) =>
       });
     }
 
+    let meta = data.key.meta ? JSON.parse(data.key.meta) : undefined;
+    if (Object.keys(meta).length === 0) {
+      meta = undefined;
+    }
     return c.json({
       id: data.key.id,
       start: data.key.start,
@@ -123,6 +130,7 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
+      roles: data.key.roles?.map((r) => r.role) ?? undefined,
       enabled: data.key.enabled,
     });
   });
