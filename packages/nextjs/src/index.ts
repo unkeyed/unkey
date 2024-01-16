@@ -1,5 +1,7 @@
-import { type ErrorResponse, verifyKey } from "@unkey/api";
+import { type ErrorResponse, Unkey, verifyKey } from "@unkey/api";
 import { type NextRequest, NextResponse } from "next/server";
+
+import { version } from "../package.json";
 
 export type WithUnkeyConfig = {
   /**
@@ -84,7 +86,24 @@ export function withUnkey(
       return key;
     }
 
-    const res = await verifyKey(config?.apiId ? { key, apiId: config.apiId } : key);
+    let unkey: Unkey;
+
+    if (!process.env.DISABLE_UNKEY_TELEMETRY) {
+      unkey = new Unkey({
+        rootKey: "public",
+        telemetryData: {
+          platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
+          // @ts-ignore
+          runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
+          sdkVersions: [`@unkey/nextjs@${version}`],
+        },
+      });
+    } else {
+      unkey = new Unkey({ rootKey: "public" });
+    }
+
+    const res = await unkey.keys.verify(config?.apiId ? { key, apiId: config.apiId } : { key });
+
     if (res.error) {
       if (config?.onError) {
         return config.onError(req, res.error);
