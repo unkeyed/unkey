@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { updateKeyEnabled } from "./actions";
 type Props = {
   apiKey: {
@@ -23,7 +23,6 @@ type Props = {
 };
 
 export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
-  const { toast } = useToast();
   const [enabled, setEnabled] = useState(apiKey.enabled);
 
   return (
@@ -31,17 +30,10 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
       action={async (formData: FormData) => {
         const res = await updateKeyEnabled(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Enabled has been updated",
-        });
+        toast.success("Enabled has been updated");
       }}
     >
       <Card>

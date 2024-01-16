@@ -29,7 +29,6 @@
     "lint-staged": "^15.0.2",
     "turbo": "^1.10.16",
     "typescript": "^5.2.2",
-    "checkly": "^4.5.2",
     "knip": "^3.13.2"
   },
   "pnpm": {

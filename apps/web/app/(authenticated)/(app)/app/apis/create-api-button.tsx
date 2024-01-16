@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
@@ -26,27 +26,19 @@ const formSchema = z.object({
 });
 
 export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   const create = trpc.api.create.useMutation({
     onSuccess(res) {
-      toast({
-        title: "API created",
-        description: "Your API has been created",
-      });
+      toast.success("Your API has been created");
       router.refresh();
       router.push(`/app/apis/${res.id}`);
     },
     onError(err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

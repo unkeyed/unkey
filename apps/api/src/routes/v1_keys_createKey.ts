@@ -63,6 +63,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                   trialEnds: "2023-06-16T17:16:37.161Z",
                 },
               }),
+            roles: z
+              .array(z.string().min(1).max(512))
+              .optional()
+              .openapi({
+                description:
+                  "A list of roles that this key should have. New roles will be created if they don't exist yet.",
+                example: ["admin", "finance"],
+              }),
             expires: z.number().int().optional().openapi({
               description:
                 "You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.",
@@ -279,6 +287,16 @@ export const registerV1KeysCreateKey = (app: App) =>
         deletedAt: null,
         enabled: req.enabled,
       });
+      if (req.roles && req.roles.length > 0) {
+        await tx.insert(schema.roles).values(
+          req.roles.map((role) => ({
+            id: newId("role"),
+            workspaceId: authorizedWorkspaceId,
+            keyId,
+            role,
+          })),
+        );
+      }
       await tx.insert(schema.auditLogs).values({
         id: newId("auditLog"),
         time: new Date(),
