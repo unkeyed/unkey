@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import { init } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";

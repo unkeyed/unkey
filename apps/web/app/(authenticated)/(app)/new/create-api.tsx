@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
@@ -38,25 +38,18 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
   });
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  const { toast } = useToast();
+
   if (isLoaded && user) {
     PostHogIdentify({ user });
   }
   const createApi = trpc.api.create.useMutation({
     onSuccess: async ({ id: apiId }) => {
-      toast({
-        title: "API Created",
-        description: "Your API has been created",
-      });
+      toast.success("Your API has been created");
 
       router.push(`/new?workspaceId=${workspace.id}&apiId=${apiId}`);
     },
     onError(err) {
-      toast({
-        title: "Error",
-        description: `An error occured while creating your api: ${err.message}`,
-        variant: "alert",
-      });
+      toast.error(err.message);
     },
   });
   function AsideContent() {

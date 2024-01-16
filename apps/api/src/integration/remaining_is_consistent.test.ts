@@ -5,7 +5,7 @@ import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysGetKeyResponse } from "@/routes/v1_keys_getKey";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 const env = integrationTestEnv.parse(process.env);
 
@@ -59,7 +59,7 @@ test("remaining consistently counts down", async () => {
     });
 
     expect(valid.status).toEqual(200);
-    expect(valid.body.valid).toBeTrue();
+    expect(valid.body.valid).toBe(true);
     expect(valid.body.remaining).toEqual(i);
   }
 
@@ -76,7 +76,7 @@ test("remaining consistently counts down", async () => {
     },
   });
   expect(invalid.status).toEqual(200);
-  expect(invalid.body.valid).toBeFalse();
+  expect(invalid.body.valid).toBe(false);
   expect(invalid.body.remaining).toEqual(0);
 
   const key = await step<never, V1KeysGetKeyResponse>({

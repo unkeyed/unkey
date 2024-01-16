@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { updateIpWhitelist } from "./actions";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,7 +33,6 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
-  const { toast } = useToast();
   const { pending } = useFormStatus();
 
   const isEnabled = workspace.plan === "enterprise";
@@ -43,17 +42,11 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
       action={async (formData: FormData) => {
         const res = await updateIpWhitelist(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Api name updated",
-        });
+
+        toast.success("IP whitelist updated!");
       }}
     >
       <Card>

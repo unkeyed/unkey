@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/toaster";
 import { useUser } from "@clerk/nextjs";
 import { updateWorkspaceName } from "./actions";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,6 @@ type Props = {
 };
 
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
-  const { toast } = useToast();
   const { user } = useUser();
   const { pending } = useFormStatus();
 
@@ -28,18 +27,11 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       action={async (formData: FormData) => {
         const res = await updateWorkspaceName(formData);
         if (res.error) {
-          toast({
-            title: "Error",
-            description: res.error.message,
-            variant: "alert",
-          });
+          toast.error(res.error.message);
           return;
         }
-        toast({
-          title: "Success",
-          description: "Workspace name updated",
-        });
 
+        toast.success("Workspace name updated");
         user?.reload();
       }}
     >

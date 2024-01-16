@@ -1,6 +1,6 @@
 import { Hono } from "hono";
+import { describe, expect, test } from "vitest";
 import { UnkeyContext, unkey } from "./index";
-import { describe, expect, test } from "bun:test";
 
 const key = "hono_3ZHg8eyRMts88vxy5uvWLb8S";
 

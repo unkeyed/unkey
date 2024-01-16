@@ -1,7 +1,8 @@
-import { cache, db, keyService } from "@/pkg/global";
+import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -45,20 +46,7 @@ export type LegacyApisDeleteApiResponse = z.infer<
 
 export const registerLegacyApisDeleteApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const authorization = c.req.header("authorization")?.replace("Bearer ", "");
-    if (!authorization) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
-    }
-    const rootKey = await keyService.verifyKey(c, { key: authorization });
-    if (rootKey.error) {
-      throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
-    }
-    if (!rootKey.value.valid) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "the root key is not valid" });
-    }
-    if (!rootKey.value.isRootKey) {
-      throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
-    }
+    const auth = await rootKeyAuth(c);
 
     const apiId = c.req.param("apiId");
 
@@ -70,7 +58,7 @@ export const registerLegacyApisDeleteApi = (app: App) =>
       );
     });
 
-    if (!api || api.workspaceId !== rootKey.value.authorizedWorkspaceId) {
+    if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
 
@@ -81,7 +69,7 @@ export const registerLegacyApisDeleteApi = (app: App) =>
         time: new Date(),
         workspaceId: api.workspaceId,
         actorType: "key",
-        actorId: rootKey.value.key!.id,
+        actorId: auth.key!.id,
         event: "api.delete",
         description: "API deleted",
         apiId: apiId,

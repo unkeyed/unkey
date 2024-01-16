@@ -1,0 +1,23 @@
+{
+  "name": "@unkey/rbac",
+  "version": "1.0.0",
+  "description": "roles utilities used by unkey internally",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.4",
+    "@unkey/tsconfig": "workspace:*",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.3"
+  },
+  "dependencies": {
+    "@unkey/result": "workspace:^",
+    "zod": "^3.22.4"
+  }
+}
