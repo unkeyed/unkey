@@ -1,5 +1,6 @@
 "use client";
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,13 +9,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FormField } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { trpc } from "@/lib/trpc/client";
-import router from "next/router";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+
 import React, { useState } from "react";
-import { updateKeyEnabled } from "./actions";
+import { Form, useForm } from "react-hook-form";
+import { z } from "zod";
+const formSchema = z.object({
+  keyId: z.string(),
+  workspaceId: z.string(),
+  enabled: z.boolean(),
+});
 type Props = {
   apiKey: {
     id: string;
@@ -27,62 +37,70 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
   const { toast } = useToast();
   const router = useRouter();
   const [enabled, setEnabled] = useState(apiKey.enabled);
-  const updateEnabled = trpc.keySettings.updateName.useMutation({
-    onSuccess: (_data) => {
+  const [isLoading, _setIsLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+  const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
+    onSuccess(_res) {
       toast({
         title: "Success",
-        description: "Your Api name has been updated!",
+        description: "Your key has been updated!",
       });
       router.refresh();
     },
-    onError: (err, variables) => {
-      router.refresh();
+    onError(err) {
+      console.error(err);
       toast({
-        title: `Could not update Api name on ApiId ${variables.apiId}`,
+        title: "Error",
         description: err.message,
         variant: "alert",
       });
     },
   });
-  function handleSubmit(event: any) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const apiName = formData.get("name");
-    const apiId = formData.get("apiId");
-    const workspaceId = formData.get("workspaceId");
 
-    updateEnabled.mutate({
-      name: apiName as string,
-      apiId: apiId as string,
-      workspaceId: workspaceId as string,
-    });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateEnabled.mutate(values);
   }
+
   return (
-    <form onSubmit={handleSubmit}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Enable Key</CardTitle>
-          <CardDescription>
-            Enable or disable this key. Disabled keys will not verify.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-between item-center">
-          <div className="flex flex-col space-y-2">
-            <input type="hidden" name="keyId" value={apiKey.id} />
-            <input type="hidden" name="enabled" value={enabled ? "true" : "false"} />
-            <Switch
-              id="enableSwitch"
-              checked={enabled}
-              onCheckedChange={setEnabled}
-              defaultChecked={apiKey.enabled}
-            />
-            <Label htmlFor="enable">{enabled ? "Enabled" : "Disabled"}</Label>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <SubmitButton label="Save" />
-        </CardFooter>
-      </Card>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Enable Key</CardTitle>
+            <CardDescription>
+              Enable or disable this key. Disabled keys will not verify.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-between item-center">
+            <div className="flex flex-col space-y-2">
+              <input type="hidden" name="keyId" value={apiKey.id} />
+              {/*  */}
+              <FormField
+                control={form.control}
+                name="enabled"
+                render={({ field }) => (
+                  <input type="hidden" {...field} value={enabled ? "true" : "false"} />
+                )}
+              />
+              <Switch
+                id="enableSwitch"
+                checked={enabled}
+                onCheckedChange={setEnabled}
+                defaultChecked={apiKey.enabled}
+              />
+              <Label htmlFor="enable">{enabled ? "Enabled" : "Disabled"}</Label>
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button disabled={isLoading || !form.formState.isValid} className="mt-4 " type="submit">
+              {isLoading ? <Loading /> : "Save"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };

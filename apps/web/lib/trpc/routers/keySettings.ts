@@ -19,6 +19,36 @@ const stringToIntOrNull = z
     return parsed.data;
   });
 export const keySettingsRouter = t.router({
+  updateEnabled: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        keyId: z.string(),
+        workspaceId: z.string(),
+        enabled: z.boolean().transform((s) => s === true),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const key = await db.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.id, input.keyId),
+        with: {
+          workspace: true,
+        },
+      });
+      if (!key) {
+        throw new Error("key not found");
+      }
+      if (key.workspace.tenantId !== ctx.tenant.id) {
+        throw new Error("key not found");
+      }
+
+      await db
+        .update(schema.keys)
+        .set({
+          enabled: input.enabled,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+    }),
   updateRatelimit: t.procedure
     .use(auth)
     .input(
