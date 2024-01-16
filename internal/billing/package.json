@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.8.7",
+    "@types/node": "^20.11.4",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.2.2",
     "vitest": "^0.34.3"

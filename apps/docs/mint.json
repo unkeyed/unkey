@@ -238,7 +238,8 @@
       "pages": [
         "contributing/getting-started",
         "contributing/versions",
-        "contributing/editor-setup"
+        "contributing/editor-setup",
+        "contributing/testing"
       ]
     }
   ],
