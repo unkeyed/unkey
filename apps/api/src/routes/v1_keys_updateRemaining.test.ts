@@ -1,10 +1,6 @@
 import { expect, test } from "vitest";
 
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -16,32 +12,26 @@ import {
 } from "./v1_keys_updateRemaining";
 
 test("increment", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdateRemaining(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -55,32 +45,26 @@ test("increment", async () => {
 });
 
 test("decrement", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdateRemaining(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -94,32 +78,26 @@ test("decrement", async () => {
 });
 
 test("set", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdateRemaining(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -133,32 +111,26 @@ test("set", async () => {
 });
 
 test("invalid operation", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdateRemaining(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     remaining: 100,
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,

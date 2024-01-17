@@ -1,10 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -13,32 +9,26 @@ import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_l
 
 describe("simple", () => {
   test("returns 200", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerV1ApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerV1ApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.db.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
     }
 
-    const res = await fetchRoute<never, V1ApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}`,
+    const res = await h.get<V1ApisListKeysResponse>({
+      url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -51,34 +41,28 @@ describe("simple", () => {
 
 describe("filter by ownerId", () => {
   test("returns all keys owned ", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerV1ApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerV1ApisListKeys);
 
     const ownerId = crypto.randomUUID();
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         ownerId: i % 2 === 0 ? ownerId : undefined,
       });
     }
 
-    const res = await fetchRoute<never, V1ApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&ownerId=${ownerId}`,
+    const res = await h.get<V1ApisListKeysResponse>({
+      url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&ownerId=${ownerId}`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -90,32 +74,26 @@ describe("filter by ownerId", () => {
 
 describe("with limit", () => {
   test("returns only a few keys", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerV1ApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerV1ApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
     }
 
-    const res = await fetchRoute<never, V1ApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&limit=2`,
+    const res = await h.get<V1ApisListKeysResponse>({
+      url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&limit=2`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
     expect(res.status).toEqual(200);
@@ -126,42 +104,35 @@ describe("with limit", () => {
 
 describe("with cursor", () => {
   test("returns the correct keys", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerV1ApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerV1ApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
     }
 
-    const res1 = await fetchRoute<never, V1ApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&limit=2`,
+    const res1 = await h.get<V1ApisListKeysResponse>({
+      url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&limit=2`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
     expect(res1.status).toEqual(200);
     expect(res1.body.cursor).toBeDefined();
 
-    const res2 = await fetchRoute<never, V1ApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis.listKeys?apiId=${r.userApi.id}&limit=3&cursor=${res1.body.cursor}`,
+    const res2 = await h.get<V1ApisListKeysResponse>({
+      url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&limit=3&cursor=${res1.body.cursor}`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 

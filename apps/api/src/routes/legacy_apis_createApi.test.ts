@@ -1,11 +1,7 @@
-import { newApp } from "@/pkg/hono/app";
 import { expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { init } from "@/pkg/global";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { eq } from "drizzle-orm";
 import {
@@ -15,21 +11,15 @@ import {
 } from "./legacy_apis_createApi";
 
 test("creates the api", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
+  const h = await Harness.init();
 
-  const r = await seed(env);
-  const app = newApp();
+  h.useRoutes(registerLegacyApisCreateApi);
 
-  registerLegacyApisCreateApi(app);
-
-  const res = await fetchRoute<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>(app, {
-    method: "POST",
+  const res = await h.post<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>({
     url: "/v1/apis",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       name: "my api",
@@ -39,25 +29,18 @@ test("creates the api", async () => {
   expect(res.status).toEqual(200);
   expect(res.body.apiId).toBeDefined();
 
-  const found = await r.database.query.apis.findFirst({
+  const found = await h.db.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.apiId),
   });
 
   expect(found?.name).toBe("my api");
-  await r.database.delete(schema.apis).where(eq(schema.apis.id, res.body.apiId));
+  await h.db.delete(schema.apis).where(eq(schema.apis.id, res.body.apiId));
 });
 
 test("creates rejects invalid root key", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-
-  await seed(env);
-  const app = newApp();
-  registerLegacyApisCreateApi(app);
-
-  const res = await fetchRoute<LegacyApisCreateApiRequest, ErrorResponse>(app, {
-    method: "POST",
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyApisCreateApi);
+  const res = await h.post<LegacyApisCreateApiRequest, ErrorResponse>({
     url: "/v1/apis",
     headers: {
       "Content-Type": "application/json",
