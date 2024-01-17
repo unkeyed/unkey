@@ -157,6 +157,7 @@
             }
           ]
         },
+        "libraries/ts/nextjs",
         "libraries/ts/hono"
       ]
     },
