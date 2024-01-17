@@ -106,12 +106,16 @@ type Result<R> =
     };
 
 function getTelemetry(): Telemetry {
-  return {
-    platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
-    // @ts-ignore
-    runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
-    sdkVersions: [`@unkey/api@${version}`],
-  };
+  try {
+    return {
+      platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
+      // @ts-ignore
+      runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
+      sdkVersions: [`@unkey/api@${version}`],
+    };
+  } catch (_error) {
+    return { platform: "unknown", runtime: "unknown", sdkVersions: [`@unkey/api@${version}`] };
+  }
 }
 
 export class Unkey {
@@ -153,20 +157,16 @@ export class Unkey {
   }
 
   private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.rootKey}`,
+    };
     if (this.telemetry) {
-      return {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.rootKey}`,
-        "Unkey-Telemetry-SDK": this.telemetry.sdkVersions.join(","),
-        "Unkey-Telemetry-Platform": this.telemetry.platform,
-        "Unkey-Telemetry-Runtime": this.telemetry.runtime,
-      };
-    } else {
-      return {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.rootKey}`,
-      };
+      headers["Unkey-Telemetry-SDK"] = this.telemetry.sdkVersions.join(",");
+      headers["Unkey-Telemetry-Platform"] = this.telemetry.platform;
+      headers["Unkey-Telemetry-Runtime"] = this.telemetry.runtime;
     }
+    return headers;
   }
 
   private async fetch<TResult>(req: ApiRequest): Promise<Result<TResult>> {
