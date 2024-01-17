@@ -59,14 +59,7 @@ export type UnkeyOptions = (
    *
    * You can leave this blank unless you are building a wrapper around this SDK.
    */
-  wrapperSdkVersion?: `v${string}`;
-
-  /** Unkey collects anonymous telemetry data on the platform and SDK versions it is used in.
-   *
-   *  This can be disabled via setting the UNKEY_DISABLE_TELEMETRY environment variable to any value.
-   *
-   */
-  telemetryData?: Telemetry;
+  wrapperSdkVersion?: string;
 };
 
 type Telemetry = {
@@ -112,12 +105,12 @@ type Result<R> =
       error: ErrorResponse["error"];
     };
 
-function getDefaultTelemetry(): Telemetry {
+function getTelemetry(): Telemetry {
   return {
     platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
     // @ts-ignore
     runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
-    sdkVersions: [`@unkey/nextjs@${version}`],
+    sdkVersions: [`@unkey/api@${version}`],
   };
 }
 
@@ -125,7 +118,7 @@ export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
   private readonly cache?: RequestCache;
-  private readonly telemetry: Telemetry;
+  private readonly telemetry?: Telemetry;
 
   public readonly retry: {
     attempts: number;
@@ -135,8 +128,13 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
-    this.telemetry = opts.telemetryData ? opts.telemetryData : getDefaultTelemetry();
-    this.telemetry.sdkVersions.push(`@unkey/api@${version}`);
+    if (!process.env.UNKEY_DISABLE_TELEMETRY) {
+      this.telemetry = getTelemetry();
+
+      if (opts.wrapperSdkVersion) {
+        this.telemetry.sdkVersions.push(opts.wrapperSdkVersion);
+      }
+    }
 
     this.cache = opts.cache;
     /**
@@ -154,6 +152,23 @@ export class Unkey {
     };
   }
 
+  private getHeaders(): Record<string, string> {
+    if (this.telemetry) {
+      return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.rootKey}`,
+        "Unkey-Telemetry-SDK": this.telemetry.sdkVersions.join(","),
+        "Unkey-Telemetry-Platform": this.telemetry.platform,
+        "Unkey-Telemetry-Runtime": this.telemetry.runtime,
+      };
+    } else {
+      return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.rootKey}`,
+      };
+    }
+  }
+
   private async fetch<TResult>(req: ApiRequest): Promise<Result<TResult>> {
     let res: Response | null = null;
     let err: Error | null = null;
@@ -169,13 +184,7 @@ export class Unkey {
       }
       res = await fetch(url, {
         method: req.method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.rootKey}`,
-          "Unkey-Telemetry-SDK": this.telemetry.sdkVersions.join(","),
-          "Unkey-Telemetry-Platform": this.telemetry.platform,
-          "Unkey-Telemetry-Runtime": this.telemetry.runtime,
-        },
+        headers: this.getHeaders(),
         cache: this.cache,
         body: JSON.stringify(req.body),
       }).catch((e: Error) => {

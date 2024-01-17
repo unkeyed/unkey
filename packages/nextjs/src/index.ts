@@ -86,21 +86,10 @@ export function withUnkey(
       return key;
     }
 
-    let unkey: Unkey;
-
-    if (!process.env.DISABLE_UNKEY_TELEMETRY) {
-      unkey = new Unkey({
-        rootKey: "public",
-        telemetryData: {
-          platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
-          // @ts-ignore
-          runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
-          sdkVersions: [`@unkey/nextjs@${version}`],
-        },
-      });
-    } else {
-      unkey = new Unkey({ rootKey: "public" });
-    }
+    const unkey = new Unkey({
+      rootKey: "public",
+      wrapperSdkVersion: `@unkey/nextjs@${version}`,
+    });
 
     const res = await unkey.keys.verify(config?.apiId ? { key, apiId: config.apiId } : { key });
 
