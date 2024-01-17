@@ -1,6 +1,7 @@
-import { ErrorResponse, verifyKey } from "@unkey/api";
+import { ErrorResponse, Unkey } from "@unkey/api";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { version } from "../package.json";
 
 export type UnkeyContext = {
   valid: boolean;
@@ -60,7 +61,14 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
       return key;
     }
 
-    const res = await verifyKey(key);
+    const unkeyInstance = new Unkey({
+      rootKey: "public",
+      wrapperSdkVersion: `@unkey/hono@${version}`,
+    });
+
+    const res = await unkeyInstance.keys.verify(
+      config?.apiId ? { key, apiId: config.apiId } : { key },
+    );
     if (res.error) {
       if (config?.onError) {
         return config.onError(c, res.error);
