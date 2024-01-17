@@ -14,6 +14,6 @@ const prefixes = {
   auditLog: "log",
 } as const;
 
-export function newId(prefix: keyof typeof prefixes) {
+export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
   return `${prefixes[prefix]}_${nanoid(16)}` as const;
 }

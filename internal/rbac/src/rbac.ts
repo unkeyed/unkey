@@ -15,10 +15,6 @@ export class RBAC {
     query: NestedQuery,
     roles: string[],
   ): Result<{ valid: true } | { valid: false; message: string }> {
-    if (roles.length === 0) {
-      return result.fail({ message: "No roles provided" });
-    }
-
     if (typeof query === "string") {
       // Check if the role is in the list of roles
       if (roles.includes(query)) {
