@@ -32,9 +32,6 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
-  const { formState } = useForm();
-  const { isSubmitting } = formState;
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -82,11 +79,13 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
         </CardContent>
         <CardFooter className="justify-end">
           <Button
-            variant={form.formState.isValid && !isSubmitting ? "primary" : "disabled"}
-            disabled={!form.formState.isValid || isSubmitting}
+            variant={
+              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
+            }
+            disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
           >
-            {isSubmitting ? <Loading /> : "Save"}
+            {form.formState.isSubmitting ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>

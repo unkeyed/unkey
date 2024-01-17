@@ -64,6 +64,16 @@ export const apiRouter = t.router({
             .update(schema.apis)
             .set({ state: "DELETION_IN_PROGRESS" })
             .where(eq(schema.apis.id, input.apiId));
+          await tx.insert(schema.auditLogs).values({
+            id: newId("auditLog"),
+            time: new Date(),
+            workspaceId: api.workspaceId,
+            actorType: "user",
+            actorId: ctx.user.id,
+            event: "api.delete",
+            description: `API ${api.name} deleted`,
+            apiId: api.id,
+          }); // TODO
         });
       } else {
         console.warn("TRIGGER_API_KEY not set");
@@ -73,10 +83,21 @@ export const apiRouter = t.router({
             .update(schema.apis)
             .set({ deletedAt: new Date() })
             .where(eq(schema.apis.id, input.apiId));
+          await tx.insert(schema.auditLogs).values({
+            id: newId("auditLog"),
+            time: new Date(),
+            workspaceId: api.workspaceId,
+            actorType: "user",
+            actorId: ctx.user.id,
+            event: "api.delete",
+            description: `API ${api.name} deleted`,
+            apiId: api.id,
+          });
           await tx
             .update(schema.keys)
             .set({ deletedAt: new Date() })
             .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+          // TODO
         });
       }
     }),
@@ -174,6 +195,16 @@ export const apiRouter = t.router({
             name: input.name,
           })
           .where(eq(schema.apis.id, input.apiId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: ws.tenantId,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "api.update",
+          description: `API updated from ${api.name} to ${input.name}`,
+          apiId: api.id,
+        });
       });
     }),
   updateIpWhitelist: t.procedure

@@ -41,8 +41,6 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
-  const { formState } = useForm();
-  const { isSubmitting } = formState;
   const isEnabled = workspace.plan === "enterprise";
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -115,11 +113,13 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         </CardContent>
         <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
-            variant={form.formState.isValid && !isSubmitting ? "primary" : "disabled"}
-            disabled={!form.formState.isValid || isSubmitting}
+            variant={
+              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
+            }
+            disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
           >
-            {isSubmitting ? <Loading /> : "Save"}
+            {form.formState.isSubmitting ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>
