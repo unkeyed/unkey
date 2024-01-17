@@ -35,7 +35,7 @@ describe("when api exists", () => {
 
   describe("with ip whitelist", () => {
     describe("with `*` role", () => {
-      test.only("returns the ip whitelist", async () => {
+      test("returns the ip whitelist", async () => {
         const h = await Harness.init();
 
         const api = {
