@@ -35,7 +35,7 @@ type Props = {
 
 export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  const [isLoading, _setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -74,6 +74,7 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
                 name="ownerId"
                 render={({ field }) => (
                   <Input
+                    {...field}
                     type="string"
                     className="h-8 max-w-sm"
                     defaultValue={apiKey.ownerId ?? ""}

@@ -36,7 +36,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
   const [content, setContent] = useState<string>(apiKey.meta ?? "");
   const rows = Math.max(3, content.split("\n").length);
-  const [isLoading, _setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

@@ -36,7 +36,7 @@ type Props = {
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
   const [enabled, setEnabled] = useState(apiKey.expires !== null);
-  const [isLoading, _setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
   const router = useRouter();
   const placeholder = useMemo(() => {
     const t = new Date();

@@ -74,7 +74,7 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
                 control={form.control}
                 name="enabled"
                 render={({ field }) => (
-                  <input type="hidden" {...field} value={enabled ? "true" : "false"} />
+                  <input {...field} type="hidden" value={enabled ? "true" : "false"} />
                 )}
               />
               <Switch
