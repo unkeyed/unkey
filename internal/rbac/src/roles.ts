@@ -23,14 +23,6 @@ export function buildIdSchema(prefix: string) {
   });
 }
 const apiId = buildIdSchema("api");
-const rootKeyId = buildIdSchema("unkey");
-
-export const rootKeyActions = z.enum([
-  "read_root_key",
-  "create_root_key",
-  "delete_root_key",
-  "update_root_key",
-]);
 
 export const apiActions = z.enum([
   "read_api",
@@ -45,16 +37,20 @@ export const apiActions = z.enum([
 
 export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
-} & {
-  [resourceId in `root_key.${z.infer<typeof rootKeyId>}`]: z.infer<typeof rootKeyActions>;
 };
 
-export type Role = Flatten<Resources>;
+export type Role = Flatten<Resources> | "*";
 
 /**
  * Validation for roles used for our root keys
  */
-export const unkeyRoleValidation = z.string().refine((s) => {
+export const unkeyRoleValidation = z.custom<Role>().refine((s) => {
+  if (s === "*") {
+    /**
+     * This is a legacy role granting access to everything
+     */
+    return true;
+  }
   const split = s.split(".");
   if (split.length !== 3) {
     return false;
@@ -64,9 +60,7 @@ export const unkeyRoleValidation = z.string().refine((s) => {
     case "api": {
       return apiId.safeParse(id).success && apiActions.safeParse(action).success;
     }
-    case "root_key": {
-      return rootKeyId.safeParse(id).success && rootKeyActions.safeParse(action).success;
-    }
+
     default: {
       return false;
     }
