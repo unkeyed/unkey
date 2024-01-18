@@ -1,9 +1,8 @@
-import { expect, test } from "vitest";
-
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { expect, test } from "vitest";
 
 import { Harness } from "@/pkg/testutil/harness";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
