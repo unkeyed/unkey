@@ -1,6 +1,7 @@
 import { version } from "../package.json";
 import { ErrorResponse } from "./errors";
 import type { paths } from "./openapi";
+
 export type UnkeyOptions = (
   | {
       token?: never;
@@ -105,17 +106,40 @@ type Result<R> =
       error: ErrorResponse["error"];
     };
 
-function getTelemetry(): Telemetry {
-  try {
-    return {
-      platform: process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown",
-      // @ts-ignore
-      runtime: typeof EdgeRuntime === "string" ? "edge-light" : `node@${process.version}`,
-      sdkVersions: [`@unkey/api@${version}`],
-    };
-  } catch (_error) {
-    return { platform: "unknown", runtime: "unknown", sdkVersions: [`@unkey/api@${version}`] };
+function getTelemetry(opts: UnkeyOptions) {
+  let platform;
+  let runtime;
+
+  // Node.js environments
+  if (typeof process !== "undefined") {
+    if (process.env.UNKEY_DISABLE_TELEMETRY) {
+      return;
+    }
+    platform = process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown";
+    runtime = `node@${process.version}`;
+  } else {
+    platform = "unknown";
+    runtime = "unknown";
   }
+
+  // Cloudflare
+  // @ts-ignore
+  if (typeof env !== "undefined") {
+    // @ts-ignore
+    if (env.UNKEY_DISABLE_TELEMETRY) {
+      return;
+    }
+    runtime = "edge";
+    platform = "cloudflare";
+  }
+
+  const sdkVersions = [`@unkey/api@${version}`];
+
+  if (opts.wrapperSdkVersion) {
+    sdkVersions.push(opts.wrapperSdkVersion);
+  }
+
+  return { platform, runtime, sdkVersions };
 }
 
 export class Unkey {
@@ -132,13 +156,7 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
-    if (!process.env.UNKEY_DISABLE_TELEMETRY) {
-      this.telemetry = getTelemetry();
-
-      if (opts.wrapperSdkVersion) {
-        this.telemetry.sdkVersions.push(opts.wrapperSdkVersion);
-      }
-    }
+    this.telemetry = getTelemetry(opts);
 
     this.cache = opts.cache;
     /**

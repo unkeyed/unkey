@@ -26,7 +26,7 @@ export type UnkeyContext = {
     | undefined;
 };
 
-export type UnkeyConfig<TContext = Context> = {
+export type UnkeyConfig = {
   /**
    * The apiId to verify against.
    *
@@ -43,17 +43,17 @@ export type UnkeyConfig<TContext = Context> = {
    *
    * @default `c.req.header("Authorization")?.replace("Bearer ", "")`
    */
-  getKey?: (c: TContext) => string | undefined | Response;
+  getKey?: (c: Context) => string | undefined | Response;
 
   /**
    * Automatically return a custom response when a key is invalid
    */
-  handleInvalidKey?: (c: TContext, result: UnkeyContext) => Response | Promise<Response>;
+  handleInvalidKey?: (c: Context, result: UnkeyContext) => Response | Promise<Response>;
 
   /**
    * What to do if things go wrong
    */
-  onError?: (c: TContext, err: ErrorResponse["error"]) => Response | Promise<Response>;
+  onError?: (c: Context, err: ErrorResponse["error"]) => Response | Promise<Response>;
 };
 
 export function unkey(config?: UnkeyConfig): MiddlewareHandler {
@@ -68,6 +68,7 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
     }
 
     const unkeyInstance = new Unkey({
+      baseUrl: "http://localhost:8787",
       rootKey: "public",
       wrapperSdkVersion: `@unkey/hono@${version}`,
     });
