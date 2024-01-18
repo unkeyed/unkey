@@ -28,6 +28,12 @@ export type UnkeyContext = {
 
 export type UnkeyConfig<TContext = Context> = {
   /**
+   * The apiId to verify against.
+   *
+   * This will be required soon.
+   */
+  apiId?: string;
+  /**
    * How to get the key from the request
    * Usually the key is provided in an `Authorization` header, but you can do what you want.
    *
