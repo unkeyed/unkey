@@ -19,12 +19,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -45,23 +46,15 @@ type Props = {
 };
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
-  // const [enabled, setEnabled] = useState(apiKey.expires !== null);
   const router = useRouter();
 
-  function getDatePlusTwoMinutes(): string {
-    if (apiKey.expires) {
-      return apiKey.expires.toISOString().slice(0, -8);
+  /*  This ensures the date shown is in local time and not ISO  */
+  function convertDate(date: Date | null): string {
+    if (!date) {
+      return "";
     }
-    const now = new Date();
-    const futureDate = new Date(now.getTime() + 2 * 60000);
-    return futureDate.toISOString().slice(0, -8);
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
   }
-  // const placeholder = useMemo(() => {
-  //   const t = new Date();
-  //   t.setUTCDate(t.getUTCDate() + 7);
-  //   t.setUTCMinutes(0, 0, 0);
-  //   return t.toISOString();
-  // }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,7 +64,6 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
     defaultValues: {
       keyId: apiKey.id ? apiKey.id : undefined,
       enableExpiration: apiKey.expires !== null ? true : false,
-      expiration: apiKey.expires ? apiKey.expires : undefined,
     },
   });
 
@@ -104,21 +96,19 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
                 "opacity-50": !form.getValues("enableExpiration"),
               })}
             >
-              <Label htmlFor="expiration">Expiration</Label>
               <FormField
                 control={form.control}
                 name="expiration"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-fit">
                     <FormLabel>Expiry Date</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         disabled={!form.watch("enableExpiration")}
-                        min={getDatePlusTwoMinutes()}
                         type="datetime-local"
-                        // defaultValue={getDatePlusTwoMinutes()}
                         value={field.value?.toLocaleString()}
+                        defaultValue={convertDate(apiKey.expires)}
                       />
                     </FormControl>
                     <FormDescription>

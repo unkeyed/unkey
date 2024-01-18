@@ -58,8 +58,6 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-
     updateMetadata.mutate(values);
   }
   return (
@@ -112,7 +110,13 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
             >
               Format Json
             </Button>
-            <Button type="submit">Save</Button>
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
           </CardFooter>
         </Card>
       </form>

@@ -232,7 +232,9 @@ export const keySettingsRouter = t.router({
     .mutation(async ({ input, ctx }) => {
       let meta: unknown | null = null;
 
-      if (input.metadata !== null) {
+      if (input.metadata === null || input.metadata === "") {
+        meta = "";
+      } else {
         try {
           meta = JSON.parse(input.metadata);
         } catch (e) {
@@ -242,7 +244,6 @@ export const keySettingsRouter = t.router({
           });
         }
       }
-
       const key = await db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, input.keyId),
         with: {
@@ -357,7 +358,6 @@ export const keySettingsRouter = t.router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      console.log(input);
       if (input.limitEnabled === false || input.remaining === null) {
         input.remaining = undefined;
         input.refill = undefined;
@@ -365,13 +365,6 @@ export const keySettingsRouter = t.router({
       if (input.refill?.interval === "none") {
         input.refill = undefined;
       }
-
-      // if (input.limitEnabled && typeof input.remaining !== "number") {
-      //   throw new TRPCError({
-      //     message: "provide a number",
-      //     code: "BAD_REQUEST",
-      //   });
-      // }
 
       const key = await db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, input.keyId),

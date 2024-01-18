@@ -101,10 +101,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.refill?.interval !== "none" && !values.refill?.amount) {
-      console.log(values.refill?.amount);
-
       form.setError("refill.amount", { message: "Please enter the number of uses per interval" });
-
       return;
     }
     if (values.refill.interval !== "none" && values.remaining === undefined) {
