@@ -1,10 +1,6 @@
 import { expect, test } from "vitest";
 
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -16,31 +12,25 @@ import {
 } from "./v1_keys_updateKey";
 
 test("returns 200", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -56,31 +46,25 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -101,7 +85,7 @@ test("update all", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -116,31 +100,25 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -156,7 +134,7 @@ test("update ratelimit", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -171,32 +149,26 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -207,7 +179,7 @@ test("delete expires", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -218,18 +190,13 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
@@ -237,14 +204,13 @@ test("update should not affect undefined fields", async () => {
     ownerId: "ownerId",
     expires: new Date(Date.now() + 60 * 60 * 1000),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -255,7 +221,7 @@ test("update should not affect undefined fields", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -271,32 +237,26 @@ test("update should not affect undefined fields", async () => {
 });
 
 test("update enabled true", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
     enabled: false,
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -306,7 +266,7 @@ test("update enabled true", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -315,32 +275,26 @@ test("update enabled true", async () => {
 });
 
 test("update enabled false", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
     enabled: true,
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -350,7 +304,7 @@ test("update enabled false", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -359,32 +313,26 @@ test("update enabled false", async () => {
 });
 
 test("omit enabled update", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
     enabled: true,
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId: key.id,
@@ -393,7 +341,7 @@ test("omit enabled update", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();

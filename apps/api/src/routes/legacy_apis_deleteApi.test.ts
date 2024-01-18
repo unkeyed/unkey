@@ -1,34 +1,24 @@
-import { newApp } from "@/pkg/hono/app";
+import { Harness } from "@/pkg/testutil/harness";
 import { expect, test } from "vitest";
-
-import { init } from "@/pkg/global";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("deletes the api", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyApisDeleteApi);
 
-  const r = await seed(env);
-  const app = newApp();
-  registerLegacyApisDeleteApi(app);
-
-  const res = await fetchRoute<never, LegacyApisDeleteApiResponse>(app, {
-    method: "DELETE",
-    url: `/v1/apis/${r.userApi.id}`,
+  const res = await h.delete<LegacyApisDeleteApiResponse>({
+    url: `/v1/apis/${h.resources.userApi.id}`,
     headers: {
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
   });
 
   expect(res.status).toEqual(200);
   expect(res.body).toEqual({});
 
-  const found = await r.database.query.apis.findFirst({
-    where: (table, { eq, and, isNull }) => and(eq(table.id, r.userApi.id), isNull(table.deletedAt)),
+  const found = await h.resources.database.query.apis.findFirst({
+    where: (table, { eq, and, isNull }) =>
+      and(eq(table.id, h.resources.userApi.id), isNull(table.deletedAt)),
   });
   expect(found).toBeUndefined();
 });

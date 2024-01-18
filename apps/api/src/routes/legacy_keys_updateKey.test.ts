@@ -1,14 +1,9 @@
-import { expect, test } from "vitest";
-
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { expect, test } from "vitest";
 import {
   LegacyKeysUpdateKeyRequest,
   LegacyKeysUpdateKeyResponse,
@@ -16,30 +11,24 @@ import {
 } from "./legacy_keys_updateKey";
 
 test("returns 200", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerLegacyKeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
-  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
-    method: "PUT",
+  await h.resources.database.insert(schema.keys).values(key);
+  const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       name: "test2",
@@ -53,31 +42,25 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerLegacyKeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
-    method: "PUT",
+  const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       name: "newName",
@@ -96,7 +79,7 @@ test("update all", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -111,31 +94,25 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerLegacyKeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
-    method: "PUT",
+  const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       ratelimit: {
@@ -149,7 +126,7 @@ test("update ratelimit", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -164,32 +141,26 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerLegacyKeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
-    method: "PUT",
+  const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       expires: null,
@@ -198,7 +169,7 @@ test("delete expires", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -209,18 +180,13 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerLegacyKeysUpdate(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
-    workspaceId: r.userWorkspace.id,
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
     start: "test",
     name: "test",
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
@@ -228,14 +194,13 @@ test("update should not affect undefined fields", async () => {
     ownerId: "ownerId",
     expires: new Date(Date.now() + 60 * 60 * 1000),
   };
-  await r.database.insert(schema.keys).values(key);
+  await h.resources.database.insert(schema.keys).values(key);
 
-  const res = await fetchRoute<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>(app, {
-    method: "PUT",
+  const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       ownerId: "newOwnerId",
@@ -244,7 +209,7 @@ test("update should not affect undefined fields", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
