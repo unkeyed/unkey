@@ -6,18 +6,13 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
+import { buildQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
   method: "delete",
   path: "/v1/apis/{apiId}",
   request: {
-    headers: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
     params: z.object({
       apiId: z.string().min(1).openapi({
         description: "The id of the api to delete",
@@ -46,9 +41,11 @@ export type LegacyApisDeleteApiResponse = z.infer<
 
 export const registerLegacyApisDeleteApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const apiId = c.req.param("apiId");
+    const auth = await rootKeyAuth(
+      c,
+      buildQuery(({ or }) => or("*", `api.${apiId}.delete_api`, "api.*.delete_api")),
+    );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (

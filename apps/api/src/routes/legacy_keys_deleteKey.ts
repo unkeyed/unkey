@@ -63,7 +63,7 @@ export const registerLegacyKeysDelete = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", `api.${data.api.id}.delete_key`)),
+      buildQuery(({ or }) => or("*", "api.*.delete_key", `api.${data.api.id}.delete_key`)),
     );
 
     if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
