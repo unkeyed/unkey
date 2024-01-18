@@ -39,7 +39,7 @@ export function runSharedRoleTests<TReq>(config: {
 
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>(req);
-
+      console.log(res);
       expect(res.status).toEqual(403);
       expect(res.body).toMatchObject({
         error: {

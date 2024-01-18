@@ -1,8 +1,9 @@
+import { expect, test } from "vitest";
+
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { expect, test } from "vitest";
 
 import { Harness } from "@/pkg/testutil/harness";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
@@ -22,11 +23,11 @@ test("soft deletes key", async () => {
     createdAt: new Date(),
   });
 
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.delete_key`]);
   const res = await h.delete<LegacyKeysDeleteKeyResponse>({
     url: `/v1/keys/${keyId}`,
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
   });
 
