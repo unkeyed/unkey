@@ -1,4 +1,5 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +31,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
+  workspaceId: z.string(),
   enabled: z.boolean(),
   ratelimitType: z.enum(["fast", "consistent"]).optional().default("fast"),
   ratelimitLimit: z.coerce
@@ -81,6 +83,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
     delayError: 100,
     defaultValues: {
       keyId: apiKey.id,
+      workspaceId: apiKey.workspaceId,
       enabled: apiKey.ratelimitType !== null,
       ratelimitType: apiKey.ratelimitType ? apiKey.ratelimitType : undefined,
       ratelimitLimit: apiKey.ratelimitLimit ? apiKey.ratelimitLimit : undefined,
@@ -221,7 +224,13 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Save</Button>
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
           </CardFooter>
         </Card>
       </form>

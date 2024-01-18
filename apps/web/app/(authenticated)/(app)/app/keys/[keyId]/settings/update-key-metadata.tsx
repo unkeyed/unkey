@@ -1,5 +1,5 @@
 "use client";
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,7 +21,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
-  metadata: z.string(), //.transform(e => e === "" ? null : e).nullable(),
+  metadata: z.string(),
 });
 type Props = {
   apiKey: {
@@ -32,7 +32,6 @@ type Props = {
 
 export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  //const [content, setContent] = useState<string>(apiKey.meta ?? "");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -113,7 +112,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
             >
               Format Json
             </Button>
-            <SubmitButton label="Save" />
+            <Button type="submit">Save</Button>
           </CardFooter>
         </Card>
       </form>

@@ -1,7 +1,5 @@
 "use client";
-import React, { useState } from "react";
-
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,7 +45,7 @@ type Props = {
 };
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
-  const [enabled, setEnabled] = useState(apiKey.expires !== null);
+  // const [enabled, setEnabled] = useState(apiKey.expires !== null);
   const router = useRouter();
 
   function getDatePlusTwoMinutes(): string {
@@ -103,7 +101,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
           <CardContent className="flex justify-between item-center">
             <div
               className={cn("flex flex-col gap-2 w-full", {
-                "opacity-50": !enabled,
+                "opacity-50": !form.getValues("enableExpiration"),
               })}
             >
               <Label htmlFor="expiration">Expiration</Label>
@@ -119,8 +117,8 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
                         disabled={!form.watch("enableExpiration")}
                         min={getDatePlusTwoMinutes()}
                         type="datetime-local"
-                        defaultValue={getDatePlusTwoMinutes()}
-                        value={field.value?.toLocaleString().slice(0, -8)}
+                        // defaultValue={getDatePlusTwoMinutes()}
+                        value={field.value?.toLocaleString()}
                       />
                     </FormControl>
                     <FormDescription>
@@ -145,7 +143,6 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
                         checked={form.getValues("enableExpiration")}
                         onCheckedChange={(e) => {
                           field.onChange(e);
-                          setEnabled(e);
                         }}
                       />
                     </FormControl>{" "}
@@ -156,7 +153,13 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Save</Button>
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
           </CardFooter>
         </Card>
       </form>

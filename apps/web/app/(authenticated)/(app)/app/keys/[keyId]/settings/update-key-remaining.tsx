@@ -1,5 +1,6 @@
 "use client";
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -238,7 +239,13 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                 </FormItem>
               )}
             />
-            <SubmitButton label="Save" />
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
           </CardFooter>
         </Card>
       </form>

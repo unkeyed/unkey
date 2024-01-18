@@ -1,8 +1,7 @@
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-
 import { db, eq, schema } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
+import { z } from "zod";
 import { auth, t } from "../trpc";
 
 export const keySettingsRouter = t.router({
@@ -53,6 +52,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
+        workspaceId: z.string(),
         enabled: z.boolean(),
         ratelimitType: z.enum(["fast", "consistent"]).nullable(),
         ratelimitLimit: z.number().int().positive().optional(),
@@ -123,6 +123,17 @@ export const keySettingsRouter = t.router({
             ratelimitRefillInterval,
           })
           .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: input.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} rate limit`,
+          keyId: input.keyId,
+        });
       });
     }),
   updateOwnerId: t.procedure
@@ -153,6 +164,17 @@ export const keySettingsRouter = t.router({
             ownerId: input.ownerId ?? null,
           })
           .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: key.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} ownerId`,
+          keyId: input.keyId,
+        });
       });
 
       return true;
@@ -185,6 +207,17 @@ export const keySettingsRouter = t.router({
             name: input.name ?? null,
           })
           .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: key.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} name`,
+          keyId: input.keyId,
+        });
       });
       return true;
     }),
@@ -193,7 +226,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        metadata: z.string().nullable(),
+        metadata: z.string(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -232,6 +265,17 @@ export const keySettingsRouter = t.router({
             meta: meta !== "" ? JSON.stringify(meta) : null,
           })
           .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: key.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} metadata`,
+          keyId: input.keyId,
+        });
       });
       return true;
     }),
@@ -283,6 +327,17 @@ export const keySettingsRouter = t.router({
             expires,
           })
           .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: key.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} expiration`,
+          keyId: input.keyId,
+        });
       });
       return true;
     }),
@@ -331,9 +386,6 @@ export const keySettingsRouter = t.router({
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
 
-      // if (input?.limitEnabled === false || input?.remaining === null) {
-      //   input.refill?.interval ?? null;
-      // }
       await db.transaction(async (tx) => {
         await tx
           .update(schema.keys)
@@ -347,6 +399,17 @@ export const keySettingsRouter = t.router({
             lastRefillAt: input.refill?.interval ? new Date() : null,
           })
           .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: key.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} remaining`,
+          keyId: input.keyId,
+        });
       });
       return true;
     }),

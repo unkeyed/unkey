@@ -1,4 +1,5 @@
 "use client";
+import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +17,6 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -92,7 +92,13 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button type="submit">Save</Button>
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
           </CardFooter>
         </Card>
       </form>
