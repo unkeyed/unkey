@@ -27,11 +27,12 @@ test("soft deletes key", async () => {
     createdAt: new Date(),
   });
 
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.delete_key`]);
   const res = await h.post<V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse>({
     url: "/v1/keys.deleteKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId,
