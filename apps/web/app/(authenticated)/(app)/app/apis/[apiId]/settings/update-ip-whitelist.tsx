@@ -1,9 +1,7 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React from "react";
-import { useFormStatus } from "react-dom";
-
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,14 +10,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { toast } from "@/components/ui/toaster";
-import { updateIpWhitelist } from "./actions";
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Workspace } from "@unkey/db";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const formSchema = z.object({
+  ipWhitelist: z.string(),
+  apiId: z.string(),
+  workspaceId: z.string(),
+});
+
 type Props = {
   workspace: {
     plan: Workspace["plan"];
@@ -33,22 +41,35 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
-  const { pending } = useFormStatus();
-
+  const router = useRouter();
   const isEnabled = workspace.plan === "enterprise";
 
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateIpWhitelist(formData);
-        if (res.error) {
-          toast.error(res.error.message);
-          return;
-        }
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      ipWhitelist: api.ipWhitelist ?? "",
+      apiId: api.id,
+      workspaceId: api.workspaceId,
+    },
+  });
 
-        toast.success("IP whitelist updated!");
-      }}
-    >
+  const updateIps = trpc.api.updateIpWhitelist.useMutation({
+    onSuccess() {
+      toast.success("Your ip whitelist has been updated!");
+      router.refresh();
+    },
+    onError(err) {
+      console.log(err);
+      toast.error(err.message);
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateIps.mutateAsync(values);
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader className={cn({ "opacity-40": !isEnabled })}>
           <CardTitle>IP Whitelist</CardTitle>
@@ -63,13 +84,18 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               <input type="hidden" name="workspaceId" value={api.workspaceId} />
               <input type="hidden" name="apiId" value={api.id} />
               <label className="hidden sr-only">Name</label>
-              <Textarea
+              <FormField
+                control={form.control}
                 name="ipWhitelist"
-                className="max-w-sm"
-                defaultValue={api.ipWhitelist ?? ""}
-                autoComplete="off"
-                placeholder={`127.0.0.1
+                render={({ field }) => (
+                  <Textarea
+                    className="max-w-sm"
+                    {...field}
+                    autoComplete="off"
+                    placeholder={`127.0.0.1
 1.1.1.1`}
+                  />
+                )}
               />
             </div>
           ) : (
@@ -88,11 +114,13 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         </CardContent>
         <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
-            variant={!isEnabled || pending ? "disabled" : "primary"}
+            variant={
+              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
+            }
+            disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
-            disabled={pending}
           >
-            {pending ? <Loading /> : "Save"}
+            {form.formState.isSubmitting ? <Loading /> : "Save"}
           </Button>
         </CardFooter>
       </Card>
