@@ -11,7 +11,10 @@ test("api not found", async () => {
 
   const apiId = newId("api");
 
-  const { key: rootKey } = await h.createRootKey([`api.${apiId}.read_api`]);
+  const { key: rootKey } = await h.createRootKey([
+    `api.${apiId}.read_api`,
+    `api.${apiId}.read_key`,
+  ]);
 
   const res = await h.get<ErrorResponse>({
     url: `/v1/apis.listKeys?apiId=${apiId}`,

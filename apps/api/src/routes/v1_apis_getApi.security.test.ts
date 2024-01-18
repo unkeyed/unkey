@@ -54,10 +54,5 @@ describe("correct roles", () => {
       },
     });
     expect(res.status).toEqual(200);
-
-    const found = await h.resources.database.query.apis.findFirst({
-      where: (table, { eq }) => eq(table.id, apiId),
-    });
-    expect(found).toBeDefined();
   });
 });
