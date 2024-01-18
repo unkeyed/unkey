@@ -33,17 +33,29 @@ const formSchema = z.object({
   enabled: z.boolean(),
   ratelimitType: z.enum(["fast", "consistent"]).optional().default("fast"),
   ratelimitLimit: z.coerce
-    .number()
+    .number({
+      errorMap: (issue, { defaultError }) => ({
+        message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
+      }),
+    })
     .positive({ message: "This refill limit must be a positive number." })
     .int()
     .optional(),
   ratelimitRefillRate: z.coerce
-    .number()
+    .number({
+      errorMap: (issue, { defaultError }) => ({
+        message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
+      }),
+    })
     .positive({ message: "This refill rate must be a positive number." })
     .int()
     .optional(),
   ratelimitRefillInterval: z.coerce
-    .number()
+    .number({
+      errorMap: (issue, { defaultError }) => ({
+        message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
+      }),
+    })
     .positive({ message: "This refill interval must be a positive number." })
     .int()
     .optional(),

@@ -1,23 +1,10 @@
-import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+
+import { db, eq, schema } from "@/lib/db";
+import { newId } from "@unkey/id";
 import { auth, t } from "../trpc";
 
-const _stringToIntOrNull = z
-  .string()
-  .nullish()
-  .transform((s, ctx) => {
-    if (!s || s === "") {
-      return null;
-    }
-
-    const parsed = z.number().nonnegative().int().nullable().safeParse(parseInt(s));
-    if (!parsed.success) {
-      ctx.addIssue(parsed.error.issues[0]);
-      return z.NEVER;
-    }
-    return parsed.data;
-  });
 export const keySettingsRouter = t.router({
   updateEnabled: t.procedure
     .use(auth)
@@ -25,7 +12,7 @@ export const keySettingsRouter = t.router({
       z.object({
         keyId: z.string(),
         workspaceId: z.string(),
-        enabled: z.boolean().transform((s) => s === true),
+        enabled: z.boolean(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -41,13 +28,25 @@ export const keySettingsRouter = t.router({
       if (key.workspace.tenantId !== ctx.tenant.id) {
         throw new Error("key not found");
       }
-
-      await db
-        .update(schema.keys)
-        .set({
-          enabled: input.enabled,
-        })
-        .where(eq(schema.keys.id, input.keyId));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(schema.keys)
+          .set({
+            enabled: input.enabled,
+          })
+          .where(eq(schema.keys.id, input.keyId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: input.workspaceId,
+          apiId: null,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "key.update",
+          description: `updated key ${input.keyId} enabled to ${input.enabled}`,
+          keyId: input.keyId,
+        });
+      });
     }),
   updateRatelimit: t.procedure
     .use(auth)
@@ -194,7 +193,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        metadata: z.string(),
+        metadata: z.string().nullable(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -230,7 +229,7 @@ export const keySettingsRouter = t.router({
         await tx
           .update(schema.keys)
           .set({
-            meta: meta ? JSON.stringify(meta) : null,
+            meta: meta !== "" ? JSON.stringify(meta) : null,
           })
           .where(eq(schema.keys.id, input.keyId));
       });
@@ -242,7 +241,7 @@ export const keySettingsRouter = t.router({
       z.object({
         keyId: z.string(),
         enableExpiration: z.boolean(),
-        expiration: z.string().nullish(),
+        expiration: z.date().nullish(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -292,19 +291,32 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        enableRemaining: z.boolean().transform((s) => s === true),
+        limitEnabled: z.boolean(),
         remaining: z.number().int().positive().optional(),
-        refillInterval: z.enum(["null", "daily", "monthly"]).optional(),
-        refillAmount: z.number().int().positive().optional(),
+        refill: z
+          .object({
+            interval: z.enum(["daily", "monthly", "none"]),
+            amount: z.number().int().min(1).optional(),
+          })
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      if (input.enableRemaining && typeof input.remaining !== "number") {
-        throw new TRPCError({
-          message: "provide a number",
-          code: "BAD_REQUEST",
-        });
+      console.log(input);
+      if (input.limitEnabled === false || input.remaining === null) {
+        input.remaining = undefined;
+        input.refill = undefined;
       }
+      if (input.refill?.interval === "none") {
+        input.refill = undefined;
+      }
+
+      // if (input.limitEnabled && typeof input.remaining !== "number") {
+      //   throw new TRPCError({
+      //     message: "provide a number",
+      //     code: "BAD_REQUEST",
+      //   });
+      // }
 
       const key = await db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, input.keyId),
@@ -319,16 +331,20 @@ export const keySettingsRouter = t.router({
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
 
-      if (input?.enableRemaining === false || input?.remaining === null) {
-        input.refillInterval = "null";
-      }
+      // if (input?.limitEnabled === false || input?.remaining === null) {
+      //   input.refill?.interval ?? null;
+      // }
       await db.transaction(async (tx) => {
         await tx
           .update(schema.keys)
           .set({
-            remaining: input.enableRemaining ? input.remaining : null,
-            refillInterval: input?.refillInterval !== "null" ? input.refillInterval : null,
-            refillAmount: input?.refillInterval !== "null" ? input?.refillAmount : null,
+            remaining: input.remaining ?? null,
+            refillInterval:
+              input.refill?.interval === "none" || input.refill?.interval === undefined
+                ? null
+                : input.refill?.interval,
+            refillAmount: input.refill?.amount ?? null,
+            lastRefillAt: input.refill?.interval ? new Date() : null,
           })
           .where(eq(schema.keys.id, input.keyId));
       });

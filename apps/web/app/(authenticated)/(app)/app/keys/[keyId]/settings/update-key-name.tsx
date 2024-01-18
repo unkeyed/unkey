@@ -1,7 +1,5 @@
 "use client";
-import React, { useState } from "react";
-
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
@@ -18,12 +16,16 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Form, useForm } from "react-hook-form";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
-  name: z.string(),
+  name: z
+    .string()
+    .transform((e) => (e === "" ? undefined : e))
+    .optional(),
 });
 type Props = {
   apiKey: {
@@ -35,10 +37,16 @@ type Props = {
 
 export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  const [_isLoading, _setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id,
+      name: apiKey.name ?? "",
+    },
   });
 
   const updateName = trpc.keySettings.updateName.useMutation({
@@ -53,7 +61,7 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutate(values);
+    updateName.mutateAsync(values);
   }
   return (
     <Form {...form}>
@@ -73,19 +81,18 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="string"
-                    className="h-8 max-w-sm"
-                    defaultValue={apiKey.name ?? ""}
-                    autoComplete="off"
-                  />
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} type="string" className="h-8 max-w-sm" autoComplete="off" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <SubmitButton label="Save" />
+            <Button type="submit">Save</Button>
           </CardFooter>
         </Card>
       </form>

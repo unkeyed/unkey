@@ -9,17 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-
-import React, { useState } from "react";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
+
 const formSchema = z.object({
   keyId: z.string(),
   workspaceId: z.string(),
@@ -35,11 +33,16 @@ type Props = {
 
 export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  const [enabled, setEnabled] = useState(apiKey.enabled);
-  const [isLoading, _setIsLoading] = useState(false);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id ? apiKey.id : undefined,
+      workspaceId: apiKey.workspaceId ? apiKey.workspaceId : undefined,
+      enabled: apiKey.enabled ? apiKey.enabled : undefined,
+    },
   });
   const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
     onSuccess() {
@@ -53,7 +56,7 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateEnabled.mutate(values);
+    updateEnabled.mutateAsync(values);
   }
 
   return (
@@ -68,27 +71,38 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
           </CardHeader>
           <CardContent className="flex justify-between item-center">
             <div className="flex flex-col space-y-2">
-              <input type="hidden" name="keyId" value={apiKey.id} />
               {/*  */}
               <FormField
                 control={form.control}
                 name="enabled"
                 render={({ field }) => (
-                  <input {...field} type="hidden" value={enabled ? "true" : "false"} />
+                  <FormItem className="w-full">
+                    <div className="flex items-center gap-4">
+                      <FormControl>
+                        <Switch
+                          id="enableSwitch"
+                          checked={form.getValues("enabled")}
+                          onCheckedChange={(e) => {
+                            field.onChange(e);
+                          }}
+                        />
+                      </FormControl>{" "}
+                      <FormLabel htmlFor="enabled">
+                        {form.getValues("enabled") ? "Enabled" : "Disabled"}
+                      </FormLabel>
+                    </div>
+                  </FormItem>
                 )}
               />
-              <Switch
-                id="enableSwitch"
-                checked={enabled}
-                onCheckedChange={setEnabled}
-                defaultChecked={apiKey.enabled}
-              />
-              <Label htmlFor="enable">{enabled ? "Enabled" : "Disabled"}</Label>
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button disabled={isLoading || !form.formState.isValid} className="mt-4 " type="submit">
-              {isLoading ? <Loading /> : "Save"}
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

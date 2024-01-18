@@ -8,7 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,37 +32,61 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
-  enableRemaining: z.boolean(),
-  remaining: z.number().int().optional(),
-  refillInterval: z.enum(["daily", "monthly", "null"]).optional(),
-  refillAmount: z.number().int().optional(),
+  limitEnabled: z.boolean(),
+  remaining: z.coerce.number().positive({ message: "Please enter a positive number" }).optional(),
+  refill: z
+    .object({
+      interval: z.enum(["none", "daily", "monthly"]),
+      amount: z.coerce
+        .number()
+        .int()
+        .min(1, {
+          message: "Please enter the number of uses per interval",
+        })
+        .positive()
+        .optional(),
+    })
+    .optional(),
 });
-
 type Props = {
   apiKey: {
     id: string;
     workspaceId: string;
     remaining: number | null;
-    refillInterval: "daily" | "monthly" | "null";
+    refillInterval: "daily" | "monthly" | "none";
     refillAmount: number | null;
   };
 };
 
 export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  const [enabled, setEnabled] = useState(apiKey.remaining !== null);
-  const [refillEbabled, setRefillEnabled] = useState(apiKey.remaining !== null);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id,
+      limitEnabled: apiKey.remaining ? true : false,
+      remaining: apiKey.remaining ? apiKey.remaining : undefined,
+      refill: {
+        interval: apiKey.refillInterval,
+        amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
+      },
+    },
   });
-
+  const resetLimited = () => {
+    // set them to undefined so the form resets properly.
+    form.resetField("remaining", undefined);
+    form.resetField("refill.amount", undefined);
+    form.resetField("refill.interval", { defaultValue: "none" });
+    form.resetField("refill", undefined);
+  };
   const updateRemaining = trpc.keySettings.updateRemaining.useMutation({
     onSuccess() {
       toast.success("Remaining uses has updated!");
@@ -67,7 +99,25 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateRemaining.mutate(values);
+    if (values.refill?.interval !== "none" && !values.refill?.amount) {
+      console.log(values.refill?.amount);
+
+      form.setError("refill.amount", { message: "Please enter the number of uses per interval" });
+
+      return;
+    }
+    if (values.refill.interval !== "none" && values.remaining === undefined) {
+      form.setError("remaining", { message: "Please enter a value" });
+      return;
+    }
+    if (values.limitEnabled === false) {
+      delete values.refill;
+      delete values.remaining;
+    }
+    if (values.refill?.interval === "none") {
+      delete values.refill;
+    }
+    updateRemaining.mutateAsync(values);
   }
 
   return (
@@ -83,75 +133,111 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
           <CardContent className="flex justify-between item-center">
             <div
               className={cn("flex flex-col space-y-2", {
-                "opacity-50": !enabled,
+                "opacity-50": !form.getValues("limitEnabled"),
               })}
             >
-              <input type="hidden" name="keyId" value={apiKey.id} />
-              <input type="hidden" name="enableRemaining" value={enabled ? "true" : "false"} />
-
               <Label htmlFor="remaining">Remaining</Label>
               <FormField
                 control={form.control}
                 name="remaining"
+                disabled={!form.watch("limitEnabled") === true}
                 render={({ field }) => (
-                  <Input
-                    {...field}
-                    disabled={!enabled}
-                    type="number"
-                    min={0}
-                    className="max-w-sm"
-                    defaultValue={apiKey?.remaining ?? ""}
-                    autoComplete="off"
-                  />
+                  <FormItem>
+                    <FormLabel>Number of uses</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="100"
+                        className="w-full"
+                        type="number"
+                        {...field}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the remaining amount of uses for this key.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
 
-              <Label htmlFor="refillInterval" className="pt-4">
-                Refill Rate
-              </Label>
               <FormField
                 control={form.control}
-                name="refillInterval"
+                name="refill.interval"
                 render={({ field }) => (
-                  <Select
-                    {...field}
-                    disabled={!enabled}
-                    defaultValue={apiKey?.refillInterval ?? "null"}
-                    onValueChange={(value) => setRefillEnabled(value !== "null")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">None</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormItem className="">
+                    <FormLabel>Refill Rate</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue="none"
+                      value={field.value}
+                      disabled={!form.watch("limitEnabled") === true}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="refillAmount"
+                disabled={
+                  form.watch("refill.interval") === "none" ||
+                  form.watch("refill.interval") === undefined ||
+                  !form.watch("limitEnabled") === true
+                }
+                name="refill.amount"
                 render={({ field }) => (
-                  <Input
-                    {...field}
-                    disabled={!refillEbabled}
-                    placeholder="100"
-                    className="w-full"
-                    min={1}
-                    type="number"
-                    defaultValue={apiKey?.refillAmount ?? ""}
-                  />
+                  <FormItem className="mt-4">
+                    <FormLabel>Number of uses per interval</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="100"
+                        className="w-full"
+                        type="number"
+                        {...field}
+                        value={form.watch("refill.interval") === "none" ? undefined : field.value}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the number of uses to refill per interval.
+                    </FormDescription>
+                    <FormMessage defaultValue="Please enter a value if interval is selected" />
+                  </FormItem>
                 )}
               />
             </div>
           </CardContent>
           <CardFooter className="justify-between">
-            <div className="flex items-center gap-4">
-              <Switch id="enableRemaining" checked={enabled} onCheckedChange={setEnabled} />
-              <Label htmlFor="enableRemaining">{enabled ? "Enabled" : "Disabled"}</Label>
-            </div>
+            <FormField
+              control={form.control}
+              name="limitEnabled"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <div className="flex items-center gap-4">
+                    <FormControl>
+                      <Switch
+                        checked={form.getValues("limitEnabled")}
+                        onCheckedChange={(e) => {
+                          field.onChange(e);
+                          resetLimited();
+                        }}
+                      />
+                    </FormControl>{" "}
+                    <FormLabel htmlFor="limitEnabled">
+                      {form.getValues("limitEnabled") ? "Enabled" : "Disabled"}
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
             <SubmitButton label="Save" />
           </CardFooter>
         </Card>

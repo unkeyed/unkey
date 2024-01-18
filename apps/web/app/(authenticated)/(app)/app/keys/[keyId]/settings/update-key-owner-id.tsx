@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
@@ -16,13 +16,15 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
-  ownerId: z.string(),
+  ownerId: z
+    .string()
+    .transform((e) => (e === "" ? undefined : e))
+    .optional(),
 });
 
 type Props = {
@@ -35,9 +37,16 @@ type Props = {
 
 export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-  const [_isLoading, _setIsLoading] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id,
+      ownerId: apiKey.ownerId ?? "",
+    },
   });
 
   const updateOwnerId = trpc.keySettings.updateOwnerId.useMutation({
@@ -52,7 +61,7 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateOwnerId.mutate(values);
+    updateOwnerId.mutateAsync(values);
   }
   return (
     <Form {...form}>
@@ -73,13 +82,18 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
                 control={form.control}
                 name="ownerId"
                 render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="string"
-                    className="h-8 max-w-sm"
-                    defaultValue={apiKey.ownerId ?? ""}
-                    autoComplete="off"
-                  />
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="string"
+                        className="h-8 max-w-sm"
+                        defaultValue={apiKey.ownerId ?? ""}
+                        autoComplete="off"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
             </div>

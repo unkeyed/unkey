@@ -1,7 +1,8 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 
 import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -19,12 +28,15 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+const currentTime = new Date();
+const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
 const formSchema = z.object({
   keyId: z.string(),
   enableExpiration: z.boolean(),
-  expiration: z.string().optional(),
+  expiration: z.coerce.date().min(new Date(oneMinute)).optional(),
 });
 type Props = {
   apiKey: {
@@ -36,16 +48,33 @@ type Props = {
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
   const [enabled, setEnabled] = useState(apiKey.expires !== null);
-  const [_isLoading, _setIsLoading] = useState(false);
   const router = useRouter();
-  const placeholder = useMemo(() => {
-    const t = new Date();
-    t.setUTCDate(t.getUTCDate() + 7);
-    t.setUTCMinutes(0, 0, 0);
-    return t.toISOString();
-  }, []);
+
+  function getDatePlusTwoMinutes(): string {
+    if (apiKey.expires) {
+      return apiKey.expires.toISOString().slice(0, -8);
+    }
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + 2 * 60000);
+    return futureDate.toISOString().slice(0, -8);
+  }
+  // const placeholder = useMemo(() => {
+  //   const t = new Date();
+  //   t.setUTCDate(t.getUTCDate() + 7);
+  //   t.setUTCMinutes(0, 0, 0);
+  //   return t.toISOString();
+  // }, []);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id ? apiKey.id : undefined,
+      enableExpiration: apiKey.expires !== null ? true : false,
+      expiration: apiKey.expires ? apiKey.expires : undefined,
+    },
   });
 
   const changeExpiration = trpc.keySettings.updateExpiration.useMutation({
@@ -60,7 +89,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    changeExpiration.mutate(values);
+    changeExpiration.mutateAsync(values);
   }
 
   return (
@@ -77,35 +106,57 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
                 "opacity-50": !enabled,
               })}
             >
-              <input type="hidden" name="keyId" value={apiKey.id} />
-              <input type="hidden" name="enableExpiration" value={enabled ? "true" : "false"} />
-
               <Label htmlFor="expiration">Expiration</Label>
               <FormField
                 control={form.control}
                 name="expiration"
                 render={({ field }) => (
-                  <Input
-                    disabled={!enabled}
-                    type="string"
-                    {...field}
-                    className="max-w-sm"
-                    defaultValue={apiKey.expires?.toISOString()}
-                    placeholder={placeholder}
-                    autoComplete="off"
-                  />
+                  <FormItem>
+                    <FormLabel>Expiry Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={!form.watch("enableExpiration")}
+                        min={getDatePlusTwoMinutes()}
+                        type="datetime-local"
+                        defaultValue={getDatePlusTwoMinutes()}
+                        value={field.value?.toLocaleString().slice(0, -8)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      This api key will automatically be revoked after the given date.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
-
-              <span className="text-xs text-content-subtle">Use ISO format: {placeholder}</span>
             </div>
           </CardContent>
           <CardFooter className="justify-between">
-            <div className="flex items-center gap-4">
-              <Switch id="enableExpiration" checked={enabled} onCheckedChange={setEnabled} />
-              <Label htmlFor="enableExpiration">{enabled ? "Enabled" : "Disabled"}</Label>
-            </div>
-            <SubmitButton label="Save" />
+            <FormField
+              control={form.control}
+              name="enableExpiration"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <div className="flex items-center gap-4">
+                    <FormControl>
+                      <Switch
+                        id="enableExpiration"
+                        checked={form.getValues("enableExpiration")}
+                        onCheckedChange={(e) => {
+                          field.onChange(e);
+                          setEnabled(e);
+                        }}
+                      />
+                    </FormControl>{" "}
+                    <FormLabel htmlFor="enableExpiration">
+                      {form.getValues("enableExpiration") ? "Enabled" : "Disabled"}
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+            <Button type="submit">Save</Button>
           </CardFooter>
         </Card>
       </form>
