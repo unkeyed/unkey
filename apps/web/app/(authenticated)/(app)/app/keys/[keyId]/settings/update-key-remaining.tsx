@@ -59,7 +59,7 @@ type Props = {
     id: string;
     workspaceId: string;
     remaining: number | null;
-    refillInterval: "daily" | "monthly" | "none";
+    refillInterval: "daily" | "monthly" | null;
     refillAmount: number | null;
   };
 };
@@ -76,7 +76,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
       limitEnabled: apiKey.remaining ? true : false,
       remaining: apiKey.remaining ? apiKey.remaining : undefined,
       refill: {
-        interval: apiKey.refillInterval,
+        interval: apiKey.refillInterval === null ? "none" : apiKey.refillInterval,
         amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
       },
     },
