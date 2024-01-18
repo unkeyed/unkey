@@ -32,6 +32,7 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,7 +55,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     updateName.mutateAsync(values);
   }
-  const router = useRouter();
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>

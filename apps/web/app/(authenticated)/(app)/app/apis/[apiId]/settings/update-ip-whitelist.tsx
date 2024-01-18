@@ -41,7 +41,9 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
+  const router = useRouter();
   const isEnabled = workspace.plan === "enterprise";
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -65,7 +67,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     updateIps.mutateAsync(values);
   }
-  const router = useRouter();
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>

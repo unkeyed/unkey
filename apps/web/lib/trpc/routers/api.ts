@@ -71,9 +71,9 @@ export const apiRouter = t.router({
             actorType: "user",
             actorId: ctx.user.id,
             event: "api.delete",
-            description: `API ${api.name} deleted`,
+            description: `API ${api.name} marked for deletion`,
             apiId: api.id,
-          }); // TODO
+          });
         });
       } else {
         console.warn("TRIGGER_API_KEY not set");
@@ -188,7 +188,7 @@ export const apiRouter = t.router({
         throw new TRPCError({ message: "api not found", code: "NOT_FOUND" });
       }
 
-      const _res = await db.transaction(async (tx) => {
+      await db.transaction(async (tx) => {
         await tx
           .update(schema.apis)
           .set({
