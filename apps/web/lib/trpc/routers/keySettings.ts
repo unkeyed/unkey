@@ -113,7 +113,7 @@ export const keySettingsRouter = t.router({
       if (key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
-      const _result = await db.transaction(async (tx) => {
+      await db.transaction(async (tx) => {
         await tx
           .update(schema.keys)
           .set({
