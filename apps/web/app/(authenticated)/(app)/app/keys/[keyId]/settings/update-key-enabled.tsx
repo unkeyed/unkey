@@ -39,9 +39,9 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
     shouldFocusError: true,
     delayError: 100,
     defaultValues: {
-      keyId: apiKey.id ? apiKey.id : undefined,
-      workspaceId: apiKey.workspaceId ? apiKey.workspaceId : undefined,
-      enabled: apiKey.enabled ? apiKey.enabled : undefined,
+      keyId: apiKey.id,
+      workspaceId: apiKey.workspaceId,
+      enabled: apiKey.enabled,
     },
   });
   const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
