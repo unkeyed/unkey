@@ -16,6 +16,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { type Workspace } from "@unkey/db";
+import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -30,6 +31,7 @@ const tiers = {
     href: "/app",
     price: 0,
     description: "Everything you need to start your next API!",
+    buttonText: "Free",
     features: [
       "100 Monthly Active Keys",
       "2500 Successful Verifications per month",
@@ -44,7 +46,7 @@ const tiers = {
     href: "/app",
     price: 25,
     description: "For those with teams and more demanding needs",
-    buttonText: "Upgrade now",
+    buttonText: "Pro",
     features: [
       "250 Monthly Active keys included *",
       "150,000 Successful Verifications included **",
@@ -165,13 +167,67 @@ export const ChangePlan: React.FC<Props> = ({ workspace, trigger }) => {
                       ))}
                     </ul>
                     {tiers[tier].footnotes && (
-                      <ul className="mt-6">
+                      <ul className="mt-6 mb-8">
                         {tiers[tier].footnotes.map((footnote, i) => (
                           <li key={`note-${i}`} className="flex text-xs text-gray-600 gap-x-3">
                             {footnote}
                           </li>
                         ))}
                       </ul>
+                    )}
+                    {tiers[tier].id === "enterprise" ? (
+                      <Link href="mailto:support@unkey.dev">
+                        <Button
+                          className="col-span-1 w-full"
+                          variant={workspace.plan === "enterprise" ? "disabled" : "secondary"}
+                          disabled={workspace.plan === "enterprise"}
+                        >
+                          Schedule a Call
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Dialog>
+                        <DialogTrigger asChild disabled={workspace.plan === tiers[tier].id}>
+                          <Button
+                            className="col-span-1"
+                            variant={workspace.plan === tiers[tier].id ? "disabled" : "secondary"}
+                          >
+                            {changePlan.isLoading ? <Loading /> : tiers[tier].buttonText}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px] md:min-w-fit">
+                          <DialogHeader className="flex flex-row">
+                            <AlertTriangle className="mx-auto" width={46} height={46} />
+                          </DialogHeader>
+                          <DialogDescription className="text-lg p-8">
+                            You are about to switch to our Pro plan. Please note there is a 24 hour
+                            pause before you can switch plans again.
+                          </DialogDescription>
+                          <DialogFooter className="flex flex-row gap-4">
+                            <DialogClose />
+                            <Button
+                              className="col-span-1"
+                              variant="outline"
+                              onClick={() => setOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              className="col-span-1"
+                              variant={"primary"}
+                              disabled={workspace.plan === tiers[tier].id}
+                              onClick={() =>
+                                changePlan.mutateAsync({
+                                  workspaceId: workspace.id,
+                                  plan: tiers[tier].id === "free" ? "free" : "pro",
+                                })
+                              }
+                            >
+                              {changePlan.isLoading ? <Loading /> : "Switch"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     )}
                   </div>
                 </div>
@@ -180,50 +236,6 @@ export const ChangePlan: React.FC<Props> = ({ workspace, trigger }) => {
           </DialogDescription>
           <DialogClose />
         </DialogHeader>
-
-        <DialogFooter className="grid grid-cols-3 w-full gap-4">
-          <Dialog>
-            <DialogTrigger asChild>{trigger}</DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] md:min-w-fit">
-              <Button
-                className="col-span-1"
-                variant={workspace.plan === "free" ? "disabled" : "secondary"}
-                disabled={workspace.plan === "free"}
-                onClick={() =>
-                  changePlan.mutateAsync({
-                    workspaceId: workspace.id,
-                    plan: "free",
-                  })
-                }
-              >
-                {changePlan.isLoading ? <Loading /> : "Free"}
-              </Button>
-            </DialogContent>
-          </Dialog>
-
-          <Button
-            className="col-span-1"
-            variant={workspace.plan === "pro" ? "disabled" : "secondary"}
-            disabled={workspace.plan === "pro"}
-            onClick={() =>
-              changePlan.mutateAsync({
-                workspaceId: workspace.id,
-                plan: "pro",
-              })
-            }
-          >
-            {changePlan.isLoading ? <Loading /> : "Pro"}
-          </Button>
-          <Link href="mailto:support@unkey.dev">
-            <Button
-              className="col-span-1 w-full"
-              variant={workspace.plan === "enterprise" ? "disabled" : "secondary"}
-              disabled={workspace.plan === "enterprise"}
-            >
-              Enterprise
-            </Button>
-          </Link>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
