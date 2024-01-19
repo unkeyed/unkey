@@ -10,12 +10,12 @@
   "scripts": {
     "dev": "email dev",
     "build": "email build"
-    
   },
   "devDependencies": {
     "@types/node": "^20.11.4",
     "@types/react": "^18.2.33",
     "@unkey/tsconfig": "workspace:^",
+    "next": "^14.1.0",
     "typescript": "^5.2.2"
   },
   "dependencies": {
