@@ -4,14 +4,10 @@ import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { describe, expect, test } from "vitest";
-import {
-  type V1KeysCreateKeyRequest,
-  V1KeysCreateKeyResponse,
-  registerV1KeysCreateKey,
-} from "./v1_keys_createKey";
+import { type V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
 
-runSharedRoleTests<V1KeysCreateKeyRequest>({
-  registerHandler: registerV1KeysCreateKey,
+runSharedRoleTests({
+  registerHandler: registerV1KeysGetKey,
   prepareRequest: async (h) => {
     const apiId = newId("api");
     await h.db.insert(schema.apis).values({
@@ -20,15 +16,8 @@ runSharedRoleTests<V1KeysCreateKeyRequest>({
       workspaceId: h.resources.userWorkspace.id,
     });
     return {
-      method: "POST",
-      url: "/v1/keys.createKey",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: {
-        apiId,
-        byteLength: 16,
-      },
+      method: "GET",
+      url: `/v1/keys.getKey?apiId=${apiId}`,
     };
   },
 });
@@ -37,20 +26,34 @@ describe("correct roles", () => {
   test.each([
     { name: "legacy", roles: ["*"] },
     { name: "legacy and more", roles: ["*", randomUUID()] },
-    { name: "wildcard api", roles: ["api.*.create_key"] },
-
-    { name: "wildcard and more", roles: ["api.*.create_key", randomUUID()] },
+    { name: "wildcard api", roles: ["api.*.read_key", "api.*.read_api"] },
+    {
+      name: "wildcard mixed",
+      roles: ["api.*.read_key", (apiId: string) => `api.${apiId}.read_api`],
+    },
+    {
+      name: "wildcard mixed 2",
+      roles: ["api.*.read_api", (apiId: string) => `api.${apiId}.read_key`],
+    },
+    { name: "wildcard and more", roles: ["api.*.read_key", "api.*.read_api", randomUUID()] },
     {
       name: "specific apiId",
-      roles: [(apiId: string) => `api.${apiId}.create_key`],
+      roles: [
+        (apiId: string) => `api.${apiId}.read_key`,
+        (apiId: string) => `api.${apiId}.read_api`,
+      ],
     },
     {
       name: "specific apiId and more",
-      roles: [(apiId: string) => `api.${apiId}.create_key`, randomUUID()],
+      roles: [
+        (apiId: string) => `api.${apiId}.read_key`,
+        (apiId: string) => `api.${apiId}.read_api`,
+        randomUUID(),
+      ],
     },
   ])("$name", async ({ roles }) => {
     const h = await Harness.init();
-    h.useRoutes(registerV1KeysCreateKey);
+    h.useRoutes(registerV1KeysGetKey);
 
     const keyAuthId = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
@@ -71,14 +74,10 @@ describe("correct roles", () => {
       roles.map((role) => (typeof role === "string" ? role : role(apiId))),
     );
 
-    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
-      url: "/v1/keys.createKey",
+    const res = await h.get<V1KeysGetKeyResponse>({
+      url: `/v1/keys.getKey?apiId=${apiId}`,
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${root.key}`,
-      },
-      body: {
-        apiId,
       },
     });
     expect(res.status).toEqual(200);

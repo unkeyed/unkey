@@ -65,7 +65,6 @@ describe("correct roles", () => {
         Authorization: `Bearer ${root.key}`,
       },
     });
-    console.log(res);
     expect(res.status).toEqual(200);
 
     const found = await h.resources.database.query.keys.findFirst({
