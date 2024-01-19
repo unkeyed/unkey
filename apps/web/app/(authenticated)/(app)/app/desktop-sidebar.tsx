@@ -14,7 +14,7 @@ type Props = {
     apis: {
       id: string;
       name: string;
-      state: string;
+      state: string | null;
     }[];
   };
   className?: string;
