@@ -30,6 +30,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { revalidate } from "./actions";
+
 type Props = {
   api: {
     id: string;
@@ -59,6 +61,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
         description: "Your API and all its keys are being deleted now.",
       });
 
+      revalidate();
       router.replace("/app/apis");
     },
     onError(err) {

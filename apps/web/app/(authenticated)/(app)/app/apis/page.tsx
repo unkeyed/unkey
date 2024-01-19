@@ -30,6 +30,7 @@ export default async function ApisOverviewPage() {
 
   const apis = await Promise.all(
     workspace.apis.map(async (api) => ({
+      state: api.state,
       id: api.id,
       name: api.name,
       keys: await db
@@ -38,6 +39,8 @@ export default async function ApisOverviewPage() {
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
     })),
   );
+  const filteredApis = apis.filter((api) => api.state !== "DELETION_IN_PROGRESS");
+
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 
   return (
@@ -75,7 +78,7 @@ export default async function ApisOverviewPage() {
           </div>
         </div>
       ) : (
-        <ApiList apis={apis} />
+        <ApiList apis={filteredApis} />
       )}
     </div>
   );
