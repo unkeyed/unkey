@@ -9,7 +9,6 @@ test("returns 200", async () => {
     url: "/v1/liveness",
   });
 
-  console.log(res);
   expect(res).toMatchObject({
     status: 200,
     body: {
