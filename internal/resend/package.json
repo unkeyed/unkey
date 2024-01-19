@@ -8,7 +8,9 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "scripts": {
-    "dev": "email dev"
+    "dev": "email dev",
+    "build": "email build"
+    
   },
   "devDependencies": {
     "@types/node": "^20.11.4",
@@ -17,10 +19,10 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@react-email/components": "0.0.14-canary.1",
+    "@react-email/components": "0.0.14",
     "@react-email/render": "^0.0.12",
     "react": "^18.2.0",
-    "react-email": "2.0.0-canary.11",
+    "react-email": "2.0.0",
     "resend": "2.1.0-canary.1"
   }
 }
