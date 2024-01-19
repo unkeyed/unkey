@@ -39,7 +39,7 @@ export default async function ApisOverviewPage() {
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
     })),
   );
-  const filteredApis = apis.filter((api) => api.state !== "DELETION_IN_PROGRESS");
+  const filteredApis = apis.filter((api) => api?.state !== "DELETION_IN_PROGRESS");
 
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 

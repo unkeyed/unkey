@@ -103,7 +103,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
             {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
             <ScrollArea className="mt-2 max-h-64 -mx-2 space-y-1 overflow-auto">
               {workspace.apis
-                .filter((api) => api.state !== "DELETION_IN_PROGRESS")
+                .filter((api) => api?.state !== "DELETION_IN_PROGRESS")
                 .map((api) => (
                   <Tooltip key={api.id}>
                     <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
