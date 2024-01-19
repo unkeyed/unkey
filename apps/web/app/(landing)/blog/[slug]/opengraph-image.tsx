@@ -1,4 +1,4 @@
-import { authors } from "@/content/blog/authors";
+//import { authors } from "@/content/blog/authors";
 import { ImageResponse } from "@vercel/og";
 import { allPosts } from "contentlayer/generated";
 const truncate = (str: string | null, length: number) => {

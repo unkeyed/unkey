@@ -1,39 +1,84 @@
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
+import { MdxContent } from "@/components/landing/mdx-content";
 import { PageLinks } from "@/components/landing/page-links";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { authors } from "@/content/blog/authors";
-import { allPosts } from "contentlayer/generated";
 import type { Metadata } from "next";
-import { useMDXComponent } from "next-contentlayer/hooks";
+import { type MDXRemoteSerializeResult } from "next-mdx-remote";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+import {
+  BLOG_PATH,
+  getHeadings,
+  getMorePostsData,
+  mdxSerialized,
+  postFilePaths,
+  raw,
+} from "@/lib/mdx-helper";
+
 type Props = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
+type Frontmatter = {
+  title: string;
+  date: string;
+  description: string;
+  author: string;
+};
+
+type Headings = {
+  slug: string | undefined;
+  level: string;
+  text: string | undefined;
+};
+
+type Post<TFrontmatter> = {
+  serialized: MDXRemoteSerializeResult;
+  frontmatter: TFrontmatter;
+  headings: Headings[];
+};
+
+async function getPost(filepath: string): Promise<Post<Frontmatter>> {
+  const rawMdx = await raw({ contentPath: BLOG_PATH, filepath: filepath });
+  // Serialize the MDX content and parse the frontmatter
+  const serialized = await mdxSerialized({ rawMdx });
+
+  const frontmatter = serialized.frontmatter as Frontmatter;
+  const headings = await getHeadings({ rawMdx });
+
+  return {
+    frontmatter,
+    serialized,
+    headings,
+  };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
-  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
-  if (!post) {
+  const { frontmatter } = await getPost(params.slug);
+
+  if (!frontmatter) {
     return notFound();
   }
 
   return {
-    title: `${post?.title} | Unkey`,
-    description: post?.description,
+    title: `${frontmatter.title} | Unkey`,
+    description: frontmatter.description,
     openGraph: {
-      title: `${post?.title} | Unkey`,
-      description: post?.description,
+      title: `${frontmatter.title} | Unkey`,
+      description: frontmatter.description,
       url: `https://unkey.dev/blog/${params.slug}`,
       siteName: "unkey.dev",
     },
     twitter: {
       card: "summary_large_image",
-      title: `${post?.title} | Unkey`,
-      description: post?.description,
+      title: `${frontmatter.title} | Unkey`,
+      description: frontmatter.description,
       site: "@unkeydev",
       creator: "@unkeydev",
     },
@@ -43,32 +88,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export const generateStaticParams = async () =>
-  allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
+export const generateStaticParams = async () => {
+  const posts = await postFilePaths;
+  // Remove file extensions for page paths
+  posts.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
+  return posts;
+};
 
-const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
-  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
-  if (!post) {
-    return notFound();
-  }
-  const author = authors[post.author];
-  const Content = useMDXComponent(post.body.code);
+const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
+  const { serialized, frontmatter, headings } = await getPost(params.slug);
 
-  // Find other articles to recommend at the bottom of the page that aren't the current article
-  const moreArticles = allPosts
-    .filter((p) => p._raw.flattenedPath !== post._raw.flattenedPath)
-    .slice(0, 2);
+  type Authors = {
+    james: { name: string; role: string; image: { src: string } };
+    andreas: { name: string; role: string; image: { src: string } };
+    wilfred: { name: string; role: string; image: { src: string } };
+  };
+
+  const author = authors[frontmatter.author as keyof Authors];
+  const moreArticles = await getMorePostsData({ contentPath: BLOG_PATH, filepath: params.slug });
+
   return (
     <>
       <Container className="scroll-smooth">
         <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0 ">
           <div className="mx-auto w-full lg:pl-8 ">
             <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-              {post.title}
+              {frontmatter.title}
             </h2>
-            <p className="border- my-8 text-center text-gray-500">{post.description}</p>
+            <p className="border- my-8 text-center text-gray-500">{frontmatter.description}</p>
             <div className="prose prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto w-full">
-              <Content />
+              <MdxContent source={serialized} />
             </div>
           </div>
 
@@ -81,18 +130,14 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
                 <div className="font-semibold">{author.name}</div>
               </div>
             </div>
-            <div className="hidden md:block">
-              <h3 className="mb-4 mt-8 text-lg font-bold uppercase tracking-wide text-gray-600">
-                Table of Contents
-              </h3>
-              <ScrollArea className="flex h-[580px] flex-col">
-                <div className="p-4">
-                  {post.headings.map(
-                    (heading: {
-                      slug: string;
-                      level: string;
-                      text: string;
-                    }) => {
+            {
+              <div className="hidden md:block">
+                <h3 className="mb-4 mt-8 text-lg font-bold uppercase tracking-wide text-gray-600">
+                  Table of Contents
+                </h3>
+                <ScrollArea className="flex h-[580px] flex-col">
+                  <div className="p-4">
+                    {headings.map((heading) => {
                       return (
                         <div key={`#${heading.slug}`} className="my-2">
                           <a
@@ -108,12 +153,12 @@ const BlogArticleWrapper = ({ params }: { params: { slug: string } }) => {
                           </a>
                         </div>
                       );
-                    },
-                  )}
-                </div>
-                <ScrollBar orientation="vertical" />
-              </ScrollArea>
-            </div>
+                    })}
+                  </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
+              </div>
+            }
           </div>
         </div>
       </Container>

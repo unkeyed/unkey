@@ -8,11 +8,16 @@ import { GridPattern } from "@/components/landing/grid-pattern";
 import { SectionIntro } from "@/components/landing/section-intro";
 
 interface Page {
-  title: string;
-  description: string;
-  date: string;
-  url: string;
+  frontmatter: Frontmatter;
+  slug: string;
 }
+
+type Frontmatter = {
+  title: string;
+  date: string;
+  description: string;
+  author: string;
+};
 
 function ArrowIcon(props: any) {
   return (
@@ -23,18 +28,19 @@ function ArrowIcon(props: any) {
 }
 
 function PageLink({ page }: { page: Page }) {
+  console.log(page);
   return (
-    <article key={page.url}>
+    <article key={page.slug}>
       <Border position="left" className="relative flex flex-col items-start pl-8">
-        <h3 className="mt-6 text-base font-semibold text-gray-950">{page.title}</h3>
-        <time dateTime={page.date} className="order-first text-sm text-gray-600">
-          {new Date(page.date).toDateString()}
+        <h3 className="mt-6 text-base font-semibold text-gray-950">{page.frontmatter.title}</h3>
+        <time dateTime={page.frontmatter.date} className="order-first text-sm text-gray-600">
+          {new Date(page.frontmatter.date).toDateString()}
         </time>
-        <p className="mt-2.5 text-base text-gray-600">{page.description}</p>
+        <p className="mt-2.5 text-base text-gray-600">{page.frontmatter.description}</p>
         <Link
-          href={page.url}
+          href={`/blog/${page.slug}`}
           className="flex mt-6 text-base font-semibold transition gap-x-3 text-gray-950 hover:text-gray-700"
-          aria-label={`Read more: ${page.title}`}
+          aria-label={`Read more: ${page.frontmatter.title}`}
         >
           Read more
           <ArrowIcon className="flex-none w-6 fill-current" />
@@ -53,7 +59,7 @@ export function PageLinks({
 }: {
   title: string;
   intro?: string;
-  pages: Page[];
+  pages: any;
   className?: string;
 }) {
   return (
@@ -72,7 +78,7 @@ export function PageLinks({
       <Container className={intro ? "mt-24" : "mt-16"}>
         <FadeInStagger className="grid grid-cols-1 gap-x-8 gap-y-16 lg:grid-cols-2">
           {pages.map((page) => (
-            <FadeIn key={page.url}>
+            <FadeIn key={page.slug}>
               <PageLink page={page} />
             </FadeIn>
           ))}
