@@ -17,6 +17,7 @@ Let's disable a key temperarily blocking access with that key.
 ```bash
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.updateKey \
+  --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
   "enabled": false,
