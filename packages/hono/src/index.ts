@@ -78,7 +78,6 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
     }
 
     const unkeyInstance = new Unkey({
-      baseUrl: "http://localhost:8787",
       rootKey: "public",
       disableTelemetry: config?.disableTelemetry,
       wrapperSdkVersion: `@unkey/hono@${version}`,
