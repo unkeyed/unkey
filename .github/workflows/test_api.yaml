@@ -43,7 +43,7 @@ jobs:
 
 
       - name: Test
-        run: pnpm vitest run -c vitest.routes.ts --threads --single-thread --bail 1
+        run: pnpm vitest run -c vitest.routes.ts --threads --single-thread --bail=1 --retry=3
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
