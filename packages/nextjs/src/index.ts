@@ -1,4 +1,4 @@
-import { type ErrorResponse, Unkey, verifyKey } from "@unkey/api";
+import { type ErrorResponse, Unkey } from "@unkey/api";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { version } from "../package.json";
