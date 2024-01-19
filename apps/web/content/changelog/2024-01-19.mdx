@@ -47,6 +47,7 @@ You can now disable a key via the API or in the dashboard. While disabled, the k
 ```bash
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.updateKey \
+  --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/json' \
   --data '{
   "enabled": false,
