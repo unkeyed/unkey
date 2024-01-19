@@ -6,9 +6,9 @@
     "build": "tsc",
     "deploy": "pnpm build && wrangler deploy",
     "dev": "pnpm build && wrangler dev",
-    "test:unit": "vitest run -c vitest.unit.ts --bail 1",
-    "test:routes": "vitest run -c vitest.routes.ts --bail 1",
-    "test:e2e": "vitest run -c vitest.e2e.ts --bail 1"
+    "test:unit": "vitest run -c vitest.unit.ts",
+    "test:routes": "vitest run -c vitest.routes.ts",
+    "test:e2e": "vitest run -c vitest.e2e.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231121.0",
