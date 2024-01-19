@@ -1,13 +1,15 @@
 "use client";
-import { Container } from "@react-email/container";
-import { Head } from "@react-email/head";
-import { Heading } from "@react-email/heading";
-import { Hr } from "@react-email/hr";
-import { Html } from "@react-email/html";
-import { Link } from "@react-email/link";
-import { Section } from "@react-email/section";
-import { Tailwind } from "@react-email/tailwind";
-import { Text } from "@react-email/text";
+import {
+  Container,
+  Head,
+  Heading,
+  Hr,
+  Html,
+  Link,
+  Section,
+  Tailwind,
+  Text,
+} from "@react-email/components";
 import React from "react";
 export type Props = {
   username: string;
@@ -17,8 +19,8 @@ export type Props = {
 export function WelcomeEmail() {
   return (
     <Tailwind>
+      <Head />
       <Html className="font-sans text-zinc-800">
-        <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
             <Heading className="font-sans text-2xl text-semibold">Welcome to Unkey!</Heading>
@@ -33,14 +35,14 @@ export function WelcomeEmail() {
                 you started:{" "}
               </Text>
               <Text>
-                <li>
+                <li key="quickstart">
                   {" "}
                   <Link href="https://unkey.dev/docs/onboarding">Unkey Quickstart Guide</Link>
                 </li>
-                <li>
+                <li key="security">
                   <Link href="https://unkey.dev/docs/security"> Why is Unkey secure? </Link>
                 </li>
-                <li>
+                <li key="discord">
                   {" "}
                   <Link href="https://unkey.dev/discord">Unkey Community Discord </Link>
                 </li>
