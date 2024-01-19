@@ -31,7 +31,6 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -133,7 +132,6 @@ type Props = {
 };
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
-  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -147,21 +145,14 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       ratelimitEnabled: false,
     },
   });
+
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast("Key Created", {
         description: "Your Key has been created",
       });
-      form.reset();
-      router.refresh();
     },
-    onError(err) {
-      const errors = JSON.parse(err.message);
-
-      if (err.data?.code === "BAD_REQUEST" && errors[0].path[0] === "ratelimit") {
-        toast.error("You need to include all ratelimit fields");
-        return;
-      }
+    onError(_err) {
       toast.error("An error occured, please try again");
     },
   });
@@ -222,19 +213,19 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   };
 
   const resetLimited = () => {
-    // set them to undefined so the form resets properly.
-    form.resetField("limit.refill", undefined);
     form.resetField("limit.refill.amount", undefined);
     form.resetField("limit.refill.interval", undefined);
+    form.resetField("limit.refill", undefined);
     form.resetField("limit.remaining", undefined);
     form.resetField("limit", undefined);
   };
 
   useEffect(() => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
-    resetLimited();
     resetRateLimit();
+    resetLimited();
   }, []);
+
   return (
     <>
       {key.data ? (
@@ -274,7 +265,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             <Link href={`/app/apis/${apiId}`}>
               <Button variant="secondary">Back</Button>
             </Link>
-            <Button onClick={() => key.reset()}>Create another key</Button>
+            <Button
+              onClick={() => {
+                window.location.reload();
+              }}
+            >
+              Create another key
+            </Button>
           </div>
         </div>
       ) : (
@@ -388,7 +385,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                     <Switch
                                       onCheckedChange={(e) => {
                                         field.onChange(e);
-                                        resetRateLimit();
+                                        if (field.value === false) {
+                                          resetRateLimit();
+                                        }
                                       }}
                                     />
                                   </FormControl>
@@ -408,7 +407,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                     <Switch
                                       onCheckedChange={(e) => {
                                         field.onChange(e);
-                                        resetLimited();
+                                        if (field.value === false) {
+                                          resetLimited();
+                                        }
                                       }}
                                     />
                                   </FormControl>
@@ -616,6 +617,14 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               form.watch("limit.refill.interval") === "none" ||
                               form.watch("limit.refill.interval") === undefined
                             }
+                            rules={{
+                              validate: (value) => {
+                                if (form.watch("limit.refill.interval") !== "none" && value > 0) {
+                                  return "Please enter a value if interval is selected";
+                                }
+                                return true;
+                              },
+                            }}
                             name="limit.refill.amount"
                             render={({ field }) => (
                               <FormItem className="mt-4">
@@ -666,7 +675,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                 <FormLabel>Expiry Date</FormLabel>
                                 <FormControl>
                                   <Input
-                                    min={getDatePlusTwoMinutes()}
                                     type="datetime-local"
                                     {...field}
                                     defaultValue={getDatePlusTwoMinutes()}
