@@ -1,10 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -16,32 +12,26 @@ import {
 
 describe("simple", () => {
   test("returns 200", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerLegacyApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerLegacyApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
     }
 
-    const res = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis/${r.userApi.id}/keys`,
+    const res = await h.get<LegacyApisListKeysResponse>({
+      url: `/v1/apis/${h.resources.userApi.id}/keys`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -54,34 +44,28 @@ describe("simple", () => {
 
 describe("filter by ownerId", () => {
   test("returns all keys owned ", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerLegacyApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerLegacyApisListKeys);
 
     const ownerId = crypto.randomUUID();
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         ownerId: i % 2 === 0 ? ownerId : undefined,
       });
     }
 
-    const res = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis/${r.userApi.id}/keys?ownerId=${ownerId}`,
+    const res = await h.get<LegacyApisListKeysResponse>({
+      url: `/v1/apis/${h.resources.userApi.id}/keys?ownerId=${ownerId}`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -93,32 +77,26 @@ describe("filter by ownerId", () => {
 
 describe("with limit", () => {
   test("returns only a few keys", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerLegacyApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerLegacyApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
     }
 
-    const res = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis/${r.userApi.id}/keys?limit=2`,
+    const res = await h.get<LegacyApisListKeysResponse>({
+      url: `/v1/apis/${h.resources.userApi.id}/keys?limit=2`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
     expect(res.status).toEqual(200);
@@ -129,41 +107,34 @@ describe("with limit", () => {
 
 describe("with offset", () => {
   test("returns the correct keys", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerLegacyApisListKeys(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerLegacyApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyIds[i],
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
     }
 
-    const res1 = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis/${r.userApi.id}/keys?limit=2`,
+    const res1 = await h.get<LegacyApisListKeysResponse>({
+      url: `/v1/apis/${h.resources.userApi.id}/keys?limit=2`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
     expect(res1.status).toEqual(200);
 
-    const res2 = await fetchRoute<never, LegacyApisListKeysResponse>(app, {
-      method: "GET",
-      url: `/v1/apis/${r.userApi.id}/keys?limit=2&offset=2`,
+    const res2 = await h.get<LegacyApisListKeysResponse>({
+      url: `/v1/apis/${h.resources.userApi.id}/keys?limit=2&offset=2`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 

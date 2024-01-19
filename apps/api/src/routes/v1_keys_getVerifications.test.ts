@@ -1,11 +1,7 @@
-import { newApp } from "@/pkg/hono/app";
 import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { init } from "@/pkg/global";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -17,19 +13,13 @@ import {
 
 describe("when a key does not exist", () => {
   test("returns a 404", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
+    const h = await Harness.init();
+    h.useRoutes(registerV1KeysGetVerifications);
 
-    const r = await seed(env);
-    const app = newApp();
-    registerV1KeysGetVerifications(app);
-
-    const res = await fetchRoute<never, ErrorResponse>(app, {
-      method: "GET",
+    const res = await h.get<ErrorResponse>({
       url: "/v1/keys.getVerifications?keyId=INVALID",
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -48,30 +38,24 @@ describe("when a key does not exist", () => {
 
 describe("when the key exists", () => {
   test("returns an empty verifications array", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-
-    const r = await seed(env);
-    const app = newApp();
-    registerV1KeysGetVerifications(app);
+    const h = await Harness.init();
+    h.useRoutes(registerV1KeysGetVerifications);
 
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await r.database.insert(schema.keys).values({
+    await h.resources.database.insert(schema.keys).values({
       id: keyId,
-      keyAuthId: r.userKeyAuth.id,
+      keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
-      workspaceId: r.userWorkspace.id,
+      workspaceId: h.resources.userWorkspace.id,
       createdAt: new Date(),
     });
 
-    const res = await fetchRoute<never, V1KeysGetVerificationsResponse>(app, {
-      method: "GET",
+    const res = await h.get<V1KeysGetVerificationsResponse>({
       url: `/v1/keys.getVerifications?keyId=${keyId}`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -82,34 +66,28 @@ describe("when the key exists", () => {
   });
 
   test("ownerId works too", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-
-    const r = await seed(env);
-    const app = newApp();
-    registerV1KeysGetVerifications(app);
+    const h = await Harness.init();
+    h.useRoutes(registerV1KeysGetVerifications);
 
     const ownerId = crypto.randomUUID();
     const keyIds = [newId("key"), newId("key"), newId("key")];
     for (const keyId of keyIds) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: keyId,
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         ownerId,
       });
     }
 
-    const res = await fetchRoute<never, V1KeysGetVerificationsResponse>(app, {
-      method: "GET",
+    const res = await h.get<V1KeysGetVerificationsResponse>({
       url: `/v1/keys.getVerifications?ownerId=${ownerId}`,
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 
@@ -122,19 +100,13 @@ describe("when the key exists", () => {
 
 describe("without a keyId or ownerId", () => {
   test("returns 400", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
+    const h = await Harness.init();
+    h.useRoutes(registerV1KeysGetVerifications);
 
-    const r = await seed(env);
-    const app = newApp();
-    registerV1KeysGetVerifications(app);
-
-    const res = await fetchRoute<never, ErrorResponse>(app, {
-      method: "GET",
+    const res = await h.get<ErrorResponse>({
       url: "/v1/keys.getVerifications",
       headers: {
-        Authorization: `Bearer ${r.rootKey}`,
+        Authorization: `Bearer ${h.resources.rootKey}`,
       },
     });
 

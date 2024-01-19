@@ -1,15 +1,11 @@
 import { expect, test } from "vitest";
 
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
+import { Harness } from "@/pkg/testutil/harness";
 import {
   V1KeysDeleteKeyRequest,
   V1KeysDeleteKeyResponse,
@@ -17,31 +13,25 @@ import {
 } from "./v1_keys_deleteKey";
 
 test("soft deletes key", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerV1KeysDeleteKey(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerV1KeysDeleteKey);
 
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await r.database.insert(schema.keys).values({
+  await h.resources.database.insert(schema.keys).values({
     id: keyId,
-    keyAuthId: r.userKeyAuth.id,
+    keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
     start: key.slice(0, 8),
-    workspaceId: r.userWorkspace.id,
+    workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
   });
 
-  const res = await fetchRoute<V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse>({
     url: "/v1/keys.deleteKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       keyId,
@@ -50,7 +40,7 @@ test("soft deletes key", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await r.database.query.keys.findFirst({
+  const found = await h.resources.database.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
   });
   expect(found).toBeDefined();

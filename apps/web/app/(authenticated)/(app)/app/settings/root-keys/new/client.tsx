@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
+import { Role } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiRoles, workspaceRoles } from "../[keyId]/permissions/roles";
@@ -150,7 +151,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
         onClick={() => {
           key.mutate({
             name: name && name.length > 0 ? name : undefined,
-            roles: selectedRoles,
+            roles: selectedRoles as Role[],
           });
         }}
       >

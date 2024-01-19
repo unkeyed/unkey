@@ -10,11 +10,13 @@ const ErrorCode = z.enum([
   "INTERNAL_SERVER_ERROR",
   "USAGE_EXCEEDED",
   "INVALID_KEY_TYPE",
+  "DISABLED",
   "NOT_FOUND",
   "NOT_UNIQUE",
   "RATE_LIMITED",
   "UNAUTHORIZED",
   "PRECONDITION_FAILED",
+  "INSUFFICIENT_PERMISSIONS",
 ]);
 
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
@@ -77,8 +79,11 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): number {
       return 500;
     case "RATE_LIMITED":
       return 500;
+    case "DISABLED":
     case "UNAUTHORIZED":
+    case "INSUFFICIENT_PERMISSIONS":
       return 403;
+
     case "INTERNAL_SERVER_ERROR":
       return 500;
   }

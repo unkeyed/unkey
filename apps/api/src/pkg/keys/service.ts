@@ -23,7 +23,12 @@ type VerifyKeyResult =
   | {
       valid: false;
       publicMessage?: string;
-      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED";
+      code:
+        | "FORBIDDEN"
+        | "RATE_LIMITED"
+        | "USAGE_EXCEEDED"
+        | "DISABLED"
+        | "INSUFFICIENT_PERMISSIONS";
       key: Key;
       api: Api;
       ratelimit?: {
@@ -137,7 +142,7 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roles?: RoleQuery },
+    req: { key: string; apiId?: string; roleQuery?: RoleQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
@@ -227,13 +232,21 @@ export class KeyService {
       }
     }
 
-    if (typeof req.roles !== "undefined") {
-      const roleResp = this.rbac.evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
+    if (req.roleQuery) {
+      const roleResp = this.rbac.evaluateRoles(
+        req.roleQuery,
+        data.key.roles?.map((r) => r.role) ?? [],
+      );
       if (roleResp.error) {
         return result.fail({ message: roleResp.error.message, code: "INTERNAL_SERVER_ERROR" });
       }
       if (!roleResp.value.valid) {
-        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+        return result.success({
+          key: data.key,
+          api: data.api,
+          valid: false,
+          code: "INSUFFICIENT_PERMISSIONS",
+        });
       }
     }
 
