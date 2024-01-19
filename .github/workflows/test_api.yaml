@@ -46,7 +46,7 @@ jobs:
 
 
       - name: Test
-        run: pnpm vitest run -c vitest.routes.ts --threads --single-thread --bail=1 --retry=3 --shard=${{matrix.shard}}
+        run: pnpm vitest run -c vitest.routes.ts --threads --single-thread --bail=1 --shard=${{matrix.shard}}
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
