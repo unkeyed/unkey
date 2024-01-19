@@ -6,7 +6,7 @@ import type { H3Event } from "h3";
 
 let unkey: Unkey;
 
-export const useUnkey = (event?: H3Event) => {
+export const useUnkey = (event?: H3Event, disableTelemetry?: boolean) => {
   if (unkey) {
     return unkey;
   }
@@ -16,6 +16,7 @@ export const useUnkey = (event?: H3Event) => {
   unkey = new Unkey({
     token: config.unkey.token || "invalid_token",
     wrapperSdkVersion: `@unkey/nuxt@${version}`,
+    disableTelemetry,
   });
 
   return unkey;

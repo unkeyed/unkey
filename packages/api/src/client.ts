@@ -1,6 +1,7 @@
-import { version } from "../package.json";
 import { ErrorResponse } from "./errors";
 import type { paths } from "./openapi";
+
+import { type Telemetry, getTelemetry } from "./telemetry";
 
 export type UnkeyOptions = (
   | {
@@ -28,6 +29,15 @@ export type UnkeyOptions = (
    * @default https://api.unkey.dev
    */
   baseUrl?: string;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
 
   /**
    * Retry on network errors
@@ -63,24 +73,6 @@ export type UnkeyOptions = (
   wrapperSdkVersion?: string;
 };
 
-type Telemetry = {
-  /**
-   * Unkey-Telemetry-Sdk
-   * @example @unkey/api@v1.1.1
-   */
-  sdkVersions: string[];
-  /**
-   * Unkey-Telemetry-Platform
-   * @example cloudflare
-   */
-  platform: string;
-  /**
-   * Unkey-Telemetry-Runtime
-   * @example node@v18
-   */
-  runtime: string;
-};
-
 type ApiRequest = {
   path: string[];
 } & (
@@ -106,42 +98,6 @@ type Result<R> =
       error: ErrorResponse["error"];
     };
 
-function getTelemetry(opts: UnkeyOptions) {
-  let platform;
-  let runtime;
-
-  // Node.js environments
-  if (typeof process !== "undefined") {
-    if (process.env.UNKEY_DISABLE_TELEMETRY) {
-      return;
-    }
-    platform = process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown";
-    runtime = `node@${process.version}`;
-  } else {
-    platform = "unknown";
-    runtime = "unknown";
-  }
-
-  // Cloudflare
-  // @ts-ignore
-  if (typeof env !== "undefined") {
-    // @ts-ignore
-    if (env.UNKEY_DISABLE_TELEMETRY) {
-      return;
-    }
-    runtime = "edge";
-    platform = "cloudflare";
-  }
-
-  const sdkVersions = [`@unkey/api@${version}`];
-
-  if (opts.wrapperSdkVersion) {
-    sdkVersions.push(opts.wrapperSdkVersion);
-  }
-
-  return { platform, runtime, sdkVersions };
-}
-
 export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
@@ -156,7 +112,9 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
-    this.telemetry = getTelemetry(opts);
+    if (!opts.disableTelemetry) {
+      this.telemetry = getTelemetry(opts);
+    }
 
     this.cache = opts.cache;
     /**

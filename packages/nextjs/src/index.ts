@@ -10,6 +10,16 @@ export type WithUnkeyConfig = {
    * This will be required soon.
    */
   apiId?: string;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
+
   /**
    * How to get the key from the request
    * Usually the key is provided in an `Authorization` header, but you can do what you want.
@@ -89,6 +99,7 @@ export function withUnkey(
     const unkey = new Unkey({
       rootKey: "public",
       wrapperSdkVersion: `@unkey/nextjs@${version}`,
+      disableTelemetry: config?.disableTelemetry,
     });
 
     const res = await unkey.keys.verify(config?.apiId ? { key, apiId: config.apiId } : { key });

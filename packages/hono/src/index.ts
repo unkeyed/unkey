@@ -1,4 +1,4 @@
-import { ErrorResponse, Unkey } from "@unkey/api";
+import { ErrorResponse, Unkey, getTelemetry } from "@unkey/api";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { version } from "../package.json";
@@ -33,6 +33,16 @@ export type UnkeyConfig = {
    * This will be required soon.
    */
   apiId?: string;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
+
   /**
    * How to get the key from the request
    * Usually the key is provided in an `Authorization` header, but you can do what you want.
@@ -70,6 +80,7 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
     const unkeyInstance = new Unkey({
       baseUrl: "http://localhost:8787",
       rootKey: "public",
+      disableTelemetry: config?.disableTelemetry,
       wrapperSdkVersion: `@unkey/hono@${version}`,
     });
 
