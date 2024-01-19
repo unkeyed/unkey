@@ -19,7 +19,10 @@ export const workspaceRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user?.id;
       if (!userId) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "unable to find userId" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "unable to find userId",
+        });
       }
 
       const org = await clerkClient.organizations.createOrganization({
@@ -52,7 +55,7 @@ export const workspaceRouter = t.router({
           actorType: "user",
           actorId: ctx.user.id,
           event: "workspace.create",
-          description: `Workspace ${input.name} created`,
+          description: `Workspace ${input.name} updated`,
         });
       });
 
@@ -73,7 +76,10 @@ export const workspaceRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const env = stripeEnv();
       if (!env) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "stripe env not set" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "stripe env not set",
+        });
       }
       const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
         apiVersion: "2022-11-15",
@@ -85,7 +91,10 @@ export const workspaceRouter = t.router({
       });
 
       if (!workspace) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "workspace not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
       }
       if (workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({
@@ -106,7 +115,10 @@ export const workspaceRouter = t.router({
       }
 
       if (workspace.plan === input.plan) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "workspace already on this plan" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "workspace already on this plan",
+        });
       }
 
       switch (input.plan) {
@@ -170,6 +182,35 @@ export const workspaceRouter = t.router({
           });
           break;
         }
+      }
+    }),
+  changeName: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        name: z.string().min(3, "workspace names must contain at least 3 characters"),
+        workspaceId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const ws = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+      });
+      if (!ws || ws.tenantId !== ctx.tenant.id) {
+        throw new Error("workspace not found");
+      }
+
+      await db
+        .update(schema.workspaces)
+        .set({
+          name: input.name,
+        })
+        .where(eq(schema.workspaces.id, input.workspaceId));
+      if (ctx.tenant.id.startsWith("org_")) {
+        await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
+          name: input.name,
+        });
       }
     }),
 });
