@@ -23,11 +23,11 @@ test("returns an empty verifications array", async () => {
     workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
   });
-
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
   const res = await h.get<V1KeysGetVerificationsResponse>({
     url: `/v1/keys.getVerifications?keyId=${keyId}`,
     headers: {
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
   });
 
@@ -55,11 +55,12 @@ test("ownerId works too", async () => {
       ownerId,
     });
   }
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
 
   const res = await h.get<V1KeysGetVerificationsResponse>({
     url: `/v1/keys.getVerifications?ownerId=${ownerId}`,
     headers: {
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
   });
 
