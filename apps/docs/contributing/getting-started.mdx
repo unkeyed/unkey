@@ -11,11 +11,6 @@ You also need the following tools installed.
 - [pnpm](https://pnpm.io/installation)
 
 
-<div className="flex justify-center align-center">
-<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/V36culpgpLE?si=c5JMq-baTNzSNk7e" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
-</div>
-
-
 <Steps titleSize="h3">
   <Step title="Setup" >
     Get the repo [here.](https://github.com/unkeyed/unkey)
@@ -57,6 +52,14 @@ You also need the following tools installed.
 </Step>
 
   <Step title="Prepare Database">
+
+  #### Planetscale
+  Make sure you have Foreign Key support enabled in your database. You can find this in the Beta Features section on planetscale
+<Frame caption="Add Foreign Key support">
+  <img src="/images/planetscale-foreign.png" alt="Foreign Key support"/>
+</Frame>
+
+
   #### Web App
   For the Unkey dashboard in `apps/web/.env`, the following variables will be used after you create your database:
 
