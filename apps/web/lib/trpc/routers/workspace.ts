@@ -44,7 +44,7 @@ export const workspaceRouter = t.router({
         deletedAt: null,
       };
       await db.transaction(async (tx) => {
-        await db.insert(schema.workspaces).values(workspace);
+        await tx.insert(schema.workspaces).values(workspace);
         await tx.insert(schema.auditLogs).values({
           id: newId("auditLog"),
           time: new Date(),

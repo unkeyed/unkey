@@ -1,11 +1,7 @@
-import { newApp } from "@/pkg/hono/app";
 import { expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { init } from "@/pkg/global";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { eq } from "drizzle-orm";
 import {
@@ -15,20 +11,14 @@ import {
 } from "./v1_apis_createApi";
 
 test("creates the api", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
+  const h = await Harness.init();
+  h.useRoutes(registerV1ApisCreateApi);
 
-  const r = await seed(env);
-  const app = newApp();
-  registerV1ApisCreateApi(app);
-
-  const res = await fetchRoute<V1ApisCreateApiRequest, V1ApisCreateApiResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
     url: "/v1/apis.createApi",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${r.rootKey}`,
+      Authorization: `Bearer ${h.resources.rootKey}`,
     },
     body: {
       name: "my api",
@@ -38,25 +28,19 @@ test("creates the api", async () => {
   expect(res.status).toEqual(200);
   expect(res.body.apiId).toBeDefined();
 
-  const found = await r.database.query.apis.findFirst({
+  const found = await h.db.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.apiId),
   });
 
   expect(found?.name).toBe("my api");
-  await r.database.delete(schema.apis).where(eq(schema.apis.id, res.body.apiId));
+  await h.db.delete(schema.apis).where(eq(schema.apis.id, res.body.apiId));
 });
 
 test("creates rejects invalid root key", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
+  const h = await Harness.init();
+  h.useRoutes(registerV1ApisCreateApi);
 
-  await seed(env);
-  const app = newApp();
-  registerV1ApisCreateApi(app);
-
-  const res = await fetchRoute<V1ApisCreateApiRequest, ErrorResponse>(app, {
-    method: "POST",
+  const res = await h.post<V1ApisCreateApiRequest, ErrorResponse>({
     url: "/v1/apis.createApi",
     headers: {
       "Content-Type": "application/json",
