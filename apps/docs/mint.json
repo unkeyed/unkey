@@ -250,7 +250,12 @@
   },
   "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
-    "baseUrl": "https://api.unkey.dev"
+    "baseUrl": "https://api.unkey.dev",
+    "auth": {
+      "method": "bearer",
+      "inputPrefix": "YYY",
+      "name": "XXX"
+    }
   },
   "analytics": {
     "posthog": {
