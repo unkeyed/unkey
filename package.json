@@ -33,7 +33,7 @@
     "lint-staged": "^15.0.2",
     "turbo": "^1.10.16",
     "typescript": "^5.2.2",
-    "vitest": "^0.34.3"
+    "vitest": "^1.2.1"
   },
   "pnpm": {
     "overrides": {
