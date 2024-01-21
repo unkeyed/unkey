@@ -3,3 +3,4 @@
   - "internal/*"
   - "apps/*"
   - "tools/*"
+  - "internal/resend/.react-email"

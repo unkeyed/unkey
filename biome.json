@@ -25,6 +25,7 @@
       }
     },
     "ignore": [
+      ".react-email",
       ".vitest",
       "node_modules",
       ".next",
@@ -40,6 +41,14 @@
     "indentSize": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".contentlayer", ".wrangler"]
+    "ignore": [
+      ".react-email",
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".contentlayer",
+      ".wrangler"
+    ]
   }
 }

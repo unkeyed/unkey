@@ -2,10 +2,10 @@ import { Resend as Client } from "resend";
 
 import { render } from "@react-email/render";
 import React from "react";
-import { PaymentIssue } from "../emails/payment_issue";
-import { SubscriptionEnded } from "../emails/subscription_ended";
-import { TrialEnded } from "../emails/trial_ended";
-import { WelcomeEmail } from "../emails/welcome_email";
+import { PaymentIssue } from "../emails/billing/payment_issue";
+import { SubscriptionEnded } from "../emails/billing/subscription_ended";
+import { TrialEnded } from "../emails/billing/trial_ended";
+import { WelcomeEmail } from "../emails/drip/welcome_email";
 export class Resend {
   public readonly client: Client;
   private readonly replyTo = "support@unkey.dev";
