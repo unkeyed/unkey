@@ -2,22 +2,28 @@ import { randomUUID } from "crypto";
 import { Harness } from "@/pkg/testutil/harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
+import { KeyV1 } from "@unkey/keys";
 import { describe, expect, test } from "vitest";
-import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
+import { type V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
 
 runSharedRoleTests({
-  registerHandler: registerV1ApisListKeys,
+  registerHandler: registerV1KeysGetKey,
   prepareRequest: async (h) => {
-    const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
-      id: apiId,
-      name: randomUUID(),
+    const keyId = newId("key");
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.resources.database.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
     });
     return {
       method: "GET",
-      url: `/v1/apis.listKeys?apiId=${apiId}`,
+      url: `/v1/keys.getKey?keyId=${keyId}`,
     };
   },
 });
@@ -53,29 +59,25 @@ describe("correct roles", () => {
     },
   ])("$name", async ({ roles }) => {
     const h = await Harness.init();
-    h.useRoutes(registerV1ApisListKeys);
+    h.useRoutes(registerV1KeysGetKey);
 
-    const keyAuthId = newId("keyAuth");
-    await h.db.insert(schema.keyAuth).values({
-      id: keyAuthId,
+    const keyId = newId("key");
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.resources.database.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
       workspaceId: h.resources.userWorkspace.id,
-    });
-
-    const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
-      id: apiId,
-      name: randomUUID(),
-      workspaceId: h.resources.userWorkspace.id,
-      authType: "key",
-      keyAuthId,
+      createdAt: new Date(),
     });
 
     const root = await h.createRootKey(
-      roles.map((role) => (typeof role === "string" ? role : role(apiId))),
+      roles.map((role) => (typeof role === "string" ? role : role(h.resources.userApi.id))),
     );
 
-    const res = await h.get<V1ApisListKeysResponse>({
-      url: `/v1/apis.listKeys?apiId=${apiId}`,
+    const res = await h.get<V1KeysGetKeyResponse>({
+      url: `/v1/keys.getKey?keyId=${keyId}`,
       headers: {
         Authorization: `Bearer ${root.key}`,
       },
