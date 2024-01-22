@@ -26,11 +26,13 @@ test("returns 200", async () => {
   };
   await h.db.insert(schema.keys).values(key);
 
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -59,12 +61,13 @@ test("update all", async () => {
     createdAt: new Date(),
   };
   await h.db.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -113,12 +116,13 @@ test("update ratelimit", async () => {
     createdAt: new Date(),
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -163,12 +167,13 @@ test("delete expires", async () => {
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -205,12 +210,13 @@ test("update should not affect undefined fields", async () => {
     expires: new Date(Date.now() + 60 * 60 * 1000),
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -251,12 +257,13 @@ test("update enabled true", async () => {
     enabled: false,
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -289,12 +296,13 @@ test("update enabled false", async () => {
     enabled: true,
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -327,12 +335,13 @@ test("omit enabled update", async () => {
     enabled: true,
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,

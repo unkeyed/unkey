@@ -50,7 +50,6 @@ test("remaining consistently counts down", async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
       },
       body: {
         apiId: createApiResponse.body.apiId,

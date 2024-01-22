@@ -1,5 +1,11 @@
 # @unkey/nextjs
 
+## 0.14.0
+
+### Minor Changes
+
+- 6cd23ae9: Alter SDK types for compatibility with route handlers
+
 ## 0.13.8
 
 ### Patch Changes
