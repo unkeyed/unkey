@@ -22,10 +22,10 @@ export const keySettingsRouter = t.router({
         },
       });
       if (!key) {
-        throw new Error("key not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
       }
       if (key.workspace.tenantId !== ctx.tenant.id) {
-        throw new Error("key not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
       }
       await db.transaction(async (tx) => {
         await tx
@@ -141,7 +141,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        ownerId: z.string().nullish(),
+        ownerId: z.string().nullable(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -151,10 +151,7 @@ export const keySettingsRouter = t.router({
           workspace: true,
         },
       });
-      if (!key) {
-        throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
-      }
-      if (key.workspace.tenantId !== ctx.tenant.id) {
+      if (!key || key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
       await db.transaction(async (tx) => {
@@ -184,7 +181,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        name: z.string().nullish(),
+        name: z.string().nullable(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -233,7 +230,7 @@ export const keySettingsRouter = t.router({
       let meta: unknown | null = null;
 
       if (input.metadata === null || input.metadata === "") {
-        meta = "";
+        meta = null;
       } else {
         try {
           meta = JSON.parse(input.metadata);
@@ -263,7 +260,7 @@ export const keySettingsRouter = t.router({
         await tx
           .update(schema.keys)
           .set({
-            meta: meta !== "" ? JSON.stringify(meta) : null,
+            meta: meta ? JSON.stringify(meta) : null,
           })
           .where(eq(schema.keys.id, input.keyId));
         await tx.insert(schema.auditLogs).values({
@@ -303,7 +300,7 @@ export const keySettingsRouter = t.router({
         } catch (e) {
           console.error(e);
           throw new TRPCError({
-            message: `you must enter a valid ${(e as Error).message}`,
+            message: "you must enter a valid date",
             code: "BAD_REQUEST",
           });
         }
@@ -315,10 +312,7 @@ export const keySettingsRouter = t.router({
           workspace: true,
         },
       });
-      if (!key) {
-        throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
-      }
-      if (key.workspace.tenantId !== ctx.tenant.id) {
+      if (!key || key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
       await db.transaction(async (tx) => {
