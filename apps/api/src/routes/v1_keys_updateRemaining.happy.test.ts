@@ -27,11 +27,12 @@ test("increment", async () => {
   };
   await h.resources.database.insert(schema.keys).values(key);
 
+  const root = await h.createRootKey(["api.*.update_key"]);
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -59,12 +60,13 @@ test("decrement", async () => {
     createdAt: new Date(),
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -92,12 +94,13 @@ test("set", async () => {
     createdAt: new Date(),
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
@@ -125,12 +128,13 @@ test("invalid operation", async () => {
     createdAt: new Date(),
   };
   await h.resources.database.insert(schema.keys).values(key);
+  const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
     url: "/v1/keys.updateRemaining",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId: key.id,
