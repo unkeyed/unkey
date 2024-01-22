@@ -141,7 +141,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        ownerId: z.string().nullable(),
+        ownerId: z.string().nullish(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -181,7 +181,7 @@ export const keySettingsRouter = t.router({
     .input(
       z.object({
         keyId: z.string(),
-        name: z.string().nullable(),
+        name: z.string().nullish(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
