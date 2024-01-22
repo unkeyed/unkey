@@ -50,6 +50,7 @@
     "clsx": "^2.0.0",
     "cmdk": "^0.2.0",
     "contentlayer": "^0.3.4",
+    "date-fns": "^3.2.0",
     "drizzle-orm": "^0.29.1",
     "framer-motion": "10.16.2",
     "free-email-domains": "^1.2.5",

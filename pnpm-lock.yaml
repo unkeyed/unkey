@@ -297,6 +297,9 @@ importers:
       contentlayer:
         specifier: ^0.3.4
         version: 0.3.4(esbuild@0.19.11)
+      date-fns:
+        specifier: ^3.2.0
+        version: 3.2.0
       drizzle-orm:
         specifier: ^0.29.1
         version: 0.29.2(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.1)(react@18.2.0)
@@ -10764,6 +10767,10 @@ packages:
   /data-uri-to-buffer@4.0.1:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
     engines: {node: '>= 12'}
+    dev: false
+
+  /date-fns@3.2.0:
+    resolution: {integrity: sha512-E4KWKavANzeuusPi0jUjpuI22SURAznGkx7eZV+4i6x2A+IZxAMcajgkvuDAU1bg40+xuhW1zRdVIIM/4khuIg==}
     dev: false
 
   /debug@2.6.9:
