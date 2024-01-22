@@ -55,7 +55,7 @@ export const workspaceRouter = t.router({
           actorType: "user",
           actorId: ctx.user.id,
           event: "workspace.create",
-          description: `Workspace ${input.name} updated`,
+          description: `Workspace ${input.name} created`,
         });
       });
 
@@ -200,17 +200,27 @@ export const workspaceRouter = t.router({
       if (!ws || ws.tenantId !== ctx.tenant.id) {
         throw new Error("workspace not found");
       }
-
-      await db
-        .update(schema.workspaces)
-        .set({
-          name: input.name,
-        })
-        .where(eq(schema.workspaces.id, input.workspaceId));
-      if (ctx.tenant.id.startsWith("org_")) {
-        await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
-          name: input.name,
+      await db.transaction(async (tx) => {
+        await tx
+          .update(schema.workspaces)
+          .set({
+            name: input.name,
+          })
+          .where(eq(schema.workspaces.id, input.workspaceId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: input.workspaceId,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "workspace.update",
+          description: `Changed name to ${input.name}`,
         });
-      }
+        if (ctx.tenant.id.startsWith("org_")) {
+          await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
+            name: input.name,
+          });
+        }
+      });
     }),
 });
