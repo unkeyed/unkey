@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { buildQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
 const route = createRoute({
@@ -37,8 +38,6 @@ export type V1KeysGetKeyResponse = z.infer<
 >;
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const { keyId } = c.req.query();
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
@@ -64,13 +63,23 @@ export const registerV1KeysGetKey = (app: App) =>
       };
     });
 
-    if (!data || data.key.workspaceId !== auth.authorizedWorkspaceId) {
+    if (!data) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `key ${keyId} not found`,
       });
     }
+    const auth = await rootKeyAuth(
+      c,
+      buildQuery(({ or }) => or("*", "api.*.read_key", `api.${data.api.id}.read_key`)),
+    );
 
+    if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${keyId} not found`,
+      });
+    }
     let meta = data.key.meta ? JSON.parse(data.key.meta) : undefined;
     if (!meta || Object.keys(meta).length === 0) {
       meta = undefined;

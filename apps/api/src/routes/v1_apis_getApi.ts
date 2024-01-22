@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { buildQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -51,9 +52,12 @@ export type V1ApisGetApiResponse = z.infer<
 >;
 export const registerV1ApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const { apiId } = c.req.query();
+
+    const auth = await rootKeyAuth(
+      c,
+      buildQuery(({ or }) => or("*", "api.*.read_api", `api.${apiId}.read_api`)),
+    );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (
