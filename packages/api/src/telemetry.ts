@@ -11,25 +11,25 @@ export type Telemetry = {
    * Unkey-Telemetry-Platform
    * @example cloudflare
    */
-  platform: string;
+  platform?: string;
   /**
    * Unkey-Telemetry-Runtime
    * @example node@v18
    */
-  runtime: string;
+  runtime?: string;
 };
 
-export function getTelemetry(opts: UnkeyOptions) {
-  let platform = "unknown";
-  let runtime = "unknown";
+export function getTelemetry(opts: UnkeyOptions): Telemetry | null {
+  let platform: string | undefined;
+  let runtime: string | undefined;
   const sdkVersions = [`@unkey/api@${version}`];
 
   try {
     if (typeof process !== "undefined") {
       if (process.env.UNKEY_DISABLE_TELEMETRY) {
-        return;
+        return null;
       }
-      platform = process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : "unknown";
+      platform = process.env.VERCEL ? "vercel" : process.env.AWS_REGION ? "aws" : undefined;
 
       // @ts-ignore
       if (typeof EdgeRuntime !== "undefined") {

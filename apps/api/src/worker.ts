@@ -1,5 +1,5 @@
 import { Env, zEnv } from "@/pkg/env";
-import { init, logger, metrics } from "@/pkg/global";
+import { analytics, init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
 import { cors } from "hono/cors";
@@ -69,6 +69,25 @@ app.use("*", async (c, next) => {
     const requestId = newId("request");
     m.requestId = requestId;
     c.set("requestId", requestId);
+
+    c.executionCtx.waitUntil(
+      analytics
+        .ingestSdkTelemetry({
+          runtime: c.req.header("Unkey-Telemetry-Runtime") || "unknown",
+          platform: c.req.header("Unkey-Telemetry-Platform") || "unknown",
+          versions: c.req.header("Unkey-Telemetry-SDK")?.split(",") || [],
+          requestId,
+          time: Date.now(),
+        })
+        .catch((err) => {
+          logger.error("Error ingesting SDK telemetry", {
+            method: c.req.method,
+            path: c.req.path,
+            error: err,
+          });
+        }),
+    );
+
     await next();
     // headers should be set after calling `next()`, otherwise they will be lowercased by the framework
     c.res.headers.append("Unkey-Request-Id", requestId);

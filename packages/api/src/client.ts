@@ -102,7 +102,7 @@ export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
   private readonly cache?: RequestCache;
-  private readonly telemetry?: Telemetry;
+  private readonly telemetry?: Telemetry | null;
 
   public readonly retry: {
     attempts: number;
@@ -137,9 +137,13 @@ export class Unkey {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.rootKey}`,
     };
-    if (this.telemetry) {
+    if (this.telemetry?.sdkVersions) {
       headers["Unkey-Telemetry-SDK"] = this.telemetry.sdkVersions.join(",");
+    }
+    if (this.telemetry?.platform) {
       headers["Unkey-Telemetry-Platform"] = this.telemetry.platform;
+    }
+    if (this.telemetry?.runtime) {
       headers["Unkey-Telemetry-Runtime"] = this.telemetry.runtime;
     }
     return headers;
