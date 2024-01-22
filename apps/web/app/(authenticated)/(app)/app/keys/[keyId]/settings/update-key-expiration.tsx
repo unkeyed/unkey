@@ -1,7 +1,6 @@
 "use client";
-import React, { useMemo, useState } from "react";
-
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,12 +9,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { updateExpiration } from "./actions";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const currentTime = new Date();
+const oneMinute = currentTime.setMinutes(currentTime.getMinutes() + 0.5);
+const formSchema = z.object({
+  keyId: z.string(),
+  enableExpiration: z.boolean(),
+  expiration: z.coerce.date().min(new Date(oneMinute)).optional(),
+});
 type Props = {
   apiKey: {
     id: string;
@@ -25,57 +46,113 @@ type Props = {
 };
 
 export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
-  const [enabled, setEnabled] = useState(apiKey.expires !== null);
+  const router = useRouter();
 
-  const placeholder = useMemo(() => {
-    const t = new Date();
-    t.setUTCDate(t.getUTCDate() + 7);
-    t.setUTCMinutes(0, 0, 0);
-    return t.toISOString();
-  }, []);
+  /*  This ensures the date shown is in local time and not ISO  */
+  function convertDate(date: Date | null): string {
+    if (!date) {
+      return "";
+    }
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
+  }
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id ? apiKey.id : undefined,
+      enableExpiration: apiKey.expires !== null ? true : false,
+    },
+  });
+
+  const changeExpiration = trpc.keySettings.updateExpiration.useMutation({
+    onSuccess() {
+      toast.success("Your key has been updated!");
+      router.refresh();
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    changeExpiration.mutateAsync(values);
+  }
 
   return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateExpiration(formData);
-        if (res.error) {
-          toast.error(res.error.message);
-          return;
-        }
-        toast.success("Expiration updated");
-      }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Expiration</CardTitle>
-          <CardDescription>Automatically revoke this key after a certain date.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col gap-2 w-full", { "opacity-50": !enabled })}>
-            <input type="hidden" name="keyId" value={apiKey.id} />
-            <input type="hidden" name="enableExpiration" value={enabled ? "true" : "false"} />
-
-            <Label htmlFor="expiration">Expiration</Label>
-            <Input
-              disabled={!enabled}
-              type="string"
-              name="expiration"
-              className="max-w-sm"
-              defaultValue={apiKey.expires?.toISOString()}
-              placeholder={placeholder}
-              autoComplete="off"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Expiration</CardTitle>
+            <CardDescription>Automatically revoke this key after a certain date.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-between item-center">
+            <div
+              className={cn("flex flex-col gap-2 w-full", {
+                "opacity-50": !form.getValues("enableExpiration"),
+              })}
+            >
+              <FormField
+                control={form.control}
+                name="expiration"
+                render={({ field }) => (
+                  <FormItem className="w-fit">
+                    <FormLabel>Expiry Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={!form.watch("enableExpiration")}
+                        type="datetime-local"
+                        value={field.value?.toLocaleString()}
+                        defaultValue={convertDate(apiKey.expires)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      This api key will automatically be revoked after the given date.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-between">
+            <FormField
+              control={form.control}
+              name="enableExpiration"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <div className="flex items-center gap-4">
+                    <FormControl>
+                      <Switch
+                        id="enableExpiration"
+                        checked={form.getValues("enableExpiration")}
+                        onCheckedChange={(e) => {
+                          field.onChange(e);
+                        }}
+                      />
+                    </FormControl>{" "}
+                    <FormLabel htmlFor="enableExpiration">
+                      {form.getValues("enableExpiration") ? "Enabled" : "Disabled"}
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
             />
-            <span className="text-xs text-content-subtle">Use ISO format: {placeholder}</span>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-between">
-          <div className="flex items-center gap-4">
-            <Switch id="enableExpiration" checked={enabled} onCheckedChange={setEnabled} />
-            <Label htmlFor="enableExpiration">{enabled ? "Enabled" : "Disabled"}</Label>
-          </div>
-          <SubmitButton label="Save" />
-        </CardFooter>
-      </Card>
-    </form>
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };

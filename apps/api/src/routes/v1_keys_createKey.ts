@@ -8,6 +8,7 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { buildQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -40,7 +41,7 @@ The underscore is automatically added if you are defining a prefix, for example:
               description: "The name for your Key. This is not customer facing.",
               example: "my key",
             }),
-            byteLength: z.number().int().min(16).max(255).optional().default(16).openapi({
+            byteLength: z.number().int().min(16).max(255).default(16).optional().openapi({
               description:
                 "The byte length used to generate your key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes, or 2^^128 possible combinations.",
               default: 16,
@@ -186,9 +187,11 @@ export type V1KeysCreateKeyResponse = z.infer<
 
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const req = c.req.valid("json");
+    const auth = await rootKeyAuth(
+      c,
+      buildQuery(({ or }) => or("*", "api.*.create_key", `api.${req.apiId}.create_key`)),
+    );
 
     const api = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
@@ -228,7 +231,7 @@ export const registerV1KeysCreateKey = (app: App) =>
      * Set up an api for production
      */
     const key = new KeyV1({
-      byteLength: req.byteLength,
+      byteLength: req.byteLength ?? 16,
       prefix: req.prefix,
     }).toString();
     const start = key.slice(0, (req.prefix?.length ?? 0) + 5);

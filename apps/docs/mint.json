@@ -66,7 +66,10 @@
           "group": "Quickstart",
           "pages": ["quickstart/nextjs", "quickstart/express", "quickstart/bun"]
         },
-        "security"
+        {
+          "group": "Security",
+          "pages": ["security/overview", "security/root-keys"]
+        }
       ]
     },
     {

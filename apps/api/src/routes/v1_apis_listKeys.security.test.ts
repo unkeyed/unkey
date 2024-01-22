@@ -1,74 +1,85 @@
-import { describe, expect, test } from "vitest";
-
 import { randomUUID } from "crypto";
-import type { ErrorResponse } from "@/pkg/errors";
 import { Harness } from "@/pkg/testutil/harness";
+import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
+import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { registerV1ApisListKeys } from "./v1_apis_listKeys";
+import { describe, expect, test } from "vitest";
+import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
 
-test("without a key", async () => {
-  const h = await Harness.init();
-  h.useRoutes(registerV1ApisListKeys);
-
-  const res = await h.get<ErrorResponse>({
-    url: `/v1/apis.listKeys?apiId=${newId("api")}`,
-  });
-
-  expect(res.status).toEqual(403);
-  expect(res.body).toMatchObject({
-    error: {
-      code: "UNAUTHORIZED",
-      docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
-      message: "key required",
-    },
-  });
+runSharedRoleTests({
+  registerHandler: registerV1ApisListKeys,
+  prepareRequest: async (h) => {
+    const apiId = newId("api");
+    await h.db.insert(schema.apis).values({
+      id: apiId,
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    });
+    return {
+      method: "GET",
+      url: `/v1/apis.listKeys?apiId=${apiId}`,
+    };
+  },
 });
 
-test("with wrong key", async () => {
-  const h = await Harness.init();
-  h.useRoutes(registerV1ApisListKeys);
-
-  const res = await h.get<ErrorResponse>({
-    url: `/v1/apis.listKeys?apiId=${newId("api")}`,
-    headers: {
-      Authorization: "Bearer INVALID_KEY",
-    },
-  });
-
-  expect(res.status).toEqual(403);
-  expect(res.body).toMatchObject({
-    error: {
-      code: "UNAUTHORIZED",
-      docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
-      message: "you're not allowed to do this",
-    },
-  });
-});
-
-describe("without permission", () => {
+describe("correct roles", () => {
   test.each([
-    { name: "no roles", roles: [] },
-    { name: "wrong roles", roles: [randomUUID(), randomUUID()] },
+    { name: "legacy", roles: ["*"] },
+    { name: "legacy and more", roles: ["*", randomUUID()] },
+    { name: "wildcard api", roles: ["api.*.read_key", "api.*.read_api"] },
+    {
+      name: "wildcard mixed",
+      roles: ["api.*.read_key", (apiId: string) => `api.${apiId}.read_api`],
+    },
+    {
+      name: "wildcard mixed 2",
+      roles: ["api.*.read_api", (apiId: string) => `api.${apiId}.read_key`],
+    },
+    { name: "wildcard and more", roles: ["api.*.read_key", "api.*.read_api", randomUUID()] },
+    {
+      name: "specific apiId",
+      roles: [
+        (apiId: string) => `api.${apiId}.read_key`,
+        (apiId: string) => `api.${apiId}.read_api`,
+      ],
+    },
+    {
+      name: "specific apiId and more",
+      roles: [
+        (apiId: string) => `api.${apiId}.read_key`,
+        (apiId: string) => `api.${apiId}.read_api`,
+        randomUUID(),
+      ],
+    },
   ])("$name", async ({ roles }) => {
     const h = await Harness.init();
     h.useRoutes(registerV1ApisListKeys);
 
-    const { key: rootKey } = await h.createRootKey(roles);
+    const keyAuthId = newId("keyAuth");
+    await h.db.insert(schema.keyAuth).values({
+      id: keyAuthId,
+      workspaceId: h.resources.userWorkspace.id,
+    });
 
-    const res = await h.get<ErrorResponse>({
-      url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    const apiId = newId("api");
+    await h.db.insert(schema.apis).values({
+      id: apiId,
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+      authType: "key",
+      keyAuthId,
+    });
+
+    const root = await h.createRootKey(
+      roles.map((role) => (typeof role === "string" ? role : role(apiId))),
+    );
+
+    const res = await h.get<V1ApisListKeysResponse>({
+      url: `/v1/apis.listKeys?apiId=${apiId}`,
       headers: {
-        Authorization: `Bearer ${rootKey}`,
+        Authorization: `Bearer ${root.key}`,
       },
     });
-
-    expect(res.status).toEqual(403);
-    expect(res.body).toMatchObject({
-      error: {
-        code: "INSUFFICIENT_PERMISSIONS",
-        docs: "https://unkey.dev/docs/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
-        message: "you're not allowed to do this",
-      },
-    });
+    expect(res.status).toEqual(200);
   });
 });
