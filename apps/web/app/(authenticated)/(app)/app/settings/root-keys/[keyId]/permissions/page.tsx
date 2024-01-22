@@ -1,4 +1,3 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -57,13 +56,6 @@ export default async function RootKeyPage(props: {
   console.log({ roles });
   return (
     <div className="flex flex-col gap-4">
-      <Alert variant="warn">
-        <AlertTitle>Preview</AlertTitle>
-        <AlertDescription>
-          While we are in beta, you can already assign permissions to your keys, but they are not
-          yet enforced.
-        </AlertDescription>
-      </Alert>
       {permissions.some((p) => p === "*") ? (
         <Legacy keyId={key.id} permissions={permissions} />
       ) : null}
