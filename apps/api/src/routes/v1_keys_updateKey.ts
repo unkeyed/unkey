@@ -6,6 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
+import { buildQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -138,15 +139,30 @@ export type V1KeysUpdateKeyResponse = z.infer<
 
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const req = c.req.valid("json");
 
     const key = await db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
+      with: {
+        keyAuth: {
+          with: {
+            api: true,
+          },
+        },
+      },
     });
 
-    if (!key || key.workspaceId !== auth.authorizedWorkspaceId) {
+    if (!key) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${req.keyId} not found`,
+      });
+    }
+    const auth = await rootKeyAuth(
+      c,
+      buildQuery(({ or }) => or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`)),
+    );
+    if (key.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `key ${req.keyId} not found`,

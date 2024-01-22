@@ -23,7 +23,10 @@ test("get api", async () => {
       createdAt: new Date(),
     });
   }
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_api`]);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
 
   const res = await h.get<V1ApisListKeysResponse>({
     url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
@@ -57,7 +60,10 @@ test("filter by ownerId", async () => {
     });
   }
 
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_api`]);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
 
   const res = await h.get<V1ApisListKeysResponse>({
     url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&ownerId=${ownerId}`,
@@ -88,7 +94,10 @@ test("with limit", async () => {
     });
   }
 
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_api`]);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
 
   const res = await h.get<V1ApisListKeysResponse>({
     url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&limit=2`,
@@ -118,7 +127,10 @@ test("with cursor", async () => {
     });
   }
 
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_api`]);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
   const res1 = await h.get<V1ApisListKeysResponse>({
     url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&limit=2`,
     headers: {

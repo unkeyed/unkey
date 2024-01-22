@@ -10,6 +10,7 @@ test("returns 200", async () => {
   const h = await Harness.init();
   h.useRoutes(registerV1KeysGetKey);
 
+  const root = await h.createRootKey(["api.*.read_key"]);
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -24,10 +25,9 @@ test("returns 200", async () => {
   const res = await h.get<V1KeysGetKeyResponse>({
     url: `/v1/keys.getKey?keyId=${key.id}`,
     headers: {
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${root.key}`,
     },
   });
-
   expect(res.status).toEqual(200);
 
   expect(res.body.id).toEqual(key.id);

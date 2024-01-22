@@ -66,7 +66,15 @@ export const registerV1ApisListKeys = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", `api.${apiId}.read_api`)),
+      buildQuery(({ or, and }) =>
+        or(
+          "*",
+          and(
+            or("api.*.read_key", `api.${apiId}.read_key`),
+            or("api.*.read_api", `api.${apiId}.read_api`),
+          ),
+        ),
+      ),
     );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
