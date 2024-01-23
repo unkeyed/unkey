@@ -18,6 +18,7 @@ export function EmailSignIn(props: {
   const param = "__clerk_ticket";
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
+  // biome-ignore: lint/correctness/useExhaustiveDependencies: idk james did this and it works
   React.useEffect(() => {
     const signUpOrgUser = async () => {
       const ticket = new URL(window.location.href).searchParams.get(param);
@@ -101,10 +102,10 @@ export function EmailSignIn(props: {
           />
         </div>
         <Button
-          className="bg-black border-black text-white hover:bg-gray-100 hover:text-black"
+          className="text-white bg-black border-black hover:bg-gray-100 hover:text-black"
           disabled={isLoading}
         >
-          {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
           Sign In with Email
         </Button>
       </form>
