@@ -28,9 +28,9 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.5",
-    "hono": "^3.11.7",
+    "hono": "^3.12.6",
     "tsup": "^7.2.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@unkey/api": "workspace:^"

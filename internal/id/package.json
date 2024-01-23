@@ -10,7 +10,7 @@
   "devDependencies": {
     "@types/node": "^20.11.5",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "nanoid": "^5.0.4"

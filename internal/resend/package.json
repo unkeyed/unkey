@@ -14,7 +14,7 @@
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
     "@unkey/tsconfig": "workspace:^",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@react-email/button": "0.0.11",

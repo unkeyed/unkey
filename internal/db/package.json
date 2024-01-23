@@ -16,8 +16,8 @@
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.3.0",
     "drizzle-kit": "^0.20.13",
-    "drizzle-orm": "^0.29.2",
-    "typescript": "^5.2.2"
+    "drizzle-orm": "^0.29.3",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@planetscale/database": "^1.11.0",
