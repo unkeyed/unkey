@@ -1,4 +1,4 @@
-import { DesktopNav, MobileNav } from "@/components";
+import { DesktopNav } from "@/components";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -37,7 +37,6 @@ export default async function Landing() {
       <TopRightShiningLight /> */}
 
       <DesktopNav />
-      <MobileNav />
 
       {/* <HeroMainboardStuff className="absolute top-0 right-0" />
       <Hero />
