@@ -17,10 +17,30 @@ under the hood, you just need to enable the user to disable telemetry; otherwise
 
 Unkey records telemetry data via three headers. You can see an example of how this is used in the Typescript SDK [here](https://github.com/unkeyed/unkey/blob/main/packages/api/src/client.ts#L138)
 
-`Unkey-Telemetry-SDK`: comma-separated list of strings recording SDKs. Can be multiple SDKs; for instance, the Next.js SDK will record both the Next.js SDK version and 
+<ParamField header="Unkey-Telemetry-SDK" type="string">
+Comma-separated list of strings recording SDKs. Can be multiple SDKs; for instance, the Next.js SDK will record both the Next.js SDK version and 
 Typescript SDK version.
+</ParamField>
 
-`Unkey-Telemetry-Platform`: string referring to the platform where the calling application is deployed
+<ParamField header="Unkey-Telemetry-Platform" type="string">
+Referring to the platform where the calling application is deployed.
 
-`Unkey-Telemetry-Runtime`: string referring to the programming runtime
+For example: `Vercel`, `Cloudflare`, `AWS`, `Deno`
+</ParamField>
 
+<ParamField header="Unkey-Telemetry-Runtime" type="string">
+Referring to the programming runtime.
+
+For example: `edge-light`, `node@18`, `node@20.0.1`
+</ParamField>
+
+
+```bash Sending Telemetry
+curl -XPOST 'https://api.unkey.dev/v1/keys.verifyKey' \
+  -H "Content-Type: application/json" \
+  -H "Unkey-Telemetry-SDK: @unkey/api@1.10.0" \
+  -H "Unkey-Telemetry-Platform: Vercel" \
+  -H "Unkey-Telemetry-Runtime: edge-light" \
+  -d '{ "key": "<...>" }'
+```
+  
