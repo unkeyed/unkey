@@ -24,8 +24,8 @@ type Props = {
 };
 
 export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
-  const [open, setOpen] = useState(false);
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
@@ -33,6 +33,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
       router.push("/app");
     },
     onError(error) {
+      console.error(error);
       toast.error(error.message);
     },
   });
