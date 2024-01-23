@@ -16,7 +16,7 @@ export function Navigation() {
   };
 
   return (
-    <nav className="bg-black flex items-center justify-between h-20">
+    <nav className="bg-black flex items-center justify-between h-20 pt-12 bg-red-500">
       <div className="flex items-center justify-between gap-32">
         <div className="flex items-center gap-2">
           <Logo />
@@ -29,9 +29,13 @@ export function Navigation() {
           <NavLink href="/docs" label="Docs" />
         </ul>
       </div>
-      <div className="bg-gray-500 flex ">
-        <Link href="/auth/sign-up" className="">
+      <div className="flex">
+        <Link
+          href="/auth/sign-up"
+          className="text-white/60 text-sm flex items-center justify-center px-3 mr-3 h-8 py-2 gap-2 duration-150 hover:text-white"
+        >
           Create Account
+          <ChevronRight className="w-4 h-4" />
         </Link>
         <Link
           href="/app"
