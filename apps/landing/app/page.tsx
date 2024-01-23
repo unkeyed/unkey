@@ -1,3 +1,4 @@
+import { Stats } from "@/components/stats";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -32,7 +33,8 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <TopLeftShiningLight />
+      <Stats />
+      {/* <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -64,7 +66,7 @@ export default async function Landing() {
         align="center"
       />
 
-      <CodeExamples className="mt-20" />
+      <CodeExamples className="mt-20" /> */}
     </div>
   );
 }
