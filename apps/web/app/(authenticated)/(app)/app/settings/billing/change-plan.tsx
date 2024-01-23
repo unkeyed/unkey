@@ -1,6 +1,7 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +17,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { type Workspace } from "@unkey/db";
-import { AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -195,16 +196,21 @@ export const ChangePlan: React.FC<Props> = ({ workspace, trigger }) => {
                             {changePlan.isLoading ? <Loading /> : tiers[tier].buttonText}
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px] md:min-w-fit">
-                          <DialogHeader className="flex flex-row">
-                            <AlertTriangle className="mx-auto" width={46} height={46} />
+
+                        <DialogContent className="border-[#b80f07]">
+                          <DialogHeader className="mx-auto">
+                            <AlertTriangle />
                           </DialogHeader>
-                          <DialogDescription className="text-lg p-8">
-                            You are about to switch to our Pro plan. Please note there is a 24 hour
-                            pause before you can switch plans again.
-                          </DialogDescription>
-                          <DialogFooter className="flex flex-row gap-4">
-                            <DialogClose />
+
+                          <Alert variant="alert">
+                            <AlertTitle>Warning</AlertTitle>
+                            <AlertDescription>
+                              You are about to switch to our Pro plan. Please note there is a 24
+                              hour pause before you can switch plans again.
+                            </AlertDescription>
+                          </Alert>
+
+                          <DialogFooter className="justify-end">
                             <Button
                               className="col-span-1"
                               variant="outline"
