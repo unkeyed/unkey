@@ -1,5 +1,5 @@
 import { Drawer, DrawerClose, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 
 function MobileNavLink({ href, label }: { href: string; label: string }) {
@@ -18,7 +18,13 @@ export function Menu() {
     <div className="text-white">
       <Drawer>
         <DrawerTrigger asChild>
-          <button type="button">Open drawer</button>
+          <button
+            type="button"
+            className="text-white/60 text-sm flex lg:hidden items-center justify-center px-3 mr-3 h-8 py-2 gap-2 duration-150 hover:text-white"
+          >
+            Menu
+            <ChevronDown className="w-4 h-4 relative top-[1px]" />
+          </button>
         </DrawerTrigger>
         <DrawerContent>
           <div className="mx-auto w-full ml-20 pt-20 antialiased relative">

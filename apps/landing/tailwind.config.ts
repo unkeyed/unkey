@@ -10,6 +10,14 @@ const config = {
   ],
   prefix: "",
   theme: {
+    screens: {
+      xxs: "361px",
+      xs: "500px",
+      sm: "640px",
+      md: "840px",
+      lg: "960px",
+      xl: "1440px",
+    },
     container: {
       center: true,
       padding: "2rem",
@@ -18,6 +26,10 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-geist-sans)"],
+        mono: ["var(--font-geist-mono)"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

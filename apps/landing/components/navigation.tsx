@@ -16,7 +16,7 @@ const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => 
 
 export function Navigation() {
   return (
-    <nav className="bg-black flex items-center justify-between h-20 pt-12 px-8 sm:px-12 xl:px-20">
+    <nav className="bg-black flex items-center justify-between h-20 pt-12 sm:px-11 xl:px-20">
       <div className="flex items-center justify-between w-full xs:w-auto xs:gap-10 sm:gap-12 lg:gap-20">
         <svg
           className="min-w-[50px]"
@@ -43,13 +43,6 @@ export function Navigation() {
             </radialGradient>
           </defs>
         </svg>
-        {/* <button
-          type="button"
-          className="text-white/60 text-sm flex lg:hidden items-center justify-center px-3 mr-3 h-8 py-2 gap-2 duration-150 hover:text-white"
-        >
-          Menu
-          <ChevronDown className="w-4 h-4 relative top-[1px]" />
-        </button> */}
         <Menu />
         <ul className="hidden lg:flex items-center gap-8 xl:gap-12">
           <NavLink href="/about" label="About" />
