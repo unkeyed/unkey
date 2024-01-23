@@ -6,7 +6,10 @@ import { Logo } from "./svg";
 export function Navigation() {
   const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
     return (
-      <Link href={href} className="text-white/50 hover:text-white duration-200 text-sm">
+      <Link
+        href={href}
+        className="text-white/50 hover:text-white duration-200 text-sm tracking-[0.07px]"
+      >
         {label}
       </Link>
     );
@@ -18,7 +21,6 @@ export function Navigation() {
         <div className="flex items-center gap-2">
           <Logo />
         </div>
-        {/* Nav */}
         <ul className="flex items-center gap-8 justify-between">
           <NavLink href="/about" label="About" />
           <NavLink href="/blog" label="Blog" />
@@ -27,12 +29,13 @@ export function Navigation() {
           <NavLink href="/docs" label="Docs" />
         </ul>
       </div>
-
-      {/* Auth */}
-      <div>
+      <div className="bg-gray-500 flex ">
+        <Link href="/auth/sign-up" className="">
+          Create Account
+        </Link>
         <Link
           href="/app"
-          className="shadow-md font-medium bg-white h-8 flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+          className="shadow-md font-medium text-sm bg-white h-8 flex items-center border border-white pl-4 pr-2.5 py-1 rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
         >
           Log In <ChevronRight className="w-4 h-4" />
         </Link>
