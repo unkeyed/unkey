@@ -135,8 +135,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1(next@14.1.0)
       lucide-react:
-        specifier: ^0.274.0
-        version: 0.274.0(react@18.2.0)
+        specifier: ^0.314.0
+        version: 0.314.0(react@18.2.0)
       next:
         specifier: 14.1.0
         version: 14.1.0(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
@@ -185,7 +185,7 @@ importers:
         version: 4.29.3(next@14.1.0)(react-dom@18.2.0)(react@18.2.0)
       '@hookform/resolvers':
         specifier: ^3.3.2
-        version: 3.3.2(react-hook-form@7.47.0)
+        version: 3.3.2(react-hook-form@7.49.3)
       '@planetscale/database':
         specifier: ^1.11.0
         version: 1.11.0
@@ -313,8 +313,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       lucide-react:
-        specifier: ^0.274.0
-        version: 0.274.0(react@18.2.0)
+        specifier: ^0.314.0
+        version: 0.314.0(react@18.2.0)
       ms:
         specifier: ^2.1.3
         version: 2.1.3
@@ -343,8 +343,8 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       react-hook-form:
-        specifier: ^7.47.0
-        version: 7.47.0(react@18.2.0)
+        specifier: ^7.49.3
+        version: 7.49.3(react@18.2.0)
       react-markdown:
         specifier: ^8.0.7
         version: 8.0.7(@types/react@18.2.48)(react@18.2.0)
@@ -435,10 +435,10 @@ importers:
         version: 1.11.0
       '@trigger.dev/nextjs':
         specifier: ^2.3.6
-        version: 2.3.6(@trigger.dev/sdk@2.3.6)(next@14.0.3)
+        version: 2.3.6(@trigger.dev/sdk@2.3.16)(next@14.0.3)
       '@trigger.dev/sdk':
-        specifier: ^2.3.6
-        version: 2.3.6
+        specifier: ^2.3.16
+        version: 2.3.16
       '@trigger.dev/slack':
         specifier: ^2.3.6
         version: 2.3.6
@@ -3100,12 +3100,12 @@ packages:
       zod: 3.22.4
     dev: false
 
-  /@hookform/resolvers@3.3.2(react-hook-form@7.47.0):
+  /@hookform/resolvers@3.3.2(react-hook-form@7.49.3):
     resolution: {integrity: sha512-Tw+GGPnBp+5DOsSg4ek3LCPgkBOuOgS5DsDV7qsWNH9LZc433kgsWICjlsh2J9p04H2K66hsXPPb9qn9ILdUtA==}
     peerDependencies:
       react-hook-form: ^7.0.0
     dependencies:
-      react-hook-form: 7.47.0(react@18.2.0)
+      react-hook-form: 7.49.3(react@18.2.0)
     dev: false
 
   /@ioredis/commands@1.2.0:
@@ -6585,22 +6585,22 @@ packages:
       zod-error: 1.5.0
     dev: false
 
-  /@trigger.dev/nextjs@2.3.6(@trigger.dev/sdk@2.3.6)(next@14.0.3):
+  /@trigger.dev/nextjs@2.3.6(@trigger.dev/sdk@2.3.16)(next@14.0.3):
     resolution: {integrity: sha512-39Q0aKG3HLtZnWe5GszpKHAiF77Uzli/HfSjs6J18CCTER+V6IUZxp6KZgjxaBgtaeDgMbSsrvTyAScBBxDvog==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@trigger.dev/sdk': ^2.3.6
       next: '>=12.0.0'
     dependencies:
-      '@trigger.dev/sdk': 2.3.6
+      '@trigger.dev/sdk': 2.3.16
       debug: 4.3.4
       next: 14.0.3(react-dom@18.2.0)(react@18.2.0)
     transitivePeerDependencies:
       - supports-color
     dev: false
 
-  /@trigger.dev/sdk@2.3.6:
-    resolution: {integrity: sha512-9jOGCklyjY/42/UmpMsBWog2aB9tSvihRW8cgTwwoEHTLjU6sqt97lkkr6bhOK2mE8B7SSLzhFIgFA8bpkFwBg==}
+  /@trigger.dev/sdk@2.3.16:
+    resolution: {integrity: sha512-Tv60z/eDniC+nYuMmTqkESF16mIKudSLdepB0+wreKVXXF9D/kZuTbbQISeNQ7DAKMTkMAFSU0vvntsqyRC4wQ==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@trigger.dev/core': 2.3.16
@@ -6629,7 +6629,7 @@ packages:
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.11.2
-      '@trigger.dev/sdk': 2.3.6
+      '@trigger.dev/sdk': 2.3.16
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -12316,8 +12316,8 @@ packages:
       es5-ext: 0.10.62
     dev: true
 
-  /lucide-react@0.274.0(react@18.2.0):
-    resolution: {integrity: sha512-qiWcojRXEwDiSimMX1+arnxha+ROJzZjJaVvCC0rsG6a9pUPjZePXSq7em4ZKMp0NDm1hyzPNkM7UaWC3LU2AA==}
+  /lucide-react@0.314.0(react@18.2.0):
+    resolution: {integrity: sha512-c2zOW7TOyKxPCaSs1og2lFdoI3SR4iii3yrZJU2Zpdc78nOw4fUmrcFNultaCiwZcr4CyiKdzjMdvKNlBBk+UQ==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0
     dependencies:
@@ -15195,9 +15195,9 @@ packages:
       - encoding
     dev: false
 
-  /react-hook-form@7.47.0(react@18.2.0):
-    resolution: {integrity: sha512-F/TroLjTICipmHeFlMrLtNLceO2xr1jU3CyiNla5zdwsGUGu2UOxxR4UyJgLlhMwLW/Wzp4cpJ7CPfgJIeKdSg==}
-    engines: {node: '>=12.22.0'}
+  /react-hook-form@7.49.3(react@18.2.0):
+    resolution: {integrity: sha512-foD6r3juidAT1cOZzpmD/gOKt7fRsDhXXZ0y28+Al1CHgX+AY1qIN9VSIIItXRq1dN68QrRwl1ORFlwjBaAqeQ==}
+    engines: {node: '>=18', pnpm: '8'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18
     dependencies:

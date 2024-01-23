@@ -1,5 +1,7 @@
-import { type ErrorResponse, verifyKey } from "@unkey/api";
+import { type ErrorResponse, Unkey } from "@unkey/api";
 import { type NextRequest, NextResponse } from "next/server";
+
+import { version } from "../package.json";
 
 export type WithUnkeyConfig = {
   /**
@@ -8,6 +10,16 @@ export type WithUnkeyConfig = {
    * This will be required soon.
    */
   apiId?: string;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
+
   /**
    * How to get the key from the request
    * Usually the key is provided in an `Authorization` header, but you can do what you want.
@@ -85,7 +97,14 @@ export function withUnkey(
       return key;
     }
 
-    const res = await verifyKey(config?.apiId ? { key, apiId: config.apiId } : key);
+    const unkey = new Unkey({
+      rootKey: "public",
+      wrapperSdkVersion: `@unkey/nextjs@${version}`,
+      disableTelemetry: config?.disableTelemetry,
+    });
+
+    const res = await unkey.keys.verify(config?.apiId ? { key, apiId: config.apiId } : { key });
+
     if (res.error) {
       if (config?.onError) {
         return config.onError(req, res.error);

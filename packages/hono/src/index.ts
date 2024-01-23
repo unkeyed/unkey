@@ -1,6 +1,7 @@
-import { ErrorResponse, verifyKey } from "@unkey/api";
+import { ErrorResponse, Unkey } from "@unkey/api";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { version } from "../package.json";
 
 export type UnkeyContext = {
   valid: boolean;
@@ -25,7 +26,23 @@ export type UnkeyContext = {
     | undefined;
 };
 
-export type UnkeyConfig<TContext = Context> = {
+export type UnkeyConfig = {
+  /**
+   * The apiId to verify against.
+   *
+   * This will be required soon.
+   */
+  apiId?: string;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
+
   /**
    * How to get the key from the request
    * Usually the key is provided in an `Authorization` header, but you can do what you want.
@@ -36,17 +53,17 @@ export type UnkeyConfig<TContext = Context> = {
    *
    * @default `c.req.header("Authorization")?.replace("Bearer ", "")`
    */
-  getKey?: (c: TContext) => string | undefined | Response;
+  getKey?: (c: Context) => string | undefined | Response;
 
   /**
    * Automatically return a custom response when a key is invalid
    */
-  handleInvalidKey?: (c: TContext, result: UnkeyContext) => Response | Promise<Response>;
+  handleInvalidKey?: (c: Context, result: UnkeyContext) => Response | Promise<Response>;
 
   /**
    * What to do if things go wrong
    */
-  onError?: (c: TContext, err: ErrorResponse["error"]) => Response | Promise<Response>;
+  onError?: (c: Context, err: ErrorResponse["error"]) => Response | Promise<Response>;
 };
 
 export function unkey(config?: UnkeyConfig): MiddlewareHandler {
@@ -61,7 +78,15 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
       return key;
     }
 
-    const res = await verifyKey(key);
+    const unkeyInstance = new Unkey({
+      rootKey: "public",
+      disableTelemetry: config?.disableTelemetry,
+      wrapperSdkVersion: `@unkey/hono@${version}`,
+    });
+
+    const res = await unkeyInstance.keys.verify(
+      config?.apiId ? { key, apiId: config.apiId } : { key },
+    );
     if (res.error) {
       if (config?.onError) {
         return config.onError(c, res.error);
