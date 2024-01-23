@@ -1,4 +1,3 @@
-const { withContentlayer } = require("next-contentlayer");
 const { withHydrationOverlay } = require("@builder.io/react-hydration-overlay/next");
 
 /** @type {import('next').NextConfig} */
@@ -33,7 +32,6 @@ let nextConfig = {
   ],
 };
 
-nextConfig = withContentlayer(nextConfig);
 if (process.env.NODE_ENV !== "production") {
   nextConfig = withHydrationOverlay({ appRootselector: "main" })(nextConfig);
 }

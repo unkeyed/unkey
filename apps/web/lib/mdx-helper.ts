@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import GithubSlugger from "github-slugger";
+import { type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
@@ -12,12 +13,65 @@ import gitHubLight from "shiki/themes/github-light.json";
 
 export const BLOG_PATH = path.join(process.cwd(), "content", "blog");
 export const CHANGELOG_PATH = path.join(process.cwd(), "content", "changelog");
+export const POLICY_PATH = path.join(process.cwd(), "content", "policies");
+export const JOBS_PATH = path.join(process.cwd(), "content", "jobs");
 
-export const postFilePaths = fs.readdir(BLOG_PATH);
 export const changelogFilePaths = fs.readdir(CHANGELOG_PATH);
 
-export const raw = async ({ contentPath, filepath }: { contentPath: string; filepath: string }) => {
+export const getFilePaths = async (contentPath: string) => {
+  return await fs.readdir(contentPath);
+};
+export const raw = async ({
+  contentPath,
+  filepath,
+}: {
+  contentPath: string;
+  filepath: string;
+}) => {
   return await fs.readFile(`${contentPath}/${filepath}.mdx`, "utf-8");
+};
+
+type Headings = {
+  slug: string | undefined;
+  level: string;
+  text: string | undefined;
+};
+
+type Post<TFrontmatter> = {
+  serialized: MDXRemoteSerializeResult;
+  frontmatter: TFrontmatter;
+  headings: Headings[];
+};
+
+type Changelog<TFrontmatter> = {
+  serialized: MDXRemoteSerializeResult;
+  frontmatter: TFrontmatter;
+};
+
+type ChangeLogFrontmatter = {
+  title: string;
+  date: string;
+  description: string;
+};
+
+type Policy<TFrontmatter> = {
+  serialized: MDXRemoteSerializeResult;
+  frontmatter: TFrontmatter;
+};
+
+type PolicyFrontmatter = {
+  title: string;
+};
+
+type Job<TFrontmatter> = {
+  serialized: MDXRemoteSerializeResult;
+  frontmatter: TFrontmatter;
+};
+type JobFrontmatter = {
+  title: string;
+  description: string;
+  visible: boolean;
+  salary: string;
 };
 
 type Frontmatter = {
@@ -25,6 +79,9 @@ type Frontmatter = {
   date: string;
   description: string;
   author: string;
+  visible: boolean | undefined;
+  salary: string | undefined;
+  level: string | undefined;
 };
 
 const options = {
@@ -54,7 +111,7 @@ export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
   });
 };
 
-export const getHeadings = async ({ rawMdx }: { rawMdx: string }) => {
+const getHeadings = async ({ rawMdx }: { rawMdx: string }) => {
   const slugger = new GithubSlugger();
   const regXHeader = /\n(?<flag>#{1,6})\s+(?<content>.+)/g;
   const headings = Array.from(rawMdx.matchAll(regXHeader)).map(({ groups }) => {
@@ -69,25 +126,34 @@ export const getHeadings = async ({ rawMdx }: { rawMdx: string }) => {
   return headings;
 };
 
-const getMorePosts = async ({
+const getMoreContent = async ({
   contentPath,
   filepath,
-}: { contentPath: string; filepath: string }) => {
-  const morePosts = await fs.readdir(contentPath);
-  const morePostsFiltered = morePosts
+}: {
+  contentPath: string;
+  filepath: string;
+}) => {
+  const moreContent = await fs.readdir(contentPath);
+  const moreContentFiltered = moreContent
     .filter((path) => /\.mdx?$/.test(path))
     .filter((post) => post !== filepath)
     .slice(0, 2);
-  return morePostsFiltered;
+  return moreContentFiltered;
 };
-export const getMorePostsData = async ({
+
+export const getAllPostData = async ({
   contentPath,
-  filepath,
-}: { contentPath: string; filepath: string }) => {
-  const morePosts = await getMorePosts({ contentPath, filepath });
-  const morePostsData = await Promise.all(
-    morePosts.map(async (post) => {
-      const rawMdx = await raw({ contentPath, filepath: post.replace(/\.mdx?$/, "") });
+}: {
+  contentPath: string;
+}) => {
+  const allPosts = await fs.readdir(contentPath);
+  const allPostsFiltered = allPosts.filter((path) => /\.mdx?$/.test(path));
+  const allPostsData = await Promise.all(
+    allPostsFiltered.map(async (post) => {
+      const rawMdx = await raw({
+        contentPath,
+        filepath: post.replace(/\.mdx?$/, ""),
+      });
       const serializedMdx = await mdxSerialized({ rawMdx });
       const frontmatter = serializedMdx.frontmatter as Frontmatter;
       return {
@@ -96,5 +162,107 @@ export const getMorePostsData = async ({
       };
     }),
   );
-  return morePostsData;
+  return allPostsData;
+};
+
+export const getContentData = async ({
+  contentPath,
+  filepath,
+}: {
+  contentPath: string;
+  filepath: string;
+}) => {
+  const moreContent = await getMoreContent({ contentPath, filepath });
+  const moreContentData = await Promise.all(
+    moreContent.map(async (content) => {
+      const rawMdx = await raw({
+        contentPath,
+        filepath: content.replace(/\.mdx?$/, ""),
+      });
+      const serializedMdx = await mdxSerialized({ rawMdx });
+      const frontmatter = serializedMdx.frontmatter as Frontmatter;
+      return {
+        frontmatter,
+        slug: content.replace(/\.mdx$/, ""),
+      };
+    }),
+  );
+  return moreContentData;
+};
+
+export const getPost = async (filepath: string): Promise<Post<Frontmatter>> => {
+  const rawMdx = await raw({ contentPath: BLOG_PATH, filepath: filepath });
+  // Serialize the MDX content and parse the frontmatter
+  const serialized = await mdxSerialized({ rawMdx });
+  const frontmatter = serialized.frontmatter as Frontmatter;
+  const headings = await getHeadings({ rawMdx });
+
+  return {
+    frontmatter,
+    serialized,
+    headings,
+  };
+};
+
+export const getChangelog = async (filepath: string): Promise<Changelog<ChangeLogFrontmatter>> => {
+  const rawMdx = await raw({ contentPath: CHANGELOG_PATH, filepath: filepath });
+  // Serialize the MDX content and parse the frontmatter
+  const serialized = await mdxSerialized({ rawMdx });
+  const frontmatter = serialized.frontmatter as ChangeLogFrontmatter;
+
+  return {
+    frontmatter,
+    serialized,
+  };
+};
+
+export const getPolicy = async (filepath: string): Promise<Policy<PolicyFrontmatter>> => {
+  const rawMdx = await raw({ contentPath: POLICY_PATH, filepath: filepath });
+  // Serialize the MDX content and parse the frontmatter
+  const serialized = await mdxSerialized({ rawMdx });
+  const frontmatter = serialized.frontmatter as PolicyFrontmatter;
+
+  return {
+    frontmatter,
+    serialized,
+  };
+};
+
+export const getJob = async (filepath: string): Promise<Job<JobFrontmatter>> => {
+  const rawMdx = await raw({ contentPath: JOBS_PATH, filepath: filepath });
+  // Serialize the MDX content and parse the frontmatter
+  const serialized = await mdxSerialized({ rawMdx });
+  const frontmatter = serialized.frontmatter as JobFrontmatter;
+
+  return {
+    frontmatter,
+    serialized,
+  };
+};
+
+export const getAllJobsData = async ({
+  contentPath,
+}: {
+  contentPath: string;
+}) => {
+  const allJobs = await fs.readdir(contentPath);
+  const allJosFiltered = allJobs.filter((path) => /\.mdx?$/.test(path));
+  const allPostsData = await Promise.all(
+    allJosFiltered.map(async (post) => {
+      const rawMdx = await raw({
+        contentPath,
+        filepath: post.replace(/\.mdx?$/, ""),
+      });
+      const serializedMdx = await mdxSerialized({ rawMdx });
+      const frontmatter = serializedMdx.frontmatter as JobFrontmatter;
+      if (frontmatter.visible === false) {
+        return;
+      }
+      return {
+        frontmatter,
+        slug: post.replace(/\.mdx$/, ""),
+      };
+    }),
+  );
+  return allPostsData;
 };

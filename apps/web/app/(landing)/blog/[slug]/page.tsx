@@ -6,57 +6,16 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { authors } from "@/content/blog/authors";
 import type { Metadata } from "next";
-import { type MDXRemoteSerializeResult } from "next-mdx-remote";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import {
-  BLOG_PATH,
-  getHeadings,
-  getMorePostsData,
-  mdxSerialized,
-  postFilePaths,
-  raw,
-} from "@/lib/mdx-helper";
+import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
 
 type Props = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
 };
-
-type Frontmatter = {
-  title: string;
-  date: string;
-  description: string;
-  author: string;
-};
-
-type Headings = {
-  slug: string | undefined;
-  level: string;
-  text: string | undefined;
-};
-
-type Post<TFrontmatter> = {
-  serialized: MDXRemoteSerializeResult;
-  frontmatter: TFrontmatter;
-  headings: Headings[];
-};
-
-async function getPost(filepath: string): Promise<Post<Frontmatter>> {
-  const rawMdx = await raw({ contentPath: BLOG_PATH, filepath: filepath });
-  // Serialize the MDX content and parse the frontmatter
-  const serialized = await mdxSerialized({ rawMdx });
-
-  const frontmatter = serialized.frontmatter as Frontmatter;
-  const headings = await getHeadings({ rawMdx });
-
-  return {
-    frontmatter,
-    serialized,
-    headings,
-  };
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
@@ -89,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export const generateStaticParams = async () => {
-  const posts = await postFilePaths;
+  const posts = await getFilePaths(BLOG_PATH);
   // Remove file extensions for page paths
   posts.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
   return posts;
@@ -98,14 +57,11 @@ export const generateStaticParams = async () => {
 const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const { serialized, frontmatter, headings } = await getPost(params.slug);
 
-  type Authors = {
-    james: { name: string; role: string; image: { src: string } };
-    andreas: { name: string; role: string; image: { src: string } };
-    wilfred: { name: string; role: string; image: { src: string } };
-  };
-
-  const author = authors[frontmatter.author as keyof Authors];
-  const moreArticles = await getMorePostsData({ contentPath: BLOG_PATH, filepath: params.slug });
+  const author = authors[frontmatter.author];
+  const moreArticles = await getContentData({
+    contentPath: BLOG_PATH,
+    filepath: params.slug,
+  });
 
   return (
     <>
@@ -224,6 +180,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           className="mt-24 sm:mt-32 lg:mt-40"
           title="More articles"
           intro=""
+          contentType="blog"
           pages={moreArticles}
         />
       )}

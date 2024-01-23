@@ -1,6 +1,7 @@
-//import { authors } from "@/content/blog/authors";
+import { authors } from "@/content/blog/authors";
+import { getPost } from "@/lib/mdx-helper";
 import { ImageResponse } from "@vercel/og";
-import { allPosts } from "contentlayer/generated";
+
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
     return str;
@@ -8,7 +9,6 @@ const truncate = (str: string | null, length: number) => {
   return `${str.slice(0, length - 3)}...`;
 };
 
-export const runtime = "edge";
 export const contentType = "image/png";
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -18,14 +18,14 @@ export default async function Image({ params }: { params: { slug: string } }) {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
-    const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
-    if (!post) {
+    const { frontmatter } = await getPost(params.slug);
+    if (!frontmatter) {
       return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
         width: 1280,
         height: 720,
       });
     }
-    const author = authors[post.author];
+    const author = authors[frontmatter.author];
     return new ImageResponse(
       <div
         style={{
@@ -180,7 +180,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
             textAlign: "center",
           }}
         >
-          {truncate(post.title, 55)}
+          {truncate(frontmatter.title, 55)}
         </h1>
 
         <div

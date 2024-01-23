@@ -1,5 +1,5 @@
+import { getJob } from "@/lib/mdx-helper";
 import { ImageResponse } from "@vercel/og";
-import { allJobs } from "contentlayer/generated";
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
     return str;
@@ -11,7 +11,6 @@ const _baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
 
-export const runtime = "edge";
 export const contentType = "image/png";
 export const alt = "Changelog OG Image";
 
@@ -20,8 +19,8 @@ export default async function Image({ params }: { params: { slug: string } }) {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
-    const job = allJobs.find((job) => job._raw.flattenedPath === `careers/${params.slug}`);
-    if (!job) {
+    const { frontmatter } = await getJob(params.slug);
+    if (!frontmatter) {
       return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
         width: 1280,
         height: 720,
@@ -181,7 +180,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
             color: "transparent",
           }}
         >
-          {truncate(job.title, 55)}
+          {truncate(frontmatter.title, 55)}
         </h1>
 
         <div

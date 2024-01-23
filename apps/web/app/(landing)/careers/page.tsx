@@ -3,7 +3,7 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
-import { allJobs } from "contentlayer/generated";
+import { JOBS_PATH, getAllPostData } from "@/lib/mdx-helper";
 import Link from "next/link";
 
 export const metadata = {
@@ -32,7 +32,9 @@ export const metadata = {
 };
 
 export default async function JobsPage() {
-  const jobs = allJobs.filter((job) => job.visible);
+  const jobs = (await getAllPostData({ contentPath: JOBS_PATH })).filter((job) => {
+    return job.frontmatter.visible !== false;
+  });
 
   return (
     <>
@@ -53,26 +55,31 @@ export default async function JobsPage() {
             </FadeIn>
           )}
           {jobs.map((job) => (
-            <FadeIn key={job.title}>
+            <FadeIn key={job.frontmatter.title}>
               <article>
                 <Border className="grid grid-cols-3 gap-x-8 gap-y-8 pt-16">
                   <div className="col-span-full sm:flex sm:items-center sm:justify-between sm:gap-x-8 lg:col-span-1 lg:block">
                     <div className="sm:flex sm:items-center sm:gap-x-6 lg:block">
-                      <h3 className=" text-sm font-semibold text-neutral-950">{job?.level}</h3>
+                      <h3 className=" text-sm font-semibold text-neutral-950">
+                        {job.frontmatter.level}
+                      </h3>
                     </div>
                     <div className="mt-1 flex gap-x-4 sm:mt-0 lg:block">
                       <p className="text-sm tracking-tight text-neutral-950 after:ml-4 after:font-semibold after:text-neutral-300 lg:mt-2 lg:after:hidden">
-                        {job.description}
+                        {job.frontmatter.description}
                       </p>
                     </div>
                   </div>
                   <div className="col-span-full lg:col-span-2 lg:max-w-2xl">
                     <p className="font-display text-4xl font-medium text-gray-950">
-                      <Link href={job.url}>{job.title}</Link>
+                      <Link href={job.slug}>{job.frontmatter.title}</Link>
                     </p>
 
                     <div className="mt-8 flex">
-                      <Button href={job.url} aria-label={`Read the description for ${job.title}`}>
+                      <Button
+                        href={job.slug}
+                        aria-label={`Read the description for ${job.frontmatter.title}`}
+                      >
                         Read more
                       </Button>
                     </div>

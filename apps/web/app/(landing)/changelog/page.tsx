@@ -3,10 +3,21 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
-import { allChangelogs } from "contentlayer/generated";
+import { CHANGELOG_PATH, getAllPostData } from "@/lib/mdx-helper";
 import Link from "next/link";
 
-function Changelog({ changelogs } = { changelogs: allChangelogs }) {
+type Changelog = {
+  frontmatter: {
+    title: string;
+    date: string;
+    description: string;
+  };
+  slug: string;
+};
+
+type ChangelogsType = Changelog[];
+
+function Changelog({ changelogs }: { changelogs: ChangelogsType }) {
   return (
     <Container className="mt-40">
       <FadeIn>
@@ -14,30 +25,32 @@ function Changelog({ changelogs } = { changelogs: allChangelogs }) {
       </FadeIn>
       <div className="mt-10 space-y-20 sm:space-y-24 lg:space-y-32">
         {changelogs.map((changelog) => (
-          <FadeIn key={changelog.title}>
+          <FadeIn key={changelog.frontmatter.title}>
             <article>
               <Border className="grid grid-cols-3 gap-x-8 gap-y-8 pt-16">
                 <div className="col-span-full sm:flex sm:items-center sm:justify-between sm:gap-x-8 lg:col-span-1 lg:block">
                   <div className="sm:flex sm:items-center sm:gap-x-6 lg:block">
                     <p className="mt-6 text-sm font-semibold text-gray-950 sm:mt-0 lg:mt-8">
-                      {changelog.title}
+                      {changelog.frontmatter.title}
                     </p>
                   </div>
                   <div className="mt-1 flex gap-x-4 sm:mt-0 lg:block">
                     <p className="text-sm tracking-tight text-gray-950 after:ml-4 after:font-semibold after:text-gray-300 after:content-['/'] lg:mt-2 lg:after:hidden" />
                     <p className="text-sm text-gray-950 lg:mt-2">
-                      <time dateTime={changelog.date}>{changelog.date}</time>
+                      <time dateTime={new Date(changelog.frontmatter.date).toDateString()}>
+                        {new Date(changelog.frontmatter.date).toDateString()}
+                      </time>
                     </p>
                   </div>
                 </div>
                 <div className="col-span-full lg:col-span-2 lg:max-w-2xl">
                   <h3 className="font-display text-4xl font-medium text-gray-950">
-                    <Link href={changelog.url}>{changelog.title}</Link>
+                    <Link href={`/changelog/${changelog.slug}`}>{changelog.frontmatter.title}</Link>
                   </h3>
                   <div className="mt-8 flex">
                     <Button
-                      href={changelog.url}
-                      aria-label={`Read this Changelog for ${changelog.title}`}
+                      href={`/changelog/${changelog.slug}`}
+                      aria-label={`Read this Changelog for ${changelog.frontmatter.title}`}
                     >
                       Read the Changelog
                     </Button>
@@ -78,10 +91,9 @@ export const metadata = {
 };
 
 export default async function Changelogs() {
-  const changelogs = allChangelogs.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
-
+  const changelogs = (await getAllPostData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
+    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
+  });
   return (
     <>
       <PageIntro eyebrow="" title="Unkey Changelog">
