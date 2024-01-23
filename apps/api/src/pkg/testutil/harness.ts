@@ -168,7 +168,6 @@ async function seed(env: {
     ipWhitelist: null,
     createdAt: new Date(),
     deletedAt: null,
-    state: null,
   };
   const userApi: Api = {
     id: newId("api"),
@@ -179,7 +178,6 @@ async function seed(env: {
     ipWhitelist: null,
     createdAt: new Date(),
     deletedAt: null,
-    state: null,
   };
 
   await database.insert(schema.workspaces).values(unkeyWorkspace);
