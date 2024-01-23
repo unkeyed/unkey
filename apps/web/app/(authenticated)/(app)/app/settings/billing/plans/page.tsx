@@ -59,8 +59,9 @@ const tiers = {
   },
 };
 export default async function Page() {
+  const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.tenantId, getTenantId()),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
   });
   if (!workspace) {
     return notFound();
