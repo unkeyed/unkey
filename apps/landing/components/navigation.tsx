@@ -1,8 +1,7 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-import { Logo } from "./svg";
-export function DesktopNav() {
+export function Navigation() {
   const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
     return (
       <Link

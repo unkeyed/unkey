@@ -1,1 +1,1 @@
-export * from "./desktop-nav";
+export * from "./navigation";
