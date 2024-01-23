@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { type Workspace } from "@unkey/db";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
