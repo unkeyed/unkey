@@ -13,7 +13,7 @@
     "@clerk/nextjs": "^4.29.3",
     "@planetscale/database": "^1.11.0",
     "@trigger.dev/nextjs": "^2.3.6",
-    "@trigger.dev/sdk": "^2.3.6",
+    "@trigger.dev/sdk": "^2.3.16",
     "@trigger.dev/slack": "^2.3.6",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
