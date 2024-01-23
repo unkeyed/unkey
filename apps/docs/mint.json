@@ -243,7 +243,8 @@
         "contributing/getting-started",
         "contributing/versions",
         "contributing/editor-setup",
-        "contributing/testing"
+        "contributing/testing",
+        "contributing/sdk-development"
       ]
     }
   ],

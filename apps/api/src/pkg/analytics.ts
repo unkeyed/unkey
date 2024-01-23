@@ -18,6 +18,19 @@ export class Analytics {
     this.client = token ? new Tinybird({ token }) : new NoopTinybird();
   }
 
+  public get ingestSdkTelemetry() {
+    return this.client.buildIngestEndpoint({
+      datasource: "sdk_telemetry__v1",
+      event: z.object({
+        runtime: z.string(),
+        platform: z.string(),
+        versions: z.array(z.string()),
+        requestId: z.string(),
+        time: z.number(),
+      }),
+    });
+  }
+
   public get ingestKeyVerification() {
     return this.client.buildIngestEndpoint({
       datasource: "key_verifications__v2",
