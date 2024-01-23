@@ -1,7 +1,6 @@
 "use client";
-import React from "react";
-
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,11 +9,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { updateKeyName } from "./actions";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const formSchema = z.object({
+  keyId: z.string(),
+  name: z
+    .string()
+    .transform((e) => (e === "" ? undefined : e))
+    .optional(),
+});
 type Props = {
   apiKey: {
     id: string;
@@ -24,42 +36,72 @@ type Props = {
 };
 
 export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
-  return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateKeyName(formData);
-        if (res.error) {
-          toast.error(res.error.message);
-          return;
-        }
+  const router = useRouter();
 
-        toast.success("Name has been updated");
-      }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Name</CardTitle>
-          <CardDescription>
-            To make it easier to identify a particular key, you can provide a name.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-between item-center">
-          <div className={cn("flex flex-col space-y-2 w-full ")}>
-            <input type="hidden" name="keyId" value={apiKey.id} />
-            <Label htmlFor="remaining">Name</Label>
-            <Input
-              type="string"
-              name="name"
-              className="h-8 max-w-sm"
-              defaultValue={apiKey.name ?? ""}
-              autoComplete="off"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <SubmitButton label="Save" />
-        </CardFooter>
-      </Card>
-    </form>
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id,
+      name: apiKey.name ?? "",
+    },
+  });
+
+  const updateName = trpc.keySettings.updateName.useMutation({
+    onSuccess() {
+      toast.success("Your key name uses has been updated!");
+      router.refresh();
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateName.mutateAsync(values);
+  }
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Name</CardTitle>
+            <CardDescription>
+              To make it easier to identify a particular key, you can provide a name.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-between item-center">
+            <div className={cn("flex flex-col space-y-2 w-full ")}>
+              <input type="hidden" name="keyId" value={apiKey.id} />
+              <Label htmlFor="remaining">Name</Label>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} type="string" className="h-8 max-w-sm" autoComplete="off" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };

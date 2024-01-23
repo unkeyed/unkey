@@ -1,0 +1,51 @@
+---
+title: "Root Keys"
+description: "Learn how root keys in the Unkey API work"
+---
+
+To interact with the Unkey API to manage resources such as APIs or keys, you need a `root key`.
+
+`Root keys` are scoped per workspace and you can fine tune their access permissions when creating a key or update later on the fly.
+
+<Note>
+  It's a good practice to provide as few permissions as possible, to minimize the potential impact of a leaked key.
+</Note>
+
+
+
+<Steps>
+<Step title="Start">
+
+
+Go to [https://unkey.dev/app/settings/root-keys/new](https://unkey.dev/app/settings/root-keys/new) 
+
+</Step>
+
+<Step title="Name and Permissions">
+
+1. Optionally enter a name. This is internal only and not customer facing.
+2. Add your workspace-wide permissions. These permissions affect and override the per-api permissions below.
+3. For each API in your workspace, you can enable fine grained permissions.
+4. Click `Create New Key` at the bottom
+
+<Frame>
+<img src="/images/root-keys/permissions.png"/>
+</Frame>
+
+</Step>
+
+
+
+<Step title="Copy your key">
+
+<Note>
+Be sure to copy the key before closing the window. There is no way to recover it later
+</Note>
+<Frame>
+<img src="/images/root-keys/copy.png"/>
+</Frame>
+
+</Step>
+</Steps>
+
+
