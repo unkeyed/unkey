@@ -1,8 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
+import { AuditLog, db, eq, schema } from "@/lib/db";
 import { newId } from "@unkey/id";
 import { auth, t } from "../trpc";
 
@@ -30,76 +29,52 @@ export const apiRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
       }
 
-      const { TRIGGER_API_KEY } = env();
-      if (TRIGGER_API_KEY) {
-        const res = await fetch("https://api.trigger.dev/api/v1/events", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${TRIGGER_API_KEY}`,
-          },
-          body: JSON.stringify({
-            event: {
-              name: "resources.apis.deleteApi",
-              payload: {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(schema.apis)
+          .set({ deletedAt: new Date() })
+          .where(eq(schema.apis.id, input.apiId));
+        await tx.insert(schema.auditLogs).values({
+          id: newId("auditLog"),
+          time: new Date(),
+          workspaceId: api.workspaceId,
+          actorType: "user",
+          actorId: ctx.user.id,
+          event: "api.delete",
+          description: `API ${api.name} deleted`,
+          apiId: api.id,
+        });
+        await tx
+          .update(schema.keys)
+          .set({ deletedAt: new Date() })
+          .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+
+        const keyIds = await tx.query.keys.findMany({
+          where: eq(schema.keys.keyAuthId, api.keyAuthId!),
+          columns: { id: true },
+        });
+
+        await tx.insert(schema.auditLogs).values(
+          keyIds.map(
+            ({ id }) =>
+              ({
+                id: newId("auditLog"),
+                time: new Date(),
                 workspaceId: api.workspaceId,
+                actorType: "user",
+                event: "key.delete" as any,
+                description: `key ${id} deleted`,
+                actorId: ctx.user.id,
+                keyId: id,
+                keyAuthId: api.keyAuthId,
+                vercelBindingId: null,
+                vercelIntegrationId: null,
+                tags: null,
                 apiId: api.id,
-                actor: {
-                  type: "user",
-                  id: ctx.user.id,
-                },
-              },
-            },
-          }),
-        });
-        if (!res.ok) {
-          console.error(await res.text());
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "unable to emit event to trigger.dev",
-          });
-        }
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.apis)
-            .set({ state: "DELETION_IN_PROGRESS" })
-            .where(eq(schema.apis.id, input.apiId));
-          await tx.insert(schema.auditLogs).values({
-            id: newId("auditLog"),
-            time: new Date(),
-            workspaceId: api.workspaceId,
-            actorType: "user",
-            actorId: ctx.user.id,
-            event: "api.delete",
-            description: `API ${api.name} marked for deletion`,
-            apiId: api.id,
-          });
-        });
-      } else {
-        console.warn("TRIGGER_API_KEY not set");
-        // For local development when contributors don't have access to the trigger.dev account
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.apis)
-            .set({ deletedAt: new Date() })
-            .where(eq(schema.apis.id, input.apiId));
-          await tx.insert(schema.auditLogs).values({
-            id: newId("auditLog"),
-            time: new Date(),
-            workspaceId: api.workspaceId,
-            actorType: "user",
-            actorId: ctx.user.id,
-            event: "api.delete",
-            description: `API ${api.name} deleted`,
-            apiId: api.id,
-          });
-          await tx
-            .update(schema.keys)
-            .set({ deletedAt: new Date() })
-            .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
-          // TODO
-        });
-      }
+              }) satisfies AuditLog,
+          ),
+        );
+      });
     }),
   create: t.procedure
     .use(auth)

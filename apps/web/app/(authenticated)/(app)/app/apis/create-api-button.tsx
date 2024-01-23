@@ -42,6 +42,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("submitted");
     create.mutate(values);
   }
   const router = useRouter();
