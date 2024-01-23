@@ -14,7 +14,6 @@ type Props = {
     apis: {
       id: string;
       name: string;
-      state: string | null;
     }[];
   };
   className?: string;
@@ -102,23 +101,21 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
             <h2 className="text-xs font-semibold leading-6 text-content">Your APIs</h2>
             {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
             <ScrollArea className="mt-2 max-h-64 -mx-2 space-y-1 overflow-auto">
-              {workspace.apis
-                .filter((api) => api?.state !== "DELETION_IN_PROGRESS")
-                .map((api) => (
-                  <Tooltip key={api.id}>
-                    <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
-                      <NavLink
-                        item={{
-                          icon: Code,
-                          href: `/app/apis/${api.id}`,
-                          label: api.name,
-                          active: segments.includes(api.id),
-                        }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{api.name}</TooltipContent>
-                  </Tooltip>
-                ))}
+              {workspace.apis.map((api) => (
+                <Tooltip key={api.id}>
+                  <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
+                    <NavLink
+                      item={{
+                        icon: Code,
+                        href: `/app/apis/${api.id}`,
+                        label: api.name,
+                        active: segments.includes(api.id),
+                      }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>{api.name}</TooltipContent>
+                </Tooltip>
+              ))}
             </ScrollArea>
           </li>
         </ul>

@@ -44,36 +44,39 @@ export const apiRouter = t.router({
           description: `API ${api.name} deleted`,
           apiId: api.id,
         });
-        await tx
-          .update(schema.keys)
-          .set({ deletedAt: new Date() })
-          .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
 
         const keyIds = await tx.query.keys.findMany({
           where: eq(schema.keys.keyAuthId, api.keyAuthId!),
           columns: { id: true },
         });
 
-        await tx.insert(schema.auditLogs).values(
-          keyIds.map(
-            ({ id }) =>
-              ({
-                id: newId("auditLog"),
-                time: new Date(),
-                workspaceId: api.workspaceId,
-                actorType: "user",
-                event: "key.delete" as any,
-                description: `key ${id} deleted`,
-                actorId: ctx.user.id,
-                keyId: id,
-                keyAuthId: api.keyAuthId,
-                vercelBindingId: null,
-                vercelIntegrationId: null,
-                tags: null,
-                apiId: api.id,
-              }) satisfies AuditLog,
-          ),
-        );
+        if (keyIds.length) {
+          await tx
+            .update(schema.keys)
+            .set({ deletedAt: new Date() })
+            .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+
+          await tx.insert(schema.auditLogs).values(
+            keyIds.map(
+              ({ id }) =>
+                ({
+                  id: newId("auditLog"),
+                  time: new Date(),
+                  workspaceId: api.workspaceId,
+                  actorType: "user",
+                  event: "key.delete" as any,
+                  description: `key ${id} deleted`,
+                  actorId: ctx.user.id,
+                  keyId: id,
+                  keyAuthId: api.keyAuthId,
+                  vercelBindingId: null,
+                  vercelIntegrationId: null,
+                  tags: null,
+                  apiId: api.id,
+                }) satisfies AuditLog,
+            ),
+          );
+        }
       });
     }),
   create: t.procedure

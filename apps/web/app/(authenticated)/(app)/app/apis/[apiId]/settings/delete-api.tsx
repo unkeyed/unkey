@@ -58,7 +58,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       toast.message("API Deleted", {
-        description: "Your API and all its keys are being deleted now.",
+        description: "Your API and all its keys has been deleted.",
       });
 
       await revalidate();
