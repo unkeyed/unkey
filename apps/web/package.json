@@ -44,7 +44,7 @@
     "@unkey/resend": "workspace:^",
     "@unkey/result": "workspace:^",
     "@unkey/vercel": "workspace:^",
-    "@vercel/og": "^0.5.20",
+    "@vercel/og": "^0.6.2",
     "autoprefixer": "^10.4.15",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
