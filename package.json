@@ -23,7 +23,7 @@
   "license": "ISC",
   "devDependencies": {
     "@biomejs/biome": "1.2.2",
-    "@changesets/cli": "^2.26.2",
+    "@changesets/cli": "^2.27.1",
     "@types/node": "^20.11.5",
     "@vitest/ui": "^1.2.0",
     "cz-conventional-changelog": "^3.3.0",
