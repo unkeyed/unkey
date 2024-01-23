@@ -38,6 +38,7 @@ export default async function ApisOverviewPage() {
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
     })),
   );
+
   const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 
   return (
