@@ -112,7 +112,9 @@ export const keyRouter = t.router({
     .input(
       z.object({
         name: z.string().optional(),
-        roles: z.array(unkeyRoleValidation),
+        roles: z.array(unkeyRoleValidation).min(1, {
+          message: "You must add at least 1 permissions",
+        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -195,7 +197,7 @@ export const keyRouter = t.router({
         });
 
         await tx.insert(schema.roles).values(
-          new Array(...input.roles, "*").map((role) => ({
+          input.roles.map((role) => ({
             id: newId("role"),
             workspaceId: env().UNKEY_WORKSPACE_ID,
             keyId,

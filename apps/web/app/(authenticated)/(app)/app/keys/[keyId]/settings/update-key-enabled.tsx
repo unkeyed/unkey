@@ -1,7 +1,6 @@
 "use client";
-import React, { useState } from "react";
-
-import { SubmitButton } from "@/components/dashboard/submit-button";
+import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,10 +9,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
-import { updateKeyEnabled } from "./actions";
+import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const formSchema = z.object({
+  keyId: z.string(),
+  workspaceId: z.string(),
+  enabled: z.boolean(),
+});
 type Props = {
   apiKey: {
     id: string;
@@ -23,43 +32,81 @@ type Props = {
 };
 
 export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
-  const [enabled, setEnabled] = useState(apiKey.enabled);
+  const router = useRouter();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      keyId: apiKey.id,
+      workspaceId: apiKey.workspaceId,
+      enabled: apiKey.enabled,
+    },
+  });
+  const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
+    onSuccess() {
+      toast.success("Your key has been updated!");
+      router.refresh();
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateEnabled.mutateAsync(values);
+  }
 
   return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateKeyEnabled(formData);
-        if (res.error) {
-          toast.error(res.error.message);
-          return;
-        }
-        toast.success("Enabled has been updated");
-      }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Enable Key</CardTitle>
-          <CardDescription>
-            Enable or disable this key. Disabled keys will not verify.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-between item-center">
-          <div className="flex flex-col space-y-2">
-            <input type="hidden" name="keyId" value={apiKey.id} />
-            <input type="hidden" name="enabled" value={enabled ? "true" : "false"} />
-            <Switch
-              id="enableSwitch"
-              checked={enabled}
-              onCheckedChange={setEnabled}
-              defaultChecked={apiKey.enabled}
-            />
-            <Label htmlFor="enable">{enabled ? "Enabled" : "Disabled"}</Label>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <SubmitButton label="Save" />
-        </CardFooter>
-      </Card>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Enable Key</CardTitle>
+            <CardDescription>
+              Enable or disable this key. Disabled keys will not verify.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-between item-center">
+            <div className="flex flex-col space-y-2">
+              {/*  */}
+              <FormField
+                control={form.control}
+                name="enabled"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <div className="flex items-center gap-4">
+                      <FormControl>
+                        <Switch
+                          id="enableSwitch"
+                          checked={form.getValues("enabled")}
+                          onCheckedChange={(e) => {
+                            field.onChange(e);
+                          }}
+                        />
+                      </FormControl>{" "}
+                      <FormLabel htmlFor="enabled">
+                        {form.getValues("enabled") ? "Enabled" : "Disabled"}
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              className="mt-4 "
+              type="submit"
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };
