@@ -17,7 +17,6 @@ export const apis = mysqlTable(
 
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
     keyAuthId: varchar("key_auth_id", { length: 256 }),
-    state: mysqlEnum("state", ["ACTIVE", "DELETION_IN_PROGRESS"]),
   },
   (table) => ({
     keyAuthIdIndex: uniqueIndex("key_auth_id_idx").on(table.keyAuthId),
