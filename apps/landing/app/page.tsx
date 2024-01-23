@@ -1,4 +1,4 @@
-import { Navigation } from "@/components";
+import { Navigation } from "@/components/navigation";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
