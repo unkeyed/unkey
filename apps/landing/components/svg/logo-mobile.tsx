@@ -1,4 +1,4 @@
-export function Logo() {
+export function LogoMobile() {
   return (
     <>
       <svg xmlns="http://www.w3.org/2000/svg" width="93" height="40" viewBox="0 0 93 40">
@@ -17,6 +17,7 @@ export function Logo() {
           >
             <stop offset="0.26875" stopColor="white" />
             <stop offset="0.904454" stopColor="white" stopOpacity="0.5" />
+            <stop offset="1" stopColor="white" stopOpacity="0.5" />
           </radialGradient>
         </defs>
       </svg>

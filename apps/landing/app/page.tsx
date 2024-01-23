@@ -3,9 +3,10 @@ import Link from "next/link";
 import { CodeExamples } from "./code-examples";
 import { SectionHeader } from "./section";
 
-import { Hero, Navigation } from "@/components";
+import { DesktopNav, Hero, MobileNav } from "@/components";
 import {
   HeroMainboard,
+  Logo,
   SubHeroMainboard,
   TopLeftShiningLight,
   TopRightShiningLight,
@@ -39,7 +40,8 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto antialiased">
-      <Navigation />
+      <DesktopNav />
+      <MobileNav />
       {/* <TopLeftShiningLight />
       <TopRightShiningLight />
 

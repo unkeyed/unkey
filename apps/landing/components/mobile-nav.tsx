@@ -1,9 +1,9 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
-import { Logo } from "./svg";
-
-export function Navigation() {
+import { LogoMobile } from "./svg";
+export function MobileNav() {
   const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
     return (
       <Link
@@ -16,25 +16,24 @@ export function Navigation() {
   };
 
   return (
-    <nav className="bg-black flex items-center justify-between h-20 pt-12 bg-red-500">
-      <div className="flex items-center justify-between gap-32">
-        <div className="flex items-center gap-2">
-          <Logo />
-        </div>
-        <ul className="flex items-center gap-8 justify-between">
-          <NavLink href="/about" label="About" />
-          <NavLink href="/blog" label="Blog" />
-          <NavLink href="/pricing" label="Pricing" />
-          <NavLink href="/changelog" label="Changelog" />
-          <NavLink href="/docs" label="Docs" />
-        </ul>
+    <nav className="md:hidden bg-black flex items-center justify-between h-20 pt-12">
+      <div className="flex items-center justify-between sm:gap-16 lg:gap-32">
+        {/* TODO: replace with SVG logo – currently setting display:hidden on desktop SVG will also hide mobile SVG */}
+        <Image src="/logo.png" alt="Unkey logo" width={75} height={32} />
+        <button
+          type="button"
+          className="text-white/60 text-sm flex items-center justify-center px-3 mr-3 h-8 py-2 gap-2 duration-150 hover:text-white"
+        >
+          Menu
+          <ChevronDown className="w-4 h-4" />
+        </button>
       </div>
       <div className="flex">
         <Link
           href="/auth/sign-up"
           className="text-white/60 text-sm flex items-center justify-center px-3 mr-3 h-8 py-2 gap-2 duration-150 hover:text-white"
         >
-          Create Account
+          Sign Up
           <ChevronRight className="w-4 h-4" />
         </Link>
         <Link
