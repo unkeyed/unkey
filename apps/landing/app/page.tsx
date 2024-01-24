@@ -1,3 +1,4 @@
+import { FeatureGrid } from "@/components/feature/feature-grid";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -65,6 +66,7 @@ export default async function Landing() {
       />
 
       <CodeExamples className="mt-20" />
+      <FeatureGrid className="mt-20" />
     </div>
   );
 }
