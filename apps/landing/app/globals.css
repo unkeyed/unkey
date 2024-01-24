@@ -2,9 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-.btn-gradient-2 {
+.stats-border-gradient {
   background: linear-gradient(black, black) padding-box,
               linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1)) border-box;
   border-radius: 32px;
   border: .75px solid transparent;
+}
+
+.stats-number-gradient {
+  background: linear-gradient(to right, #FFF 0%, #FFF 20%, rgba(255, 255, 255, 0.30) 40%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
