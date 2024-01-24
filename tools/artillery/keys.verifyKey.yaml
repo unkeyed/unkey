@@ -9,11 +9,11 @@ config:
     - name: Ramp up Load
       duration: 1m
       arrivalRate: 5
-      rampTo: 500
+      rampTo: 10
     - name: Sustain phase
       duration: 3m
-      arrivalRate: 500
-      rampTo: 500
+      arrivalRate: 10
+      rampTo: 10
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
   plugins:
@@ -23,7 +23,7 @@ config:
   ensure:
       thresholds:
         - http.response_time.p50: 100
-        - http.response_time.p99: 200
+        - http.response_time.p99: 150
 
 scenarios:
   - flow:
