@@ -151,11 +151,19 @@ jobs:
           UNKEY_BASE_URL: https://canary.unkey.dev
           UNKEY_ROOT_KEY: ${{ secrets.CANARY_ROOT_KEY }}
 
+  canary-latency:
+    name: Check Latency
+    needs: canary
+    uses: ./.github/workflows/artillery.yaml
+    with:
+      baseUrl: https://canary.unkey.dev
+        
+
   production:
-    if: "!github.event.release.prerelease"
     needs:
       - canary
       - canary-tests
+      - canary-latency
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Production

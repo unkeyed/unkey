@@ -82,7 +82,7 @@ app.use("*", async (c, next) => {
           logger.error("Error ingesting SDK telemetry", {
             method: c.req.method,
             path: c.req.path,
-            error: err,
+            error: err.message,
           });
         }),
     );
