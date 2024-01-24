@@ -250,8 +250,8 @@ importers:
         specifier: ^8.10.7
         version: 8.10.7(react-dom@18.2.0)(react@18.2.0)
       '@team-plain/typescript-sdk':
-        specifier: ^2.19.0
-        version: 2.19.0
+        specifier: ^3.6.0
+        version: 3.6.0
       '@trpc/client':
         specifier: ^10.41.0
         version: 10.41.0(@trpc/server@10.41.0)
@@ -8554,8 +8554,8 @@ packages:
     engines: {node: '>=12'}
     dev: false
 
-  /@team-plain/typescript-sdk@2.19.0:
-    resolution: {integrity: sha512-BloaZrzHLS2jfgdM9Q/wvpmkHw8ZoVCNaq3z5YsR8NOgbDuVNdzmAUzGqMDmdCRiZ5xbD8CUILHxap1AAJrY5A==}
+  /@team-plain/typescript-sdk@3.6.0:
+    resolution: {integrity: sha512-6fHcP+TjrL3T6n986RTha9i1d40fKuxz/AcCqtG3VExgRJSx+fRZSAppjfY59sYs5o2npIrQOakG3PcBRf6o0g==}
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.1)
       graphql: 16.8.1
