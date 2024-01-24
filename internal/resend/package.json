@@ -29,7 +29,7 @@
     "@react-email/tailwind": "^0.0.12",
     "@react-email/text": "^0.0.6",
     "react": "^18.2.0",
-    "react-email": "1.9.5",
+    "react-email": "2.0.0",
     "resend": "2.1.0-canary.1"
   }
 }
