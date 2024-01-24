@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 8
       matrix:
         region: [
             ap-northeast-1,
