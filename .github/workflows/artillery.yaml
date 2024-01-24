@@ -4,15 +4,23 @@ concurrency: artillery
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *" # every day at midnight
+    inputs:
+      baseUrl:
+        required: true
+        type: string
+ 
+  workflow_call:
+    inputs:
+      baseUrl:
+        required: true
+        type: string
+ 
 jobs:
   artillery:
     name: Artillery
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: falsegh
-      max-parallel: 4
+      fail-fast: false
       matrix:
         region:
           [
@@ -48,22 +56,19 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - name: Install Artillery
-        run: npm install -g artillery@latest
-      # Looks like we need to package the env variables to be bundled into the lambda
+      
       - name: Create .env
-        run: echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env.lambda
-      - name: Run Artillery
         run: |
-          artillery run-lambda --region ${{ matrix.region }} ./tools/artillery/keys.verifyKey.yaml \
-          --record --key ${{ secrets.ARTILLERY_CLOUD_KEY }} \
-          --tags=platform:fly \
-          --dotenv .env.lambda
+          echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env
+          echo "BASE_URL=${{inputs.baseUrl}}" >> .env
+
+      - name: Test ${{matrix.region}}
+        uses: artilleryio/action-cli@v1
+        with:
+          command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record --dotenv .env
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ARTILLERY_CLOUD_API_KEY: ${{secrets.ARTILLERY_CLOUD_KEY}}
+
+  
