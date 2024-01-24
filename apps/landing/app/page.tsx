@@ -70,7 +70,7 @@ export default async function Landing() {
   );
 }
 
-const _TopLeftShiningLight: React.FC = () => (
+const TopLeftShiningLight: React.FC = () => (
   <svg
     className="absolute top-0 left-0 pointer-events-none"
     width="579"
@@ -283,7 +283,7 @@ const _TopLeftShiningLight: React.FC = () => (
   </svg>
 );
 
-const _TopRightShiningLight: React.FC = () => {
+const TopRightShiningLight: React.FC = () => {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none"
@@ -612,7 +612,7 @@ const _Hero: React.FC = () => {
   );
 };
 
-const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
+const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
     className={cn("pointer-events-none", className)}
     width="1368"
@@ -3416,7 +3416,7 @@ const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => 
   </svg>
 );
 
-const _SubHeroMainboardStuff: React.FC = () => (
+const SubHeroMainboardStuff: React.FC = () => (
   <svg
     width="908"
     height="357"
