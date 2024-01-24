@@ -7,6 +7,14 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    screens: {
+      xxs: "361px",
+      xs: "500px",
+      sm: "640px",
+      md: "840px",
+      lg: "960px",
+      xl: "1440px",
+    },
     extend: {
       borderRadius: {
         "4xl": "2rem",

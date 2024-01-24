@@ -37,7 +37,6 @@ export function StatListItem({
   label: string;
   value: string;
 }) {
-  console.log({ value });
   const data = parseData(value);
   return (
     <Border
