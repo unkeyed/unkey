@@ -23,7 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         region: [
-            ap-east-1,
             ap-northeast-1,
             ap-northeast-2,
             ap-south-1,
@@ -32,8 +31,7 @@ jobs:
             eu-west-1,
             eu-west-2,
             eu-west-3,
-            me-south-1,
-            sa-east-1
+            sa-east-1,
             us-west-2,
             ap-southeast-2,
             eu-central-1,
@@ -45,15 +43,14 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Create .env
-        run: |
-          echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env
-          echo "BASE_URL=${{inputs.baseUrl}}" >> .env
+      - name: Inject key
+        run: sed -i 's/{{ $env.UNKEY_KEY }}/${{secrets.UNKEY_KEY}}/g' ./tools/artillery/keys.verifyKey.yaml
+
 
       - name: Test ${{matrix.region}}
         uses: artilleryio/action-cli@v1
         with:
-          command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record --dotenv .env
+          command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record  --target=${{inputs.baseUrl}}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

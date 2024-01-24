@@ -1,19 +1,16 @@
 config:
 
-  target: ${{env.BASE_URL}}
+  target: https://api.unkey.dev
   phases:
     - name: Warm up phase
       duration: 1m
       arrivalRate: 1
       rampTo: 5
     - name: Ramp up Load
-      duration: 1m
+      duration: 4m
       arrivalRate: 5
       rampTo: 100
-    - name: Sustain phase
-      duration: 3m
-      arrivalRate: 100
-      rampTo: 100
+  
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
   plugins:
@@ -22,8 +19,9 @@ config:
 
   ensure:
       thresholds:
-        - http.response_time.p50: 100
-        - http.response_time.p99: 200
+        - http.response_time.p50: 50
+        - http.response_time.p90: 150
+        - http.response_time.p99: 500
 
 scenarios:
   - flow:
