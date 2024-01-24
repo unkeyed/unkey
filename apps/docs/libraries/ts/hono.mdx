@@ -153,3 +153,16 @@ app.use(
   })
 );
 ```
+
+### Disable telemetry
+
+By default, Unkey collects anonymous telemetry data to help us understand how our SDKs are used.
+
+If you wish to disable this, you can do so by passing a boolean flag to the constructor:
+
+```ts
+app.use(
+  "*",
+  unkey({ disableTelemetry: true })
+)
+```

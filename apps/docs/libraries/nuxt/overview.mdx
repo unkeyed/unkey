@@ -113,3 +113,14 @@ const created = await unkey.keys.create({
 
 console.log(created.key);
 ```
+
+
+### Disable telemetry
+
+By default, Unkey collects anonymous telemetry data to help us understand how our SDKs are used.
+
+If you wish to disable this, you can do so by passing a boolean flag to the constructor:
+
+```ts
+const unkey = useUnkey({ disableTelemetry: true })
+```
