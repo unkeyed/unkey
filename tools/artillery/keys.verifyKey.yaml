@@ -1,6 +1,6 @@
 config:
 
-  target: ${{env.BASE_URL}}
+  target: https://api.unkey.dev
   phases:
     - name: Warm up phase
       duration: 1m
