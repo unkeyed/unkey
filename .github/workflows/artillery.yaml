@@ -24,9 +24,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Create .env
-        run: |
-          echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env
+      
 
       - name: Artillery
         uses: artilleryio/action-cli@v1
