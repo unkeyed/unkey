@@ -7,13 +7,10 @@ config:
       arrivalRate: 1
       rampTo: 5
     - name: Ramp up Load
-      duration: 1m
+      duration: 4m
       arrivalRate: 5
-      rampTo: 10
-    - name: Sustain phase
-      duration: 3m
-      arrivalRate: 10
-      rampTo: 10
+      rampTo: 100
+  
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
   plugins:
