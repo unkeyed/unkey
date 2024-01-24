@@ -51,9 +51,8 @@ jobs:
       - name: Test ${{matrix.region}}
         uses: artilleryio/action-cli@v1
         with:
-          command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record  --target=${{inputs.baseUrl}}
+          command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record --key ${{secrets.ARTILLERY_CLOUD_KEY}} --target=${{inputs.baseUrl}}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ARTILLERY_CLOUD_API_KEY: ${{secrets.ARTILLERY_CLOUD_KEY}}
 
