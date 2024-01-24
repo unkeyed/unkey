@@ -33,7 +33,7 @@ jobs:
             eu-west-2,
             eu-west-3,
             me-south-1,
-            sa-east-1
+            sa-east-1,
             us-west-2,
             ap-southeast-2,
             eu-central-1,
@@ -48,13 +48,13 @@ jobs:
       - name: Create .env
         run: |
           echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env
-          echo "BASE_URL=${{inputs.baseUrl}}" >> .env
 
       - name: Test ${{matrix.region}}
         uses: artilleryio/action-cli@v1
         with:
-          command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record --dotenv ./.env --tags aws:fargate,region:${{matrix.region}} --target=${{inputs.baseUrl}}
+          command: run --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record 
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           ARTILLERY_CLOUD_API_KEY: ${{secrets.ARTILLERY_CLOUD_KEY}}
+          UNKEY_KEY: ${{secrets.UNKEY_KEY}}
