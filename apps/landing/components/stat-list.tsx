@@ -11,9 +11,7 @@ export function StatList({
 }) {
   return (
     <FadeInStagger {...props}>
-      <dl className="grid grid-cols-1 gap-10 grid-cols-2 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none">
-        {children}
-      </dl>
+      <dl className="grid grid-cols-2 lg:grid-flow-col lg:grid-cols-none">{children}</dl>
     </FadeInStagger>
   );
 }
@@ -42,7 +40,11 @@ export function StatListItem({
   console.log({ value });
   const data = parseData(value);
   return (
-    <Border as={FadeIn} position="left" className="flex flex-col-reverse pl-8">
+    <Border
+      as={FadeIn}
+      position="left"
+      className="flex-col-reverse pl-8 border-white/[.15] border-l max-w-[200px] mb-8 md:mb-0"
+    >
       <div>
         <dd className="font-semibold font-display stats-number-gradient text-4xl">
           {data.value} {data.unit}

@@ -25,8 +25,8 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
 
 export function Stats() {
   return (
-    <div className="rounded-4xl py-8 px-6 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient mt-24 sm:mt-32 lg:mt-32 text-white">
-      <Container className="">
+    <div className="rounded-4xl py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient mt-24 sm:mt-32 lg:mt-32 text-white">
+      <Container>
         <FadeInStagger faster>
           <StatList>
             <StatListItem
