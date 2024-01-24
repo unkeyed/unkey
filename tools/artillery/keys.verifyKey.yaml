@@ -2,14 +2,14 @@ config:
 
   target: https://api.unkey.dev
   phases:
-    - name: Warm up phase
+    - name: Ramp up
       duration: 1m
       arrivalRate: 1
-      rampTo: 5
-    - name: Ramp up Load
+      rampTo: 50
+    - name: Sustain
       duration: 4m
-      arrivalRate: 5
-      rampTo: 100
+      arrivalRate: 50
+      rampTo: 50
   
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
