@@ -19,28 +19,7 @@ jobs:
   artillery:
     name: Artillery
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        region: [
-            ap-east-1,
-            ap-northeast-1,
-            ap-northeast-2,
-            ap-south-1,
-            ap-southeast-1,
-            ca-central-1,
-            eu-west-1,
-            eu-west-2,
-            eu-west-3,
-            me-south-1,
-            sa-east-1,
-            us-west-2,
-            ap-southeast-2,
-            eu-central-1,
-            us-west-1,
-            us-east-2,
-            us-east-1,
-          ]
+   
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -49,10 +28,10 @@ jobs:
         run: |
           echo "UNKEY_KEY=${{ secrets.UNKEY_KEY }}" >> .env
 
-      - name: Test ${{matrix.region}}
+      - name: Artillery
         uses: artilleryio/action-cli@v1
         with:
-          command: run --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record 
+          command: run  ./tools/artillery/keys.verifyKey.yaml --record 
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
