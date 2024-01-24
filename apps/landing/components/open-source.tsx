@@ -8,9 +8,9 @@ export function OpenSource() {
   return (
     <div className="pt-[150px] flex items-center flex-col md:flex-row justify-center relative">
       {/* TODO: add additional line SVGs from Figma – current export is broken */}
-      {/* <div className="absolute top-[-260px] right-[240px]">
+      <div className="absolute top-[-260px] right-[240px]">
         <OssLight />
-      </div> */}
+      </div>
       <div className="md:pr-24 flex flex-col items-center md:items-start">
         <p className="font-mono text-white/50 text-center md:text-left">Open-source</p>
         <h1 className="text-[28px] leading-9 leading- md:text-[52px] text-white md:max-w-[463px] pt-4 open-source-heading-gradient text-center md:text-left">

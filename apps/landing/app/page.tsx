@@ -34,7 +34,7 @@ export default async function Landing() {
   return (
     <div className="container mx-auto">
       <OpenSource />
-      {/* <TopLeftShiningLight />
+      <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -66,12 +66,12 @@ export default async function Landing() {
         align="center"
       />
 
-      <CodeExamples className="mt-20" /> */}
+      <CodeExamples className="mt-20" />
     </div>
   );
 }
 
-const Navigation: React.FC = () => {
+const _Navigation: React.FC = () => {
   const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
     return (
       <Link href={href} className="text-white/50 hover:text-white duration-200 text-sm">
@@ -161,7 +161,7 @@ const Navigation: React.FC = () => {
   );
 };
 
-const TopLeftShiningLight: React.FC = () => (
+const _TopLeftShiningLight: React.FC = () => (
   <svg
     className="absolute top-0 left-0 pointer-events-none"
     width="579"
@@ -374,7 +374,7 @@ const TopLeftShiningLight: React.FC = () => (
   </svg>
 );
 
-const TopRightShiningLight: React.FC = () => {
+const _TopRightShiningLight: React.FC = () => {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none"
@@ -658,7 +658,7 @@ const TopRightShiningLight: React.FC = () => {
   );
 };
 
-const Hero: React.FC = () => {
+const _Hero: React.FC = () => {
   return (
     <div className="flex min-h-[100vh] items-center justify-between">
       <div>
@@ -703,7 +703,7 @@ const Hero: React.FC = () => {
   );
 };
 
-const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
+const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
     className={cn("pointer-events-none", className)}
     width="1368"
@@ -3507,7 +3507,7 @@ const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   </svg>
 );
 
-const SubHeroMainboardStuff: React.FC = () => (
+const _SubHeroMainboardStuff: React.FC = () => (
   <svg
     width="908"
     height="357"
