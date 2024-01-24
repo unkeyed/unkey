@@ -1,12 +1,11 @@
-export function GithubSvg() {
+export function GithubSvg({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
-      width="640"
-      height="520"
       viewBox="0 0 640 520"
       fill="none"
+      className={className}
     >
       <g clip-path="url(#clip0_840_3548)">
         <rect width="640" height="520" rx="32" fill="black" />
