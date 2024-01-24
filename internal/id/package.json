@@ -7,12 +7,16 @@
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "ISC",
+  "scripts": {
+    "test": "vitest run -c ./vitest.config.ts"
+  },
   "devDependencies": {
     "@types/node": "^20.11.5",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.3"
   },
   "dependencies": {
-    "nanoid": "^5.0.4"
+    "base-x": "^4.0.0"
   }
 }
