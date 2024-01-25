@@ -1,6 +1,8 @@
-import { version } from "../package.json";
 import { ErrorResponse } from "./errors";
 import type { paths } from "./openapi";
+
+import { type Telemetry, getTelemetry } from "./telemetry";
+
 export type UnkeyOptions = (
   | {
       token?: never;
@@ -27,6 +29,15 @@ export type UnkeyOptions = (
    * @default https://api.unkey.dev
    */
   baseUrl?: string;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
 
   /**
    * Retry on network errors
@@ -59,7 +70,7 @@ export type UnkeyOptions = (
    *
    * You can leave this blank unless you are building a wrapper around this SDK.
    */
-  wrapperSdkVersion?: `v${string}`;
+  wrapperSdkVersion?: string;
 };
 
 type ApiRequest = {
@@ -91,7 +102,7 @@ export class Unkey {
   public readonly baseUrl: string;
   private readonly rootKey: string;
   private readonly cache?: RequestCache;
-  private readonly sdkVersions: `v${string}`[] = [];
+  private readonly telemetry?: Telemetry | null;
 
   public readonly retry: {
     attempts: number;
@@ -101,9 +112,8 @@ export class Unkey {
   constructor(opts: UnkeyOptions) {
     this.baseUrl = opts.baseUrl ?? "https://api.unkey.dev";
     this.rootKey = opts.rootKey ?? opts.token;
-    this.sdkVersions.push(`v${version}`);
-    if (opts.wrapperSdkVersion) {
-      this.sdkVersions.push(opts.wrapperSdkVersion);
+    if (!opts.disableTelemetry) {
+      this.telemetry = getTelemetry(opts);
     }
 
     this.cache = opts.cache;
@@ -122,6 +132,23 @@ export class Unkey {
     };
   }
 
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.rootKey}`,
+    };
+    if (this.telemetry?.sdkVersions) {
+      headers["Unkey-Telemetry-SDK"] = this.telemetry.sdkVersions.join(",");
+    }
+    if (this.telemetry?.platform) {
+      headers["Unkey-Telemetry-Platform"] = this.telemetry.platform;
+    }
+    if (this.telemetry?.runtime) {
+      headers["Unkey-Telemetry-Runtime"] = this.telemetry.runtime;
+    }
+    return headers;
+  }
+
   private async fetch<TResult>(req: ApiRequest): Promise<Result<TResult>> {
     let res: Response | null = null;
     let err: Error | null = null;
@@ -137,11 +164,7 @@ export class Unkey {
       }
       res = await fetch(url, {
         method: req.method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.rootKey}`,
-          "Unkey-SDK": this.sdkVersions.join(","),
-        },
+        headers: this.getHeaders(),
         cache: this.cache,
         body: JSON.stringify(req.body),
       }).catch((e: Error) => {

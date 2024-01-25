@@ -50,29 +50,20 @@ export class Harness {
     registerFunctions.forEach((fn) => fn(this.app));
   }
 
+  async do<TReq, TRes>(req: StepRequest<TReq>): Promise<StepResponse<TRes>> {
+    return await fetchRoute<TReq, TRes>(this.app, req);
+  }
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
-    return await fetchRoute<never, TRes>(this.app, {
-      method: "GET",
-      ...req,
-    });
+    return await this.do<never, TRes>({ method: "GET", ...req });
   }
   async post<TReq, TRes>(req: Omit<StepRequest<TReq>, "method">): Promise<StepResponse<TRes>> {
-    return await fetchRoute<TReq, TRes>(this.app, {
-      method: "POST",
-      ...req,
-    });
+    return await this.do<TReq, TRes>({ method: "POST", ...req });
   }
   async put<TReq, TRes>(req: Omit<StepRequest<TReq>, "method">): Promise<StepResponse<TRes>> {
-    return await fetchRoute<TReq, TRes>(this.app, {
-      method: "PUT",
-      ...req,
-    });
+    return await this.do<TReq, TRes>({ method: "PUT", ...req });
   }
   async delete<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
-    return await fetchRoute<never, TRes>(this.app, {
-      method: "DELETE",
-      ...req,
-    });
+    return await this.do<never, TRes>({ method: "DELETE", ...req });
   }
 
   /**
@@ -177,7 +168,6 @@ async function seed(env: {
     ipWhitelist: null,
     createdAt: new Date(),
     deletedAt: null,
-    state: null,
   };
   const userApi: Api = {
     id: newId("api"),
@@ -188,7 +178,6 @@ async function seed(env: {
     ipWhitelist: null,
     createdAt: new Date(),
     deletedAt: null,
-    state: null,
   };
 
   await database.insert(schema.workspaces).values(unkeyWorkspace);

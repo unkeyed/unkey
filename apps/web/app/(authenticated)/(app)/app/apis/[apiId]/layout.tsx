@@ -1,14 +1,10 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Navbar } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { CircleDashed } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PropsWithChildren } from "react";
 
@@ -51,29 +47,6 @@ export default async function ApiPageLayout(props: Props) {
       segment: "settings",
     },
   ];
-
-  if (api.state === "DELETION_IN_PROGRESS") {
-    return (
-      <div>
-        <PageHeader title={api.name} />
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <CircleDashed className="h-8 w-8 animate-spin" />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>Deletion in progress</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
-            This API is currently being deleted. It will be removed from the system shortly.
-          </EmptyPlaceholder.Description>
-
-          <div className="mt-8 flex justify-center">
-            <Link href="/app/apis">
-              <Button>Back to APIs</Button>
-            </Link>
-          </div>
-        </EmptyPlaceholder>
-      </div>
-    );
-  }
 
   return (
     <div>

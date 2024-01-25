@@ -30,6 +30,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { revalidate } from "./actions";
+
 type Props = {
   api: {
     id: string;
@@ -54,12 +56,14 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
   const router = useRouter();
 
   const deleteApi = trpc.api.delete.useMutation({
-    onSuccess() {
+    async onSuccess() {
       toast.message("API Deleted", {
-        description: "Your API and all its keys are being deleted now.",
+        description: "Your API and all its keys has been deleted.",
       });
 
-      router.replace("/app/apis");
+      await revalidate();
+
+      router.push("/app/apis");
     },
     onError(err) {
       console.error(err);

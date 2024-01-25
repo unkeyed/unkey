@@ -1,15 +1,23 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import React from "react";
-import { useFormStatus } from "react-dom";
-
 import { Loading } from "@/components/dashboard/loading";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
 import { useUser } from "@clerk/nextjs";
-import { updateWorkspaceName } from "./actions";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 export const dynamic = "force-dynamic";
+const formSchema = z.object({
+  workspaceId: z.string(),
+  name: z.string(),
+});
+
 type Props = {
   workspace: {
     id: string;
@@ -19,40 +27,71 @@ type Props = {
 };
 
 export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
+  const router = useRouter();
   const { user } = useUser();
-  const { pending } = useFormStatus();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    mode: "all",
+    shouldFocusError: true,
+    delayError: 100,
+    defaultValues: {
+      workspaceId: workspace.id,
+      name: workspace.name,
+    },
+  });
+  const updateName = trpc.workspace.changeName.useMutation({
+    onSuccess() {
+      toast.success("Workspace name updated");
+      user?.reload();
+      router.refresh();
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    updateName.mutateAsync(values);
+  }
 
   return (
-    <form
-      action={async (formData: FormData) => {
-        const res = await updateWorkspaceName(formData);
-        if (res.error) {
-          toast.error(res.error.message);
-          return;
-        }
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Workspace Name</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col space-y-2">
+              <label className="sr-only hidden">Name</label>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} className="max-w-sm" defaultValue={workspace.name} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        toast.success("Workspace name updated");
-        user?.reload();
-      }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspace Name</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col space-y-2">
-            <input type="hidden" name="workspaceId" value={workspace.id} />
-            <label className="sr-only hidden">Name</label>
-            <Input name="name" className="max-w-sm" defaultValue={workspace.name} />
-            <p className="text-content-subtle text-xs">What should your workspace be called?</p>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <Button variant={pending ? "disabled" : "primary"} type="submit" disabled={pending}>
-            {pending ? <Loading /> : "Save"}
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
+              <p className="text-content-subtle text-xs">What should your workspace be called?</p>
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button
+              variant={form.formState.isSubmitting ? "disabled" : "primary"}
+              type="submit"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };
