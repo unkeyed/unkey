@@ -115,8 +115,8 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
                   y2="20.9494"
                   gradientUnits="userSpaceOnUse"
                 >
-                  <stop stop-color="white" stop-opacity="0.4" />
-                  <stop offset="1" stop-color="white" />
+                  <stop stopColor="white" stopOpacity="0.4" />
+                  <stop offset="1" stopColor="white" />
                 </linearGradient>
               </defs>
             </svg>
