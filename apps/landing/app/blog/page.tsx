@@ -1,3 +1,4 @@
+import { Footer } from "@/components/footer/footer";
 import { Alert, AlertDescription } from "@/components/ui/alert/alert";
 
 export const metadata = {
@@ -64,6 +65,7 @@ export default async function Blog() {
           </Alert>
         </div>
       </div>
+      <Footer />
     </>
   );
 }
