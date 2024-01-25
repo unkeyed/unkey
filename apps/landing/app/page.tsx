@@ -44,8 +44,8 @@ export default async function Landing() {
       <HeroMainboardStuff className="absolute top-0 right-0" />
       {/* <Hero /> */}
       <SubHeroMainboardStuff />
-
       <Stats />
+      <CodeExamples className="mt-20" />
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
@@ -119,6 +119,7 @@ export default async function Landing() {
           </div>
         </div>
       </SectionTitle>
+      <FeatureGrid className="mt-20" />
       <SectionTitle
         align="center"
         className="mt-[200px]"
@@ -136,8 +137,14 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
-      <CodeExamples className="mt-20" />
-      <FeatureGrid className="mt-20" />
+      <div className="mt-10">
+        <p className="text-white/60 leading-6 mx-auto w-full text-center text-sm">
+          2500 verifications FREE per month.
+        </p>
+        <p className="text-white/60 leading-6 mx-auto w-full text-center text-sm">
+          No CC required.
+        </p>
+      </div>
     </div>
   );
 }
