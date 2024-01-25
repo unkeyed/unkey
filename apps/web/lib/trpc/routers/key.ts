@@ -196,6 +196,20 @@ export const keyRouter = t.router({
           keyId: keyId,
         });
 
+        const permissions = input.roles.map((name) => ({
+          id: newId("permission"),
+          name,
+          workspaceId: env().UNKEY_WORKSPACE_ID,
+        }));
+        await tx.insert(schema.permissions).values(permissions);
+        await tx.insert(schema.keysPermissions).values(
+          permissions.map((p) => ({
+            keyId,
+            permissionId: p.id,
+            workspaceId: env().UNKEY_WORKSPACE_ID,
+          })),
+        );
+
         await tx.insert(schema.roles).values(
           input.roles.map((role) => ({
             id: newId("role"),
