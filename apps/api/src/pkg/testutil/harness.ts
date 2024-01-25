@@ -85,7 +85,7 @@ export class Harness {
       createdAt: new Date(),
     });
     if (roles && roles.length > 0) {
-      await this.resources.database.insert(schema.roles).values(
+      await this.db.insert(schema.roles).values(
         roles.map((role) => ({
           id: newId("role"),
           workspaceId: this.resources.unkeyWorkspace.id,
@@ -93,6 +93,23 @@ export class Harness {
           role,
         })),
       );
+
+      const permissions = roles.map((name) => ({
+        id: newId("permission"),
+        name,
+        workspaceId: this.resources.unkeyWorkspace.id,
+      }));
+
+      await this.db.transaction(async (tx) => {
+        await tx.insert(schema.permissions).values(permissions);
+        await tx.insert(schema.keysPermissions).values(
+          permissions.map((p) => ({
+            keyId,
+            permissionId: p.id,
+            workspaceId: this.resources.unkeyWorkspace.id,
+          })),
+        );
+      });
     }
     return {
       id: keyId,

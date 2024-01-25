@@ -1,4 +1,4 @@
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyRoleValidation } from "@unkey/rbac";
@@ -42,11 +42,24 @@ export const permissionRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
       }
 
-      await db.insert(schema.roles).values({
-        id: newId("role"),
+      const permission = {
+        id: newId("permission"),
+        name: role.data,
         workspaceId: workspace.id,
-        keyId: rootKey.id,
-        role: role.data,
+      };
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.permissions).values(permission);
+        await tx.insert(schema.keysPermissions).values({
+          keyId: rootKey.id,
+          permissionId: permission.id,
+          workspaceId: workspace.id,
+        });
+        await db.insert(schema.roles).values({
+          id: newId("role"),
+          workspaceId: workspace.id,
+          keyId: rootKey.id,
+          role: role.data,
+        });
       });
     }),
   removeRoleFromRootKey: t.procedure
@@ -85,6 +98,17 @@ export const permissionRouter = t.router({
         });
       }
 
-      await db.delete(schema.roles).where(eq(schema.roles.id, role.id));
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.keysPermissions)
+          .where(
+            and(
+              eq(schema.keysPermissions.keyId, role.key.id),
+              eq(schema.keysPermissions.workspaceId, workspace.id),
+            ),
+          );
+
+        await tx.delete(schema.roles).where(eq(schema.roles.id, role.id));
+      });
     }),
 });

@@ -13,6 +13,7 @@ const prefixes = {
   role: "role",
   test: "test", // for tests only
   auditLog: "log",
+  permission: "perm",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
