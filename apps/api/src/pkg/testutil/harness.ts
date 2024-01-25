@@ -100,16 +100,14 @@ export class Harness {
         workspaceId: this.resources.unkeyWorkspace.id,
       }));
 
-      await this.db.transaction(async (tx) => {
-        await tx.insert(schema.permissions).values(permissions);
-        await tx.insert(schema.keysPermissions).values(
-          permissions.map((p) => ({
-            keyId,
-            permissionId: p.id,
-            workspaceId: this.resources.unkeyWorkspace.id,
-          })),
-        );
-      });
+      await this.db.insert(schema.permissions).values(permissions);
+      await this.db.insert(schema.keysPermissions).values(
+        permissions.map((p) => ({
+          keyId,
+          permissionId: p.id,
+          workspaceId: this.resources.unkeyWorkspace.id,
+        })),
+      );
     }
     return {
       id: keyId,
