@@ -569,7 +569,7 @@ const TopRightShiningLight: React.FC = () => {
   );
 };
 
-const _Hero: React.FC = () => {
+const Hero: React.FC = () => {
   return (
     <div className="flex min-h-[100vh] items-center justify-between">
       <div>
