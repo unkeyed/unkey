@@ -14,12 +14,17 @@ export class QueueMetrics implements Metrics {
   }
 
   public emit<TMetric extends keyof Metric>(metric: TMetric, e: Metric[TMetric]): void {
-    const p = this.drain.send({
-      _time: Date.now(),
-      ...this.defaultFields,
-      metric,
-      ...e,
-    });
+    const p = this.drain.send(
+      {
+        _time: Date.now(),
+        ...this.defaultFields,
+        metric,
+        ...e,
+      },
+      {
+        contentType: "json",
+      },
+    );
 
     this.promises[crypto.randomUUID()] = p;
   }

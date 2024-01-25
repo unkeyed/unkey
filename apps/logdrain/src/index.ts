@@ -22,8 +22,14 @@ export default {
     console.log(`Ingesting ${batch.messages.length} into ${dataset}`);
 
     ax.ingest(dataset, batch.messages);
-    await ax.flush();
-    batch.ackAll();
+    await ax
+      .flush()
+      .then(() => {
+        batch.ackAll();
+      })
+      .catch(() => {
+        batch.retryAll();
+      });
   },
 };
 
