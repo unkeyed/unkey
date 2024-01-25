@@ -37,15 +37,29 @@ export default async function Landing() {
     <div className="container mx-auto">
       <div className="pt-20" />
       <SectionTitle
-        label="Code"
-        title="Any language, any framework, always secure"
-        text="Unkey ensures security across any language or framework. Effortlessly manage API keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
-        ctaText="Get started"
-        ctaHref="/auth/sign-in"
-        secondaryCtaText="Visit the Docs"
-        secondaryCtaHref="/docs"
-      />
-      <TopLeftShiningLight />
+        label="Open-source"
+        title="Empowering the community"
+        titleWidth={569}
+        contentWidth={597}
+        align="left"
+        text="Unkey allows open-source contributions through GitHub, enabling collaboration and knowledge sharing with all the developers in the world."
+      >
+        <>
+          <Link
+            href="/auth/sign-in"
+            className="shadow-md mt-[50px] font-medium text-sm bg-white inline-flex items-center border border-white px-4 py-2 rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+          >
+            Get Started <ChevronRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href="/docs"
+            className="shadow-md mt-[50px] font-medium text-sm bg-black text-white inline-flex items-center px-4 py-2 rounded-lg gap-2 duration-150"
+          >
+            Documentation <ChevronRight className="w-4 h-4" />
+          </Link>
+        </>
+      </SectionTitle>
+      {/* <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -78,7 +92,7 @@ export default async function Landing() {
       />
 
       <CodeExamples className="mt-20" />
-      <FeatureGrid className="mt-20" />
+      <FeatureGrid className="mt-20" /> */}
     </div>
   );
 }

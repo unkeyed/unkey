@@ -1,50 +1,55 @@
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type SectionTitleProps = {
   label: string;
   title: string;
   text: string;
-  ctaHref: string;
-  ctaText: string;
-  secondaryCtaText?: string;
-  secondaryCtaHref?: string;
-  align: "left" | "center";
+  align?: "left" | "center";
+  children?: React.ReactNode;
+  titleWidth: number;
+  contentWidth: number;
 };
 
 export function SectionTitle({
   label,
   title,
   text,
-  ctaHref,
-  ctaText,
-  secondaryCtaText,
-  secondaryCtaHref,
-  align = "center",
+  align = "left",
+  children,
+  titleWidth,
+  contentWidth,
 }: SectionTitleProps) {
   return (
-    <div className="md:pr-24 flex flex-col items-center md:items-start">
-      <p className="font-mono text-white/50 text-center md:text-left">{label}</p>
-      <h1 className="text-[28px] leading-9 md:text-[52px] text-white md:max-w-[463px] pt-4 section-title-heading-gradient text-center md:text-left">
+    <div
+      className={cn("md:pr-24 flex flex-col items-center", {
+        "md:items-start": align === "left",
+      })}
+    >
+      <p
+        className={cn("font-mono text-sm md:text-md text-white/50 text-center", {
+          "md:text-left": align === "left",
+        })}
+      >
+        {label}
+      </p>
+      <h1
+        className={cn(
+          "text-[28px] md:text-[52px] leading-9 md:leading-[64px] text-white md:max-w-[463px] pt-4 section-title-heading-gradient text-center",
+          { "md:text-left": align === "left" },
+        )}
+        style={{ maxWidth: titleWidth ? `${titleWidth}px` : "none" }}
+      >
         {title}
       </h1>
-      <p className="text-white leading-7 max-w-[461px] pt-[26px] text-center md:text-left">
+      <p
+        className={cn("text-sm md:text-md text-white leading-7 pt-[26px] text-center", {
+          "md:text-left": align === "left",
+        })}
+        style={{ maxWidth: contentWidth ? `${contentWidth}px` : "none" }}
+      >
         {text}
       </p>
-      <Link
-        href={ctaHref}
-        className="shadow-md mt-[50px] font-medium text-sm bg-white inline-flex items-center border border-white px-4 py-2 rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
-      >
-        {ctaText} <ChevronRight className="w-4 h-4" />
-      </Link>
-      {secondaryCtaText && secondaryCtaHref && (
-        <Link
-          href={secondaryCtaHref}
-          className="shadow-md mt-[50px] font-medium text-sm bg-white inline-flex items-center border border-white px-4 py-2 rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
-        >
-          {secondaryCtaText} <ChevronRight className="w-4 h-4" />
-        </Link>
-      )}
+      <div className="flex space-x-6">{children}</div>
     </div>
   );
 }
