@@ -17,7 +17,7 @@ import { Env } from "./env";
 import { KeyService } from "./keys/service";
 import { ConsoleLogger, Logger } from "./logging";
 import { AxiomLogger } from "./logging/axiom";
-import { AxiomMetrics, Metrics, NoopMetrics } from "./metrics";
+import { AxiomMetrics, Metrics, NoopMetrics, QueueMetrics } from "./metrics";
 import { DurableRateLimiter, NoopRateLimiter, RateLimiter } from "./ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimit";
 
@@ -68,7 +68,9 @@ export async function init(opts: { env: Env }): Promise<void> {
     return;
   }
 
-  metrics = opts.env.AXIOM_TOKEN
+  metrics = opts.env.METRICS
+    ? new QueueMetrics({ drain: opts.env.METRICS })
+    : opts.env.AXIOM_TOKEN
     ? new AxiomMetrics({
         axiomToken: opts.env.AXIOM_TOKEN,
         environment: opts.env.ENVIRONMENT,

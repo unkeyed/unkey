@@ -17,7 +17,7 @@ jobs:
      runs-on: ubuntu-latest
 
      steps:
-       - uses: actions/checkout@v3
+       - uses: actions/checkout@v4
 
 
        - name: Setup pscale
@@ -71,9 +71,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Preview
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2.2.4
+      - uses: pnpm/action-setup@v2.4.0
         with:
             version: latest
 
@@ -98,7 +98,7 @@ jobs:
 
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install
         uses: ./.github/actions/install
@@ -118,7 +118,7 @@ jobs:
       runs-on: ubuntu-latest
       name: Deploy Canary
       steps:
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@v4
 
         - name: Install
           uses: ./.github/actions/install
@@ -139,7 +139,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install
         uses: ./.github/actions/install
@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 8
       matrix:
         region: [
             ap-northeast-1,
@@ -179,7 +179,7 @@ jobs:
     name: Artillery ${{matrix.region}}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Inject key
         run: sed -i 's/{{ $env.UNKEY_KEY }}/${{secrets.UNKEY_KEY}}/g' ./tools/artillery/keys.verifyKey.yaml
@@ -204,7 +204,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy Production
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
 
