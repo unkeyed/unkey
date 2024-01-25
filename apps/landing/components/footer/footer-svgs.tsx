@@ -1,10 +1,8 @@
-export function UnkeyFooterLogo(props: any) {
+export function UnkeyFooterLogo() {
   return (
     <svg
-      width={props.width}
-      height={props.height}
       viewBox="0 0 1376 248"
-      fill="none"
+      className="fill-current xl:max-w-[1376px]"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
@@ -90,7 +88,7 @@ export function UnkeyFooterLogo(props: any) {
   );
 }
 
-export function UnkeyLogoSmall(_props: any) {
+export function UnkeyLogoSmall() {
   return (
     <svg width="75" height="32" viewBox="0 0 75 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path

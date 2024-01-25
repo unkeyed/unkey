@@ -15,7 +15,8 @@ export function SocialMedia({
   className,
 }: {
   className?: string;
-  invert?: boolean;
+  width?: number;
+  height?: number;
 }) {
   return (
     <ul role="list" className={clsx("flex gap-x-10", className)}>
