@@ -14,7 +14,7 @@
     "@types/node": "^20.11.5",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.2.2",
-    "vitest": "^0.34.3"
+    "vitest": "^1.2.1"
   },
   "dependencies": {
     "base-x": "^4.0.0"

@@ -1,4 +1,5 @@
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyRoleValidation } from "@unkey/rbac";
@@ -42,11 +43,24 @@ export const permissionRouter = t.router({
         throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
       }
 
-      await db.insert(schema.roles).values({
-        id: newId("role"),
+      const permission = {
+        id: newId("permission"),
+        name: role.data,
         workspaceId: workspace.id,
-        keyId: rootKey.id,
-        role: role.data,
+      };
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.permissions).values(permission);
+        await tx.insert(schema.keysPermissions).values({
+          keyId: rootKey.id,
+          permissionId: permission.id,
+          workspaceId: workspace.id,
+        });
+        await db.insert(schema.roles).values({
+          id: newId("role"),
+          workspaceId: workspace.id,
+          keyId: rootKey.id,
+          role: role.data,
+        });
       });
     }),
   removeRoleFromRootKey: t.procedure
@@ -85,6 +99,35 @@ export const permissionRouter = t.router({
         });
       }
 
-      await db.delete(schema.roles).where(eq(schema.roles.id, role.id));
+      const keyPermissions = await db.query.keysPermissions.findMany({
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, env().UNKEY_WORKSPACE_ID), eq(table.keyId, input.rootKeyId)),
+        with: {
+          permission: true,
+        },
+      });
+
+      const permission = keyPermissions.find((kp) => kp.permission.name === input.role)?.permission;
+
+      if (!permission) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "permission not found",
+        });
+      }
+
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.keysPermissions)
+          .where(
+            and(
+              eq(schema.keysPermissions.keyId, role.key.id),
+              eq(schema.keysPermissions.workspaceId, workspace.id),
+              eq(schema.keysPermissions.permissionId, permission.id),
+            ),
+          );
+
+        await tx.delete(schema.roles).where(eq(schema.roles.id, role.id));
+      });
     }),
 });
