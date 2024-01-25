@@ -44,7 +44,9 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       <DialogTrigger>
         <Button
           className="w-full"
-          variant={workspace.plan === newPlan ? "disabled" : "secondary"}
+          variant={
+            workspace.plan === newPlan ? "disabled" : newPlan === "pro" ? "primary" : "secondary"
+          }
           disabled={workspace.plan === newPlan}
         >
           {label}
@@ -66,7 +68,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
           </Button>
           <Button
             className="col-span-1"
-            variant={"primary"}
+            variant="primary"
             disabled={workspace.plan === newPlan}
             onClick={() =>
               changePlan.mutateAsync({

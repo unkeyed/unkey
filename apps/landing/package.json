@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-tabs": "^1.0.4",
+    "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "geist": "^1.2.1",
     "lucide-react": "^0.314.0",
