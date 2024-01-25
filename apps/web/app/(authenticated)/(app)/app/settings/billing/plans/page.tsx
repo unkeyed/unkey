@@ -81,36 +81,36 @@ export default async function Page() {
           <div
             key={tier}
             className={
-              "ring-1 ring-gray-200 flex w-full flex-col justify-between rounded-lg bg-white dark:bg-black p-8 lg:w-1/3 xl:p-10"
+              "border border-border flex w-full flex-col justify-between rounded-lg bg-white dark:bg-black p-8 lg:w-1/3 xl:p-10"
             }
           >
             <div className="flex items-center justify-between gap-x-4">
-              <h2 id={tier} className={"text-gray-900 text-2xl font-semibold leading-8"}>
+              <h2 id={tier} className={"text-content text-2xl font-semibold leading-8"}>
                 {tiers[tier].name}
               </h2>
             </div>
-            <p className="mt-4 min-h-[3rem] text-sm leading-6 text-gray-600 tex">
+            <p className="mt-4 min-h-[3rem] text-sm leading-6 text-content-subtle">
               {tiers[tier].description}
             </p>
             <p className="flex items-center mx-auto mt-6 gap-x-1">
               {typeof tiers[tier].price === "number" ? (
                 <>
-                  <span className="text-4xl font-bold tracking-tight text-center text-gray-900">
+                  <span className="text-4xl font-bold tracking-tight text-center text-content">
                     {`$${tiers[tier].price}`}
                   </span>
-                  <span className="text-sm font-semibold leading-6 text-gray-600 mx-autotext-center">
+                  <span className="mx-auto text-sm font-semibold leading-6 text-center text-content-subtle">
                     {"/month"}
                   </span>
                 </>
               ) : (
-                <span className="mx-auto text-4xl font-bold tracking-tight text-center text-gray-900">
+                <span className="mx-auto text-4xl font-bold tracking-tight text-center text-content">
                   {tiers[tier].price}
                 </span>
               )}
             </p>
 
             <div className="flex flex-col justify-between grow">
-              <ul className="mt-8 space-y-3 text-sm leading-6 text-gray-600 xl:mt-10">
+              <ul className="mt-8 space-y-3 text-sm leading-6 text-content-subtle xl:mt-10">
                 {tiers[tier].features.map((feature) => (
                   <li key={feature} className="flex gap-x-3">
                     <svg
@@ -134,7 +134,7 @@ export default async function Page() {
               {tiers[tier].footnotes && (
                 <ul className="mt-6 mb-8">
                   {tiers[tier].footnotes.map((footnote, i) => (
-                    <li key={`note-${i}`} className="flex text-xs text-gray-600 gap-x-3">
+                    <li key={`note-${i}`} className="flex text-xs text-content-subtle gap-x-3">
                       {footnote}
                     </li>
                   ))}
@@ -144,7 +144,7 @@ export default async function Page() {
                 <Link href="mailto:support@unkey.dev">
                   <Button
                     className="w-full col-span-1"
-                    variant={workspace.plan === "enterprise" ? "disabled" : "secondary"}
+                    variant={workspace.plan === "enterprise" ? "disabled" : "primary"}
                     disabled={workspace.plan === "enterprise"}
                   >
                     Schedule a Call
