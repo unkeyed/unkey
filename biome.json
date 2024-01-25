@@ -40,13 +40,6 @@
     "indentSize": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": [
-      "node_modules",
-      ".next",
-      "dist",
-      ".nuxt",
-      ".wrangler",
-      ".react-email"
-    ]
+    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email"]
   }
 }
