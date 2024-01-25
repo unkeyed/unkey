@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
 import { CodeExamples } from "./code-examples";
-import { SectionHeader } from "./section";
 
 export const metadata = {
   title: "Unkey",
@@ -730,7 +729,7 @@ const TopRightShiningLight: React.FC = () => {
   );
 };
 
-const Hero: React.FC = () => {
+const _Hero: React.FC = () => {
   return (
     <div className="flex min-h-[100vh] items-center justify-between">
       <div>
