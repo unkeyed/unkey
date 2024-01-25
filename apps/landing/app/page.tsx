@@ -37,40 +37,44 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <OpenSource />
       <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
 
       <HeroMainboardStuff className="absolute top-0 right-0" />
-      <Hero />
-      <SubHeroMainboardStuff className="border border-red-500" />
+      {/* <Hero /> */}
+      <SubHeroMainboardStuff />
 
       <Stats />
-
-      <SectionHeader
-        tag="Code"
-        title="Any Language, any Framework, always secure!"
-        subtitle="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
-        actions={[
-          <Link
-            key="get-started"
-            href="/app"
-            className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
-          >
-            Get Started <ChevronRight className="w-4 h-4" />
-          </Link>,
-          <Link
-            key="docs"
-            href="/docs"
-            className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
-          >
-            Visit the docs <ChevronRight className="w-4 h-4" />
-          </Link>,
-        ]}
+      <SectionTitle
+        label="Code"
+        title="Any language, any framework, always secure"
+        text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
         align="center"
-      />
+        titleWidth={643}
+        contentWidth={643}
+      >
+        <div className="mt-10">
+          <div className="flex space-x-6 ">
+            <Link
+              key="get-started"
+              href="/app"
+              className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+            >
+              Get Started <ChevronRight className="w-4 h-4" />
+            </Link>
+            ,
+            <Link
+              key="docs"
+              href="/docs"
+              className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+            >
+              Visit the docs <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </SectionTitle>
 
       <CodeExamples className="mt-20" />
       <FeatureGrid className="mt-20" />
@@ -168,7 +172,7 @@ const _Navigation: React.FC = () => {
   );
 };
 
-const _TopLeftShiningLight: React.FC = () => (
+const TopLeftShiningLight: React.FC = () => (
   <svg
     className="absolute top-0 left-0 pointer-events-none"
     width="579"
@@ -381,7 +385,7 @@ const _TopLeftShiningLight: React.FC = () => (
   </svg>
 );
 
-const _TopRightShiningLight: React.FC = () => {
+const TopRightShiningLight: React.FC = () => {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none"
@@ -665,7 +669,7 @@ const _TopRightShiningLight: React.FC = () => {
   );
 };
 
-const _Hero: React.FC = () => {
+const Hero: React.FC = () => {
   return (
     <div className="flex min-h-[100vh] items-center justify-between">
       <div>
@@ -710,7 +714,7 @@ const _Hero: React.FC = () => {
   );
 };
 
-const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
+const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
     className={cn("pointer-events-none", className)}
     width="1368"

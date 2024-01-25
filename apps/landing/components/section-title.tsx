@@ -6,8 +6,8 @@ type SectionTitleProps = {
   text: string;
   align?: "left" | "center";
   children?: React.ReactNode;
-  titleWidth: number;
-  contentWidth: number;
+  titleWidth?: number;
+  contentWidth?: number;
 };
 
 export function SectionTitle({
@@ -21,7 +21,7 @@ export function SectionTitle({
 }: SectionTitleProps) {
   return (
     <div
-      className={cn("md:pr-24 flex flex-col items-center", {
+      className={cn("flex flex-col items-center", {
         "md:items-start": align === "left",
       })}
     >
@@ -34,7 +34,7 @@ export function SectionTitle({
       </p>
       <h1
         className={cn(
-          "text-[28px] md:text-[52px] leading-9 md:leading-[64px] text-white md:max-w-[463px] pt-4 section-title-heading-gradient text-center",
+          "text-[28px] md:text-[52px] leading-9 md:leading-[64px] text-white md:max-w-[463px] pt-4 font-medium section-title-heading-gradient text-center",
           { "md:text-left": align === "left" },
         )}
         style={{ maxWidth: titleWidth ? `${titleWidth}px` : "none" }}
@@ -42,14 +42,14 @@ export function SectionTitle({
         {title}
       </h1>
       <p
-        className={cn("text-sm md:text-md text-white leading-7 pt-[26px] text-center", {
+        className={cn("text-sm md:text-md text-white leading-7 py-[26px] text-center", {
           "md:text-left": align === "left",
         })}
         style={{ maxWidth: contentWidth ? `${contentWidth}px` : "none" }}
       >
         {text}
       </p>
-      <div className="flex space-x-6">{children}</div>
+      {children}
     </div>
   );
 }
