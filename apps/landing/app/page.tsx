@@ -85,6 +85,58 @@ export default async function Landing() {
         contentWidth={741}
         titleWidth={741}
       />
+      <SectionTitle
+        className="mt-[200px]"
+        title="Unleashing operational security"
+        text="Unkey enables operational security with innovative open-source contributions, secure API validation, and automated access control for global developers."
+        align="center"
+        label="Protection"
+        contentWidth={741}
+        titleWidth={741}
+      />
+      <SectionTitle
+        className="mt-[200px]"
+        title="Leveled-up API Auth"
+        text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+        label="More"
+        contentWidth={717}
+      >
+        <div className="mt-10">
+          <div className="flex space-x-6 ">
+            <Link
+              key="get-started"
+              href="/app"
+              className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+            >
+              Get Started <ChevronRight className="w-4 h-4" />
+            </Link>
+            <Link
+              key="docs"
+              href="/docs"
+              className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+            >
+              Visit the docs <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </SectionTitle>
+      <SectionTitle
+        align="center"
+        className="mt-[200px]"
+        titleWidth={507}
+        title="Protect your API. Start today."
+        contentWidth={717}
+      >
+        <div className="flex space-x-6 ">
+          <Link
+            key="get-started"
+            href="/app"
+            className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+          >
+            Start Now <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </SectionTitle>
       <CodeExamples className="mt-20" />
       <FeatureGrid className="mt-20" />
     </div>

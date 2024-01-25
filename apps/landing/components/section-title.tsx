@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
 type SectionTitleProps = {
-  label: string;
-  title: string;
-  text: string;
+  label?: string;
+  title?: string;
+  text?: string;
   align?: "left" | "center";
   children?: React.ReactNode;
   titleWidth?: number;
@@ -48,7 +48,7 @@ export function SectionTitle({
         {title}
       </h1>
       <p
-        className={cn("text-sm md:text-md text-white leading-7 py-[26px] text-center", {
+        className={cn("text-sm md:text-base text-white leading-7 py-[26px] text-center", {
           "md:text-left": align === "left",
         })}
         style={{ maxWidth: contentWidth ? `${contentWidth}px` : "none" }}
