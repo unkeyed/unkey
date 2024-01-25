@@ -883,6 +883,9 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
+      '@unkey/id':
+        specifier: workspace:^
+        version: link:../../internal/id
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
@@ -5842,7 +5845,7 @@ packages:
     resolution: {integrity: sha512-moTiQtc0uPR1hQLt6gLDJH9IIkeBhgRb71OKjNHZPE1VF45fHtD6nBDi5J/DkTHTwYP5X3kBJLa3xN7ub6J4eg==}
     engines: {node: '>=14'}
     peerDependencies:
-      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api': '>=1.0.0 <1.5.0'
     dependencies:
       '@opentelemetry/api': 1.4.1
       '@opentelemetry/core': 1.13.0(@opentelemetry/api@1.4.1)

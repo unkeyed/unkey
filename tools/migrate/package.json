@@ -10,6 +10,7 @@
   "dependencies": {
     "@planetscale/database": "^1.11.0",
     "@unkey/db": "workspace:^",
+    "@unkey/id": "workspace:^",
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.29.2",
     "mysql2": "^3.6.2"

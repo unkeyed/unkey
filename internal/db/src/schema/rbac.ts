@@ -35,9 +35,7 @@ export const permissions = mysqlTable(
   "permissions",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
   },
   (table) => ({
@@ -62,26 +60,24 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
 export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
-    keyId: varchar("key_id", { length: 256 })
-      .notNull()
-      .references(() => keys.id, { onDelete: "cascade" }),
-    permissionId: varchar("permission_id", { length: 256 })
-      .notNull()
-      .references(() => permissions.id, { onDelete: "cascade" }),
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    keyId: varchar("key_id", { length: 256 }).notNull(),
+    permissionId: varchar("permission_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.keyId, table.permissionId] }),
   }),
 );
 
-export const keysPermissionsRelations = relations(permissions, ({ many }) => ({
-  keys: many(keys, {
+export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => ({
+  keys: one(keys, {
+    fields: [keysPermissions.keyId],
+    references: [keys.id],
     relationName: "keys_permissions_relations",
   }),
-  permissions: many(permissions, {
+  permission: one(permissions, {
+    fields: [keysPermissions.permissionId],
+    references: [permissions.id],
     relationName: "permissions_relations",
   }),
 }));
