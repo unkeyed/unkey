@@ -275,6 +275,20 @@ export const registerV1KeysCreateKey = (app: App) =>
             role,
           })),
         );
+        const permissions = req.roles.map((name) => ({
+          id: newId("permission"),
+          name,
+          workspaceId: authorizedWorkspaceId,
+        }));
+
+        await tx.insert(schema.permissions).values(permissions);
+        await tx.insert(schema.keysPermissions).values(
+          permissions.map((p) => ({
+            keyId,
+            permissionId: p.id,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        );
       }
       await tx.insert(schema.auditLogs).values({
         id: newId("auditLog"),
