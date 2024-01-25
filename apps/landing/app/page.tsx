@@ -75,7 +75,16 @@ export default async function Landing() {
           </div>
         </div>
       </SectionTitle>
-
+      <OpenSource />
+      <SectionTitle
+        className="mt-[200px]"
+        title="Efficient integration and process, always"
+        text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
+        align="center"
+        label="Platform"
+        contentWidth={741}
+        titleWidth={741}
+      />
       <CodeExamples className="mt-20" />
       <FeatureGrid className="mt-20" />
     </div>

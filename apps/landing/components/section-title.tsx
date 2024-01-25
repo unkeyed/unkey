@@ -8,6 +8,7 @@ type SectionTitleProps = {
   children?: React.ReactNode;
   titleWidth?: number;
   contentWidth?: number;
+  className?: string;
 };
 
 export function SectionTitle({
@@ -18,12 +19,17 @@ export function SectionTitle({
   children,
   titleWidth,
   contentWidth,
+  className,
 }: SectionTitleProps) {
   return (
     <div
-      className={cn("flex flex-col items-center", {
-        "md:items-start": align === "left",
-      })}
+      className={cn(
+        "flex flex-col items-center",
+        {
+          "md:items-start": align === "left",
+        },
+        className,
+      )}
     >
       <p
         className={cn("font-mono text-sm md:text-md text-white/50 text-center", {

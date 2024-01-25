@@ -13,7 +13,7 @@ export function OpenSource() {
       </div>
       <div className="md:pr-24 flex flex-col items-center md:items-start">
         <p className="font-mono text-white/50 text-center md:text-left">Open-source</p>
-        <h1 className="text-[28px] leading-9 leading- md:text-[52px] text-white md:max-w-[463px] pt-4 open-source-heading-gradient text-center md:text-left">
+        <h1 className="text-[28px] leading-9 md:leading-[64px] md:text-[52px] text-white md:max-w-[463px] pt-4 section-title-heading-gradient text-center md:text-left">
           Empowering the community
         </h1>
         <p className="text-white leading-7 max-w-[461px] pt-[26px] text-center md:text-left">
