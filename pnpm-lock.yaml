@@ -148,7 +148,7 @@ importers:
         version: 2.0.0
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.1)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.1)(mysql2@3.6.2)(react@18.2.0)
       framer-motion:
         specifier: 10.16.2
         version: 10.16.2(react-dom@18.2.0)(react@18.2.0)
@@ -499,7 +499,7 @@ importers:
         version: link:../../internal/resend
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.1)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.1)(mysql2@3.6.2)(react@18.2.0)
       next:
         specifier: 14.0.3
         version: 14.0.3(@babel/core@7.23.7)(react-dom@18.2.0)(react@18.2.0)
@@ -4412,14 +4412,14 @@ packages:
     resolution: {integrity: sha512-bOhuFnlRaS7CU33+rFFIWdcET/Vkyn1vsN8BYFwCDEF5P1fVVvYN7bFOsQLTMD3nvi35C1AGmtqUr/Wfv8Xaow==}
     engines: {node: '>=12'}
     dependencies:
-      '@expo/spawn-async': 1.7.2
+      '@expo/spawn-async': 1.5.0
       exec-async: 2.2.0
 
   /@expo/package-manager@1.4.2:
     resolution: {integrity: sha512-LKdo/6y4W7llZ6ghsg1kdx2CeH/qR/c6QI/JI8oPUvppsZoeIYjSkdflce978fAMfR8IXoi0wt0jA2w0kWpwbg==}
     dependencies:
       '@expo/json-file': 8.3.0
-      '@expo/spawn-async': 1.7.2
+      '@expo/spawn-async': 1.5.0
       ansi-regex: 5.0.1
       chalk: 4.1.2
       find-up: 5.0.0
@@ -5960,7 +5960,6 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
-      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -9092,7 +9091,7 @@ packages:
     dependencies:
       '@mapbox/node-pre-gyp': 1.0.11
       '@rollup/pluginutils': 4.2.1
-      acorn: 8.11.3
+      acorn: 8.10.0
       async-sema: 3.1.1
       bindings: 1.5.0
       estree-walker: 2.0.2
@@ -9551,7 +9550,6 @@ packages:
     resolution: {integrity: sha512-F0SAmZ8iUtS//m8DmCTA0jlh6TDKkHQyK6xc6V4KDTyZKA9dnvX9/3sRTVQrWm79glUAZbnmmNcdYwUIHWVybw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
-    dev: true
 
   /acorn@8.11.3:
     resolution: {integrity: sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==}
@@ -15339,7 +15337,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /lru-cache@10.1.0:
@@ -16555,10 +16553,6 @@ packages:
     resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
     engines: {node: ^14 || ^16 || >=18}
     hasBin: true
-    dev: true
-
-  /napi-wasm@1.1.0:
-    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
     dev: true
 
   /natural-compare@1.4.0:
@@ -21177,7 +21171,7 @@ packages:
   /unctx@2.3.1:
     resolution: {integrity: sha512-PhKke8ZYauiqh3FEMVNm7ljvzQiph0Mt3GBRve03IJm7ukfaON2OBK795tLwhbyfzknuRRkW0+Ze+CQUmzOZ+A==}
     dependencies:
-      acorn: 8.11.3
+      acorn: 8.10.0
       estree-walker: 3.0.3
       magic-string: 0.30.5
       unplugin: 1.6.0

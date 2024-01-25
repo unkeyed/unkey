@@ -69,11 +69,15 @@ export const keysPermissions = mysqlTable(
   }),
 );
 
-export const keysPermissionsRelations = relations(permissions, ({ many }) => ({
-  keys: many(keys, {
+export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => ({
+  keys: one(keys, {
+    fields: [keysPermissions.keyId],
+    references: [keys.id],
     relationName: "keys_permissions_relations",
   }),
-  permissions: many(permissions, {
+  permission: one(permissions, {
+    fields: [keysPermissions.permissionId],
+    references: [permissions.id],
     relationName: "permissions_relations",
   }),
 }));
