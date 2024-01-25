@@ -1,3 +1,4 @@
+import { FeatureGrid } from "@/components/feature/feature-grid";
 import { Stats } from "@/components/stats";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
@@ -34,7 +35,7 @@ export default async function Landing() {
   return (
     <div className="container mx-auto">
       <Stats />
-      {/* <TopLeftShiningLight />
+      <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -66,7 +67,8 @@ export default async function Landing() {
         align="center"
       />
 
-      <CodeExamples className="mt-20" /> */}
+      <CodeExamples className="mt-20" />
+      <FeatureGrid className="mt-20" />
     </div>
   );
 }
@@ -83,7 +85,7 @@ const Navigation: React.FC = () => {
   return (
     <nav className="bg-black flex items-center justify-between h-20">
       <div className="flex items-center justify-between gap-32">
-        {/* Logo */}
+        Logo
         <div className="flex items-center gap-2">
           <svg
             width="32"
@@ -138,7 +140,7 @@ const Navigation: React.FC = () => {
             </defs>
           </svg>
         </div>
-        {/* Nav */}
+        Nav
         <ul className="flex items-center gap-8 justify-between">
           <NavLink href="/about" label="About" />
           <NavLink href="/blog" label="Blog" />
@@ -148,7 +150,6 @@ const Navigation: React.FC = () => {
         </ul>
       </div>
 
-      {/* Auth */}
       <div>
         <Link
           href="/app"
