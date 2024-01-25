@@ -3,7 +3,7 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
-import { CHANGELOG_PATH, getAllPostData } from "@/lib/mdx-helper";
+import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
 
 type Changelog = {
@@ -91,7 +91,7 @@ export const metadata = {
 };
 
 export default async function Changelogs() {
-  const changelogs = (await getAllPostData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
+  const changelogs = (await getAllMDXData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
   return (

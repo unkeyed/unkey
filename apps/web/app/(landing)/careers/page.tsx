@@ -3,7 +3,7 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
-import { JOBS_PATH, getAllPostData } from "@/lib/mdx-helper";
+import { JOBS_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
 
 export const metadata = {
@@ -32,7 +32,7 @@ export const metadata = {
 };
 
 export default async function JobsPage() {
-  const jobs = (await getAllPostData({ contentPath: JOBS_PATH })).filter((job) => {
+  const jobs = (await getAllMDXData({ contentPath: JOBS_PATH })).filter((job) => {
     return job.frontmatter.visible !== false;
   });
 

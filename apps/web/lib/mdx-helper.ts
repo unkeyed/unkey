@@ -141,7 +141,7 @@ const getMoreContent = async ({
   return moreContentFiltered;
 };
 
-export const getAllPostData = async ({
+export const getAllMDXData = async ({
   contentPath,
 }: {
   contentPath: string;

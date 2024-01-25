@@ -7,7 +7,7 @@ import { Container } from "@/components/landing/container";
 import { FadeIn } from "@/components/landing/fade-in";
 import { PageIntro } from "@/components/landing/page-intro";
 import { authors } from "@/content/blog/authors";
-import { BLOG_PATH, getAllPostData } from "@/lib/mdx-helper";
+import { BLOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 
 export const metadata = {
   title: "Blog | Unkey",
@@ -35,7 +35,7 @@ export const metadata = {
 };
 
 export default async function Blog() {
-  const posts = (await getAllPostData({ contentPath: BLOG_PATH })).sort((a, b) => {
+  const posts = (await getAllMDXData({ contentPath: BLOG_PATH })).sort((a, b) => {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
 
