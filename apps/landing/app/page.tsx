@@ -60,7 +60,7 @@ export default async function Landing() {
           </Link>
         </>
       </SectionTitle>
-      {/* <TopLeftShiningLight />
+      <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -95,12 +95,12 @@ export default async function Landing() {
       />
 
       <CodeExamples className="mt-20" />
-      <FeatureGrid className="mt-20" /> */}
+      <FeatureGrid className="mt-20" />
     </div>
   );
 }
 
-const TopLeftShiningLight: React.FC = () => (
+const _TopLeftShiningLight: React.FC = () => (
   <svg
     className="absolute top-0 left-0 pointer-events-none"
     width="579"
@@ -313,7 +313,7 @@ const TopLeftShiningLight: React.FC = () => (
   </svg>
 );
 
-const TopRightShiningLight: React.FC = () => {
+const _TopRightShiningLight: React.FC = () => {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none"
@@ -597,7 +597,7 @@ const TopRightShiningLight: React.FC = () => {
   );
 };
 
-const Hero: React.FC = () => {
+const _Hero: React.FC = () => {
   return (
     <div className="flex min-h-[100vh] items-center justify-between">
       <div>
@@ -642,7 +642,7 @@ const Hero: React.FC = () => {
   );
 };
 
-const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
+const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
     className={cn("pointer-events-none", className)}
     width="1368"
