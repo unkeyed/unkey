@@ -1,4 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyRoleValidation } from "@unkey/rbac";
@@ -98,6 +99,23 @@ export const permissionRouter = t.router({
         });
       }
 
+      const keyPermissions = await db.query.keysPermissions.findMany({
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, env().UNKEY_WORKSPACE_ID), eq(table.keyId, input.rootKeyId)),
+        with: {
+          permission: true,
+        },
+      });
+
+      const permission = keyPermissions.find((kp) => kp.permission.name === input.role)?.permission;
+
+      if (!permission) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "permission not found",
+        });
+      }
+
       await db.transaction(async (tx) => {
         await tx
           .delete(schema.keysPermissions)
@@ -105,6 +123,7 @@ export const permissionRouter = t.router({
             and(
               eq(schema.keysPermissions.keyId, role.key.id),
               eq(schema.keysPermissions.workspaceId, workspace.id),
+              eq(schema.keysPermissions.permissionId, permission.id),
             ),
           );
 
