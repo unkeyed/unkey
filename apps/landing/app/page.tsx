@@ -1,3 +1,4 @@
+import { SectionTitle } from "@/components/section-title";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -32,7 +33,17 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <TopLeftShiningLight />
+      <div className="pt-20" />
+      <SectionTitle
+        label="Code"
+        title="Any language, any framework, always secure"
+        text="Unkey ensures security across any language or framework. Effortlessly manage API keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
+        ctaText="Get started"
+        ctaHref="/auth/sign-in"
+        secondaryCtaText="Visit the Docs"
+        secondaryCtaHref="/docs"
+      />
+      {/* <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -64,7 +75,7 @@ export default async function Landing() {
         align="center"
       />
 
-      <CodeExamples className="mt-20" />
+      <CodeExamples className="mt-20" /> */}
     </div>
   );
 }
