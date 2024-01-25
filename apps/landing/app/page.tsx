@@ -1,5 +1,6 @@
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { Navigation } from "@/components/navigation";
+import { OpenSource } from "@/components/open-source";
 import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
 import { cn } from "@/lib/utils";
@@ -36,30 +37,7 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <div className="pt-20" />
-      <SectionTitle
-        label="Open-source"
-        title="Empowering the community"
-        titleWidth={569}
-        contentWidth={597}
-        align="left"
-        text="Unkey allows open-source contributions through GitHub, enabling collaboration and knowledge sharing with all the developers in the world."
-      >
-        <>
-          <Link
-            href="/auth/sign-in"
-            className="shadow-md mt-[50px] font-medium text-sm bg-white inline-flex items-center border border-white px-4 py-2 rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
-          >
-            Get Started <ChevronRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/docs"
-            className="shadow-md mt-[50px] font-medium text-sm bg-black text-white inline-flex items-center px-4 py-2 rounded-lg gap-2 duration-150"
-          >
-            Documentation <ChevronRight className="w-4 h-4" />
-          </Link>
-        </>
-      </SectionTitle>
+      <OpenSource />
       <TopLeftShiningLight />
       <TopRightShiningLight />
 
@@ -99,6 +77,96 @@ export default async function Landing() {
     </div>
   );
 }
+
+const _Navigation: React.FC = () => {
+  const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
+    return (
+      <Link href={href} className="text-white/50 hover:text-white duration-200 text-sm">
+        {label}
+      </Link>
+    );
+  };
+
+  return (
+    <nav className="bg-black flex items-center justify-between h-20">
+      <div className="flex items-center justify-between gap-32">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <svg
+            width="32"
+            height="24"
+            viewBox="0 0 32 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M6 4H12L6 20H0L6 4ZM16 4H22L16 20H10L16 4ZM32 4H26L20 20H26L32 4Z"
+              fill="url(#paint0_radial_574_3018)"
+            />
+            <defs>
+              <radialGradient
+                id="paint0_radial_574_3018"
+                cx="0"
+                cy="0"
+                r="1"
+                gradientUnits="userSpaceOnUse"
+                gradientTransform="translate(6 4) rotate(38.6598) scale(25.6125)"
+              >
+                <stop stop-color="white" />
+                <stop offset="1" stop-color="white" stop-opacity="0.5" />
+              </radialGradient>
+            </defs>
+          </svg>
+          <svg
+            width="74"
+            height="32"
+            viewBox="0 0 74 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8.59392 24.2387C3.81952 24.2387 1.09811 21.7083 1.09811 17.3636V8.00576H3.65242V17.1965C3.65242 20.4192 5.08474 21.756 8.59392 21.756C12.1031 21.756 13.5354 20.4192 13.5354 17.1965V8.00576H16.1136V17.3636C16.1136 21.7083 13.3922 24.2387 8.59392 24.2387ZM20.9764 24H18.3982V12.1356H20.7616V15.8119H20.9287C21.2867 13.8067 22.8623 11.8969 25.8702 11.8969C29.1645 11.8969 30.7878 14.117 30.7878 16.8623V24H28.2096V17.5546C28.2096 15.3345 27.207 14.2125 24.7482 14.2125C22.1461 14.2125 20.9764 15.5493 20.9764 18.1275V24ZM35.6633 24H33.0851V8.00576H35.6633V16.8384H39.0531L42.61 12.1356H45.6179L41.1538 17.841L45.594 24H42.5623L39.0531 19.154H35.6633V24ZM52.8541 24.2387C48.963 24.2387 46.4087 22.0425 46.4087 18.0797C46.4087 14.3796 48.9391 11.8969 52.8064 11.8969C56.4826 11.8969 58.9892 13.926 58.9892 17.5307C58.9892 17.9604 58.9653 18.2946 58.8937 18.6527H48.8197C48.9152 20.9444 50.0372 22.1619 52.7825 22.1619C55.2652 22.1619 56.2917 21.3502 56.2917 19.9418V19.7508H58.8698V19.9656C58.8698 22.4961 56.3872 24.2387 52.8541 24.2387ZM52.7586 13.926C50.1327 13.926 48.9868 15.0957 48.8436 17.2204H56.5543V17.1726C56.5543 14.9764 55.289 13.926 52.7586 13.926ZM62.83 28.0582H61.1351V25.7188H63.4507C64.501 25.7188 64.9307 25.4323 65.2888 24.6207L65.5753 24L59.7266 12.1356H62.6151L65.6469 18.4378L66.8166 21.2786H67.0076L68.1296 18.414L70.9226 12.1356H73.7634L67.5805 25.2891C66.6018 27.4137 65.2649 28.0582 62.83 28.0582Z"
+              fill="url(#paint0_radial_574_3023)"
+            />
+            <defs>
+              <radialGradient
+                id="paint0_radial_574_3023"
+                cx="0"
+                cy="0"
+                r="1"
+                gradientUnits="userSpaceOnUse"
+                gradientTransform="rotate(23.3852) scale(80.6226 80.8018)"
+              >
+                <stop offset="0.26875" stop-color="white" />
+                <stop offset="0.904454" stop-color="white" stop-opacity="0.5" />
+              </radialGradient>
+            </defs>
+          </svg>
+        </div>
+        {/* Nav */}
+        <ul className="flex items-center gap-8 justify-between">
+          <NavLink href="/about" label="About" />
+          <NavLink href="/blog" label="Blog" />
+          <NavLink href="/pricing" label="Pricing" />
+          <NavLink href="/changelog" label="Changelog" />
+          <NavLink href="/docs" label="Docs" />
+        </ul>
+      </div>
+
+      {/* Auth */}
+      <div>
+        <Link
+          href="/app"
+          className="shadow-md font-medium bg-white h-8 flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+        >
+          Log In <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+    </nav>
+  );
+};
 
 const _TopLeftShiningLight: React.FC = () => (
   <svg
