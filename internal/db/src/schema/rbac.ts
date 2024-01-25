@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { workspaces } from "./workspaces";
 
@@ -28,5 +28,54 @@ export const rolesRelations = relations(roles, ({ one }) => ({
     relationName: "key_roles_relation",
     fields: [roles.keyId],
     references: [keys.id],
+  }),
+}));
+
+export const permissions = mysqlTable(
+  "permissions",
+  {
+    id: varchar("id", { length: 256 }).primaryKey(),
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 512 }).notNull(),
+  },
+  (table) => ({
+    uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
+      table.name,
+      table.workspaceId,
+    ),
+    workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),
+  }),
+);
+
+export const permissionsRelations = relations(permissions, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [permissions.workspaceId],
+    references: [workspaces.id],
+  }),
+  keys: many(keysPermissions, {
+    relationName: "keys_permissions_relation",
+  }),
+}));
+
+export const keysPermissions = mysqlTable(
+  "keys_permissions",
+  {
+    keyId: varchar("key_id", { length: 256 }).notNull(),
+    permissionId: varchar("permission_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.keyId, table.permissionId] }),
+  }),
+);
+
+export const keysPermissionsRelations = relations(permissions, ({ many }) => ({
+  keys: many(keys, {
+    relationName: "keys_permissions_relations",
+  }),
+  permissions: many(permissions, {
+    relationName: "permissions_relations",
   }),
 }));

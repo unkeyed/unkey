@@ -31,7 +31,8 @@
       "dist",
       ".nuxt",
       "./packages/api/src/openapi.d.ts",
-      ".wrangler"
+      ".wrangler",
+      ".react-email"
     ]
   },
   "formatter": {
@@ -39,6 +40,13 @@
     "indentSize": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".wrangler",
+      ".react-email"
+    ]
   }
 }

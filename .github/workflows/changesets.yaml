@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install
         uses: ./.github/actions/install
@@ -24,7 +24,7 @@ jobs:
 
       - name: Create Version PR or Publish to NPM
         id: changesets
-        uses: changesets/action@v1.4.1
+        uses: changesets/action@v1.4.5
         with:
           commit: "chore(release): version packages"
           title: "chore(release): version packages"

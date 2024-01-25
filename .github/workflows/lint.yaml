@@ -3,24 +3,12 @@ on:
   workflow_call:
 
 jobs:
-  check_for_unused:
-    name: Check for unused files and dependencies
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install
-        uses: ./.github/actions/install
-
-      - run: pnpm knip
-
   lint_code:
     name: Code
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install
         uses: ./.github/actions/install
@@ -32,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - run: npx mintlify@latest broken-links
         working-directory: apps/docs

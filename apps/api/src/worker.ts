@@ -1,5 +1,5 @@
 import { Env, zEnv } from "@/pkg/env";
-import { init, logger, metrics } from "@/pkg/global";
+import { analytics, init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
 import { cors } from "hono/cors";
@@ -17,7 +17,6 @@ import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
-import { registerVXKeysGetVerifications } from "./routes/vx_keys_getVerifications";
 
 // Legacy Routes
 import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
@@ -69,6 +68,25 @@ app.use("*", async (c, next) => {
     const requestId = newId("request");
     m.requestId = requestId;
     c.set("requestId", requestId);
+
+    c.executionCtx.waitUntil(
+      analytics
+        .ingestSdkTelemetry({
+          runtime: c.req.header("Unkey-Telemetry-Runtime") || "unknown",
+          platform: c.req.header("Unkey-Telemetry-Platform") || "unknown",
+          versions: c.req.header("Unkey-Telemetry-SDK")?.split(",") || [],
+          requestId,
+          time: Date.now(),
+        })
+        .catch((err) => {
+          logger.error("Error ingesting SDK telemetry", {
+            method: c.req.method,
+            path: c.req.path,
+            error: err.message,
+          });
+        }),
+    );
+
     await next();
     // headers should be set after calling `next()`, otherwise they will be lowercased by the framework
     c.res.headers.append("Unkey-Request-Id", requestId);
@@ -105,7 +123,6 @@ registerV1KeysVerifyKey(app);
 registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 registerV1KeysGetVerifications(app);
-registerVXKeysGetVerifications(app);
 
 // apis
 registerV1ApisGetApi(app);
