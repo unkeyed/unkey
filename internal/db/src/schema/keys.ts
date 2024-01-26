@@ -98,7 +98,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     relationName: "key_roles_relation",
   }),
   permissions: many(keysPermissions, {
-    relationName: "permissions_keys_relations",
+    relationName: "keys_permissions_relations",
   }),
 
   auditLog: many(auditLogs),
