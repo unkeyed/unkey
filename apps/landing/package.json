@@ -1,0 +1,40 @@
+{
+  "name": "landing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@chronark/zod-bird": "^0.3.3",
+    "@planetscale/database": "^1.11.0",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@unkey/db": "workspace:^",
+    "@radix-ui/react-separator": "^1.0.3",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "drizzle-orm": "^0.29.1",
+    "framer-motion": "10.16.2",
+    "geist": "^1.2.1",
+    "lucide-react": "^0.314.0",
+    "next": "14.1.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "tailwind-merge": "^1.14.0",
+    "zod": "^3.22.4",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.8.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  }
+}

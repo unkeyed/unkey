@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nuxt",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -45,12 +45,12 @@
   "devDependencies": {
     "@nuxt/module-builder": "^0.5.2",
     "@nuxt/schema": "^3.8.0",
-    "@nuxt/test-utils": "^3.8.0",
-    "@types/node": "^20.11.4",
+    "@nuxt/test-utils": "^3.10.0",
+    "@types/node": "^20.11.5",
     "dotenv": "^16.3.1",
     "h3": "^1.8.2",
     "nuxt": "^3.8.0",
-    "vitest": "^0.34.3",
+    "vitest": "^1.2.1",
     "vue": "^3.3.6"
   }
 }

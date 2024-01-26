@@ -248,6 +248,14 @@ export interface paths {
               [key: string]: unknown;
             };
             /**
+             * @description A list of roles that this key should have. New roles will be created if they don't exist yet.
+             * @example [
+             *   "admin",
+             *   "finance"
+             * ]
+             */
+            roles?: string[];
+            /**
              * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
              * @example 1623869797161
              */
@@ -372,116 +380,14 @@ export interface paths {
     post: {
       requestBody: {
         content: {
-          "application/json": {
-            /**
-             * @description The id of the api where the key belongs to. This is optional for now but will be required soon.
-             * The key will be verified against the api's configuration. If the key does not belong to the api, the verification will fail.
-             * @example api_1234
-             */
-            apiId?: string;
-            /**
-             * @description The key to verify
-             * @example sk_1234
-             */
-            key: string;
-          };
+          "application/json": components["schemas"]["V1KeysVerifyKeyRequest"];
         };
       };
       responses: {
         /** @description The verification result */
         200: {
           content: {
-            "application/json": {
-              /**
-               * @description The id of the key
-               * @example key_1234
-               */
-              keyId?: string;
-              /**
-               * @description Whether the key is valid or not.
-               * A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.
-               * @example true
-               */
-              valid: boolean;
-              /**
-               * @description The name of the key, give keys a name to easily identifiy their purpose
-               * @example Customer X
-               */
-              name?: string;
-              /**
-               * @description The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
-               * @example user_123
-               */
-              ownerId?: string;
-              /**
-               * @description Any additional metadata you want to store with the key
-               * @example {
-               *   "roles": [
-               *     "admin",
-               *     "user"
-               *   ],
-               *   "stripeCustomerId": "cus_1234"
-               * }
-               */
-              meta?: {
-                [key: string]: unknown;
-              };
-              /**
-               * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-               * @example 123
-               */
-              expires?: number;
-              /**
-               * @description The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
-               * @example {
-               *   "limit": 10,
-               *   "remaining": 9,
-               *   "reset": 3600000
-               * }
-               */
-              ratelimit?: {
-                /**
-                 * @description Maximum number of requests that can be made inside a window
-                 * @example 10
-                 */
-                limit: number;
-                /**
-                 * @description Remaining requests after this verification
-                 * @example 9
-                 */
-                remaining: number;
-                /**
-                 * @description Unix timestamp in milliseconds when the ratelimit will reset
-                 * @example 3600000
-                 */
-                reset: number;
-              };
-              /**
-               * @description The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.
-               * @example 1000
-               */
-              remaining?: number;
-              /**
-               * @description If the key is invalid this field will be set to the reason why it is invalid.
-               * Possible values are:
-               * - NOT_FOUND: the key does not exist or has expired
-               * - FORBIDDEN: the key is not allowed to access the api
-               * - USAGE_EXCEEDED: the key has exceeded its request limit
-               * - RATE_LIMITED: the key has been ratelimited
-               * - UNAUTHORIZED: the key is not authorized
-               * - DISABLED: the key is disabled
-               * @enum {string}
-               */
-              code?:
-                | "NOT_FOUND"
-                | "FORBIDDEN"
-                | "USAGE_EXCEEDED"
-                | "RATE_LIMITED"
-                | "UNAUTHORIZED"
-                | "DISABLED";
-              /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
-              enabled?: boolean;
-            };
+            "application/json": components["schemas"]["V1KeysVerifyKeyResponse"];
           };
         };
         /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -752,92 +658,6 @@ export interface paths {
     };
   };
   "/v1/keys.getVerifications": {
-    get: {
-      parameters: {
-        query?: {
-          keyId?: string;
-          ownerId?: string;
-          start?: number | null;
-          end?: number | null;
-          granularity?: "day";
-        };
-      };
-      responses: {
-        /** @description The configuration for a single key */
-        200: {
-          content: {
-            "application/json": {
-              verifications: {
-                /**
-                 * @description The timestamp of the usage data
-                 * @example 1620000000000
-                 */
-                time: number;
-                /**
-                 * @description The number of successful requests
-                 * @example 100
-                 */
-                success: number;
-                /**
-                 * @description The number of requests that were rate limited
-                 * @example 10
-                 */
-                rateLimited: number;
-                /**
-                 * @description The number of requests that exceeded the usage limit
-                 * @example 0
-                 */
-                usageExceeded: number;
-              }[];
-            };
-          };
-        };
-        /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-        400: {
-          content: {
-            "application/json": components["schemas"]["ErrBadRequest"];
-          };
-        };
-        /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
-        401: {
-          content: {
-            "application/json": components["schemas"]["ErrUnauthorized"];
-          };
-        };
-        /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
-        403: {
-          content: {
-            "application/json": components["schemas"]["ErrForbidden"];
-          };
-        };
-        /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
-        404: {
-          content: {
-            "application/json": components["schemas"]["ErrNotFound"];
-          };
-        };
-        /** @description This response is sent when a request conflicts with the current state of the server. */
-        409: {
-          content: {
-            "application/json": components["schemas"]["ErrConflict"];
-          };
-        };
-        /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
-        429: {
-          content: {
-            "application/json": components["schemas"]["ErrTooManyRequests"];
-          };
-        };
-        /** @description The server has encountered a situation it does not know how to handle. */
-        500: {
-          content: {
-            "application/json": components["schemas"]["ErrInternalServerError"];
-          };
-        };
-      };
-    };
-  };
-  "/vx/keys.getVerifications": {
     get: {
       parameters: {
         query?: {
@@ -1208,9 +1028,6 @@ export interface paths {
   "/v1/keys/{keyId}": {
     put: {
       parameters: {
-        header: {
-          authorization: string;
-        };
         path: {
           keyId: string;
         };
@@ -1330,11 +1147,6 @@ export interface paths {
   };
   "/v1/keys/:keyId": {
     get: {
-      parameters: {
-        header: {
-          authorization: string;
-        };
-      };
       responses: {
         /** @description The configuration for a single key */
         200: {
@@ -1387,11 +1199,6 @@ export interface paths {
       };
     };
     delete: {
-      parameters: {
-        header: {
-          authorization: string;
-        };
-      };
       responses: {
         /** @description The key was successfully revoked, it may take up to 30s for this to take effect in all regions */
         200: {
@@ -1446,11 +1253,6 @@ export interface paths {
   };
   "/v1/keys": {
     post: {
-      parameters: {
-        header: {
-          authorization: string;
-        };
-      };
       requestBody: {
         content: {
           "application/json": {
@@ -1908,9 +1710,6 @@ export interface paths {
     };
     delete: {
       parameters: {
-        header: {
-          authorization: string;
-        };
         path: {
           apiId: string;
         };
@@ -2308,10 +2107,122 @@ export interface components {
         refillInterval: number;
       };
       /**
+       * @description All roles this key belongs to
+       * @example [
+       *   "admin",
+       *   "finance"
+       * ]
+       */
+      roles?: string[];
+      /**
        * @description Sets if key is enabled or disabled. Disabled keys are not valid.
        * @example true
        */
       enabled?: boolean;
+    };
+    V1KeysVerifyKeyResponse: {
+      /**
+       * @description The id of the key
+       * @example key_1234
+       */
+      keyId?: string;
+      /**
+       * @description Whether the key is valid or not.
+       * A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.
+       * @example true
+       */
+      valid: boolean;
+      /**
+       * @description The name of the key, give keys a name to easily identifiy their purpose
+       * @example Customer X
+       */
+      name?: string;
+      /**
+       * @description The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
+       * @example user_123
+       */
+      ownerId?: string;
+      /**
+       * @description Any additional metadata you want to store with the key
+       * @example {
+       *   "roles": [
+       *     "admin",
+       *     "user"
+       *   ],
+       *   "stripeCustomerId": "cus_1234"
+       * }
+       */
+      meta?: {
+        [key: string]: unknown;
+      };
+      /**
+       * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
+       * @example 123
+       */
+      expires?: number;
+      /**
+       * @description The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
+       * @example {
+       *   "limit": 10,
+       *   "remaining": 9,
+       *   "reset": 3600000
+       * }
+       */
+      ratelimit?: {
+        /**
+         * @description Maximum number of requests that can be made inside a window
+         * @example 10
+         */
+        limit: number;
+        /**
+         * @description Remaining requests after this verification
+         * @example 9
+         */
+        remaining: number;
+        /**
+         * @description Unix timestamp in milliseconds when the ratelimit will reset
+         * @example 3600000
+         */
+        reset: number;
+      };
+      /**
+       * @description The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.
+       * @example 1000
+       */
+      remaining?: number;
+      /**
+       * @description If the key is invalid this field will be set to the reason why it is invalid.
+       * Possible values are:
+       * - NOT_FOUND: the key does not exist or has expired
+       * - FORBIDDEN: the key is not allowed to access the api
+       * - USAGE_EXCEEDED: the key has exceeded its request limit
+       * - RATE_LIMITED: the key has been ratelimited
+       * - UNAUTHORIZED: the key is not authorized
+       * - DISABLED: the key is disabled
+       * @enum {string}
+       */
+      code?:
+        | "NOT_FOUND"
+        | "FORBIDDEN"
+        | "USAGE_EXCEEDED"
+        | "RATE_LIMITED"
+        | "UNAUTHORIZED"
+        | "DISABLED";
+      /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
+      enabled?: boolean;
+    };
+    V1KeysVerifyKeyRequest: {
+      /**
+       * @description The id of the api where the key belongs to. This is optional for now but will be required soon.
+       * The key will be verified against the api's configuration. If the key does not belong to the api, the verification will fail.
+       * @example api_1234
+       */
+      apiId?: string;
+      /**
+       * @description The key to verify
+       * @example sk_1234
+       */
+      key: string;
     };
   };
   responses: never;

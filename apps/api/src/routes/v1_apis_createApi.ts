@@ -6,6 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
+import { buildQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -17,7 +18,7 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            name: z.string().min(1).openapi({
+            name: z.string().min(3).openapi({
               description: "The name for your API. This is not customer facing.",
               example: "my-api",
             }),
@@ -54,7 +55,10 @@ export type V1ApisCreateApiResponse = z.infer<
 
 export const registerV1ApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
+    const auth = await rootKeyAuth(
+      c,
+      buildQuery(({ or }) => or("*", "api.*.create_api")),
+    );
 
     const { name } = c.req.valid("json");
 
