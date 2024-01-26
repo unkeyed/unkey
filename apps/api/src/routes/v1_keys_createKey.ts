@@ -267,14 +267,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         enabled: req.enabled,
       });
       if (req.roles && req.roles.length > 0) {
-        await tx.insert(schema.roles).values(
-          req.roles.map((role) => ({
-            id: newId("role"),
-            workspaceId: authorizedWorkspaceId,
-            keyId,
-            role,
-          })),
-        );
         const permissions = req.roles.map((name) => ({
           id: newId("permission"),
           name,
