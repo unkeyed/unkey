@@ -45,7 +45,6 @@ export default async function Landing() {
       {/* <Hero /> */}
       {/* <SubHeroMainboardStuff /> */}
       <Stats />
-      {/* <CodeExamples className="mt-20" /> */}
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
@@ -53,6 +52,7 @@ export default async function Landing() {
         align="center"
         titleWidth={643}
         contentWidth={643}
+        className="mt-20"
       >
         <div className="mt-10">
           <div className="flex space-x-6 ">
@@ -74,6 +74,7 @@ export default async function Landing() {
           </div>
         </div>
       </SectionTitle>
+      <CodeExamples className="mt-20" />
       <OpenSource />
       <SectionTitle
         className="mt-[200px]"
