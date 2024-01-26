@@ -1,4 +1,3 @@
-const { withContentlayer } = require("next-contentlayer");
 const { withHydrationOverlay } = require("@builder.io/react-hydration-overlay/next");
 
 /** @type {import('next').NextConfig} */
@@ -14,7 +13,6 @@ let nextConfig = {
     });
     return config;
   },
-
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
@@ -33,7 +31,6 @@ let nextConfig = {
   ],
 };
 
-nextConfig = withContentlayer(nextConfig);
 if (process.env.NODE_ENV !== "production") {
   nextConfig = withHydrationOverlay({ appRootselector: "main" })(nextConfig);
 }
