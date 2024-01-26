@@ -1,6 +1,6 @@
 "use client"; // This is required!
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
-import Image from "next/Image";
+import Image from "next/image";
 
 type MdxContentProps = {
   source: MDXRemoteSerializeResult;
