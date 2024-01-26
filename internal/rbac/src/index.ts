@@ -1,3 +1,3 @@
-export * from "./roles";
+export * from "./permissions";
 export * from "./queries";
 export * from "./rbac";

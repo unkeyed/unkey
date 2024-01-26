@@ -1,11 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Permission } from "./permission";
-import { apiRoles } from "./roles";
+import { Permission } from "@unkey/db";
+import { PermissionToggle } from "./permission_toggle";
+import { apiPermissions } from "./permissions";
 
 type Props = {
-  permissions: string[];
+  permissions: Permission[];
   keyId: string;
   api: {
     id: string;
@@ -25,20 +26,20 @@ export const Api: React.FC<Props> = ({ keyId, api, permissions }) => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
-          {Object.entries(apiRoles(api.id)).map(([category, roles]) => {
+          {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
             return (
               <div className="flex flex-col gap-2">
                 <span className="font-medium">{category}</span>
                 <div className="flex flex-col gap-1">
-                  {Object.entries(roles).map(([action, { description, role }]) => {
+                  {Object.entries(roles).map(([action, { description, permission }]) => {
                     return (
-                      <Permission
+                      <PermissionToggle
                         key={action}
                         rootKeyId={keyId}
-                        role={role}
+                        permissionName={permission}
                         label={action}
                         description={description}
-                        checked={permissions.includes(api.id)}
+                        checked={permissions.some((p) => p.name === permission)}
                       />
                     );
                   })}

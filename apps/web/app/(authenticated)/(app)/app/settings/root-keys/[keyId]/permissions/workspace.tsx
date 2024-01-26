@@ -1,11 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Permission } from "./permission";
-import { workspaceRoles } from "./roles";
+import { Permission } from "@unkey/db";
+import { PermissionToggle } from "./permission_toggle";
+import { workspacePermissions } from "./permissions";
 
 type Props = {
-  permissions: string[];
+  permissions: Permission[];
   keyId: string;
 };
 
@@ -18,15 +19,15 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-1">
-          {Object.entries(workspaceRoles).map(([action, { description, role }]) => {
+          {Object.entries(workspacePermissions).map(([action, { description, permission }]) => {
             return (
-              <Permission
+              <PermissionToggle
                 key={action}
                 rootKeyId={keyId}
-                role={role}
+                permissionName={permission}
                 label={action}
                 description={description}
-                checked={permissions.includes(role)}
+                checked={permissions.some((p) => p.name === permission)}
               />
             );
           })}

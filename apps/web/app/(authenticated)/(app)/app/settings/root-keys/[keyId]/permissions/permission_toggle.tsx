@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 type Props = {
   rootKeyId: string;
-  role: string;
+  permissionName: string;
   label: string;
   description: string;
   checked: boolean;
@@ -19,9 +19,9 @@ type Props = {
   preventDisabling?: boolean;
 };
 
-export const Permission: React.FC<Props> = ({
+export const PermissionToggle: React.FC<Props> = ({
   rootKeyId,
-  role,
+  permissionName,
   label,
   checked,
   description,
@@ -31,17 +31,17 @@ export const Permission: React.FC<Props> = ({
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-  const addRole = trpc.permission.addRoleToRootKey.useMutation({
+  const addPermission = trpc.permission.addPermissionToRootKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
     },
     onSuccess: () => {
-      toast.success("Role added", {
+      toast.success("Permission added", {
         description: "Changes may take up to 60 seconds to take effect.",
         cancel: {
           label: "Undo",
           onClick: () => {
-            removeRole.mutate({ rootKeyId, role });
+            removeRole.mutate({ rootKeyId, permissionName });
           },
         },
       });
@@ -53,17 +53,17 @@ export const Permission: React.FC<Props> = ({
       router.refresh();
     },
   });
-  const removeRole = trpc.permission.removeRoleFromRootKey.useMutation({
+  const removeRole = trpc.permission.removePermissionFromRootKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
     },
     onSuccess: () => {
-      toast.success("Role removed", {
+      toast.success("Permission removed", {
         description: "Changes may take up to 60 seconds to take effect.",
         cancel: {
           label: "Undo",
           onClick: () => {
-            addRole.mutate({ rootKeyId, role });
+            addPermission.mutate({ rootKeyId, permission: permissionName });
           },
         },
       });
@@ -81,12 +81,12 @@ export const Permission: React.FC<Props> = ({
       <div className="w-1/3 ">
         <Tooltip>
           <TooltipTrigger className="flex items-center gap-2">
-            {addRole.isLoading || removeRole.isLoading ? (
+            {addPermission.isLoading || removeRole.isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Checkbox
                 disabled={
-                  addRole.isLoading ||
+                  addPermission.isLoading ||
                   removeRole.isLoading ||
                   (preventEnabling && !checked) ||
                   (preventDisabling && checked)
@@ -95,11 +95,11 @@ export const Permission: React.FC<Props> = ({
                 onClick={() => {
                   if (checked) {
                     if (!preventDisabling) {
-                      removeRole.mutate({ rootKeyId, role });
+                      removeRole.mutate({ rootKeyId, permissionName });
                     }
                   } else {
                     if (!preventEnabling) {
-                      addRole.mutate({ rootKeyId, role });
+                      addPermission.mutate({ rootKeyId, permission: permissionName });
                     }
                   }
                 }}
@@ -108,13 +108,13 @@ export const Permission: React.FC<Props> = ({
             <Label className="text-xs text-content">{label}</Label>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
-            <span className="font-mono font-medium text-sm">{role}</span>
-            <CopyButton value={role} />
+            <span className="font-mono text-sm font-medium">{permissionName}</span>
+            <CopyButton value={permissionName} />
           </TooltipContent>
         </Tooltip>
       </div>
 
-      <p className="text-xs w-2/3 text-content-subtle">{description}</p>
+      <p className="w-2/3 text-xs text-content-subtle">{description}</p>
     </div>
   );
 };
