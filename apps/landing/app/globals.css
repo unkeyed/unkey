@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+.section-title-heading-gradient {
+  background: linear-gradient(86deg, #FFF 27.24%, rgba(255, 255, 255, 0.30) 56.97%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .stats-border-gradient {
   background: linear-gradient(black, black) padding-box,
               linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1)) border-box;

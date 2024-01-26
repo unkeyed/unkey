@@ -678,8 +678,8 @@ importers:
         specifier: ^0.0.12
         version: 0.0.12(react@18.2.0)
       '@react-email/text':
-        specifier: ^0.0.6
-        version: 0.0.6(react@18.2.0)
+        specifier: ^0.0.7
+        version: 0.0.7(react@18.2.0)
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -811,8 +811,8 @@ importers:
         specifier: ^3.8.0
         version: 3.8.0(rollup@3.29.4)
       '@nuxt/test-utils':
-        specifier: ^3.8.0
-        version: 3.8.0(rollup@3.29.4)(vitest@1.2.1)(vue@3.3.6)
+        specifier: ^3.10.0
+        version: 3.10.0(@vitest/ui@1.2.0)(h3@1.8.2)(rollup@3.29.4)(vite@5.0.12)(vitest@1.2.1)(vue-router@4.2.5)(vue@3.3.6)
       '@types/node':
         specifier: ^20.11.5
         version: 20.11.5
@@ -5230,7 +5230,7 @@ packages:
       '@nuxt/devtools-kit': 1.0.8(nuxt@3.8.0)(rollup@3.29.4)(vite@5.0.12)
       '@nuxt/devtools-wizard': 1.0.8
       '@nuxt/kit': 3.9.3(rollup@3.29.4)
-      birpc: 0.2.14
+      birpc: 0.2.15
       consola: 3.2.3
       destr: 2.0.2
       error-stack-parser-es: 0.1.1
@@ -5408,33 +5408,72 @@ packages:
       - supports-color
     dev: true
 
-  /@nuxt/test-utils@3.8.0(rollup@3.29.4)(vitest@1.2.1)(vue@3.3.6):
-    resolution: {integrity: sha512-E2QUa7AlD7ngr9xzl9uaU6EaLhc0jUSQ/SZd04nR2KftKt0IGy6xlix71vHxar8+nnE1rfMO/jsO7otDOjBT5w==}
+  /@nuxt/test-utils@3.10.0(@vitest/ui@1.2.0)(h3@1.8.2)(rollup@3.29.4)(vite@5.0.12)(vitest@1.2.1)(vue-router@4.2.5)(vue@3.3.6):
+    resolution: {integrity: sha512-9ZKKrccCUyZP0P9/BdTNHWwTRvIbBnrmDvqvO0dQpTiUhgDVeO1vdG40o4e4olw7sbzUP51C8uA0OkRur/zBvQ==}
     engines: {node: ^14.18.0 || >=16.10.0}
     peerDependencies:
+      '@cucumber/cucumber': ^10.3.1
       '@jest/globals': ^29.5.0
+      '@testing-library/vue': ^7.0.0 || ^8.0.1
+      '@vitest/ui': ^0.34.6 || ^1.0.0
+      '@vue/test-utils': ^2.4.2
+      h3: '*'
+      happy-dom: ^9.10.9 || ^10.0.0 || ^11.0.0 || ^12.0.0 || ^13.0.0
+      jsdom: ^22.0.0 || ^23.0.0
       playwright-core: ^1.34.3
-      vitest: ^0.30.0 || ^0.31.0 || ^0.32.0 || ^0.33.0
+      vite: '*'
+      vitest: ^0.34.6 || ^1.0.0
       vue: ^3.3.4
+      vue-router: ^4.0.0
     peerDependenciesMeta:
+      '@cucumber/cucumber':
+        optional: true
       '@jest/globals':
+        optional: true
+      '@testing-library/vue':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      '@vue/test-utils':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
         optional: true
       playwright-core:
         optional: true
       vitest:
         optional: true
     dependencies:
-      '@nuxt/kit': 3.8.0(rollup@3.29.4)
-      '@nuxt/schema': 3.8.0(rollup@3.29.4)
+      '@nuxt/kit': 3.9.3(rollup@3.29.4)
+      '@nuxt/schema': 3.9.3(rollup@3.29.4)
+      '@vitest/ui': 1.2.0(vitest@1.2.1)
+      c12: 1.6.1
       consola: 3.2.3
       defu: 6.1.4
+      destr: 2.0.2
+      estree-walker: 3.0.3
       execa: 8.0.1
+      fake-indexeddb: 5.0.2
       get-port-please: 3.1.2
+      h3: 1.8.2
+      local-pkg: 0.5.0
+      magic-string: 0.30.5
+      node-fetch-native: 1.6.1
       ofetch: 1.3.3
       pathe: 1.1.2
+      perfect-debounce: 1.0.0
+      radix3: 1.1.0
+      scule: 1.2.0
+      std-env: 3.7.0
       ufo: 1.3.2
+      unenv: 1.9.0
+      unplugin: 1.6.0
+      vite: 5.0.12(@types/node@20.11.5)
       vitest: 1.2.1(@types/node@20.11.5)(@vitest/ui@1.2.0)
+      vitest-environment-nuxt: 1.0.0(@vitest/ui@1.2.0)(h3@1.8.2)(rollup@3.29.4)(vite@5.0.12)(vitest@1.2.1)(vue-router@4.2.5)(vue@3.3.6)
       vue: 3.3.6(typescript@5.3.3)
+      vue-router: 4.2.5(vue@3.3.6)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -7836,15 +7875,6 @@ packages:
       react: 18.2.0
     dev: false
 
-  /@react-email/text@0.0.6(react@18.2.0):
-    resolution: {integrity: sha512-PDUTAD1PjlzXFOIUrR1zuV2xxguL62yne5YLcn1k+u/dVUyzn6iU/5lFShxCfzuh3QDWCf4+JRNnXN9rmV6jzw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: 18.2.0
-    dependencies:
-      react: 18.2.0
-    dev: false
-
   /@react-email/text@0.0.7(react@18.2.0):
     resolution: {integrity: sha512-eHCx0mdllGcgK9X7wiLKjNZCBRfxRVNjD3NNYRmOc3Icbl8M9JHriJIfxBuGCmGg2UAORK5P3KmaLQ8b99/pbA==}
     engines: {node: '>=18.0.0'}
@@ -10135,8 +10165,8 @@ packages:
       file-uri-to-path: 1.0.0
     dev: true
 
-  /birpc@0.2.14:
-    resolution: {integrity: sha512-37FHE8rqsYM5JEKCnXFyHpBCzvgHEExwVVTq+nUmloInU7l8ezD1TpOhKpS8oe1DTYFqEK27rFZVKG43oTqXRA==}
+  /birpc@0.2.15:
+    resolution: {integrity: sha512-LuZgWLW6DB1zenkfJuF4/kfSZdazOR2xaMSzeqgvfbNIwECwV1AJso9wpNje79uaRU86Obbujv4qtDnwoOLQww==}
     dev: true
 
   /bl@4.1.0:
@@ -12817,6 +12847,11 @@ packages:
       ufo: 1.3.2
     dev: true
 
+  /fake-indexeddb@5.0.2:
+    resolution: {integrity: sha512-cB507r5T3D55DfclY01GLkninZLfU7HXV/mhVRTnTRm5k2u+fY7Fof2dBkr80p5t7G7dlA/G5dI87QiMdPpMCQ==}
+    engines: {node: '>=18'}
+    dev: true
+
   /fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
@@ -15324,7 +15359,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /lru-cache@10.2.0:
@@ -21956,6 +21991,28 @@ packages:
       rollup: 4.9.6
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
+
+  /vitest-environment-nuxt@1.0.0(@vitest/ui@1.2.0)(h3@1.8.2)(rollup@3.29.4)(vite@5.0.12)(vitest@1.2.1)(vue-router@4.2.5)(vue@3.3.6):
+    resolution: {integrity: sha512-AWMO9h4HdbaFdPWZw34gALFI8gbBiOpvfbyeZwHIPfh4kWg/TwElYHvYMQ61WPUlCGaS5LebfHkaI0WPyb//Iw==}
+    dependencies:
+      '@nuxt/test-utils': 3.10.0(@vitest/ui@1.2.0)(h3@1.8.2)(rollup@3.29.4)(vite@5.0.12)(vitest@1.2.1)(vue-router@4.2.5)(vue@3.3.6)
+    transitivePeerDependencies:
+      - '@cucumber/cucumber'
+      - '@jest/globals'
+      - '@testing-library/vue'
+      - '@vitest/ui'
+      - '@vue/test-utils'
+      - h3
+      - happy-dom
+      - jsdom
+      - playwright-core
+      - rollup
+      - supports-color
+      - vite
+      - vitest
+      - vue
+      - vue-router
     dev: true
 
   /vitest@1.2.1(@types/node@20.11.5)(@vitest/ui@1.2.0):

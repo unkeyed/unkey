@@ -25,29 +25,33 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
 
 export function Stats() {
   return (
-    <div className="rounded-4xl my-20 py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white">
-      <Container>
-        <FadeInStagger faster>
-          <StatList>
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
-              label="Workspaces"
-            />
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
-              label="APIs"
-            />
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
-              label="Keys"
-            />
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
-              label="Verifications"
-            />
-          </StatList>
-        </FadeInStagger>
-      </Container>
+    <div className="w-full flex justify-center xs:px-10">
+      <div className="w-full rounded-4xl my-20 py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white max-w-[1096px]">
+        <Container>
+          <FadeInStagger faster>
+            <StatList>
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
+                label="Workspaces"
+                className="mb-8"
+              />
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
+                label="APIs"
+                className="mb-8"
+              />
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
+                label="Keys"
+              />
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
+                label="Verifications"
+              />
+            </StatList>
+          </FadeInStagger>
+        </Container>
+      </div>
     </div>
   );
 }
