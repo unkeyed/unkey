@@ -36,14 +36,14 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      {/* <TopLeftShiningLight /> */}
-      {/* <TopRightShiningLight /> */}
+      <TopLeftShiningLight />
+      <TopRightShiningLight />
 
-      {/* <Navigation /> */}
+      <Navigation />
 
-      {/* <HeroMainboardStuff className="absolute top-0 right-0" /> */}
-      {/* <Hero /> */}
-      {/* <SubHeroMainboardStuff /> */}
+      <HeroMainboardStuff className="absolute top-0 right-0" />
+      <Hero />
+      <SubHeroMainboardStuff />
       <Stats />
       <SectionTitle
         label="Code"
@@ -257,7 +257,7 @@ const _Navigation: React.FC = () => {
   );
 };
 
-const TopLeftShiningLight: React.FC = () => (
+const _TopLeftShiningLight: React.FC = () => (
   <svg
     className="absolute top-0 left-0 pointer-events-none"
     width="579"
@@ -470,7 +470,7 @@ const TopLeftShiningLight: React.FC = () => (
   </svg>
 );
 
-const TopRightShiningLight: React.FC = () => {
+const _TopRightShiningLight: React.FC = () => {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none"
@@ -799,7 +799,7 @@ const _Hero: React.FC = () => {
   );
 };
 
-const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
+const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
     className={cn("pointer-events-none", className)}
     width="1368"
