@@ -59,7 +59,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
   return (
     <div
       className={cn(
-        "w-full rounded-4xl h-64 border border-white/25 bg-gradient-to-t from-black/50 to-[#111111]",
+        "w-full rounded-4xl h-64 border border-white/25 bg-gradient-to-t from-black to-[#111111]",
         className,
       )}
     >
