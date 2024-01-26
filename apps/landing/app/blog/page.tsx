@@ -1,4 +1,3 @@
-
 import { BlogHeading, BlogSubTitle, BlogTitle } from "@/components/blog-heading";
 import { Frame } from "@/components/frame";
 import { Alert, AlertDescription } from "@/components/ui/alert/alert";
@@ -12,9 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/blog-table";
-import { Frame } from "@/components/frame";
-import { Alert, AlertDescription } from "@/components/ui/alert/alert";
-import Image from "next/image";
 
 const data = [
   {
@@ -33,7 +29,6 @@ const data = [
     Color: "White",
   },
 ];
-
 
 export const metadata = {
   title: "Blog | Unkey",
