@@ -257,7 +257,7 @@ const _Navigation: React.FC = () => {
   );
 };
 
-const _TopLeftShiningLight: React.FC = () => (
+const TopLeftShiningLight: React.FC = () => (
   <svg
     className="absolute top-0 left-0 pointer-events-none"
     width="579"
@@ -470,7 +470,7 @@ const _TopLeftShiningLight: React.FC = () => (
   </svg>
 );
 
-const _TopRightShiningLight: React.FC = () => {
+const TopRightShiningLight: React.FC = () => {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none"
@@ -754,7 +754,7 @@ const _TopRightShiningLight: React.FC = () => {
   );
 };
 
-const _Hero: React.FC = () => {
+const Hero: React.FC = () => {
   return (
     <div className="flex min-h-[100vh] items-center justify-between">
       <div>
@@ -799,7 +799,7 @@ const _Hero: React.FC = () => {
   );
 };
 
-const _HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
+const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
     className={cn("pointer-events-none", className)}
     width="1368"
