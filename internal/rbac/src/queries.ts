@@ -3,7 +3,7 @@ import { unkeyPermissionValidation } from "./permissions";
 
 type Rule = "and" | "or";
 
-export type RoleQuery<R extends string = string> = {
+export type PermissionQuery<R extends string = string> = {
   version: 1;
   query: NestedQuery<R>;
 };
@@ -49,7 +49,7 @@ export const and: Operation = (...args) => merge("and", ...args);
 
 export function buildQuery(
   fn: (ops: { or: typeof or; and: typeof and }) => NestedQuery,
-): RoleQuery {
+): PermissionQuery {
   return {
     version: 1,
     query: fn({ or, and }),
