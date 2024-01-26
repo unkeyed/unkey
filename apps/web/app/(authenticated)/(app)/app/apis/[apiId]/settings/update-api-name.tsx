@@ -53,7 +53,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutateAsync(values);
+    if (values.name !== api.name) {
+      updateName.mutateAsync(values);
+    }
   }
 
   return (
