@@ -202,7 +202,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  let [usedActiveKeys, usedVerifications] = await Promise.all([
+  const [usedActiveKeys, usedVerifications] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -215,8 +215,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
-  usedActiveKeys += 2;
-  usedVerifications += usedActiveKeys * 151;
   let currentPrice = 0;
   let estimatedTotalPrice = 0;
   if (workspace.subscriptions?.plan) {
