@@ -23,7 +23,7 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "andreas@unkey.dev",
+        from: "james@updates.unkey.dev",
         reply_to: this.replyTo,
         subject: "Your Unkey trial has ended",
         html,
@@ -46,7 +46,7 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "andreas@unkey.dev",
+        from: "james@updates.unkey.dev",
         reply_to: this.replyTo,
         subject: "Your Unkey trial has ended",
         html,
@@ -65,7 +65,7 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "james@unkey.dev",
+        from: "james@updates.unkey.dev",
         reply_to: this.replyTo,
         subject: "Welcome to Unkey",
         html,
@@ -88,7 +88,7 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "andreas@unkey.dev",
+        from: "james@updates.unkey.dev",
         reply_to: this.replyTo,
         subject: "There was an issue with your payment",
         html,
