@@ -12,7 +12,7 @@ import { MemoryCache } from "./cache/memory";
 import { CacheWithMetrics } from "./cache/metrics";
 import { TieredCache } from "./cache/tiered";
 import { ZoneCache } from "./cache/zone";
-import { type Api, type Database, type Key, createConnection } from "./db";
+import { type Api, type Database, type Key, Permission, createConnection } from "./db";
 import { Env } from "./env";
 import { KeyService } from "./keys/service";
 import { ConsoleLogger, Logger } from "./logging";
@@ -24,12 +24,14 @@ import { DurableUsageLimiter, NoopUsageLimiter, UsageLimiter } from "./usagelimi
 export type KeyHash = string;
 export type CacheNamespaces = {
   keyById: {
-    key: Key & { roles?: { role: string }[] };
+    key: Key;
     api: Api;
+    permissions: Permission[];
   } | null;
   keyByHash: {
-    key: Key & { roles?: { role: string }[] };
+    key: Key;
     api: Api;
+    permissions: Permission[];
   } | null;
   apiById: Api | null;
   keysByOwnerId: {
