@@ -22,3 +22,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+.analytics-gradient {
+  background: radial-gradient(58.83% 82.5% at 6.25% 100%, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.00) 50.76%, rgba(255, 255, 255, 0.40) 75.63%, #FFF 100%);
+}

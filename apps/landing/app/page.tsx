@@ -1,3 +1,4 @@
+import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
@@ -36,7 +37,7 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <TopLeftShiningLight />
+      {/* <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -75,8 +76,8 @@ export default async function Landing() {
         </div>
       </SectionTitle>
       <CodeExamples className="mt-20" />
-      <OpenSource />
-      <SectionTitle
+      <OpenSource /> */}
+      {/* <SectionTitle
         className="mt-[300px]"
         title="Efficient integration and process, always"
         text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
@@ -84,7 +85,8 @@ export default async function Landing() {
         label="Platform"
         contentWidth={741}
         titleWidth={741}
-      />
+      /> */}
+      <AnalyticsBento />
       <SectionTitle
         className="mt-[200px]"
         title="Unleashing operational security"
