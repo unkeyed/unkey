@@ -16,8 +16,8 @@ export function Frame({
         className,
       )}
     >
-      <div className="bg-[radial-gradient(57.42%_100%_at_100%_0%,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.1)_100%)] p-2">
-        <div className="rounded-[24px] overflow-hidden bg-gradient-to-b from-white/20 to-white/15 p-[.75px]">
+      <div className="bg-[radial-gradient(57.42%_100%_at_100%_0%,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.1)_100%)] p-2 w-full h-full">
+        <div className="rounded-[24px] overflow-hidden bg-gradient-to-b from-white/20 to-white/15 p-[.75px] w-full h-full">
           {children}
         </div>
       </div>
