@@ -1,5 +1,6 @@
 import { Border } from "@/components/border";
 import { FadeIn, FadeInStagger } from "@/components/fade-in";
+import { cn } from "@/lib/utils";
 import React from "react";
 
 export function StatList({
@@ -11,7 +12,9 @@ export function StatList({
 }) {
   return (
     <FadeInStagger {...props}>
-      <dl className="grid grid-cols-2 lg:grid-flow-col lg:grid-cols-none">{children}</dl>
+      <dl className="grid grid-cols-2 md:grid-flow-col md:grid-cols-none items-center">
+        {children}
+      </dl>
     </FadeInStagger>
   );
 }
@@ -33,16 +36,21 @@ function parseData(input: string): ParsedData {
 export function StatListItem({
   label,
   value,
+  className,
 }: {
   label: string;
   value: string;
+  className?: string;
 }) {
   const data = parseData(value);
   return (
     <Border
       as={FadeIn}
       position="left"
-      className="flex-col-reverse pl-8 border-white/[.15] border-l max-w-[200px] mb-8 md:mb-0"
+      className={cn(
+        "flex-col-reverse pl-8 border-white/[.15] border-l max-w-[200px] md:mb-0",
+        className,
+      )}
     >
       <div>
         <dd className="font-semibold font-display stats-number-gradient text-4xl">
