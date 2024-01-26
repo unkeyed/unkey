@@ -1,4 +1,3 @@
-import { allPosts } from "@/.contentlayer/generated";
 import { Border } from "@/components/landing/border";
 import { Container } from "@/components/landing/container";
 import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
@@ -10,6 +9,7 @@ import imageAndreas from "@/images/team/andreas.jpeg";
 import imageDom from "@/images/team/dom.jpeg";
 import imageJamesPerkins from "@/images/team/james.jpg";
 import imageMichael from "@/images/team/michael.png";
+import { BLOG_PATH, getContentData } from "@/lib/mdx-helper";
 import Image from "next/image";
 function AboutUnkey() {
   return (
@@ -138,9 +138,7 @@ export const metadata = {
 };
 
 export default async function About() {
-  const blogArticles = allPosts
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 2);
+  const blogArticles = await getContentData({ contentPath: BLOG_PATH, filepath: "" });
   return (
     <>
       <PageIntro eyebrow="" title="About us">
@@ -166,6 +164,7 @@ export default async function About() {
         className="mt-24 sm:mt-32 lg:mt-40"
         title="From the blog"
         intro="We write about latest trends in development, and changes to Unkey"
+        contentType="blog"
         pages={blogArticles}
       />
     </>

@@ -10,7 +10,6 @@ import { Button } from "@/components/landing/button";
 import { Container } from "@/components/landing/container";
 import { Footer } from "@/components/landing/footer";
 import { GridPattern } from "@/components/landing/grid-pattern";
-import { allJobs } from "contentlayer/generated";
 
 const RootLayoutContext = createContext({});
 
@@ -124,11 +123,6 @@ function Header({
           </svg>
         </Link>
         <div className="flex items-center gap-x-2 md:gap-x-8">
-          {allJobs.some((j) => j.visible) ? (
-            <Button className="whitespace-nowrap" href="/careers" invert={invert}>
-              We're hiring
-            </Button>
-          ) : null}
           <Button href="/app" invert={invert}>
             Dashboard
           </Button>

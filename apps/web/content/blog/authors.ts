@@ -7,7 +7,10 @@ export type Author = {
   };
 };
 
-export const authors = {
+type Authors = {
+  [key: string]: Author;
+};
+export const authors: Authors = {
   james: {
     name: "James Perkins",
     role: "Co-Founder / CEO",
@@ -23,4 +26,4 @@ export const authors = {
     role: "Freelance Writer",
     image: { src: "/images/blog-images/ocr-post/wilfred.jpg" },
   },
-} satisfies { [name: string]: Author };
+};
