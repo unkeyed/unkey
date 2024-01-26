@@ -23,6 +23,14 @@
   -webkit-text-fill-color: transparent;
 }
 
-.analytics-gradient {
-  background: radial-gradient(58.83% 82.5% at 6.25% 100%, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.00) 50.76%, rgba(255, 255, 255, 0.40) 75.63%, #FFF 100%);
+.analytics-background-gradient::before {
+  background: radial-gradient(300% 82.5% at 10.25% 100%, black, rgba(255, 255, 255, 0.1));
+  content: "";
+  border-top-right-radius: 24px;
+  border-top-left-radius: 24px;
+  position: absolute;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
 }
