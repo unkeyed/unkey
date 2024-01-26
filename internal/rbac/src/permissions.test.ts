@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildIdSchema } from "./roles";
+import { buildIdSchema } from "./permissions";
 
 describe("apiIdSchema", () => {
   const testCases = [

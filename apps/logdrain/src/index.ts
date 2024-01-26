@@ -20,8 +20,10 @@ export default {
     }
 
     console.log(`Ingesting ${batch.messages.length} into ${dataset}`);
-
-    ax.ingest(dataset, batch.messages);
+    ax.ingest(
+      dataset,
+      batch.messages.map((m) => m.body),
+    );
     await ax
       .flush()
       .then(() => {

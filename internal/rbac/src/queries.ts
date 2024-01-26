@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { unkeyRoleValidation } from "./roles";
+import { unkeyPermissionValidation } from "./permissions";
 
 type Rule = "and" | "or";
 
@@ -19,13 +19,13 @@ export type NestedQuery<R extends string = string> =
       or: NestedQuery<R>[];
     };
 
-export const roleQuerySchema: z.ZodType<NestedQuery> = z.union([
-  unkeyRoleValidation,
+export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
+  unkeyPermissionValidation,
   z.object({
-    and: z.array(z.lazy(() => roleQuerySchema)),
+    and: z.array(z.lazy(() => permissionQuerySchema)),
   }),
   z.object({
-    or: z.array(z.lazy(() => roleQuerySchema)),
+    or: z.array(z.lazy(() => permissionQuerySchema)),
   }),
 ]);
 

@@ -53,7 +53,7 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
     references: [workspaces.id],
   }),
   keys: many(keysPermissions, {
-    relationName: "keys_permissions_relation",
+    relationName: "permissions_relations",
   }),
 }));
 
@@ -70,7 +70,7 @@ export const keysPermissions = mysqlTable(
 );
 
 export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => ({
-  keys: one(keys, {
+  key: one(keys, {
     fields: [keysPermissions.keyId],
     references: [keys.id],
     relationName: "keys_permissions_relations",
