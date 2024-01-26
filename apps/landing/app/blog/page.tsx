@@ -1,3 +1,8 @@
+import { BlogHeading, BlogSubTitle, BlogTitle } from "@/components/blog-heading";
+import { Frame } from "@/components/frame";
+import { Alert, AlertDescription } from "@/components/ui/alert/alert";
+import Image from "next/image";
+
 import {
   Table,
   TableBody,
@@ -6,9 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/blog-table";
-import { Frame } from "@/components/frame";
-import { Alert, AlertDescription } from "@/components/ui/alert/alert";
-import Image from "next/image";
 
 const data = [
   {
@@ -57,9 +59,14 @@ export default async function Blog() {
   return (
     <>
       <div className="bg-black">
-        <div className="max-w-[1000px] mx-auto min-h-screen p-6">
-          <p>Demo Page</p>
-          <p>Shadcn Alert Example</p>
+        <div className="max-w-[880px] mx-auto text-center min-h-screen p-6">
+          <h2 className="text-white text-left pl-24">Blog / Product</h2>
+          <BlogHeading>
+            <BlogTitle>How Unkey and extensions work</BlogTitle>
+            <BlogSubTitle>
+              Learn more about how we built the Unkey API and how it works under the hood.
+            </BlogSubTitle>
+          </BlogHeading>
           <Table className="w-[600px] mx-auto">
             <TableHeader>
               <TableRow>
@@ -76,6 +83,7 @@ export default async function Blog() {
               ))}
             </TableBody>
           </Table>
+
           <Frame className="mt-12 mb-32">
             <Image
               src={"/images/blog-images/funding/funding-cover.png"}
