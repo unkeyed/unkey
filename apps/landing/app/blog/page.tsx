@@ -1,4 +1,6 @@
+import { Frame } from "@/components/frame";
 import { Alert, AlertDescription } from "@/components/ui/alert/alert";
+import Image from "next/image";
 
 export const metadata = {
   title: "Blog | Unkey",
@@ -32,6 +34,15 @@ export default async function Blog() {
         <div className="max-w-[1000px] mx-auto text-gray-100 text-center min-h-screen p-6">
           <p>Demo Page</p>
           <p>Shadcn Alert Example</p>
+
+          <Frame className="mt-12 mb-32">
+            <Image
+              src={"/images/blog-images/funding/funding-cover.png"}
+              alt={""}
+              width={800}
+              height={400}
+            />
+          </Frame>
           <Alert variant="info" className="m-4">
             <AlertDescription variant="info">
               We provide a white-glove migration service as part of our startup plan. Interested?
