@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { auditLogs } from "./audit";
 import { keyAuth } from "./keyAuth";
-import { keysPermissions, roles } from "./rbac";
+import { keysPermissions } from "./rbac";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -93,9 +93,6 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   forWorkspace: one(workspaces, {
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
-  }),
-  roles: many(roles, {
-    relationName: "key_roles_relation",
   }),
   permissions: many(keysPermissions, {
     relationName: "keys_permissions_relations",

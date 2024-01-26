@@ -218,15 +218,6 @@ export const keyRouter = t.router({
             workspaceId: env().UNKEY_WORKSPACE_ID,
           })),
         );
-
-        await tx.insert(schema.roles).values(
-          input.permissions.map((role) => ({
-            id: newId("role"),
-            workspaceId: env().UNKEY_WORKSPACE_ID,
-            keyId,
-            role,
-          })),
-        );
       });
 
       return { key, keyId };

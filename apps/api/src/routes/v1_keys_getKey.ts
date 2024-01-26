@@ -50,9 +50,6 @@ export const registerV1KeysGetKey = (app: App) =>
               api: true,
             },
           },
-          roles: {
-            columns: { role: true },
-          },
         },
       });
       if (!dbRes) {
