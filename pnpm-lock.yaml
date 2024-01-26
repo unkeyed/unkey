@@ -155,18 +155,42 @@ importers:
       geist:
         specifier: ^1.2.1
         version: 1.2.1(next@14.1.0)
+      github-slugger:
+        specifier: ^2.0.0
+        version: 2.0.0
       lucide-react:
         specifier: ^0.314.0
         version: 0.314.0(react@18.2.0)
       next:
         specifier: 14.1.0
         version: 14.1.0(react-dom@18.2.0)(react@18.2.0)
+      next-mdx-remote:
+        specifier: ^4.4.1
+        version: 4.4.1(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: ^18
         version: 18.2.0
       react-dom:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
+      rehype-autolink-headings:
+        specifier: ^7.1.0
+        version: 7.1.0
+      rehype-code-titles:
+        specifier: ^1.2.0
+        version: 1.2.0
+      rehype-pretty-code:
+        specifier: ^0.10.1
+        version: 0.10.2(shiki@0.14.7)
+      rehype-slug:
+        specifier: ^6.0.0
+        version: 6.0.0
+      remark-gfm:
+        specifier: ^3.0.1
+        version: 3.0.1
+      shiki:
+        specifier: ^0.14.7
+        version: 0.14.7
       tailwind-merge:
         specifier: ^1.14.0
         version: 1.14.0
