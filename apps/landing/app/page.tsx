@@ -77,7 +77,7 @@ export default async function Landing() {
       <CodeExamples className="mt-20" />
       <OpenSource />
       <SectionTitle
-        className="mt-[200px]"
+        className="mt-[300px]"
         title="Efficient integration and process, always"
         text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
         align="center"
@@ -93,7 +93,24 @@ export default async function Landing() {
         label="Protection"
         contentWidth={741}
         titleWidth={741}
-      />
+      >
+        <div className="flex space-x-6 mt-10">
+          <Link
+            key="get-started"
+            href="/app"
+            className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+          >
+            Get Started <ChevronRight className="w-4 h-4" />
+          </Link>
+          <Link
+            key="docs"
+            href="/docs"
+            className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+          >
+            Visit the docs <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </SectionTitle>
       <SectionTitle
         className="mt-[200px]"
         title="Leveled-up API Auth"
