@@ -39,12 +39,12 @@ export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
 };
 
-export type Role = Flatten<Resources> | "*";
+export type UnkeyPermission = Flatten<Resources> | "*";
 
 /**
  * Validation for roles used for our root keys
  */
-export const unkeyRoleValidation = z.custom<Role>().refine((s) => {
+export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) => {
   if (s === "*") {
     /**
      * This is a legacy role granting access to everything
