@@ -42,8 +42,6 @@ export default async function RootKeyPage(props: {
     return notFound();
   }
 
-  console.log(JSON.stringify({ key }, null, 2));
-
   const permissions = key.permissions.map((kp) => kp.permission);
 
   const permissionsByApi = permissions.reduce((acc, permission) => {

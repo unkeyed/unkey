@@ -108,18 +108,15 @@ export const permissionRouter = t.router({
         });
       }
 
-      await db.transaction(async (tx) => {
-        const res = await tx
-          .delete(schema.keysPermissions)
-          .where(
-            and(
-              eq(schema.keysPermissions.keyId, permissionRelation.keyId),
-              eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
-              eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
-            ),
-          );
-        console.log({ res });
-      });
+      await db
+        .delete(schema.keysPermissions)
+        .where(
+          and(
+            eq(schema.keysPermissions.keyId, permissionRelation.keyId),
+            eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
+            eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
+          ),
+        );
     }),
 });
 
