@@ -36,16 +36,16 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <TopLeftShiningLight />
-      <TopRightShiningLight />
+      {/* <TopLeftShiningLight /> */}
+      {/* <TopRightShiningLight /> */}
 
-      <Navigation />
+      {/* <Navigation /> */}
 
-      <HeroMainboardStuff className="absolute top-0 right-0" />
+      {/* <HeroMainboardStuff className="absolute top-0 right-0" /> */}
       {/* <Hero /> */}
-      <SubHeroMainboardStuff />
+      {/* <SubHeroMainboardStuff /> */}
       <Stats />
-      <CodeExamples className="mt-20" />
+      {/* <CodeExamples className="mt-20" /> */}
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
