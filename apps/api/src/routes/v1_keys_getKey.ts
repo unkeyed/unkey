@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
 const route = createRoute({
@@ -70,7 +70,7 @@ export const registerV1KeysGetKey = (app: App) =>
     }
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", "api.*.read_key", `api.${data.api.id}.read_key`)),
+      buildUnkeyQuery(({ or }) => or("*", "api.*.read_key", `api.${data.api.id}.read_key`)),
     );
 
     if (data.key.workspaceId !== auth.authorizedWorkspaceId) {

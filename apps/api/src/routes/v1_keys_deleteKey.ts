@@ -6,7 +6,7 @@ import { schema } from "@unkey/db";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { newId } from "@unkey/id";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -86,7 +86,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", `api.${data.api.id}.delete_key`)),
+      buildUnkeyQuery(({ or }) => or("*", "api.*.delete_key", `api.${data.api.id}.delete_key`)),
     );
 
     if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
