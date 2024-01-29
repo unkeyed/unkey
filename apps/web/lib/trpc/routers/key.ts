@@ -1,4 +1,4 @@
-import { db, eq, schema, sql } from "@/lib/db";
+import { Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -6,6 +6,7 @@ import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
+import { upsertPermission } from "./permission";
 
 export const keyRouter = t.router({
   create: t.procedure
@@ -196,21 +197,11 @@ export const keyRouter = t.router({
           keyId: keyId,
         });
 
-        const permissions = input.permissions.map((name) => ({
-          id: newId("permission"),
-          name,
-          workspaceId: env().UNKEY_WORKSPACE_ID,
-        }));
-        await tx
-          .insert(schema.permissions)
-          .values(permissions)
-          .onDuplicateKeyUpdate({
-            set: {
-              id: sql`values(id)`,
-              name: sql`values(name)`,
-              workspaceId: sql`values(workspace_id)`,
-            },
-          });
+        const permissions: Permission[] = [];
+        for (const name of input.permissions) {
+          permissions.push(await upsertPermission(env().UNKEY_WORKSPACE_ID, name));
+        }
+
         await tx.insert(schema.keysPermissions).values(
           permissions.map((p) => ({
             keyId,
