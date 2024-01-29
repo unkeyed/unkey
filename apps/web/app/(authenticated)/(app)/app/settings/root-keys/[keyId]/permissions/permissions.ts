@@ -26,7 +26,7 @@ export const workspacePermissions = {
       permission: "api.*.delete_api",
     },
   },
-  Key: {
+  Keys: {
     create_key: {
       description: "Create new keys in this workspace.",
       permission: "api.*.create_key",
