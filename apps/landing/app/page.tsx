@@ -1,5 +1,7 @@
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
+import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { FeatureGrid } from "@/components/feature/feature-grid";
+import { HashedKeysBento } from "@/components/hashed-keys-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
@@ -119,6 +121,10 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[1fr_2fr]">
+        <HashedKeysBento />
+        <AuditLogsBento />
+      </div>
       <SectionTitle
         className="mt-[200px]"
         title="Leveled-up API Auth"
