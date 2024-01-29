@@ -1,5 +1,5 @@
 "use client";
-import { authors } from "@/content/blog/authors";
+import { Author } from "@/content/blog/authors";
 import Image from "next/image";
 import Link from "next/link";
 import { Frame } from "./frame";
@@ -8,7 +8,7 @@ type BlogHeroProps = {
   imageUrl?: string;
   title?: string;
   subTitle?: string;
-  author: string;
+  author: Author;
   publishDate?: string;
   children?: React.ReactNode;
   className?: string;
@@ -40,8 +40,8 @@ export function BlogHero({
             <p className="text-white/30 text-sm ">Written by</p>
             <div>
               <Image
-                alt={authors[author]?.name}
-                src={authors[author]?.image.src}
+                alt={author.name}
+                src={author.image.src}
                 width={12}
                 height={12}
                 className="h-12 w-12 object-cover grayscale"

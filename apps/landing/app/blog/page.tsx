@@ -69,7 +69,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           imageUrl="/images/blog-images/ai-post/create-api.png"
           title={frontmatter.title}
           subTitle={frontmatter.description}
-          author={author.name}
+          author={author}
           publishDate={new Date(frontmatter.date).toDateString()}
         />
         <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
