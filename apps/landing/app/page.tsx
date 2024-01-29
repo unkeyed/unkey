@@ -1,11 +1,12 @@
+import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { FeatureGrid } from "@/components/feature/feature-grid";
-import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
 import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { CodeExamples } from "./code-examples";
 
 export const metadata = {
@@ -39,12 +40,12 @@ export default async function Landing() {
       <TopLeftShiningLight />
       <TopRightShiningLight />
 
-      <Navigation />
-
       <HeroMainboardStuff className="absolute top-0 right-0" />
       <Hero />
       <SubHeroMainboardStuff />
-      <Stats />
+      <Suspense fallback={null}>
+        <Stats />
+      </Suspense>
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
@@ -59,7 +60,7 @@ export default async function Landing() {
             <Link
               key="get-started"
               href="/app"
-              className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+              className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
             >
               Get Started <ChevronRight className="w-4 h-4" />
             </Link>
@@ -67,7 +68,7 @@ export default async function Landing() {
             <Link
               key="docs"
               href="/docs"
-              className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+              className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
             >
               Visit the docs <ChevronRight className="w-4 h-4" />
             </Link>
@@ -85,6 +86,7 @@ export default async function Landing() {
         contentWidth={741}
         titleWidth={741}
       />
+      <AnalyticsBento />
       <SectionTitle
         className="mt-[200px]"
         title="Unleashing operational security"
@@ -94,18 +96,18 @@ export default async function Landing() {
         contentWidth={741}
         titleWidth={741}
       >
-        <div className="flex space-x-6 mt-10">
+        <div className="flex mt-10 space-x-6">
           <Link
             key="get-started"
             href="/app"
-            className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+            className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
           >
             Get Started <ChevronRight className="w-4 h-4" />
           </Link>
           <Link
             key="docs"
             href="/docs"
-            className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+            className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
           >
             Visit the docs <ChevronRight className="w-4 h-4" />
           </Link>
@@ -123,14 +125,14 @@ export default async function Landing() {
             <Link
               key="get-started"
               href="/app"
-              className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+              className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
             >
               Get Started <ChevronRight className="w-4 h-4" />
             </Link>
             <Link
               key="docs"
               href="/docs"
-              className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+              className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
             >
               Visit the docs <ChevronRight className="w-4 h-4" />
             </Link>
@@ -149,17 +151,17 @@ export default async function Landing() {
           <Link
             key="get-started"
             href="/app"
-            className="h-10 shadow-md font-medium bg-white flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+            className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
           >
             Start Now <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
       </SectionTitle>
       <div className="mt-10">
-        <p className="text-white/60 leading-6 mx-auto w-full text-center text-sm">
+        <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
           2500 verifications FREE per month.
         </p>
-        <p className="text-white/60 leading-6 mx-auto w-full text-center text-sm">
+        <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
           No CC required.
         </p>
       </div>
@@ -170,14 +172,14 @@ export default async function Landing() {
 const _Navigation: React.FC = () => {
   const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
     return (
-      <Link href={href} className="text-white/50 hover:text-white duration-200 text-sm">
+      <Link href={href} className="text-sm duration-200 text-white/50 hover:text-white">
         {label}
       </Link>
     );
   };
 
   return (
-    <nav className="bg-black flex items-center justify-between h-20">
+    <nav className="flex items-center justify-between h-20 bg-black">
       <div className="flex items-center justify-between gap-32">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -235,7 +237,7 @@ const _Navigation: React.FC = () => {
           </svg>
         </div>
         {/* Nav */}
-        <ul className="flex items-center gap-8 justify-between">
+        <ul className="flex items-center justify-between gap-8">
           <NavLink href="/about" label="About" />
           <NavLink href="/blog" label="Blog" />
           <NavLink href="/pricing" label="Pricing" />
@@ -248,7 +250,7 @@ const _Navigation: React.FC = () => {
       <div>
         <Link
           href="/app"
-          className="shadow-md font-medium bg-white h-8 flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+          className="flex items-center h-8 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
         >
           Log In <ChevronRight className="w-4 h-4" />
         </Link>
@@ -774,14 +776,14 @@ const Hero: React.FC = () => {
         <div className="flex items-center gap-6 mt-12">
           <Link
             href="/app"
-            className="bg-white h-10 flex items-center border border-white px-4  rounded-lg gap-2 text-black duration-150 hover:text-white hover:bg-black"
+            className="flex items-center h-10 gap-2 px-4 text-black duration-150 bg-white border border-white rounded-lg hover:text-white hover:bg-black"
           >
             <LogIn className="w-4 h-4" /> Get Started <ChevronRight className="w-4 h-4" />
           </Link>
 
           <Link
             href="/docs"
-            className="h-10 flex items-center px-4 gap-2 text-white/50 hover:text-white duration-500"
+            className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
           >
             <BookOpen className="w-4 h-4" />
             Documentation
