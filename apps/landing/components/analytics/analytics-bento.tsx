@@ -50,16 +50,16 @@ const codeBlock = `    curl --request GET \\
 export function AnalyticsBento() {
   return (
     <div className="flex justify-center">
-      <div className="bg-[#111111]/60 mt-[120px] w-[1280px] h-[640px] flex justify-end items-end pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+      <div className="bg-[#111111]/60 mt-[120px] xl:w-[1280px] h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
         <LightSvg className="absolute left-[300px] top-[-50px]" />
-        <div className="w-[1120px] overflow-y-hidden relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[576px] flex bg-[#111111]/10">
-          <div className="flex flex-col w-[216px] h-full text-white text-sm  pt-6 px-4 font-mono border-r border-white/20">
+        <div className="xl:w-[1120px] overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
+          <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/20">
             <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
               <TerminalIcon className="w-6 h-6" />
               <div className="ml-3">cURL</div>
             </div>
           </div>
-          <div className="text-white pt-4 pl-8 flex text-sm w-full font-mono">
+          <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
             <Editor />
           </div>
         </div>
@@ -189,7 +189,7 @@ export function TerminalIcon({ className }: { className?: string }) {
 
 export function BentoText() {
   return (
-    <div className=" flex flex-col text-white absolute left-[40px] bottom-[40px] max-w-[336px]">
+    <div className="flex flex-col text-white absolute left-[90px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[336px]">
       <div className="flex w-full items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
