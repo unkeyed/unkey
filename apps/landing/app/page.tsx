@@ -1,4 +1,5 @@
 import { FeatureGrid } from "@/components/feature/feature-grid";
+import { LatencyBento } from "@/components/latency-bento";
 import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
 import { SectionTitle } from "@/components/section-title";
@@ -85,6 +86,10 @@ export default async function Landing() {
         contentWidth={741}
         titleWidth={741}
       />
+      <div className="max-w-[1200px] mx-auto flex items-center flex-col lg:flex-row mt-20">
+        <LatencyBento />
+        <div className="border-[.75px] border-[#ffffff]/20 w-[700px] h-[580px] ml-10 rounded-3xl" />
+      </div>
       <SectionTitle
         className="mt-[200px]"
         title="Unleashing operational security"
