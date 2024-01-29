@@ -50,7 +50,7 @@ export function and<R extends string = string>(...args: NestedQuery<R>[]): Neste
   return merge("and", ...args);
 }
 export function buildQuery<R extends string = string>(
-  fn: (ops: { or: typeof or; and: typeof and }) => NestedQuery<R>,
+  fn: (ops: { or: typeof or<R>; and: typeof and<R> }) => NestedQuery<R>,
 ): PermissionQuery {
   return {
     version: 1,

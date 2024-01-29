@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { buildUnkeyQuery } from "@unkey/rbac";
+import { buildUnkeyQuery, unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -153,7 +153,16 @@ export const registerV1KeysGetVerifications = (app: App) =>
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or, and }) =>
-        or("*", "api.*.read_key", and(...apiIds.map((apiId) => `api.${apiId}.read_key`))),
+        or(
+          "*",
+          "api.*.read_key",
+          and(
+            ...apiIds.map(
+              (apiId) =>
+                `api.${apiId}.read_key` satisfies z.infer<typeof unkeyPermissionValidation>,
+            ),
+          ),
+        ),
       ),
     );
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
