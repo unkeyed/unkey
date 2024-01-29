@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="w-screen min-h-screen antialiased bg-black">
+      <body className="min-h-screen bg-black antialiased overflow-x-hidden">
         {children}
         <Footer />
       </body>

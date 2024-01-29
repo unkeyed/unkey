@@ -41,17 +41,19 @@ async function main() {
           workspaceId: oldRole.workspaceId,
         });
       }
-      const existingRelation = await tx.query.keysPermissions.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.keyId, oldRole.key.id), eq(table.permissionId, permissionId)),
-      });
-      if (!existingRelation) {
-        await tx.insert(schema.keysPermissions).values({
+
+      await tx
+        .insert(schema.keysPermissions)
+        .values({
           keyId: oldRole.key.id,
           permissionId,
           workspaceId: oldRole.workspaceId,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            permissionId,
+          },
         });
-      }
     });
   }
 }

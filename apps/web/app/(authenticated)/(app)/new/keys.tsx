@@ -134,7 +134,10 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
               Let's begin by creating a root key
             </EmptyPlaceholder.Description>
 
-            <Button disabled={rootKey.isLoading} onClick={() => rootKey.mutate({ roles: ["*"] })}>
+            <Button
+              disabled={rootKey.isLoading}
+              onClick={() => rootKey.mutate({ permissions: ["*"] })}
+            >
               {rootKey.isLoading ? <Loading /> : "Create Root Key"}
             </Button>
           </EmptyPlaceholder>

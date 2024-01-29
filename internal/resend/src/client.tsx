@@ -20,14 +20,22 @@ export class Resend {
     workspace: string;
   }): Promise<void> {
     const html = render(<TrialEnded username={req.name} workspaceName={req.workspace} />);
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "james@updates.unkey.dev",
+        reply_to: this.replyTo,
+        subject: "Your Unkey trial has ended",
+        html,
+      });
 
-    await this.client.emails.send({
-      to: req.email,
-      from: "andreas@unkey.dev",
-      reply_to: this.replyTo,
-      subject: "Your Unkey trial has ended",
-      html,
-    });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending subscription email ", JSON.stringify(error));
+    }
   }
 
   public async sendSubscriptionEnded(req: {
@@ -35,39 +43,62 @@ export class Resend {
     name: string;
   }): Promise<void> {
     const html = render(<SubscriptionEnded username={req.name} />);
-
-    await this.client.emails.send({
-      to: req.email,
-      from: "andreas@unkey.dev",
-      reply_to: this.replyTo,
-      subject: "Your Unkey trial has ended",
-      html,
-    });
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "james@updates.unkey.dev",
+        reply_to: this.replyTo,
+        subject: "Your Unkey trial has ended",
+        html,
+      });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending subscription email ", JSON.stringify(error));
+    }
   }
 
-  public async sendWelcomeEmail(req: {
-    email: string;
-  }): Promise<void> {
+  public async sendWelcomeEmail(req: { email: string }) {
     const html = render(<WelcomeEmail />);
-
-    await this.client.emails.send({
-      to: req.email,
-      from: "james@unkey.dev",
-      reply_to: this.replyTo,
-      subject: "Welcome to Unkey",
-      html,
-    });
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "james@updates.unkey.dev",
+        reply_to: this.replyTo,
+        subject: "Welcome to Unkey",
+        html,
+      });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending welcome email ", JSON.stringify(error));
+    }
   }
 
-  public async sendPaymentIssue(req: { email: string; name: string; date: Date }): Promise<void> {
+  public async sendPaymentIssue(req: {
+    email: string;
+    name: string;
+    date: Date;
+  }): Promise<void> {
     const html = render(<PaymentIssue username={req.name} date={req.date.toDateString()} />);
-
-    await this.client.emails.send({
-      to: req.email,
-      from: "andreas@unkey.dev",
-      reply_to: this.replyTo,
-      subject: "There was an issue with your payment",
-      html,
-    });
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "james@updates.unkey.dev",
+        reply_to: this.replyTo,
+        subject: "There was an issue with your payment",
+        html,
+      });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending payment issue email ", JSON.stringify(error));
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { RoleQuery } from "@unkey/rbac";
+import { PermissionQuery } from "@unkey/rbac";
 import { Context } from "hono";
 import { UnkeyApiError } from "../errors";
 import { keyService } from "../global";
@@ -9,12 +9,12 @@ import { keyService } from "../global";
  * if the key doesnt exist, isn't valid or isn't a root key, an error is thrown, which gets handled
  * automatically by hono
  */
-export async function rootKeyAuth(c: Context, roleQuery?: RoleQuery) {
+export async function rootKeyAuth(c: Context, permissionQuery?: PermissionQuery) {
   const authorization = c.req.header("authorization")?.replace("Bearer ", "");
   if (!authorization) {
     throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
   }
-  const rootKey = await keyService.verifyKey(c, { key: authorization, roleQuery });
+  const rootKey = await keyService.verifyKey(c, { key: authorization, permissionQuery });
   if (rootKey.error) {
     throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
   }

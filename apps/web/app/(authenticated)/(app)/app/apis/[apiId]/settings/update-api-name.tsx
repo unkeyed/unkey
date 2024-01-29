@@ -48,7 +48,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
       router.refresh();
     },
     onError(err) {
-      console.log(err);
+      console.error(err);
       toast.error(err.message);
     },
   });
@@ -73,7 +73,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
           <div className="flex flex-col space-y-2">
             <input type="hidden" name="workspaceId" value={api.workspaceId} />
             <input type="hidden" name="apiId" value={api.id} />
-            <label className="sr-only hidden">Name</label>
+            <label className="hidden sr-only">Name</label>
             <FormField
               control={form.control}
               name="name"
