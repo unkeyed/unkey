@@ -1,5 +1,4 @@
 "use client";
-import { authors } from "@/content/blog/authors";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import Image from "next/image";
 import { BlogQuote } from "./blog-quote";

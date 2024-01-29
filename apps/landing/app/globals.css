@@ -42,3 +42,9 @@
   -webkit-text-fill-color: transparent;
 
 }
+
+
+blockquote > p  {
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
