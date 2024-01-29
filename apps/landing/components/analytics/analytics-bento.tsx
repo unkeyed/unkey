@@ -50,8 +50,9 @@ const codeBlock = `    curl --request GET \\
 export function AnalyticsBento() {
   return (
     <div className="flex justify-center">
-      <div className="bg-white/10 mt-[120px] w-[1280px] h-[640px] flex justify-end items-end pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
-        <div className="w-[1120px] overflow-y-hidden relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[576px] flex bg-gray-900">
+      <div className="bg-[#111111]/60 mt-[120px] w-[1280px] h-[640px] flex justify-end items-end pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+        <LightSvg className="absolute left-[300px] top-[-50px]" />
+        <div className="w-[1120px] overflow-y-hidden relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[576px] flex bg-[#111111]/10">
           <div className="flex flex-col w-[216px] h-full text-white text-sm  pt-6 px-4 font-mono border-r border-white/20">
             <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
               <TerminalIcon className="w-6 h-6" />
@@ -188,7 +189,7 @@ export function TerminalIcon({ className }: { className?: string }) {
 
 export function BentoText() {
   return (
-    <div className="flex flex-col text-white absolute left-[40px] bottom-[40px] max-w-[336px]">
+    <div className=" flex flex-col text-white absolute left-[40px] bottom-[40px] max-w-[336px]">
       <div className="flex w-full items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -213,5 +214,369 @@ export function BentoText() {
         latest data trends.
       </p>
     </div>
+  );
+}
+
+function LightSvg({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={706}
+      height={773}
+      fill="none"
+      className={className}
+    >
+      <g opacity={0.2}>
+        <g
+          filter="url(#a)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={24.471}
+            cy={219.174}
+            fill="url(#b)"
+            fillOpacity={0.5}
+            rx={24.471}
+            ry={219.174}
+            transform="rotate(15.067 -346.219 1160.893) skewX(.027)"
+          />
+        </g>
+        <g
+          filter="url(#c)"
+          style={{
+            mixBlendMode: "color-dodge",
+          }}
+        >
+          <ellipse
+            cx={355.612}
+            cy={332.215}
+            fill="url(#d)"
+            fillOpacity={0.5}
+            rx={19.782}
+            ry={219.116}
+          />
+        </g>
+        <g
+          filter="url(#e)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={16.707}
+            cy={284.877}
+            fill="url(#f)"
+            fillOpacity={0.5}
+            rx={16.707}
+            ry={284.877}
+            transform="rotate(-15.013 621.533 -1357.818) skewX(-.027)"
+          />
+        </g>
+        <g
+          filter="url(#g)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={16.707}
+            cy={134.986}
+            fill="url(#h)"
+            fillOpacity={0.5}
+            rx={16.707}
+            ry={134.986}
+            transform="rotate(-15.013 606.533 -1243.985) skewX(-.027)"
+          />
+        </g>
+        <g
+          filter="url(#i)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={353.187}
+            cy={420.944}
+            fill="url(#j)"
+            fillOpacity={0.5}
+            rx={16.61}
+            ry={285.056}
+          />
+        </g>
+        <g
+          filter="url(#k)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={353.187}
+            cy={420.944}
+            fill="url(#l)"
+            fillOpacity={0.5}
+            rx={16.61}
+            ry={285.056}
+          />
+        </g>
+        <g
+          filter="url(#m)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse cx={353} cy={253.199} fill="url(#n)" fillOpacity={0.5} rx={240} ry={140.1} />
+        </g>
+        <g
+          filter="url(#o)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={353}
+            cy={184.457}
+            fill="url(#p)"
+            fillOpacity={0.5}
+            rx={119.813}
+            ry={71.357}
+          />
+        </g>
+        <g
+          filter="url(#q)"
+          style={{
+            mixBlendMode: "lighten",
+          }}
+        >
+          <ellipse
+            cx={353}
+            cy={189.873}
+            fill="url(#r)"
+            fillOpacity={0.5}
+            rx={100.778}
+            ry={59.963}
+          />
+        </g>
+      </g>
+      <defs>
+        <linearGradient
+          id="b"
+          x1={24.471}
+          x2={24.471}
+          y1={0}
+          y2={438.347}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="d"
+          x1={355.612}
+          x2={355.612}
+          y1={113.099}
+          y2={551.331}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="f"
+          x1={16.707}
+          x2={16.707}
+          y1={0}
+          y2={569.753}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="h"
+          x1={16.707}
+          x2={16.707}
+          y1={0}
+          y2={269.972}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="j"
+          x1={353.187}
+          x2={353.187}
+          y1={135.888}
+          y2={706}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="l"
+          x1={353.187}
+          x2={353.187}
+          y1={135.888}
+          y2={706}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="n"
+          x1={353}
+          x2={353}
+          y1={113.099}
+          y2={393.298}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="p"
+          x1={353}
+          x2={353}
+          y1={113.099}
+          y2={255.814}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient
+          id="r"
+          x1={353}
+          x2={353}
+          y1={129.911}
+          y2={249.836}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#fff" />
+          <stop offset={1} stopColor="#fff" stopOpacity={0} />
+        </linearGradient>
+        <filter
+          id="a"
+          width={256.71}
+          height={557.025}
+          x={128.273}
+          y={69.424}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+        </filter>
+        <filter
+          id="c"
+          width={173.064}
+          height={571.732}
+          x={269.08}
+          y={46.349}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+        </filter>
+        <filter
+          id="e"
+          width={284.36}
+          height={683.943}
+          x={320.576}
+          y={43.544}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+        </filter>
+        <filter
+          id="g"
+          width={210.431}
+          height={394.435}
+          x={288.78}
+          y={43.505}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+        </filter>
+        <filter
+          id="i"
+          width={166.719}
+          height={703.612}
+          x={269.827}
+          y={69.138}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+        </filter>
+        <filter
+          id="k"
+          width={166.719}
+          height={703.612}
+          x={269.827}
+          y={69.138}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+        </filter>
+        <filter
+          id="m"
+          width={705}
+          height={505.199}
+          x={0.5}
+          y={0.599}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={56.25} />
+        </filter>
+        <filter
+          id="o"
+          width={464.627}
+          height={367.715}
+          x={120.687}
+          y={0.599}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={56.25} />
+        </filter>
+        <filter
+          id="q"
+          width={426.555}
+          height={344.925}
+          x={139.723}
+          y={17.411}
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feFlood floodOpacity={0} result="BackgroundImageFix" />
+          <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={56.25} />
+        </filter>
+      </defs>
+    </svg>
   );
 }
