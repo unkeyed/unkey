@@ -6,7 +6,18 @@ config:
       duration: 5m
       arrivalRate: 1
       rampTo: 10
- 
+    - name: Sustain
+      duration: 25m
+      arrivalRate: 10
+      rampTo: 10
+    - name: Spike Up
+      duration: 5m
+      arrivalRate: 10
+      rampTo: 100
+    - name: Spike Down
+      duration: 5m
+      arrivalRate: 100
+      rampTo: 0
   
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
