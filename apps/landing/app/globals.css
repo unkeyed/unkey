@@ -40,5 +40,22 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
 
+.usage-item-gradient {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%), #000;
+}
+
+.billing-border-link {
+  position: relative;
+}
+
+.billing-border-link::after {
+  content: '';
+  height: 24px; 
+  width: 1px;
+  position: absolute;
+  left: 30px;
+  top: 56px;
+  background: rgba(255, 255, 255, 0.20);
 }

@@ -5,6 +5,7 @@ import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
 import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
+import { UsageBento } from "@/components/usage-bento";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -89,8 +90,8 @@ export default async function Landing() {
         titleWidth={741}
       />
       <div className="max-w-[1200px] mx-auto flex items-center flex-col lg:flex-row mt-20">
-        <LatencyBento />
-        <div className="border-[.75px] border-[#ffffff]/20 w-[700px] h-[580px] ml-10 rounded-3xl" />
+        {/* <LatencyBento /> */}
+        <UsageBento />
       </div>
       <SectionTitle
         className="mt-[200px]"
