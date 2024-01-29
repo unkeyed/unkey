@@ -1,8 +1,13 @@
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
+import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { FeatureGrid } from "@/components/feature/feature-grid";
+import { HashedKeysBento } from "@/components/hashed-keys-bento";
+import { LatencyBento } from "@/components/latency-bento";
+import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
 import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
+import { UsageBento } from "@/components/usage-bento";
 import { cn } from "@/lib/utils";
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -86,7 +91,10 @@ export default async function Landing() {
         contentWidth={741}
         titleWidth={741}
       />
-      <AnalyticsBento />
+      <div className="max-w-[1200px] mx-auto flex items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+        <LatencyBento />
+        <UsageBento />
+      </div>
       <SectionTitle
         className="mt-[200px]"
         title="Unleashing operational security"
@@ -113,6 +121,10 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[1fr_2fr]">
+        <HashedKeysBento />
+        <AuditLogsBento />
+      </div>
       <SectionTitle
         className="mt-[200px]"
         title="Leveled-up API Auth"
