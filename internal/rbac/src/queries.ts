@@ -1,37 +1,36 @@
 import { z } from "zod";
+import { unkeyPermissionValidation } from "./permissions";
 
 type Rule = "and" | "or";
 
-export type RoleQuery = {
+export type PermissionQuery<R extends string = string> = {
   version: 1;
-  query: NestedQuery;
+  query: NestedQuery<R>;
 };
 
-export type NestedQuery =
-  | string
+export type NestedQuery<R extends string = string> =
+  | R
   | {
-      and: NestedQuery[];
+      and: NestedQuery<R>[];
       or?: never;
     }
   | {
       and?: never;
-      or: NestedQuery[];
+      or: NestedQuery<R>[];
     };
 
-export const roleQuerySchema: z.ZodType<NestedQuery> = z.union([
-  z.string(),
+export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
+  unkeyPermissionValidation,
   z.object({
-    and: z.array(z.lazy(() => roleQuerySchema)),
+    and: z.array(z.lazy(() => permissionQuerySchema)),
   }),
   z.object({
-    or: z.array(z.lazy(() => roleQuerySchema)),
+    or: z.array(z.lazy(() => permissionQuerySchema)),
   }),
 ]);
 
-type Operation = (...args: NestedQuery[]) => NestedQuery;
-
-const merge = (rule: Rule, ...args: NestedQuery[]): NestedQuery => {
-  return args.reduce((acc: NestedQuery, arg) => {
+function merge<R extends string>(rule: Rule, ...args: NestedQuery<R>[]): NestedQuery<R> {
+  return args.reduce((acc: NestedQuery<R>, arg) => {
     if (typeof acc === "string") {
       throw new Error("Cannot merge into a string");
     }
@@ -40,8 +39,26 @@ const merge = (rule: Rule, ...args: NestedQuery[]): NestedQuery => {
     }
     acc[rule]!.push(arg);
     return acc;
-  }, {} as NestedQuery);
-};
+  }, {} as NestedQuery<R>);
+}
 
-export const or: Operation = (...args) => merge("or", ...args);
-export const and: Operation = (...args) => merge("and", ...args);
+export function or<R extends string = string>(...args: NestedQuery<R>[]): NestedQuery<R> {
+  return merge("or", ...args);
+}
+
+export function and<R extends string = string>(...args: NestedQuery<R>[]): NestedQuery<R> {
+  return merge("and", ...args);
+}
+export function buildQuery<R extends string = string>(
+  fn: (ops: { or: typeof or<R>; and: typeof and<R> }) => NestedQuery<R>,
+): PermissionQuery {
+  return {
+    version: 1,
+    query: fn({ or, and }),
+  };
+}
+
+/**
+ * buildUnkeyQuery is preloaded with out available roles and ensures typesafety for root key validation
+ */
+export const buildUnkeyQuery = buildQuery<z.infer<typeof unkeyPermissionValidation>>;

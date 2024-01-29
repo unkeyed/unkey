@@ -37,9 +37,7 @@ export const auditLogs = mysqlTable("audit_logs", {
   actorType: mysqlEnum("actor_type", ["user", "key"]).notNull(),
   actorId: varchar("actor_id", { length: 256 }).notNull(),
 
-  workspaceId: varchar("workspace_id", { length: 256 })
-    .references(() => workspaces.id, { onDelete: "cascade" })
-    .notNull(),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   apiId: varchar("api_id", { length: 256 }),
   keyId: varchar("key_id", { length: 256 }),
   keyAuthId: varchar("key_auth_id", { length: 256 }),

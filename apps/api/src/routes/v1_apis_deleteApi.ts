@@ -6,6 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -51,9 +52,11 @@ export type V1ApisDeleteApiResponse = z.infer<
 
 export const registerV1ApisDeleteApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const { apiId } = c.req.valid("json");
+    const auth = await rootKeyAuth(
+      c,
+      buildUnkeyQuery(({ or }) => or("*", "api.*.delete_api", `api.${apiId}.delete_api`)),
+    );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (

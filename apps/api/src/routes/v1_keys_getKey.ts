@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
 const route = createRoute({
@@ -37,21 +38,17 @@ export type V1KeysGetKeyResponse = z.infer<
 >;
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const { keyId } = c.req.query();
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
+          permissions: { with: { permission: true } },
           keyAuth: {
             with: {
               api: true,
             },
-          },
-          roles: {
-            columns: { role: true },
           },
         },
       });
@@ -61,16 +58,27 @@ export const registerV1KeysGetKey = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
+        permissions: dbRes.permissions.map((p) => p.permission),
       };
     });
 
-    if (!data || data.key.workspaceId !== auth.authorizedWorkspaceId) {
+    if (!data) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `key ${keyId} not found`,
       });
     }
+    const auth = await rootKeyAuth(
+      c,
+      buildUnkeyQuery(({ or }) => or("*", "api.*.read_key", `api.${data.api.id}.read_key`)),
+    );
 
+    if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${keyId} not found`,
+      });
+    }
     let meta = data.key.meta ? JSON.parse(data.key.meta) : undefined;
     if (!meta || Object.keys(meta).length === 0) {
       meta = undefined;
@@ -106,7 +114,8 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
-      roles: data.key.roles?.map((r) => r.role) ?? undefined,
+      roles: [],
+      // roles:  data.key.roles?.map((r) => r.role) ?? undefined,
       enabled: data.key.enabled,
     });
   });

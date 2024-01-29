@@ -3,7 +3,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 
@@ -22,9 +21,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
+import { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiRoles, workspaceRoles } from "../[keyId]/permissions/roles";
+import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 
 type Props = {
   apis: {
@@ -36,7 +36,7 @@ type Props = {
 export const Client: React.FC<Props> = ({ apis }) => {
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
 
   const key = trpc.key.createInternalRootKey.useMutation({
     onError(err) {
@@ -59,13 +59,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <Alert variant="warn">
-        <AlertTitle>Preview</AlertTitle>
-        <AlertDescription>
-          While we are in beta, you can already assign permissions to your keys, but they are not
-          yet enforced.
-        </AlertDescription>
-      </Alert>
       <Card>
         <CardHeader>
           <CardTitle>Name</CardTitle>
@@ -87,25 +80,32 @@ export const Client: React.FC<Props> = ({ apis }) => {
           <CardDescription>Manage workspace permissions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-1">
-            {Object.entries(workspaceRoles).map(([action, { description, role }]) => {
-              return (
-                <Permission
-                  key={action}
-                  role={role}
-                  label={action}
-                  description={description}
-                  checked={selectedRoles.includes(role)}
-                  setChecked={(c) => {
-                    if (c) {
-                      setSelectedRoles([...selectedRoles, role]);
-                    } else {
-                      setSelectedRoles(selectedRoles.filter((r) => r !== role));
-                    }
-                  }}
-                />
-              );
-            })}
+          <div className="flex flex-col gap-4">
+            {Object.entries(workspacePermissions).map(([category, allPermissions]) => (
+              <div className="flex flex-col gap-2">
+                <span className="font-medium">{category}</span>{" "}
+                <div className="flex flex-col gap-1">
+                  {Object.entries(allPermissions).map(([action, { description, permission }]) => (
+                    <PermissionToggle
+                      key={action}
+                      permissionName={permission}
+                      label={action}
+                      description={description}
+                      checked={selectedPermissions.includes(permission)}
+                      setChecked={(c) => {
+                        if (c) {
+                          setSelectedPermissions([...selectedPermissions, permission]);
+                        } else {
+                          setSelectedPermissions(
+                            selectedPermissions.filter((r) => r !== permission),
+                          );
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -120,20 +120,22 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              {Object.entries(apiRoles(api.id)).map(([category, roles]) => {
+              {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
                 return (
                   <div className="flex flex-col gap-2">
                     <span className="font-medium">{category}</span>
                     <div className="flex flex-col gap-1">
-                      {Object.entries(roles).map(([action, { description, role }]) => {
+                      {Object.entries(roles).map(([action, { description, permission }]) => {
                         return (
-                          <Permission
+                          <PermissionToggle
                             key={action}
-                            role={role}
+                            permissionName={permission}
                             label={action}
                             description={description}
-                            checked={selectedRoles.includes(role)}
-                            setChecked={() => setSelectedRoles([...selectedRoles, role])}
+                            checked={selectedPermissions.includes(permission)}
+                            setChecked={() =>
+                              setSelectedPermissions([...selectedPermissions, permission])
+                            }
                           />
                         );
                       })}
@@ -150,7 +152,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
         onClick={() => {
           key.mutate({
             name: name && name.length > 0 ? name : undefined,
-            roles: selectedRoles,
+            permissions: selectedPermissions,
           });
         }}
       >
@@ -163,7 +165,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           if (!v) {
             // Remove the key from memory when closing the modal
             key.reset();
-            setSelectedRoles([]);
+            setSelectedPermissions([]);
             router.refresh();
           }
         }}
@@ -205,18 +207,18 @@ export const Client: React.FC<Props> = ({ apis }) => {
   );
 };
 
-type PermissionProps = {
+type PermissionToggleProps = {
   checked: boolean;
   setChecked: (checked: boolean) => void;
-  role: string;
+  permissionName: string;
   label: string;
   description: string;
 };
 
-const Permission: React.FC<PermissionProps> = ({
+const PermissionToggle: React.FC<PermissionToggleProps> = ({
   checked,
   setChecked,
-  role,
+  permissionName,
   label,
   description,
 }) => {
@@ -235,8 +237,8 @@ const Permission: React.FC<PermissionProps> = ({
             <Label className="text-xs text-content">{label}</Label>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
-            <span className="font-mono text-sm font-medium">{role}</span>
-            <CopyButton value={role} />
+            <span className="font-mono text-sm font-medium">{permissionName}</span>
+            <CopyButton value={permissionName} />
           </TooltipContent>
         </Tooltip>
       </div>

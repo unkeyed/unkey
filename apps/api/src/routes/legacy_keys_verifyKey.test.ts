@@ -1,11 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { init } from "@/pkg/global";
-import { newApp } from "@/pkg/hono/app";
-import { unitTestEnv } from "@/pkg/testutil/env";
-import { fetchRoute } from "@/pkg/testutil/request";
-import { seed } from "@/pkg/testutil/seed";
+
+import { Harness } from "@/pkg/testutil/harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -17,33 +14,27 @@ import {
 } from "./legacy_keys_verifyKey";
 
 test("returns 200", async () => {
-  const env = unitTestEnv.parse(process.env);
-  // @ts-ignore
-  init({ env });
-  const app = newApp();
-  registerLegacyKeysVerifyKey(app);
-
-  const r = await seed(env);
+  const h = await Harness.init();
+  h.useRoutes(registerLegacyKeysVerifyKey);
 
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await r.database.insert(schema.keys).values({
+  await h.resources.database.insert(schema.keys).values({
     id: newId("key"),
-    keyAuthId: r.userKeyAuth.id,
+    keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
     start: key.slice(0, 8),
-    workspaceId: r.userWorkspace.id,
+    workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
   });
 
-  const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
-    method: "POST",
+  const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
     url: "/v1/keys/verify",
     headers: {
       "Content-Type": "application/json",
     },
     body: {
       key,
-      apiId: r.userApi.id,
+      apiId: h.resources.userApi.id,
     },
   });
 
@@ -53,26 +44,20 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
-    const env = unitTestEnv.parse(process.env);
-    // @ts-ignore
-    init({ env });
-    const app = newApp();
-    registerLegacyKeysVerifyKey(app);
-
-    const r = await seed(env);
+    const h = await Harness.init();
+    h.useRoutes(registerLegacyKeysVerifyKey);
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await r.database.insert(schema.keys).values({
+    await h.resources.database.insert(schema.keys).values({
       id: newId("key"),
-      keyAuthId: r.userKeyAuth.id,
+      keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
-      workspaceId: r.userWorkspace.id,
+      workspaceId: h.resources.userWorkspace.id,
       createdAt: new Date(),
     });
 
-    const res = await fetchRoute<any, ErrorResponse>(app, {
-      method: "POST",
+    const res = await h.post<any, ErrorResponse>({
       url: "/v1/keys/verify",
       headers: {
         "Content-Type": "application/json",
@@ -90,52 +75,42 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async () => {
-      const env = unitTestEnv.parse(process.env);
-      // @ts-ignore
-      init({ env });
-      const app = newApp();
-      registerLegacyKeysVerifyKey(app);
-
-      const r = await seed(env);
+      const h = await Harness.init();
+      h.useRoutes(registerLegacyKeysVerifyKey);
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: newId("key"),
-        keyAuthId: r.userKeyAuth.id,
+        keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         expires: new Date(Date.now() + 5000),
       });
 
-      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
-        method: "POST",
+      const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
         url: "/v1/keys/verify",
         headers: {
           "Content-Type": "application/json",
         },
         body: {
           key,
-          apiId: r.userApi.id,
+          apiId: h.resources.userApi.id,
         },
       });
       expect(res.status).toEqual(200);
       expect(res.body.valid).toBe(true);
 
       await new Promise((resolve) => setTimeout(resolve, 6000));
-      const secondResponse = await fetchRoute<
-        LegacyKeysVerifyKeyRequest,
-        LegacyKeysVerifyKeyResponse
-      >(app, {
-        method: "POST",
+      const secondResponse = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
         url: "/v1/keys/verify",
         headers: {
           "Content-Type": "application/json",
         },
         body: {
           key,
-          apiId: r.userApi.id,
+          apiId: h.resources.userApi.id,
         },
       });
       expect(secondResponse.status).toEqual(404);
@@ -148,26 +123,21 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
-      const env = unitTestEnv.parse(process.env);
-      // @ts-ignore
-      init({ env });
-      const app = newApp();
-      registerLegacyKeysVerifyKey(app);
-
-      const r = await seed(env);
+      const h = await Harness.init();
+      h.useRoutes(registerLegacyKeysVerifyKey);
 
       const keyAuthId = newId("keyAuth");
-      await r.database.insert(schema.keyAuth).values({
+      await h.resources.database.insert(schema.keyAuth).values({
         id: keyAuthId,
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         deletedAt: null,
       });
 
       const apiId = newId("api");
-      await r.database.insert(schema.apis).values({
+      await h.resources.database.insert(schema.apis).values({
         id: apiId,
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         name: "test",
         authType: "key",
         keyAuthId: keyAuthId,
@@ -177,17 +147,16 @@ describe("with ip whitelist", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: keyAuthId,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
 
-      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
-        method: "POST",
+      const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
         url: "/v1/keys/verify",
         headers: {
           "Content-Type": "application/json",
@@ -204,26 +173,21 @@ describe("with ip whitelist", () => {
   });
   describe("with invalid ip", () => {
     test("returns invalid", async () => {
-      const env = unitTestEnv.parse(process.env);
-      // @ts-ignore
-      init({ env });
-      const app = newApp();
-      registerLegacyKeysVerifyKey(app);
-
-      const r = await seed(env);
+      const h = await Harness.init();
+      h.useRoutes(registerLegacyKeysVerifyKey);
 
       const keyAuthid = newId("keyAuth");
-      await r.database.insert(schema.keyAuth).values({
+      await h.resources.database.insert(schema.keyAuth).values({
         id: keyAuthid,
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         deletedAt: null,
       });
 
       const apiId = newId("api");
-      await r.database.insert(schema.apis).values({
+      await h.resources.database.insert(schema.apis).values({
         id: apiId,
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         name: "test",
         authType: "key",
         keyAuthId: keyAuthid,
@@ -233,17 +197,16 @@ describe("with ip whitelist", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await r.database.insert(schema.keys).values({
+      await h.resources.database.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: keyAuthid,
         hash: await sha256(key),
         start: key.slice(0, 8),
-        workspaceId: r.userWorkspace.id,
+        workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
       });
 
-      const res = await fetchRoute<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>(app, {
-        method: "POST",
+      const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
         url: "/v1/keys/verify",
         headers: {
           "Content-Type": "application/json",
@@ -251,7 +214,7 @@ describe("with ip whitelist", () => {
         },
         body: {
           key,
-          apiId: r.userApi.id,
+          apiId: h.resources.userApi.id,
         },
       });
       expect(res.status).toEqual(200);

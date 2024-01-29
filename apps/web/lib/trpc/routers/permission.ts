@@ -1,25 +1,25 @@
-import { db, eq, schema } from "@/lib/db";
+import { type Permission, and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
-import { unkeyRoleValidation } from "@unkey/rbac";
+import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
 export const permissionRouter = t.router({
-  addRoleToRootKey: t.procedure
+  addPermissionToRootKey: t.procedure
     .use(auth)
     .input(
       z.object({
         rootKeyId: z.string(),
-        role: z.string(),
+        permission: z.string(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const role = unkeyRoleValidation.safeParse(input.role);
-      if (!role.success) {
+      const permission = unkeyPermissionValidation.safeParse(input.permission);
+      if (!permission.success) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `invalid role [${input.role}]: ${role.error.message}`,
+          message: `invalid permission [${input.permission}]: ${permission.error.message}`,
         });
       }
 
@@ -37,24 +37,35 @@ export const permissionRouter = t.router({
       const rootKey = await db.query.keys.findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.forWorkspaceId, workspace.id), eq(table.id, input.rootKeyId)),
+        with: {
+          permissions: {
+            with: {
+              permission: true,
+            },
+          },
+        },
       });
       if (!rootKey) {
         throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
       }
 
-      await db.insert(schema.roles).values({
-        id: newId("role"),
-        workspaceId: workspace.id,
-        keyId: rootKey.id,
-        role: role.data,
-      });
+      const p = await upsertPermission(rootKey.workspaceId, permission.data);
+
+      await db
+        .insert(schema.keysPermissions)
+        .values({
+          keyId: rootKey.id,
+          permissionId: p.id,
+          workspaceId: p.workspaceId,
+        })
+        .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
     }),
-  removeRoleFromRootKey: t.procedure
+  removePermissionFromRootKey: t.procedure
     .use(auth)
     .input(
       z.object({
         rootKeyId: z.string(),
-        role: z.string(),
+        permissionName: z.string(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -70,21 +81,61 @@ export const permissionRouter = t.router({
         });
       }
 
-      const role = await db.query.roles.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.role, input.role), eq(table.keyId, input.rootKeyId)),
+      const key = await db.query.keys.findFirst({
+        where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, input.rootKeyId),
         with: {
-          key: true,
+          permissions: {
+            with: {
+              permission: true,
+            },
+          },
         },
       });
-
-      if (!role || role.key.forWorkspaceId !== workspace.id) {
+      if (!key) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "role not found",
+          message: `key ${input.rootKeyId} not found`,
         });
       }
 
-      await db.delete(schema.roles).where(eq(schema.roles.id, role.id));
+      const permissionRelation = key.permissions.find(
+        (kp) => kp.permission.name === input.permissionName,
+      );
+      if (!permissionRelation) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `key ${input.rootKeyId} did not have permission ${input.permissionName}`,
+        });
+      }
+
+      await db
+        .delete(schema.keysPermissions)
+        .where(
+          and(
+            eq(schema.keysPermissions.keyId, permissionRelation.keyId),
+            eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
+            eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
+          ),
+        );
     }),
 });
+
+export async function upsertPermission(workspaceId: string, name: string): Promise<Permission> {
+  return await db.transaction(async (tx) => {
+    const existingPermission = await tx.query.permissions.findFirst({
+      where: (table, { and, eq }) => and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+    });
+    if (existingPermission) {
+      return existingPermission;
+    }
+
+    const permission: Permission = {
+      id: newId("permission"),
+      workspaceId,
+      name,
+    };
+
+    await tx.insert(schema.permissions).values(permission);
+    return permission;
+  });
+}

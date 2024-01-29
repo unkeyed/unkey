@@ -1,5 +1,16 @@
 # @unkey/hono
 
+## 0.11.0
+
+### Minor Changes
+
+- 9f5f3d6: Collect SDK telemetry data
+
+### Patch Changes
+
+- Updated dependencies [9f5f3d6]
+  - @unkey/api@0.17.0
+
 ## 0.10.8
 
 ### Patch Changes

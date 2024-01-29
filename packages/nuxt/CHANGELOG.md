@@ -1,5 +1,16 @@
 # @unkey/nuxt
 
+## 1.1.0
+
+### Minor Changes
+
+- 9f5f3d6: Collect SDK telemetry data
+
+### Patch Changes
+
+- Updated dependencies [9f5f3d6]
+  - @unkey/api@0.17.0
+
 ## 1.0.9
 
 ### Patch Changes

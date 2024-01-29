@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.17.0
+
+### Minor Changes
+
+- 9f5f3d6: Collect SDK telemetry data
+
 ## 0.16.0
 
 ### Minor Changes

@@ -1,6 +1,5 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { Permission, db, eq, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Api } from "./api";
 import { Legacy } from "./legacy";
@@ -31,40 +30,36 @@ export default async function RootKeyPage(props: {
 
   const key = await db.query.keys.findFirst({
     where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
+    with: {
+      permissions: {
+        with: {
+          permission: true,
+        },
+      },
+    },
   });
   if (!key) {
     return notFound();
   }
 
-  const roles = await db.query.roles.findMany({
-    where: (table, { eq }) => eq(table.keyId, props.params.keyId),
-  });
+  const permissions = key.permissions.map((kp) => kp.permission);
 
-  const permissionsByApi = roles.reduce((acc, { role }) => {
-    if (!role.startsWith("api.")) {
+  const permissionsByApi = permissions.reduce((acc, permission) => {
+    if (!permission.name.startsWith("api.")) {
       return acc;
     }
-    const [_, apiId, permission] = role.split(".");
+    const [_, apiId, _action] = permission.name.split(".");
 
     if (!acc[apiId]) {
       acc[apiId] = [];
     }
     acc[apiId].push(permission);
     return acc;
-  }, {} as { [apiId: string]: string[] });
+  }, {} as { [apiId: string]: Permission[] });
 
-  const permissions = roles.map((r) => r.role);
-  console.log({ roles });
   return (
     <div className="flex flex-col gap-4">
-      <Alert variant="warn">
-        <AlertTitle>Preview</AlertTitle>
-        <AlertDescription>
-          While we are in beta, you can already assign permissions to your keys, but they are not
-          yet enforced.
-        </AlertDescription>
-      </Alert>
-      {permissions.some((p) => p === "*") ? (
+      {permissions.some((p) => p.name === "*") ? (
         <Legacy keyId={key.id} permissions={permissions} />
       ) : null}
 

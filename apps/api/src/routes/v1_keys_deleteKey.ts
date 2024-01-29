@@ -6,6 +6,7 @@ import { schema } from "@unkey/db";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { newId } from "@unkey/id";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -51,14 +52,17 @@ export type V1KeysDeleteKeyResponse = z.infer<
 
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const { keyId } = c.req.valid("json");
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
+          permissions: {
+            with: {
+              permission: true,
+            },
+          },
           keyAuth: {
             with: {
               api: true,
@@ -72,11 +76,24 @@ export const registerV1KeysDeleteKey = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
+        permissions: dbRes.permissions.map((p) => p.permission),
       };
     });
 
-    if (!data || data.key.workspaceId !== auth.authorizedWorkspaceId) {
+    if (!data) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
+    }
+
+    const auth = await rootKeyAuth(
+      c,
+      buildUnkeyQuery(({ or }) => or("*", "api.*.delete_key", `api.${data.api.id}.delete_key`)),
+    );
+
+    if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "you are not allowed to do this",
+      });
     }
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;

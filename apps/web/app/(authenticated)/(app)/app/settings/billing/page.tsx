@@ -18,7 +18,6 @@ import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
-import { ChangePlan } from "./change-plan";
 
 export const revalidate = 0;
 
@@ -34,7 +33,7 @@ export default async function BillingPage() {
   }
 
   return (
-    <div className="flex gap-8 flex-col lg:flex-row ">
+    <div className="flex flex-col gap-8 lg:flex-row ">
       <div className="w-full">
         {workspace.plan === "free" ? (
           <FreeUsage workspace={workspace} />
@@ -74,14 +73,14 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardTitle>Free Tier</CardTitle>
         <CardDescription>
           Current cycle:{" "}
-          <span className="text-primary font-medium">
+          <span className="font-medium text-primary">
             {t.toLocaleString("en-US", { month: "long", year: "numeric" })}
           </span>{" "}
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-col md:flex-row gap-8">
-        <ol className="flex flex-col space-y-6 w-2/3">
+      <CardContent className="flex flex-col gap-8 md:flex-row">
+        <ol className="flex flex-col w-2/3 space-y-6">
           <MeteredLineItem
             title="Active keys"
             tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxActiveKeys, centsPerUnit: null }]}
@@ -127,6 +126,7 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const env = stripeEnv();
   if (!env) {
+    console.log("No stripe env");
     return null;
   }
 
@@ -165,9 +165,9 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   }
 
   return (
-    <div className="px-4 md:px-0 w-full lg:w-2/5">
-      <div className="flex flex-col md:flex-row lg:flex-col gap-8 items-center justify-center">
-        <div className="flex flex-col gap-8 w-full">
+    <div className="w-full px-4 md:px-0 lg:w-2/5">
+      <div className="flex flex-col items-center justify-center gap-8 md:flex-row lg:flex-col">
+        <div className="flex flex-col w-full gap-8">
           {paymentMethod?.card ? (
             <CreditCard paymentMethod={paymentMethod} />
           ) : (
@@ -176,18 +176,15 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 
           <div className="flex items-center gap-8">
             <Link href="/app/settings/billing/stripe" className="w-full">
-              <Button variant="secondary" type="button" size="block" className="whitespace-nowrap">
+              <Button variant="secondary" className="whitespace-nowrap">
                 {paymentMethod ? "Update Card" : "Add Credit Card"}
               </Button>
             </Link>
-            <ChangePlan
-              workspace={workspace}
-              trigger={
-                <Button variant="secondary" type="button" size="block">
-                  Change Plan
-                </Button>
-              }
-            />
+            <Link href="/app/settings/billing/plans">
+              <Button variant="secondary" className="whitespace-nowrap">
+                Change Plan
+              </Button>
+            </Link>
           </div>
         </div>
         {coupon ? <Coupon coupon={coupon} /> : null}
@@ -205,7 +202,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  let [usedActiveKeys, usedVerifications] = await Promise.all([
+  const [usedActiveKeys, usedVerifications] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -218,8 +215,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
-  usedActiveKeys += 2;
-  usedVerifications += usedActiveKeys * 151;
   let currentPrice = 0;
   let estimatedTotalPrice = 0;
   if (workspace.subscriptions?.plan) {
@@ -259,7 +254,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardTitle>Pro plan</CardTitle>
         <CardDescription>
           Current billing cycle:{" "}
-          <span className="text-primary font-medium">
+          <span className="font-medium text-primary">
             {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
           </span>{" "}
         </CardDescription>
@@ -296,14 +291,14 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         <div className="flex items-center justify-between w-full">
-          <span className="font-semibold text-content text-sm">Current Total</span>
-          <span className="font-semibold tabular-nums text-content text-sm">
+          <span className="text-sm font-semibold text-content">Current Total</span>
+          <span className="text-sm font-semibold tabular-nums text-content">
             {formatCentsToDollar(currentPrice)}
           </span>
         </div>
         <div className="flex items-center justify-between w-full">
-          <span className="text-content-subtle text-xs">Estimated by end of month</span>
-          <span className="tabular-nums text-content-subtle text-xs">
+          <span className="text-xs text-content-subtle">Estimated by end of month</span>
+          <span className="text-xs tabular-nums text-content-subtle">
             {formatCentsToDollar(estimatedTotalPrice)}
           </span>
         </div>
@@ -324,7 +319,7 @@ const LineItem: React.FC<{
       </div>
       <div className="text-sm text-secondary">{props.subtitle}</div>
     </div>
-    <span className="font-semibold tabular-nums text-content text-sm">
+    <span className="text-sm font-semibold tabular-nums text-content">
       {formatCentsToDollar(parseFloat(props.cents))}
     </span>
   </div>
@@ -374,14 +369,14 @@ const MeteredLineItem: React.FC<{
         })}
       >
         <div className="flex items-center justify-between">
-          <span className="capitalize font-semibold text-content">{props.title}</span>
+          <span className="font-semibold capitalize text-content">{props.title}</span>
           {included ? (
-            <span className="text-right text-xs text-content-subtle">
+            <span className="text-xs text-right text-content-subtle">
               {Intl.NumberFormat("en-US", { notation: "compact" }).format(included)} included
             </span>
           ) : null}
         </div>
-        <div className="h-2 flex rounded-full bg-gray-200 dark:bg-gray-800 relative">
+        <div className="relative flex h-2 bg-gray-200 rounded-full dark:bg-gray-800">
           {props.tiers
             .filter((tier) => props.used >= tier.firstUnit)
             .map((tier, i) => (
@@ -397,13 +392,13 @@ const MeteredLineItem: React.FC<{
                       "rounded-l-full": i === 0,
                     })}
                   >
-                    <div className="absolute opacity-100 right-0 inset-y-0 h-6 -mt-2 w-px bg-gradient-to-t from-transparent via-gray-900 dark:via-gray-100 to-transparent" />
+                    <div className="absolute inset-y-0 right-0 w-px h-6 -mt-2 opacity-100 bg-gradient-to-t from-transparent via-gray-900 dark:via-gray-100 to-transparent" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   {tier.centsPerUnit ? (
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:px-8">
-                      <dt className="text-content-subtle text-sm font-medium leading-6">
+                    <div className="flex flex-wrap items-baseline justify-between px-4 py-2 gap-x-4 gap-y-2 sm:px-6 xl:px-8">
+                      <dt className="text-sm font-medium leading-6 text-content-subtle">
                         {" "}
                         {tier.centsPerUnit
                           ? formatCentsToDollar(parseFloat(tier.centsPerUnit), 4)
@@ -411,7 +406,7 @@ const MeteredLineItem: React.FC<{
                         per unit
                       </dt>
 
-                      <dd className="text-content w-full flex-none text-3xl font-medium leading-10 tracking-tight">
+                      <dd className="flex-none w-full text-3xl font-medium leading-10 tracking-tight text-content">
                         {tier.firstUnit} - {tier.lastUnit ?? "∞"}
                       </dd>
                     </div>
@@ -469,10 +464,10 @@ const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ payment
     <div className="mt-16 font-mono text-content whitespace-nowrap">
       •••• •••• •••• {paymentMethod.card?.last4}
     </div>
-    <div className="text-content-subtle font-mono text-sm mt-2">
+    <div className="mt-2 font-mono text-sm text-content-subtle">
       {paymentMethod.billing_details.name ?? "Anonymous"}
     </div>
-    <div className="text-content-subtle text-xs font-mono mt-1">
+    <div className="mt-1 font-mono text-xs text-content-subtle">
       Expires {paymentMethod.card?.exp_month.toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
       {paymentMethod.card?.exp_year}
     </div>
@@ -484,8 +479,8 @@ const MissingCreditCard: React.FC = () => (
     <div className="z-50 mt-16 font-mono text-content whitespace-nowrap blur-sm">
       •••• •••• •••• ••••
     </div>
-    <div className="z-50 text-content-subtle font-mono text-sm mt-2 ">No credit card on file</div>
-    <div className="text-content-subtle text-xs font-mono mt-1 blur-sm">
+    <div className="z-50 mt-2 font-mono text-sm text-content-subtle ">No credit card on file</div>
+    <div className="mt-1 font-mono text-xs text-content-subtle blur-sm">
       Expires {(new Date().getUTCMonth() - 1).toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
       {new Date().getUTCFullYear()}
     </div>
@@ -493,9 +488,9 @@ const MissingCreditCard: React.FC = () => (
 );
 
 const Coupon: React.FC<{ coupon: Stripe.Coupon }> = ({ coupon }) => (
-  <div className="w-full border border-gray-200 dark:border-gray-800 p-8 rounded-lg">
+  <div className="w-full p-8 border border-gray-200 rounded-lg dark:border-gray-800">
     <dt className="text-sm font-medium leading-6 text-content-subtle">Discount</dt>
-    <dd className="w-full flex-none font-mono text-xl font-medium leading-10 tracking-tight text-content">
+    <dd className="flex-none w-full font-mono text-xl font-medium leading-10 tracking-tight text-content">
       {coupon.name}
     </dd>
   </div>
@@ -507,13 +502,13 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
 
     <ul className="divide-y divide-gray-200 dark:divide-gray-800">
       {invoices.map((invoice) => (
-        <li key={invoice.id} className="flex items-center justify-between gap-x-6 py-2">
+        <li key={invoice.id} className="flex items-center justify-between py-2 gap-x-6">
           <div>
-            <span className="tabular-nums text-sm text-content font-semibold">
+            <span className="text-sm font-semibold tabular-nums text-content">
               {formatCentsToDollar(invoice.total)}
             </span>
 
-            <p className="whitespace-nowrap mt-1 text-xs leading-5 text-content-subtle">
+            <p className="mt-1 text-xs leading-5 whitespace-nowrap text-content-subtle">
               {invoice.custom_fields?.find((f) => f.name === "Billing Period")?.value ??
                 (invoice.due_date ? new Date(invoice.due_date * 1000).toDateString() : null)}
             </p>
@@ -526,13 +521,13 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
                   <div className="w-2 h-2 rounded-full bg-alert" />
                 </div>
               ) : null}
-              <span className="text-sm text-content capitalize">{invoice.status}</span>
+              <span className="text-sm capitalize text-content">{invoice.status}</span>
             </div>
             {invoice.hosted_invoice_url ? (
               <Link
                 href={invoice.hosted_invoice_url}
                 target="_blank"
-                className="items-center flex whitespace-nowrap mt-1  leading-5 text-content-subtle hover:underline text-xs hover:text-content duration-150"
+                className="flex items-center mt-1 text-xs leading-5 duration-150 whitespace-nowrap text-content-subtle hover:underline hover:text-content"
               >
                 View Invoice
                 <ExternalLink className="inline-block w-3 h-3 ml-1" />

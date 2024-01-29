@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -56,9 +57,11 @@ export type LegacyApisGetApiResponse = z.infer<
 >;
 export const registerLegacyApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
     const apiId = c.req.param("apiId");
+    const auth = await rootKeyAuth(
+      c,
+      buildUnkeyQuery(({ or }) => or("*", `api.${apiId}.read_api`)),
+    );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (

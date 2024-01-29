@@ -22,6 +22,15 @@ route = { pattern = "development-api.unkey.dev", custom_domain = true }
 vars = {ENVIRONMENT = "development"}
 
 
+
+[env.development.queues]
+producers = [
+  { queue = "logs-development", binding = "LOGS"},
+  { queue = "metrics-development", binding = "METRICS"},
+  { queue = "analytics-development", binding = "ANALYTICS"},
+]
+ 
+
 [env.development.durable_objects]
  bindings = [
  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
@@ -33,6 +42,13 @@ vars = {  ENVIRONMENT = "preview" }
 route = { pattern = "preview-api.unkey.dev", custom_domain = true }
 
 
+[env.preview.queues]
+producers = [
+  { queue = "logs-preview", binding = "LOGS"},
+  { queue = "metrics-preview", binding = "METRICS"},
+  { queue = "analytics-preview", binding = "ANALYTICS"},
+]
+ 
 [env.preview.durable_objects]
  bindings = [
   {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"},
@@ -47,6 +63,15 @@ vars = {  ENVIRONMENT = "production"}
 route = { pattern = "canary.unkey.dev", custom_domain = true}
 logpush = true
 
+
+[env.canary.queues]
+producers = [
+  { queue = "logs-production", binding = "LOGS"},
+  { queue = "metrics-production", binding = "METRICS"},
+  { queue = "analytics-production", binding = "ANALYTICS"},
+]
+ 
+
 [env.canary.durable_objects]
  bindings = [
   {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
@@ -59,8 +84,17 @@ route = { pattern = "api.unkey.dev", custom_domain = true}
 logpush = true
 
 
+[env.production.queues]
+producers = [
+  { queue = "logs-production", binding = "LOGS"},
+  { queue = "metrics-production", binding = "METRICS"},
+  { queue = "analytics-production", binding = "ANALYTICS"},
+]
+ 
 [env.production.durable_objects]
  bindings = [
   {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
   {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
 ]
+
+

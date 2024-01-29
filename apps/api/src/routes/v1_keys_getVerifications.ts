@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { buildUnkeyQuery, unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -74,26 +75,20 @@ export type V1KeysGetVerificationsResponse = z.infer<
 >;
 export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
-
-    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const { keyId, ownerId, start, end } = c.req.query();
 
     const ids: {
       keyId: string;
       apiId: string;
+      workspaceId: string;
     }[] = [];
 
     if (keyId) {
       const data = await cache.withCache(c, "keyById", keyId, async () => {
         const dbRes = await db.query.keys.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(
-              eq(table.id, keyId),
-              isNull(table.deletedAt),
-              eq(table.workspaceId, authorizedWorkspaceId),
-            ),
+          where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
+            permissions: { with: { permission: true } },
             keyAuth: {
               with: {
                 api: true,
@@ -108,6 +103,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         return {
           key: dbRes,
           api: dbRes.keyAuth.api,
+          permissions: dbRes.permissions.map((p) => p.permission),
         };
       });
 
@@ -117,7 +113,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
           message: `key ${keyId} not found`,
         });
       }
-      ids.push({ keyId, apiId: data.api.id });
+      ids.push({ keyId, apiId: data.api.id, workspaceId: data.key.workspaceId });
     } else {
       if (!ownerId) {
         throw new UnkeyApiError({
@@ -129,11 +125,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       const keys = await cache.withCache(c, "keysByOwnerId", ownerId, async () => {
         const dbRes = await db.query.keys.findMany({
           where: (table, { eq, and, isNull }) =>
-            and(
-              eq(table.ownerId, ownerId),
-              isNull(table.deletedAt),
-              eq(table.workspaceId, authorizedWorkspaceId),
-            ),
+            and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
           with: {
             keyAuth: {
               with: {
@@ -148,7 +140,37 @@ export const registerV1KeysGetVerifications = (app: App) =>
         return dbRes.map((key) => ({ key, api: key.keyAuth.api }));
       });
 
-      ids.push(...keys.map(({ key, api }) => ({ keyId: key.id, apiId: api.id })));
+      ids.push(
+        ...keys.map(({ key, api }) => ({
+          keyId: key.id,
+          apiId: api.id,
+          workspaceId: key.workspaceId,
+        })),
+      );
+    }
+
+    const apiIds = Array.from(new Set(ids.map(({ apiId }) => apiId)));
+    const auth = await rootKeyAuth(
+      c,
+      buildUnkeyQuery(({ or, and }) =>
+        or(
+          "*",
+          "api.*.read_key",
+          and(
+            ...apiIds.map(
+              (apiId) =>
+                `api.${apiId}.read_key` satisfies z.infer<typeof unkeyPermissionValidation>,
+            ),
+          ),
+        ),
+      ),
+    );
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    if (ids.some(({ workspaceId }) => workspaceId !== authorizedWorkspaceId)) {
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "you are not allowed to access this workspace",
+      });
     }
 
     const verificationsFromAllKeys = await Promise.all(

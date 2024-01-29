@@ -9,14 +9,7 @@ import { keySchema } from "./schema";
 const route = createRoute({
   method: "get",
   path: "/v1/keys/:keyId",
-  request: {
-    headers: z.object({
-      authorization: z.string().regex(/^Bearer [a-zA-Z0-9_]+/).openapi({
-        description: "A root key to authorize the request formatted as bearer token",
-        example: "Bearer unkey_1234",
-      }),
-    }),
-  },
+  request: {},
   responses: {
     200: {
       description: "The configuration for a single key",
@@ -52,6 +45,11 @@ export const registerLegacyKeysGet = (app: App) =>
       const dbRes = await db.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
+          permissions: {
+            with: {
+              permission: true,
+            },
+          },
           keyAuth: {
             with: {
               api: true,
@@ -67,6 +65,7 @@ export const registerLegacyKeysGet = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
+        permissions: dbRes.permissions.map((p) => p.permission),
       };
     });
 

@@ -1,24 +1,27 @@
-import { allPolicies } from "contentlayer/generated";
-import { getMDXComponent } from "next-contentlayer/hooks";
+import { MdxContent } from "@/components/landing/mdx-content";
+import { POLICY_PATH, getFilePaths, getPolicy } from "@/lib/mdx-helper";
 import { notFound } from "next/navigation";
-export const generateStaticParams = async () =>
-  allPolicies.map((policy) => ({ slug: policy._raw.flattenedPath }));
 
-export const generateMetadata = ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find(
-    (policy) => policy._raw.flattenedPath === `policies/${params.slug}`,
-  );
-  if (!policy) {
+export const generateStaticParams = async () => {
+  const policies = await getFilePaths(POLICY_PATH);
+  // Remove file extensions for page paths
+  policies.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
+  return policies;
+};
+
+export const generateMetadata = async ({ params }: { params: { slug: string } }) => {
+  const { frontmatter } = await getPolicy(params.slug);
+  if (!frontmatter) {
     return notFound();
   }
   return {
-    title: policy.title,
-    description: policy.title,
+    title: frontmatter.title,
+    description: frontmatter.title,
     openGraph: {
-      title: policy.title,
-      description: policy.title,
+      title: frontmatter.title,
+      description: frontmatter.title,
       type: "article",
-      image: `https://unkey.dev/og?title=${encodeURIComponent(policy.title)}`,
+      image: `https://unkey.dev/og?title=${encodeURIComponent(frontmatter.title)}`,
     },
     robots: {
       index: true,
@@ -36,22 +39,19 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
   };
 };
 
-const PolicyLayout = ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find(
-    (policy) => policy._raw.flattenedPath === `policies/${params.slug}`,
-  );
-  if (!policy) {
+const PolicyLayout = async ({ params }: { params: { slug: string } }) => {
+  const { frontmatter, serialized } = await getPolicy(params.slug);
+  if (!serialized) {
     return notFound();
   }
-  const Content = getMDXComponent(policy.body.code);
 
   return (
     <>
       <article className="w-full max-w-3xl p-4 mx-auto prose lg:prose-md">
         <div className="max-w-2xl py-8 mx-auto mb-8 ">
-          <h1 className="text-center">{policy.title}</h1>
+          <h1 className="text-center">{frontmatter.title}</h1>
         </div>
-        <Content />
+        <MdxContent source={serialized} />
       </article>
     </>
   );

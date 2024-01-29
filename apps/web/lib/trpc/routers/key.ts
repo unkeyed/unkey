@@ -1,11 +1,12 @@
-import { db, eq, schema } from "@/lib/db";
+import { Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { unkeyRoleValidation } from "@unkey/rbac";
+import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
+import { upsertPermission } from "./permission";
 
 export const keyRouter = t.router({
   create: t.procedure
@@ -112,7 +113,9 @@ export const keyRouter = t.router({
     .input(
       z.object({
         name: z.string().optional(),
-        roles: z.array(unkeyRoleValidation),
+        permissions: z.array(unkeyPermissionValidation).min(1, {
+          message: "You must add at least 1 permissions",
+        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -194,12 +197,16 @@ export const keyRouter = t.router({
           keyId: keyId,
         });
 
-        await tx.insert(schema.roles).values(
-          new Array(...input.roles, "*").map((role) => ({
-            id: newId("role"),
-            workspaceId: env().UNKEY_WORKSPACE_ID,
+        const permissions: Permission[] = [];
+        for (const name of input.permissions) {
+          permissions.push(await upsertPermission(env().UNKEY_WORKSPACE_ID, name));
+        }
+
+        await tx.insert(schema.keysPermissions).values(
+          permissions.map((p) => ({
             keyId,
-            role,
+            permissionId: p.id,
+            workspaceId: env().UNKEY_WORKSPACE_ID,
           })),
         );
       });
@@ -247,7 +254,7 @@ export const keyRouter = t.router({
             return;
           }
           await db.transaction(async (tx) => {
-            await db
+            await tx
               .update(schema.keys)
               .set({
                 deletedAt: new Date(),

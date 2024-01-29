@@ -12,17 +12,18 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { Permission } from "@unkey/db";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Props = {
-  permissions: string[];
+  permissions: Permission[];
   keyId: string;
 };
 
 export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
   const router = useRouter();
-  const removeRole = trpc.permission.removeRoleFromRootKey.useMutation({
+  const removeRole = trpc.permission.removePermissionFromRootKey.useMutation({
     onSuccess: () => {
       toast.success("Role removed", {
         description: "Changes may take up to 60 seconds to take effect.",
@@ -38,7 +39,7 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
   /**
    * If they delete it without setting permissions first, they might break themselves in production.
    */
-  const canSafelyDelete = permissions.filter((p) => p !== "*").length >= 1;
+  const canSafelyDelete = permissions.filter((p) => p.id !== "*").length >= 1;
 
   return (
     <Card>
@@ -70,10 +71,10 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
               );
               return;
             }
-            removeRole.mutate({ rootKeyId: keyId, role: "*" });
+            removeRole.mutate({ rootKeyId: keyId, permissionName: "*" });
           }}
         >
-          {removeRole.isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : null}
+          {removeRole.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Remove Legacy Role
         </Button>
       </CardFooter>

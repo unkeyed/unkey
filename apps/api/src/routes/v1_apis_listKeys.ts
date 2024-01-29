@@ -6,6 +6,7 @@ import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
 const route = createRoute({
@@ -63,7 +64,18 @@ export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, limit, cursor, ownerId } = c.req.query();
 
-    const auth = await rootKeyAuth(c);
+    const auth = await rootKeyAuth(
+      c,
+      buildUnkeyQuery(({ or, and }) =>
+        or(
+          "*",
+          and(
+            or("api.*.read_key", `api.${apiId}.read_key`),
+            or("api.*.read_api", `api.${apiId}.read_api`),
+          ),
+        ),
+      ),
+    );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {
       return (

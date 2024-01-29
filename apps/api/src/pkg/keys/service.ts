@@ -5,7 +5,7 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { sha256 } from "@unkey/hash";
-import { RBAC, RoleQuery } from "@unkey/rbac";
+import { PermissionQuery, RBAC } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
@@ -23,7 +23,12 @@ type VerifyKeyResult =
   | {
       valid: false;
       publicMessage?: string;
-      code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED";
+      code:
+        | "FORBIDDEN"
+        | "RATE_LIMITED"
+        | "USAGE_EXCEEDED"
+        | "DISABLED"
+        | "INSUFFICIENT_PERMISSIONS";
       key: Key;
       api: Api;
       ratelimit?: {
@@ -84,7 +89,7 @@ export class KeyService {
 
   public async verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roleQuery?: RoleQuery },
+    req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const res = await this._verifyKey(c, req).catch(async (e) => {
       this.logger.error("Unhandled error while verifying key", {
@@ -137,7 +142,7 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; roles?: RoleQuery },
+    req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
 
@@ -146,8 +151,10 @@ export class KeyService {
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
-          roles: {
-            columns: { role: true },
+          permissions: {
+            with: {
+              permission: true,
+            },
           },
           keyAuth: {
             with: {
@@ -166,7 +173,11 @@ export class KeyService {
       if (!dbRes.keyAuth.api) {
         this.logger.error("database did not return api for key", dbRes);
       }
-      return { key: dbRes, api: dbRes.keyAuth.api };
+      return {
+        key: dbRes,
+        api: dbRes.keyAuth.api,
+        permissions: dbRes.permissions.map((p) => p.permission),
+      };
     });
 
     if (!data) {
@@ -227,13 +238,21 @@ export class KeyService {
       }
     }
 
-    if (typeof req.roles !== "undefined") {
-      const roleResp = this.rbac.evaluateRoles(req.roles, data.key.roles?.map((r) => r.role) ?? []);
-      if (roleResp.error) {
-        return result.fail({ message: roleResp.error.message, code: "INTERNAL_SERVER_ERROR" });
+    if (req.permissionQuery) {
+      const rbacResp = this.rbac.evaluatePermissions(
+        req.permissionQuery,
+        data.permissions.map((p) => p.name),
+      );
+      if (rbacResp.error) {
+        return result.fail({ message: rbacResp.error.message, code: "INTERNAL_SERVER_ERROR" });
       }
-      if (!roleResp.value.valid) {
-        return result.success({ key: data.key, api: data.api, valid: false, code: "FORBIDDEN" });
+      if (!rbacResp.value.valid) {
+        return result.success({
+          key: data.key,
+          api: data.api,
+          valid: false,
+          code: "INSUFFICIENT_PERMISSIONS",
+        });
       }
     }
 

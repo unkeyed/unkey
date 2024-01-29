@@ -9,15 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@chronark/zod-bird": "0.3.3-canary.0",
+    "@chronark/zod-bird": "0.3.3",
     "@clerk/nextjs": "^4.29.3",
     "@planetscale/database": "^1.11.0",
     "@trigger.dev/nextjs": "^2.3.6",
-    "@trigger.dev/sdk": "^2.3.6",
+    "@trigger.dev/sdk": "^2.3.16",
     "@trigger.dev/slack": "^2.3.6",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
-    "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
     "drizzle-orm": "^0.29.1",
     "next": "14.0.3",
@@ -27,9 +26,9 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.4",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
     "typescript": "^5"
   },
   "trigger.dev": {
