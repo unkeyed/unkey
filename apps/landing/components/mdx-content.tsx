@@ -14,6 +14,7 @@ const MdxComponents = {
   Image: Image,
   Callout: Alert,
   blockquote: (props: any) => BlogQuote(props),
+  BlogQuote: (props: any) => BlogQuote(props),
   a: (props: any) => <a {...props} className="text-blue-500" />,
 
   h2: (props: any) => (
