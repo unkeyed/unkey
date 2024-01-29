@@ -1,5 +1,5 @@
 "use client";
-import { Highlight, themes } from "prism-react-renderer";
+import { Highlight } from "prism-react-renderer";
 
 const theme = {
   plain: {
@@ -72,7 +72,7 @@ export function AnalyticsBento() {
 function Editor() {
   return (
     <Highlight theme={theme} code={codeBlock} language="tsx">
-      {({ className, style, tokens, getLineProps, getTokenProps }) => (
+      {({ tokens, getLineProps, getTokenProps }) => (
         <pre className="leading-10">
           {tokens.map((line, i) => (
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
