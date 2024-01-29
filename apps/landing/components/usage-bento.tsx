@@ -2,7 +2,7 @@ import { BillingData } from "@/components/svg/billing-data";
 
 export function UsageBento() {
   return (
-    <div className="w-full relative border-[.75px] h-[576px] w-[700px] ml-10 rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden flex justify-center items-start ">
+    <div className="w-full relative border-[.75px] h-[576px] mt-10 xl:mt-0 xl:ml-10 w-[700px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden flex justify-center items-start ">
       <div className="absolute top-[-50px] left-[80px] xs:left-auto">
         <BillingItem className="billing-border-link" />
         <BillingItem className="billing-border-link" />

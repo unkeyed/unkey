@@ -11,7 +11,7 @@ export function LatencyBento() {
 
 export function LatencyText() {
   return (
-    <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[3300px]">
+    <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[330px]">
       <div className="flex w-full items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"

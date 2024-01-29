@@ -89,8 +89,8 @@ export default async function Landing() {
         contentWidth={741}
         titleWidth={741}
       />
-      <div className="max-w-[1200px] mx-auto flex items-center flex-col lg:flex-row mt-20">
-        {/* <LatencyBento /> */}
+      <div className="max-w-[1200px] mx-auto flex items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+        <LatencyBento />
         <UsageBento />
       </div>
       <SectionTitle
