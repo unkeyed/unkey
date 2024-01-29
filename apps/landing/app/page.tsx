@@ -1,5 +1,5 @@
+import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { FeatureGrid } from "@/components/feature/feature-grid";
-import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
 import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
@@ -36,7 +36,7 @@ export const metadata = {
 export default async function Landing() {
   return (
     <div className="container mx-auto">
-      <TopLeftShiningLight />
+      {/* <TopLeftShiningLight />
       <TopRightShiningLight />
 
       <Navigation />
@@ -84,8 +84,9 @@ export default async function Landing() {
         label="Platform"
         contentWidth={741}
         titleWidth={741}
-      />
-      <SectionTitle
+      /> */}
+      <AnalyticsBento />
+      {/* <SectionTitle
         className="mt-[200px]"
         title="Unleashing operational security"
         text="Unkey enables operational security with innovative open-source contributions, secure API validation, and automated access control for global developers."
@@ -154,20 +155,20 @@ export default async function Landing() {
             Start Now <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-      </SectionTitle>
-      <div className="mt-10">
+      </SectionTitle> */}
+      {/* <div className="mt-10">
         <p className="text-white/60 leading-6 mx-auto w-full text-center text-sm">
           2500 verifications FREE per month.
         </p>
         <p className="text-white/60 leading-6 mx-auto w-full text-center text-sm">
           No CC required.
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }
 
-const _Navigation: React.FC = () => {
+const Navigation: React.FC = () => {
   const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
     return (
       <Link href={href} className="text-white/50 hover:text-white duration-200 text-sm">
