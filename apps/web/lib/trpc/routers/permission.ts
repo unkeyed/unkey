@@ -120,7 +120,7 @@ export const permissionRouter = t.router({
     }),
 });
 
-async function upsertPermission(workspaceId: string, name: string): Promise<Permission> {
+export async function upsertPermission(workspaceId: string, name: string): Promise<Permission> {
   return await db.transaction(async (tx) => {
     const existingPermission = await tx.query.permissions.findFirst({
       where: (table, { and, eq }) => and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
