@@ -1,22 +1,8 @@
-import { randomBytes } from "crypto";
 import { schema } from "@unkey/db";
-import baseX from "base-x";
 
 import { connect } from "@planetscale/database";
-import { isNotNull } from "drizzle-orm";
+import { newId } from "@unkey/id";
 import { drizzle } from "drizzle-orm/planetscale-serverless";
-
-const prefixes = {
-  role: "role",
-};
-
-export function newId(prefix: keyof typeof prefixes): string {
-  const buf = randomBytes(16);
-  return [
-    prefixes[prefix],
-    baseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz").encode(buf),
-  ].join("_");
-}
 
 async function main() {
   console.log("RUNNING");
@@ -31,24 +17,43 @@ async function main() {
     },
   );
   console.log("X");
-  const keys = await db.query.keys.findMany({
-    where: isNotNull(schema.keys.forWorkspaceId),
-    with: { roles: true },
+  const oldRoles = await db.query.roles.findMany({
+    with: { key: true },
   });
   let i = 0;
-  for (const key of keys) {
+  for (const oldRole of oldRoles) {
     console.log("");
-    console.log(++i, "/", keys.length, key.id);
-    if (key.roles.map((r) => r.role).includes("*")) {
-      console.log("SKIPPING");
-      continue;
-    }
+    console.log(++i, "/", oldRoles.length, oldRole.id);
 
-    await db.insert(schema.roles).values({
-      id: newId("role"),
-      role: "*",
-      keyId: key.id,
-      workspaceId: key.workspaceId,
+    await db.transaction(async (tx) => {
+      const existingPermission = await tx.query.permissions.findFirst({
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, oldRole.workspaceId), eq(table.name, oldRole.role)),
+      });
+
+      let permissionId: string = newId("permission");
+      if (existingPermission) {
+        permissionId = existingPermission.id;
+      } else {
+        await tx.insert(schema.permissions).values({
+          id: permissionId,
+          name: oldRole.role,
+          workspaceId: oldRole.workspaceId,
+        });
+      }
+
+      await tx
+        .insert(schema.keysPermissions)
+        .values({
+          keyId: oldRole.key.id,
+          permissionId,
+          workspaceId: oldRole.workspaceId,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            permissionId,
+          },
+        });
     });
   }
 }
