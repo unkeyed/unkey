@@ -3,34 +3,6 @@ import { index, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm
 import { keys } from "./keys";
 import { workspaces } from "./workspaces";
 
-export const roles = mysqlTable(
-  "roles",
-  {
-    id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    keyId: varchar("key_id", { length: 256 }).notNull(),
-    role: varchar("role", { length: 512 }).notNull(),
-  },
-  (table) => ({
-    rolesIndex: index("roles_idx").on(table.role),
-    workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),
-    keyIdIndex: index("key_id_idx").on(table.keyId),
-    uniqueKeyRoleIndex: uniqueIndex("key_role_idx").on(table.keyId, table.role),
-  }),
-);
-
-export const rolesRelations = relations(roles, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [roles.workspaceId],
-    references: [workspaces.id],
-  }),
-  key: one(keys, {
-    relationName: "key_roles_relation",
-    fields: [roles.keyId],
-    references: [keys.id],
-  }),
-}));
-
 export const permissions = mysqlTable(
   "permissions",
   {
@@ -53,7 +25,7 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
     references: [workspaces.id],
   }),
   keys: many(keysPermissions, {
-    relationName: "keys_permissions_relation",
+    relationName: "permissions_relations",
   }),
 }));
 
@@ -61,8 +33,12 @@ export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
     keyId: varchar("key_id", { length: 256 }).notNull(),
-    permissionId: varchar("permission_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    permissionId: varchar("permission_id", { length: 256 })
+      .notNull()
+      .references(() => permissions.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.keyId, table.permissionId] }),
@@ -70,7 +46,7 @@ export const keysPermissions = mysqlTable(
 );
 
 export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => ({
-  keys: one(keys, {
+  key: one(keys, {
     fields: [keysPermissions.keyId],
     references: [keys.id],
     relationName: "keys_permissions_relations",

@@ -88,6 +88,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         const dbRes = await db.query.keys.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
+            permissions: { with: { permission: true } },
             keyAuth: {
               with: {
                 api: true,
@@ -102,6 +103,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         return {
           key: dbRes,
           api: dbRes.keyAuth.api,
+          permissions: dbRes.permissions.map((p) => p.permission),
         };
       });
 

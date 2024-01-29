@@ -1,14 +1,14 @@
 import { type Result, result } from "@unkey/result";
-import { NestedQuery, RoleQuery } from "./queries";
+import { NestedQuery, PermissionQuery } from "./queries";
 export class RBAC {
-  public evaluateRoles(
-    rq: RoleQuery,
+  public evaluatePermissions(
+    q: PermissionQuery,
     roles: string[],
   ): Result<{ valid: true } | { valid: false; message: string }> {
-    if (rq.version !== 1) {
+    if (q.version !== 1) {
       return result.fail({ valid: false, message: "invalid version, only version 1 is supported" });
     }
-    return this.evaluateNestedQueryV1(rq.query, roles);
+    return this.evaluateNestedQueryV1(q.query, roles);
   }
 
   private evaluateNestedQueryV1(

@@ -141,51 +141,51 @@ export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
 
-    const key = await db.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.id, req.keyId),
-      with: {
-        keyAuth: {
-          with: {
-            api: true,
+    await db.transaction(async (tx) => {
+      const key = await tx.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.id, req.keyId),
+        with: {
+          keyAuth: {
+            with: {
+              api: true,
+            },
           },
         },
-      },
-    });
-
-    if (!key) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: `key ${req.keyId} not found`,
       });
-    }
-    const auth = await rootKeyAuth(
-      c,
-      buildQuery(({ or }) => or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`)),
-    );
-    if (key.workspaceId !== auth.authorizedWorkspaceId) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: `key ${req.keyId} not found`,
-      });
-    }
 
-    if (req.remaining === null && req.refill) {
-      throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "Cannot set refill on a key with unlimited requests",
-      });
-    }
-    if (req.refill && key.remaining === null) {
-      throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "Cannot set refill on a key with unlimited requests",
-      });
-    }
+      if (!key) {
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: `key ${req.keyId} not found`,
+        });
+      }
+      const auth = await rootKeyAuth(
+        c,
+        buildQuery(({ or }) => or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`)),
+      );
+      if (key.workspaceId !== auth.authorizedWorkspaceId) {
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: `key ${req.keyId} not found`,
+        });
+      }
 
-    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-    const rootKeyId = auth.key.id;
+      if (req.remaining === null && req.refill) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "Cannot set refill on a key with unlimited requests",
+        });
+      }
+      if (req.refill && key.remaining === null) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "Cannot set refill on a key with unlimited requests",
+        });
+      }
 
-    await db.transaction(async (tx) => {
+      const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+      const rootKeyId = auth.key.id;
+
       await tx
         .update(schema.keys)
         .set({
@@ -220,9 +220,8 @@ export const registerV1KeysUpdate = (app: App) =>
         description: "Key was updated",
         keyAuthId: key.keyAuthId,
       });
+      await usageLimiter.revalidate({ keyId: key.id });
     });
-
-    await usageLimiter.revalidate({ keyId: key.id });
 
     return c.json({});
   });

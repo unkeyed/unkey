@@ -1,5 +1,6 @@
+import { getChangelog } from "@/lib/mdx-helper";
 import { ImageResponse } from "@vercel/og";
-import { allChangelogs } from "contentlayer/generated";
+
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
     return str;
@@ -7,11 +8,6 @@ const truncate = (str: string | null, length: number) => {
   return `${str.slice(0, length - 3)}...`;
 };
 
-const _baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
-
-export const runtime = "edge";
 export const contentType = "image/png";
 export const alt = "Changelog OG Image";
 
@@ -20,12 +16,10 @@ export default async function Image({ params }: { params: { date: string } }) {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
-    const changelog = allChangelogs.find(
-      (c) => new Date(c.date).toISOString().split("T")[0] === params.date,
-    );
+    const { frontmatter } = await getChangelog(params.date);
 
     // Rare case where the changelog is not found?
-    if (!changelog) {
+    if (!frontmatter) {
       return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
         width: 1280,
         height: 720,
@@ -185,7 +179,7 @@ export default async function Image({ params }: { params: { date: string } }) {
             color: "transparent",
           }}
         >
-          {truncate(changelog.title, 55)}
+          {truncate(frontmatter.title, 55)}
         </h1>
 
         <div
@@ -203,7 +197,9 @@ export default async function Image({ params }: { params: { date: string } }) {
             width: "100%",
           }}
         >
-          <p>{changelog.date ? `Changelog - ${changelog.date}` : null}</p>
+          <p>
+            {frontmatter.date ? `Changelog - ${new Date(frontmatter.date).toDateString()}` : null}
+          </p>
           <p>Unkey.dev</p>
         </div>
       </div>,
