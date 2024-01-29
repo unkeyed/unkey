@@ -6,7 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -57,7 +57,7 @@ export const registerV1ApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", "api.*.create_api")),
+      buildUnkeyQuery(({ or }) => or("*", "api.*.create_api")),
     );
 
     const { name } = c.req.valid("json");
