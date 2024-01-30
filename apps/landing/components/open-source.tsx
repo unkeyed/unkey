@@ -8,18 +8,19 @@ import { OssLight } from "./svg/oss-light";
 
 export function OpenSource() {
   return (
-    <div className="pt-[240px] flex items-center flex-col md:flex-row justify-center relative">
+    <div className="pt-[00px] flex items-center flex-col md:flex-row justify-center relative">
       {/* TODO: add additional line SVGs from Figma – current export is broken */}
-      <div className="absolute top-[-260px] md:right-[240px] z-[-1]">
+      <div className="absolute top-[-460px] md:right-[240px] z-[-1]">
         <OssLight />
       </div>
-      <div className="flex flex-col items-center xl:flex-row">
+      <div className="flex flex-col items-center xl:flex-row ">
         <SectionTitle
           align="left"
-          className="mt-20"
           title="Empowering the community"
           text="Unkey allows open-source contributions through Github, enabing collaboration and
         knowledge sharing with all the developers in the world."
+          titleWidth={463}
+          contentWidth={461}
           label="oss/acc"
         >
           <div className="flex mt-10 space-x-6">

@@ -4,7 +4,7 @@ import { PrimaryButton, SecondaryButton } from "../components/button";
 
 export const Hero: React.FC = () => {
   return (
-    <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start mt-[200px]">
+    <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start mt-[200px] max-w-[1200px] mx-auto">
       <div className="relative text-center lg:text-left flex flex-col items-center lg:items-start">
         <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
           <svg

@@ -10,6 +10,7 @@ import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Stats } from "@/components/stats";
+import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
 import { cn } from "@/lib/utils";
 import { ChevronRight, LogIn } from "lucide-react";
@@ -58,10 +59,13 @@ export default async function Landing() {
       </Suspense>
 
       <CodeExamples className="mt-20" />
+      <div className="mt-[220px]" />
       <OpenSource />
       <SectionTitle
         className="mt-[300px]"
         title="Efficient integration and process, always"
+        titleWidth={743}
+        contentWidth={741}
         text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
         align="center"
         label="Platform"
@@ -69,18 +73,23 @@ export default async function Landing() {
       <div className="max-w-[1200px] mx-auto">
         <AnalyticsBento />
       </div>
-      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-6 grid xl:grid-cols-[1fr_2fr] gap-6 z-50">
         <LatencyBento />
         <UsageBento />
       </div>
+      <div className="relative w-full -z-10">
+        <OssLight className="absolute left-[500px] top-[-200px]" />
+      </div>
       <SectionTitle
-        className="mt-20"
+        className="mt-[300px]"
+        titleWidth={743}
+        contentWidth={741}
         title="Unleashing operational security"
         text="Unkey enables operational security with innovative open-source contributions, secure API validation, and automated access control for global developers."
         align="center"
         label="Protection"
       >
-        <div className="flex mt-10 space-x-6">
+        <div className="flex mt-10 mb-10 space-x-6">
           <Link href="/app" className="group">
             <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
           </Link>
@@ -98,14 +107,33 @@ export default async function Landing() {
         <IpWhitelistingBento />
         <RateLimitsBento />
       </div>
+      <div className="max-w-[1200px] mx-auto">
+        <SectionTitle
+          className="mt-[400px] ml-10"
+          title="Leveled-up API Auth"
+          titleWidth={719}
+          contentWidth={717}
+          text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+          label="More"
+        >
+          <div className="flex mt-10 mb-10 space-x-6">
+            <Link href="/app" className="group">
+              <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+            </Link>
+
+            <Link href="/docs">
+              <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
+            </Link>
+          </div>
+        </SectionTitle>
+      </div>
+      <FeatureGrid className="mt-20 max-w-[1200px] mx-auto" />
       <SectionTitle
-        className="mt-20"
-        title="Leveled-up API Auth"
-        text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
-        label="More"
-      />
-      <FeatureGrid className="mt-20" />
-      <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
+        align="center"
+        className="mt-[200px]"
+        title="Protect your API. Start today."
+        titleWidth={507}
+      >
         <div className="flex space-x-6 ">
           <Link
             key="get-started"
@@ -116,7 +144,7 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
-      <div className="mt-10">
+      <div className="mt-10 mb-[200px]">
         <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
           2500 verifications FREE per month.
         </p>
