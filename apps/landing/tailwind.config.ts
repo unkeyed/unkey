@@ -17,6 +17,7 @@ const config = {
     //   xl: "1440px",
     // },
     extend: {
+      typography: {},
       borderRadius: {
         "4xl": "2rem",
       },
