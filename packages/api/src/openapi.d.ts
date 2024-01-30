@@ -1504,6 +1504,7 @@ export interface paths {
                * - FORBIDDEN: the key is not allowed to access the api
                * - USAGE_EXCEEDED: the key has exceeded its request limit
                * - RATE_LIMITED: the key has been ratelimited,
+               * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
                *
                * @example NOT_FOUND
                * @enum {string}
@@ -1514,7 +1515,8 @@ export interface paths {
                 | "USAGE_EXCEEDED"
                 | "RATE_LIMITED"
                 | "UNAUTHORIZED"
-                | "DISABLED";
+                | "DISABLED"
+                | "INSUFFICIENT_PERMISSIONS";
             };
           };
         };
@@ -2199,6 +2201,8 @@ export interface components {
        * - RATE_LIMITED: the key has been ratelimited
        * - UNAUTHORIZED: the key is not authorized
        * - DISABLED: the key is disabled
+       * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
+       *
        * @enum {string}
        */
       code?:
@@ -2207,7 +2211,8 @@ export interface components {
         | "USAGE_EXCEEDED"
         | "RATE_LIMITED"
         | "UNAUTHORIZED"
-        | "DISABLED";
+        | "DISABLED"
+        | "INSUFFICIENT_PERMISSIONS";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
     };
