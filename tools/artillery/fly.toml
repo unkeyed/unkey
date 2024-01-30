@@ -1,0 +1,9 @@
+# fly.toml app configuration file generated for artillery on 2024-01-29T10:56:30+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'artillery'
+primary_region = 'ams'
+
+[build]
