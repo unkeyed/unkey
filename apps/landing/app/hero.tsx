@@ -4,7 +4,7 @@ import { PrimaryButton, SecondaryButton } from "../components/button";
 
 export const Hero: React.FC = () => {
   return (
-    <div className="flex min-h-[100vh] items-center justify-between">
+    <div className="flex min-h-[100vh] items-start justify-between mt-[200px]">
       <div className="relative">
         <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
           <svg
@@ -40,7 +40,7 @@ export const Hero: React.FC = () => {
               </clipPath>
             </defs>
           </svg>
-          <span>We are hiring!</span>
+          <Link href="/careers">We are hiring!</Link>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -52,13 +52,11 @@ export const Hero: React.FC = () => {
           </svg>
         </div>
 
-        <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop  bg-clip-text from-white via-white via-30% to-white/30 font-medium text-[4rem] leading-[4rem]  ">
-          Build your API,
-          <br />
-          not Auth
+        <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[4rem] leading-[5rem]  ">
+          Build your API, not Auth
         </h1>
 
-        <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg ">
+        <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg leading-[28px]">
           Unkey is an open source API authentication and authorization platform for scaling user
           facing APIs. Create, verify and manage low latency API keys in seconds.
         </p>
