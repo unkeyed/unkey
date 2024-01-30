@@ -1,4 +1,5 @@
 import { Footer } from "@/components/footer/footer";
+import { Navigation } from "@/components/navbar/navigation";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
@@ -35,7 +36,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="min-h-screen bg-black antialiased overflow-x-hidden">
+      <body className="min-h-screen overflow-x-hidden antialiased bg-black">
+        <Navigation />
         {children}
         <Footer />
       </body>

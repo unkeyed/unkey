@@ -100,7 +100,8 @@ export class KeyService {
       throw e;
     });
     if (res.error) {
-      this.metrics.emit("metric.key.verification", {
+      this.metrics.emit({
+        metric: "metric.key.verification",
         valid: false,
         code: res.error.message,
       });
@@ -126,7 +127,8 @@ export class KeyService {
       );
     }
 
-    this.metrics.emit("metric.key.verification", {
+    this.metrics.emit({
+      metric: "metric.key.verification",
       valid: res.value.valid,
       code: res.value.code ?? "OK",
       workspaceId: res.value.key?.workspaceId,
@@ -163,7 +165,8 @@ export class KeyService {
           },
         },
       });
-      this.metrics.emit("metric.db.read", {
+      this.metrics.emit({
+        metric: "metric.db.read",
         query: "getKeyAndApiByHash",
         latency: performance.now() - dbStart,
       });
@@ -332,7 +335,8 @@ export class KeyService {
       const keyAndWindow = [key.id, window].join(":");
       const t1 = performance.now();
       const cached = this.rlCache.get(keyAndWindow) ?? 0;
-      this.metrics.emit("metric.ratelimit", {
+      this.metrics.emit({
+        metric: "metric.ratelimit",
         latency: performance.now() - t1,
         keyId: key.id,
         tier: "memory",
@@ -365,7 +369,8 @@ export class KeyService {
         })
         .then(({ current }) => {
           this.rlCache.set(keyAndWindow, current);
-          this.metrics.emit("metric.ratelimit", {
+          this.metrics.emit({
+            metric: "metric.ratelimit",
             latency: performance.now() - t2,
             keyId: key.id,
             tier: "durable",
@@ -399,7 +404,8 @@ export class KeyService {
 
       return [false, undefined];
     } finally {
-      this.metrics.emit("metric.ratelimit", {
+      this.metrics.emit({
+        metric: "metric.ratelimit",
         latency: performance.now() - ratelimitStart,
         keyId: key.id,
         tier: "total",

@@ -6,7 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -161,7 +161,9 @@ export const registerV1KeysUpdate = (app: App) =>
       }
       const auth = await rootKeyAuth(
         c,
-        buildQuery(({ or }) => or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`)),
+        buildUnkeyQuery(({ or }) =>
+          or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
+        ),
       );
       if (key.workspaceId !== auth.authorizedWorkspaceId) {
         throw new UnkeyApiError({

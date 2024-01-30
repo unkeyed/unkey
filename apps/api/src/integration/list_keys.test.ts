@@ -69,7 +69,7 @@ test("create and list keys", async () => {
       apiId: createApiResponse.body.apiId,
     },
   });
-  expect(deleteApi.status).toEqual(200);
+  expect(deleteApi.status, `status mismatch - ${JSON.stringify(deleteApi)}`).toEqual(200);
 });
 
 test("list keys does not return revoked keys", async () => {
@@ -84,7 +84,10 @@ test("list keys does not return revoked keys", async () => {
       name: "scenario-test-pls-delete",
     },
   });
-  expect(createApiResponse.status).toEqual(200);
+  expect(
+    createApiResponse.status,
+    `status mismatch - ${JSON.stringify(createApiResponse)}`,
+  ).toEqual(200);
   expect(createApiResponse.body.apiId).toBeDefined();
   expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
 
@@ -160,5 +163,5 @@ test("list keys does not return revoked keys", async () => {
       apiId: createApiResponse.body.apiId,
     },
   });
-  expect(deleteApi.status).toEqual(200);
+  expect(deleteApi.status, `status mismatch - ${JSON.stringify(deleteApi)}`).toEqual(200);
 }, 10_000);

@@ -13,6 +13,9 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
-    "@axiomhq/js": "1.0.0-rc.1"
+    "@axiomhq/js": "1.0.0-rc.1",
+    "@unkey/metrics": "workspace:^",
+    "@unkey/zod-queue": "workspace:^",
+    "zod": "^3.22.4"
   }
 }

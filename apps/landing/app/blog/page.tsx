@@ -1,129 +1,98 @@
+import { Container } from "@/components/container";
+
 import { BlogHeading, BlogSubTitle, BlogTitle } from "@/components/blog-heading";
-import { Frame } from "@/components/frame";
-import { Alert, AlertDescription } from "@/components/ui/alert/alert";
-import Image from "next/image";
+import { MdxContent } from "@/components/mdx-content";
+import { authors } from "@/content/blog/authors";
+import type { Metadata } from "next";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/blog-table";
+import { notFound } from "next/navigation";
 
-const data = [
-  {
-    Property: "Name",
-    Description: "Full name of user",
-    Color: "Gray",
-  },
-  {
-    Property: "Age",
-    Description: "Reported age",
-    Color: "Black",
-  },
-  {
-    Property: "Joined",
-    Description: "Whether the user joined the community",
-    Color: "White",
-  },
-];
+import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
 
-export const metadata = {
-  title: "Blog | Unkey",
-  description: "Latest blog posts and news from the Unkey team.",
-  openGraph: {
-    title: "Blog | Unkey",
-    description: "Latest blog posts and news from the Unkey team.",
-    url: "https://unkey.dev/blog",
-    siteName: "unkey.dev",
-    images: [
-      {
-        url: "https://unkey.dev/images/landing/og.png",
-        width: 1200,
-        height: 675,
-      },
-    ],
-  },
-  twitter: {
-    title: "Blog | Unkey",
-    card: "summary_large_image",
-  },
-  icons: {
-    shortcut: "/images/landing/unkey.png",
-  },
+type Props = {
+  params: { slug: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 };
 
-export default async function Blog() {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // read route params
+  const { frontmatter } = await getPost("how-unkey-treats-marketing");
+
+  if (!frontmatter) {
+    return notFound();
+  }
+
+  return {
+    title: `${frontmatter.title} | Unkey`,
+    description: frontmatter.description,
+    openGraph: {
+      title: `${frontmatter.title} | Unkey`,
+      description: frontmatter.description,
+      url: `https://unkey.dev/blog/${params.slug}`,
+      siteName: "unkey.dev",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${frontmatter.title} | Unkey`,
+      description: frontmatter.description,
+      site: "@unkeydev",
+      creator: "@unkeydev",
+    },
+    icons: {
+      shortcut: "/images/landing/unkey.png",
+    },
+  };
+}
+
+export const generateStaticParams = async () => {
+  const posts = await getFilePaths(BLOG_PATH);
+  // Remove file extensions for page paths
+  posts.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
+  return posts;
+};
+
+const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
+  const { serialized, frontmatter } = await getPost("how-unkey-treats-marketing");
+
+  const author = authors[frontmatter.author];
+  const _moreArticles = await getContentData({
+    contentPath: BLOG_PATH,
+    filepath: params.slug,
+  });
+
   return (
     <>
-      <div className="bg-black">
-        <div className="max-w-[880px] mx-auto text-center min-h-screen p-6">
-          <h2 className="text-white text-left pl-24">Blog / Product</h2>
-          <BlogHeading>
-            <BlogTitle>How Unkey and extensions work</BlogTitle>
-            <BlogSubTitle>
-              Learn more about how we built the Unkey API and how it works under the hood.
-            </BlogSubTitle>
-          </BlogHeading>
-          <Table className="w-[600px] mx-auto">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Property</TableHead>
-                <TableHead>Description</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((data) => (
-                <TableRow key={data.Property}>
-                  <TableCell>{data.Property}</TableCell>
-                  <TableCell>{data.Description}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <Container className="scroll-smooth">
+        <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
+          <div className="mx-auto w-full lg:pl-8 ">
+            <BlogHeading>
+              <BlogTitle>{frontmatter.title}</BlogTitle>
+              <BlogSubTitle>{frontmatter.description}</BlogSubTitle>
+            </BlogHeading>
 
-          <Frame className="mt-12 mb-32">
-            <Image
-              src={"/images/blog-images/funding/funding-cover.png"}
-              alt={""}
-              width={600}
-              height={400}
-            />
-          </Frame>
-          <Alert variant="info" className="m-4">
-            <AlertDescription variant="info">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="success" className="m-4">
-            <AlertDescription variant="success">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="alert" className="m-4">
-            <AlertDescription variant="alert">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="warning" className="m-4">
-            <AlertDescription variant="warning">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="error" className="m-4">
-            <AlertDescription variant="error">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
+            <div className="prose text-white/60 font-normal text-lg leading-8 mx-auto w-full pt-20">
+              <MdxContent source={serialized} />
+            </div>
+          </div>
+
+          <div className="top-24 flex h-max w-full flex-col justify-end self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-8">
+            <div className="mx-auto flex items-center justify-start gap-4 border-y-0 p-2 md:mx-0 md:border-b md:border-b-gray-200">
+              <div className="text-sm text-white/60">
+                <div className="font-semibold">{author.name}</div>
+              </div>
+            </div>
+            {
+              <div className="hidden md:block">
+                <h3 className="mb-4 mt-8 text-lg font-bold uppercase tracking-wide text-white/60">
+                  Table of Contents
+                </h3>
+              </div>
+            }
+          </div>
         </div>
-      </div>
+      </Container>
     </>
   );
-}
+};
+
+export default BlogArticleWrapper;

@@ -8,23 +8,43 @@ type UnkeyPermissions = {
 };
 
 export const workspacePermissions = {
-  create_api: {
-    description: "Create new apis in this workspace.",
-    permission: "api.*.create_api",
+  API: {
+    create_api: {
+      description: "Create new apis in this workspace.",
+      permission: "api.*.create_api",
+    },
+    read_api: {
+      description: "Read information about any existing or future API in this workspace.",
+      permission: "api.*.read_api",
+    },
+    update_api: {
+      description: "Update any existing or future API in this workspace.",
+      permission: "api.*.update_api",
+    },
+    delete_api: {
+      description: "Delete apis in this workspace.",
+      permission: "api.*.delete_api",
+    },
   },
-  read_api: {
-    description: "Read information about any existing or future API in this workspace.",
-    permission: "api.*.read_api",
+  Keys: {
+    create_key: {
+      description: "Create new keys in this workspace.",
+      permission: "api.*.create_key",
+    },
+    read_key: {
+      description: "Read information about any existing or future key in this workspace.",
+      permission: "api.*.read_key",
+    },
+    update_key: {
+      description: "Update any existing or future key in this workspace.",
+      permission: "api.*.update_key",
+    },
+    delete_key: {
+      description: "Delete keys in this workspace.",
+      permission: "api.*.delete_key",
+    },
   },
-  update_api: {
-    description: "Update any existing or future API in this workspace.",
-    permission: "api.*.update_api",
-  },
-  delete_api: {
-    description: "Delete all apis in this workspace.",
-    permission: "api.*.delete_api",
-  },
-} satisfies UnkeyPermissions;
+} satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {
   return {
