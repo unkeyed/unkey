@@ -105,3 +105,10 @@
   height: 100%;
   opacity: 1;
 }
+
+.hero-hiring-gradient {
+  background: linear-gradient(black, black) padding-box,
+              linear-gradient(to right, #02FCF1, #02DEFC, #7002FC, #0239FC) border-box;
+  border-radius: 1000px;
+  border: 0.75px solid transparent;
+}
