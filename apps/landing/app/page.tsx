@@ -1,17 +1,18 @@
+import { Hero } from "@/app/hero";
+import { SectionTitle } from "@/app/section-title";
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
+import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
 import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
-import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
-import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
 import { UsageBento } from "@/components/usage-bento";
 import { cn } from "@/lib/utils";
-import { BookOpen, ChevronRight, LogIn } from "lucide-react";
+import { ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CodeExamples } from "./code-examples";
@@ -46,42 +47,15 @@ export default async function Landing() {
     <div className="container mx-auto">
       <TopLeftShiningLight />
       <TopRightShiningLight />
-
       <HeroMainboardStuff className="absolute top-0 right-0" />
+
       <Hero />
+
       <SubHeroMainboardStuff />
       <Suspense fallback={null}>
         <Stats />
       </Suspense>
-      <SectionTitle
-        label="Code"
-        title="Any language, any framework, always secure"
-        text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
-        align="center"
-        titleWidth={643}
-        contentWidth={643}
-        className="mt-20"
-      >
-        <div className="mt-10">
-          <div className="flex space-x-6 ">
-            <Link
-              key="get-started"
-              href="/app"
-              className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-            >
-              Get Started <ChevronRight className="w-4 h-4" />
-            </Link>
-            ,
-            <Link
-              key="docs"
-              href="/docs"
-              className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
-            >
-              Visit the docs <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </SectionTitle>
+
       <CodeExamples className="mt-20" />
       <OpenSource />
       <SectionTitle
@@ -90,36 +64,26 @@ export default async function Landing() {
         text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
         align="center"
         label="Platform"
-        contentWidth={741}
-        titleWidth={741}
       />
-      <div className="max-w-[1200px] mx-auto flex items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+        <AnalyticsBento />
         <LatencyBento />
         <UsageBento />
       </div>
       <SectionTitle
-        className="mt-[200px]"
+        className="mt-20"
         title="Unleashing operational security"
         text="Unkey enables operational security with innovative open-source contributions, secure API validation, and automated access control for global developers."
         align="center"
         label="Protection"
-        contentWidth={741}
-        titleWidth={741}
       >
         <div className="flex mt-10 space-x-6">
-          <Link
-            key="get-started"
-            href="/app"
-            className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-          >
-            Get Started <ChevronRight className="w-4 h-4" />
+          <Link href="/app" className="group">
+            <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
           </Link>
-          <Link
-            key="docs"
-            href="/docs"
-            className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
-          >
-            Visit the docs <ChevronRight className="w-4 h-4" />
+
+          <Link href="/docs">
+            <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
           </Link>
         </div>
       </SectionTitle>
@@ -132,39 +96,13 @@ export default async function Landing() {
         <RateLimitsBento />
       </div>
       <SectionTitle
-        className="mt-[200px]"
+        className="mt-20"
         title="Leveled-up API Auth"
         text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
         label="More"
-        contentWidth={717}
-      >
-        <div className="mt-10">
-          <div className="flex space-x-6 ">
-            <Link
-              key="get-started"
-              href="/app"
-              className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-            >
-              Get Started <ChevronRight className="w-4 h-4" />
-            </Link>
-            <Link
-              key="docs"
-              href="/docs"
-              className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
-            >
-              Visit the docs <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </SectionTitle>
+      />
       <FeatureGrid className="mt-20" />
-      <SectionTitle
-        align="center"
-        className="mt-[200px]"
-        titleWidth={507}
-        title="Protect your API. Start today."
-        contentWidth={717}
-      >
+      <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
         <div className="flex space-x-6 ">
           <Link
             key="get-started"
@@ -186,96 +124,6 @@ export default async function Landing() {
     </div>
   );
 }
-
-const _Navigation: React.FC = () => {
-  const NavLink: React.FC<{ href: string; label: string }> = ({ href, label }) => {
-    return (
-      <Link href={href} className="text-sm duration-200 text-white/50 hover:text-white">
-        {label}
-      </Link>
-    );
-  };
-
-  return (
-    <nav className="flex items-center justify-between h-20 bg-black">
-      <div className="flex items-center justify-between gap-32">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <svg
-            width="32"
-            height="24"
-            viewBox="0 0 32 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M6 4H12L6 20H0L6 4ZM16 4H22L16 20H10L16 4ZM32 4H26L20 20H26L32 4Z"
-              fill="url(#paint0_radial_574_3018)"
-            />
-            <defs>
-              <radialGradient
-                id="paint0_radial_574_3018"
-                cx="0"
-                cy="0"
-                r="1"
-                gradientUnits="userSpaceOnUse"
-                gradientTransform="translate(6 4) rotate(38.6598) scale(25.6125)"
-              >
-                <stop stop-color="white" />
-                <stop offset="1" stop-color="white" stop-opacity="0.5" />
-              </radialGradient>
-            </defs>
-          </svg>
-          <svg
-            width="74"
-            height="32"
-            viewBox="0 0 74 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M8.59392 24.2387C3.81952 24.2387 1.09811 21.7083 1.09811 17.3636V8.00576H3.65242V17.1965C3.65242 20.4192 5.08474 21.756 8.59392 21.756C12.1031 21.756 13.5354 20.4192 13.5354 17.1965V8.00576H16.1136V17.3636C16.1136 21.7083 13.3922 24.2387 8.59392 24.2387ZM20.9764 24H18.3982V12.1356H20.7616V15.8119H20.9287C21.2867 13.8067 22.8623 11.8969 25.8702 11.8969C29.1645 11.8969 30.7878 14.117 30.7878 16.8623V24H28.2096V17.5546C28.2096 15.3345 27.207 14.2125 24.7482 14.2125C22.1461 14.2125 20.9764 15.5493 20.9764 18.1275V24ZM35.6633 24H33.0851V8.00576H35.6633V16.8384H39.0531L42.61 12.1356H45.6179L41.1538 17.841L45.594 24H42.5623L39.0531 19.154H35.6633V24ZM52.8541 24.2387C48.963 24.2387 46.4087 22.0425 46.4087 18.0797C46.4087 14.3796 48.9391 11.8969 52.8064 11.8969C56.4826 11.8969 58.9892 13.926 58.9892 17.5307C58.9892 17.9604 58.9653 18.2946 58.8937 18.6527H48.8197C48.9152 20.9444 50.0372 22.1619 52.7825 22.1619C55.2652 22.1619 56.2917 21.3502 56.2917 19.9418V19.7508H58.8698V19.9656C58.8698 22.4961 56.3872 24.2387 52.8541 24.2387ZM52.7586 13.926C50.1327 13.926 48.9868 15.0957 48.8436 17.2204H56.5543V17.1726C56.5543 14.9764 55.289 13.926 52.7586 13.926ZM62.83 28.0582H61.1351V25.7188H63.4507C64.501 25.7188 64.9307 25.4323 65.2888 24.6207L65.5753 24L59.7266 12.1356H62.6151L65.6469 18.4378L66.8166 21.2786H67.0076L68.1296 18.414L70.9226 12.1356H73.7634L67.5805 25.2891C66.6018 27.4137 65.2649 28.0582 62.83 28.0582Z"
-              fill="url(#paint0_radial_574_3023)"
-            />
-            <defs>
-              <radialGradient
-                id="paint0_radial_574_3023"
-                cx="0"
-                cy="0"
-                r="1"
-                gradientUnits="userSpaceOnUse"
-                gradientTransform="rotate(23.3852) scale(80.6226 80.8018)"
-              >
-                <stop offset="0.26875" stop-color="white" />
-                <stop offset="0.904454" stop-color="white" stop-opacity="0.5" />
-              </radialGradient>
-            </defs>
-          </svg>
-        </div>
-        {/* Nav */}
-        <ul className="flex items-center justify-between gap-8">
-          <NavLink href="/about" label="About" />
-          <NavLink href="/blog" label="Blog" />
-          <NavLink href="/pricing" label="Pricing" />
-          <NavLink href="/changelog" label="Changelog" />
-          <NavLink href="/docs" label="Docs" />
-        </ul>
-      </div>
-
-      {/* Auth */}
-      <div>
-        <Link
-          href="/app"
-          className="flex items-center h-8 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-        >
-          Log In <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
-    </nav>
-  );
-};
 
 const TopLeftShiningLight: React.FC = () => (
   <svg
@@ -771,51 +619,6 @@ const TopRightShiningLight: React.FC = () => {
         </linearGradient>
       </defs>
     </svg>
-  );
-};
-
-const Hero: React.FC = () => {
-  return (
-    <div className="flex min-h-[100vh] items-center justify-between">
-      <div>
-        <div>We're Hiring</div>
-
-        <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop  bg-clip-text from-white via-white via-30% to-white/30 text-hero font-medium">
-          Build your API,
-          <br />
-          not Auth
-        </h1>
-
-        <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg ">
-          Unkey is an open source API authentication and authorization platform for scaling user
-          facing APIs. Create, verify and manage low latency API keys in seconds.
-        </p>
-
-        <div className="flex items-center gap-6 mt-12">
-          <Link
-            href="/app"
-            className="flex items-center h-10 gap-2 px-4 text-black duration-150 bg-white border border-white rounded-lg hover:text-white hover:bg-black"
-          >
-            <LogIn className="w-4 h-4" /> Get Started <ChevronRight className="w-4 h-4" />
-          </Link>
-
-          <Link
-            href="/docs"
-            className="flex items-center h-10 gap-2 px-4 duration-500 text-white/50 hover:text-white"
-          >
-            <BookOpen className="w-4 h-4" />
-            Documentation
-            <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-
-      <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10">
-        <div className="m-[10px] rounded-[28px] border border-gray-800">
-          <img src="/images/hero.png" alt="Youtube" />
-        </div>
-      </div>
-    </div>
   );
 };
 

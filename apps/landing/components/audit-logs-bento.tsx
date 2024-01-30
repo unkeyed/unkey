@@ -2,7 +2,7 @@ import { AuditLogs } from "@/components/svg/audit-logs";
 
 export function AuditLogsBento() {
   return (
-    <div className="w-full mt-10 relative audit-logs-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full mt-10 xl:ml-10 relative audit-logs-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
       <AuditLogs className="h-[400px] w-full ml-[40px]" />
       <AuditLogsText />
     </div>
