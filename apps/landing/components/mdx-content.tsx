@@ -11,7 +11,7 @@ type MdxContentProps = {
 const MdxComponents = {
   Image: Image,
   Callout: Alert,
-  a: (props: any) => <a {...props} className="text-blue-500" />,
+  a: (props: any) => <a {...props} className="text-white underline hover:text-white/60" />,
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h2: (props: any) => (
