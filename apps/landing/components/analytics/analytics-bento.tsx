@@ -1,7 +1,7 @@
 "use client";
-import { Highlight } from "prism-react-renderer";
+import { Highlight, PrismTheme } from "prism-react-renderer";
 
-const theme = {
+export const theme = {
   plain: {
     color: "#F8F8F2",
     backgroundColor: "#282A36",
@@ -26,7 +26,7 @@ const theme = {
       },
     },
   ],
-};
+} satisfies PrismTheme;
 
 const codeBlock = `    curl --request GET \\
          --url https://api.unkey.dev/v1/keys.getKey \\
@@ -60,7 +60,7 @@ export function AnalyticsBento() {
             </div>
           </div>
           <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
-            <Editor />
+            <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
           </div>
         </div>
         <BentoText />
@@ -69,9 +69,13 @@ export function AnalyticsBento() {
   );
 }
 
-function Editor() {
+export function Editor({
+  codeBlock,
+  language,
+  theme,
+}: { codeBlock: string; language: string; theme?: PrismTheme }) {
   return (
-    <Highlight theme={theme} code={codeBlock} language="tsx">
+    <Highlight theme={theme} code={codeBlock} language={language}>
       {({ tokens, getLineProps, getTokenProps }) => (
         <pre className="leading-10">
           {tokens.map((line, i) => (

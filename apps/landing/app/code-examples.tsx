@@ -1,6 +1,7 @@
 "use client";
 
 import { SectionTitle } from "@/app/section-title";
+import { Editor, TerminalIcon, theme } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
@@ -31,7 +32,7 @@ const LanguageTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center gap-1 justify-center whitespace-nowrap border-b-0 rounded-t-lg px-3 py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/20 border text-white/50 data-[state=active]:text-white border-white/25 data-[state=active]:border-white/50 font-light",
+      "inline-flex items-center gap-1 justify-center whitespace-nowrap border-b-0 rounded-t-lg px-3 py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border-t border-l border-r text-white/50 data-[state=active]:text-white border-white/25 data-[state=active]:border-white/30 font-light",
       className,
     )}
     {...props}
@@ -58,6 +59,22 @@ type Props = {
   className?: string;
 };
 
+const pythonCodeBlock = `      import asyncio
+      import os
+      import unkey
+
+      async def main() -> None:
+          client = unkey.Client(api_key=os.environ["API_KEY"])
+          await client.start()
+
+          result = await client.keys.verify_key("prefix_abc123")
+
+          if result.is_ok:
+              print(data.valid)
+          else:
+              print(result.unwrap_err())
+`;
+
 export const CodeExamples: React.FC<Props> = ({ className }) => {
   return (
     <section className={className}>
@@ -67,6 +84,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
         align="center"
         titleWidth={743}
+        contentWidth={741}
         className="relative py-20 "
       >
         <div className="mt-10">
@@ -82,9 +100,9 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         </div>
         <HighlightAbove className="absolute bottom-0 w-full mx-auto pointer-events-none" />
       </SectionTitle>
-      <div className="w-full rounded-4xl h-64 border border-white/25 bg-gradient-to-t from-black to-[#111111]">
-        <Tabs defaultValue="py" className="flex items-end h-16 px-4 border-b border-white/25">
-          <TabsPrimitive.List className="flex items-end gap-4">
+      <div className="w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-t from-black to-[#111111]">
+        <Tabs defaultValue="py" className="flex items-end h-16 px-4 border-b border-white/10">
+          <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="ts">
               <svg
                 width="24"
@@ -247,6 +265,98 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </LanguageTrigger>
           </TabsPrimitive.List>
         </Tabs>
+        <div className="flex flex-col sm:flex-row overflow-x-auto scrollbar-hidden">
+          <div className="flex flex-col justify-between sm:w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/10">
+            <div className="flex items-center sm:flex-col space-x-2 sm:space-y-2">
+              <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M8.92308 6.34188C8.92308 6.14145 9.10073 5.81724 9.69579 5.51187C10.2601 5.2223 11.0743 5.02564 12 5.02564C12.9257 5.02564 13.7399 5.2223 14.3042 5.51187C14.8993 5.81724 15.0769 6.14145 15.0769 6.34188L15.0768 8.41025V8.58119C15.0768 9.42328 15.0233 10.0118 14.9146 10.4281C14.8088 10.8329 14.6614 11.0364 14.4939 11.1606C14.313 11.2945 14.0407 11.3872 13.5869 11.4368C13.1321 11.4865 12.5656 11.4872 11.829 11.4872H11.803C11.1831 11.4872 10.623 11.4872 10.1514 11.5443C9.6692 11.6028 9.2122 11.7273 8.83772 12.0269C8.4557 12.3325 8.22386 12.7678 8.08632 13.3179C7.96911 13.7868 7.91331 14.3669 7.90039 15.0769H6.34188C6.14145 15.0769 5.81723 14.8993 5.51187 14.3042C5.22229 13.7399 5.02564 12.9257 5.02564 12C5.02564 11.0743 5.22229 10.2601 5.51187 9.6958C5.81723 9.10073 6.14145 8.92308 6.34188 8.92308H8.41026H12V7.89744H8.92308V6.34188ZM6.34188 16.1026H7.89741L7.89744 17.6582C7.89744 18.4489 8.52337 19.0393 9.22754 19.4006C9.96246 19.7777 10.9431 20 12 20C13.0569 20 14.0375 19.7777 14.7724 19.4006C15.4766 19.0393 16.1026 18.4489 16.1026 17.6582V16.1026H17.6581C18.4489 16.1026 19.0393 15.4766 19.4006 14.7724C19.7777 14.0375 20 13.0569 20 12C20 10.9431 19.7777 9.96246 19.4006 9.22754C19.0393 8.52338 18.4489 7.89744 17.6581 7.89744H16.1026V6.34189C16.1026 5.55103 15.4766 4.96071 14.7724 4.59937C14.0375 4.22223 13.0569 4 12 4C10.9431 4 9.96246 4.22223 9.22754 4.59937C8.52337 4.96071 7.89744 5.55103 7.89744 6.34188V7.89744H6.34188C5.55102 7.89744 4.96071 8.52338 4.59937 9.22754C4.22223 9.96246 4 10.9431 4 12C4 13.0569 4.22223 14.0375 4.59937 14.7724C4.96071 15.4766 5.55102 16.1026 6.34188 16.1026ZM12 16.1026H15.0769V17.6582C15.0769 17.8586 14.8993 18.1828 14.3042 18.4881C13.7399 18.7777 12.9257 18.9744 12 18.9744C11.0743 18.9744 10.2601 18.7777 9.69579 18.4881C9.10073 18.1828 8.92308 17.8586 8.92308 17.6582L8.92303 15.5897V15.4188C8.92303 14.5776 8.97644 13.9862 9.08133 13.5667C9.18418 13.1553 9.32627 12.9495 9.47843 12.8278C9.63814 12.7 9.87559 12.6109 10.2748 12.5625C10.678 12.5136 11.1772 12.5128 11.829 12.5128H11.8539C12.56 12.5128 13.1816 12.5128 13.6983 12.4564C14.222 12.3991 14.7082 12.2781 15.1043 11.9847C15.5136 11.6816 15.7615 11.2441 15.9069 10.6873C16.0301 10.2157 16.0865 9.63309 16.0995 8.92308H17.6581C17.8586 8.92308 18.1828 9.10073 18.4881 9.6958C18.7776 10.2601 18.9744 11.0743 18.9744 12C18.9744 12.9257 18.7776 13.7399 18.4881 14.3042C18.1828 14.8993 17.8586 15.0769 17.6581 15.0769H15.5898H12V16.1026ZM10.1806 7.33585C10.5353 7.33585 10.8229 7.04829 10.8229 6.69356C10.8229 6.33884 10.5353 6.05128 10.1806 6.05128C9.82592 6.05128 9.53836 6.33884 9.53836 6.69356C9.53836 7.04829 9.82592 7.33585 10.1806 7.33585ZM13.8227 17.9533C14.1781 17.9533 14.4661 17.6653 14.4661 17.3101C14.4661 16.9547 14.1781 16.6667 13.8227 16.6667C13.4674 16.6667 13.1794 16.9547 13.1794 17.3101C13.1794 17.6653 13.4674 17.9533 13.8227 17.9533Z"
+                    fill="url(#paint0_linear_574_1420)"
+                  />
+                  <defs>
+                    <linearGradient
+                      id="paint0_linear_574_1420"
+                      x1="4.15606"
+                      y1="2.27462"
+                      x2="4.15606"
+                      y2="20.9494"
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <stop stopColor="white" stopOpacity="0.4" />
+                      <stop offset="1" stopColor="white" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="ml-3">Python</div>
+              </div>
+              <div className="flex items-center cursor-pointer py-1 px-2 rounded-lg w-[184px]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    opacity="0.2"
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M9.05263 5.64352C9.05263 5.92219 8.95628 6.17757 8.79618 6.37597L11.6316 7.54939C11.6316 12.1235 13.8421 15.1729 17.5263 16.6976L19 17.4599L18.2632 18.4284C11.6316 18.9846 6.0806 16.3411 5 9.07408L7.37195 6.62004C7.05419 6.41918 6.84211 6.05698 6.84211 5.64352C6.84211 5.01197 7.33695 4.5 7.94737 4.5C8.55779 4.5 9.05263 5.01197 9.05263 5.64352ZM9.17544 8.56585L8.68421 9.07408L8.78922 10.4864C9.12713 15.0313 13.1916 18.2754 17.5263 17.4599L17.186 17.3426C13.4289 16.0468 10.8948 12.4091 10.8948 8.31174L10.1579 7.54939L7.21052 8.31174V9.07408L9.17544 8.56585Z"
+                    fill="white"
+                  />
+                </svg>
+                <div className="ml-3">Flask</div>
+              </div>
+            </div>
+            <div className="hidden sm:flex ">
+              <Link href="https://github.com/unkeyed/unkey">
+                <div className="flex items-center pl-2 py-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      opacity="0.3"
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M20.32 16.4464L20.3218 16.4425C20.8903 15.2548 21 13.9274 21 12.7759C21 11.3027 20.6355 9.84806 19.7426 8.61288C19.8649 8.11865 19.9269 7.60925 19.9269 7.09781C19.9269 6.16093 19.6975 5.65041 19.3441 4.93343L19.1305 4.5H18.6549C17.8391 4.5 17.1208 4.57861 16.4333 4.80259C15.8491 4.99289 15.316 5.27864 14.7799 5.67065C13.93 5.4914 13.061 5.40906 12.2023 5.40906C11.2452 5.40906 10.2849 5.49887 9.34019 5.69886C8.79917 5.30243 8.2628 5.01017 7.67433 4.8142C6.98188 4.58361 6.25811 4.5 5.43086 4.5H4.95299L4.74016 4.93631C4.39303 5.64796 4.15886 6.15949 4.15886 7.09781C4.15886 7.60746 4.2183 8.12406 4.34218 8.62896C3.44782 9.83596 3 11.2746 3 12.7759C3 13.9724 3.20442 15.2956 3.77496 16.4512L3.77634 16.454C4.60261 18.1114 6.15509 18.852 7.70158 19.1904C9.1334 19.5038 10.696 19.5015 11.9314 19.4997L12.1989 19.4995L12.3931 19.4996C13.6178 19.5005 15.1549 19.5017 16.5567 19.1766C18.0493 18.8303 19.5264 18.0821 20.32 16.4464ZM19.1554 7.09781C19.1554 7.67122 19.0663 8.24113 18.8914 8.78306C19.8343 9.91589 20.2286 11.3109 20.2286 12.7759C20.2286 13.8913 20.1189 15.073 19.6286 16.0975C18.8818 17.6366 17.3844 18.2704 15.7603 18.5312C16.0829 18.4373 16.3953 18.3188 16.6894 18.1699C17.284 17.8686 17.8222 17.4336 18.2078 16.8129C18.5943 16.1908 18.7954 15.4337 18.7954 14.5419C18.7954 13.6222 18.5219 12.7144 17.9605 12.0213C17.3868 11.3131 16.54 10.8672 15.504 10.8672C14.9293 10.8672 14.3619 10.9527 13.8498 11.0298L13.8497 11.0298C13.7227 11.049 13.599 11.0676 13.4794 11.0843L13.4663 11.0862C13.0025 11.1592 12.532 11.1889 12.0377 11.1889C11.5472 11.1889 11.0764 11.1593 10.6084 11.0861L10.5977 11.0845C10.4861 11.0687 10.3704 11.0512 10.2514 11.0331L10.2511 11.0331C9.73593 10.955 9.15741 10.8672 8.57144 10.8672C7.53545 10.8672 6.68864 11.3131 6.11497 12.0213C5.55359 12.7144 5.28001 13.6222 5.28001 14.5419C5.28001 15.4332 5.48155 16.1899 5.86815 16.8117C6.25386 17.432 6.79199 17.867 7.38617 18.1684C7.62887 18.2915 7.88404 18.3938 8.14702 18.4787C6.59349 18.1885 5.18348 17.5407 4.464 16.0975C3.96343 15.0835 3.77143 13.8913 3.77143 12.7759C3.77143 11.3109 4.248 9.92638 5.19429 8.80404C5.016 8.25161 4.93029 7.67122 4.93029 7.09781C4.93029 6.34609 5.09829 5.96848 5.43086 5.28669C6.984 5.28669 7.97829 5.60136 9.16114 6.54538C10.1554 6.30413 11.1771 6.19574 12.2023 6.19574C13.128 6.19574 14.0606 6.29714 14.9589 6.51741C16.1246 5.58388 17.1189 5.28669 18.6549 5.28669C18.9909 5.96848 19.1554 6.34609 19.1554 7.09781ZM13.9899 11.8042L13.9897 11.8043L13.9897 11.8043C13.8555 11.8244 13.7204 11.8447 13.584 11.8637C13.0732 11.9441 12.5623 11.9756 12.0377 11.9756C11.5166 11.9756 11.0057 11.9441 10.4914 11.8637C10.3652 11.8458 10.2394 11.8268 10.1139 11.8079C9.60223 11.7306 9.09457 11.6539 8.57144 11.6539C6.96687 11.6539 6.05144 13.007 6.05144 14.5419C6.05144 17.6117 8.80801 18.0838 11.208 18.0838H12.8606C15.2709 18.0838 18.024 17.6152 18.024 14.5419C18.024 13.007 17.1086 11.6539 15.504 11.6539C14.9918 11.6539 14.4966 11.7282 13.9899 11.8042ZM8.89403 16.4678C9.7786 16.4678 10.1523 15.272 10.1523 14.5413C10.1523 13.8105 9.7786 12.6147 8.89403 12.6147C8.00946 12.6147 7.63574 13.8105 7.63574 14.5413C7.63574 15.272 8.00946 16.4678 8.89403 16.4678ZM15.1919 12.6147C14.3073 12.6147 13.9336 13.8105 13.9336 14.5412C13.9336 15.272 14.3073 16.4677 15.1919 16.4677C16.0765 16.4677 16.4502 15.272 16.4502 14.5412C16.4502 13.8105 16.0765 12.6147 15.1919 12.6147Z"
+                      fill="url(#paint0_linear_840_3755)"
+                    />
+                    <defs>
+                      <linearGradient
+                        id="paint0_linear_840_3755"
+                        x1="4.22406"
+                        y1="2.88245"
+                        x2="4.22406"
+                        y2="20.39"
+                        gradientUnits="userSpaceOnUse"
+                      >
+                        <stop stop-color="white" stop-opacity="0.4" />
+                        <stop offset="1" stop-color="white" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <p className="text-sm text-white/20 ml-2">View on GitHub</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+          <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
+            <Editor language="python" codeBlock={pythonCodeBlock} />
+          </div>
+        </div>
       </div>
     </section>
   );

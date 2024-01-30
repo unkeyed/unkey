@@ -112,3 +112,12 @@
   border-radius: 1000px;
   border: 0.75px solid transparent;
 }
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
