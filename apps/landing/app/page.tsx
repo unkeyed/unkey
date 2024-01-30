@@ -51,7 +51,8 @@ export default async function Landing() {
 
       <Hero />
 
-      <SubHeroMainboardStuff />
+      <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px]" />
+      <div className="mt-[200px]" />
       <Suspense fallback={null}>
         <Stats />
       </Suspense>

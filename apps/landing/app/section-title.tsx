@@ -7,6 +7,8 @@ type SectionTitleProps = {
   align?: "left" | "center";
   children?: React.ReactNode;
   className?: string;
+  titleWidth?: string;
+  contentWidth?: string;
 };
 
 export function SectionTitle({
@@ -16,6 +18,8 @@ export function SectionTitle({
   align = "left",
   children,
   className,
+  titleWidth,
+  contentWidth,
 }: SectionTitleProps) {
   return (
     <div

@@ -4,8 +4,8 @@ import { PrimaryButton, SecondaryButton } from "../components/button";
 
 export const Hero: React.FC = () => {
   return (
-    <div className="flex min-h-[100vh] items-start justify-between mt-[200px]">
-      <div className="relative">
+    <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start mt-[200px]">
+      <div className="relative text-center lg:text-left flex flex-col items-center lg:items-start">
         <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -72,7 +72,7 @@ export const Hero: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10">
+      <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10 mt-14 lg:mt-0 ">
         <div className="m-[10px] rounded-[28px] border border-gray-800">
           <img src="/images/hero.png" alt="Youtube" />
         </div>
