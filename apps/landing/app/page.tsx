@@ -5,8 +5,10 @@ import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
+import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
+import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Stats } from "@/components/stats";
 import { UsageBento } from "@/components/usage-bento";
 import { cn } from "@/lib/utils";
@@ -63,8 +65,10 @@ export default async function Landing() {
         align="center"
         label="Platform"
       />
-      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+      <div className="max-w-[1200px] mx-auto">
         <AnalyticsBento />
+      </div>
+      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
         <LatencyBento />
         <UsageBento />
       </div>
@@ -85,9 +89,13 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
-      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[1fr_2fr]">
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[2fr_3fr] gap-6">
         <HashedKeysBento />
         <AuditLogsBento />
+      </div>
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[3fr_2fr] gap-6">
+        <IpWhitelistingBento />
+        <RateLimitsBento />
       </div>
       <SectionTitle
         className="mt-20"
