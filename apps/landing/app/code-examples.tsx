@@ -1,7 +1,7 @@
 "use client";
 
 import { SectionTitle } from "@/app/section-title";
-import { Editor, TerminalIcon, theme } from "@/components/analytics/analytics-bento";
+import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
