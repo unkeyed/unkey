@@ -65,8 +65,10 @@ export default async function Landing() {
         align="center"
         label="Platform"
       />
-      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+      <div className="max-w-[1200px] mx-auto">
         <AnalyticsBento />
+      </div>
+      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
         <LatencyBento />
         <UsageBento />
       </div>
