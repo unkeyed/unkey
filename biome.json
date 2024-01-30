@@ -1,5 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.0.0/schema.json",
+  "files": { "maxSize": 1572864 },
   "linter": {
     "enabled": true,
     "rules": {

@@ -28,7 +28,7 @@ type BlogHeroProps = {
   title?: string;
   subTitle?: string;
   author: Author;
-  publishDate?: Date;
+  publishDate?: string;
   className?: string;
 };
 

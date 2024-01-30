@@ -35,7 +35,8 @@ export class DurableUsageLimiter implements UsageLimiter {
       logger.error("usagelimit failed", { error: e });
       return { valid: false };
     } finally {
-      metrics.emit("metric.usagelimit", {
+      metrics.emit({
+        metric: "metric.usagelimit",
         latency: performance.now() - start,
         keyId: req.keyId,
       });

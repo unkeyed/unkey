@@ -1,14 +1,11 @@
-import { Container } from "@/components/container";
-
 import { BlogHeading, BlogSubTitle, BlogTitle } from "@/components/blog-heading";
+import { BlogHero } from "@/components/blog-hero";
+import { Container } from "@/components/container";
 import { MdxContent } from "@/components/mdx-content";
 import { authors } from "@/content/blog/authors";
-import type { Metadata } from "next";
-
-import { notFound } from "next/navigation";
-
-import { BlogHero } from "@/components/blog-hero";
 import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 type Props = {
   params: { slug: string };
@@ -63,7 +60,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
 
   return (
     <>
-      <Container className="scroll-smooth my-8">
+      <Container className="scroll-smooth">
         <BlogHero
           label={"Product"}
           imageUrl="/images/blog-images/ai-post/create-api.png"
