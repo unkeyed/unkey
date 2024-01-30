@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { CreateKey } from "../../create-key";
 
+export const dynamic = "force-dynamic";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 

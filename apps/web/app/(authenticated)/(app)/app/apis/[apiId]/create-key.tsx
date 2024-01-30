@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -41,12 +42,16 @@ const getDatePlusTwoMinutes = () => {
   return futureDate.toISOString().slice(0, -8);
 };
 const formSchema = z.object({
-  bytes: z.coerce.number({
-    errorMap: (issue, { defaultError }) => ({
-      message:
-        issue.code === "invalid_type" ? "Amount must be a number and greater than 0" : defaultError,
-    }),
-  }),
+  bytes: z.coerce
+    .number({
+      errorMap: (issue, { defaultError }) => ({
+        message:
+          issue.code === "invalid_type"
+            ? "Amount must be a number and greater than 0"
+            : defaultError,
+      }),
+    })
+    .default(16),
   prefix: z
     .string()
     .max(8, { message: "Please limit the prefix to under 8 characters." })
@@ -68,10 +73,11 @@ const formSchema = z.object({
           }),
         })
         .int()
-        .positive({ message: "Please enter a positive number" }),
+        .positive({ message: "Please enter a positive number" })
+        .optional(),
       refill: z
         .object({
-          interval: z.enum(["none", "daily", "monthly"]),
+          interval: z.enum(["none", "daily", "monthly"]).default("none"),
           amount: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({
@@ -83,7 +89,8 @@ const formSchema = z.object({
             })
             .int()
             .min(1)
-            .positive(),
+            .positive()
+            .optional(),
         })
         .optional(),
     })
@@ -132,8 +139,13 @@ type Props = {
 };
 
 export const CreateKey: React.FC<Props> = ({ apiId }) => {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: async (data, context, options) => {
+      console.log("formData", data);
+      console.log("validation result", await zodResolver(formSchema)(data, context, options));
+      return zodResolver(formSchema)(data, context, options);
+    },
     mode: "all",
     shouldFocusError: true,
     delayError: 100,
@@ -224,6 +236,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();
     resetLimited();
+    console.log(form.getValues());
   }, []);
 
   return (
@@ -267,7 +280,8 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </Link>
             <Button
               onClick={() => {
-                window.location.reload();
+                key.reset();
+                router.refresh();
               }}
             >
               Create another key
@@ -282,7 +296,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                 <form className="flex flex-col" onSubmit={form.handleSubmit(onSubmit)}>
                   <h2 className="mb-2 text-2xl">Create a new Key</h2>
 
-                  <div className="flex-col gap-y-4 w-full">
+                  <div className="w-full flex-col gap-y-4">
                     <Card className="mb-6">
                       <CardHeader>
                         <CardTitle>Key Details</CardTitle>
@@ -290,7 +304,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </CardHeader>
                       <CardContent className="flex flex-col justify-between">
                         <div className="gap-6 lg:flex">
-                          <div className="flex flex-col max-w-lg">
+                          <div className="flex max-w-lg flex-col">
                             <FormField
                               control={form.control}
                               name="prefix"
@@ -321,7 +335,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             <FormField
                               control={form.control}
                               name="bytes"
-                              rules={{ required: true }}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Bytes</FormLabel>
@@ -373,14 +386,14 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             />
                           </div>
                         </div>
-                        <div className="flex pt-6 flex-wrap justify-between w-full">
-                          <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
+                        <div className="flex w-full flex-wrap justify-between pt-6">
+                          <div className="max-sm:justify-right flex flex-row gap-4 max-md:w-1/2">
                             <FormField
                               control={form.control}
                               name="ratelimitEnabled"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row w-full mt-2 justify-between content-center">
-                                  <FormLabel className="pt-4 px-4">Ratelimit</FormLabel>
+                                <FormItem className="mt-2 flex w-full flex-row content-center justify-between">
+                                  <FormLabel className="px-4 pt-4">Ratelimit</FormLabel>
                                   <FormControl>
                                     <Switch
                                       onCheckedChange={(e) => {
@@ -396,20 +409,17 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             />
                           </div>
 
-                          <div className="flex flex-row gap-4 max-md:w-1/2 max-sm:justify-right">
+                          <div className="max-sm:justify-right flex flex-row gap-4 max-md:w-1/2">
                             <FormField
                               control={form.control}
                               name="limitEnabled"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row w-full mt-2 justify-between content-center">
-                                  <FormLabel className="pt-4 px-4">Limited use</FormLabel>
+                                <FormItem className="mt-2 flex w-full flex-row content-center justify-between">
+                                  <FormLabel className="px-4 pt-4">Limited use</FormLabel>
                                   <FormControl>
                                     <Switch
                                       onCheckedChange={(e) => {
                                         field.onChange(e);
-                                        if (field.value === false) {
-                                          resetLimited();
-                                        }
                                       }}
                                     />
                                   </FormControl>
@@ -418,16 +428,15 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             />
                           </div>
 
-                          <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
+                          <div className="max-sm:justify-right flex flex-row gap-4 max-md:w-1/2 max-sm:pt-4">
                             <FormField
                               control={form.control}
                               name="expireEnabled"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row w-full mt-2 justify-between content-center">
-                                  <FormLabel className="pt-4 px-4">Expiration</FormLabel>
+                                <FormItem className="mt-2 flex w-full flex-row content-center justify-between">
+                                  <FormLabel className="px-4 pt-4">Expiration</FormLabel>
                                   <FormControl>
                                     <Switch
-                                      className=""
                                       onCheckedChange={(e) => {
                                         field.onChange(e);
                                       }}
@@ -438,13 +447,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             />
                           </div>
 
-                          <div className="flex flex-row gap-4 max-sm:pt-4 max-md:w-1/2 max-sm:justify-right">
+                          <div className="max-sm:justify-right flex flex-row gap-4 max-md:w-1/2 max-sm:pt-4">
                             <FormField
                               control={form.control}
                               name="metaEnabled"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row w-full mt-2 justify-between content-center">
-                                  <FormLabel className="pt-4 px-4">Metadata</FormLabel>
+                                <FormItem className="mt-2 flex w-full flex-row content-center justify-between">
+                                  <FormLabel className="px-4 pt-4">Metadata</FormLabel>
                                   <FormControl>
                                     <Switch
                                       onCheckedChange={(e) => {
@@ -460,7 +469,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </CardContent>
                     </Card>
                   </div>
-                  <div className="flex flex-wrap gap-4 mb-4">
+                  <div className="mb-4 flex flex-wrap gap-4">
                     <Card
                       className={cn("h-full max-sm:w-full", {
                         hidden: !form.watch("ratelimitEnabled"),
@@ -473,13 +482,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         <CardDescription>How frequently this key can be used.</CardDescription>
                       </CardHeader>
 
-                      <CardContent className="w-full justify-between item-center">
+                      <CardContent className="item-center w-full justify-between">
                         <div>
                           <FormField
                             control={form.control}
                             name="ratelimit.limit"
                             render={({ field }) => (
-                              <FormItem className="w-full mt-2">
+                              <FormItem className="mt-2 w-full">
                                 <FormLabel>Limit</FormLabel>
                                 <FormControl>
                                   <Input
@@ -502,17 +511,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             control={form.control}
                             name="ratelimit.refillRate"
                             render={({ field }) => (
-                              <FormItem className="w-full mt-4">
+                              <FormItem className="mt-4 w-full">
                                 <FormLabel>Refill Rate</FormLabel>
                                 <FormControl>
-                                  <Input
-                                    placeholder="5"
-                                    type="number"
-                                    {...field}
-                                    value={
-                                      form.getValues("ratelimitEnabled") ? field.value : undefined
-                                    }
-                                  />
+                                  <Input placeholder="5" type="number" {...field} />
                                 </FormControl>
 
                                 <FormMessage />
@@ -523,7 +525,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             control={form.control}
                             name="ratelimit.refillInterval"
                             render={({ field }) => (
-                              <FormItem className="w-full mt-6">
+                              <FormItem className="mt-6 w-full">
                                 <FormLabel>Refill Interval (milliseconds)</FormLabel>
                                 <FormControl>
                                   <Input
@@ -546,7 +548,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         </div>
                       </CardContent>
                       {form.formState.errors.ratelimit && (
-                        <p className="text-xs text-center text-content-alert">
+                        <p className="text-content-alert text-center text-xs">
                           {form.formState.errors.ratelimit.message}
                         </p>
                       )}
@@ -563,7 +565,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           How many times this key can be used before it gets disabled automatically.
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="justify-between item-center">
+                      <CardContent className="item-center justify-between">
                         <div>
                           <FormField
                             control={form.control}
@@ -577,7 +579,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                     className="w-full"
                                     type="number"
                                     {...field}
-                                    value={field.value}
+                                    value={form.getValues("limitEnabled") ? field.value : undefined}
                                   />
                                 </FormControl>
                                 <FormDescription>
@@ -619,8 +621,15 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                             }
                             rules={{
                               validate: (value) => {
-                                if (form.watch("limit.refill.interval") !== "none" && value > 0) {
-                                  return "Please enter a value if interval is selected";
+                                console.log(value);
+                                if (
+                                  form.getValues("limit.refill.interval") !== "none" &&
+                                  (value !== undefined || value <= 0)
+                                ) {
+                                  console.log("invalid state");
+                                  form.setError("limit.refill.amount", {
+                                    message: "Please enter a value if interval is selected",
+                                  });
                                 }
                                 return true;
                               },
@@ -635,7 +644,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                                     className="w-full"
                                     type="number"
                                     {...field}
-                                    value={field.value}
+                                    value={form.getValues("limitEnabled") ? field.value : undefined}
                                   />
                                 </FormControl>
                                 <FormDescription>
@@ -661,9 +670,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent className="justify-between item-center">
+                      <CardContent className="item-center justify-between">
                         <div
-                          className={cn("flex flex-col gap-2 w-full", {
+                          className={cn("flex w-full flex-col gap-2", {
                             "opacity-50": !form.watch("expireEnabled"),
                           })}
                         >
@@ -708,9 +717,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           custom metadata as a JSON object.Format Json
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="justify-between item-center">
+                      <CardContent className="item-center justify-between">
                         <div
-                          className={cn("flex flex-col gap-2 w-full h-full", {
+                          className={cn("flex h-full w-full flex-col gap-2", {
                             "opacity-50": !form.watch("metaEnabled"),
                           })}
                         >
@@ -761,9 +770,9 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                       </CardContent>
                     </Card>
                   </div>
-                  <div className="mr-4 mb-4 flex justify-end">
+                  <div className="mb-4 mr-4 flex justify-end">
                     <Button
-                      disabled={!form.formState.isValid || key.isLoading}
+                      disabled={key.isLoading}
                       type="submit"
                       variant={key.isLoading || !form.formState.isValid ? "disabled" : "primary"}
                     >
