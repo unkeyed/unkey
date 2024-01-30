@@ -1,12 +1,16 @@
 import { Hero } from "@/app/hero";
 import { SectionTitle } from "@/app/section-title";
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
+import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { FeatureGrid } from "@/components/feature/feature-grid";
+import { HashedKeysBento } from "@/components/hashed-keys-bento";
+import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { Stats } from "@/components/stats";
+import { UsageBento } from "@/components/usage-bento";
 import { cn } from "@/lib/utils";
-import { BookOpen, ChevronRight, LogIn } from "lucide-react";
+import { ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CodeExamples } from "./code-examples";
@@ -59,7 +63,11 @@ export default async function Landing() {
         align="center"
         label="Platform"
       />
-      <AnalyticsBento />
+      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-20 grid xl:grid-cols-[1fr_2fr]">
+        <AnalyticsBento />
+        <LatencyBento />
+        <UsageBento />
+      </div>
       <SectionTitle
         className="mt-20"
         title="Unleashing operational security"
@@ -77,6 +85,10 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[1fr_2fr]">
+        <HashedKeysBento />
+        <AuditLogsBento />
+      </div>
       <SectionTitle
         className="mt-20"
         title="Leveled-up API Auth"
