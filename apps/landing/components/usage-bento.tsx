@@ -1,4 +1,4 @@
-import { BillingData } from "@/components/svg/billing-data";
+// import { BillingData } from "@/components/svg/billing-data";
 
 export function UsageBento() {
   return (
@@ -32,9 +32,9 @@ export function BillingItem({ className }: { className?: string }) {
           <path d="M13.5 11.5H2.5M2.5 11.5L5.5 8.5M2.5 11.5L5.5 14.5" stroke="white" />
         </svg>
       </div>
-      <p className="text-white text-sm flex items-center">
+      <p className="flex items-center text-sm text-white">
         Andreas
-        <span className="text-white/40 ml-2">retrieved API usage data</span>
+        <span className="ml-2 text-white/40">retrieved API usage data</span>
         <svg
           className="inline-flex ml-2"
           xmlns="http://www.w3.org/2000/svg"
@@ -46,7 +46,7 @@ export function BillingItem({ className }: { className?: string }) {
           <path d="M5 13L8 15.5L13.5 8.5M11.5 14L13.5 15.5L19.5 8.5" stroke="#3CEEAE" />
         </svg>
       </p>
-      <div className="flex h-full items-center items-center">
+      <div className="flex items-center h-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -57,7 +57,7 @@ export function BillingItem({ className }: { className?: string }) {
           <circle cx="8" cy="8" r="5.5" stroke="white" stroke-opacity="0.25" />
           <path d="M8.5 5V8L10.5 9.5" stroke="white" stroke-opacity="0.25" />
         </svg>
-        <p className="text-white/20 text-sm ml-2">8 ms</p>
+        <p className="ml-2 text-sm text-white/20">8 ms</p>
       </div>
     </div>
   );
@@ -66,7 +66,7 @@ export function BillingItem({ className }: { className?: string }) {
 export function UsageText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[3300px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -82,7 +82,7 @@ export function UsageText() {
             fill-opacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">Usage based billing</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">Usage based billing</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6 max-w-[350px]">
         Commercialise your API, establish transparent billing effortlessly on the Unkey platform for
