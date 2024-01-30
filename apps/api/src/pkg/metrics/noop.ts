@@ -1,7 +1,7 @@
-import { Metric, Metrics } from "./interface";
-
+import { type Metric } from "@unkey/metrics";
+import { Metrics } from "./interface";
 export class NoopMetrics implements Metrics {
-  public emit<TMetric extends keyof Metric>(_metric: TMetric, _e: Metric[TMetric]): Promise<void> {
+  public emit(_metric: Metric): Promise<void> {
     return Promise.resolve();
   }
 

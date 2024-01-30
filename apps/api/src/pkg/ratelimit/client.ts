@@ -47,7 +47,8 @@ export class DurableRateLimiter implements RateLimiter {
         pass: false,
       };
     } finally {
-      metrics.emit("metric.usagelimit", {
+      metrics.emit({
+        metric: "metric.usagelimit",
         latency: performance.now() - start,
         keyId: req.keyId,
       });

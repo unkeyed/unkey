@@ -80,12 +80,18 @@ importers:
       '@unkey/keys':
         specifier: workspace:^
         version: link:../../internal/keys
+      '@unkey/metrics':
+        specifier: workspace:^
+        version: link:../../internal/metrics
       '@unkey/rbac':
         specifier: workspace:^
         version: link:../../internal/rbac
       '@unkey/result':
         specifier: workspace:^
         version: link:../../internal/result
+      '@unkey/zod-queue':
+        specifier: workspace:^
+        version: link:../../internal/zod-queue
       drizzle-orm:
         specifier: ^0.29.2
         version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
@@ -237,6 +243,15 @@ importers:
       '@axiomhq/js':
         specifier: 1.0.0-rc.1
         version: 1.0.0-rc.1
+      '@unkey/metrics':
+        specifier: workspace:^
+        version: link:../../internal/metrics
+      '@unkey/zod-queue':
+        specifier: workspace:^
+        version: link:../../internal/zod-queue
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20231121.0
@@ -653,6 +668,22 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
+  internal/metrics:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.5
+        version: 20.11.5
+      '@unkey/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.2.2
+        version: 5.3.2
+
   internal/rbac:
     dependencies:
       '@unkey/result':
@@ -765,6 +796,25 @@ importers:
       typescript:
         specifier: ^5.0.4
         version: 5.2.2
+
+  internal/zod-queue:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20231121.0
+        version: 4.20231121.0
+      '@types/node':
+        specifier: ^20.11.5
+        version: 20.11.5
+      '@unkey/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.2.2
+        version: 5.3.3
 
   packages/api:
     devDependencies:
@@ -4252,14 +4302,14 @@ packages:
     resolution: {integrity: sha512-bOhuFnlRaS7CU33+rFFIWdcET/Vkyn1vsN8BYFwCDEF5P1fVVvYN7bFOsQLTMD3nvi35C1AGmtqUr/Wfv8Xaow==}
     engines: {node: '>=12'}
     dependencies:
-      '@expo/spawn-async': 1.5.0
+      '@expo/spawn-async': 1.7.2
       exec-async: 2.2.0
 
   /@expo/package-manager@1.4.2:
     resolution: {integrity: sha512-LKdo/6y4W7llZ6ghsg1kdx2CeH/qR/c6QI/JI8oPUvppsZoeIYjSkdflce978fAMfR8IXoi0wt0jA2w0kWpwbg==}
     dependencies:
       '@expo/json-file': 8.3.0
-      '@expo/spawn-async': 1.5.0
+      '@expo/spawn-async': 1.7.2
       ansi-regex: 5.0.1
       chalk: 4.1.2
       find-up: 5.0.0
@@ -5633,6 +5683,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -8712,7 +8763,7 @@ packages:
     dependencies:
       '@mapbox/node-pre-gyp': 1.0.11
       '@rollup/pluginutils': 4.2.1
-      acorn: 8.10.0
+      acorn: 8.11.3
       async-sema: 3.1.1
       bindings: 1.5.0
       estree-walker: 2.0.2
@@ -9171,6 +9222,7 @@ packages:
     resolution: {integrity: sha512-F0SAmZ8iUtS//m8DmCTA0jlh6TDKkHQyK6xc6V4KDTyZKA9dnvX9/3sRTVQrWm79glUAZbnmmNcdYwUIHWVybw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+    dev: true
 
   /acorn@8.11.3:
     resolution: {integrity: sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==}
@@ -15868,6 +15920,10 @@ packages:
     hasBin: true
     dev: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -20353,7 +20409,7 @@ packages:
   /unctx@2.3.1:
     resolution: {integrity: sha512-PhKke8ZYauiqh3FEMVNm7ljvzQiph0Mt3GBRve03IJm7ukfaON2OBK795tLwhbyfzknuRRkW0+Ze+CQUmzOZ+A==}
     dependencies:
-      acorn: 8.10.0
+      acorn: 8.11.3
       estree-walker: 3.0.3
       magic-string: 0.30.5
       unplugin: 1.6.0
