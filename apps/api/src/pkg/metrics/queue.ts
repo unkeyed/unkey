@@ -1,44 +1,30 @@
-import { Env } from "../env";
-import { Metric, Metrics } from "./interface";
+import { Queue } from "@cloudflare/workers-types";
+import { type Metric, metricSchema } from "@unkey/metrics";
+import { BufferQueue } from "@unkey/zod-queue";
+import type { Metrics } from "./interface";
+
 export class QueueMetrics implements Metrics {
-  private readonly defaultFields: Record<string, unknown>;
-  private readonly drain: Env["METRICS"];
-  private promises: Record<string, Promise<void>> = {};
+  private readonly queue: BufferQueue<typeof metricSchema>;
 
   constructor(opts: {
-    drain: Env["METRICS"];
-    defaultFields?: Record<string, unknown>;
+    queue: Queue<Metric[]>;
   }) {
-    this.defaultFields = opts.defaultFields ?? {};
-    this.drain = opts.drain;
+    this.queue = new BufferQueue({
+      queue: opts.queue,
+      queueSendOptions: { contentType: "json" },
+      schema: metricSchema,
+    });
   }
 
-  public emit<TMetric extends keyof Metric>(metric: TMetric, e: Metric[TMetric]): void {
-    const p = this.drain.send(
-      {
-        _time: Date.now(),
-        ...this.defaultFields,
-        metric,
-        ...e,
-      },
-      {
-        contentType: "json",
-      },
-    );
-
-    this.promises[crypto.randomUUID()] = p;
+  public emit(metric: Metric): void {
+    this.queue.buffer(metric);
   }
 
   /**
-   * flush sends the metrics to axiom
-   *
    * Call this at the end of the request handler with .waitUntil()
    */
 
   public async flush(): Promise<void> {
-    for (const id of Object.keys(this.promises)) {
-      await this.promises[id];
-      delete this.promises[id];
-    }
+    await this.queue.flush();
   }
 }

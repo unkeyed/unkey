@@ -34,7 +34,8 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown>> {
       }@${latency}ms`,
     );
     if (this.metrics) {
-      this.metrics.emit("metric.cache.read", {
+      this.metrics.emit({
+        metric: "metric.cache.read",
         hit: typeof cached !== "undefined",
         latency: performance.now() - start,
         tier: this.tier,
@@ -52,7 +53,8 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown>> {
     value: TNamespaces[TName],
   ): void {
     if (this.metrics) {
-      this.metrics.emit("metric.cache.write", {
+      this.metrics.emit({
+        metric: "metric.cache.write",
         tier: this.tier,
         namespace: String(namespace),
         key,
@@ -63,7 +65,8 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown>> {
 
   remove<TName extends keyof TNamespaces>(c: Context, namespace: TName, key: string) {
     if (this.metrics) {
-      this.metrics.emit("metric.cache.purge", {
+      this.metrics.emit({
+        metric: "metric.cache.purge",
         tier: this.tier,
         namespace: String(namespace),
         key,
