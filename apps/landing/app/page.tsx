@@ -2,9 +2,11 @@ import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
+import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { Navigation } from "@/components/navigation";
 import { OpenSource } from "@/components/open-source";
+import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
 import { UsageBento } from "@/components/usage-bento";
@@ -121,9 +123,13 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
-      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[1fr_2fr]">
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[2fr_3fr] gap-6">
         <HashedKeysBento />
         <AuditLogsBento />
+      </div>
+      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[3fr_2fr] gap-6">
+        <IpWhitelistingBento />
+        <RateLimitsBento />
       </div>
       <SectionTitle
         className="mt-[200px]"

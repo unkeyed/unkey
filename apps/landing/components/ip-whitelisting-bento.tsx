@@ -1,15 +1,15 @@
-import { AuditLogs } from "@/components/svg/audit-logs";
+import { IpWhitelisting } from "@/components/svg/ip-whitelisting";
 
-export function AuditLogsBento() {
+export function IpWhitelistingBento() {
   return (
-    <div className="w-full mt-10 relative audit-logs-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
-      <AuditLogs className="h-[400px] w-full ml-[40px]" />
-      <AuditLogsText />
+    <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+      <IpWhitelisting className="h-[500px] w-full" />
+      <IpWhitelistingText />
     </div>
   );
 }
 
-export function AuditLogsText() {
+export function IpWhitelistingText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[350px]">
       <div className="flex w-full items-center">
@@ -28,11 +28,11 @@ export function AuditLogsText() {
             fill-opacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">Audit Logs</h3>
+        <h3 className="text-lg font-medium text-white ml-4">IP Whitelisting</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Maintain detailed audit logs for comprehensive and transparent monitoring, ensuring security
-        and compliance.
+        Ensure secure access control by allowing only designated IP addresses to interact with your
+        system, adding an extra layer of protection.
       </p>
     </div>
   );
