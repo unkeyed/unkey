@@ -42,7 +42,7 @@ function NumbersServed() {
           <div className="h-px flex-auto" />
         </FadeIn>
         <FadeInStagger faster>
-          <Suspense>
+          <Suspense fallback={null}>
             <StatList>
               <StatListItem
                 value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
