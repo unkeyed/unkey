@@ -10,6 +10,7 @@ import { db, schema, sql } from "@/lib/db";
 import { getTotalVerifications } from "@/lib/tinybird";
 import { Github } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   db
@@ -41,24 +42,26 @@ function NumbersServed() {
           <div className="h-px flex-auto" />
         </FadeIn>
         <FadeInStagger faster>
-          <StatList>
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
-              label="Workspaces"
-            />
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
-              label="APIs"
-            />
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
-              label="Keys"
-            />
-            <StatListItem
-              value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
-              label="Verifications"
-            />
-          </StatList>
+          <Suspense>
+            <StatList>
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
+                label="Workspaces"
+              />
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
+                label="APIs"
+              />
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
+                label="Keys"
+              />
+              <StatListItem
+                value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
+                label="Verifications"
+              />
+            </StatList>
+          </Suspense>
         </FadeInStagger>
       </Container>
     </div>
