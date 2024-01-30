@@ -42,6 +42,8 @@ export const metadata = {
   },
 };
 
+export const revalidate = 300;
+
 export default async function Landing() {
   return (
     <div className="container mx-auto">
