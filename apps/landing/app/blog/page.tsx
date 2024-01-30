@@ -70,7 +70,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           title={frontmatter.title}
           subTitle={frontmatter.description}
           author={author}
-          publishDate={new Date(frontmatter.date).toDateString()}
+          publishDate={frontmatter.date}
         />
         <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
           <div className="mx-auto w-full lg:pl-8 ">

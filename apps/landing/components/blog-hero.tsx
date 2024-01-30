@@ -1,8 +1,11 @@
 "use client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Author } from "@/content/blog/authors";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import Image from "next/image";
-import Link from "next/link";
 import { Frame } from "./frame";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function QuestionCircle({ className }: { className?: string }) {
   return (
@@ -13,6 +16,7 @@ export function QuestionCircle({ className }: { className?: string }) {
         stroke="white"
         stroke-linecap="round"
         stroke-linejoin="round"
+        className={className}
       />
     </svg>
   );
@@ -24,8 +28,7 @@ type BlogHeroProps = {
   title?: string;
   subTitle?: string;
   author: Author;
-  publishDate?: string;
-  children?: React.ReactNode;
+  publishDate?: Date;
   className?: string;
 };
 
@@ -36,12 +39,11 @@ export function BlogHero({
   subTitle,
   author,
   publishDate,
-  children,
   className,
 }: BlogHeroProps) {
   return (
-    <div className="flex flex-col lg:flex-row w-full  text-white">
-      <Frame className="h-fit my-auto">
+    <div className={cn("flex flex-col lg:flex-row w-full", className)}>
+      <Frame className="h-fit my-auto shadow-sm">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
       <div className="w-full p-16">
@@ -54,25 +56,30 @@ export function BlogHero({
           <div className="flex flex-col gap-6 text-nowrap">
             <p className="text-white/30 text-sm ">Written by</p>
             <div className="flex flex-row">
-              <Image
-                alt={author.name}
-                src={author.image.src}
-                width={12}
-                height={12}
-                className="h-12 w-12 object-cover grayscale rounded-full"
-              />
-              {/* <p className="text-white text-sm">{}</p> */}
-              {/* Todo: Needs tooltip with authors names
-                  Todo: Needs ability to add multiple authors at some point */}
-              <div className="pt-3 pl-4">
-                <QuestionCircle />
-              </div>
+              {/* Todo: Needs ability to add multiple authors at some point */}
+              <Avatar>
+                <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
+                <AvatarFallback />
+              </Avatar>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger className="pt-1 pl-4">
+                    <QuestionCircle />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="center" sideOffset={5}>
+                    <p>{author.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <div />
             </div>
           </div>
           <div className="flex flex-col gap-6">
             <p className="text-white/30 text-sm">Published on</p>
             <div>
-              <p className="text-white text-sm pt-3">{publishDate!}</p>
+              <p className="text-white text-sm pt-3">
+                {format(new Date(publishDate!), "MMM dd, yyyy")}
+              </p>
             </div>
           </div>
         </div>
