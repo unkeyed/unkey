@@ -1,5 +1,5 @@
 import { Footer } from "@/components/footer/footer";
-import { Navigation } from "@/components/navigation";
+import { Navigation } from "@/components/navbar/navigation";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";

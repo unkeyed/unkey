@@ -10,14 +10,12 @@ const config = {
   ],
   prefix: "",
   theme: {
-    screens: {
-      xxs: "361px",
-      xs: "500px",
-      sm: "640px",
-      md: "840px",
-      lg: "960px",
-      xl: "1440px",
-    },
+    // screens: {
+    //   sm: "360px",
+    //   md: "640px",
+    //   lg: "960px",
+    //   xl: "1440px",
+    // },
     extend: {
       typography: {},
       borderRadius: {
