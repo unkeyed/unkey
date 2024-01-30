@@ -142,8 +142,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
-      console.log("formData", data);
-      console.log("validation result", await zodResolver(formSchema)(data, context, options));
       return zodResolver(formSchema)(data, context, options);
     },
     mode: "all",
@@ -191,13 +189,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill:
-        values.limit?.refill && values.limit.refill.interval !== "none"
-          ? {
-              interval: values.limit.refill.interval,
-              amount: values.limit.refill.amount,
-            }
-          : undefined,
       enabled: true,
     });
   }
@@ -236,7 +227,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();
     resetLimited();
-    console.log(form.getValues());
   }, []);
 
   return (
@@ -281,6 +271,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             <Button
               onClick={() => {
                 key.reset();
+                form.setValue("expireEnabled", false);
+                form.setValue("ratelimitEnabled", false);
+                form.setValue("metaEnabled", false);
+                form.setValue("limitEnabled", false);
                 router.refresh();
               }}
             >
@@ -619,21 +613,6 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                               form.watch("limit.refill.interval") === "none" ||
                               form.watch("limit.refill.interval") === undefined
                             }
-                            rules={{
-                              validate: (value) => {
-                                console.log(value);
-                                if (
-                                  form.getValues("limit.refill.interval") !== "none" &&
-                                  (value !== undefined || value <= 0)
-                                ) {
-                                  console.log("invalid state");
-                                  form.setError("limit.refill.amount", {
-                                    message: "Please enter a value if interval is selected",
-                                  });
-                                }
-                                return true;
-                              },
-                            }}
                             name="limit.refill.amount"
                             render={({ field }) => (
                               <FormItem className="mt-4">
