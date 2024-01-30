@@ -69,6 +69,7 @@ export type UnkeyContext = {
     | "USAGE_EXCEEDED"
     | "UNAUTHORIZED"
     | "DISABLED"
+    | "INSUFFICIENT_PERMISSIONS"
     | undefined;
 };
 
