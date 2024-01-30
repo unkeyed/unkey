@@ -3,10 +3,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { Activity, BookOpen, Code, Crown, LucideIcon, Settings } from "lucide-react";
+import { Activity, BookOpen, Code, Crown, Loader2, LucideIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import React from "react";
+import { useRouter } from "next/navigation";
+import React, { useTransition } from "react";
 import { WorkspaceSwitcher } from "./team-switcher";
 import { UserButton } from "./user-button";
 type Props = {
@@ -82,7 +83,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside className={cn("fixed inset-y-0 w-64 px-6 z-10", className)}>
-      <div className="flex -mx-2 mt-4 min-w-full">
+      <div className="flex min-w-full mt-4 -mx-2">
         <WorkspaceSwitcher />
       </div>
       <nav className="flex flex-col flex-1 flex-grow mt-4">
@@ -100,7 +101,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
           <li>
             <h2 className="text-xs font-semibold leading-6 text-content">Your APIs</h2>
             {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
-            <ScrollArea className="mt-2 max-h-64 -mx-2 space-y-1 overflow-auto">
+            <ScrollArea className="mt-2 -mx-2 space-y-1 overflow-auto max-h-64">
               {workspace.apis.map((api) => (
                 <Tooltip key={api.id}>
                   <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
@@ -127,9 +128,17 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 };
 
 const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const link = (
     <Link
+      prefetch
       href={item.href}
+      onClick={() =>
+        startTransition(() => {
+          router.push(item.href);
+        })
+      }
       target={item.external ? "_blank" : undefined}
       className={cn(
         "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 justify-between",
@@ -139,11 +148,15 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
         },
       )}
     >
-      <div className="group flex gap-x-2">
+      <div className="flex group gap-x-2">
         <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
-          <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+          {isPending ? (
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+          ) : (
+            <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+          )}
         </span>
-        <p className="whitespace-nowrap truncate">{item.label}</p>
+        <p className="truncate whitespace-nowrap">{item.label}</p>
       </div>
       {item.tag}
     </Link>

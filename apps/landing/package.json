@@ -11,19 +11,22 @@
   "dependencies": {
     "@chronark/zod-bird": "^0.3.3",
     "@planetscale/database": "^1.11.0",
+    "@radix-ui/react-avatar": "^1.0.3",
     "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-tooltip": "^1.0.6",
     "@unkey/db": "workspace:^",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "date-fns": "^3.2.0",
     "drizzle-orm": "^0.29.1",
     "framer-motion": "10.16.2",
     "geist": "^1.2.1",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.314.0",
     "next": "14.1.0",
-    "prism-react-renderer": "^2.3.1",
     "next-mdx-remote": "^4.4.1",
+    "prism-react-renderer": "^2.3.1",
     "react": "^18",
     "react-dom": "^18",
     "rehype-autolink-headings": "^7.1.0",
@@ -38,12 +41,13 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "autoprefixer": "^10.0.1",
     "postcss": "^8",
-    "tailwindcss": "^3.3.0",
+    "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
 }
