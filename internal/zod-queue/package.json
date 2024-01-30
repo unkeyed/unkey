@@ -1,0 +1,19 @@
+{
+  "name": "@unkey/zod-queue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231121.0",
+    "@types/node": "^20.11.5",
+    "@unkey/tsconfig": "workspace:*",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
+}
