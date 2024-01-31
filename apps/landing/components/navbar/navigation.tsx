@@ -19,8 +19,8 @@ export function Navigation() {
         <Link href="/">
           <Logo className="min-w-[50px]" />
         </Link>
-        <MobileLinks className="md:hidden" />
-        <DesktopLinks className="hidden md:flex" />
+        <MobileLinks className="lg:hidden" />
+        <DesktopLinks className="hidden lg:flex" />
       </div>
       <div className="hidden sm:flex">
         <Link href="/auth/sign-up">
@@ -90,7 +90,7 @@ const MobileLinks: React.FC<{ className: string }> = ({ className }) => (
 );
 
 const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
-  <ul className={cn("items-center hidden gap-8 md:flex xl:gap-12", className)}>
+  <ul className={cn("items-center hidden gap-8 lg:flex xl:gap-12", className)}>
     <DesktopNavLink href="/about" label="About" />
     <DesktopNavLink href="/blog" label="Blog" />
     <DesktopNavLink href="/pricing" label="Pricing" />
