@@ -17,7 +17,7 @@
     "@radix-ui/react-tooltip": "^1.0.6",
     "@unkey/db": "workspace:^",
     "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0",
+    "clsx": "^2.1.0",
     "date-fns": "^3.2.0",
     "drizzle-orm": "^0.29.1",
     "framer-motion": "10.16.2",
