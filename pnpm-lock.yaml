@@ -894,8 +894,8 @@ importers:
         version: 6.1.4
     devDependencies:
       '@nuxt/module-builder':
-        specifier: ^0.5.2
-        version: 0.5.2(@nuxt/kit@3.8.0)(nuxi@3.10.0)(typescript@5.3.3)
+        specifier: ^0.5.5
+        version: 0.5.5(@nuxt/kit@3.8.0)(nuxi@3.10.0)(typescript@5.3.3)
       '@nuxt/schema':
         specifier: ^3.8.0
         version: 3.8.0(rollup@3.29.4)
@@ -5202,12 +5202,12 @@ packages:
       - supports-color
     dev: true
 
-  /@nuxt/module-builder@0.5.2(@nuxt/kit@3.8.0)(nuxi@3.10.0)(typescript@5.3.3):
-    resolution: {integrity: sha512-MsnPTsa94VNrzV76RKCDS0C96uaKw9s3EbTtabI/BkAXOD4Ud1w6m0O20XUdI9tmRtE8Kbgyr4XUhD/YB3eeAw==}
+  /@nuxt/module-builder@0.5.5(@nuxt/kit@3.8.0)(nuxi@3.10.0)(typescript@5.3.3):
+    resolution: {integrity: sha512-ifFfwA1rbSXSae25RmqA2kAbV3xoShZNrq1yK8VXB/EnIcDn4WiaYR1PytaSxIt5zsvWPn92BJXiIUBiMQZ0hw==}
     hasBin: true
     peerDependencies:
-      '@nuxt/kit': ^3.7.4
-      nuxi: ^3.9.0
+      '@nuxt/kit': ^3.8.2
+      nuxi: ^3.10.0
     dependencies:
       '@nuxt/kit': 3.8.0(rollup@3.29.4)
       citty: 0.1.5
