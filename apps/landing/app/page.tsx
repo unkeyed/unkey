@@ -72,15 +72,13 @@ export default async function Landing() {
         align="center"
         label="Platform"
       />
-      <div className="max-w-[1200px] mx-auto">
-        <AnalyticsBento />
-      </div>
-      <div className="max-w-[1200px] mx-auto items-center flex-col lg:flex-row mt-6 grid xl:grid-cols-[1fr_2fr] gap-6 z-50">
+      <AnalyticsBento />
+      <div className="mt-6 grid xl:grid-cols-[1fr_2fr] gap-6 z-50">
         <LatencyBento />
         <UsageBento />
       </div>
       <div className="relative w-full -z-10">
-        <OssLight className="absolute left-[500px] top-[-200px]" />
+        <OssLight className="absolute left-[400px] top-[-200px]" />
       </div>
       <SectionTitle
         className="mt-[300px]"
@@ -101,35 +99,33 @@ export default async function Landing() {
           </Link>
         </div>
       </SectionTitle>
-      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[2fr_3fr] gap-6">
+      <div className="grid xl:grid-cols-[2fr_3fr] gap-6">
         <HashedKeysBento />
         <AuditLogsBento />
       </div>
-      <div className="max-w-[1200px] mx-auto grid xl:grid-cols-[3fr_2fr] gap-6">
+      <div className=" grid xl:grid-cols-[3fr_2fr] gap-6">
         <IpWhitelistingBento />
         <RateLimitsBento />
       </div>
-      <div className="max-w-[1200px] mx-auto">
-        <SectionTitle
-          className="mt-[400px] ml-10"
-          title="Leveled-up API Auth"
-          titleWidth={719}
-          contentWidth={557}
-          text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
-          label="More"
-        >
-          <div className="flex mt-10 mb-10 space-x-6">
-            <Link href="/app" className="group">
-              <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
-            </Link>
+      <SectionTitle
+        className="mt-[400px] ml-10"
+        title="Leveled-up API Auth"
+        titleWidth={719}
+        contentWidth={557}
+        text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+        label="More"
+      >
+        <div className="flex mt-10 mb-10 space-x-6">
+          <Link href="/app" className="group">
+            <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+          </Link>
 
-            <Link href="/docs">
-              <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
-            </Link>
-          </div>
-        </SectionTitle>
-      </div>
-      <FeatureGrid className="mt-20 max-w-[1200px] mx-auto" />
+          <Link href="/docs">
+            <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
+          </Link>
+        </div>
+      </SectionTitle>
+      <FeatureGrid className="mt-20" />
       <SectionTitle
         align="center"
         className="mt-[200px]"

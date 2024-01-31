@@ -10,6 +10,13 @@ const config = {
   ],
   prefix: "",
   theme: {
+    container: {
+      padding: {
+        DEFAULT: "16px",
+        sm: "26px",
+        md: "72px",
+      },
+    },
     screens: {
       xxs: "361px",
       xs: "500px",

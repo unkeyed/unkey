@@ -8,12 +8,12 @@ import { OssLight } from "./svg/oss-light";
 
 export function OpenSource() {
   return (
-    <div className="pt-[00px] flex items-center flex-col md:flex-row justify-center relative">
+    <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
       {/* TODO: add additional line SVGs from Figma – current export is broken */}
       <div className="absolute top-[-460px] md:right-[240px] z-[-1]">
         <OssLight />
       </div>
-      <div className="flex flex-col items-center xl:flex-row ">
+      <div className="flex flex-col items-center xl:flex-row xl:w-full xl:justify-between">
         <SectionTitle
           align="left"
           title="Empowering the community"

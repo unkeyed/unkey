@@ -50,7 +50,7 @@ const codeBlock = `    curl --request GET \\
 export function AnalyticsBento() {
   return (
     <div className="flex justify-center">
-      <div className="bg-[#111111]/60 mt-[80px] xl:w-[1280px] h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+      <div className="bg-[#111111]/60 mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
         <LightSvg className="absolute left-[250px] top-[-150px]" />
         <div className="xl:w-[1120px] overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
           <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/20">
