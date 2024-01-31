@@ -11,8 +11,6 @@ export interface Env {
 }
 
 export default {
-  // The queue handler is invoked when a batch of messages is ready to be delivered
-  // https://developers.cloudflare.com/queues/platform/javascript-apis/#messagebatch
   async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
     switch (batch.queue) {
       case "metrics-development":
@@ -33,7 +31,7 @@ export default {
 
 async function flushMetrics(batch: MessageBatch<unknown>, env: Env) {
   const q = new BufferQueue({ queue: env.METRICS, schema: metricSchema });
-  const { messages, retryAll, ackAll } = q.unpack(batch as MessageBatch<Metric[]>);
+  const { messages } = q.unpack(batch as MessageBatch<Metric[]>);
 
   const queueToDataset: Record<string, string> = {
     "metrics-development": "cf_api_metrics_development",
@@ -52,11 +50,11 @@ async function flushMetrics(batch: MessageBatch<unknown>, env: Env) {
     .flush()
     .then(() => {
       console.log(`Ingested ${messages.length} into ${dataset} on axiom`);
-      ackAll();
+      batch.ackAll();
     })
     .catch((err) => {
       console.error(err);
-      retryAll();
+      batch.retryAll();
     });
 }
 
@@ -69,7 +67,7 @@ async function flushLogs(batch: MessageBatch<unknown>, env: Env) {
     .passthrough();
 
   const q = new BufferQueue({ queue: env.METRICS, schema });
-  const { messages, retryAll, ackAll } = q.unpack(batch as MessageBatch<z.infer<typeof schema>[]>);
+  const { messages } = q.unpack(batch as MessageBatch<z.infer<typeof schema>[]>);
 
   const queueToDataset: Record<string, string> = {
     "logs-development": "cf_api_logs_development",
@@ -88,10 +86,10 @@ async function flushLogs(batch: MessageBatch<unknown>, env: Env) {
     .flush()
     .then(() => {
       console.log(`Ingested ${messages.length} into ${dataset} on axiom`);
-      ackAll();
+      batch.ackAll();
     })
     .catch((err) => {
       console.error(err);
-      retryAll();
+      batch.retryAll();
     });
 }
