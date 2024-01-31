@@ -14,7 +14,7 @@ import { type IO, eventTrigger } from "@trigger.dev/sdk";
 
 import Stripe from "stripe";
 
-client.defineJob({
+export const createInvoiceJob = client.defineJob({
   id: "billing.invoicing.createInvoice",
   name: "Collect usage and create invoice",
   version: "0.0.2",
@@ -74,6 +74,18 @@ client.defineJob({
         .then((invoice) => invoice.id),
     );
 
+    let prorate: number | undefined = undefined;
+    if (
+      workspace.planChanged &&
+      workspace.planChanged.getUTCFullYear() === year &&
+      workspace.planChanged.getUTCMonth() === month
+    ) {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 1);
+      prorate =
+        (workspace.planChanged.getTime() - start.getTime()) / (end.getTime() - start.getTime());
+    }
+
     if (workspace.subscriptions?.plan) {
       await createFixedCostInvoiceItem({
         stripe,
@@ -82,6 +94,7 @@ client.defineJob({
         io,
         name: "Pro plan",
         sub: workspace.subscriptions.plan,
+        prorate,
       });
     }
 
@@ -146,6 +159,7 @@ client.defineJob({
         io,
         name: "Professional Support",
         sub: workspace.subscriptions.support,
+        prorate,
       });
     }
 
@@ -162,6 +176,7 @@ async function createFixedCostInvoiceItem({
   stripeCustomerId,
   name,
   sub,
+  prorate,
 }: {
   stripe: Stripe;
   invoiceId: string;
@@ -169,6 +184,11 @@ async function createFixedCostInvoiceItem({
   stripeCustomerId: string;
   name: string;
   sub: FixedSubscription;
+  /**
+   * number between 0 and 1 to indicate how much to charge
+   * if they have had a fixed cost item for 15/30 days, this should be 0.5
+   */
+  prorate?: number;
 }): Promise<void> {
   await io.runTask(name, async () => {
     await stripe.invoiceItems.create({
@@ -178,10 +198,11 @@ async function createFixedCostInvoiceItem({
       price_data: {
         currency: "usd",
         product: sub.productId,
-        unit_amount_decimal: sub.cents,
+        unit_amount_decimal:
+          typeof prorate === "number" ? (parseInt(sub.cents) * prorate).toFixed(2) : sub.cents,
       },
       currency: "usd",
-      description: name,
+      description: typeof prorate === "number" ? `${name} (Prorated)` : name,
     });
   });
 }

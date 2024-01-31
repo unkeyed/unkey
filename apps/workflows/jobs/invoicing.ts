@@ -1,6 +1,7 @@
 import { connectDatabase } from "@/lib/db";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
+import { createInvoiceJob } from ".";
 
 client.defineJob({
   id: "billing.invoicing",
@@ -38,17 +39,21 @@ client.defineJob({
     const year = t.getUTCFullYear();
     const month = t.getUTCMonth() + 1; // months are 0 indexed
 
-    await io.sendEvents(
-      "delegate invoicing",
-      workspaces.map((w) => ({
-        name: "billing.invoicing.createInvoice",
+    await createInvoiceJob.batchInvokeAndWaitForCompletion(
+      "invoice workspaces",
+      workspaces.map((ws) => ({
         payload: {
-          workspaceId: w.id,
+          workspaceId: ws.id,
           year,
           month,
         },
       })),
     );
+
+    await io.sendEvent("downgrade", {
+      name: "billing.downgrade",
+    });
+
     return {
       workspaceIds: workspaces.map((w) => w.id),
     };
