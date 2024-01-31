@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 .section-title-heading-gradient {
-  background: linear-gradient(86deg, #FFF 27.24%, rgba(255, 255, 255, 0.30) 56.97%);
+  background: linear-gradient(
+    86deg,
+    #fff 27.24%,
+    rgba(255, 255, 255, 0.3) 56.97%
+  );
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -11,20 +15,30 @@
 
 .stats-border-gradient {
   background: linear-gradient(black, black) padding-box,
-              linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1)) border-box;
+    linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1))
+      border-box;
   border-radius: 32px;
-  border: .75px solid transparent;
+  border: 0.75px solid transparent;
 }
 
 .stats-number-gradient {
-  background: linear-gradient(to right, #FFF 0%, #FFF 20%, rgba(255, 255, 255, 0.30) 40%);
+  background: linear-gradient(
+    to right,
+    #fff 0%,
+    #fff 20%,
+    rgba(255, 255, 255, 0.3) 40%
+  );
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .analytics-background-gradient::before {
-  background: radial-gradient(300% 82.5% at 10.25% 100%, black, rgba(200, 200, 200, 0.1));
+  background: radial-gradient(
+    300% 82.5% at 10.25% 100%,
+    black,
+    rgba(200, 200, 200, 0.1)
+  );
   content: "";
   border-top-right-radius: 24px;
   border-top-left-radius: 24px;
@@ -36,29 +50,52 @@
 }
 
 .blog-heading-gradient {
-  background: linear-gradient(100.35deg, #FFFFFF 0%, #FFFFFF 37.45%, rgba(255, 255, 255, 0.3) 74.9%);
+  background: linear-gradient(
+    100.35deg,
+    #ffffff 0%,
+    #ffffff 37.45%,
+    rgba(255, 255, 255, 0.3) 74.9%
+  );
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .usage-item-gradient {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%), #000;
+  background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    ),
+    #000;
 }
 
 .billing-border-link {
   position: relative;
 }
 
-.billing-border-link::after {
-  content: '';
-  height: 24px; 
-  width: 1px;
-  position: absolute;
-  left: 30px;
-  top: 56px;
-  background: rgba(255, 255, 255, 0.20);
+blockquote > p {
+  padding-left: 0 !important;
+  margin: 0 !important;
 }
+  .billing-border-link::after {
+    content: "";
+    height: 24px;
+    width: 1px;
+    position: absolute;
+    left: 30px;
+    top: 56px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .audit-logs-bg-gradient {
+    background: linear-gradient(
+        180deg,
+        rgba(17, 17, 17, 0.7) 0%,
+        rgba(0, 0, 0, 0.5) 100%
+      ),
+      #000;
+  }
 
 .audit-logs-bg-gradient {
   background: linear-gradient(180deg, rgba(17, 17, 17, 0.90) 0%, rgba(0, 0, 0, 0.50) 100%), #000;

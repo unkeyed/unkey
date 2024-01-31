@@ -125,7 +125,10 @@ test("list keys does not return revoked keys", async () => {
           keyId: createKeyResponse.body.keyId,
         },
       });
-      expect(deleteKeyResponse.status).toEqual(200);
+      expect(
+        deleteKeyResponse.status,
+        `status mismatch - ${JSON.stringify(deleteKeyResponse)}`,
+      ).toEqual(200);
       deletedKeyIds.push(createKeyResponse.body.keyId);
     } else {
       activeKeyIds.push(createKeyResponse.body.keyId);

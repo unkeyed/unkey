@@ -2,6 +2,7 @@
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import Image from "next/image";
 import { BlogList, BlogListItem } from "./blog-list";
+import { BlogQuote } from "./blog-quote";
 import { Alert } from "./ui/alert/alert";
 type MdxContentProps = {
   source: MDXRemoteSerializeResult;
@@ -11,6 +12,8 @@ type MdxContentProps = {
 const MdxComponents = {
   Image: Image,
   Callout: Alert,
+  blockquote: (props: any) => BlogQuote(props),
+  BlogQuote: (props: any) => BlogQuote(props),
   a: (props: any) => <a {...props} className="text-blue-500" />,
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
