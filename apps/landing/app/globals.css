@@ -158,3 +158,41 @@ blockquote > p {
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;
 }
+
+
+.feature-grid {
+  --gap: 2rem;
+  --line-offset: calc(var(--gap) / 2);
+  --line-thickness: .75px;
+  --line-color: #1C1A1A;
+  
+   display: grid;
+   grid-template-columns: repeat(1, minmax(0, 1fr));
+   overflow: hidden;
+   gap: var(--gap);
+}
+
+.grid__item {
+   position: relative;
+}
+
+.grid__item::before, 
+.grid__item::after {
+   content: '';
+   position: absolute;
+   background-color: var(--line-color);
+   z-index: 1;
+}
+
+.grid__item::after {
+  inline-size: 100vw;
+  block-size: var(--line-thickness);
+  inset-inline-start: 0;
+  inset-block-start: calc(var(--line-offset) * -1);
+}
+
+@media only screen and (min-width: 840px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
