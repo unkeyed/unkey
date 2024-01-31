@@ -68,6 +68,11 @@ export const workspaces = mysqlTable(
     // prevent plan changes for a certain time, should be 1 day
     // deprecated, use planChanged
     planLockedUntil: datetime("plan_locked_until", { fsp: 3 }),
+    /**
+     * If a user requests to downgrade, we mark the workspace and downgrade it after the next
+     * billing happened.
+     */
+    planDowngradeRequest: mysqlEnum("plan_downgrade_request", ["free"]),
     planChanged: datetime("plan_changed", { fsp: 3 }),
     subscriptions: json("subscriptions").$type<Subscriptions>(),
   },
