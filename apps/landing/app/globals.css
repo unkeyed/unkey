@@ -33,6 +33,10 @@
   -webkit-text-fill-color: transparent;
 }
 
+.editor-top-gradient {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.00) 50%, rgba(255, 255, 255, 0.00) 100%), #000;
+}
+
 .analytics-background-gradient::before {
   background: radial-gradient(
     300% 82.5% at 10.25% 100%,

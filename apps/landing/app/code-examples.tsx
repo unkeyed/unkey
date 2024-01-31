@@ -380,7 +380,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       value={value}
       onClick={() => setLanguage(value as Language)}
       className={cn(
-        "inline-flex items-center gap-1 justify-center whitespace-nowrap border-b-0 rounded-t-lg px-3 py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border-t border-l border-r text-white/50 data-[state=active]:text-white border-white/25 data-[state=active]:border-white/30 font-light",
+        "inline-flex items-center gap-1 justify-center whitespace-nowrap border-b-0 rounded-t-lg px-3 py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border-t border-l border-r text-white/30 data-[state=active]:text-white border-white/25 data-[state=active]:border-white/30 font-light",
         className,
       )}
       {...props}
@@ -413,7 +413,10 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         <HighlightAbove className="absolute bottom-0 w-full mx-auto pointer-events-none" />
       </SectionTitle>
       <div className="w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-t from-black to-[#111111]">
-        <Tabs defaultValue={language} className="flex items-end h-16 px-4 border-b border-white/10">
+        <Tabs
+          defaultValue={language}
+          className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
+        >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
               <TSIcon />
