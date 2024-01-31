@@ -1,4 +1,5 @@
 "use client";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
@@ -81,11 +82,28 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     });
   }
 
+  const firstOfNextMonth = new Date();
+  firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1);
+  firstOfNextMonth.setDate(1);
+
   return (
     <aside className={cn("fixed inset-y-0 w-64 px-6 z-10", className)}>
       <div className="flex min-w-full mt-4 -mx-2">
         <WorkspaceSwitcher />
       </div>
+      {workspace.planDowngradeRequest ? (
+        <div className="flex justify-center w-full mt-2">
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge size="sm">Subscription ending</Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              Your plan is schedueld to be downgraded to the {workspace.planDowngradeRequest} tier
+              on {firstOfNextMonth.toDateString()}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      ) : null}
       <nav className="flex flex-col flex-1 flex-grow mt-4">
         <ul className="flex flex-col flex-1 gap-y-7">
           <li>
