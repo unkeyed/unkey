@@ -83,8 +83,8 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         title="Any language, any framework, always secure"
         text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
         align="center"
-        titleWidth={743}
-        contentWidth={741}
+        titleWidth={543}
+        contentWidth={591}
         className="relative py-20 "
       >
         <div className="mt-10">

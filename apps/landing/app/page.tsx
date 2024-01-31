@@ -67,7 +67,7 @@ export default async function Landing() {
         className="mt-[300px]"
         title="Efficient integration and process, always"
         titleWidth={743}
-        contentWidth={741}
+        contentWidth={641}
         text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
         align="center"
         label="Platform"
@@ -85,8 +85,8 @@ export default async function Landing() {
       <SectionTitle
         className="mt-[300px]"
         titleWidth={743}
-        contentWidth={741}
-        title="Unleashing operational security"
+        contentWidth={581}
+        title="Unleashing Operational security"
         text="Unkey enables operational security with innovative open-source contributions, secure API validation, and automated access control for global developers."
         align="center"
         label="Protection"
@@ -114,7 +114,7 @@ export default async function Landing() {
           className="mt-[400px] ml-10"
           title="Leveled-up API Auth"
           titleWidth={719}
-          contentWidth={717}
+          contentWidth={557}
           text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
           label="More"
         >
