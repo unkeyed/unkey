@@ -1,6 +1,7 @@
 import { Axiom } from "@axiomhq/js";
+import type { Metric } from "@unkey/metrics";
 import { Env } from "../env";
-import { Metric, Metrics } from "./interface";
+import { Metrics } from "./interface";
 export class AxiomMetrics implements Metrics {
   private readonly axiomDataset: string;
   private readonly ax: Axiom;
@@ -22,13 +23,12 @@ export class AxiomMetrics implements Metrics {
     this.defaultFields = opts.defaultFields ?? {};
   }
 
-  public emit<TMetric extends keyof Metric>(metric: TMetric, e: Metric[TMetric]): void {
+  public emit(metric: Metric): void {
     this.ax.ingest(this.axiomDataset, [
       {
         _time: Date.now(),
         ...this.defaultFields,
         metric,
-        ...e,
       },
     ]);
   }

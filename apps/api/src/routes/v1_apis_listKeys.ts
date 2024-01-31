@@ -6,7 +6,7 @@ import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
 const route = createRoute({
@@ -66,7 +66,7 @@ export const registerV1ApisListKeys = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or, and }) =>
+      buildUnkeyQuery(({ or, and }) =>
         or(
           "*",
           and(

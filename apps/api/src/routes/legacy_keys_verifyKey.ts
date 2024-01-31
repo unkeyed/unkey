@@ -117,6 +117,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                 "RATE_LIMITED",
                 "UNAUTHORIZED",
                 "DISABLED",
+                "INSUFFICIENT_PERMISSIONS",
               ])
               .optional()
               .openapi({
@@ -126,6 +127,7 @@ Possible values are:
 - FORBIDDEN: the key is not allowed to access the api
 - USAGE_EXCEEDED: the key has exceeded its request limit
 - RATE_LIMITED: the key has been ratelimited,
+- INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
 `,
                 example: "NOT_FOUND",
               }),

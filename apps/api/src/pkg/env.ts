@@ -1,5 +1,5 @@
+import type { Metric } from "@unkey/metrics";
 import { z } from "zod";
-import type { Metric } from "./metrics";
 
 export const zEnv = z.object({
   VERSION: z.string().default("unknown"),
@@ -17,9 +17,7 @@ export const zEnv = z.object({
 
   LOGS: z.custom<Queue<any>>((ns) => typeof ns === "object"),
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object"),
-  METRICS: z.custom<Queue<{ metric: keyof Metric; _time: number } & Metric[keyof Metric]>>(
-    (ns) => typeof ns === "object",
-  ),
+  METRICS: z.custom<Queue<Metric[]>>((ns) => typeof ns === "object"),
 });
 
 export type Env = z.infer<typeof zEnv>;

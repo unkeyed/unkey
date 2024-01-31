@@ -8,24 +8,41 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.workspaces)
-    .then((res) => res.at(0)?.count ?? 0),
+    .then((res) => res.at(0)?.count ?? 0)
+    .catch((err) => {
+      console.error(err);
+      return 0;
+    }),
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.apis)
-    .then((res) => res.at(0)?.count ?? 0),
+    .then((res) => res.at(0)?.count ?? 0)
+    .catch((err) => {
+      console.error(err);
+      return 0;
+    }),
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.keys)
-    .then((res) => res.at(0)?.count ?? 0),
-  getTotalVerifications({}).then((res) => {
-    return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
-  }),
+    .then((res) => res.at(0)?.count ?? 0)
+    .catch((err) => {
+      console.error(err);
+      return 0;
+    }),
+  getTotalVerifications({})
+    .then((res) => {
+      return res.data.reduce((acc, curr) => acc + curr.verifications, 0);
+    })
+    .catch((err) => {
+      console.error(err);
+      return 0;
+    }),
   { next: { revalidate: 3600 } },
 ]);
 
 export function Stats() {
   return (
-    <div className="w-full flex justify-center xs:px-10">
+    <div className="flex justify-center w-full sm:px-10">
       <div className="w-full rounded-4xl my-20 py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white max-w-[1096px]">
         <Container>
           <FadeInStagger faster>

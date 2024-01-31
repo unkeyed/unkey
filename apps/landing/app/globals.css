@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 .section-title-heading-gradient {
-  background: linear-gradient(86deg, #FFF 27.24%, rgba(255, 255, 255, 0.30) 56.97%);
+  background: linear-gradient(
+    86deg,
+    #fff 27.24%,
+    rgba(255, 255, 255, 0.3) 56.97%
+  );
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -11,22 +15,130 @@
 
 .stats-border-gradient {
   background: linear-gradient(black, black) padding-box,
-              linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1)) border-box;
+    linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1))
+      border-box;
   border-radius: 32px;
-  border: .75px solid transparent;
+  border: 0.75px solid transparent;
 }
 
 .stats-number-gradient {
-  background: linear-gradient(to right, #FFF 0%, #FFF 20%, rgba(255, 255, 255, 0.30) 40%);
+  background: linear-gradient(
+    to right,
+    #fff 0%,
+    #fff 20%,
+    rgba(255, 255, 255, 0.3) 40%
+  );
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
+.analytics-background-gradient::before {
+  background: radial-gradient(
+    300% 82.5% at 10.25% 100%,
+    black,
+    rgba(200, 200, 200, 0.1)
+  );
+  content: "";
+  border-top-right-radius: 24px;
+  border-top-left-radius: 24px;
+  position: absolute;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+}
+
 .blog-heading-gradient {
-  background: linear-gradient(100.35deg, #FFFFFF 0%, #FFFFFF 37.45%, rgba(255, 255, 255, 0.3) 74.9%);
+  background: linear-gradient(
+    100.35deg,
+    #ffffff 0%,
+    #ffffff 37.45%,
+    rgba(255, 255, 255, 0.3) 74.9%
+  );
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
 
+.usage-item-gradient {
+  background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    ),
+    #000;
+}
+
+.billing-border-link {
+  position: relative;
+}
+
+blockquote > p {
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
+  .billing-border-link::after {
+    content: "";
+    height: 24px;
+    width: 1px;
+    position: absolute;
+    left: 30px;
+    top: 56px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .audit-logs-bg-gradient {
+    background: linear-gradient(
+        180deg,
+        rgba(17, 17, 17, 0.7) 0%,
+        rgba(0, 0, 0, 0.5) 100%
+      ),
+      #000;
+  }
+
+.audit-logs-bg-gradient {
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0.90) 0%, rgba(0, 0, 0, 0.50) 100%), #000;
+}
+
+.ip-whitelisting-bg-gradient {
+  background: radial-gradient(78.93% 63.85% at 50% 29.44%,  rgba(17, 17, 17, 0.90) 0%, rgba(17, 17, 17, 0.50) 54.3%, rgba(255, 255, 255, 0.00) 79.35%);
+}
+
+.ip-blur-gradient::before {
+  background: radial-gradient(300% 82.5% at 10.25% 100%, black, rgba(200, 200, 200, 0));
+  content: "";
+  border-top-right-radius: 24px;
+  border-top-left-radius: 24px;
+  position: absolute;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+}
+
+.ratelimits-editor-bg-gradient {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.00) 50%, rgba(255, 255, 255, 0.06) 100%);
+}
+
+.ratelimits-editor-bg-gradient-2 {
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.00) 95.37%), #000;
+}
+
+.ratelimits-bar-shadow {
+  box-shadow: 0px 0px 12px 4px rgba(255, 255, 255, 0.30);
+}
+
+.ratelimits-key-gradient {
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(2px);
+}
+
+.ratelimits-key-icon {
+  fill: linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.15) 100%), #3CEEAE;
+  stroke-width: 0.75px;
+  stroke: rgba(255, 255, 255, 0.10);
+  filter: drop-shadow(0px 0px 30px #3CEEAE);
+  height: 100%;
+  opacity: 1;
 }

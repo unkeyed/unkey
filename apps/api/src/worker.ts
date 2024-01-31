@@ -2,8 +2,8 @@ import { Env, zEnv } from "@/pkg/env";
 import { analytics, init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
 import { newId } from "@unkey/id";
+import type { Metric } from "@unkey/metrics";
 import { cors } from "hono/cors";
-import { Metric } from "./pkg/metrics";
 
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
@@ -43,6 +43,7 @@ app.get("/routes", (c) => {
     })),
   );
 });
+type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
 app.use("*", async (c, next) => {
   // logger.info("request", {
@@ -51,6 +52,7 @@ app.use("*", async (c, next) => {
   // });
   const start = performance.now();
   const m = {
+    metric: "metric.http.request",
     path: c.req.path,
     method: c.req.method,
     // @ts-ignore - this is a bug in the types
@@ -63,7 +65,7 @@ app.use("*", async (c, next) => {
     city: c.req.raw?.cf?.city,
     userAgent: c.req.header("user-agent"),
     fromAgent: c.req.header("Unkey-Redirect"),
-  } as Metric["metric.http.request"];
+  } as DiscriminateMetric<"metric.http.request">;
   try {
     const requestId = newId("request");
     m.requestId = requestId;
@@ -103,7 +105,7 @@ app.use("*", async (c, next) => {
     m.serviceLatency = performance.now() - start;
     c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
     c.res.headers.append("Unkey-Version", c.env.VERSION);
-    metrics.emit("metric.http.request", m);
+    metrics.emit(m);
     c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
   }
 });
