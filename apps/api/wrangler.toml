@@ -61,7 +61,6 @@ producers = [
 [env.canary]
 vars = {  ENVIRONMENT = "production"}
 route = { pattern = "canary.unkey.dev", custom_domain = true}
-logpush = true
 
 
 [env.canary.queues]
