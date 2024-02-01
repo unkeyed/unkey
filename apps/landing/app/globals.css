@@ -41,7 +41,7 @@
   background: radial-gradient(
     300% 82.5% at 10.25% 100%,
     black,
-    rgba(200, 200, 200, 0.1)
+    rgba(200, 200, 200, 0.08)
   );
   content: "";
   border-top-right-radius: 24px;
@@ -87,27 +87,36 @@ blockquote > p {
   padding-left: 0 !important;
   margin: 0 !important;
 }
-  .billing-border-link::after {
-    content: "";
-    height: 24px;
-    width: 1px;
-    position: absolute;
-    left: 30px;
-    top: 56px;
-    background: rgba(255, 255, 255, 0.2);
-  }
 
-  .audit-logs-bg-gradient {
-    background: linear-gradient(
-        180deg,
-        rgba(17, 17, 17, 0.7) 0%,
-        rgba(0, 0, 0, 0.5) 100%
-      ),
-      #000;
-  }
+.billing-border-link::after {
+  content: "";
+  height: 24px;
+  width: 1px;
+  position: absolute;
+  left: 30px;
+  top: 56px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
 
 .audit-logs-bg-gradient {
   background: linear-gradient(180deg, rgba(17, 17, 17, 0.90) 0%, rgba(0, 0, 0, 0.50) 100%), #000;
+}
+
+.audit-logs-fade-gradient { position: relative; }
+.audit-logs-fade-gradient::after {
+  position: absolute;
+  background: radial-gradient(
+    300% 82.5% at 10.25% 100%,
+    black,
+    rgba(200, 200, 200, 0.08)
+  );
+  display: block;
+  content: "";
+  height: 340px;
+  top: 0;
+  left: 0;
+  width: 100%;
 }
 
 .ip-whitelisting-bg-gradient {
