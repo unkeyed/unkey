@@ -10,12 +10,13 @@ import { Discover } from "./discover";
 import { SectionTitle } from "../section-title";
 import { HeroSvg } from "./hero-svgs";
 
+import { CTA } from "@/components/cta";
 import {
   Asterisk,
   BelowEnterpriseSvg,
   Bullet,
   Bullets,
-  CTA,
+  Button,
   Color,
   Cost,
   EnterpriseCardHighlight,
@@ -58,7 +59,7 @@ export default function PricingPage() {
 
           <PricingCardContent>
             <Cost dollar="$0" />
-            <CTA label="Start for Free" />
+            <Button label="Start for Free" />
             <Bullets>
               <Bullet Icon={Check} label="100 active keys / month" color={Color.White} />
               <Bullet
@@ -84,7 +85,7 @@ export default function PricingPage() {
 
           <PricingCardContent>
             <Cost dollar="$25" />
-            <CTA label="Get Started with Pr" />
+            <Button label="Get Started with Pr" />
             <Bullets>
               <Bullet Icon={Check} label="250 active keys / month" color={Color.Yellow} />
               <Bullet
@@ -184,6 +185,8 @@ export default function PricingPage() {
       />
 
       <Discover />
+
+      <CTA />
     </div>
   );
 }

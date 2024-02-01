@@ -11,11 +11,11 @@ import {
   Bullet,
   Color,
   Cost,
+  FreeCardHighlight,
   PricingCard,
   PricingCardContent,
   PricingCardFooter,
   PricingCardHeader,
-  ProCardHighlight,
   Separator,
 } from "./components";
 
@@ -37,18 +37,24 @@ export const Discover: React.FC = () => {
   const activeKeys = activeKeysSteps[activeKeysIndex];
   const billableKeys = Math.max(0, (activeKeys ?? 0) - 250);
   const activeKeysCost = billableKeys * 0.1;
-  const activeKeysQuantityDisplay = fmtNumber(activeKeys ?? Number.PositiveInfinity);
+  const activeKeysQuantityDisplay = fmtNumber(activeKeys ?? Number.POSITIVE_INFINITY);
   const activeKeysCostDisplay = activeKeys === null ? "Custom" : fmtDollar(activeKeysCost);
 
-  const [verificationsIndex, setVerificationsIndex] = useState(2);
-  const verifications = verificationsSteps.at(verificationsIndex);
-  const billableVerifications = Math.max(0, verifications - 150_000);
-  const verificationsCost = (billableVerifications / 100_000) * 10;
+  const [verificationsIndex, setVerificationsIndex] = useState(0);
+  const verifications = verificationsSteps[verificationsIndex];
+  const billableVerifications = Math.max(0, (verifications ?? 0) - 150_000);
+  const verificationsCost = (billableVerifications * 10) / 100_000;
+  const verificationsQuantityDisplay = fmtNumber(verifications ?? Number.POSITIVE_INFINITY);
+  const verificationsCostDisplay = verifications === null ? "Custom" : fmtDollar(verificationsCost);
 
-  const totalCost = 25 + activeKeysCost + verificationsCost;
+  const totalCostDisplay =
+    verifications === null || activeKeys === null
+      ? "Custom"
+      : fmtDollar(25 + activeKeysCost + verificationsCost);
 
   return (
-    <PricingCard color={Color.White} className="max-w-4xl mx-auto">
+    <PricingCard color={Color.White} className="relative max-w-4xl mx-auto">
+      <FreeCardHighlight className="absolute top-0 right-0" />
       <TooltipProvider delayDuration={10}>
         <PricingCardHeader
           title="Estimated cost calculator"
@@ -61,7 +67,7 @@ export const Discover: React.FC = () => {
         <PricingCardContent>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Cost dollar={fmtDollar(totalCost)} />
+              <Cost dollar={totalCostDisplay} />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HelpCircle className="w-4 h-4 text-white/40" style={{ strokeWidth: "1px" }} />
@@ -75,71 +81,97 @@ export const Discover: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between w-full gap-4">
-              <div className="w-3/12">
-                <Bullet Icon={KeySquare} label="Active keys / month" color={Color.Purple} />
-              </div>
-              <Slider
-                min={0}
-                max={activeKeysSteps.length - 1}
-                value={[activeKeysIndex]}
-                className="w-5/12 "
-                onValueChange={([v]) => setActiveKeysIndex(v)}
-              />
-              <div className="flex items-center w-2/12 gap-2">
-                <span className="text-white">{activeKeysQuantityDisplay}</span>
-                <span className="text-white/40">Keys</span>
-              </div>
-              <div className="flex items-center w-2/12 gap-2">
-                <Asterisk tag={fmtDollar(activeKeysCost)} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="w-4 h-4 text-white/40" style={{ strokeWidth: "1px" }} />
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-black">
-                    <p className="text-red-500">TODO</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-            <div className="flex items-center justify-between w-full gap-4">
-              <div className="w-3/12">
-                <Bullet Icon={ListChecks} label="Verifications / month" color={Color.Purple} />
-              </div>
-              <Slider
-                min={0}
-                max={verificationsSteps.length - 1}
-                value={[verificationsIndex]}
-                className="w-5/12 "
-                onValueChange={([v]) => setVerificationsIndex(v)}
-              />
-              <Tooltip open={verificationsSteps[verificationsIndex] === null}>
-                <TooltipTrigger />
-                <TooltipContent className="bg-black">
-                  <p className="text-red-500">Get in touch</p>
-                </TooltipContent>
-              </Tooltip>
-              <div className="flex items-center w-2/12 gap-2">
-                <span className="text-white">{fmtNumber(verifications)}</span>
-                <span className="text-white/40">Verifications</span>
-              </div>
-              <div className="flex items-center w-2/12 gap-2">
-                <Asterisk tag={fmtDollar(verificationsCost)} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="w-4 h-4 text-white/40" style={{ strokeWidth: "1px" }} />
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-black">
-                    <p className="text-red-500">TODO</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
+            <Row
+              label={<Bullet Icon={KeySquare} label="Active keys" color={Color.Purple} />}
+              slider={
+                <Slider
+                  min={0}
+                  max={activeKeysSteps.length - 1}
+                  value={[activeKeysIndex]}
+                  className=""
+                  onValueChange={([v]) => setActiveKeysIndex(v)}
+                />
+              }
+              quantity={
+                <div className="flex items-center gap-2">
+                  <span className="text-white">{activeKeysQuantityDisplay}</span>
+                  <span className="text-sm text-white/40">Keys</span>
+                </div>
+              }
+              cost={
+                <div className="flex items-center gap-2">
+                  <Asterisk tag={activeKeysCostDisplay} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle
+                        className="w-4 h-4 text-white/40"
+                        style={{ strokeWidth: "1px" }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-black">
+                      <p className="text-red-500">TODO</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              }
+            />
+            <Row
+              label={<Bullet Icon={ListChecks} label="Verifications" color={Color.Purple} />}
+              slider={
+                <Slider
+                  min={0}
+                  max={verificationsSteps.length - 1}
+                  value={[verificationsIndex]}
+                  className=""
+                  onValueChange={([v]) => setVerificationsIndex(v)}
+                />
+              }
+              quantity={
+                <div className="flex items-center gap-2">
+                  <span className="text-white">{verificationsQuantityDisplay}</span>
+                  <span className="text-sm text-white/40">Verifications</span>
+                </div>
+              }
+              cost={
+                <div className="flex items-center gap-2">
+                  <Asterisk tag={verificationsCostDisplay} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle
+                        className="w-4 h-4 text-white/40"
+                        style={{ strokeWidth: "1px" }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-black">
+                      <p className="text-red-500">TODO</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              }
+            />
           </div>
         </PricingCardContent>
-        <PricingCardFooter></PricingCardFooter>
+        <PricingCardFooter />
       </TooltipProvider>
     </PricingCard>
+  );
+};
+
+const Row: React.FC<{
+  label: React.ReactNode;
+  slider: React.ReactNode;
+  quantity: React.ReactNode;
+  cost: React.ReactNode;
+}> = ({ label, slider, quantity, cost }) => {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="w-2/12">{label}</div>
+      <div className="w-6/12">{slider}</div>
+
+      <div className="w-2/12">{quantity}</div>
+
+      <div className="w-2/12">{cost}</div>
+    </div>
   );
 };
 

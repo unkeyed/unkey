@@ -73,7 +73,7 @@ export const Cost: React.FC<{ dollar: string }> = ({ dollar }) => {
   );
 };
 
-export const CTA: React.FC<{ label: string }> = ({ label }) => {
+export const Button: React.FC<{ label: string }> = ({ label }) => {
   return (
     <div>
       <Link href="/app">

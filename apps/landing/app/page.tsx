@@ -3,6 +3,7 @@ import { SectionTitle } from "@/app/section-title";
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
+import { CTA } from "@/components/cta";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
 import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
@@ -106,25 +107,7 @@ export default async function Landing() {
         label="More"
       />
       <FeatureGrid className="mt-20" />
-      <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
-        <div className="flex space-x-6 ">
-          <Link
-            key="get-started"
-            href="/app"
-            className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-          >
-            Start Now <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </SectionTitle>
-      <div className="mt-10">
-        <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-          2500 verifications FREE per month.
-        </p>
-        <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-          No CC required.
-        </p>
-      </div>
+      <CTA />
     </div>
   );
 }
