@@ -134,6 +134,7 @@ async function seed(env: {
     planChanged: null,
     createdAt: new Date(),
     deletedAt: null,
+    planDowngradeRequest: null,
   };
   const userWorkspace: Workspace = {
     id: newId("workspace"),
@@ -150,6 +151,7 @@ async function seed(env: {
     planChanged: null,
     createdAt: new Date(),
     deletedAt: null,
+    planDowngradeRequest: null,
   };
 
   const unkeyKeyAuth: KeyAuth = {

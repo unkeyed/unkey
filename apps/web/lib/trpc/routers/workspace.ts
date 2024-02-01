@@ -45,6 +45,7 @@ export const workspaceRouter = t.router({
         subscriptions: defaultProSubscriptions(),
         createdAt: new Date(),
         deletedAt: null,
+        planDowngradeRequest: null,
       };
       await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values(workspace);
@@ -102,23 +103,49 @@ export const workspaceRouter = t.router({
           message: "you are not allowed to modify this workspace",
         });
       }
+      const now = new Date();
 
       if (
         workspace.planChanged &&
-        Date.now() < workspace.planChanged.getTime() + 1000 * 60 * 60 * 24
+        workspace.planChanged.getUTCFullYear() === now.getUTCFullYear() &&
+        workspace.planChanged.getUTCMonth() === now.getUTCMonth()
       ) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message:
-            "You can not change your plan multiple times per day, please wait 24h or contact support@unkey.dev",
+            "You have already changed your plan this month, please wait until next month or contact support@unkey.dev",
         });
       }
 
       if (workspace.plan === input.plan) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "workspace already on this plan",
-        });
+        if (workspace.planDowngradeRequest) {
+          // The user wants to resubscribe
+          await db.transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                planDowngradeRequest: null,
+              })
+              .where(eq(schema.workspaces.id, input.workspaceId));
+            await tx.insert(schema.auditLogs).values({
+              id: newId("auditLog"),
+              time: new Date(),
+              workspaceId: workspace.id,
+              actorType: "user",
+              actorId: ctx.user.id,
+              event: "workspace.update",
+              description: `Workspace ${workspace.name} changed plan to ${input.plan}`,
+            });
+          });
+          return {
+            title: "You have resubscribed",
+          };
+        } else {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "workspace already on this plan",
+          });
+        }
       }
 
       switch (input.plan) {
@@ -128,9 +155,7 @@ export const workspaceRouter = t.router({
             await tx
               .update(schema.workspaces)
               .set({
-                plan: "free",
-                planChanged: new Date(),
-                subscriptions: null,
+                planDowngradeRequest: "free",
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
             await tx.insert(schema.auditLogs).values({
@@ -143,7 +168,11 @@ export const workspaceRouter = t.router({
               description: `Workspace ${workspace.name} changed plan to free`,
             });
           });
-          break;
+          return {
+            title: "Your plan is scheduled to downgrade on the first of next month.",
+            message:
+              "You have access to all features until then and can reactivate your subscription at any point.",
+          };
         }
         case "pro": {
           if (!workspace.stripeCustomerId) {
@@ -168,6 +197,7 @@ export const workspaceRouter = t.router({
                 plan: "pro",
                 planChanged: new Date(),
                 subscriptions: defaultProSubscriptions(),
+                planDowngradeRequest: null,
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
             await tx.insert(schema.auditLogs).values({
@@ -180,7 +210,7 @@ export const workspaceRouter = t.router({
               description: `Workspace ${workspace.name} changed plan to pro`,
             });
           });
-          break;
+          return { title: "Your workspace has been upgraded" };
         }
       }
     }),
