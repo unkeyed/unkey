@@ -1,0 +1,25 @@
+{
+  "name": "docker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "db:migrate": "drizzle-kit generate:sqlite --out migrations --schema db/schema.ts",
+    "db:push": "drizzle-kit push:sqlite",
+    "server": "tsx --watch server/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@hono/node-server": "^1.7.0",
+    "base-x": "^4.0.0",
+    "better-sqlite3": "^9.3.0",
+    "drizzle-orm": "^0.29.3",
+    "hono": "^3.12.9",
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.20.13"
+  }
+}
