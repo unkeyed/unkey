@@ -403,7 +403,17 @@ type Props = {
 type Language = "Typescript" | "Python" | "Rust" | "Golang" | "Curl" | "Elixir" | "Java";
 
 // TODO extract this automatically from our languages array
-type FrameworkName = "Next.js" | "Nuxt" | "Hono" | "Python" | "Flask";
+type FrameworkName =
+  | "Next.js"
+  | "Nuxt"
+  | "Hono"
+  | "Python"
+  | "Flask"
+  | "Rust"
+  | "Golang"
+  | "Curl"
+  | "Elixir"
+  | "Java";
 
 export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [language, setLanguage] = useState<Language>("Python");
