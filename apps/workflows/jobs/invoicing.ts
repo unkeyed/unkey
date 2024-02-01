@@ -52,6 +52,7 @@ client.defineJob({
 
     await io.sendEvent("downgrade", {
       name: "billing.downgrade",
+      payload: {},
     });
 
     return {
