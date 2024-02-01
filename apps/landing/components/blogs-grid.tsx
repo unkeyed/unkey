@@ -7,7 +7,7 @@ import { BlogCard } from "./blog-card";
 import {
   Pagination,
   PaginationContent,
-  // PaginationEllipsis,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -49,7 +49,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
       return;
     }
     setCurrentPage(page);
-    console.log("Current Page is ", currentPage);
+    console.log("Current Page is ", page);
   }
   function updatePosts(tag: string) {
     setActiveTag(tag);
@@ -59,48 +59,53 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
     const sliceEnd = currentPage * blogsPerPage;
     let currentPosts: { frontmatter: Frontmatter; slug: string }[] = [];
     if (tag === "all") {
-      //console.log(sliceStart, sliceEnd);
-
       currentPosts = posts.slice(sliceStart, sliceEnd);
       setFilteredPosts(currentPosts);
       updatedPageCount = Math.ceil(posts.length / blogsPerPage);
       setCurrentPageCount(updatedPageCount);
-      //console.log("Current Page Count is ", currentPageCount);
       return;
     }
     posts.filter((post) => {
       if (post.frontmatter.tags?.toString().includes(tag)) {
         currentPosts = [...currentPosts, post];
-        updatedPageCount = Math.ceil(currentPosts.length / blogsPerPage);
-        setCurrentPageCount(updatedPageCount);
-        if (currentPosts.length > blogsPerPage) {
-          currentPosts = currentPosts.slice(sliceStart, sliceEnd);
-        }
-
-        setFilteredPosts(currentPosts);
-        return;
       }
     });
-
-    //console.log("Current Posts Length", currentPosts.length);
-
+    updatedPageCount = Math.ceil(currentPosts.length / blogsPerPage);
+    setCurrentPageCount(updatedPageCount);
+    console.log("Current Posts Length before slice", currentPosts.length);
+    if (currentPosts.length > blogsPerPage) {
+      currentPosts = currentPosts.slice(sliceStart, sliceEnd);
+    }
+    console.log("Current Posts Length after slice", currentPosts.length);
+    setFilteredPosts(currentPosts);
     return;
   }
   function GetPageButtons() {
     const content = [];
     for (let count = 1; count <= currentPageCount; count++) {
-      content.push(
-        <PaginationLink
-          isActive={currentPage === count ? true : false}
-          onClick={() => updatePage(count)}
-        >
-          {count}
-        </PaginationLink>,
-      );
+      const isEllipses =
+        (count > currentPage + 2 && count === currentPageCount) ||
+        (count <= currentPage - 1 && count === 2);
+
+      if (!isEllipses) {
+        content.push(
+          <PaginationLink
+            isActive={currentPage === count ? true : false}
+            onClick={() => updatePage(count)}
+          >
+            {count}
+          </PaginationLink>,
+        );
+      } else {
+        content.push(<PaginationEllipsis />);
+      }
     }
     return content;
   }
   function SetupPagination() {
+    if (currentPageCount <= 1) {
+      return;
+    }
     return (
       <Pagination>
         <PaginationContent>
@@ -133,7 +138,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
           </button>
         ))}
       </div>
-      <div className={cn("grid grid-cols-3 gap-12", className)}>
+      <div className={cn("grid grid-cols-3 gap-12 mb-24", className)}>
         {filteredPosts.map((post) => (
           <BlogCard
             tags={post.frontmatter.tags?.toString()}

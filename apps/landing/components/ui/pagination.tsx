@@ -7,7 +7,7 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
   <nav
     role="navigation"
     aria-label="pagination"
-    className={cn("mx-auto flex w-full justify-center my-24", className)}
+    className={cn("mx-auto flex w-full justify-center mb-24", className)}
     {...props}
   />
 );
@@ -27,9 +27,14 @@ PaginationItem.displayName = "PaginationItem";
 
 type PaginationLinkProps = {
   isActive?: boolean;
-} & React.ComponentProps<"button">;
+} & React.ComponentPropsWithoutRef<"button">;
 
-const PaginationLink = ({ className, isActive, children }: PaginationLinkProps) => (
+const PaginationLink = ({
+  className,
+  isActive,
+
+  ...props
+}: PaginationLinkProps) => (
   <button
     type="button"
     aria-current={isActive ? "page" : undefined}
@@ -38,9 +43,8 @@ const PaginationLink = ({ className, isActive, children }: PaginationLinkProps) 
       "rounded-lg p-2 px-4",
       className,
     )}
-  >
-    {children}
-  </button>
+    {...props}
+  />
 );
 PaginationLink.displayName = "PaginationLink";
 
