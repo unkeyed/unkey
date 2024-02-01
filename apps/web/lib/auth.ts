@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 /**
  * Return the tenant id or a 404 not found page.
@@ -8,5 +8,5 @@ import { notFound } from "next/navigation";
  */
 export function getTenantId(): string {
   const { userId, orgId } = auth();
-  return orgId ?? userId ?? notFound();
+  return orgId ?? userId ?? redirect("/auth/sign-in");
 }
