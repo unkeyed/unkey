@@ -43,7 +43,7 @@ export function BlogHero({
 }: BlogHeroProps) {
   return (
     <div className={cn("flex flex-col lg:flex-row w-full", className)}>
-      <Frame className="h-fit my-auto shadow-sm">
+      <Frame className="h-fit my-auto shadow-sm" size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
       <div className="w-full p-16">
@@ -66,7 +66,12 @@ export function BlogHero({
                   <TooltipTrigger className="pt-1 pl-4">
                     <QuestionCircle />
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" align="center" sideOffset={5}>
+                  <TooltipContent
+                    side="bottom"
+                    align="center"
+                    sideOffset={5}
+                    className="text-white/60"
+                  >
                     <p>{author.name}</p>
                   </TooltipContent>
                 </Tooltip>
