@@ -34,13 +34,16 @@ const verificationsSteps = [
 
 export const Discover: React.FC = () => {
   const [activeKeysIndex, setActiveKeysIndex] = useState(0);
-  const activeKeys = activeKeysSteps.at(activeKeysIndex) ?? 0;
-  const billableKeys = activeKeys - 250;
-  const activeKeysCost = Math.max(0, billableKeys * 0.1);
-  const [verificationsIndex, setVerificationsIndex] = useState(1_000_000);
-  const verifications = verificationsSteps.at(verificationsIndex) ?? 0;
-  const billableVerifications = verifications - 150_000;
-  const verificationsCost = Math.max(0, (billableVerifications / 100_000) * 10);
+  const activeKeys = activeKeysSteps[activeKeysIndex];
+  const billableKeys = Math.max(0, (activeKeys ?? 0) - 250);
+  const activeKeysCost = billableKeys * 0.1;
+  const activeKeysQuantityDisplay = fmtNumber(activeKeys ?? Number.PositiveInfinity);
+  const activeKeysCostDisplay = activeKeys === null ? "Custom" : fmtDollar(activeKeysCost);
+
+  const [verificationsIndex, setVerificationsIndex] = useState(2);
+  const verifications = verificationsSteps.at(verificationsIndex);
+  const billableVerifications = Math.max(0, verifications - 150_000);
+  const verificationsCost = (billableVerifications / 100_000) * 10;
 
   const totalCost = 25 + activeKeysCost + verificationsCost;
 
@@ -71,47 +74,23 @@ export const Discover: React.FC = () => {
             <p className="text-sm text-white/40">Resources are summed and billed monthly</p>
           </div>
 
-          <div className="grid grid-cols-10 gap-4">
-            <div className="cols-grid-1">
-              <Bullet Icon={KeySquare} label="Active keys / month" color={Color.Purple} />
-            </div>
-            <div className="cols-grid-1">
-              <Bullet
-                Icon={ListChecks}
-                label="Successful verifications / month"
-                color={Color.Purple}
-              />
-            </div>
-            <div className="flex flex-col items-center justify-between w-full h-full gap-8 border">
-              <div className="flex items-center w-full h-10 border ">
-                <Slider
-                  min={0}
-                  max={activeKeysSteps.length - 1}
-                  value={[activeKeysIndex]}
-                  className="w-full "
-                  onValueChange={([v]) => setActiveKeysIndex(v)}
-                />
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center justify-between w-full gap-4">
+              <div className="w-3/12">
+                <Bullet Icon={KeySquare} label="Active keys / month" color={Color.Purple} />
               </div>
               <Slider
                 min={0}
-                max={verificationsSteps.length - 1}
-                value={[verificationsIndex]}
-                className="w-full"
-                onValueChange={([v]) => setVerificationsIndex(v)}
+                max={activeKeysSteps.length - 1}
+                value={[activeKeysIndex]}
+                className="w-5/12 "
+                onValueChange={([v]) => setActiveKeysIndex(v)}
               />
-            </div>
-            <div className="flex flex-col gap-8">
-              <div className="flex items-center gap-2">
-                <span className="text-white">{fmtNumber(activeKeys)}</span>
+              <div className="flex items-center w-2/12 gap-2">
+                <span className="text-white">{activeKeysQuantityDisplay}</span>
                 <span className="text-white/40">Keys</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-white">{fmtNumber(verifications)}</span>
-                <span className="text-white/40">Verifications</span>
-              </div>
-            </div>
-            <div className="flex flex-col gap-8">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center w-2/12 gap-2">
                 <Asterisk tag={fmtDollar(activeKeysCost)} />
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -122,7 +101,29 @@ export const Discover: React.FC = () => {
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="flex items-center gap-2">
+            </div>
+            <div className="flex items-center justify-between w-full gap-4">
+              <div className="w-3/12">
+                <Bullet Icon={ListChecks} label="Verifications / month" color={Color.Purple} />
+              </div>
+              <Slider
+                min={0}
+                max={verificationsSteps.length - 1}
+                value={[verificationsIndex]}
+                className="w-5/12 "
+                onValueChange={([v]) => setVerificationsIndex(v)}
+              />
+              <Tooltip open={verificationsSteps[verificationsIndex] === null}>
+                <TooltipTrigger />
+                <TooltipContent className="bg-black">
+                  <p className="text-red-500">Get in touch</p>
+                </TooltipContent>
+              </Tooltip>
+              <div className="flex items-center w-2/12 gap-2">
+                <span className="text-white">{fmtNumber(verifications)}</span>
+                <span className="text-white/40">Verifications</span>
+              </div>
+              <div className="flex items-center w-2/12 gap-2">
                 <Asterisk tag={fmtDollar(verificationsCost)} />
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -136,6 +137,7 @@ export const Discover: React.FC = () => {
             </div>
           </div>
         </PricingCardContent>
+        <PricingCardFooter></PricingCardFooter>
       </TooltipProvider>
     </PricingCard>
   );
