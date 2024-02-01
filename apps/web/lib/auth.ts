@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 /**
  * Return the tenant id or a 404 not found page.
