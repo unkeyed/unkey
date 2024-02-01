@@ -4,8 +4,8 @@ import { PrimaryButton, SecondaryButton } from "../components/button";
 
 export const Hero: React.FC = () => {
   return (
-    <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start mt-[200px] max-w-[1440px]">
-      <div className="relative text-center lg:text-left flex flex-col items-center lg:items-start">
+    <div className="flex flex-col xl:flex-row justify-between items-center xl:items-start mt-[300px] sm:mt-[250px] xl:mt-[200px] max-w-[1440px]">
+      <div className="relative text-center xl:text-left flex flex-col items-center xl:items-start">
         <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -52,11 +52,11 @@ export const Hero: React.FC = () => {
           </svg>
         </div>
 
-        <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[4rem] leading-[5rem]  ">
+        <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[32px] leading-[48px] xs:text-[48px] xs:leading-[56px] sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
           Build your API, not Auth
         </h1>
 
-        <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg leading-[28px]">
+        <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-sm xs:text-[15px] sm:text-base leading-[28px]">
           Unkey is an open source API authentication and authorization platform for scaling user
           facing APIs. Create, verify and manage low latency API keys in seconds.
         </p>
@@ -72,7 +72,7 @@ export const Hero: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10 mt-14 lg:mt-0 ">
+      <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10 mt-16 xl:mt-0 ">
         <div className="m-[10px] rounded-[28px] border border-gray-800">
           <img src="/images/hero.png" alt="Youtube" />
         </div>
