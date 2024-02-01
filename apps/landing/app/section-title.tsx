@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 
 type SectionTitleProps = {
   label?: string;
-  title?: string;
-  text?: string;
+  title?: React.ReactNode;
+  text?: React.ReactNode;
   align?: "left" | "center";
   children?: React.ReactNode;
   className?: string;
