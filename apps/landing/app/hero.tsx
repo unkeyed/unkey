@@ -66,7 +66,7 @@ export const Hero: React.FC = () => {
             <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
           </Link>
 
-          <Link href="/docs">
+          <Link href="/docs" className="hidden sm:flex">
             <SecondaryButton IconLeft={BookOpen} label="Documentation" IconRight={ChevronRight} />
           </Link>
         </div>
