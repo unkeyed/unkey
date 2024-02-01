@@ -143,6 +143,22 @@ blockquote > p {
   background: linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.00) 95.37%), #000;
 }
 
+.ratelimits-fade-gradient { position: relative; }
+.ratelimits-fade-gradient::after {
+  position: absolute;
+  background: radial-gradient(
+    100% 92.5% at 10.25% 90%,
+    black,
+    rgba(200, 200, 200, 0.02)
+  );
+  display: block;
+  content: "";
+  height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
 .ratelimits-bar-shadow {
   box-shadow: 0px 0px 12px 4px rgba(255, 255, 255, 0.30);
 }

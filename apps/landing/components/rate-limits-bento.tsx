@@ -9,8 +9,8 @@ export function RateLimitsBento() {
 
 export function RateLimits() {
   return (
-    <div className="mx-[40px] flex w-full flex-col">
-      <div className="flex h-[200px] w-full  ratelimits-editor-bg-gradient rounded-b-xl">
+    <div className="mx-[40px] flex w-full flex-col ">
+      <div className="flex h-[200px] w-full ratelimits-editor-bg-gradient rounded-b-xl ">
         <div className="flex flex-col font-mono text-sm text-white px-[24px] space-y-3 mt-1 border-r-[.75px] border-[#ffffff]/20">
           <p>1</p>
           <p>2</p>
@@ -23,7 +23,7 @@ export function RateLimits() {
           {JSON.stringify({ rateLimit: { limit: 10, interval: 1000 } }, null, 2)}
         </div>
       </div>
-      <div className="mt-8 flex flex-col">
+      <div className="mt-8 flex flex-col ratelimits-fade-gradient">
         <div className="flex items-center">
           <div className="text-white font-mono text-sm">
             <span className="text-[#ffffff]/40">Creating</span> keys
