@@ -53,6 +53,11 @@
   pointer-events: none;
 }
 
+.line-number {
+  color: rgba(255, 255, 255, 0.3);
+  margin-right: 40px;
+}
+
 .blog-heading-gradient {
   background: linear-gradient(
     100.35deg,

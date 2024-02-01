@@ -12,21 +12,6 @@ import React from "react";
 import { useState } from "react";
 const Tabs = TabsPrimitive.Root;
 
-// const TabsList = React.forwardRef<
-//   React.ElementRef<typeof TabsPrimitive.List>,
-//   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
-// >(({ className, ...props }, ref) => (
-//   <TabsPrimitive.List
-//     ref={ref}
-//     className={cn(
-//       "inline-flex  items-center justify-center rounded-md bg-background-subtle p-1 text-content-subtle",
-//       className,
-//     )}
-//     {...props}
-//   />
-// ));
-// TabsList.displayName = TabsPrimitive.List.displayName;
-
 const editorTheme = {
   plain: {
     color: "#F8F8F2",
@@ -66,66 +51,6 @@ const editorTheme = {
   ],
 } satisfies PrismTheme;
 
-const NuxtIcon = () => {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M281.44 397.667H438.32C443.326 397.667 448.118 395.908 452.453 393.427C456.789 390.946 461.258 387.831 463.76 383.533C466.262 379.236 468.002 374.36 468 369.399C467.998 364.437 466.266 359.563 463.76 355.268L357.76 172.947C355.258 168.65 352.201 165.534 347.867 163.053C343.532 160.573 337.325 158.813 332.32 158.813C327.315 158.813 322.521 160.573 318.187 163.053C313.852 165.534 310.795 168.65 308.293 172.947L281.44 219.587L227.733 129.13C225.229 124.834 222.176 120.307 217.84 117.827C213.504 115.346 208.713 115 203.707 115C198.701 115 193.909 115.346 189.573 117.827C185.238 120.307 180.771 124.834 178.267 129.13L46.8267 355.268C44.3208 359.563 44.0022 364.437 44 369.399C43.9978 374.36 44.3246 379.235 46.8267 383.533C49.3288 387.83 53.7979 390.946 58.1333 393.427C62.4688 395.908 67.2603 397.667 72.2667 397.667H171.2C210.401 397.667 238.934 380.082 258.827 346.787L306.88 263.4L332.32 219.587L410.053 352.44H306.88L281.44 397.667ZM169.787 352.44H100.533L203.707 174.36L256 263.4L221.361 323.784C208.151 345.387 193.089 352.44 169.787 352.44Z"
-        fill="white"
-      />
-    </svg>
-  );
-};
-
-const NextIcon = () => {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <mask
-        id="mask0_408_139"
-        style={{ maskType: "alpha" }}
-        maskUnits="userSpaceOnUse"
-        x="0"
-        y="0"
-        width="180"
-        height="180"
-      >
-        <circle cx="90" cy="90" r="90" fill="black" />
-      </mask>
-      <g mask="url(#mask0_408_139)">
-        <circle cx="90" cy="90" r="87" fill="black" stroke="white" stroke-width="6" />
-        <path
-          d="M149.508 157.52L69.142 54H54V125.97H66.1136V69.3836L139.999 164.845C143.333 162.614 146.509 160.165 149.508 157.52Z"
-          fill="url(#paint0_linear_408_139)"
-        />
-        <rect x="115" y="54" width="12" height="72" fill="url(#paint1_linear_408_139)" />
-      </g>
-      <defs>
-        <linearGradient
-          id="paint0_linear_408_139"
-          x1="109"
-          y1="116.5"
-          x2="144.5"
-          y2="160.5"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
-        </linearGradient>
-        <linearGradient
-          id="paint1_linear_408_139"
-          x1="121"
-          y1="54"
-          x2="120.799"
-          y2="106.875"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-};
 const JavaIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g opacity={0.3}>
@@ -256,44 +181,153 @@ const GoIcon = () => (
   </svg>
 );
 
-const pythonCodeBlock = `      import asyncio
-      import os
-      import unkey
+const nextJsCodeBlock = `import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
+export const POST = withUnkey(async (req) => {
 
-      async def main() -> None:
-          client = unkey.Client(api_key=os.environ["API_KEY"])
-          await client.start()
-
-          result = await client.keys.verify_key("prefix_abc123")
-
-          if result.is_ok:
-              print(data.valid)
-          else:
-              print(result.unwrap_err())
+  // Process the request here
+  // You have access to the verification response using \`req.unkey\`
+  console.log(req.unkey);
+  
+  return new Response('Your API key is valid!');
+});
 `;
 
+const nuxtCodeBlock = `export default defineEventHandler(async (event) => {
+  if (!event.context.unkey.valid) {
+    throw createError({ statusCode: 403, message: "Invalid API key" })
+  }
+
+  // return authorised information
+  return {
+    // ...
+  };
+});`;
+
+const pythonCodeBlock = `import asyncio
+import os
+import unkey
+
+async def main() -> None:
+  client = unkey.Client(api_key=os.environ["API_KEY"])
+  await client.start()
+
+  result = await client.keys.verify_key("prefix_abc123")
+
+  if result.is_ok:
+    print(data.valid)
+  else:
+    print(result.unwrap_err())
+`;
+
+const honoCodeBlock = `import { Hono } from "hono"
+import { UnkeyContext, unkey } from "@unkey/hono";
+
+const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+
+app.use("*", unkey());
+
+
+app.get("/somewhere", (c) => {
+  // access the unkey response here to get metadata of the key etc
+  const ... = c.get("unkey")
+
+  return c.text("yo")
+})`;
+
+const goCodeBlock = `package main
+import (
+	"fmt"
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+func main() {
+	apiKey := "key_3ZZ7faUrkfv1YAhffAcnKW74"
+	response, err := unkey.KeyVerify(apiKey)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	if response.Valid {
+		fmt.Println("Key is valid")
+	} else {
+		fmt.Println("Key is invalid")
+	}
+}`;
+
+const curlCodeBlock = `curl --request POST \\
+  --url https://api.unkey.dev/v1/keys.verifyKey \\
+  --header 'Content-Type: application/json' \\
+  --data \'{
+    "apiId": "api_1234",
+    "key": "sk_1234"
+  }\'
+`;
+
+const elixirCodeBlock = `UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
+# returns
+%{"valid" => true,
+  "ownerId" => "chronark",
+  "meta" => %{
+    "hello" => "world"
+  }}`;
+
+const rustCodeBlock = `use unkey::models::{VerifyKeyRequest, Wrapped};
+use unkey::Client;
+
+async fn verify_key() {
+    let c = Client::new("unkey_ABC");
+    let req = VerifyKeyRequest::new("test_DEF", "api_JJJ");
+
+    match c.verify_key(req).await {
+        Wrapped::Ok(res) => println!("{res:?}"),
+        Wrapped::Err(err) => eprintln!("{err:?}"),
+    }
+}
+`;
+
+const javaCodeBlock = `package com.example.myapp;
+
+import com.unkey.unkeysdk.dto.KeyVerifyRequest;
+import com.unkey.unkeysdk.dto.KeyVerifyResponse;
+
+@RestController
+public class APIController {
+
+    private static IKeyService keyService = new KeyService();
+
+    @PostMapping("/verify")
+    public KeyVerifyResponse verifyKey(
+            @RequestBody KeyVerifyRequest keyVerifyRequest) {
+        // Delegate the creation of the key to the KeyService from the SDK
+        return keyService.verifyKey(keyVerifyRequest);
+    }
+}`;
+
 type Framework = {
-  name: string;
+  name: FrameworkName | Language;
   icon: React.ReactNode | null;
   codeBlock: string;
+  editorLanguage: string;
 };
 
-const frameworksList = {
+const languagesList = {
   Typescript: [
     {
       name: "Next.js",
-      icon: <NextIcon />,
-      codeBlock: "",
+      icon: <TSIcon />,
+      codeBlock: nextJsCodeBlock,
+      editorLanguage: "tsx",
     },
     {
       name: "Nuxt",
-      codeBlock: "",
-      icon: <NuxtIcon />,
+      codeBlock: nuxtCodeBlock,
+      icon: <TSIcon />,
+      editorLanguage: "tsx",
     },
     {
       name: "Hono",
-      icon: <NuxtIcon />,
-      codeBlock: "",
+      icon: <TSIcon />,
+      codeBlock: honoCodeBlock,
+      editorLanguage: "tsx",
     },
   ],
   Python: [
@@ -301,42 +335,48 @@ const frameworksList = {
       name: "Python",
       icon: <PythonIcon />,
       codeBlock: pythonCodeBlock,
+      editorLanguage: "python",
     },
     {
       name: "Flask",
       icon: <FlaskIcon />,
       codeBlock: pythonCodeBlock,
+      editorLanguage: "python",
     },
   ],
   Golang: [
     {
       name: "Golang",
       icon: <GoIcon />,
-      codeBlock: "",
+      codeBlock: goCodeBlock,
+      editorLanguage: "go",
     },
   ],
   Java: [
     {
       name: "Java",
       icon: <JavaIcon />,
-      codeBlock: "",
+      codeBlock: javaCodeBlock,
+      editorLanguage: "ts",
     },
   ],
   Elixir: [
     {
       name: "Elixir",
       icon: <ElixirIcon />,
-      codeBlock: "",
+      codeBlock: elixirCodeBlock,
+      editorLanguage: "ts",
     },
   ],
   Rust: [
     {
       name: "Rust",
       icon: <RustIcon />,
-      codeBlock: "",
+      codeBlock: rustCodeBlock,
+      editorLanguage: "rust",
     },
   ],
-  Curl: [{ name: "Curl", icon: <CurlIcon />, codeBlock: "" }],
+  Curl: [{ name: "Curl", icon: <CurlIcon />, codeBlock: curlCodeBlock, editorLanguage: "tsx" }],
 } satisfies {
   [key: string]: Framework[];
 };
@@ -369,7 +409,19 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [language, setLanguage] = useState<Language>("Python");
   const [framework, setFramework] = useState<FrameworkName>("Python");
 
-  console.log(framework);
+  function getLanguage({ language, framework }: { language: Language; framework: FrameworkName }) {
+    const frameworks = languagesList[language];
+    const currentFramework = frameworks.find((_framework) => _framework.name === framework);
+    return currentFramework?.editorLanguage || "tsx";
+  }
+
+  function getCodeBlock({ language, framework }: { language: Language; framework: FrameworkName }) {
+    const frameworks = languagesList[language];
+    const currentFramework = frameworks.find((_framework) => _framework.name === framework);
+    return currentFramework?.codeBlock || "";
+  }
+
+  console.log(getLanguage({ language, framework }));
 
   const LanguageTrigger = React.forwardRef<
     React.ElementRef<typeof TabsPrimitive.Trigger>,
@@ -378,7 +430,11 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
     <TabsPrimitive.Trigger
       ref={ref}
       value={value}
-      onClick={() => setLanguage(value as Language)}
+      onClick={() => {
+        const language = value as Language;
+        setLanguage(language);
+        setFramework(languagesList[language][0].name);
+      }}
       className={cn(
         "inline-flex items-center gap-1 justify-center whitespace-nowrap border-b-0 rounded-t-lg px-3 py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border-t border-l border-r text-white/30 data-[state=active]:text-white border-white/25 data-[state=active]:border-white/30 font-light",
         className,
@@ -412,7 +468,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         </div>
         <HighlightAbove className="absolute bottom-0 w-full mx-auto pointer-events-none" />
       </SectionTitle>
-      <div className="w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-t from-black to-[#111111]">
+      <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black">
         <Tabs
           defaultValue={language}
           className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
@@ -448,10 +504,52 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </LanguageTrigger>
           </TabsPrimitive.List>
         </Tabs>
-        <div className="flex flex-col sm:flex-row overflow-x-auto scrollbar-hidden">
-          <FrameworkSwitcher frameworks={frameworksList[language]} setFramework={setFramework} />
-          <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
-            <Editor language="python" theme={editorTheme} codeBlock={pythonCodeBlock} />
+        <div className="flex flex-col sm:flex-row overflow-x-auto scrollbar-hidden h-[620px]">
+          <FrameworkSwitcher
+            frameworks={languagesList[language]}
+            currentFramework={framework}
+            setFramework={setFramework}
+          />
+          <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono relative">
+            <Editor
+              language={getLanguage({ language, framework })}
+              theme={editorTheme}
+              codeBlock={getCodeBlock({ language, framework })}
+            />
+            <button
+              type="button"
+              className="absolute top-5 right-5 cursor-pointer hidden lg:flex"
+              onClick={() => navigator.clipboard.writeText(getCodeBlock({ language, framework }))}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  opacity="0.3"
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M13 5.00002C13.4886 5.00002 13.6599 5.00244 13.7927 5.02884C14.3877 5.1472 14.8528 5.61235 14.9712 6.20738C14.9976 6.34011 15 6.5114 15 7.00002H16L16 6.94215V6.94213C16.0001 6.53333 16.0002 6.25469 15.952 6.01229C15.7547 5.02057 14.9795 4.24532 13.9877 4.04806C13.7453 3.99984 13.4667 3.99991 13.0579 4.00001L13 4.00002H7.70002H7.67861C7.13672 4.00001 6.69965 4.00001 6.34571 4.02893C5.98128 4.0587 5.66119 4.12161 5.36504 4.2725C4.89464 4.51219 4.51219 4.89464 4.2725 5.36504C4.12161 5.66119 4.0587 5.98128 4.02893 6.34571C4.00001 6.69965 4.00001 7.13672 4.00002 7.67862V7.70002V13L4.00001 13.0579C3.99991 13.4667 3.99984 13.7453 4.04806 13.9877C4.24532 14.9795 5.02057 15.7547 6.01229 15.952C6.25469 16.0002 6.53333 16.0001 6.94213 16H6.94215L7.00002 16V15C6.5114 15 6.34011 14.9976 6.20738 14.9712C5.61235 14.8528 5.1472 14.3877 5.02884 13.7927C5.00244 13.6599 5.00002 13.4886 5.00002 13V7.70002C5.00002 7.13172 5.00041 6.73556 5.02561 6.42714C5.05033 6.12455 5.09642 5.95071 5.16351 5.81903C5.30732 5.53679 5.53679 5.30732 5.81903 5.16351C5.95071 5.09642 6.12455 5.05033 6.42714 5.02561C6.73556 5.00041 7.13172 5.00002 7.70002 5.00002H13ZM11.7 8.00002H11.6786C11.1367 8.00001 10.6996 8.00001 10.3457 8.02893C9.98128 8.0587 9.66119 8.12161 9.36504 8.2725C8.89464 8.51219 8.51219 8.89464 8.2725 9.36504C8.12161 9.66119 8.0587 9.98128 8.02893 10.3457C8.00001 10.6996 8.00001 11.1367 8.00002 11.6786V11.7V16.3V16.3214C8.00001 16.8633 8.00001 17.3004 8.02893 17.6543C8.0587 18.0188 8.12161 18.3388 8.2725 18.635C8.51219 19.1054 8.89464 19.4879 9.36504 19.7275C9.66119 19.8784 9.98128 19.9413 10.3457 19.9711C10.6996 20 11.1366 20 11.6785 20H11.6786H11.7H16.3H16.3214H16.3216C16.8634 20 17.3004 20 17.6543 19.9711C18.0188 19.9413 18.3388 19.8784 18.635 19.7275C19.1054 19.4879 19.4879 19.1054 19.7275 18.635C19.8784 18.3388 19.9413 18.0188 19.9711 17.6543C20 17.3004 20 16.8634 20 16.3216V16.3214V16.3V11.7V11.6786V11.6785C20 11.1366 20 10.6996 19.9711 10.3457C19.9413 9.98128 19.8784 9.66119 19.7275 9.36504C19.4879 8.89464 19.1054 8.51219 18.635 8.2725C18.3388 8.12161 18.0188 8.0587 17.6543 8.02893C17.3004 8.00001 16.8633 8.00001 16.3214 8.00002H16.3H11.7ZM9.81903 9.16351C9.95071 9.09642 10.1246 9.05033 10.4271 9.02561C10.7356 9.00041 11.1317 9.00002 11.7 9.00002H16.3C16.8683 9.00002 17.2645 9.00041 17.5729 9.02561C17.8755 9.05033 18.0493 9.09642 18.181 9.16351C18.4632 9.30732 18.6927 9.53679 18.8365 9.81903C18.9036 9.95071 18.9497 10.1246 18.9744 10.4271C18.9996 10.7356 19 11.1317 19 11.7V16.3C19 16.8683 18.9996 17.2645 18.9744 17.5729C18.9497 17.8755 18.9036 18.0493 18.8365 18.181C18.6927 18.4632 18.4632 18.6927 18.181 18.8365C18.0493 18.9036 17.8755 18.9497 17.5729 18.9744C17.2645 18.9996 16.8683 19 16.3 19H11.7C11.1317 19 10.7356 18.9996 10.4271 18.9744C10.1246 18.9497 9.95071 18.9036 9.81903 18.8365C9.53679 18.6927 9.30732 18.4632 9.16351 18.181C9.09642 18.0493 9.05033 17.8755 9.02561 17.5729C9.00041 17.2645 9.00002 16.8683 9.00002 16.3V11.7C9.00002 11.1317 9.00041 10.7356 9.02561 10.4271C9.05033 10.1246 9.09642 9.95071 9.16351 9.81903C9.30732 9.53679 9.53679 9.30732 9.81903 9.16351Z"
+                  fill="url(#paint0_linear_840_3800)"
+                />
+                <defs>
+                  <linearGradient
+                    id="paint0_linear_840_3800"
+                    x1="4.15606"
+                    y1="2.27462"
+                    x2="4.15606"
+                    y2="20.9494"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop stop-color="white" stop-opacity="0.4" />
+                    <stop offset="1" stop-color="white" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -461,23 +559,32 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
 
 function FrameworkSwitcher({
   frameworks,
+  currentFramework,
   setFramework,
-}: { frameworks: Framework[]; setFramework: React.Dispatch<React.SetStateAction<FrameworkName>> }) {
+}: {
+  frameworks: Framework[];
+  currentFramework: FrameworkName;
+  setFramework: React.Dispatch<React.SetStateAction<FrameworkName>>;
+}) {
   return (
     <div className="flex flex-col justify-between sm:w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/10">
-      <div className="flex items-center sm:flex-col space-x-2 sm:space-y-2">
-        {frameworks.map(({ name, icon }) => (
+      <div className="flex items-center sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2">
+        {frameworks.map((framework) => (
           <button
             type="button"
-            onClick={() => setFramework(name as FrameworkName)}
-            className="flex items-center cursor-pointer py-1 px-2 rounded-lg w-[184px]"
+            onClick={() => {
+              setFramework(framework.name as FrameworkName);
+            }}
+            className={cn("flex items-center cursor-pointer py-1 px-2 rounded-lg w-[184px]", {
+              "bg-white/10": currentFramework === framework.name,
+            })}
           >
-            {icon}
-            <div className="ml-3">{name}</div>
+            {framework.icon}
+            <div className="ml-3">{framework.name}</div>
           </button>
         ))}
       </div>
-      <div className="hidden sm:flex ">
+      <div className="hidden sm:flex">
         <Link href="https://github.com/unkeyed/unkey">
           <div className="flex items-center pl-2 py-4">
             <svg

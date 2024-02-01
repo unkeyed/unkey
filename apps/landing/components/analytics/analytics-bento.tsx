@@ -80,7 +80,7 @@ export function Editor({
         <pre className="leading-10">
           {tokens.map((line, i) => (
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
-              <span>{i + 1}</span>
+              <span className="line-number">{i + 1}</span>
               {line.map((token, key) => (
                 <span key={`${key}-${token}`} {...getTokenProps({ token })} />
               ))}
