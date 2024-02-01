@@ -77,13 +77,15 @@ export const createInvoiceJob = client.defineJob({
     let prorate: number | undefined = undefined;
     if (
       workspace.planChanged &&
-      workspace.planChanged.getUTCFullYear() === year &&
-      workspace.planChanged.getUTCMonth() === month
+      new Date(workspace.planChanged).getUTCFullYear() === year &&
+      new Date(workspace.planChanged).getUTCMonth() + 1 === month
     ) {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 1);
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 1);
       prorate =
-        (workspace.planChanged.getTime() - start.getTime()) / (end.getTime() - start.getTime());
+        (end.getTime() - new Date(workspace.planChanged).getTime()) /
+        (end.getTime() - start.getTime());
+      io.logger.info("prorating", { start, end, prorate });
     }
 
     if (workspace.subscriptions?.plan) {
