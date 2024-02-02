@@ -6,6 +6,8 @@
   "scripts": {
     "db:migrate": "drizzle-kit generate:sqlite --out migrations --schema db/schema.ts",
     "db:push": "drizzle-kit push:sqlite",
+    "build": "tsup ./server/index.ts",
+    "start": "node ./dist.index.js",
     "server": "tsx --watch server/index.ts"
   },
   "keywords": [],
@@ -17,6 +19,7 @@
     "better-sqlite3": "^9.3.0",
     "drizzle-orm": "^0.29.3",
     "hono": "^3.12.9",
+    "tsup": "^8.0.1",
     "tsx": "^4.7.0"
   },
   "devDependencies": {

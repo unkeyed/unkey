@@ -26,8 +26,6 @@ const validateVerifyKey = validator("json", (value, c) => {
 });
 
 app.get("/v1/liveness", async (c) => {
-  const res = await db.select().from(keys);
-  console.log(res);
   return c.text("Running");
 });
 
@@ -63,22 +61,10 @@ app.post("/v1/keys/verifyKey", validateVerifyKey, async (c) => {
       ownerId: keyAfterUpdate.ownerId ?? undefined,
       remaining: keyAfterUpdate.remaining ?? undefined,
     });
-  } catch (error) {
+  } catch (_error) {
     return c.json({ status: 500, message: "Internal server error" });
   }
 });
-
-// return c.json({
-//   keyId: value.key.id,
-//   valid: true,
-//   name: value.key.name ?? undefined,
-//   ownerId: value.key.ownerId ?? undefined,
-//   meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
-//   expires: value.key.expires?.getTime(),
-//   remaining: value.remaining ?? undefined,
-//   ratelimit: value.ratelimit ?? undefined,
-//   enabled: value.key.enabled,
-// });
 
 app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
   const req = c.req.valid("json");
