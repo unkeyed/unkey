@@ -35,7 +35,7 @@ export default async function Layout({ children, params: { keyId } }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardContent className="flex justify-between flex-wrap divide-x">
+        <CardContent className="grid grid-cols-5 divide-x">
           <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
           <Metric label="Name" value={key.name ?? "-"} />
           <Metric label="Created At" value={key.createdAt.toDateString()} />
