@@ -14,7 +14,7 @@ import { type IO, eventTrigger } from "@trigger.dev/sdk";
 
 import Stripe from "stripe";
 
-client.defineJob({
+export const createInvoiceJob = client.defineJob({
   id: "billing.invoicing.createInvoice",
   name: "Collect usage and create invoice",
   version: "0.0.2",
@@ -52,10 +52,24 @@ client.defineJob({
       throw new Error(`workspace ${workspaceId} has no stripe customer id`);
     }
 
+    const paymentMethodId = await io.runTask(`get payment method for ${workspace.id}`, async () => {
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: workspace.stripeCustomerId!,
+        limit: 1,
+      });
+      if (paymentMethods.data.length === 0) {
+        throw new Error(
+          `workspace${workspace.id} (${workspace.stripeCustomerId}) does not have a payment method`,
+        );
+      }
+      return paymentMethods.data[0].id;
+    });
+
     const invoiceId = await io.runTask(`create invoice for ${workspace.id}`, async () =>
       stripe.invoices
         .create({
           customer: workspace.stripeCustomerId!,
+          default_payment_method: paymentMethodId,
           auto_advance: false,
           custom_fields: [
             {
@@ -74,6 +88,20 @@ client.defineJob({
         .then((invoice) => invoice.id),
     );
 
+    let prorate: number | undefined = undefined;
+    if (
+      workspace.planChanged &&
+      new Date(workspace.planChanged).getUTCFullYear() === year &&
+      new Date(workspace.planChanged).getUTCMonth() + 1 === month
+    ) {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 1);
+      prorate =
+        (end.getTime() - new Date(workspace.planChanged).getTime()) /
+        (end.getTime() - start.getTime());
+      io.logger.info("prorating", { start, end, prorate });
+    }
+
     if (workspace.subscriptions?.plan) {
       await createFixedCostInvoiceItem({
         stripe,
@@ -82,6 +110,7 @@ client.defineJob({
         io,
         name: "Pro plan",
         sub: workspace.subscriptions.plan,
+        prorate,
       });
     }
 
@@ -146,6 +175,7 @@ client.defineJob({
         io,
         name: "Professional Support",
         sub: workspace.subscriptions.support,
+        prorate,
       });
     }
 
@@ -162,6 +192,7 @@ async function createFixedCostInvoiceItem({
   stripeCustomerId,
   name,
   sub,
+  prorate,
 }: {
   stripe: Stripe;
   invoiceId: string;
@@ -169,6 +200,11 @@ async function createFixedCostInvoiceItem({
   stripeCustomerId: string;
   name: string;
   sub: FixedSubscription;
+  /**
+   * number between 0 and 1 to indicate how much to charge
+   * if they have had a fixed cost item for 15/30 days, this should be 0.5
+   */
+  prorate?: number;
 }): Promise<void> {
   await io.runTask(name, async () => {
     await stripe.invoiceItems.create({
@@ -178,10 +214,11 @@ async function createFixedCostInvoiceItem({
       price_data: {
         currency: "usd",
         product: sub.productId,
-        unit_amount_decimal: sub.cents,
+        unit_amount_decimal:
+          typeof prorate === "number" ? (parseInt(sub.cents) * prorate).toFixed(2) : sub.cents,
       },
       currency: "usd",
-      description: name,
+      description: typeof prorate === "number" ? `${name} (Prorated)` : name,
     });
   });
 }
