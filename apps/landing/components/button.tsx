@@ -10,8 +10,8 @@ type Props = {
 
 export const PrimaryButton: React.FC<Props> = ({ className, IconLeft, label, IconRight }) => {
   return (
-    <div className="relative group">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0239FC] to-[#7002FC] rounded-lg blur-md hover:opacity-75 group-hover:opacity-100 transition duration-1000 hover:rotate-20  opacity-0 group-hover:duration-200" />
+    <div className="relative group/button">
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0239FC] to-[#7002FC] rounded-lg blur-md hover:opacity-75 group-hover/button:opacity-100 transition duration-1000 hover:rotate-20  opacity-0 group-hover/button:duration-200" />
       <button
         type="button"
         className={cn(
