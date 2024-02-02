@@ -2,6 +2,7 @@
 import { authors } from "@/content/blog/authors";
 import { Frontmatter } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BlogCard } from "./blog-card";
 import {
@@ -33,7 +34,7 @@ function getAllTags(posts: any[]) {
 }
 
 export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
-  const blogsPerPage: number = 6;
+  const blogsPerPage: number = 15;
   const [activeTag, setActiveTag] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [filteredPosts, setFilteredPosts] = useState(posts.slice(0, blogsPerPage));
@@ -85,7 +86,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
     for (let count = 1; count <= currentPageCount; count++) {
       const isEllipses =
         (count > currentPage + 2 && count === currentPageCount) ||
-        (count <= currentPage - 1 && count === 2);
+        (count <= currentPage - 2 && count === 2);
 
       if (!isEllipses) {
         content.push(
@@ -123,7 +124,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
 
   return (
     <div>
-      <div className={cn("flex flex-row py-24 w-full justify-center gap-6", className)}>
+      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full", className)}>
         {allTags.map((tag) => (
           <button
             type="button"
@@ -138,16 +139,20 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
           </button>
         ))}
       </div>
-      <div className={cn("grid grid-cols-3 gap-12 mb-24", className)}>
+      <div
+        className={cn("grid lg:grid-cols-2 xl:grid-cols-3 md:grid-cols-1 gap-12 mb-24", className)}
+      >
         {filteredPosts.map((post) => (
-          <BlogCard
-            tags={post.frontmatter.tags?.toString()}
-            imageUrl={post.frontmatter.image}
-            title={post.frontmatter.title}
-            subTitle={post.frontmatter.description}
-            author={authors[post.frontmatter.author]}
-            publishDate={post.frontmatter.date}
-          />
+          <Link href={`/blog/${post.slug}`} key={post.slug}>
+            <BlogCard
+              tags={post.frontmatter.tags?.toString()}
+              imageUrl={post.frontmatter.image}
+              title={post.frontmatter.title}
+              subTitle={post.frontmatter.description}
+              author={authors[post.frontmatter.author]}
+              publishDate={post.frontmatter.date}
+            />
+          </Link>
         ))}
       </div>
       <SetupPagination />

@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import Image from "next/image";
 import { Frame } from "./frame";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-
 export function QuestionCircle({ className }: { className?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -23,7 +22,7 @@ export function QuestionCircle({ className }: { className?: string }) {
 }
 
 type BlogHeroProps = {
-  label?: string;
+  tags?: string[];
   imageUrl?: string;
   title?: string;
   subTitle?: string;
@@ -33,7 +32,7 @@ type BlogHeroProps = {
 };
 
 export function BlogHero({
-  label,
+  tags,
   imageUrl,
   title,
   subTitle,
@@ -43,12 +42,19 @@ export function BlogHero({
 }: BlogHeroProps) {
   return (
     <div className={cn("flex flex-col lg:flex-row w-full", className)}>
-      <Frame className="h-fit my-auto shadow-sm" size="lg">
+      <Frame className="w-fit my-auto shadow-sm" size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
-      <div className="w-full p-16">
-        <div className="relative top-0 left-0 text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 ">
-          {label}
+      <div className="w-full sm:p-4 max-sm:p-4 md:pl-8 lg:pl-20">
+        <div className="flex flex-row gap-4">
+          {tags?.map((tag) => (
+            <p
+              key={tag}
+              className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 "
+            >
+              {tag}
+            </p>
+          ))}
         </div>
         <h2 className="font-medium text-3xl leading-10 blog-heading-gradient my-6">{title}</h2>
         <p className="text-base leading-6 font-normal text-white/60">{subTitle}</p>

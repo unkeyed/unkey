@@ -85,7 +85,7 @@ export type Frontmatter = {
   image: string | undefined;
   tags: Tags[] | undefined;
 };
-type Tags = "product" | "engineering" | "company" | "industry";
+export type Tags = "product" | "engineering" | "company" | "industry";
 const options = {
   theme: gitHubLight,
   getHighlighter: (options: HighlighterOptions) =>

@@ -4,11 +4,7 @@ import { authors } from "@/content/blog/authors";
 import { BLOG_PATH, Frontmatter, getAllMDXData } from "@/lib/mdx-helper";
 
 import { BlogGrid } from "@/components/blogs-grid";
-
-// type Props = {
-//   params: { slug: string };
-//   searchParams: { [key: string]: string | string[] | undefined };
-// };
+import Link from "next/link";
 
 export const metadata = {
   title: "Blog | Unkey",
@@ -52,17 +48,20 @@ export default async function Blog() {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
   const _allTags = getAllTags(posts);
+  const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
-      <Container className="scroll-smooth">
-        <BlogHero
-          label={"Product"}
-          imageUrl={posts[0].frontmatter.image}
-          title={posts[0].frontmatter.title}
-          subTitle={posts[0].frontmatter.description}
-          author={authors[posts[0].frontmatter.author]}
-          publishDate={posts[0].frontmatter.date}
-        />
+      <Container className="scroll-smooth mt-20">
+        <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
+          <BlogHero
+            tags={postTags}
+            imageUrl={posts[0].frontmatter.image}
+            title={posts[0].frontmatter.title}
+            subTitle={posts[0].frontmatter.description}
+            author={authors[posts[0].frontmatter.author]}
+            publishDate={posts[0].frontmatter.date}
+          />
+        </Link>
         <BlogGrid posts={posts} />
       </Container>
     </>
