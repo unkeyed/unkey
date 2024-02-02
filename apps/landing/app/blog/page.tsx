@@ -1,9 +1,8 @@
 import { BlogHero } from "@/components/blog-hero";
+import { BlogGrid } from "@/components/blogs-grid";
 import { Container } from "@/components/container";
 import { authors } from "@/content/blog/authors";
 import { BLOG_PATH, Frontmatter, getAllMDXData } from "@/lib/mdx-helper";
-
-import { BlogGrid } from "@/components/blogs-grid";
 import Link from "next/link";
 
 export const metadata = {
