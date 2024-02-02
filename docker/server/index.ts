@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { keys } from "../db/schema";
 import { KeyV1, newId, sha256 } from "../keys";
@@ -10,12 +11,17 @@ const port = 3000;
 const app = new Hono();
 
 const validateCreateKey = validator("json", (value, c) => {
-  // TODO implement validation logic
+  const authorization = c.req.header("Authorization");
+  if (!authorization) {
+    throw new Error("Unauthorized: key required");
+  }
   return value;
 });
 
 const validateVerifyKey = validator("json", (value, c) => {
-  // TODO implement validation logic
+  if (!value.key) {
+    throw new Error("Unauthorized: key required.");
+  }
   return value;
 });
 
@@ -28,12 +34,51 @@ app.get("/v1/liveness", async (c) => {
 app.post("/v1/keys/verifyKey", validateVerifyKey, async (c) => {
   const req = c.req.valid("json");
   const hash = await sha256(req.key);
-  const dbRes = await db.query.keys.findFirst({
-    where: (table, { eq }) => eq(table.hash, hash),
-  });
-  console.log(dbRes);
-  return c.text("Running");
+  try {
+    await db.transaction(async (tx) => {
+      const key = await tx.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.hash, hash),
+      });
+
+      if (key?.remaining) {
+        await tx
+          .update(keys)
+          .set({ remaining: key.remaining - 1 })
+          .where(eq(keys.id, key.id));
+      }
+    });
+
+    const keyAfterUpdate = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.hash, hash),
+    });
+
+    if (!keyAfterUpdate) {
+      return c.json({ status: 404, message: "Key not found" });
+    }
+
+    return c.json({
+      keyId: keyAfterUpdate.id,
+      meta: keyAfterUpdate.meta ?? undefined,
+      name: keyAfterUpdate.name ?? undefined,
+      ownerId: keyAfterUpdate.ownerId ?? undefined,
+      remaining: keyAfterUpdate.remaining ?? undefined,
+    });
+  } catch (error) {
+    return c.json({ status: 500, message: "Internal server error" });
+  }
 });
+
+// return c.json({
+//   keyId: value.key.id,
+//   valid: true,
+//   name: value.key.name ?? undefined,
+//   ownerId: value.key.ownerId ?? undefined,
+//   meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
+//   expires: value.key.expires?.getTime(),
+//   remaining: value.remaining ?? undefined,
+//   ratelimit: value.ratelimit ?? undefined,
+//   enabled: value.key.enabled,
+// });
 
 app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
   const req = c.req.valid("json");
@@ -45,21 +90,18 @@ app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
   const keyId = newId("key");
   const hash = await sha256(key.toString());
 
-  const newKey = await db
-    .insert(keys)
-    .values({
-      id: keyId,
-      name: req.name,
-      hash,
-      start,
-      ownerId: req.ownerId,
-      createdAt: new Date(),
-      meta: req.meta ? JSON.stringify(req.meta) : null,
-      remaining: req.remaining,
-    })
-    .returning();
+  await db.insert(keys).values({
+    id: keyId,
+    name: req.name,
+    hash,
+    start,
+    ownerId: req.ownerId,
+    createdAt: new Date(),
+    meta: req.meta ? JSON.stringify(req.meta) : null,
+    remaining: req.remaining,
+  });
 
-  return c.json({ newKey });
+  return c.json({ key, id: keyId });
 });
 
 console.log(`Server is running on port ${port}`);
