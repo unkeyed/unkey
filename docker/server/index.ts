@@ -68,26 +68,30 @@ app.post("/v1/keys/verifyKey", validateVerifyKey, async (c) => {
 
 app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
   const req = c.req.valid("json");
-  const key = new KeyV1({
-    byteLength: req.byteLength ?? 16,
-    prefix: req.prefix,
-  }).toString();
-  const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
-  const keyId = newId("key");
-  const hash = await sha256(key.toString());
+  try {
+    const key = new KeyV1({
+      byteLength: req.byteLength ?? 16,
+      prefix: req.prefix,
+    }).toString();
+    const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
+    const keyId = newId("key");
+    const hash = await sha256(key.toString());
 
-  await db.insert(keys).values({
-    id: keyId,
-    name: req.name,
-    hash,
-    start,
-    ownerId: req.ownerId,
-    createdAt: new Date(),
-    meta: req.meta ? JSON.stringify(req.meta) : null,
-    remaining: req.remaining,
-  });
+    await db.insert(keys).values({
+      id: keyId,
+      name: req.name,
+      hash,
+      start,
+      ownerId: req.ownerId,
+      createdAt: new Date(),
+      meta: req.meta ? JSON.stringify(req.meta) : null,
+      remaining: req.remaining,
+    });
 
-  return c.json({ key, id: keyId });
+    return c.json({ key, id: keyId });
+  } catch (_error) {
+    throw new Error("Internal server error");
+  }
 });
 
 console.log(`Server is running on port ${port}`);
