@@ -1119,16 +1119,16 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
   );
 };
 
-export const Separator: React.FC<{ orientation?: "horizontal" | "vertical" }> = ({
-  orientation = "horizontal",
-}) => (
-  <div
-    className={cn(
-      "shrink-0 bg-white/10",
-      orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px] ",
-    )}
-  />
-);
+export const Separator: React.FC<{ orientation?: "horizontal" | "vertical"; className?: string }> =
+  ({ orientation = "horizontal", className }) => (
+    <div
+      className={cn(
+        "shrink-0 bg-white/10",
+        orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px] ",
+        className,
+      )}
+    />
+  );
 
 export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className }) => {
   return (

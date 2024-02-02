@@ -31,7 +31,7 @@ import {
 
 export default function PricingPage() {
   return (
-    <div className="container px-4 lg:px-0">
+    <div className="px-4 mx-auto lg:px-0">
       <HeroSvg className="absolute inset-x-0 top-0" />
 
       <div className="flex flex-col items-center justify-center mt-32 min-h-72">
@@ -46,7 +46,7 @@ export default function PricingPage() {
       </div>
 
       <ShinyCardGroup className="grid h-full max-w-4xl grid-cols-2 gap-6 mx-auto mt-32 group">
-        <PricingCard color={Color.White} className="col-span-2 lg:col-span-1">
+        <PricingCard color={Color.White} className="col-span-2 md:col-span-1">
           <FreeCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
           <PricingCardHeader
@@ -72,7 +72,7 @@ export default function PricingPage() {
             </Bullets>
           </PricingCardContent>
         </PricingCard>
-        <PricingCard color={Color.Yellow} className="col-span-2 lg:col-span-1">
+        <PricingCard color={Color.Yellow} className="col-span-2 md:col-span-1">
           <ProCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
           <PricingCardHeader
@@ -112,10 +112,11 @@ export default function PricingPage() {
             </div>
           </PricingCardFooter>
         </PricingCard>
+
         <PricingCard color={Color.Purple} className="col-span-2">
           <EnterpriseCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
-          <div className="flex h-full ">
+          <div className="flex flex-col h-full md:flex-row">
             <div className="flex flex-col w-full gap-8">
               <PricingCardHeader
                 title="Enterprise Tier"
@@ -141,7 +142,8 @@ export default function PricingPage() {
                 </Link>
               </PricingCardContent>
             </div>
-            <Separator orientation="vertical" />
+            <Separator orientation="vertical" className="hidden md:flex" />
+            <Separator orientation="horizontal" className="md:hidden" />
             <div className="relative w-full p-8">
               <Particles
                 className="absolute inset-0 duration-500 opacity-50 -z-10 group-hover:opacity-100"
@@ -165,11 +167,13 @@ export default function PricingPage() {
           </div>
         </PricingCard>
       </ShinyCardGroup>
-      <BelowEnterpriseSvg className="inset-x-0 top-0 mx-auto -mt-64 -mb-32" />
+      <BelowEnterpriseSvg className="container inset-x-0 top-0 mx-auto -mt-64 -mb-32" />
 
       <Discover />
 
-      <CTA />
+      <div className="-mx-4 lg:mx-0">
+        <CTA />
+      </div>
     </div>
   );
 }
