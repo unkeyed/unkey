@@ -148,9 +148,11 @@ export const Asterisk: React.FC<{ tag: string; label?: string }> = ({ tag, label
   );
 };
 
-export const PricingCard: React.FC<
-  PropsWithChildren<{ color: "#FFD600" | "#FFFFFF" | "#9D72FF"; className?: string }>
-> = ({ children, color, className }) => {
+export const PricingCard: React.FC<PropsWithChildren<{ color: Color; className?: string }>> = ({
+  children,
+  color,
+  className,
+}) => {
   return (
     <div className={cn("relative h-full overflow-hidden  group/item", className)}>
       <div
@@ -159,11 +161,11 @@ export const PricingCard: React.FC<
           // This is pretty annoying, but the only way I found to prevent tailwind from purging the class
           {
             "after:[background:_radial-gradient(250px_circle_at_var(--mouse-x)_var(--mouse-y),#FFD600,transparent)]":
-              color === "#FFD600",
+              color === Color.Yellow,
             "after:[background:_radial-gradient(250px_circle_at_var(--mouse-x)_var(--mouse-y),#FFFFFF,transparent)]":
-              color === "#FFFFFF",
+              color === Color.White,
             "after:[background:_radial-gradient(250px_circle_at_var(--mouse-x)_var(--mouse-y),#9D72FF,transparent)]":
-              color === "#9D72FF",
+              color === Color.Purple,
           },
         )}
       >

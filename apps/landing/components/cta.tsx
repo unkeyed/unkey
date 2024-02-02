@@ -6,11 +6,10 @@ import { PrimaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="relative pb-40 overflow-hidden min-h-96">
+    <div className="relative pb-40 overflow-hidden">
       <Highlights className="absolute inset-x-0 mx-auto -bottom-40" />
       <SectionTitle
         align="center"
-        className="mt-[200px]"
         title={
           <>
             Protect your API.

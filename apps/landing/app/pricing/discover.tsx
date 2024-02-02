@@ -6,6 +6,7 @@ import * as React from "React";
 import { HelpCircle, KeySquare, ListChecks } from "lucide-react";
 import { useState } from "react";
 
+import { SectionTitle } from "../section-title";
 import {
   Asterisk,
   Bullet,
@@ -18,6 +19,7 @@ import {
   PricingCardHeader,
   Separator,
 } from "./components";
+import { SubDiscoverySvg } from "./svgs";
 
 const activeKeysSteps = [250, 1_000, 2_000, 5_000, 10_000, 50_000, 100_000, null];
 
@@ -53,107 +55,106 @@ export const Discover: React.FC = () => {
       : fmtDollar(25 + activeKeysCost + verificationsCost);
 
   return (
-    <PricingCard color={Color.White} className="relative max-w-4xl mx-auto">
-      <FreeCardHighlight className="absolute top-0 right-0" />
-      <TooltipProvider delayDuration={10}>
-        <PricingCardHeader
-          title="Estimated cost calculator"
-          description="Find out how much you will pay by using Unkey"
-          withIcon={false}
-          color={Color.Purple}
-          className="bg-gradient-to-tr from-transparent to-[#ffffff]/10 "
-        />
-        <Separator />
-        <PricingCardContent>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Cost dollar={totalCostDisplay} />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="w-4 h-4 text-white/40" style={{ strokeWidth: "1px" }} />
-                </TooltipTrigger>
-                <TooltipContent className="bg-black">
-                  <p className="text-red-500">TODO</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <p className="text-sm text-white/40">Resources are summed and billed monthly</p>
-          </div>
+    <div>
+      <SectionTitle
+        align="center"
+        title={
+          <>
+            Discover your pricing. <br /> Pay only what matters to you
+          </>
+        }
+        text={
+          <>
+            Find out exactly hwat your investment will be on Unkey, with our estimated cost
+            calculator.
+            <br />
+            Explore the cost per active key and key verifications.
+          </>
+        }
+      />
 
-          <div className="flex flex-col gap-8">
-            <Row
-              label={<Bullet Icon={KeySquare} label="Active keys" color={Color.Purple} />}
-              slider={
-                <Slider
-                  min={0}
-                  max={activeKeysSteps.length - 1}
-                  value={[activeKeysIndex]}
-                  className=""
-                  onValueChange={([v]) => setActiveKeysIndex(v)}
-                />
-              }
-              quantity={
-                <div className="flex items-center gap-2">
-                  <span className="text-white">{activeKeysQuantityDisplay}</span>
-                  <span className="text-sm text-white/40">Keys</span>
-                </div>
-              }
-              cost={
-                <div className="flex items-center gap-2">
-                  <Asterisk tag={activeKeysCostDisplay} />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle
-                        className="w-4 h-4 text-white/40"
-                        style={{ strokeWidth: "1px" }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent className="bg-black">
-                      <p className="text-red-500">TODO</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              }
-            />
-            <Row
-              label={<Bullet Icon={ListChecks} label="Verifications" color={Color.Purple} />}
-              slider={
-                <Slider
-                  min={0}
-                  max={verificationsSteps.length - 1}
-                  value={[verificationsIndex]}
-                  className=""
-                  onValueChange={([v]) => setVerificationsIndex(v)}
-                />
-              }
-              quantity={
-                <div className="flex items-center gap-2">
-                  <span className="text-white">{verificationsQuantityDisplay}</span>
-                  <span className="text-sm text-white/40">Verifications</span>
-                </div>
-              }
-              cost={
-                <div className="flex items-center gap-2">
-                  <Asterisk tag={verificationsCostDisplay} />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle
-                        className="w-4 h-4 text-white/40"
-                        style={{ strokeWidth: "1px" }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent className="bg-black">
-                      <p className="text-red-500">TODO</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              }
-            />
-          </div>
-        </PricingCardContent>
-        <PricingCardFooter />
-      </TooltipProvider>
-    </PricingCard>
+      <PricingCard color={Color.White} className="relative max-w-4xl mx-auto mt-20">
+        <FreeCardHighlight className="absolute top-0 right-0" />
+        <TooltipProvider delayDuration={10}>
+          <PricingCardHeader
+            title="Estimated cost calculator"
+            description="Find out how much you will pay by using Unkey"
+            withIcon={false}
+            color={Color.Purple}
+            className="bg-gradient-to-tr from-transparent to-[#ffffff]/10 "
+          />
+          <Separator />
+          <PricingCardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Cost dollar={totalCostDisplay} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="w-4 h-4 text-white/40" style={{ strokeWidth: "1px" }} />
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-black">
+                    <p className="text-sm text-white/40">Cost break down:</p>
+
+                    <div className="grid grid-cols-2 mt-4 gap-x-4 gap-y-2">
+                      <span className="text-white">{fmtDollar(25)}</span>
+                      <span className="text-sm text-white/40">Base Plan</span>
+                      <span className="text-white">{activeKeysCostDisplay}</span>
+                      <span className="text-sm text-white/40">Active Keys</span>
+                      <span className="text-white">{verificationsCostDisplay}</span>
+                      <span className="text-sm text-white/40">Verifications</span>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-sm text-white/40">Resources are summed and billed monthly</p>
+            </div>
+
+            <div className="flex flex-col gap-8">
+              <Row
+                label={<Bullet Icon={KeySquare} label="Active keys" color={Color.Purple} />}
+                slider={
+                  <Slider
+                    min={0}
+                    max={activeKeysSteps.length - 1}
+                    value={[activeKeysIndex]}
+                    className=""
+                    onValueChange={([v]) => setActiveKeysIndex(v)}
+                  />
+                }
+                quantity={
+                  <div className="flex items-center gap-2">
+                    <span className="text-white">{activeKeysQuantityDisplay}</span>
+                    <span className="text-sm text-white/40">Keys</span>
+                  </div>
+                }
+                cost={<PriceTag dollar={activeKeysCostDisplay} />}
+              />
+              <Row
+                label={<Bullet Icon={ListChecks} label="Verifications" color={Color.Purple} />}
+                slider={
+                  <Slider
+                    min={0}
+                    max={verificationsSteps.length - 1}
+                    value={[verificationsIndex]}
+                    className=""
+                    onValueChange={([v]) => setVerificationsIndex(v)}
+                  />
+                }
+                quantity={
+                  <div className="flex items-center gap-2">
+                    <span className="text-white">{verificationsQuantityDisplay}</span>
+                    <span className="text-sm text-white/40">Verifications</span>
+                  </div>
+                }
+                cost={<PriceTag dollar={verificationsCostDisplay} />}
+              />
+            </div>
+          </PricingCardContent>
+          <PricingCardFooter />
+        </TooltipProvider>
+      </PricingCard>{" "}
+      <SubDiscoverySvg className="container max-w-4xl mx-auto" />
+    </div>
   );
 };
 
@@ -182,6 +183,16 @@ function fmtNumber(n: number): string {
 function fmtDollar(n: number): string {
   return Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 }
+
+const PriceTag: React.FC<{ dollar: string }> = ({ dollar }) => {
+  return (
+    <div className="flex justify-end w-full">
+      <span className="h-6 px-2 text-sm font-semibold text-white rounded bg-white/10">
+        {dollar}
+      </span>
+    </div>
+  );
+};
 
 const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,

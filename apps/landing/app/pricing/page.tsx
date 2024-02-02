@@ -31,7 +31,7 @@ import {
 
 export default function PricingPage() {
   return (
-    <div>
+    <div className="container px-4 lg:px-0">
       <HeroSvg className="absolute inset-x-0 top-0" />
 
       <div className="flex flex-col items-center justify-center mt-32 min-h-72">
@@ -45,7 +45,7 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <ShinyCardGroup className="grid h-full max-w-4xl grid-cols-2 gap-6 mx-auto group">
+      <ShinyCardGroup className="grid h-full max-w-4xl grid-cols-2 gap-6 mx-auto mt-32 group">
         <PricingCard color={Color.White} className="col-span-2 lg:col-span-1">
           <FreeCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
@@ -72,7 +72,7 @@ export default function PricingPage() {
             </Bullets>
           </PricingCardContent>
         </PricingCard>
-        <PricingCard color="#FFD600" className="col-span-2 lg:col-span-1">
+        <PricingCard color={Color.Yellow} className="col-span-2 lg:col-span-1">
           <ProCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
           <PricingCardHeader
@@ -112,7 +112,7 @@ export default function PricingPage() {
             </div>
           </PricingCardFooter>
         </PricingCard>
-        <PricingCard color="#9D72FF" className="col-span-2">
+        <PricingCard color={Color.Purple} className="col-span-2">
           <EnterpriseCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
           <div className="flex h-full ">
@@ -165,24 +165,7 @@ export default function PricingPage() {
           </div>
         </PricingCard>
       </ShinyCardGroup>
-      <BelowEnterpriseSvg className="inset-x-0 top-0 mx-auto -mt-64 " />
-
-      <SectionTitle
-        align="center"
-        title={
-          <>
-            Discover your pricing. <br /> Pay only what matters to you
-          </>
-        }
-        text={
-          <>
-            Find out exactly hwat your investment will be on Unkey, with our estimated cost
-            calculator.
-            <br />
-            Explore the cost per active key and key verifications.
-          </>
-        }
-      />
+      <BelowEnterpriseSvg className="inset-x-0 top-0 mx-auto -mt-64 -mb-32" />
 
       <Discover />
 
