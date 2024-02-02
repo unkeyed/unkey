@@ -537,8 +537,8 @@ importers:
         specifier: ^1.11.0
         version: 1.11.0
       '@trigger.dev/nextjs':
-        specifier: ^2.3.6
-        version: 2.3.6(@trigger.dev/sdk@2.3.16)(next@14.0.3)
+        specifier: ^2.3.17
+        version: 2.3.17(@trigger.dev/sdk@2.3.16)(next@14.0.3)
       '@trigger.dev/sdk':
         specifier: ^2.3.16
         version: 2.3.16
@@ -8381,11 +8381,11 @@ packages:
       zod-error: 1.5.0
     dev: false
 
-  /@trigger.dev/nextjs@2.3.6(@trigger.dev/sdk@2.3.16)(next@14.0.3):
-    resolution: {integrity: sha512-39Q0aKG3HLtZnWe5GszpKHAiF77Uzli/HfSjs6J18CCTER+V6IUZxp6KZgjxaBgtaeDgMbSsrvTyAScBBxDvog==}
+  /@trigger.dev/nextjs@2.3.17(@trigger.dev/sdk@2.3.16)(next@14.0.3):
+    resolution: {integrity: sha512-DiT7aT9tm6zk1U0RfLBdppL+p6VUE7swJmEFWfwl8eeYICFTY2lKFIcWgkbcsCjscC3XwtYllRqj1y0oM0bugg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@trigger.dev/sdk': ^2.3.6
+      '@trigger.dev/sdk': ^2.3.17
       next: '>=12.0.0'
     dependencies:
       '@trigger.dev/sdk': 2.3.16
