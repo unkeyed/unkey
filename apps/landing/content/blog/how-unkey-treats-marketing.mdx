@@ -1,9 +1,12 @@
 ---
-date: 2023-11-02
-title: How Unkey Treats Marketing
-description: Traditional marketing is dead, so lets talk about how to market and using product led growth.
+date: 2023-11-01
+title: Blog 6
+description: Learn more about how we built the Unkey API and how it works under the hood. Learn more about how we built the Unkey API and how it works under the hood.
+image: "/images/blog-images/funding/funding-cover.png"
 author: james
+tags: product
 ---
+<Image src="/images/hero.png" alt="Example launch tweet" width="1920" height="1080" />
 
 I have always been opinionated about marketing and how it doesn't work for developer tools. Similarly, I believe that 95% of companies doing developer relations are doing it wrong, and most of it comes down to the following:
 
@@ -13,7 +16,45 @@ The reason you see company X succeeding is that when they started doing whatever
 
 ## TLDR
 
+<BlogQuote author="Joe Pants">I said a thing</BlogQuote>
+<BlogQuote>I said a thing</BlogQuote>
+
+> I said more things
+
+
+
+```json
+{
+  "result": {
+    "valid": true,
+    "ownerId": "james",
+    "meta": {
+      "hello": "world"
+    }
+  }
+}
+```
+
+
+
+```jsx title="./functions/hello-world/index.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { verifyKey } from "https://esm.sh/@unkey/api";
+
+serve(async (req) => {
+  try {
+    // handle our functions here.
+  } catch (error) {
+    // return a 500 error if there is an error with a message.
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+    });
+  }
+})
+```
 ### Free
+
+
 
 For YouTube:
 

@@ -6,7 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { eq, schema, sql } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { newId } from "@unkey/id";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -81,7 +81,9 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     }
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`)),
+      buildUnkeyQuery(({ or }) =>
+        or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
+      ),
     );
     if (key.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });

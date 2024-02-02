@@ -10,15 +10,14 @@ const config = {
   ],
   prefix: "",
   theme: {
-    screens: {
-      xxs: "361px",
-      xs: "500px",
-      sm: "640px",
-      md: "840px",
-      lg: "960px",
-      xl: "1440px",
-    },
+    // screens: {
+    //   sm: "360px",
+    //   md: "640px",
+    //   lg: "960px",
+    //   xl: "1440px",
+    // },
     extend: {
+      typography: {},
       borderRadius: {
         "4xl": "2rem",
       },
@@ -26,9 +25,12 @@ const config = {
         sans: ["var(--font-geist-sans)"],
         mono: ["var(--font-geist-mono)"],
       },
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;
 
 export default config;

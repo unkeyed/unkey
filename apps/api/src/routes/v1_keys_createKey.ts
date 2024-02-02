@@ -8,7 +8,7 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -190,7 +190,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", "api.*.create_key", `api.${req.apiId}.create_key`)),
+      buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${req.apiId}.create_key`)),
     );
 
     const api = await cache.withCache(c, "apiById", req.apiId, async () => {

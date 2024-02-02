@@ -1,34 +1,9 @@
-import { BlogHeading, BlogSubTitle, BlogTitle } from "@/components/blog-heading";
-import { Frame } from "@/components/frame";
-import { Alert, AlertDescription } from "@/components/ui/alert/alert";
-import Image from "next/image";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/blog-table";
-
-const data = [
-  {
-    Property: "Name",
-    Description: "Full name of user",
-    Color: "Gray",
-  },
-  {
-    Property: "Age",
-    Description: "Reported age",
-    Color: "Black",
-  },
-  {
-    Property: "Joined",
-    Description: "Whether the user joined the community",
-    Color: "White",
-  },
-];
+import { BlogHero } from "@/components/blog-hero";
+import { BlogGrid } from "@/components/blogs-grid";
+import { Container } from "@/components/container";
+import { authors } from "@/content/blog/authors";
+import { BLOG_PATH, Frontmatter, getAllMDXData } from "@/lib/mdx-helper";
+import Link from "next/link";
 
 export const metadata = {
   title: "Blog | Unkey",
@@ -55,75 +30,39 @@ export const metadata = {
   },
 };
 
+function getAllTags(posts: { frontmatter: Frontmatter; slug: string }[]) {
+  const tempTags = ["all"];
+  posts.forEach((post) => {
+    const newTags = post.frontmatter.tags?.toString().split(" ");
+    newTags?.forEach((tag: string) => {
+      if (!tempTags.includes(tag)) {
+        tempTags.push(tag);
+      }
+    });
+  });
+  return tempTags;
+}
 export default async function Blog() {
+  const posts = (await getAllMDXData({ contentPath: BLOG_PATH })).sort((a, b) => {
+    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
+  });
+  const _allTags = getAllTags(posts);
+  const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
-      <div className="bg-black">
-        <div className="max-w-[880px] mx-auto text-center min-h-screen p-6">
-          <h2 className="text-white text-left pl-24">Blog / Product</h2>
-          <BlogHeading>
-            <BlogTitle>How Unkey and extensions work</BlogTitle>
-            <BlogSubTitle>
-              Learn more about how we built the Unkey API and how it works under the hood.
-            </BlogSubTitle>
-          </BlogHeading>
-          <Table className="w-[600px] mx-auto">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Property</TableHead>
-                <TableHead>Description</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((data) => (
-                <TableRow key={data.Property}>
-                  <TableCell>{data.Property}</TableCell>
-                  <TableCell>{data.Description}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          <Frame className="mt-12 mb-32">
-            <Image
-              src={"/images/blog-images/funding/funding-cover.png"}
-              alt={""}
-              width={600}
-              height={400}
-            />
-          </Frame>
-          <Alert variant="info" className="m-4">
-            <AlertDescription variant="info">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="success" className="m-4">
-            <AlertDescription variant="success">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="alert" className="m-4">
-            <AlertDescription variant="alert">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="warning" className="m-4">
-            <AlertDescription variant="warning">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-          <Alert variant="error" className="m-4">
-            <AlertDescription variant="error">
-              We provide a white-glove migration service as part of our startup plan. Interested?
-              Request it here
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
+      <Container className="scroll-smooth mt-20">
+        <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
+          <BlogHero
+            tags={postTags}
+            imageUrl={posts[0].frontmatter.image}
+            title={posts[0].frontmatter.title}
+            subTitle={posts[0].frontmatter.description}
+            author={authors[posts[0].frontmatter.author]}
+            publishDate={posts[0].frontmatter.date}
+          />
+        </Link>
+        <BlogGrid posts={posts} />
+      </Container>
     </>
   );
 }

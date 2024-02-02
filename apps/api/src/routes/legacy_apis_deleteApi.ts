@@ -6,7 +6,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { buildQuery } from "@unkey/rbac";
+import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
@@ -44,7 +44,7 @@ export const registerLegacyApisDeleteApi = (app: App) =>
     const apiId = c.req.param("apiId");
     const auth = await rootKeyAuth(
       c,
-      buildQuery(({ or }) => or("*", `api.${apiId}.delete_api`, "api.*.delete_api")),
+      buildUnkeyQuery(({ or }) => or("*", `api.${apiId}.delete_api`, "api.*.delete_api")),
     );
 
     const api = await cache.withCache(c, "apiById", apiId, async () => {

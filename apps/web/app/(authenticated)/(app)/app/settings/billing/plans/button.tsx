@@ -27,40 +27,62 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
   const [open, setOpen] = useState(false);
 
   const changePlan = trpc.workspace.changePlan.useMutation({
-    onSuccess: (_data, variables, _context) => {
-      toast.success("Your plan has been changed");
+    onSuccess: (data, variables, _context) => {
+      toast.success(data.title, {
+        description: data.message,
+      });
       PostHogEvent({
         name: "plan_changed",
         properties: { plan: variables.plan, workspace: variables.workspaceId },
       });
+      setOpen(false);
       router.refresh();
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
+
+  const isSamePlan = workspace.plan === newPlan;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
+      <DialogTrigger disabled={isSamePlan && !workspace.planDowngradeRequest}>
         <Button
           className="w-full"
           variant={
-            workspace.plan === newPlan ? "disabled" : newPlan === "pro" ? "primary" : "secondary"
+            workspace.planDowngradeRequest && isSamePlan
+              ? "primary"
+              : isSamePlan
+              ? "disabled"
+              : newPlan === "pro"
+              ? "primary"
+              : "secondary"
           }
-          disabled={workspace.plan === newPlan}
         >
-          {label}
+          {workspace.planDowngradeRequest && isSamePlan
+            ? "Resubscribe"
+            : isSamePlan
+            ? "Current Plan"
+            : label}
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader>Do you want to switch to the {newPlan} plan?</DialogHeader>
-        <Alert>
-          <AlertTitle>Warning</AlertTitle>
-          <AlertDescription>
-            You are about to switch to our {newPlan} plan. Please note there is a 24 hour pause
-            before you can switch plans again.
-          </AlertDescription>
-        </Alert>
+        <DialogHeader>
+          Do you want to {workspace.planDowngradeRequest ? "resubscribe" : "switch"} to the{" "}
+          {newPlan} plan?
+        </DialogHeader>
+        {workspace.planDowngradeRequest ? null : (
+          <Alert>
+            <AlertTitle>Warning</AlertTitle>
+            <AlertDescription>
+              {newPlan === "free"
+                ? "Your workspace will downgraded at the end of the month, you have access to all features of your current plan until then"
+                : newPlan === "pro"
+                ? `You are about to switch to the ${newPlan} plan. Please note that you can not change your plan in the current cycle, contact support@unkey.dev if you need to.`
+                : ""}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <DialogFooter className="justify-end">
           <Button className="col-span-1" variant="outline" onClick={() => setOpen(false)}>
@@ -69,7 +91,6 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
           <Button
             className="col-span-1"
             variant="primary"
-            disabled={workspace.plan === newPlan}
             onClick={() =>
               changePlan.mutateAsync({
                 workspaceId: workspace.id,
