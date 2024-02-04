@@ -186,7 +186,7 @@
           "pages": [
             "libraries/ex/functions/create_key",
             "libraries/ex/functions/verify_key",
-            "libraries/ex/functions/revoke_key",
+            "libraries/ex/functions/delete_key",
             "libraries/ex/functions/update_key",
             "libraries/ex/functions/update_remaining"
           ]
