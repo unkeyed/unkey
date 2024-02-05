@@ -52,10 +52,24 @@ export const createInvoiceJob = client.defineJob({
       throw new Error(`workspace ${workspaceId} has no stripe customer id`);
     }
 
+    const paymentMethodId = await io.runTask(`get payment method for ${workspace.id}`, async () => {
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: workspace.stripeCustomerId!,
+        limit: 1,
+      });
+      if (paymentMethods.data.length === 0) {
+        throw new Error(
+          `workspace${workspace.id} (${workspace.stripeCustomerId}) does not have a payment method`,
+        );
+      }
+      return paymentMethods.data[0].id;
+    });
+
     const invoiceId = await io.runTask(`create invoice for ${workspace.id}`, async () =>
       stripe.invoices
         .create({
           customer: workspace.stripeCustomerId!,
+          default_payment_method: paymentMethodId,
           auto_advance: false,
           custom_fields: [
             {
