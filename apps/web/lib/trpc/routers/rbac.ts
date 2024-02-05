@@ -5,7 +5,7 @@ import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
-export const permissionRouter = t.router({
+export const rbacRouter = t.router({
   addPermissionToRootKey: t.procedure
     .use(auth)
     .input(
@@ -117,6 +117,82 @@ export const permissionRouter = t.router({
             eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
           ),
         );
+    }),
+  createRole: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        name: z.string(),
+        key: z.string(),
+        description: z.string().optional(),
+        permissionIds: z.array(z.string()).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      });
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      const rolePublicId = newId("role");
+      await db.insert(schema.roles).values({
+        publicId: rolePublicId,
+        key: input.key,
+        name: input.name,
+        description: input.description,
+        workspaceId: workspace.id,
+      });
+      const role = await db.query.roles.findFirst({
+        columns: {
+          id: true,
+          publicId: true,
+        },
+        where: (table, { eq }) => eq(table.publicId, rolePublicId),
+      });
+      if (input.permissionIds && input.permissionIds.length > 0) {
+        await db.insert(schema.rolesPermissions).values(
+          input.permissionIds.map((permissionId) => ({
+            permissionId,
+            roleId: role!.id,
+            workspaceId: workspace.id,
+          })),
+        );
+      }
+      return { roleId: role!.publicId };
+    }),
+  createPermission: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        name: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      });
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      const permissionPublicId = newId("permission");
+      await db.insert(schema.permissions).values({
+        id: permissionPublicId,
+        name: input.name,
+        workspaceId: workspace.id,
+      });
+
+      return { permissionId: permissionPublicId };
     }),
 });
 

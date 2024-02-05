@@ -52,7 +52,7 @@ export default function SettingsLayout({
 
       <Navbar navigation={navigation} className="mt-8" />
 
-      <main className="mb-20 mt-8">{children}</main>
+      <main className="mt-8 mb-20">{children}</main>
     </div>
   );
 }

@@ -9,3 +9,4 @@ export type VercelIntegration = InferModel<typeof schema.vercelIntegrations>;
 export type VercelBinding = InferModel<typeof schema.vercelBindings>;
 export type AuditLog = InferModel<typeof schema.auditLogs>;
 export type Permission = InferModel<typeof schema.permissions>;
+export type Role = InferModel<typeof schema.roles>;

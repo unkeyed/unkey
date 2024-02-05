@@ -6,7 +6,7 @@ import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
-import { upsertPermission } from "./permission";
+import { upsertPermission } from "./rbac";
 
 export const keyRouter = t.router({
   create: t.procedure
