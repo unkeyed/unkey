@@ -152,13 +152,13 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
     <Link
       prefetch
       href={item.href}
-      onClick={() =>
-        !item.external
-          ? startTransition(() => {
-              router.push(item.href);
-            })
-          : null
-      }
+      onClick={() => {
+        if (!item.external) {
+          startTransition(() => {
+            router.push(item.href);
+          });
+        }
+      }}
       target={item.external ? "_blank" : undefined}
       className={cn(
         "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 justify-between",
