@@ -1,3 +1,4 @@
+import { BlogCodeBlock } from "@/components/blog-code-block";
 import { BlogHeading, BlogSubTitle, BlogTitle } from "@/components/blog-heading";
 import { BlogHero } from "@/components/blog-hero";
 import { Container } from "@/components/container";
@@ -61,6 +62,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   return (
     <>
       <Container className="scroll-smooth">
+        <BlogCodeBlock codeType="typescript" />
         <BlogHero
           label={"Product"}
           imageUrl="/images/blog-images/ai-post/create-api.png"
