@@ -1,5 +1,12 @@
 # Unkey API: minimal Dockerized implementation
 
+### How to run
+
+With Docker installed:
+
+- `docker build -t unkey-docker`
+- `docker run -p 3000:3000 unkey-docker`
+
 This contains an example implementation of Unkey's API using SQLite and Hono. It's designed to be run on a single long-running server. Keys are persisted in a single SQLite file. Since this does not contain dependencies on third-party services such as Planetscale, it's possible to self-host this in a single Docker container. 
 
 A minimal subset of the Unkey API is exposed, with just two routes:
@@ -55,7 +62,8 @@ curl --request POST \
 - `createdAt`: unix timestamp of key creation datetime
 - `remaining`: optional: a key can be created with a fixed number of uses, in which case the `remaining` field will decrement each time it is verified.
 
-### How to run
+
+### Local development
 
 Running it locally:
 
@@ -63,8 +71,3 @@ Running it locally:
 - `npm run db:migrate`
 - `npm run db:push`
 - `npm run server`
-
-With Docker installed:
-
-- `docker build -t unkey-docker`
-- `docker run -p 3000:3000 unkey-docker`
