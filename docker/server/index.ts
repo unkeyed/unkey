@@ -13,14 +13,22 @@ const app = new Hono();
 const validateCreateKey = validator("json", (value, c) => {
   const authorization = c.req.header("Authorization");
   if (!authorization) {
-    throw new Error("Unauthorized: key required");
+    return c.json({
+      status: 400,
+      code: "BAD_REQUEST",
+      message: "Authorization header required",
+    });
   }
   return value;
 });
 
 const validateVerifyKey = validator("json", (value, c) => {
   if (!value.key) {
-    throw new Error("Unauthorized: key required.");
+    return c.json({
+      status: 400,
+      code: "BAD_REQUEST",
+      message: "Key required",
+    });
   }
   return value;
 });
@@ -51,7 +59,7 @@ app.post("/v1/keys/verifyKey", validateVerifyKey, async (c) => {
     });
 
     if (!keyAfterUpdate) {
-      return c.json({ status: 404, message: "Key not found" });
+      return c.json({ status: 404, message: "Key not found", code: "NOT_FOUND" });
     }
 
     return c.json({
@@ -61,13 +69,18 @@ app.post("/v1/keys/verifyKey", validateVerifyKey, async (c) => {
       ownerId: keyAfterUpdate.ownerId ?? undefined,
       remaining: keyAfterUpdate.remaining ?? undefined,
     });
-  } catch (_error) {
-    return c.json({ status: 500, message: "Internal server error" });
+  } catch (error) {
+    return c.json({
+      status: 500,
+      message: error.message,
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 });
 
 app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
   const req = c.req.valid("json");
+
   try {
     const key = new KeyV1({
       byteLength: req.byteLength ?? 16,
@@ -89,8 +102,12 @@ app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
     });
 
     return c.json({ key, id: keyId });
-  } catch (_error) {
-    throw new Error("Internal server error");
+  } catch (error) {
+    return c.json({
+      status: 500,
+      message: error.message,
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 });
 
