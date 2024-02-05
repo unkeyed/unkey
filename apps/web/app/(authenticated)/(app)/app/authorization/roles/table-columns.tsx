@@ -39,7 +39,9 @@ export const columns: ColumnDef<Role & { permissions: string[] }>[] = [
       return (
         <ul className="flex flex-col gap-1">
           {row.original.permissions.map((p) => (
-            <Badge key={p}>{p}</Badge>
+            <Badge variant="secondary" font="mono" key={p}>
+              {p}
+            </Badge>
           ))}
         </ul>
       );

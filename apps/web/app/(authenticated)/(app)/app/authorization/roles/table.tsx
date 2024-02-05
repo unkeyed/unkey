@@ -24,7 +24,8 @@ import {
 } from "@tanstack/react-table";
 import * as React from "react";
 
-import { DataTablePagination } from "@/components/data-table";
+import { DataTablePagination } from "@/components/data-table/pagination";
+import { useRouter } from "next/navigation";
 import { DataTableToolbar } from "./table-toolbar";
 
 interface DataTableProps<TData, TValue> {
@@ -32,10 +33,11 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export function DataTable<TData extends { name: string; key: string }, TValue>({
+export function DataTable<TData extends { id: string; name: string; key: string }, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  const router = useRouter();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
     apiId: false,
@@ -72,7 +74,7 @@ export function DataTable<TData extends { name: string; key: string }, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      <DataTableToolbar table={table} data={data} />
       <div>
         <Table>
           <TableHeader>
@@ -93,7 +95,14 @@ export function DataTable<TData extends { name: string; key: string }, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    router.push(`/app/authorization/roles/${row.original.id}`);
+                  }}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

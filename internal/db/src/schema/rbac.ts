@@ -1,12 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  mysqlTable,
-  primaryKey,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { index, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { workspaces } from "./workspaces";
 
@@ -71,8 +64,7 @@ export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => 
 export const roles = mysqlTable(
   "roles",
   {
-    id: bigint("id", { mode: "bigint" }).primaryKey().autoincrement(),
-    publicId: varchar("public_id", { length: 256 }).notNull().unique(),
+    id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 })
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
@@ -111,8 +103,7 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
 export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
-    id: bigint("id", { mode: "bigint" }).primaryKey().autoincrement(),
-    roleId: bigint("role_id", { mode: "bigint" })
+    roleId: varchar("role_id", { length: 256 })
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
     permissionId: varchar("permission_id", { length: 256 })
@@ -123,6 +114,7 @@ export const rolesPermissions = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
   },
   (table) => ({
+    primaryKey: primaryKey({ columns: [table.roleId, table.permissionId, table.workspaceId] }),
     uniquePermissionIdRoleId: uniqueIndex("unique_tuple_permission_id_role_id").on(
       table.permissionId,
       table.roleId,
@@ -146,10 +138,8 @@ export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) =
 export const keysRoles = mysqlTable(
   "keys_roles",
   {
-    id: bigint("id", { mode: "bigint" }).primaryKey().autoincrement(),
-
     keyId: varchar("key_id", { length: 256 }).notNull(),
-    roleId: bigint("role_id", { mode: "bigint" })
+    roleId: varchar("role_id", { length: 256 })
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
     workspaceId: varchar("workspace_id", { length: 256 })
@@ -157,6 +147,8 @@ export const keysRoles = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
   },
   (table) => ({
+    primaryKey: primaryKey({ columns: [table.roleId, table.keyId, table.workspaceId] }),
+
     uniqueTuples: uniqueIndex("unique_key_id_role_id").on(table.keyId, table.roleId),
   }),
 );

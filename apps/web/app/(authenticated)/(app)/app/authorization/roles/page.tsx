@@ -34,16 +34,6 @@ export default async function RolesPage() {
 
   return (
     <div className="min-h-screen ">
-      <PageHeader
-        title="Roles"
-        description="Manage all roles in your workspace"
-        actions={[
-          <CreateNewRole
-            key="create-new-role"
-            trigger={<Button variant="primary">Create New Role</Button>}
-          />,
-        ]}
-      />
       <div className="grid w-full grid-cols-1 gap-8 mb-20">
         <DataTable
           data={workspace.roles.map((r) => ({

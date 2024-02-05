@@ -1,11 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { RootKeyTable } from "@/components/dashboard/root-key-table";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CreateNewRole } from "./create-new-role";
 import { DataTable } from "./table";
 import { columns } from "./table-columns";
 
@@ -24,13 +21,11 @@ export default async function RolesPage(props: Props) {
     where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       roles: {
-        where: (table, { eq }) => eq(table.publicId, props.params.roleId),
+        where: (table, { eq }) => eq(table.id, props.params.roleId),
+      },
+      permissions: {
         with: {
-          permissions: {
-            with: {
-              permission: true,
-            },
-          },
+          roles: true,
         },
       },
     },
@@ -38,28 +33,22 @@ export default async function RolesPage(props: Props) {
   if (!workspace) {
     return redirect("/new");
   }
+
   const role = workspace.roles.at(0);
   if (!role) {
     return notFound();
   }
-
   return (
     <div className="min-h-screen ">
-      <PageHeader
-        title="Roles"
-        description="Manage all roles in your workspace"
-        actions={[
-          <CreateNewRole
-            key="create-new-role"
-            trigger={<Button variant="primary">Create New Role</Button>}
-          />,
-        ]}
-      />
-      <div className="grid w-full grid-cols-1 gap-8 mb-20">
+      <PageHeader title={role.name} description={role.description ?? undefined} />
+      <Badge variant="secondary">{role.key}</Badge>
+      <div className="mt-8 mb-20">
         <DataTable
-          data={workspace.roles.map((r) => ({
-            ...r,
-            permissions: r.permissions.map((p) => p.permission.name),
+          data={workspace.permissions.map((p) => ({
+            id: p.id,
+            name: p.name,
+            roleId: role.id,
+            checked: p.roles.some((r) => r.roleId === role.id),
           }))}
           columns={columns}
         />

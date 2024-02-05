@@ -24,7 +24,7 @@ import {
 } from "@tanstack/react-table";
 import * as React from "react";
 
-import { DataTablePagination } from "@/components/data-table/pagination";
+import { DataTablePagination } from "@/components/data-table";
 import { DataTableToolbar } from "./table-toolbar";
 
 interface DataTableProps<TData, TValue> {
@@ -32,7 +32,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export function DataTable<TData extends { name: string; key: string }, TValue>({
+export function DataTable<TData extends { name: string }, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
@@ -72,7 +72,7 @@ export function DataTable<TData extends { name: string; key: string }, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      <DataTableToolbar table={table} data={data} />
       <div>
         <Table>
           <TableHeader>

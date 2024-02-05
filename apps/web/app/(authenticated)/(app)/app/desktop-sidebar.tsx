@@ -6,14 +6,13 @@ import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import {
   Activity,
-  Asterisk,
   BookOpen,
   Code,
   Crown,
-  Layers,
   Loader2,
   LucideIcon,
   Settings,
+  Vault,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -69,18 +68,12 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       external: true,
       label: "Docs",
     },
+
     {
-      icon: Layers,
-      label: "Roles",
-      href: "/app/roles",
-      active: segments.at(0) === "roles",
-      tag: <Tag label="alpha" />,
-    },
-    {
-      icon: Asterisk,
-      label: "Permissions",
-      href: "/app/permissions",
-      active: segments.at(0) === "permissions",
+      icon: Vault,
+      label: "Authorization",
+      href: "/app/authorization/roles",
+      active: segments.some((s) => s === "authorization"),
       tag: <Tag label="alpha" />,
     },
     {
@@ -178,11 +171,13 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
     <Link
       prefetch
       href={item.href}
-      onClick={() =>
-        startTransition(() => {
-          router.push(item.href);
-        })
-      }
+      onClick={() => {
+        if (!item.external) {
+          startTransition(() => {
+            router.push(item.href);
+          });
+        }
+      }}
       target={item.external ? "_blank" : undefined}
       className={cn(
         "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 justify-between",

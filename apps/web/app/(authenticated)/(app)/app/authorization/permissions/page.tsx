@@ -33,17 +33,7 @@ export default async function RolesPage() {
 
   return (
     <div className="min-h-screen ">
-      <PageHeader
-        title="Permissions"
-        description="Manage all permissions in your workspace"
-        actions={[
-          <CreateNewPermission
-            key="create-new-permission"
-            trigger={<Button variant="primary">Create New Permission</Button>}
-          />,
-        ]}
-      />
-      <div className="grid w-full grid-cols-1 gap-8 mb-20">
+      <div className="mb-20">
         <DataTable
           data={workspace.permissions.map((p) => ({
             id: p.id,

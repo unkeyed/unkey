@@ -1,8 +1,10 @@
+import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { CreateKey } from "../../create-key";
+import { CreateKey } from "./client";
 
+export const dynamic = "force-dynamic";
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = getTenantId();
 
@@ -18,7 +20,7 @@ export default async function ApiPage(props: { params: { apiId: string } }) {
   }
 
   return (
-    <div className="h-full">
+    <div>
       <CreateKey apiId={api.id} />
     </div>
   );

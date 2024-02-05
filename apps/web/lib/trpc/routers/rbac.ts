@@ -118,6 +118,83 @@ export const rbacRouter = t.router({
           ),
         );
     }),
+  connectPermissionToRole: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        roleId: z.string(),
+        permissionId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.permissionId),
+          },
+        },
+      });
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      const role = workspace.roles.at(0);
+      if (!role) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "role not found",
+        });
+      }
+      const permission = workspace.permissions.at(0);
+      if (!permission) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "permission not found",
+        });
+      }
+
+      await db.insert(schema.rolesPermissions).values({
+        workspaceId: workspace.id,
+        permissionId: permission.id,
+        roleId: role.id,
+      });
+    }),
+  disconnectPermissionToRole: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        roleId: z.string(),
+        permissionId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      });
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      await db
+        .delete(schema.rolesPermissions)
+        .where(
+          and(
+            eq(schema.rolesPermissions.workspaceId, workspace.id),
+            eq(schema.rolesPermissions.roleId, input.roleId),
+            eq(schema.rolesPermissions.permissionId, input.permissionId),
+          ),
+        );
+    }),
   createRole: t.procedure
     .use(auth)
     .input(
@@ -140,31 +217,25 @@ export const rbacRouter = t.router({
           message: "workspace not found",
         });
       }
-      const rolePublicId = newId("role");
+      const roleId = newId("role");
       await db.insert(schema.roles).values({
-        publicId: rolePublicId,
+        id: roleId,
         key: input.key,
         name: input.name,
         description: input.description,
         workspaceId: workspace.id,
       });
-      const role = await db.query.roles.findFirst({
-        columns: {
-          id: true,
-          publicId: true,
-        },
-        where: (table, { eq }) => eq(table.publicId, rolePublicId),
-      });
+
       if (input.permissionIds && input.permissionIds.length > 0) {
         await db.insert(schema.rolesPermissions).values(
           input.permissionIds.map((permissionId) => ({
             permissionId,
-            roleId: role!.id,
+            roleId: roleId,
             workspaceId: workspace.id,
           })),
         );
       }
-      return { roleId: role!.publicId };
+      return { roleId };
     }),
   createPermission: t.procedure
     .use(auth)
@@ -185,14 +256,14 @@ export const rbacRouter = t.router({
           message: "workspace not found",
         });
       }
-      const permissionPublicId = newId("permission");
+      const permissionId = newId("permission");
       await db.insert(schema.permissions).values({
-        id: permissionPublicId,
+        id: permissionId,
         name: input.name,
         workspaceId: workspace.id,
       });
 
-      return { permissionId: permissionPublicId };
+      return { permissionId };
     }),
 });
 

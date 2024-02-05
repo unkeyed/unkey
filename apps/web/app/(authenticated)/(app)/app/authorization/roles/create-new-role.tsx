@@ -55,7 +55,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
 
   const createRole = trpc.rbac.createRole.useMutation({
     onSuccess({ roleId }) {
-      const href = `/app/settings/roles/${roleId}`;
+      const href = `/app/authorization/roles/${roleId}`;
       router.prefetch(href);
       toast.success("your role was created", {
         action: createMore
