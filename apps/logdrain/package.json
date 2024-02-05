@@ -10,7 +10,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231121.0",
     "typescript": "^5.0.4",
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.26.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.1",

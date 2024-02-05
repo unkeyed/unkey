@@ -37,7 +37,7 @@ type Headings = {
   text: string | undefined;
 };
 
-type Post<TFrontmatter> = {
+export type Post<TFrontmatter> = {
   serialized: MDXRemoteSerializeResult;
   frontmatter: TFrontmatter;
   headings: Headings[];
@@ -74,7 +74,7 @@ type JobFrontmatter = {
   salary: string;
 };
 
-type Frontmatter = {
+export type Frontmatter = {
   title: string;
   date: string;
   description: string;
@@ -82,8 +82,10 @@ type Frontmatter = {
   visible: boolean | undefined;
   salary: string | undefined;
   level: string | undefined;
+  image: string | undefined;
+  tags: Tags[] | undefined;
 };
-
+export type Tags = "product" | "engineering" | "company" | "industry";
 const options = {
   theme: gitHubLight,
   getHighlighter: (options: HighlighterOptions) =>
