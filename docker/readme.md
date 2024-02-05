@@ -1,3 +1,49 @@
+# Unkey API: minimal Dockerized implementation
+
+This contains an example implementation of Unkey's API using SQLite and Hono. It's designed to be run on a single long-running server. Keys are persisted in a single SQLite file. Since this does not contain dependencies on third-party services such as Planetscale, it's possible to self-host this in a single Docker container. 
+
+A minimal subset of the Unkey API is exposed, with just two routes:
+
+- `/v1/keys/createKey` to create a new key, and
+- `v1/keys/verifyKey` to verify a key.
+
+This is a single-tenant implementation, so keys are not associated with an API. Other limitations:
+
+- Rate limiting is not supported
+- Key expiration is not supported
+- 'Enabled' is not supported
+
+Otherwise, the key creation and verification API matches that of the [main Unkey API](https://unkey.dev/docs/api-reference/keys/create). Example requests:
+
+### Key creation
+
+```bash
+
+curl --request POST \
+     --url http://localhost:3000/v1/keys/createKey \
+     --header 'Authorization: Bearer <token>' \
+     --header 'Content-Type: application/json' \
+     --data '{
+        "name": "myKey",
+        "ownerId": "userId123",
+        "remaining": 20,
+        "meta": { "roles" : "admin" }
+     }'
+```
+
+### Key verification
+
+```bash
+
+curl --request POST \
+      --url http://localhost:3000/v1/keys.verifyKey \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "key": "sk_1234"
+      }'
+
+```
+
 # Table schema 
 
 - `start`: stores the first 9 characters of the key, to help as an identified without exposing the whole thing
