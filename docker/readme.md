@@ -54,3 +54,17 @@ curl --request POST \
 - `meta`: optionally add additional metadata to the key
 - `createdAt`: unix timestamp of key creation datetime
 - `remaining`: optional: a key can be created with a fixed number of uses, in which case the `remaining` field will decrement each time it is verified.
+
+### How to run
+
+Running it locally:
+
+- `npm install`
+- `npm run db:migrate`
+- `npm run db:push`
+- `npm run server`
+
+With Docker installed:
+
+- `docker build -t unkey-docker`
+- `docker run -p 3000:3000 unkey-docker`
