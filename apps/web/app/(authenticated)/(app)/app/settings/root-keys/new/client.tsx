@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { trpc } from "@/lib/trpc/client";
 import { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 
 type Props = {
@@ -56,6 +56,16 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
+
+  const handleSetChecked = useCallback((permission: UnkeyPermission, checked: boolean) => {
+    setSelectedPermissions((prevPermissions) => {
+      if (checked) {
+        return [...prevPermissions, permission];
+      } else {
+        return prevPermissions.filter((r) => r !== permission);
+      }
+    });
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -92,15 +102,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                       label={action}
                       description={description}
                       checked={selectedPermissions.includes(permission)}
-                      setChecked={(c) => {
-                        if (c) {
-                          setSelectedPermissions([...selectedPermissions, permission]);
-                        } else {
-                          setSelectedPermissions(
-                            selectedPermissions.filter((r) => r !== permission),
-                          );
-                        }
-                      }}
+                      setChecked={(c) => handleSetChecked(permission, c)}
                     />
                   ))}
                 </div>
@@ -133,9 +135,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                             label={action}
                             description={description}
                             checked={selectedPermissions.includes(permission)}
-                            setChecked={() =>
-                              setSelectedPermissions([...selectedPermissions, permission])
-                            }
+                            setChecked={(c) => handleSetChecked(permission, c)}
                           />
                         );
                       })}
