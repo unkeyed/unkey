@@ -83,11 +83,11 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
           </CardContent>
           <CardFooter className="justify-end">
             <Button
-              variant={form.formState.isSubmitting ? "disabled" : "primary"}
+              variant={updateName.isLoading ? "disabled" : "primary"}
               type="submit"
-              disabled={form.formState.isSubmitting}
+              disabled={updateName.isLoading}
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              {updateName.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

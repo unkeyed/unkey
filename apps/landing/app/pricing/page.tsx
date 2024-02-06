@@ -1,13 +1,9 @@
 import { Particles } from "@/components/particles";
-import { ShinyCard, ShinyCardGroup, WhiteShinyCard } from "@/components/shiny-card";
-import { cn } from "@/lib/utils";
-import { desc } from "drizzle-orm";
-import { Check, LucideIcon, Stars } from "lucide-react";
+import { ShinyCardGroup } from "@/components/shiny-card";
+import { Check, Stars } from "lucide-react";
 import Link from "next/link";
-import { PropsWithChildren } from "react";
 import { Discover } from "./discover";
 
-import { SectionTitle } from "../section-title";
 import { HeroSvg } from "./hero-svgs";
 
 import { CTA } from "@/components/cta";
