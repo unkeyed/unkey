@@ -17,6 +17,10 @@ export const permissions = mysqlTable(
       table.name,
       table.workspaceId,
     ),
+    uniqueKeyPerWorkspace: uniqueIndex("unique_key_per_workspace_idx").on(
+      table.key,
+      table.workspaceId,
+    ),
     workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),
   }),
 );
@@ -39,10 +43,9 @@ export const keysPermissions = mysqlTable(
       .notNull()
       .references(() => permissions.id, { onDelete: "cascade" }),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    // .references(() => workspaces.id, { onDelete: "cascade" }),
   },
   (table) => ({
-    pk: primaryKey({ columns: [table.keyId, table.permissionId] }),
+    pk: primaryKey({ columns: [table.keyId, table.permissionId, table.workspaceId] }),
   }),
 );
 
@@ -136,7 +139,9 @@ export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) =
 export const keysRoles = mysqlTable(
   "keys_roles",
   {
-    keyId: varchar("key_id", { length: 256 }).notNull(),
+    keyId: varchar("key_id", { length: 256 })
+      .notNull()
+      .references(() => keys.id, { onDelete: "cascade" }),
     roleId: varchar("role_id", { length: 256 })
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
