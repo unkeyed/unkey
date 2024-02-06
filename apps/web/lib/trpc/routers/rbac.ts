@@ -260,6 +260,7 @@ export const rbacRouter = t.router({
       await db.insert(schema.permissions).values({
         id: permissionId,
         name: input.name,
+        key: input.name,
         workspaceId: workspace.id,
       });
 
@@ -280,6 +281,8 @@ export async function upsertPermission(workspaceId: string, name: string): Promi
       id: newId("permission"),
       workspaceId,
       name,
+      key: name,
+      description: null,
     };
 
     await tx.insert(schema.permissions).values(permission);

@@ -202,7 +202,7 @@ const Feedback: React.FC = () => {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="p0">Urgent</SelectItem>
-                          <SelectItem value="p1">Hight</SelectItem>
+                          <SelectItem value="p1">High</SelectItem>
                           <SelectItem value="p2">Normal</SelectItem>
                           <SelectItem value="p3">Low</SelectItem>
                         </SelectContent>
