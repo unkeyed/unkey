@@ -270,6 +270,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         const permissions = req.roles.map((name) => ({
           id: newId("permission"),
           name,
+          key: name,
           workspaceId: authorizedWorkspaceId,
         }));
 
