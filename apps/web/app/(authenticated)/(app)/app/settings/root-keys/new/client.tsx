@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { trpc } from "@/lib/trpc/client";
 import { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 
 type Props = {
@@ -57,7 +57,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
 
-  const handleSetChecked = useCallback((permission: UnkeyPermission, checked: boolean) => {
+  const handleSetChecked = (permission: UnkeyPermission, checked: boolean) => {
     setSelectedPermissions((prevPermissions) => {
       if (checked) {
         return [...prevPermissions, permission];
@@ -65,7 +65,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
         return prevPermissions.filter((r) => r !== permission);
       }
     });
-  }, []);
+  };
 
   return (
     <div className="flex flex-col gap-4">
