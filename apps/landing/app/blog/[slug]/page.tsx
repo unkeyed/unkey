@@ -1,3 +1,4 @@
+import { BlogAuthors } from "@/components/blog/blog-authors";
 import { Container } from "@/components/container";
 // import { FadeIn } from "@/components/landing/fade-in";
 import { MdxContent } from "@/components/mdx-content";
@@ -5,10 +6,10 @@ import { MdxContent } from "@/components/mdx-content";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 // import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { authors } from "@/content/blog/authors";
+import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
+import { format } from "date-fns";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-
-import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
 
 type Props = {
   params: { slug: string };
@@ -60,57 +61,54 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
     contentPath: BLOG_PATH,
     filepath: params.slug,
   });
+  console.log(JSON.stringify(serialized));
 
   return (
     <>
-      <Container className="scroll-smooth">
+      <Container className="scroll-smooth mb-24">
         <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
           <div className="mx-auto w-full lg:pl-8">
-            <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            <h2 className="text-left text-6xl font-medium tracking-tight blog-heading-gradient leading-[72px] pl-24 pr-30">
               {frontmatter.title}
             </h2>
-            <p className="border- my-8 text-center text-gray-500">{frontmatter.description}</p>
-            <div className="prose prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto w-full">
+            <p className="my-8 text-left text-white/40 text-lg font-normal leading-8 pl-24 pr-40">
+              {frontmatter.description}
+            </p>
+            <div className="bg-black flex flex-col gap-20">
               <MdxContent source={serialized} />
             </div>
           </div>
 
-          <div className="top-24 flex h-max w-full flex-col justify-end self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-8">
-            <div className="mx-auto flex items-center justify-start gap-4 border-y-0 p-2 md:mx-0 md:border-b md:border-b-gray-200">
-              <Avatar className="h-14 w-14 justify-items-start">
-                <AvatarImage src={author.image?.src} alt={author.name} />
-              </Avatar>
-              <div className="text-sm text-gray-950">
-                <div className="font-semibold">{author.name}</div>
+          <div className="top-24 flex h-max w-full flex-col justify-end self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-28 gap-8">
+            <div>
+              <BlogAuthors author={author} className="w-full mb-8" />
+
+              <p className="text-white/30 text-sm mb-4">Published on</p>
+              <h3 className="text-white">{format(new Date(frontmatter.date!), "MMM dd, yyyy")}</h3>
+            </div>
+
+            <div className="text-white w-52 overflow-clip max-sm:hidden md:hidden lg:block">
+              <p className="text-white/30 text-md">Contents</p>
+              <div className="mt-6 overflow-hidden whitespace-nowrap">
+                {headings.map((heading) => {
+                  return (
+                    <div key={`#${heading.slug}`} className="my-4 text-ellipsis text-nowrap ">
+                      <a
+                        data-level={heading.level}
+                        className={
+                          heading.level === "two" || heading.level === "one"
+                            ? "text-md font-semibold"
+                            : "text-sm"
+                        }
+                        href={`#${heading.slug}`}
+                      >
+                        {heading.text}
+                      </a>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            {
-              <div className="hidden md:block">
-                <h3 className="mb-4 mt-8 text-lg font-bold uppercase tracking-wide text-gray-600">
-                  Table of Contents
-                </h3>
-
-                <div className="p-4">
-                  {headings.map((heading) => {
-                    return (
-                      <div key={`#${heading.slug}`} className="my-2">
-                        <a
-                          data-level={heading.level}
-                          className={
-                            heading.level === "two" || heading.level === "one"
-                              ? "text-md font-semibold"
-                              : "ml-4 text-sm"
-                          }
-                          href={`#${heading.slug}`}
-                        >
-                          {heading.text}
-                        </a>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            }
           </div>
         </div>
       </Container>
