@@ -9,6 +9,8 @@ export const permissions = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
+    key: varchar("key", { length: 512 }),
+    description: varchar("description", { length: 512 }),
   },
   (table) => ({
     uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
