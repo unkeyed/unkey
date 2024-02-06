@@ -43,6 +43,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Loading } from "../loading";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -113,6 +114,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
 
                 <DialogFooter>
                   <Button
+                    disabled={deleteKey.isLoading}
                     onClick={() => {
                       const keyIds = table
                         .getSelectedRowModel()
@@ -121,7 +123,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                       deleteKey.mutate({ keyIds });
                     }}
                   >
-                    Delete permanently
+                    {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
