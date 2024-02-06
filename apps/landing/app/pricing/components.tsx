@@ -1,7 +1,6 @@
 import { Particles } from "@/components/particles";
-import { ShinyCard, ShinyCardGroup, WhiteShinyCard } from "@/components/shiny-card";
 import { cn } from "@/lib/utils";
-import { Check, LucideIcon, Stars } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { type PropsWithChildren } from "react";
 

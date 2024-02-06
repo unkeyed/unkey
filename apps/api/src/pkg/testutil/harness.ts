@@ -88,6 +88,8 @@ export class Harness {
       const permissions = roles.map((name) => ({
         id: newId("permission"),
         name,
+        key: name,
+        description: null,
         workspaceId: this.resources.unkeyWorkspace.id,
       }));
 
