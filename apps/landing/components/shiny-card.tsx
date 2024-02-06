@@ -100,7 +100,6 @@ export const ShinyCard: React.FC<PropsWithChildren<ShinyCardProps>> = ({
 export const WhiteShinyCard: React.FC<PropsWithChildren<ShinyCardProps>> = ({
   children,
   className = "",
-  shine = "colors.amber.500",
 }) => {
   return (
     <div
