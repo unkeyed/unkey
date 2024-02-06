@@ -179,7 +179,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
             <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
               {showKey ? key.data?.key : maskedKey}
-              <div className="flex items-start justify-between gap-4 ">
+              <div className="flex items-center justify-between gap-4 ">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data?.key ?? ""} />
               </div>
