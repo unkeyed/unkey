@@ -28,7 +28,12 @@ export const raw = async ({
   contentPath: string;
   filepath: string;
 }) => {
-  return await fs.readFile(`${contentPath}/${filepath}.mdx`, "utf-8");
+  try {
+    const fileContent = await fs.readFile(`${contentPath}/${filepath}.mdx`, "utf-8");
+    return fileContent;
+  } catch {
+    return notFound();
+  }
 };
 
 type Headings = {

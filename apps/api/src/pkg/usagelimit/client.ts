@@ -25,11 +25,23 @@ export class DurableUsageLimiter implements UsageLimiter {
     try {
       const obj = this.namespace.get(this.namespace.idFromName(req.keyId));
       const url = `https://${this.domain}/limit`;
-      const res = await obj.fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req),
-      });
+      const res = await obj
+        .fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(req),
+        })
+        .catch(async (e) => {
+          logger.warn("calling the usagelimit DO failed, retrying ...", {
+            keyId: req.keyId,
+            error: (e as Error).message,
+          });
+          return await obj.fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(req),
+          });
+        });
       return limitResponseSchema.parse(await res.json());
     } catch (e) {
       logger.error("usagelimit failed", { error: e });
