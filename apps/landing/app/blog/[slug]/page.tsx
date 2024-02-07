@@ -70,7 +70,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               {frontmatter.title}
             </h2>
             <p className="border- my-8 text-center text-gray-500">{frontmatter.description}</p>
-            <div className="prose prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto w-full">
+            <div className="prose prose-neutral dark:prose-invert prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto w-full">
               <MdxContent source={serialized} />
             </div>
           </div>
