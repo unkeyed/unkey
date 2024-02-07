@@ -25,11 +25,23 @@ export class DurableRateLimiter implements RateLimiter {
     try {
       const obj = this.namespace.get(this.namespace.idFromName(keyAndWindow));
       const url = `https://${this.domain}/limit`;
-      const res = await obj.fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reset }),
-      });
+      const res = await obj
+        .fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reset }),
+        })
+        .catch(async (e) => {
+          logger.warn("calling the ratelimit DO failed, retrying ...", {
+            keyId: req.keyId,
+            error: (e as Error).message,
+          });
+          return await obj.fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reset }),
+          });
+        });
 
       const json = await res.json();
       const { current } = z.object({ current: z.number() }).parse(json);
