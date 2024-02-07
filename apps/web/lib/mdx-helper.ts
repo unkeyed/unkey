@@ -32,7 +32,7 @@ export const raw = async ({
   try {
     const fileContent = await fs.readFile(`${contentPath}/${filepath}.mdx`, "utf-8");
     return fileContent;
-  } catch (error) {
+  } catch () {
     return notFound()
   }
 };
