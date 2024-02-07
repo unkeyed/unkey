@@ -3,7 +3,7 @@ import path from "path";
 import GithubSlugger from "github-slugger";
 import { type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
 import rehypePrettyCode from "rehype-pretty-code";
@@ -33,7 +33,7 @@ export const raw = async ({
     const fileContent = await fs.readFile(`${contentPath}/${filepath}.mdx`, "utf-8");
     return fileContent;
   } catch (error) {
-    redirect("/[...not-found]");
+    return notFound()
   }
 };
 
