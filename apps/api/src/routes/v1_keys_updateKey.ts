@@ -1,4 +1,4 @@
-import { db, usageLimiter } from "@/pkg/global";
+import { cache, db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -220,9 +220,15 @@ export const registerV1KeysUpdate = (app: App) =>
         actorId: rootKeyId,
         event: "key.update",
         description: "Key was updated",
+        keyId: key.id,
         keyAuthId: key.keyAuthId,
       });
-      await usageLimiter.revalidate({ keyId: key.id });
+
+      await Promise.all([
+        usageLimiter.revalidate({ keyId: key.id }),
+        cache.remove(c, "keyByHash", key.hash),
+        cache.remove(c, "keyById", key.id),
+      ]);
     });
 
     return c.json({});
