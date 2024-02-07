@@ -1,7 +1,7 @@
 "use client";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { BlogCodeBlock } from "./blog-code-block";
-import { BlogList, BlogListItem } from "./blog-list";
+import { BlogList, BlogListItem, BlogListNumbered } from "./blog-list";
 import { BlogQuote } from "./blog-quote";
 import { BlogImage } from "./blog/blog-image";
 import { Alert } from "./ui/alert/alert";
@@ -17,6 +17,7 @@ const MdxComponents = {
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60" />,
   blockquote: (props: any) => BlogQuote(props),
   BlogQuote: (props: any) => BlogQuote(props),
+  ol: (props: any) => BlogListNumbered(props),
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h2: (props: any) => (
