@@ -148,15 +148,20 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
               />
 
               <DialogFooter className="justify-end gap-4">
-                <Button type="button" onClick={() => setOpen(!open)} variant="secondary">
+                <Button
+                  type="button"
+                  disabled={deleteApi.isLoading}
+                  onClick={() => setOpen(!open)}
+                  variant="secondary"
+                >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant={isValid ? "alert" : "disabled"}
-                  disabled={!isValid || form.formState.isLoading}
+                  disabled={!isValid || deleteApi.isLoading}
                 >
-                  {form.formState.isLoading ? <Loading /> : "Delete API"}
+                  {deleteApi.isLoading ? <Loading /> : "Delete API"}
                 </Button>
               </DialogFooter>
             </form>

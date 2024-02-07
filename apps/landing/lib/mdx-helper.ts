@@ -5,11 +5,12 @@ import { type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
-import rehypePrettyCode from "rehype-pretty-code";
+// import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
-import { BUNDLED_LANGUAGES, type HighlighterOptions, getHighlighter } from "shiki";
-import gitHubLight from "shiki/themes/github-light.json";
+// import { Highlight, themes } from "prism-react-renderer";
+// import { BUNDLED_LANGUAGES, type HighlighterOptions, getHighlighter } from "shiki";
+// import darkplus from "shiki/themes/dark-plus.json";
 
 export const BLOG_PATH = path.join(process.cwd(), "content", "blog");
 export const CHANGELOG_PATH = path.join(process.cwd(), "content", "changelog");
@@ -37,7 +38,7 @@ type Headings = {
   text: string | undefined;
 };
 
-type Post<TFrontmatter> = {
+export type Post<TFrontmatter> = {
   serialized: MDXRemoteSerializeResult;
   frontmatter: TFrontmatter;
   headings: Headings[];
@@ -74,7 +75,7 @@ type JobFrontmatter = {
   salary: string;
 };
 
-type Frontmatter = {
+export type Frontmatter = {
   title: string;
   date: string;
   description: string;
@@ -82,19 +83,23 @@ type Frontmatter = {
   visible: boolean | undefined;
   salary: string | undefined;
   level: string | undefined;
+  image: string | undefined;
+  tags: Tags[] | undefined;
 };
 
-const options = {
-  theme: gitHubLight,
-  getHighlighter: (options: HighlighterOptions) =>
-    getHighlighter({
-      ...options,
-      langs: [...BUNDLED_LANGUAGES],
-    }),
-  defaultLang: {
-    block: "typescript",
-  },
-};
+export type Tags = "product" | "engineering" | "company" | "industry";
+
+// const options = {
+//   theme: themes.jettwaveDark,
+//   getHighlighter: (options: HighlighterOptions) =>
+//     getHighlighter({
+//       ...options,
+//       langs: [...BUNDLED_LANGUAGES],
+//     }),
+//   defaultLang: {
+//     block: "typescript",
+//   },
+// };
 // Serialize the MDX content and parse the frontmatter
 export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
   return await serialize(rawMdx, {
@@ -102,7 +107,7 @@ export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
     mdxOptions: {
       remarkPlugins: [remarkGfm],
       rehypePlugins: [
-        [rehypePrettyCode, options],
+        // [rehypePrettyCode, options],
         rehypeAutolinkHeadings,
         rehypeSlug,
         rehypeCodeTitles,
