@@ -407,8 +407,8 @@ importers:
         specifier: 10.16.2
         version: 10.16.2(react-dom@18.2.0)(react@18.2.0)
       free-email-domains:
-        specifier: ^1.2.5
-        version: 1.2.5
+        specifier: ^1.2.12
+        version: 1.2.12
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0
@@ -12770,8 +12770,8 @@ packages:
       '@emotion/is-prop-valid': 0.8.8
     dev: false
 
-  /free-email-domains@1.2.5:
-    resolution: {integrity: sha512-0AahrjWHecHrTk+H8giaes4glICLZlCfyr3i2v6BQh9hGcw9u3p9wSkFGS6pN3IM+0w5ADJEAfcco00T/ULp2Q==}
+  /free-email-domains@1.2.12:
+    resolution: {integrity: sha512-3srnyYDfDQPVH3RykNcMJdlYA/1SWuE3AzFP7Apu2Ia0EJJoDg3QuTbOfCUjvp+myFdud5DVk22AYT9OHL1aFA==}
     engines: {node: '>= 14'}
     requiresBuild: true
     dependencies:
