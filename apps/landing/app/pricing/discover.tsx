@@ -70,7 +70,6 @@ export const Discover: React.FC = () => {
           </>
         }
       />
-
       <PricingCard color={Color.White} className="relative max-w-4xl mx-auto mt-20">
         <FreeCardHighlight className="absolute top-0 right-0" />
         <TooltipProvider delayDuration={10}>

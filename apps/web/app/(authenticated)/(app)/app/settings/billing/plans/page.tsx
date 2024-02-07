@@ -134,7 +134,11 @@ export default async function Page() {
               {tiers[tier].footnotes && (
                 <ul className="mt-6 mb-8">
                   {tiers[tier].footnotes.map((footnote, i) => (
-                    <li key={`note-${i}`} className="flex text-xs text-content-subtle gap-x-3">
+                    <li
+                      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                      key={`note-${i}`}
+                      className="flex text-xs text-content-subtle gap-x-3"
+                    >
                       {footnote}
                     </li>
                   ))}

@@ -96,7 +96,11 @@ export function BlogCodeBlock({ className, children }: any) {
                 {({ tokens, getLineProps, getTokenProps }) => (
                   <pre className="leading-10 border-none rounded-none bg-transparent">
                     {tokens.map((line, i) => (
-                      <div key={`${line}-${i}`} {...getLineProps({ line })}>
+                      <div
+                        // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                        key={`${line}-${i}`}
+                        {...getLineProps({ line })}
+                      >
                         <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
                         {line.map((token, key) => (
                           <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
