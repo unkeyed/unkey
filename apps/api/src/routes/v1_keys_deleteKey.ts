@@ -117,8 +117,10 @@ export const registerV1KeysDeleteKey = (app: App) =>
       });
     });
 
-    await cache.remove(c, "keyById", data.key.id);
-    await cache.remove(c, "keyByHash", data.key.hash);
+    await Promise.all([
+      cache.remove(c, "keyByHash", data.key.hash),
+      cache.remove(c, "keyById", data.key.id),
+    ]);
 
     return c.json({});
   });
