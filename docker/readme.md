@@ -4,8 +4,10 @@
 
 With Docker installed:
 
-- `docker build -t unkey-docker`
-- `docker run -p 3000:3000 unkey-docker`
+1. `git clone git@github.com:unkeyed/unkey.git`
+2. `cd unkey/docker`
+3. `docker build -t unkey-docker`
+4. `docker run -p 3000:3000 unkey-docker`
 
 This contains an example implementation of Unkey's API using SQLite and Hono. It's designed to be run on a single long-running server. Keys are persisted in a single SQLite file. Since this does not contain dependencies on third-party services such as Planetscale, it's possible to self-host this in a single Docker container. 
 
