@@ -53,6 +53,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (values.name === api.name || !values.name) {
+      return toast.error("Please provide a valid name before saving.");
+    }
     updateName.mutateAsync(values);
   }
 
