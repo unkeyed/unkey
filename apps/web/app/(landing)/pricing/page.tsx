@@ -185,7 +185,7 @@ export default async function PricingPage() {
                       <ul className="mt-6">
                         {tiers[tier].footnotes.map((footnote, i) => (
                           <li
-                            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
                             key={`note-${i}`}
                             className="flex text-xs text-gray-600 gap-x-3"
                           >

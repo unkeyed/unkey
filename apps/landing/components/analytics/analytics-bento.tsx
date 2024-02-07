@@ -76,7 +76,7 @@ function Editor() {
         <pre className="leading-10">
           {tokens.map((line, i) => (
             <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
               key={`${line}-${i}`}
               {...getLineProps({ line })}
             >

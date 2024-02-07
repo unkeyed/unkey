@@ -97,7 +97,7 @@ export function BlogCodeBlock({ className, children }: any) {
                   <pre className="leading-10 border-none rounded-none bg-transparent">
                     {tokens.map((line, i) => (
                       <div
-                        // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                        // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
                         key={`${line}-${i}`}
                         {...getLineProps({ line })}
                       >
