@@ -1,9 +1,11 @@
 "use client";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import Image from "next/image";
+import { BlogCodeBlock } from "./blog-code-block";
 import { BlogList, BlogListItem } from "./blog-list";
 import { BlogQuote } from "./blog-quote";
 import { Alert } from "./ui/alert/alert";
+
 type MdxContentProps = {
   source: MDXRemoteSerializeResult;
 };
@@ -27,6 +29,7 @@ const MdxComponents = {
       className="font-mono rounded-md code-inline-gradient text-white/50 px-3 pt-0.5 pb-1 mx-1"
     />
   ),
+  BlogCodeBlock: (props: any) => BlogCodeBlock(props),
 };
 
 export function MdxContent({ source }: MdxContentProps) {
