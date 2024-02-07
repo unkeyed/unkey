@@ -57,6 +57,16 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
 
+  const handleSetChecked = (permission: UnkeyPermission, checked: boolean) => {
+    setSelectedPermissions((prevPermissions) => {
+      if (checked) {
+        return [...prevPermissions, permission];
+      } else {
+        return prevPermissions.filter((r) => r !== permission);
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -92,15 +102,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                       label={action}
                       description={description}
                       checked={selectedPermissions.includes(permission)}
-                      setChecked={(c) => {
-                        if (c) {
-                          setSelectedPermissions([...selectedPermissions, permission]);
-                        } else {
-                          setSelectedPermissions(
-                            selectedPermissions.filter((r) => r !== permission),
-                          );
-                        }
-                      }}
+                      setChecked={(c) => handleSetChecked(permission, c)}
                     />
                   ))}
                 </div>
@@ -133,9 +135,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
                             label={action}
                             description={description}
                             checked={selectedPermissions.includes(permission)}
-                            setChecked={() =>
-                              setSelectedPermissions([...selectedPermissions, permission])
-                            }
+                            setChecked={(c) => handleSetChecked(permission, c)}
                           />
                         );
                       })}
@@ -179,7 +179,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
             <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
               {showKey ? key.data?.key : maskedKey}
-              <div className="flex items-start justify-between gap-4 ">
+              <div className="flex items-center justify-between gap-4 ">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data?.key ?? ""} />
               </div>
