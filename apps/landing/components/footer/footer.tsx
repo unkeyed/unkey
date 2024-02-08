@@ -53,7 +53,7 @@ function CompanyInfo() {
 function Navigation() {
   return (
     <nav>
-      <ul className="flex max-sm:space-x-4 sm:space-x-20 md:space-x-2 lg:space-x-28 xl:space-x-52 ">
+      <ul className="flex flex-auto gap-16">
         {navigation.map((section) => (
           <li key={section.title}>
             <div className="text-sm font-medium tracking-wider text-white font-display">
@@ -91,11 +91,11 @@ function Navigation() {
 
 export function Footer() {
   return (
-    <footer className="relative pt-32 overflow-hidden border-t max-sm:pt-8 border-white/10">
-      <div className="absolute inset-x-0 w-full h-full -top-[50%] bg-gradient-radial from-white/10 to-transparent" />
+    <footer className="relative pt-32 border-t max-sm:pt-8 border-white/10 blog-footer-radial-gradient h-fit w-full">
+      <div className="absolute inset-x-0 w-full h-full " />
       <div className="flex flex-col mx-auto lg:w-fit max-sm:w-full ">
         <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row lg:gap-20 xl:gap-48">
-          <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 lg:pl-14 md:w-fit shrink-0 xl:pl-28">
+          <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 md:pl-12 lg:pl-14 md:w-fit shrink-0 xl:pl-28">
             <CompanyInfo />
           </div>
           <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 sm:pl-28 md:pl-18 lg:pl-6 max-sm:mb-8">
@@ -103,7 +103,7 @@ export function Footer() {
           </div>
         </div>
       </div>
-      <div className="flex justify-center w-full lg:mt-24">
+      <div className="flex justify-center w-full mt-24">
         <UnkeyFooterLogo />
       </div>
     </footer>

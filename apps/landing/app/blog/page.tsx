@@ -1,6 +1,9 @@
 import { BlogHero } from "@/components/blog-hero";
+import { BlogContainer } from "@/components/blog/blog-container";
 import { BlogGrid } from "@/components/blogs-grid";
-import { Container } from "@/components/container";
+import { CTA } from "@/components/cta";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
+import { BlogBackgroundLines } from "@/components/svg/blog-page";
 import { authors } from "@/content/blog/authors";
 import { BLOG_PATH, Frontmatter, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
@@ -50,7 +53,10 @@ export default async function Blog() {
   const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
-      <Container className="scroll-smooth mt-20">
+      <BlogContainer className="scroll-smooth mt-32">
+        <TopLeftShiningLight />
+        <BlogBackgroundLines />
+        <TopRightShiningLight />
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
           <BlogHero
             tags={postTags}
@@ -62,7 +68,8 @@ export default async function Blog() {
           />
         </Link>
         <BlogGrid posts={posts} />
-      </Container>
+        <CTA />
+      </BlogContainer>
     </>
   );
 }
