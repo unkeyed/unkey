@@ -28,6 +28,8 @@ The web application will then generate a new API key or token and return it to t
 
 > User ----> CLI ----> Auth Web Page ----> Auth Confirmation ----> Token Generation ----> CLI token storage
 
+The token is now securely stored on the user's machine, and each future CLI request will use this token to authenticate with the service without the user needing to re-authenticate each time.
+
 ### From Terminal to API Key
 
 To better understand the process, let's walk through a real-world example. We'll use the `@unkey/cli-demo` package, a simple CLI demonstrating the authentication process. The package is available on npm, and you can use it by running the following command:
