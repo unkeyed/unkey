@@ -57,7 +57,7 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type V1ApisListKeysResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1ApisListKeys = (app: App) =>

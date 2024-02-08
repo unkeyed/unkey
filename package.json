@@ -22,7 +22,7 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "1.2.2",
+    "@biomejs/biome": "1.5.3",
     "@changesets/cli": "^2.27.1",
     "@types/node": "^20.11.5",
     "@vitest/ui": "^1.2.0",

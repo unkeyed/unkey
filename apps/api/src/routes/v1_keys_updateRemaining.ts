@@ -1,4 +1,4 @@
-import { db, usageLimiter } from "@/pkg/global";
+import { cache, db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -55,10 +55,10 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type V1KeysUpdateRemainingRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type V1KeysUpdateRemainingResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1KeysUpdateRemaining = (app: App) =>
@@ -157,10 +157,15 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         event: "api.create",
         description: `updated remaining requests for key ${req.keyId}`,
         keyAuthId: key.keyAuthId,
+        keyId: key.id,
       });
     });
 
-    await usageLimiter.revalidate({ keyId: key.id });
+    await Promise.all([
+      usageLimiter.revalidate({ keyId: key.id }),
+      cache.remove(c, "keyByHash", key.hash),
+      cache.remove(c, "keyById", key.id),
+    ]);
 
     const keyAfterUpdate = await db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),

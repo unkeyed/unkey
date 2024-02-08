@@ -133,6 +133,8 @@ export async function upsertPermission(workspaceId: string, name: string): Promi
       id: newId("permission"),
       workspaceId,
       name,
+      key: name,
+      description: null,
     };
 
     await tx.insert(schema.permissions).values(permission);

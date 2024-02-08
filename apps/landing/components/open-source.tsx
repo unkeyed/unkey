@@ -5,7 +5,6 @@ import Link from "next/link";
 import { PrimaryButton } from "./button";
 import { GithubSvg } from "./svg/github";
 import { OssChip } from "./svg/oss-chip";
-import { OssLight } from "./svg/oss-light";
 
 export const OpenSource: React.FC<{ className?: string }> = ({ className }) => {
   return (

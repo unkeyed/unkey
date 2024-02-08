@@ -1,7 +1,9 @@
 import type { Context } from "hono";
 import { Cache, CacheConfig, Entry } from "./interface";
 
-export class MemoryCache<TNamespaces extends Record<string, unknown>> implements Cache<TNamespaces> {
+export class MemoryCache<TNamespaces extends Record<string, unknown>>
+  implements Cache<TNamespaces>
+{
   private readonly state: Map<`${string}:${string}`, Entry<unknown>>;
   private readonly config: CacheConfig;
 

@@ -44,10 +44,10 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type V1KeysDeleteKeyRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type V1KeysDeleteKeyResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1KeysDeleteKey = (app: App) =>
@@ -76,7 +76,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission),
+        permissions: dbRes.permissions.map((p) => p.permission.key!).filter(Boolean),
       };
     });
 
@@ -117,8 +117,10 @@ export const registerV1KeysDeleteKey = (app: App) =>
       });
     });
 
-    await cache.remove(c, "keyById", data.key.id);
-    await cache.remove(c, "keyByHash", data.key.hash);
+    await Promise.all([
+      cache.remove(c, "keyByHash", data.key.hash),
+      cache.remove(c, "keyById", data.key.id),
+    ]);
 
     return c.json({});
   });

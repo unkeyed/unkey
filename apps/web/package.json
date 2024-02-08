@@ -52,7 +52,7 @@
     "date-fns": "^3.2.0",
     "drizzle-orm": "^0.29.1",
     "framer-motion": "10.16.2",
-    "free-email-domains": "^1.2.5",
+    "free-email-domains": "^1.2.12",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.314.0",
     "ms": "^2.1.3",

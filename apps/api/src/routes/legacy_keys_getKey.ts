@@ -25,7 +25,7 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type LegacyKeysGetKeyResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerLegacyKeysGet = (app: App) =>
@@ -65,7 +65,7 @@ export const registerLegacyKeysGet = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission),
+        permissions: dbRes.permissions.map((p) => p.permission.key!).filter(Boolean),
       };
     });
 

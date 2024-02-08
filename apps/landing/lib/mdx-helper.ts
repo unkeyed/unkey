@@ -5,11 +5,12 @@ import { type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
-import rehypePrettyCode from "rehype-pretty-code";
+// import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
-import { BUNDLED_LANGUAGES, type HighlighterOptions, getHighlighter } from "shiki";
-import gitHubLight from "shiki/themes/github-light.json";
+// import { Highlight, themes } from "prism-react-renderer";
+// import { BUNDLED_LANGUAGES, type HighlighterOptions, getHighlighter } from "shiki";
+// import darkplus from "shiki/themes/dark-plus.json";
 
 export const BLOG_PATH = path.join(process.cwd(), "content", "blog");
 export const CHANGELOG_PATH = path.join(process.cwd(), "content", "changelog");
@@ -85,18 +86,20 @@ export type Frontmatter = {
   image: string | undefined;
   tags: Tags[] | undefined;
 };
+
 export type Tags = "product" | "engineering" | "company" | "industry";
-const options = {
-  theme: gitHubLight,
-  getHighlighter: (options: HighlighterOptions) =>
-    getHighlighter({
-      ...options,
-      langs: [...BUNDLED_LANGUAGES],
-    }),
-  defaultLang: {
-    block: "typescript",
-  },
-};
+
+// const options = {
+//   theme: themes.jettwaveDark,
+//   getHighlighter: (options: HighlighterOptions) =>
+//     getHighlighter({
+//       ...options,
+//       langs: [...BUNDLED_LANGUAGES],
+//     }),
+//   defaultLang: {
+//     block: "typescript",
+//   },
+// };
 // Serialize the MDX content and parse the frontmatter
 export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
   return await serialize(rawMdx, {
@@ -104,7 +107,7 @@ export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
     mdxOptions: {
       remarkPlugins: [remarkGfm],
       rehypePlugins: [
-        [rehypePrettyCode, options],
+        // [rehypePrettyCode, options],
         rehypeAutolinkHeadings,
         rehypeSlug,
         rehypeCodeTitles,

@@ -8,7 +8,10 @@ export const billingTier = z.object({
    * in cents, e.g. "10.124" = $0.10124
    * set null, to make it free
    */
-  centsPerUnit: z.string().regex(/^\d{1,15}(\.\d{1,12})?$/).nullable(),
+  centsPerUnit: z
+    .string()
+    .regex(/^\d{1,15}(\.\d{1,12})?$/)
+    .nullable(),
 });
 
 export type BillingTier = z.infer<typeof billingTier>;
