@@ -80,6 +80,10 @@ blockquote > p {
   padding-left: 0 !important;
   margin: 0 !important;
 }
+li > p {
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
   .billing-border-link::after {
     content: "";
     height: 24px;
