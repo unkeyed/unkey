@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Feature, FeatureContent, FeatureHeader, FeatureIcon, FeatureTitle } from "./feature";
 

@@ -1,5 +1,4 @@
 "use client";
-import { AnalyticsWebApp } from "@/components/svg/analytics-web-app";
 import { Highlight, PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
 
@@ -122,6 +121,7 @@ export function Editor({
       {({ tokens, getLineProps, getTokenProps }) => (
         <pre className="leading-10">
           {tokens.map((line, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
               <span className="line-number">{i + 1}</span>
               {line.map((token, key) => (
