@@ -4,7 +4,9 @@ import { type Cache } from "./interface";
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredCache<TNamespaces extends Record<string, unknown>> implements Cache<TNamespaces> {
+export class TieredCache<TNamespaces extends Record<string, unknown>>
+  implements Cache<TNamespaces>
+{
   private readonly tiers: Cache<TNamespaces>[];
 
   /**

@@ -167,8 +167,8 @@ export default async function ApiPage(props: {
               granularity >= 1000 * 60 * 60 * 24 * 30
                 ? "month"
                 : granularity >= 1000 * 60 * 60 * 24
-                ? "day"
-                : "hour"
+                  ? "day"
+                  : "hour"
             }
           />
         </CardContent>
@@ -199,8 +199,8 @@ export default async function ApiPage(props: {
               granularity >= 1000 * 60 * 60 * 24 * 30
                 ? "month"
                 : granularity >= 1000 * 60 * 60 * 24
-                ? "day"
-                : "hour"
+                  ? "day"
+                  : "hour"
             }
           />
         </CardContent>
