@@ -140,10 +140,10 @@ Possible values are:
 });
 
 export type LegacyKeysVerifyKeyRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type LegacyKeysVerifyKeyResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerLegacyKeysVerifyKey = (app: App) =>

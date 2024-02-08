@@ -47,10 +47,10 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type V1ApisCreateApiRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type V1ApisCreateApiResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1ApisCreateApi = (app: App) =>
