@@ -44,10 +44,10 @@ const route = createRoute({
 export type Route = typeof route;
 
 export type V1ApisDeleteApiRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type V1ApisDeleteApiResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1ApisDeleteApi = (app: App) =>

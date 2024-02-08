@@ -71,7 +71,7 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type V1KeysGetVerificationsResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {

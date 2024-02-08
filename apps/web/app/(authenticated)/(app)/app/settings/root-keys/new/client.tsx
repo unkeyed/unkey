@@ -61,9 +61,8 @@ export const Client: React.FC<Props> = ({ apis }) => {
     setSelectedPermissions((prevPermissions) => {
       if (checked) {
         return [...prevPermissions, permission];
-      } else {
-        return prevPermissions.filter((r) => r !== permission);
       }
+      return prevPermissions.filter((r) => r !== permission);
     });
   };
 

@@ -28,9 +28,8 @@ function parseData(input: string): ParsedData {
   const match = input.match(/^(\d+(?:\.\d+)?)([kmb]?)$/i);
   if (match) {
     return { value: parseFloat(match[1]), unit: match[2] || undefined };
-  } else {
-    throw new Error("Invalid input format");
   }
+  throw new Error("Invalid input format");
 }
 
 export function StatListItem({

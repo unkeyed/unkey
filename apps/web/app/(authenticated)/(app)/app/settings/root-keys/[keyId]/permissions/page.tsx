@@ -44,18 +44,21 @@ export default async function RootKeyPage(props: {
 
   const permissions = key.permissions.map((kp) => kp.permission);
 
-  const permissionsByApi = permissions.reduce((acc, permission) => {
-    if (!permission.name.startsWith("api.")) {
-      return acc;
-    }
-    const [_, apiId, _action] = permission.name.split(".");
+  const permissionsByApi = permissions.reduce(
+    (acc, permission) => {
+      if (!permission.name.startsWith("api.")) {
+        return acc;
+      }
+      const [_, apiId, _action] = permission.name.split(".");
 
-    if (!acc[apiId]) {
-      acc[apiId] = [];
-    }
-    acc[apiId].push(permission);
-    return acc;
-  }, {} as { [apiId: string]: Permission[] });
+      if (!acc[apiId]) {
+        acc[apiId] = [];
+      }
+      acc[apiId].push(permission);
+      return acc;
+    },
+    {} as { [apiId: string]: Permission[] },
+  );
 
   return (
     <div className="flex flex-col gap-4">
