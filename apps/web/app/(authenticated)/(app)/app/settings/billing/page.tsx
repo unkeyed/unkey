@@ -231,9 +231,8 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
     if (cost.error) {
       return <div className="text-red-500">{cost.error.message}</div>;
-    } else {
-      currentPrice += cost.value.totalCentsEstimate;
     }
+    currentPrice += cost.value.totalCentsEstimate;
   }
   if (workspace.subscriptions?.verifications) {
     const cost = calculateTieredPrices(
@@ -242,10 +241,9 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     );
     if (cost.error) {
       return <div className="text-red-500">{cost.error.message}</div>;
-    } else {
-      currentPrice += cost.value.totalCentsEstimate;
-      estimatedTotalPrice += forecastUsage(cost.value.totalCentsEstimate);
     }
+    currentPrice += cost.value.totalCentsEstimate;
+    estimatedTotalPrice += forecastUsage(cost.value.totalCentsEstimate);
   }
 
   return (

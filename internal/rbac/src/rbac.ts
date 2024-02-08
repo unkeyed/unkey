@@ -19,9 +19,8 @@ export class RBAC {
       // Check if the role is in the list of roles
       if (roles.includes(query)) {
         return result.success({ valid: true });
-      } else {
-        return result.success({ valid: false, message: `Role ${query} not allowed` });
       }
+      return result.success({ valid: false, message: `Role ${query} not allowed` });
     }
 
     if (query.and) {

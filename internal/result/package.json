@@ -9,7 +9,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.11.5",
-    "tsup": "^6.7.0",
+    "tsup": "^8.0.1",
     "tsx": "^3.14.0",
     "typescript": "^5.0.4"
   }

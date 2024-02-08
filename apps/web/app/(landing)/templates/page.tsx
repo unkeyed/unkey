@@ -32,24 +32,30 @@ export default function Templates() {
     reValidateMode: "onChange",
   });
 
-  const languages = Object.values(templates).reduce((acc, { language }) => {
-    if (!acc[language]) {
-      acc[language] = 0;
-    }
-    acc[language]++;
-    return acc;
-  }, {} as Record<Language, number>);
-
-  const frameworks = Object.values(templates).reduce((acc, { framework }) => {
-    if (!framework) {
+  const languages = Object.values(templates).reduce(
+    (acc, { language }) => {
+      if (!acc[language]) {
+        acc[language] = 0;
+      }
+      acc[language]++;
       return acc;
-    }
-    if (!acc[framework]) {
-      acc[framework] = 0;
-    }
-    acc[framework]++;
-    return acc;
-  }, {} as Record<Framework, number>);
+    },
+    {} as Record<Language, number>,
+  );
+
+  const frameworks = Object.values(templates).reduce(
+    (acc, { framework }) => {
+      if (!framework) {
+        return acc;
+      }
+      if (!acc[framework]) {
+        acc[framework] = 0;
+      }
+      acc[framework]++;
+      return acc;
+    },
+    {} as Record<Framework, number>,
+  );
 
   const fields = form.watch();
 
@@ -59,26 +65,29 @@ export default function Templates() {
 
   const filteredTemplates = useMemo(
     () =>
-      Object.entries(templates).reduce((acc, [id, template]) => {
-        if (
-          fields.frameworks.length > 0 &&
-          (!template.framework || !fields.frameworks.includes(template.framework))
-        ) {
+      Object.entries(templates).reduce(
+        (acc, [id, template]) => {
+          if (
+            fields.frameworks.length > 0 &&
+            (!template.framework || !fields.frameworks.includes(template.framework))
+          ) {
+            return acc;
+          }
+          if (fields.languages.length > 0 && !fields.languages.includes(template.language)) {
+            return acc;
+          }
+          if (
+            fields.search &&
+            !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
+            !template.description.toLowerCase().includes(fields.search.toLowerCase())
+          ) {
+            return acc;
+          }
+          acc[id] = template;
           return acc;
-        }
-        if (fields.languages.length > 0 && !fields.languages.includes(template.language)) {
-          return acc;
-        }
-        if (
-          fields.search &&
-          !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
-          !template.description.toLowerCase().includes(fields.search.toLowerCase())
-        ) {
-          return acc;
-        }
-        acc[id] = template;
-        return acc;
-      }, {} as typeof templates),
+        },
+        {} as typeof templates,
+      ),
     [fields],
   );
 

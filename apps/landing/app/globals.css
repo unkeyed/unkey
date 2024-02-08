@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 .section-title-heading-gradient {
   background: linear-gradient(
     86deg,
@@ -87,6 +89,19 @@ blockquote > p {
   padding-left: 0 !important;
   margin: 0 !important;
 }
+li > p {
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
+  .billing-border-link::after {
+    content: "";
+    height: 24px;
+    width: 1px;
+    position: absolute;
+    left: 30px;
+    top: 56px;
+    background: rgba(255, 255, 255, 0.2);
+  }
 
 .billing-border-link::after {
   content: "";
@@ -230,3 +245,12 @@ blockquote > p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.code-inline-gradient {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.08) 100%),
+              linear-gradient(0deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
+  border: 0.75px solid;
+  border-color: rgba(255, 255, 255, 0.08);
+
+}
+
+

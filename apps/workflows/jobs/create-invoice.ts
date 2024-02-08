@@ -52,10 +52,24 @@ export const createInvoiceJob = client.defineJob({
       throw new Error(`workspace ${workspaceId} has no stripe customer id`);
     }
 
+    const paymentMethodId = await io.runTask(`get payment method for ${workspace.id}`, async () => {
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: workspace.stripeCustomerId!,
+        limit: 1,
+      });
+      if (paymentMethods.data.length === 0) {
+        throw new Error(
+          `workspace${workspace.id} (${workspace.stripeCustomerId}) does not have a payment method`,
+        );
+      }
+      return paymentMethods.data[0].id;
+    });
+
     const invoiceId = await io.runTask(`create invoice for ${workspace.id}`, async () =>
       stripe.invoices
         .create({
           customer: workspace.stripeCustomerId!,
+          default_payment_method: paymentMethodId,
           auto_advance: false,
           custom_fields: [
             {
@@ -77,13 +91,15 @@ export const createInvoiceJob = client.defineJob({
     let prorate: number | undefined = undefined;
     if (
       workspace.planChanged &&
-      workspace.planChanged.getUTCFullYear() === year &&
-      workspace.planChanged.getUTCMonth() === month
+      new Date(workspace.planChanged).getUTCFullYear() === year &&
+      new Date(workspace.planChanged).getUTCMonth() + 1 === month
     ) {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 1);
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 1);
       prorate =
-        (workspace.planChanged.getTime() - start.getTime()) / (end.getTime() - start.getTime());
+        (end.getTime() - new Date(workspace.planChanged).getTime()) /
+        (end.getTime() - start.getTime());
+      io.logger.info("prorating", { start, end, prorate });
     }
 
     if (workspace.subscriptions?.plan) {

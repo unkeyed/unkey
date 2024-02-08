@@ -1,6 +1,8 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.0.0/schema.json",
-  "files": { "maxSize": 1572864 },
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "maxSize": 1572864
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -9,7 +11,8 @@
         "noSvgWithoutTitle": "off"
       },
       "correctness": {
-        "noUnusedVariables": "warn"
+        "noUnusedVariables": "warn",
+        "useExhaustiveDependencies": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
@@ -23,6 +26,9 @@
       },
       "suspicious": {
         "noExplicitAny": "off"
+      },
+      "complexity": {
+        "noForEach": "off"
       }
     },
     "ignore": [
@@ -38,9 +44,13 @@
   },
   "formatter": {
     "indentStyle": "space",
-    "indentSize": 2,
+    "indentWidth": 2,
     "enabled": true,
     "lineWidth": 100,
+    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email"]
+  },
+  "organizeImports": {
+    "enabled": true,
     "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email"]
   }
 }
