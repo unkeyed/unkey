@@ -140,12 +140,11 @@ export const workspaceRouter = t.router({
           return {
             title: "You have resubscribed",
           };
-        } else {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "workspace already on this plan",
-          });
         }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "workspace already on this plan",
+        });
       }
 
       switch (input.plan) {

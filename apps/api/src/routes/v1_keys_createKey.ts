@@ -179,10 +179,10 @@ When validating a key, we will return this back to you, so you can clearly ident
 
 export type Route = typeof route;
 export type V1KeysCreateKeyRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type V1KeysCreateKeyResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1KeysCreateKey = (app: App) =>

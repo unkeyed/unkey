@@ -111,10 +111,10 @@ function b64(data: ArrayBuffer | string): string {
     typeof data === "string"
       ? new TextEncoder().encode(data)
       : data instanceof Uint8Array
-      ? data
-      : new Uint8Array(data);
+        ? data
+        : new Uint8Array(data);
   let result = "";
-  let i;
+  let i: number;
   const l = uint8.length;
   for (i = 2; i < l; i += 3) {
     result += base64abc[uint8[i - 2] >> 2];

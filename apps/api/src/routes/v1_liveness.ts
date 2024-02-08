@@ -43,7 +43,7 @@ const route = createRoute({
 });
 
 export type V1LivenessResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerV1Liveness = (app: App) =>
