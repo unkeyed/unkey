@@ -11,6 +11,8 @@ The question then comes up: How does CLI authentication work? How does a develop
 
 Suppose you are getting ready to authenticate with a CLI—you might use a command like `npx vercel login`. But what exactly happens under the hood?
 
+> Check out the demo used in this blog post [here](https://unkey.dev/templates/cli-auth)
+
 ### CLI Auth Overview
 
 Before we look at any code, let us look at a diagram that explains the process.
@@ -25,9 +27,6 @@ The web application will then generate a new API key or token and return it to t
 
 
 > User ----> CLI ----> Auth Web Page ----> Auth Confirmation ----> Token Generation ----> CLI token storage
-
-
-The token is now securely stored on the user's machine, and each future CLI request will use this token to authenticate with the service without the user needing to re-authenticate each time.
 
 ### From Terminal to API Key
 
@@ -61,7 +60,7 @@ The CLI code has some boilerplate code that sets up a server and has a command n
 
 Below is a promise waiting to be resolved when the server is started. The promise will resolve when the user has confirmed the authentication process and the API key has been generated and returned from the web, or the user cancels the request. 
 
-```typescript
+```typescript title="/src/index.ts"
 // set up HTTP server that waits for a request containing an API key
     // as the only query parameter
     const authPromise = new Promise<ParsedUrlQuery>((resolve, reject) => {
@@ -100,7 +99,7 @@ The web application code is a Next.js application that uses Clerk to authenticat
 
 Below is the verification function that is called when the user confirms the code in the web application. The function will request an endpoint called `/api/unkey` to generate a new API key. 
 
-```typescript
+```typescript title="/web/app/auth/devices/page.tsx"
 async function verify(opts: {
     code: string | null;
     redirect: string | null;
@@ -144,7 +143,7 @@ async function verify(opts: {
 
 The `/api/unkey` endpoint will generate a new API key, which is associated with the user's account. Below is the code for the endpoint.
 
-```typescript
+```typescript title="/web/app/api/unkey/route.ts"
 import { Unkey } from "@unkey/api";
 import { NextResponse } from "next/server";
 
