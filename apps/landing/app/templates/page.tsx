@@ -94,7 +94,9 @@ export default function Templates() {
   return (
     <>
       <PageIntro title="Find your Template">
-        <p>Jumpstart your api development with our pre-built solutions.</p>
+        <p className="text-white/60 mt-10">
+          Jumpstart your api development with our pre-built solutions.
+        </p>
       </PageIntro>
 
       <Container className="pt-16 mt-24 border-t">
