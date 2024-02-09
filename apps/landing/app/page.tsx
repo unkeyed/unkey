@@ -9,6 +9,7 @@ import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
+import { OssLight } from "@/components/svg/oss-light";
 import { Stats } from "@/components/stats";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { UsageBento } from "@/components/usage-bento";
