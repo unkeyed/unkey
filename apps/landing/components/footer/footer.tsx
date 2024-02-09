@@ -9,6 +9,7 @@ const navigation = [
       { title: "About", href: "/about" },
       { title: "Blog", href: "/blog" },
       { title: "Changelog", href: "/changelog" },
+      { title: "Templates", href: "/templates" },
       {
         title: "Analytics",
         href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
