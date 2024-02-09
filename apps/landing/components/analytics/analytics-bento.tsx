@@ -1,7 +1,8 @@
 "use client";
-import { Highlight } from "prism-react-renderer";
+import { Highlight, PrismTheme } from "prism-react-renderer";
+import { useState } from "react";
 
-const theme = {
+export const theme = {
   plain: {
     color: "#F8F8F2",
     backgroundColor: "#282A36",
@@ -26,12 +27,12 @@ const theme = {
       },
     },
   ],
-};
+} satisfies PrismTheme;
 
-const codeBlock = `    curl --request GET \\
-         --url https://api.unkey.dev/v1/keys.getKey \\
-         --header 'Authorization: <authorization>'
-    { 
+const codeBlock = `curl --request GET \\
+    --url https://api.unkey.dev/v1/keys.getKey \\
+    --header 'Authorization: <authorization>'
+    {    
       "apiId": "api_1234",
       "createdAt": 123,
       "deletedAt": 123,
@@ -48,39 +49,81 @@ const codeBlock = `    curl --request GET \\
 `;
 
 export function AnalyticsBento() {
+  const [showApi, toggleShowApi] = useState(true);
+
   return (
-    <div className="flex justify-center">
-      <div className="bg-[#111111]/60 mt-[120px] xl:w-[1280px] h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
-        <LightSvg className="absolute left-[300px] top-[-50px]" />
-        <div className="xl:w-[1120px] overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
-          <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/20">
-            <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
-              <TerminalIcon className="w-6 h-6" />
-              <div className="ml-3">cURL</div>
-            </div>
-          </div>
-          <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
-            <Editor />
-          </div>
+    <div className="flex justify-center relative">
+      <button
+        type="button"
+        onClick={() => toggleShowApi(!showApi)}
+        className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3"
+      >
+        <div className="p-1 rounded-lg bg-gray-200 mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M15.5579 2.32588C15.8019 2.0818 16.1977 2.0818 16.4418 2.32588L17.674 3.55811C17.9181 3.80219 17.9181 4.19792 17.674 4.442L14.9114 7.20456L12.7953 5.08844L15.5579 2.32588ZM12.0882 5.79555L2.32564 15.5581C2.08156 15.8022 2.08156 16.1979 2.32564 16.442L3.55787 17.6742C3.80195 17.9183 4.19768 17.9183 4.44175 17.6742L14.2043 7.91167L12.0882 5.79555ZM17.3256 1.442C16.5934 0.709764 15.4062 0.709764 14.674 1.442L1.44175 14.6742C0.70952 15.4065 0.70952 16.5936 1.44175 17.3259L2.67399 18.5581C3.40622 19.2903 4.5934 19.2903 5.32564 18.5581L18.5579 5.32588C19.2901 4.59365 19.2901 3.40646 18.5579 2.67423L17.3256 1.442Z"
+              fill="black"
+            />
+          </svg>
         </div>
+        Hide API Code
+      </button>
+      <div className="bg-gradient-to-b from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+        <LightSvg className="absolute left-[250px] top-[-150px]" />
+        {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
       </div>
     </div>
   );
 }
 
-function Editor() {
+function AnalyticsApiView() {
   return (
-    <Highlight theme={theme} code={codeBlock} language="tsx">
+    <div className="xl:w-[1120px] overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
+      <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/10">
+        <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
+          <TerminalIcon className="w-6 h-6" />
+          <div className="ml-3">cURL</div>
+        </div>
+      </div>
+      <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
+        <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsWebAppView() {
+  return (
+    <div className="xl:w-[1120px]  overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
+      <p className="text-white ml-[100px] mt-[100px]">
+        We need an export of this SVG for desktop. The largest in the Figma is 960px currently.
+      </p>
+    </div>
+  );
+}
+
+export function Editor({
+  codeBlock,
+  language,
+  theme,
+}: { codeBlock: string; language: string; theme?: PrismTheme }) {
+  return (
+    <Highlight theme={theme} code={codeBlock} language={language}>
       {({ tokens, getLineProps, getTokenProps }) => (
         <pre className="leading-10">
           {tokens.map((line, i) => (
-            <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-              key={`${line}-${i}`}
-              {...getLineProps({ line })}
-            >
-              <span>{i + 1}</span>
+            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+            <div key={`${line}-${i}`} {...getLineProps({ line })}>
+              <span className="line-number">{i + 1}</span>
               {line.map((token, key) => (
                 <span key={`${key}-${token}`} {...getTokenProps({ token })} />
               ))}

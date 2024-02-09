@@ -35,11 +35,15 @@
   -webkit-text-fill-color: transparent;
 }
 
+.editor-top-gradient {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.00) 50%, rgba(255, 255, 255, 0.00) 100%), #000;
+}
+
 .analytics-background-gradient::before {
   background: radial-gradient(
     300% 82.5% at 10.25% 100%,
     black,
-    rgba(200, 200, 200, 0.1)
+    rgba(200, 200, 200, 0.08)
   );
   content: "";
   border-top-right-radius: 24px;
@@ -49,6 +53,11 @@
   height: 100%;
   width: 100%;
   pointer-events: none;
+}
+
+.line-number {
+  color: rgba(255, 255, 255, 0.3);
+  margin-right: 40px;
 }
 
 .blog-heading-gradient {
@@ -94,17 +103,35 @@ li > p {
     background: rgba(255, 255, 255, 0.2);
   }
 
-  .audit-logs-bg-gradient {
-    background: linear-gradient(
-        180deg,
-        rgba(17, 17, 17, 0.7) 0%,
-        rgba(0, 0, 0, 0.5) 100%
-      ),
-      #000;
-  }
+.billing-border-link::after {
+  content: "";
+  height: 24px;
+  width: 1px;
+  position: absolute;
+  left: 30px;
+  top: 56px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
 
 .audit-logs-bg-gradient {
   background: linear-gradient(180deg, rgba(17, 17, 17, 0.90) 0%, rgba(0, 0, 0, 0.50) 100%), #000;
+}
+
+.audit-logs-fade-gradient { position: relative; }
+.audit-logs-fade-gradient::after {
+  position: absolute;
+  background: radial-gradient(
+    300% 82.5% at 10.25% 100%,
+    black,
+    rgba(200, 200, 200, 0.08)
+  );
+  display: block;
+  content: "";
+  height: 340px;
+  top: 0;
+  left: 0;
+  width: 100%;
 }
 
 .ip-whitelisting-bg-gradient {
@@ -131,6 +158,22 @@ li > p {
   background: linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.00) 95.37%), #000;
 }
 
+.ratelimits-fade-gradient { position: relative; }
+.ratelimits-fade-gradient::after {
+  position: absolute;
+  background: radial-gradient(
+    100% 92.5% at 10.25% 90%,
+    black,
+    rgba(200, 200, 200, 0.02)
+  );
+  display: block;
+  content: "";
+  height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
 .ratelimits-bar-shadow {
   box-shadow: 0px 0px 12px 4px rgba(255, 255, 255, 0.30);
 }
@@ -149,6 +192,59 @@ li > p {
   opacity: 1;
 }
 
+.hero-hiring-gradient {
+  background: linear-gradient(black, black) padding-box,
+              linear-gradient(to right, #02FCF1, #02DEFC, #7002FC, #0239FC) border-box;
+  border-radius: 1000px;
+  border: 0.75px solid transparent;
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+
+.feature-grid {
+  --gap: 2rem;
+  --line-offset: calc(var(--gap) / 2);
+  --line-thickness: .75px;
+  --line-color: #1C1A1A;
+  
+   display: grid;
+   grid-template-columns: repeat(1, minmax(0, 1fr));
+   overflow: hidden;
+   gap: var(--gap);
+}
+
+.grid__item {
+   position: relative;
+}
+
+.grid__item::before, 
+.grid__item::after {
+   content: '';
+   position: absolute;
+   background-color: var(--line-color);
+   z-index: 1;
+}
+
+.grid__item::after {
+  inline-size: 100vw;
+  block-size: var(--line-thickness);
+  inset-inline-start: 0;
+  inset-block-start: calc(var(--line-offset) * -1);
+}
+
+@media only screen and (min-width: 840px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .code-inline-gradient {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.08) 100%),
               linear-gradient(0deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
