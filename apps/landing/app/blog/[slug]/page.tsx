@@ -1,8 +1,8 @@
 import { BlogAuthors } from "@/components/blog/blog-authors";
+import { SuggestedBlogs } from "@/components/blog/suggested-blogs";
 import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
 import { MdxContent } from "@/components/mdx-content";
-import { SuggestedBlogs } from "@/components/suggested-blogs";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { BlogBackgroundLines } from "@/components/svg/blog-page";
 import { authors } from "@/content/blog/authors";

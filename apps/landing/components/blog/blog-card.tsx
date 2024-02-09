@@ -4,8 +4,8 @@ import { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
-import { Frame } from "./frame";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Frame } from "../frame";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 type BlogCardProps = {
   tags?: string;

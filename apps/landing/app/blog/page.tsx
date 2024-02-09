@@ -1,6 +1,6 @@
-import { BlogHero } from "@/components/blog-hero";
 import { BlogContainer } from "@/components/blog/blog-container";
-import { BlogGrid } from "@/components/blogs-grid";
+import { BlogHero } from "@/components/blog/blog-hero";
+import { BlogGrid } from "@/components/blog/blogs-grid";
 import { CTA } from "@/components/cta";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { BlogBackgroundLines } from "@/components/svg/blog-page";
@@ -53,7 +53,7 @@ export default async function Blog() {
   const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
-      <BlogContainer className="scroll-smooth mt-32">
+      <BlogContainer className="scroll-smooth mt-32 max-w-full">
         <TopLeftShiningLight />
         <BlogBackgroundLines />
         <TopRightShiningLight />

@@ -4,7 +4,6 @@ import { Frontmatter } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BlogCard } from "./blog-card";
 import {
   Pagination,
   PaginationContent,
@@ -13,7 +12,8 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "./ui/pagination";
+} from "../ui/pagination";
+import { BlogCard } from "./blog-card";
 
 type Props = {
   posts: any[];

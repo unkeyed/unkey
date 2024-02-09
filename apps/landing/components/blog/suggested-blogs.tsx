@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
 import React from "react";
-import { Frame } from "./frame";
+import { Frame } from "../frame";
 
 type BlogListProps = {
   className?: string;
