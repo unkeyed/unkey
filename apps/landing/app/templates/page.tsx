@@ -1,5 +1,6 @@
 "use client";
 import { Container } from "@/components/container";
+import { TemplatesRightArrow } from "@/components/svg/template-page";
 import { Checkbox } from "@/components/template/checkbox";
 import {
   Form,
@@ -19,7 +20,7 @@ import {
   updateUrl,
 } from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink, VenetianMask } from "lucide-react";
+import { VenetianMask } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -42,6 +43,7 @@ export default function Templates() {
     },
     {} as Record<Language, number>,
   );
+  console.log("Language", languages);
 
   const frameworks = Object.values(templates).reduce(
     (acc, { framework }) => {
@@ -56,6 +58,7 @@ export default function Templates() {
     },
     {} as Record<Framework, number>,
   );
+  console.log("Framework", frameworks);
 
   const fields = form.watch();
 
@@ -218,29 +221,37 @@ export default function Templates() {
               <Link
                 key={id}
                 href={`/templates/${id}`}
-                className="flex flex-col items-start h-96 overflow-hidden duration-200 border border-gray-200 shadow rounded-xl hover:shadow-md hover:scale-[1.01]"
+                className="flex flex-col items-start h-96 overflow-hidden duration-200 border border-white/10 shadow rounded-3xl hover:shadow-md hover:scale-[1.01]"
               >
                 <div className="relative flex justify-center items-center h-full w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[3/2]">
                   {template.image ? (
                     <img src={template.image} alt="" className="object-cover w-full h-full" />
                   ) : (
-                    <VenetianMask className="w-16 h-16 text-gray-200" />
+                    <VenetianMask className="w-16 h-16 text-white/60" />
                   )}
                 </div>
-                <div className="flex flex-col justify-between h-full px-4 pb-4">
+                <div className="flex flex-col justify-start h-full p-4">
                   <div>
-                    <h3 className="mt-3 text-lg font-semibold leading-6 text-gray-900 group-hover:text-gray-600 line-clamp-2">
+                    <div className="flex flex-row  w-full justify-start gap-6">
+                      <div className="py-1 px-3 rounded-md bg-white/10 text-white/60 text-sm">
+                        {template.framework !== undefined ? template.framework?.toString() : null}
+                      </div>
+                      <div className="py-1 px-3 rounded-lg bg-white/10 text-white/60 text-sm">
+                        {template.language !== undefined ? template.language?.toString() : null}
+                      </div>
+                    </div>
+                    <h3 className="mt-4 text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
                       {template.title}
                     </h3>
-                    <p className="mt-5 text-sm leading-6 text-gray-500 line-clamp-2">
+                    <p className="mt-5 text-sm leading-6 text-white/60 line-clamp-2">
                       {template.description}
                     </p>
                   </div>
                   <div className="flex items-center justify-between mt-5">
-                    <p className="text-sm leading-6 text-gray-500 ">
+                    <p className="text-sm leading-6 text-white ">
                       by {template.authors.join(", ")}
                     </p>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
+                    <TemplatesRightArrow className="w-4 h-4 text-white/60 mr-2" />
                   </div>
                 </div>
               </Link>
