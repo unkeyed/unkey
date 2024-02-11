@@ -1,15 +1,15 @@
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { clerkClient } from "@clerk/nextjs";
 import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../trpc";
+import { authenticateUser, t } from "../trpc";
 
 const issueType = z.enum(["bug", "feature", "security", "question", "payment"]);
 const severity = z.enum(["p0", "p1", "p2", "p3"]);
 export const plainRouter = t.router({
   createIssue: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         issueType,
@@ -31,7 +31,9 @@ export const plainRouter = t.router({
         apiKey,
       });
 
-      const user = await clerkClient.users.getUser(ctx.user.id);
+      const user = await db.query.users.findFirst({
+        where: (table, { eq }) => eq(table.id, ctx.user.id),
+      });
       if (!user) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -39,26 +41,24 @@ export const plainRouter = t.router({
         });
       }
 
-      const email = user.emailAddresses.at(0)!.emailAddress;
-
       const plainUser = await client.upsertCustomer({
         identifier: {
-          emailAddress: email,
+          emailAddress: user.email,
         },
         onCreate: {
           externalId: user.id,
           email: {
-            email: email,
-            isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
+            email: user.email,
+            isVerified: true,
           },
-          fullName: user.username ?? "",
+          fullName: user.firstName ?? "",
         },
         onUpdate: {
           email: {
-            email: email,
-            isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
+            email: user.email,
+            isVerified: true,
           },
-          fullName: { value: user.username ?? "" },
+          fullName: { value: user.firstName ?? "" },
         },
       });
       if (plainUser.error) {
@@ -73,7 +73,7 @@ export const plainRouter = t.router({
         title: `${input.severity} - ${input.issueType}`,
         priority: severityToNumber[input.severity],
         customerIdentifier: {
-          emailAddress: email,
+          emailAddress: user.email,
         },
         components: [
           uiComponent.plainText({ text: input.message }),

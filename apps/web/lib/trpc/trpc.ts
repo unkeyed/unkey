@@ -5,7 +5,7 @@ import { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
 
-export const auth = t.middleware(({ next, ctx }) => {
+export const authenticateUser = t.middleware(({ next, ctx }) => {
   if (!ctx.user?.id) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }

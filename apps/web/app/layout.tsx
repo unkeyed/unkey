@@ -1,12 +1,14 @@
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import { HydrationOverlay } from "@builder.io/react-hydration-overlay";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import type React from "react";
 import { Suspense } from "react";
+import { ReactQueryProvider } from "./(app)/[slug]/react-query-provider";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -48,7 +50,7 @@ export const metadata = {
   },
 } satisfies Metadata;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -66,11 +68,15 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
-      {process.env.NODE_ENV !== "production" ? (
-        <HydrationOverlay>{components}</HydrationOverlay>
-      ) : (
-        components
-      )}
+      <ReactQueryProvider>
+        <TooltipProvider>
+          {process.env.NODE_ENV !== "production" ? (
+            <HydrationOverlay>{components}</HydrationOverlay>
+          ) : (
+            components
+          )}
+        </TooltipProvider>
+      </ReactQueryProvider>
     </html>
   );
 }

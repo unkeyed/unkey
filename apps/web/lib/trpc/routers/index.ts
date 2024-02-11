@@ -1,5 +1,6 @@
 import { t } from "../trpc";
 import { apiRouter } from "./api";
+import { authRouter } from "./auth";
 import { keyRouter } from "./key";
 import { keySettingsRouter } from "./keySettings";
 import { permissionRouter } from "./permission";
@@ -14,6 +15,7 @@ export const router = t.router({
   plain: plainRouter,
   permission: permissionRouter,
   keySettings: keySettingsRouter,
+  auth: authRouter,
 });
 
 // export type definition of API

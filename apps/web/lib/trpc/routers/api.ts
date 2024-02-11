@@ -3,11 +3,11 @@ import { z } from "zod";
 
 import { AuditLog, db, eq, schema } from "@/lib/db";
 import { newId } from "@unkey/id";
-import { auth, t } from "../trpc";
+import { authenticateUser, t } from "../trpc";
 
 export const apiRouter = t.router({
   delete: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         apiId: z.string(),
@@ -80,7 +80,7 @@ export const apiRouter = t.router({
       });
     }),
   create: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         name: z.string().min(1).max(50),
@@ -135,7 +135,7 @@ export const apiRouter = t.router({
       };
     }),
   updateName: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         name: z.string().min(3, "api names must contain at least 3 characters"),
@@ -186,7 +186,7 @@ export const apiRouter = t.router({
       });
     }),
   updateIpWhitelist: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         ipWhitelist: z
