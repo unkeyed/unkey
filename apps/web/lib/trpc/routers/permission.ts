@@ -3,11 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../trpc";
+import { authenticateUser, t } from "../trpc";
 
 export const permissionRouter = t.router({
   addPermissionToRootKey: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -61,7 +61,7 @@ export const permissionRouter = t.router({
         .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
     }),
   removePermissionFromRootKey: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         rootKeyId: z.string(),

@@ -5,12 +5,12 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../trpc";
+import { authenticateUser, t } from "../trpc";
 import { upsertPermission } from "./permission";
 
 export const keyRouter = t.router({
   create: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         prefix: z.string().optional(),
@@ -109,7 +109,7 @@ export const keyRouter = t.router({
       return { keyId, key };
     }),
   createInternalRootKey: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         name: z.string().optional(),
@@ -217,7 +217,7 @@ export const keyRouter = t.router({
       return { key, keyId };
     }),
   delete: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyIds: z.array(z.string()),
@@ -280,7 +280,7 @@ export const keyRouter = t.router({
       return;
     }),
   deleteRootKey: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyIds: z.array(z.string()),

@@ -5,3 +5,4 @@ export * from "./keyAuth";
 export * from "./keys";
 export * from "./vercel_integration";
 export * from "./workspaces";
+export * from "./auth";

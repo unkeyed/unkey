@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { auditLogs } from "./audit";
+import { memberships } from "./auth";
 import { keys } from "./keys";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
@@ -17,6 +18,7 @@ export const workspaces = mysqlTable(
   "workspaces",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
+    slug: varchar("slug", { length: 128 }).unique(),
     // Coming from our auth provider clerk
     // This can be either a user_xxx or org_xxx id
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
@@ -93,4 +95,7 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
     relationName: "vercel_key_binding_relation",
   }),
   auditLogs: many(auditLogs),
+  memberships: many(memberships, {
+    relationName: "user_memberships",
+  }),
 }));

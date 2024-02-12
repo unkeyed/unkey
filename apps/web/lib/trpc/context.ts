@@ -1,26 +1,34 @@
-import { inferAsyncReturnType } from "@trpc/server";
+import { TRPCError, inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
-import { getAuth } from "@clerk/nextjs/server";
+import { lucia } from "../auth";
+export async function createContext({ req, resHeaders }: FetchCreateContextFnOptions) {
+  console.log(req);
+  console.log(lucia.sessionCookieName);
 
-export async function createContext({ req }: FetchCreateContextFnOptions) {
-  const { userId, orgId, orgRole } = getAuth(req as any);
+  const cookies = req.headers.get("cookie");
+  const sessionId = cookies
+    ?.split(";")
+    .find((c) => {
+      return c.trim().split("=").at(0) === lucia.sessionCookieName;
+    })
+    ?.split("=")
+    .at(-1);
+  console.log({ sessionId });
+  if (!sessionId) {
+    // resHeaders.append("Set-Cookie", lucia.createBlankSessionCookie().serialize());
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "No session found" });
+  }
+  const { session, user } = await lucia.validateSession(sessionId);
+  if (!session || !user) {
+    // resHeaders.append("Set-Cookie", lucia.createBlankSessionCookie().serialize());
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Session not found" });
+  }
 
   return {
     req,
-    user: userId ? { id: userId } : null,
-    tenant:
-      orgId && orgRole
-        ? {
-            id: orgId,
-            role: orgRole,
-          }
-        : userId
-          ? {
-              id: userId,
-              role: "owner",
-            }
-          : null,
+    user: { id: user.id },
+    tenant: { id: user.id },
   };
 }
 

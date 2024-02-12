@@ -2,11 +2,11 @@ import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../trpc";
+import { authenticateUser, t } from "../trpc";
 
 export const keySettingsRouter = t.router({
   updateEnabled: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),
@@ -48,7 +48,7 @@ export const keySettingsRouter = t.router({
       });
     }),
   updateRatelimit: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),
@@ -137,7 +137,7 @@ export const keySettingsRouter = t.router({
       });
     }),
   updateOwnerId: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),
@@ -177,7 +177,7 @@ export const keySettingsRouter = t.router({
       return true;
     }),
   updateName: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),
@@ -219,7 +219,7 @@ export const keySettingsRouter = t.router({
       return true;
     }),
   updateMetadata: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),
@@ -278,7 +278,7 @@ export const keySettingsRouter = t.router({
       return true;
     }),
   updateExpiration: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),
@@ -337,7 +337,7 @@ export const keySettingsRouter = t.router({
       return true;
     }),
   updateRemaining: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         keyId: z.string(),

@@ -1,0 +1,16 @@
+import { getTenantId } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
+
+export default async function TenantOverviewPage() {
+  return <div>Hello</div>;
+  // const tenantId = await getTenantId();
+  // const workspace = await db.query.workspaces.findFirst({
+  //   where: (table, { and, eq, isNull }) =>
+  //     and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+  // });
+  // if (!workspace) {
+  //   return redirect("/new");
+  // }
+  // return redirect("/app/apis");
+}

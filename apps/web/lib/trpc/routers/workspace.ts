@@ -1,16 +1,16 @@
+import { auth } from "@/lib/auth";
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import Stripe from "stripe";
 import { z } from "zod";
-import { auth, t } from "../trpc";
+import { authenticateUser, t } from "../trpc";
 
 export const workspaceRouter = t.router({
   create: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         name: z.string().min(1).max(50),
@@ -25,14 +25,10 @@ export const workspaceRouter = t.router({
         });
       }
 
-      const org = await clerkClient.organizations.createOrganization({
-        name: input.name,
-        createdBy: userId,
-      });
-
-      const workspace: Workspace = {
+      const workspace = {
         id: newId("workspace"),
-        tenantId: org.id,
+        slug: input.name,
+
         name: input.name,
         plan: "pro",
         stripeCustomerId: null,
@@ -46,9 +42,10 @@ export const workspaceRouter = t.router({
         createdAt: new Date(),
         deletedAt: null,
         planDowngradeRequest: null,
-      };
+      } satisfies Omit<Workspace, "tenantId">;
+      await auth.createWorkspace(ctx.user.id, workspace);
+
       await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values(workspace);
         await tx.insert(schema.auditLogs).values({
           id: newId("auditLog"),
           time: new Date(),
@@ -62,12 +59,11 @@ export const workspaceRouter = t.router({
 
       return {
         workspace,
-        organizationId: org.id,
       };
     }),
 
   changePlan: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         workspaceId: z.string(),
@@ -214,7 +210,7 @@ export const workspaceRouter = t.router({
       }
     }),
   changeName: t.procedure
-    .use(auth)
+    .use(authenticateUser)
     .input(
       z.object({
         name: z.string().min(3, "workspace names must contain at least 3 characters"),
@@ -245,11 +241,12 @@ export const workspaceRouter = t.router({
           event: "workspace.update",
           description: `Changed name to ${input.name}`,
         });
-        if (ctx.tenant.id.startsWith("org_")) {
-          await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
-            name: input.name,
-          });
-        }
+        // TODO
+        // if (ctx.tenant.id.startsWith("org_")) {
+        //   await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
+        //     name: input.name,
+        //   });
+        // }
       });
     }),
 });
