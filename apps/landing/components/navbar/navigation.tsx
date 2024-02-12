@@ -14,13 +14,13 @@ import { DesktopNavLink, MobileNavLink } from "./link";
 
 export function Navigation() {
   return (
-    <nav className="container flex items-center justify-between h-20 mx-auto ">
+    <nav className="container flex items-center justify-between h-20 mx-auto px-6 ">
       <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
         <Link href="/">
           <Logo className="min-w-[50px]" />
         </Link>
-        <MobileLinks className="md:hidden" />
-        <DesktopLinks className="hidden md:flex" />
+        <MobileLinks className="lg:hidden" />
+        <DesktopLinks className="hidden lg:flex" />
       </div>
       <div className="hidden sm:flex">
         <Link href="/auth/sign-up">
@@ -61,6 +61,7 @@ const MobileLinks: React.FC<{ className: string }> = ({ className }) => (
             <MobileNavLink href="/blog" label="Blog" />
             <MobileNavLink href="/pricing" label="Pricing" />
             <MobileNavLink href="/changelog" label="Changelog" />
+            <MobileNavLink href="/templates" label="Templates" />
             <MobileNavLink href="/docs" label="Docs" />
           </ul>
         </div>
@@ -90,11 +91,12 @@ const MobileLinks: React.FC<{ className: string }> = ({ className }) => (
 );
 
 const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
-  <ul className={cn("items-center hidden gap-8 md:flex xl:gap-12", className)}>
+  <ul className={cn("items-center hidden gap-8 lg:flex xl:gap-12", className)}>
     <DesktopNavLink href="/about" label="About" />
     <DesktopNavLink href="/blog" label="Blog" />
     <DesktopNavLink href="/pricing" label="Pricing" />
     <DesktopNavLink href="/changelog" label="Changelog" />
+    <DesktopNavLink href="/templates" label="Templates" />
     <DesktopNavLink href="/docs" label="Docs" />
   </ul>
 );

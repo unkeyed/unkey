@@ -4,7 +4,6 @@ import { Frontmatter } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BlogCard } from "./blog-card";
 import {
   Pagination,
   PaginationContent,
@@ -13,7 +12,8 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "./ui/pagination";
+} from "../ui/pagination";
+import { BlogCard } from "./blog-card";
 
 type Props = {
   posts: any[];
@@ -139,9 +139,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts }) => {
           </button>
         ))}
       </div>
-      <div
-        className={cn("grid lg:grid-cols-2 xl:grid-cols-3 md:grid-cols-1 gap-12 mb-24", className)}
-      >
+      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24", className)}>
         {filteredPosts.map((post) => (
           <Link href={`/blog/${post.slug}`} key={post.slug}>
             <BlogCard

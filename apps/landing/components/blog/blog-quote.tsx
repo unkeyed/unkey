@@ -10,7 +10,7 @@ export function BlogQuote({ children, className, ...props }: BlogQuoteProps) {
   return (
     <div
       className={cn(
-        "flex flex-col text-lg border-l-2 border-white/20 my-12 ml-20 pl-12 py-4 text-left",
+        "flex flex-col text-lg border-l-2 border-white/20 pl-16 py-4 text-left",
         className,
       )}
     >
@@ -21,7 +21,7 @@ export function BlogQuote({ children, className, ...props }: BlogQuoteProps) {
         {props.author && (
           <div className="font-normal text-white/40 leading-8 flex flex-row">
             {" "}
-            <Minus className="mt-7" size={20} /> <p className="">{props.author}</p>
+            <Minus className="mt-1.5 pr-1" size={20} /> <p className="">{props.author}</p>
           </div>
         )}
       </div>
