@@ -15,7 +15,9 @@ export default async function SettingsKeysPage(_props: {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      apis: true,
+      apis: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
+      },
     },
   });
   if (!workspace) {

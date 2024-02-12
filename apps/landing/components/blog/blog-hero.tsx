@@ -4,8 +4,8 @@ import { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
-import { Frame } from "./frame";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Frame } from "../frame";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 export function QuestionCircle({ className }: { className?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,12 +41,12 @@ export function BlogHero({
   className,
 }: BlogHeroProps) {
   return (
-    <div className={cn("flex flex-col lg:flex-row w-full", className)}>
-      <Frame className="w-fit my-auto shadow-sm" size="lg">
+    <div className={cn("flex flex-col lg:flex-row w-full relative z-1 md:px-28", className)}>
+      <Frame className="w-fit my-auto shadow-sm sm:order-3 lg:order-1 " size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
-      <div className="w-full sm:p-4 max-sm:p-4 md:pl-8 lg:pl-20">
-        <div className="flex flex-row gap-4">
+      <div className="flex flex-col order-2 w-full sm:p-4 max-sm:p-4 md:pl-8 lg:pl-20 ">
+        <div className="flex flex-row gap-4 justify-center lg:justify-start">
           {tags?.map((tag) => (
             <p
               key={tag}
@@ -56,9 +56,13 @@ export function BlogHero({
             </p>
           ))}
         </div>
-        <h2 className="font-medium text-3xl leading-10 blog-heading-gradient my-6">{title}</h2>
-        <p className="text-base leading-6 font-normal text-white/60">{subTitle}</p>
-        <div className="flex flex-row w-full mt-10 gap-24">
+        <h2 className="flex font-medium text-3xl leading-10 blog-heading-gradient my-6 justify-center lg:justify-start">
+          {title}
+        </h2>
+        <p className="flex text-base leading-7 font-normal text-white/60 lg:pr-16 justify-center lg:justify-start">
+          {subTitle}
+        </p>
+        <div className="flex flex-row w-full mt-10 gap-24 justify-center lg:justify-start pb-8 lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
             <p className="text-white/30 text-sm ">Written by</p>
             <div className="flex flex-row">

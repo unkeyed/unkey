@@ -119,7 +119,8 @@
             "api-reference/keys/get",
             "api-reference/keys/update",
             "api-reference/keys/update-remaining",
-            "api-reference/keys/delete"
+            "api-reference/keys/delete",
+            "api-reference/keys/verifications"
           ]
         },
         {

@@ -225,7 +225,6 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
                     >
-                      {" "}
                       {deleteKey.isLoading ? <Loading /> : "Delete permanently"}
                     </Button>
                   </DialogFooter>

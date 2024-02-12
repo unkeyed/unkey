@@ -72,19 +72,25 @@ export default async function Page(props: Props) {
     );
   }
 
-  const apis = workspace.apis.reduce((acc, api) => {
-    acc[api.id] = api;
-    return acc;
-  }, {} as Record<string, Api>);
+  const apis = workspace.apis.reduce(
+    (acc, api) => {
+      acc[api.id] = api;
+      return acc;
+    },
+    {} as Record<string, Api>,
+  );
 
   const rootKeys = (
     await db.query.keys.findMany({
       where: eq(schema.keys.forWorkspaceId, workspace.id),
     })
-  ).reduce((acc, key) => {
-    acc[key.id] = key;
-    return acc;
-  }, {} as Record<string, Key>);
+  ).reduce(
+    (acc, key) => {
+      acc[key.id] = key;
+      return acc;
+    },
+    {} as Record<string, Key>,
+  );
 
   const users = (
     await Promise.all(
@@ -97,10 +103,13 @@ export default async function Page(props: Props) {
         };
       }),
     )
-  ).reduce((acc, user) => {
-    acc[user.id] = user;
-    return acc;
-  }, {} as Record<string, { id: string; name: string; image: string }>);
+  ).reduce(
+    (acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    },
+    {} as Record<string, { id: string; name: string; image: string }>,
+  );
 
   const projects = await Promise.all(
     rawProjects.value.map(async (p) => ({

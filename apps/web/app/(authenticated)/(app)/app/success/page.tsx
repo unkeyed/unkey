@@ -72,7 +72,7 @@ export default async function SuccessPage() {
     <div>
       <div className="w-full">
         <PageHeader title="Success Metrics" description="Unkey success metrics" />
-        <h1 className="text-2xl font-semibold mb-8" />
+        <div className="text-2xl font-semibold mb-8" />
         <Separator />
       </div>
       <div className="flex gap-6 p-6 w-full">

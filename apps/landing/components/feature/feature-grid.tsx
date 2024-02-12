@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Feature, FeatureContent, FeatureHeader, FeatureIcon, FeatureTitle } from "./feature";
 
@@ -8,7 +7,7 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className }, ref) => (
     <div ref={ref} className={cn(className)}>
       <div className="grid grid-rows gap-4 rounded-3xl border-[0.75px] border-[rgba(255,255,255,0.15)] p-10 lg:w-full">
-        <div className="grid md:grid-cols-3 p-[16px,0px,0px,0px]">
+        <div className="feature-grid md:grid-cols-2 xl:grid-cols-3 p-[16px,0px,0px,0px]">
           <Feature>
             <FeatureHeader>
               <FeatureIcon iconName="cloud" />
@@ -39,12 +38,6 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               smooth experience for developers and non-technical users alike.
             </FeatureContent>
           </Feature>
-        </div>
-        <div className="p-5 max-sm:hidden">
-          {" "}
-          <Separator orientation="horizontal" className="ml-8 m-0" />
-        </div>
-        <div className="grid md:grid-cols-3 space-x-2">
           <Feature>
             <FeatureHeader>
               <FeatureIcon iconName="role" />
@@ -75,11 +68,9 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               seamless integration processes.
             </FeatureContent>
           </Feature>
-        </div>
-        <div className="p-5 max-sm:hidden">
+          {/* <div className="p-5 max-sm:hidden">
           <Separator orientation="horizontal" className="p-0 m-0" />
-        </div>
-        <div className="grid md:grid-cols-3">
+        </div> */}
           <Feature>
             <FeatureHeader>
               <FeatureIcon iconName="vercel" />
@@ -111,6 +102,10 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
             </FeatureContent>
           </Feature>
         </div>
+        {/* <div className="p-5 max-sm:hidden">
+          {" "}
+          <Separator orientation="horizontal" className="ml-8 m-0" />
+        </div> */}
       </div>
     </div>
   ),

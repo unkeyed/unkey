@@ -29,7 +29,7 @@ export interface IProps {
 
 const Feature = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("text-left ", className)} {...props} />
+    <div ref={ref} className={cn("text-left grid__item", className)} {...props} />
   ),
 );
 Feature.displayName = "Feature";

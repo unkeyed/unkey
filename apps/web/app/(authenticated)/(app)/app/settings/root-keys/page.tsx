@@ -16,9 +16,6 @@ export default async function SettingsKeysPage(_props: {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
-    with: {
-      apis: true,
-    },
   });
   if (!workspace) {
     return redirect("/new");
