@@ -1,9 +1,9 @@
 "use client";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
-import { BlogCodeBlock } from "./blog-code-block";
-import { BlogList, BlogListItem, BlogListNumbered } from "./blog-list";
-import { BlogQuote } from "./blog-quote";
+import { BlogCodeBlock } from "./blog/blog-code-block";
 import { BlogImage } from "./blog/blog-image";
+import { BlogList, BlogListItem, BlogListNumbered } from "./blog/blog-list";
+import { BlogQuote } from "./blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
 
 type MdxContentProps = {
@@ -21,16 +21,16 @@ const MdxComponents = {
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h2: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient pl-24" />
+    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient" />
   ),
   h3: (props: any) => (
-    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient pl-24" />
+    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient" />
   ),
   h4: (props: any) => (
-    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient pl-24" />
+    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient" />
   ),
   p: (props: any) => (
-    <p {...props} className="text-lg font-normal leading-8 text-white/60 text-left pl-24" />
+    <p {...props} className="text-lg font-normal leading-8 text-white/60 text-left" />
   ),
   code: (props: any) => (
     <span

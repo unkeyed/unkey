@@ -3,8 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-t
 import { cn } from "@/lib/utils";
 import { Highlight } from "prism-react-renderer";
 import { useState } from "react";
-import { CopyButton } from "./copy-button";
-import { BlogCodeDownload } from "./svg/blog-code-block";
+import { CopyButton } from "../copy-button";
+import { BlogCodeDownload } from "../svg/blog-code-block";
 
 const theme = {
   plain: {
