@@ -30,16 +30,19 @@ export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
 ]);
 
 function merge<R extends string>(rule: Rule, ...args: NestedQuery<R>[]): NestedQuery<R> {
-  return args.reduce((acc: NestedQuery<R>, arg) => {
-    if (typeof acc === "string") {
-      throw new Error("Cannot merge into a string");
-    }
-    if (!acc[rule]) {
-      acc[rule] = [];
-    }
-    acc[rule]!.push(arg);
-    return acc;
-  }, {} as NestedQuery<R>);
+  return args.reduce(
+    (acc: NestedQuery<R>, arg) => {
+      if (typeof acc === "string") {
+        throw new Error("Cannot merge into a string");
+      }
+      if (!acc[rule]) {
+        acc[rule] = [];
+      }
+      acc[rule]!.push(arg);
+      return acc;
+    },
+    {} as NestedQuery<R>,
+  );
 }
 
 export function or<R extends string = string>(...args: NestedQuery<R>[]): NestedQuery<R> {

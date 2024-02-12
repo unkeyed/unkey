@@ -87,7 +87,7 @@ async function runMachine(image: string, region: string): Promise<void> {
 async function main() {
   const build = await $`fly deploy --build-only --push --access-token=${FLY_API_KEY}`;
 
-  const imageRes = new RegExp("naming to (.+) done\n").exec(build.stdout.toString());
+  const imageRes = /naming to (.+) done\n/.exec(build.stdout.toString());
   if (!imageRes) {
     throw new Error("image not detected");
   }

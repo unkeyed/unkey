@@ -11,6 +11,7 @@ import {
 import { apis } from "./apis";
 import { auditLogs } from "./audit";
 import { keys } from "./keys";
+import { permissions, roles } from "./rbac";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable(
@@ -47,6 +48,11 @@ export const workspaces = mysqlTable(
          * undefined, 0 or negative means it's disabled
          */
         auditLogRetentionDays?: number;
+
+        /**
+         * Can access /app/authorization pages
+         */
+        rbac?: boolean;
       }>()
       .notNull(),
     features: json("features")
@@ -92,5 +98,7 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   vercelBindings: many(vercelBindings, {
     relationName: "vercel_key_binding_relation",
   }),
+  roles: many(roles),
+  permissions: many(permissions),
   auditLogs: many(auditLogs),
 }));

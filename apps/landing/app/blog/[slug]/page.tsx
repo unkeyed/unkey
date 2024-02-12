@@ -1,14 +1,15 @@
+import { BlogAuthors } from "@/components/blog/blog-authors";
+import { SuggestedBlogs } from "@/components/blog/suggested-blogs";
 import { Container } from "@/components/container";
-// import { FadeIn } from "@/components/landing/fade-in";
+import { CTA } from "@/components/cta";
 import { MdxContent } from "@/components/mdx-content";
-// import { PageLinks } from "@/components/landing/page-links";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-// import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
+import { BlogBackgroundLines } from "@/components/svg/blog-page";
 import { authors } from "@/content/blog/authors";
+import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
+import { format } from "date-fns";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-
-import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
 
 type Props = {
   params: { slug: string };
@@ -60,59 +61,68 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
     contentPath: BLOG_PATH,
     filepath: params.slug,
   });
+  console.log(JSON.stringify(serialized));
 
   return (
     <>
       <Container className="scroll-smooth">
-        <div className="relative mt-16 flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
-          <div className="mx-auto w-full lg:pl-8">
-            <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+        <TopLeftShiningLight />
+        <BlogBackgroundLines />
+        <TopRightShiningLight />
+        <div className="relative flex flex-col items-start mt-16 space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
+          <div className="w-full mx-auto xl:pl-6">
+            <h2 className="text-left text-6xl font-medium tracking-tight blog-heading-gradient leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
             </h2>
-            <p className="border- my-8 text-center text-gray-500">{frontmatter.description}</p>
-            <div className="prose prose-neutral dark:prose-invert prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto w-full">
+            <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40 xl:pr-40">
+              {frontmatter.description}
+            </p>
+            <div className="flex flex-col gap-12 pt-16 bg-black">
               <MdxContent source={serialized} />
             </div>
           </div>
 
-          <div className="top-24 flex h-max w-full flex-col justify-end self-start px-4 sm:px-6 lg:sticky lg:w-2/5 lg:px-8">
-            <div className="mx-auto flex items-center justify-start gap-4 border-y-0 p-2 md:mx-0 md:border-b md:border-b-gray-200">
-              <Avatar className="h-14 w-14 justify-items-start">
-                <AvatarImage src={author.image?.src} alt={author.name} />
-              </Avatar>
-              <div className="text-sm text-gray-950">
-                <div className="font-semibold">{author.name}</div>
-              </div>
-            </div>
-            {
-              <div className="hidden md:block">
-                <h3 className="mb-4 mt-8 text-lg font-bold uppercase tracking-wide text-gray-600">
-                  Table of Contents
-                </h3>
+          <div className="flex flex-col self-start justify-end w-full gap-8 px-4 top-32 h-max sm:px-6 lg:sticky lg:w-2/5 lg:pl-28">
+            <div>
+              <BlogAuthors author={author} className="w-full mb-16" />
 
-                <div className="p-4">
-                  {headings.map((heading) => {
-                    return (
-                      <div key={`#${heading.slug}`} className="my-2">
-                        <a
-                          data-level={heading.level}
-                          className={
-                            heading.level === "two" || heading.level === "one"
-                              ? "text-md font-semibold"
-                              : "ml-4 text-sm"
-                          }
-                          href={`#${heading.slug}`}
-                        >
-                          {heading.text}
-                        </a>
-                      </div>
-                    );
-                  })}
+              <p className="mb-6 text-sm text-white/30">Published on</p>
+              <h3 className="text-white">{format(new Date(frontmatter.date!), "MMM dd, yyyy")}</h3>
+            </div>
+
+            <div className="flex mt-12 text-white w-52 overflow-clip max-sm:hidden md:hidden lg:block">
+              <p className="text-white/30 text-md">Contents</p>
+
+              <div className="relative mt-6 overflow-hidden whitespace-nowrap">
+                <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-transparent to-black" />
+                {headings.map((heading) => {
+                  return (
+                    <div key={`#${heading.slug}`} className="z-0 my-8 text-ellipsis">
+                      <a
+                        data-level={heading.level}
+                        className={
+                          heading.level === "two" || heading.level === "one"
+                            ? "text-md font-semibold"
+                            : "text-sm"
+                        }
+                        href={`#${heading.slug}`}
+                      >
+                        {heading.text}
+                      </a>
+                    </div>
+                  );
+                })}
+                <div className="md:hidden">
+                  <p className="pt-10 text-white/30 text-md">Suggested</p>
+                  <div>
+                    <SuggestedBlogs />
+                  </div>
                 </div>
               </div>
-            }
+            </div>
           </div>
         </div>
+        <CTA />
       </Container>
     </>
   );

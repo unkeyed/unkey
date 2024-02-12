@@ -1,5 +1,5 @@
 type Props = {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   actions?: React.ReactNode[];
 };
@@ -24,7 +24,7 @@ export const PageHeader: React.FC<Props> = ({ title, description, actions }) => 
           className="flex flex-wrap items-center justify-end gap-2 md:gap-4 md:flex-nowrap"
         >
           {row.map((action, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <li key={i}>{action}</li>
           ))}
         </ul>

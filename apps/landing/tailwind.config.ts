@@ -10,12 +10,21 @@ const config = {
   ],
   prefix: "",
   theme: {
-    // screens: {
-    //   sm: "360px",
-    //   md: "640px",
-    //   lg: "960px",
-    //   xl: "1440px",
-    // },
+    container: {
+      padding: {
+        DEFAULT: "16px",
+        sm: "26px",
+        md: "72px",
+      },
+    },
+    screens: {
+      xxs: "361px",
+      xs: "500px",
+      sm: "640px",
+      md: "840px",
+      lg: "960px",
+      xl: "1440px",
+    },
     extend: {
       typography: {},
       borderRadius: {

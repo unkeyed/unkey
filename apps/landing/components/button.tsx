@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { SparkleIcon } from "./svg/template-page";
 
 type Props = {
   className?: string;
@@ -32,7 +33,7 @@ export const SecondaryButton: React.FC<Props> = ({ className, IconLeft, label, I
     <button
       type="button"
       className={cn(
-        "flex items-center gap-2 px-4 duration-500 text-white/50 hover:text-white h-10",
+        "items-center gap-2 px-4 duration-500 text-white/50 hover:text-white h-10 hidden xs:flex",
         className,
       )}
     >
@@ -40,5 +41,20 @@ export const SecondaryButton: React.FC<Props> = ({ className, IconLeft, label, I
       {label}
       {IconRight ? <IconRight className="w-4 h-4" /> : null}
     </button>
+  );
+};
+
+export const RainbowDarkButton: React.FC<Props> = ({ className, label, IconRight }) => {
+  return (
+    <div className={cn("p-[.75px] hero-hiring-gradient rounded-full w-fit mx-auto", className)}>
+      <button
+        type="button"
+        className="items-center gap-4 px-3 py-1.5 xs:flex bg-black text-white  rounded-full"
+      >
+        <SparkleIcon className="text-white" />
+        {label}
+        {IconRight ? <IconRight className="w-4 h-4" /> : null}
+      </button>
+    </div>
   );
 };
