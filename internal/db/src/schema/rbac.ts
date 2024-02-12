@@ -17,7 +17,6 @@ export const permissions = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
-    key: varchar("key", { length: 512 }),
     description: varchar("description", { length: 512 }),
     createdAt: datetime("created_at", { fsp: 3 }),
     updatedAt: datetime("updated_at", { fsp: 3 }),
@@ -28,7 +27,7 @@ export const permissions = mysqlTable(
       table.workspaceId,
     ),
     uniqueKeyPerWorkspace: uniqueIndex("unique_key_per_workspace_idx").on(
-      table.key,
+      table.name,
       table.workspaceId,
     ),
     workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),
@@ -88,18 +87,12 @@ export const roles = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
-    // @deprecated
-    key: varchar("key", { length: 512 }),
     createdAt: datetime("created_at", { fsp: 3 }),
     updatedAt: datetime("updated_at", { fsp: 3 }),
   },
   (table) => ({
     uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
       table.name,
-      table.workspaceId,
-    ),
-    uniqueKeyPerWorkspace: uniqueIndex("unique_key_per_workspace_idx").on(
-      table.key,
       table.workspaceId,
     ),
     workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),

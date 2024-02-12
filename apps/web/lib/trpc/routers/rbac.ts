@@ -436,7 +436,6 @@ export async function upsertPermission(workspaceId: string, name: string): Promi
       id: newId("permission"),
       workspaceId,
       name,
-      key: null,
       description: null,
       createdAt: new Date(),
       updatedAt: null,
