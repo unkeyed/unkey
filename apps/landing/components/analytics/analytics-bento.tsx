@@ -52,13 +52,13 @@ export function AnalyticsBento() {
   const [showApi, toggleShowApi] = useState(true);
 
   return (
-    <div className="flex justify-center relative">
+    <div className="relative flex justify-center">
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
         className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3"
       >
-        <div className="p-1 rounded-lg bg-gray-200 mr-3">
+        <div className="p-1 mr-3 bg-gray-200 rounded-lg">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -94,7 +94,7 @@ function AnalyticsApiView() {
           <div className="ml-3">cURL</div>
         </div>
       </div>
-      <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
+      <div className="flex w-full pt-4 pl-8 font-mono text-xs text-white sm:text-sm">
         <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
       </div>
     </div>
@@ -237,7 +237,7 @@ export function TerminalIcon({ className }: { className?: string }) {
 export function BentoText() {
   return (
     <div className="flex flex-col text-white absolute left-[90px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[336px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -254,9 +254,9 @@ export function BentoText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">Realtime Analytics</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">Realtime Analytics</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
+      <p className="mt-4 leading-6 text-white/60">
         Empower decision-making with real-time analytics for swift, informed actions based on the
         latest data trends.
       </p>
