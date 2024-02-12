@@ -47,7 +47,7 @@
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.8.9",
-    "zod": "link:@hookform/resolvers/zod"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",

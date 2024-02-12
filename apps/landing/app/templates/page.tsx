@@ -94,7 +94,7 @@ export default function Templates() {
   return (
     <>
       <PageIntro title="Find your Template">
-        <p className="text-white/60 mt-10">
+        <p className="mt-10 text-white/60">
           Jumpstart your api development with our pre-built solutions.
         </p>
       </PageIntro>
@@ -145,7 +145,9 @@ export default function Templates() {
                                     return checked
                                       ? field.onChange([...field.value, language])
                                       : field.onChange(
-                                          field.value?.filter((value) => value !== language),
+                                          field.value?.filter(
+                                            (value: string) => value !== language,
+                                          ),
                                         );
                                   }}
                                 />
@@ -191,7 +193,9 @@ export default function Templates() {
                                     return checked
                                       ? field.onChange([...field.value, framework])
                                       : field.onChange(
-                                          field.value?.filter((value) => value !== framework),
+                                          field.value?.filter(
+                                            (value: string) => value !== framework,
+                                          ),
                                         );
                                   }}
                                 />
