@@ -95,7 +95,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     references: [workspaces.id],
   }),
   permissions: many(keysPermissions, {
-    relationName: "keys_permissions_relations",
+    relationName: "keys_keys_permissions_relations",
   }),
   roles: many(keysRoles, {
     relationName: "keys_roles_key_relations",

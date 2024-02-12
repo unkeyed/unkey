@@ -12,7 +12,7 @@ import {
   Loader2,
   LucideIcon,
   Settings,
-  Vault,
+  ShieldHalf,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -70,7 +70,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
     },
 
     {
-      icon: Vault,
+      icon: ShieldHalf,
       label: "Authorization",
       href: "/app/authorization/roles",
       active: segments.some((s) => s === "authorization"),
@@ -81,9 +81,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/app/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
-      disabled: !workspace.betaFeatures.auditLogRetentionDays,
-      tooltip:
-        "Audit logs are in private beta, please contact support@unkey.dev if you want early access.",
       tag: <Tag label="beta" />,
     },
   ];

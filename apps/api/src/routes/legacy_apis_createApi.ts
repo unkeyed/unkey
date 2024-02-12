@@ -45,10 +45,10 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type LegacyApisCreateApiRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type LegacyApisCreateApiResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerLegacyApisCreateApi = (app: App) =>

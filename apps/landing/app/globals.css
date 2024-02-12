@@ -80,6 +80,10 @@ blockquote > p {
   padding-left: 0 !important;
   margin: 0 !important;
 }
+li > p {
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
   .billing-border-link::after {
     content: "";
     height: 24px;
@@ -144,3 +148,13 @@ blockquote > p {
   height: 100%;
   opacity: 1;
 }
+
+.code-inline-gradient {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.08) 100%),
+              linear-gradient(0deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
+  border: 0.75px solid;
+  border-color: rgba(255, 255, 255, 0.08);
+
+}
+
+

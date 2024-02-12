@@ -37,7 +37,7 @@ export function DataTable<TData extends { id: string; name: string; key: string 
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
-  const router = useRouter();
+  const _router = useRouter();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
     apiId: false,
@@ -95,14 +95,7 @@ export function DataTable<TData extends { id: string; name: string; key: string 
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="cursor-pointer"
-                  onClick={() => {
-                    router.push(`/app/authorization/roles/${row.original.id}`);
-                  }}
-                >
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

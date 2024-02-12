@@ -93,7 +93,8 @@ export function withUnkey(
       : req.headers.get("authorization")?.replace("Bearer ", "") ?? null;
     if (key === null) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    } else if (typeof key !== "string") {
+    }
+    if (typeof key !== "string") {
       return key;
     }
 

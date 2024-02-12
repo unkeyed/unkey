@@ -106,10 +106,10 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type LegacyKeysUpdateKeyRequest = z.infer<
-  typeof route.request.body.content["application/json"]["schema"]
+  (typeof route.request.body.content)["application/json"]["schema"]
 >;
 export type LegacyKeysUpdateKeyResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerLegacyKeysUpdate = (app: App) =>
@@ -143,8 +143,8 @@ export const registerLegacyKeysUpdate = (app: App) =>
             typeof req.expires === "undefined"
               ? undefined
               : req.expires === null
-              ? null
-              : new Date(req.expires),
+                ? null
+                : new Date(req.expires),
           remaining: req.remaining,
           ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
           ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,

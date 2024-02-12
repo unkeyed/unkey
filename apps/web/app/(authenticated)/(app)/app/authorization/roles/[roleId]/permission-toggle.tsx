@@ -1,12 +1,9 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 type Props = {
@@ -22,6 +19,7 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
   const connect = trpc.rbac.connectPermissionToRole.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
+      toast.loading("Adding Permission");
     },
     onSuccess: () => {
       toast.success("Permission added", {
@@ -44,6 +42,7 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
   const disconnect = trpc.rbac.disconnectPermissionToRole.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
+      toast.loading("Removing Permission");
     },
     onSuccess: () => {
       toast.success("Permission removed", {
@@ -65,22 +64,16 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
   });
 
   return (
-    <div>
-      {connect.isLoading || disconnect.isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <Checkbox
-          disabled={connect.isLoading || disconnect.isLoading}
-          checked={optimisticChecked}
-          onClick={() => {
-            if (checked) {
-              disconnect.mutate({ roleId, permissionId });
-            } else {
-              connect.mutate({ roleId, permissionId });
-            }
-          }}
-        />
-      )}
-    </div>
+    <Checkbox
+      disabled={connect.isLoading || disconnect.isLoading}
+      checked={optimisticChecked}
+      onClick={() => {
+        if (checked) {
+          disconnect.mutate({ roleId, permissionId });
+        } else {
+          connect.mutate({ roleId, permissionId });
+        }
+      }}
+    />
   );
 };

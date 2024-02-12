@@ -65,7 +65,43 @@ export const workspaceRouter = t.router({
         organizationId: org.id,
       };
     }),
+  optIntoBeta: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        feature: z.enum(["rbac", "auditLogRetentionDays"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      });
 
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+
+      switch (input.feature) {
+        case "rbac": {
+          workspace.betaFeatures.rbac = true;
+          break;
+        }
+        case "auditLogRetentionDays": {
+          workspace.betaFeatures.auditLogRetentionDays = 30;
+          break;
+        }
+      }
+      await db
+        .update(schema.workspaces)
+        .set({
+          betaFeatures: workspace.betaFeatures,
+        })
+        .where(eq(schema.workspaces.id, workspace.id));
+    }),
   changePlan: t.procedure
     .use(auth)
     .input(
@@ -140,12 +176,11 @@ export const workspaceRouter = t.router({
           return {
             title: "You have resubscribed",
           };
-        } else {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "workspace already on this plan",
-          });
         }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "workspace already on this plan",
+        });
       }
 
       switch (input.plan) {

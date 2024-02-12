@@ -5,6 +5,14 @@ import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
+const nameSchema = z
+  .string()
+  .min(3)
+  .regex(/^[a-zA-Z0-9_\-\.\*]+$/, {
+    message:
+      "Must be at least 3 characters long and only contain alphanumeric, periods, dashes and underscores",
+  });
+
 export const rbacRouter = t.router({
   addPermissionToRootKey: t.procedure
     .use(auth)
@@ -199,8 +207,7 @@ export const rbacRouter = t.router({
     .use(auth)
     .input(
       z.object({
-        name: z.string(),
-        key: z.string(),
+        name: nameSchema,
         description: z.string().optional(),
         permissionIds: z.array(z.string()).optional(),
       }),
@@ -220,7 +227,6 @@ export const rbacRouter = t.router({
       const roleId = newId("role");
       await db.insert(schema.roles).values({
         id: roleId,
-        key: input.key,
         name: input.name,
         description: input.description,
         workspaceId: workspace.id,
@@ -237,11 +243,80 @@ export const rbacRouter = t.router({
       }
       return { roleId };
     }),
+  updateRole: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        id: z.string(),
+        name: nameSchema,
+        description: z.string().nullable(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.id),
+          },
+        },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      if (workspace.roles.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "role not found",
+        });
+      }
+      await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+    }),
+  deleteRole: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        roleId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+        },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      if (workspace.roles.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "role not found",
+        });
+      }
+      await db
+        .delete(schema.roles)
+        .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
+    }),
   createPermission: t.procedure
     .use(auth)
     .input(
       z.object({
-        name: z.string(),
+        name: nameSchema,
+        description: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -260,11 +335,91 @@ export const rbacRouter = t.router({
       await db.insert(schema.permissions).values({
         id: permissionId,
         name: input.name,
-        key: input.name,
+        description: input.description,
         workspaceId: workspace.id,
       });
 
       return { permissionId };
+    }),
+  updatePermission: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        id: z.string(),
+        name: nameSchema,
+        description: z.string().nullable(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.id),
+          },
+        },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      if (workspace.permissions.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "permission not found",
+        });
+      }
+      await db
+        .update(schema.permissions)
+        .set({
+          name: input.name,
+          description: input.description,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.permissions.id, input.id));
+    }),
+  deletePermission: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        permissionId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.permissionId),
+          },
+        },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      if (workspace.permissions.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "permission not found",
+        });
+      }
+      await db
+        .delete(schema.permissions)
+        .where(
+          and(
+            eq(schema.permissions.id, input.permissionId),
+            eq(schema.permissions.workspaceId, workspace.id),
+          ),
+        );
     }),
 });
 
@@ -281,8 +436,10 @@ export async function upsertPermission(workspaceId: string, name: string): Promi
       id: newId("permission"),
       workspaceId,
       name,
-      key: name,
+      key: null,
       description: null,
+      createdAt: new Date(),
+      updatedAt: null,
     };
 
     await tx.insert(schema.permissions).values(permission);

@@ -2,10 +2,10 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 
-import { Badge } from "@/components/ui/badge";
-
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
 import type { Role } from "@/lib/db";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 export const columns: ColumnDef<Role & { permissions: string[] }>[] = [
   {
@@ -21,32 +21,30 @@ export const columns: ColumnDef<Role & { permissions: string[] }>[] = [
       );
     },
   },
-  {
-    accessorKey: "key",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Key" />,
-    filterFn: (row, _id, value) => row.original.key.toLowerCase().includes(value.toLowerCase()),
 
-    cell: ({ row }) => {
-      return <Badge variant="secondary">{row.original.key}</Badge>;
-    },
-    enableColumnFilter: true,
-    enableSorting: true,
-  },
   {
     accessorKey: "id",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Permissions" />,
     cell: ({ row }) => {
       return (
-        <ul className="flex flex-col gap-1">
-          {row.original.permissions.map((p) => (
-            <Badge variant="secondary" font="mono" key={p}>
+        <div className="flex flex-col">
+          {row.original.permissions.sort().map((p) => (
+            <pre key={p} className="font-mono text-xs text-content-subtle">
               {p}
-            </Badge>
+            </pre>
           ))}
-        </ul>
+        </div>
       );
     },
-
     enableSorting: false,
+  },
+  {
+    accessorKey: "id",
+    header: () => null,
+    cell: ({ row }) => (
+      <Link href={`/app/authorization/roles/${row.original.id}`}>
+        <ChevronRight />
+      </Link>
+    ),
   },
 ];

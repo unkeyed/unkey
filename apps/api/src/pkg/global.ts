@@ -74,11 +74,11 @@ export async function init(opts: { env: Env }): Promise<void> {
   metrics = opts.env.METRICS
     ? new QueueMetrics({ queue: opts.env.METRICS })
     : opts.env.AXIOM_TOKEN
-    ? new AxiomMetrics({
-        axiomToken: opts.env.AXIOM_TOKEN,
-        environment: opts.env.ENVIRONMENT,
-      })
-    : new NoopMetrics();
+      ? new AxiomMetrics({
+          axiomToken: opts.env.AXIOM_TOKEN,
+          environment: opts.env.ENVIRONMENT,
+        })
+      : new NoopMetrics();
 
   cache = new TieredCache(
     new CacheWithMetrics<CacheNamespaces>({
@@ -109,8 +109,8 @@ export async function init(opts: { env: Env }): Promise<void> {
   logger = opts.env.LOGS
     ? new QueueLogger({ queue: opts.env.LOGS })
     : opts.env.AXIOM_TOKEN
-    ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
-    : new ConsoleLogger();
+      ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
+      : new ConsoleLogger();
 
   usageLimiter = opts.env.DO_USAGELIMIT
     ? new DurableUsageLimiter({

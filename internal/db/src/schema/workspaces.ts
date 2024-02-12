@@ -48,6 +48,11 @@ export const workspaces = mysqlTable(
          * undefined, 0 or negative means it's disabled
          */
         auditLogRetentionDays?: number;
+
+        /**
+         * Can access /app/authorization pages
+         */
+        rbac?: boolean;
       }>()
       .notNull(),
     features: json("features")

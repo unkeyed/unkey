@@ -46,7 +46,8 @@ export function DataTableToolbar<TData>({ table, data }: DataTableToolbarProps<T
       </div>
       <div className="flex items-center gap-2">
         <Badge variant="secondary" className="h-8">
-          {Intl.NumberFormat().format(data.length)} / {Intl.NumberFormat().format(50)} used{" "}
+          {Intl.NumberFormat().format(data.length)} /{" "}
+          {Intl.NumberFormat().format(Number.POSITIVE_INFINITY)} used{" "}
         </Badge>
         <CreateNewRole
           key="create-new-role"

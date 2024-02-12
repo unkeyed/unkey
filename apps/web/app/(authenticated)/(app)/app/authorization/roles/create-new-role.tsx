@@ -24,7 +24,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -40,38 +39,36 @@ type Props = {
 };
 
 const formSchema = z.object({
-  name: z.string(),
-  key: z.string(),
+  name: z
+    .string()
+    .min(3)
+    .regex(/^[a-zA-Z0-9_\-\.\*]+$/, {
+      message:
+        "Must be at least 3 characters long and only contain alphanumeric, periods, dashes and underscores",
+    }),
+
   description: z.string().optional(),
 });
 
 export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
-  const [createMore, setCreateMore] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    reValidateMode: "onBlur",
   });
 
   const createRole = trpc.rbac.createRole.useMutation({
-    onSuccess({ roleId }) {
-      const href = `/app/authorization/roles/${roleId}`;
-      router.prefetch(href);
-      toast.success("your role was created", {
-        action: createMore
-          ? {
-              label: "Go to role",
-              onClick: () => router.push(href),
-            }
-          : undefined,
-      });
-      if (!createMore) {
-        return router.push(href);
-      }
+    onSuccess() {
+      toast.success("Role created");
+
+      router.refresh();
       form.reset({
         name: "",
-        key: "",
+        description: "",
       });
+      setOpen(false);
     },
     onError(err) {
       console.error(err);
@@ -84,14 +81,12 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new role</DialogTitle>
-          <DialogDescription>
-            Roles are used to group permissions together and are attached to keys.
-          </DialogDescription>
+          <DialogDescription>Roles group permissions together.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -103,29 +98,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Manage domains and DNS records"
-                      {...field}
-                      className=" dark:focus:border-gray-700"
-                    />
-                  </FormControl>
-                  <FormDescription>A human readable name for your role</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="key"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Key</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="org.domains.manage"
-                      {...field}
-                      className=" dark:focus:border-gray-700"
-                    />
+                    <Input placeholder="domain.create" {...field} />
                   </FormControl>
                   <FormDescription>
                     A unique key to identify your role. We suggest using <code>.</code> (dot)
@@ -151,9 +124,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
                   <FormControl>
                     <Textarea
                       rows={form.getValues().description?.split("\n").length ?? 3}
-                      placeholder="Perform CRUD operations for DNS records and domains."
+                      placeholder="Create a new domain in this account."
                       {...field}
-                      className=" dark:focus:border-gray-700"
                     />
                   </FormControl>
                   <FormMessage />
@@ -161,19 +133,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
               )}
             />
             <DialogFooter>
-              <div className="flex items-center gap-1">
-                <Checkbox
-                  id="create-more"
-                  checked={createMore}
-                  onClick={() => setCreateMore(!createMore)}
-                />
-                <Label htmlFor="create-more" className="text-xs">
-                  Create more
-                </Label>
-              </div>
-
               <Button type="submit">
-                {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create New Role"}
+                {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}
               </Button>
             </DialogFooter>
           </form>

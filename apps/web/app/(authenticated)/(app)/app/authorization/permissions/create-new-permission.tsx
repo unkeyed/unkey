@@ -1,20 +1,9 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
-import { VisibleButton } from "@/components/dashboard/visible-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Code } from "@/components/ui/code";
 
-import { MultiSelect } from "@/components/multi-select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -35,58 +24,50 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UnkeyPermission } from "@unkey/rbac";
+import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-import { Textarea } from "@/components/ui/textarea";
-import { DialogTrigger } from "@radix-ui/react-dialog";
 
 type Props = {
   trigger: React.ReactNode;
 };
 
 const formSchema = z.object({
-  name: z.string(),
+  name: z
+    .string()
+    .min(3)
+    .regex(/^[a-zA-Z0-9_\-\.\*]+$/, {
+      message:
+        "Must be at least 3 characters long and only contain alphanumeric, periods, dashes and underscores",
+    }),
+
   description: z.string().optional(),
 });
 
 export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
-  const [createMore, setCreateMore] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   const createPermission = trpc.rbac.createPermission.useMutation({
-    onSuccess({ permissionId }) {
-      const href = `/app/settings/permissions/${permissionId}`;
-      router.prefetch(href);
-      toast.success("your permission was created", {
-        action: createMore
-          ? {
-              label: "Go to permission",
-              onClick: () => router.push(href),
-            }
-          : undefined,
-      });
-      if (!createMore) {
-        return router.push(href);
-      }
+    onSuccess() {
+      toast.success("Permission created");
+
+      router.refresh();
       form.reset({
         name: "",
+        description: "",
       });
+      setOpen(false);
     },
     onError(err) {
       console.error(err);
@@ -99,14 +80,12 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new permission</DialogTitle>
-          <DialogDescription>
-            Permissions can be grouped by roles or attached to keys directly
-          </DialogDescription>
+          <DialogDescription>Permissions allow your key to do certain actions.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -118,74 +97,47 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="api.read_key"
-                      {...field}
-                      className=" dark:focus:border-gray-700"
-                    />
+                    <Input placeholder="domain.create" {...field} />
                   </FormControl>
-                  <FormDescription>Your permission</FormDescription>
+                  <FormDescription>
+                    A unique key to identify your permission. We suggest using <code>.</code> (dot)
+                    separated names, to structure your hierarchy. For example we use{" "}
+                    <code>api.create_key</code> or <code>api.update_api</code> in our own
+                    permissions.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {/* <FormField
-            control={form.control}
-            name="key"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Key</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="org.domains.manage"
-                    {...field}
-                    className=" dark:focus:border-gray-700"
-                  />
-                </FormControl>
-                <FormDescription>
-                  A unique key to identify your role. We suggest using <code>.</code> (dot)
-                  separated names, to structure your hierarchy. For example we use{" "}
-                  <code>api.create_key</code> or <code>api.update_api</code> in our own permissions.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                  rows={form.getValues().description?.split("\n").length ?? 3}
-                    placeholder="Perform CRUD operations for DNS records and domains."
-                    {...field}
-                    className=" dark:focus:border-gray-700"
-                  />
-                </FormControl>
-                <FormDescription>
-                 Optionally explain what this role does.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          /> */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Description{" "}
+                    <Badge variant="secondary" size="sm">
+                      Optional
+                    </Badge>
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={form.getValues().description?.split("\n").length ?? 3}
+                      placeholder="Create a new domain in this account."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
-              <div className="flex items-center gap-1">
-                <Checkbox
-                  id="create-more"
-                  checked={createMore}
-                  onClick={() => setCreateMore(!createMore)}
-                />
-                <Label htmlFor="create-more" className="text-xs">
-                  Create more
-                </Label>
-              </div>
-
               <Button type="submit">
-                {createPermission.isLoading ? <Loading className="w-4 h-4" /> : "Create New Role"}
+                {createPermission.isLoading ? (
+                  <Loading className="w-4 h-4" />
+                ) : (
+                  "Create New Permission"
+                )}
               </Button>
             </DialogFooter>
           </form>
