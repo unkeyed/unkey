@@ -1,5 +1,4 @@
 import React from "react";
-import { BlogQuote } from "../blog-quote";
 import { Alert } from "../ui/alert/alert";
 
 export const TemplateComponents = {
@@ -8,8 +7,7 @@ export const TemplateComponents = {
   ),
   Callout: Alert,
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60" />,
-  blockquote: (props: any) => BlogQuote(props),
-  BlogQuote: (props: any) => BlogQuote(props),
+
   ol: (props: any) => (
     <ol {...props} className="text-white lg:pl-28 list-decimal marker:text-white" />
   ),
