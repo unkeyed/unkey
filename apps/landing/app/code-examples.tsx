@@ -438,8 +438,6 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
     return currentFramework?.codeBlock || "";
   }
 
-  console.log(getLanguage({ language, framework }));
-
   const LanguageTrigger = React.forwardRef<
     React.ElementRef<typeof TabsPrimitive.Trigger>,
     React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
