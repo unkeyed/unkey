@@ -116,18 +116,6 @@ export default function Templates() {
               <h2 className="mb-8 font-semibold blog-heading-gradient w-fit">Filter Templates</h2>
               <FormField
                 control={form.control}
-                name="page"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <input placeholder="1" {...field} value="1" className="text-black" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="search"
                 render={({ field }) => (
                   <FormItem>
@@ -267,7 +255,7 @@ export default function Templates() {
               />
             </Form>
           </div>
-          <div className="grid w-full Eng 544 -cols-1 gap-8 lg:w-3/4 lauto-rows-fr lg:grid-cols-3 md:grid-cols-2">
+          <div className="grid w-full grid-cols-1 gap-8 lg:w-3/4 lauto-rows-fr lg:grid-cols-3 md:grid-cols-2">
             {Object.entries(filteredTemplates).map(([id, template]) => (
               <Link
                 key={id}
@@ -303,6 +291,7 @@ export default function Templates() {
                     </p>
                   </div>
                   <div className="flex items-end justify-between h-full">
+                    {/* No images currently in author */}
                     {/* <Avatar className="w-8 h-8 rounded-full" >
                       <AvatarImage src={template.authors} />
                     </Avatar> */}
