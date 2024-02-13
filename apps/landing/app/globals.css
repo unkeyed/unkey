@@ -117,15 +117,11 @@ li > p {
   background: rgba(255, 255, 255, 0.2);
 }
 
-
-.audit-logs-bg-gradient {
-  background: linear-gradient(180deg, rgba(17, 17, 17, 0.90) 0%, rgba(0, 0, 0, 0.50) 100%), #000;
-}
-
 .audit-logs-fade-gradient { position: relative; }
 .audit-logs-fade-gradient::after {
   position: absolute;
-  background: radial-gradient(
+  background:
+  radial-gradient(
     300% 82.5% at 10.25% 100%,
     black,
     rgba(200, 200, 200, 0.08)
