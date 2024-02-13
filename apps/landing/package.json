@@ -22,6 +22,7 @@
     "date-fns": "^3.2.0",
     "drizzle-orm": "^0.29.1",
     "framer-motion": "10.16.2",
+    "fslightbox-react": "^1.7.6",
     "geist": "^1.2.1",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.314.0",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
+    "@types/fslightbox-react": "^1.7.7",
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
