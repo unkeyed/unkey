@@ -52,7 +52,7 @@ export function AnalyticsBento() {
   const [showApi, toggleShowApi] = useState(true);
 
   return (
-    <div className="flex justify-center relative">
+    <div className="flex justify-center relative w-full">
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
@@ -76,7 +76,7 @@ export function AnalyticsBento() {
         </div>
         Hide API Code
       </button>
-      <div className="bg-gradient-to-b from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
         <LightSvg className="absolute left-[250px] top-[-150px]" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
