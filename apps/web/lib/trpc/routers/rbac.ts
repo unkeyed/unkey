@@ -168,11 +168,18 @@ export const rbacRouter = t.router({
         });
       }
 
-      await db.insert(schema.rolesPermissions).values({
+      const tuple = {
         workspaceId: workspace.id,
         permissionId: permission.id,
         roleId: role.id,
-      });
+      };
+      const res = await db
+        .insert(schema.rolesPermissions)
+        .values({ ...tuple, createdAt: new Date() })
+        .onDuplicateKeyUpdate({
+          set: { ...tuple, updatedAt: new Date() },
+        });
+      console.log({ res });
     }),
   disconnectPermissionToRole: t.procedure
     .use(auth)
@@ -200,6 +207,90 @@ export const rbacRouter = t.router({
             eq(schema.rolesPermissions.workspaceId, workspace.id),
             eq(schema.rolesPermissions.roleId, input.roleId),
             eq(schema.rolesPermissions.permissionId, input.permissionId),
+          ),
+        );
+    }),
+  connectRoleToKey: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        roleId: z.string(),
+        keyId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+          keys: {
+            where: (table, { eq }) => eq(table.id, input.keyId),
+          },
+        },
+      });
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      const role = workspace.roles.at(0);
+      if (!role) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "role not found",
+        });
+      }
+      const key = workspace.keys.at(0);
+      if (!key) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "key not found",
+        });
+      }
+
+      const tuple = {
+        workspaceId: workspace.id,
+        keyId: key.id,
+        roleId: role.id,
+      };
+      const res = await db
+        .insert(schema.keysRoles)
+        .values({ ...tuple, createdAt: new Date() })
+        .onDuplicateKeyUpdate({
+          set: { ...tuple, updatedAt: new Date() },
+        });
+      console.log({ res });
+    }),
+  disconnectRoleFromKey: t.procedure
+    .use(auth)
+    .input(
+      z.object({
+        roleId: z.string(),
+        keyId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      });
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "workspace not found",
+        });
+      }
+      await db
+        .delete(schema.keysRoles)
+        .where(
+          and(
+            eq(schema.keysRoles.workspaceId, workspace.id),
+            eq(schema.keysRoles.roleId, input.roleId),
+            eq(schema.keysRoles.keyId, input.keyId),
           ),
         );
     }),

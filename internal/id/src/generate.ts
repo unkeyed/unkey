@@ -8,7 +8,7 @@ const prefixes = {
   api: "api",
   request: "req",
   workspace: "ws",
-  keyAuth: "key_auth",
+  keyAuth: "ks", // keyspace
   vercelBinding: "vb",
   role: "role",
   test: "test", // for tests only

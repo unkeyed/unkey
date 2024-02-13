@@ -1,4 +1,5 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,10 +12,10 @@ import {
   getVerificationsDaily,
   getVerificationsHourly,
 } from "@/lib/tinybird";
-import { Minus } from "lucide-react";
+import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
-import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
+import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 import { AccessTable } from "./table";
 
 export const dynamic = "force-dynamic";
@@ -133,41 +134,53 @@ export default async function KeyPage(props: {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="grid grid-cols-3 divide-x">
-            <Metric
-              label="Successful Verifications"
-              value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
+      {verificationsData.some(({ y }) => y > 0) ? (
+        <Card>
+          <CardHeader>
+            <div className="grid grid-cols-3 divide-x">
+              <Metric
+                label="Successful Verifications"
+                value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
+              />
+              <Metric
+                label="Ratelimited"
+                value={formatNumber(
+                  verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
+                )}
+              />
+              <Metric
+                label="Usage Exceeded"
+                value={formatNumber(
+                  verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
+                )}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <StackedColumnChart
+              data={verificationsData}
+              timeGranularity={
+                granularity >= 1000 * 60 * 60 * 24 * 30
+                  ? "month"
+                  : granularity >= 1000 * 60 * 60 * 24
+                    ? "day"
+                    : "hour"
+              }
             />
-            <Metric
-              label="Ratelimited"
-              value={formatNumber(
-                verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
-              )}
-            />
-            <Metric
-              label="Usage Exceeded"
-              value={formatNumber(
-                verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
-              )}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <StackedColumnChart
-            data={verificationsData}
-            timeGranularity={
-              granularity >= 1000 * 60 * 60 * 24 * 30
-                ? "month"
-                : granularity >= 1000 * 60 * 60 * 24
-                  ? "day"
-                  : "hour"
-            }
-          />
-        </CardContent>
-      </Card>
-
+          </CardContent>
+        </Card>
+      ) : (
+        <EmptyPlaceholder>
+          <EmptyPlaceholder.Icon>
+            <BarChart />
+          </EmptyPlaceholder.Icon>
+          <EmptyPlaceholder.Title>Not used</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Description>
+            This key was not used in the last {interval}
+          </EmptyPlaceholder.Description>
+          {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
+        </EmptyPlaceholder>
+      )}
       <Separator className="my-8" />
       <AccessTable verifications={latestVerifications.data} />
     </div>
@@ -234,7 +247,7 @@ const Metric: React.FC<{
   tooltip?: React.ReactNode;
 }> = ({ label, value, tooltip }) => {
   const component = (
-    <div className="flex flex-col items-start justify-center py-2 px-4">
+    <div className="flex flex-col items-start justify-center px-4 py-2">
       <p className="text-sm text-content-subtle">{label}</p>
       <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>

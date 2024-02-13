@@ -101,11 +101,11 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
           </CardContent>
           <CardFooter className="justify-end">
             <Button
-              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              disabled={updateOwnerId.isLoading || !form.formState.isValid}
               className="mt-4 "
               type="submit"
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              {updateOwnerId.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

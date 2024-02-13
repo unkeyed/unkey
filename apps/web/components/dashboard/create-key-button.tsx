@@ -3,12 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "../ui/button";
 
-export const CreateKeyButton = (props: { apiId: string }) => {
+export const CreateKeyButton = (props: { keyAuthId: string }) => {
+  const href = `/app/apis/${props.keyAuthId}/new`;
   const path = usePathname();
   const setUrl = () => {
-    window.location.href = `/app/apis/${props.apiId}/keys/new`;
+    window.location.href = href;
   };
-  if (path?.match(`/app/apis/${props.apiId}/keys/new`)) {
+  if (path?.match(href)) {
     return (
       <Button onClick={setUrl} variant="secondary">
         Create Key
@@ -16,7 +17,7 @@ export const CreateKeyButton = (props: { apiId: string }) => {
     );
   }
   return (
-    <Link key="new" href={`/app/apis/${props.apiId}/keys/new`}>
+    <Link key="new" href={href}>
       <Button variant="secondary">Create Key</Button>
     </Link>
   );

@@ -9,12 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -22,22 +20,19 @@ import { z } from "zod";
 
 const formSchema = z.object({
   keyId: z.string(),
-  name: z
-    .string()
-    .transform((e) => (e === "" ? undefined : e))
-    .optional(),
+  workspaceId: z.string(),
+  enabled: z.boolean(),
 });
 type Props = {
   apiKey: {
     id: string;
     workspaceId: string;
-    name: string | null;
+    enabled: boolean;
   };
 };
 
-export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
+export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -45,13 +40,13 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
     delayError: 100,
     defaultValues: {
       keyId: apiKey.id,
-      name: apiKey.name ?? "",
+      workspaceId: apiKey.workspaceId,
+      enabled: apiKey.enabled,
     },
   });
-
-  const updateName = trpc.keySettings.updateName.useMutation({
+  const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
     onSuccess() {
-      toast.success("Your key name uses has been updated!");
+      toast.success("Your key has been updated!");
       router.refresh();
     },
     onError(err) {
@@ -61,31 +56,41 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutateAsync(values);
+    updateEnabled.mutateAsync(values);
   }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <CardTitle>Name</CardTitle>
+            <CardTitle>Enable Key</CardTitle>
             <CardDescription>
-              To make it easier to identify a particular key, you can provide a name.
+              Enable or disable this key. Disabled keys will not verify.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-between item-center">
-            <div className={cn("flex flex-col space-y-2 w-full ")}>
-              <input type="hidden" name="keyId" value={apiKey.id} />
-              <Label htmlFor="remaining">Name</Label>
+            <div className="flex flex-col space-y-2">
+              {/*  */}
               <FormField
                 control={form.control}
-                name="name"
+                name="enabled"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input {...field} type="string" className="h-8 max-w-sm" autoComplete="off" />
-                    </FormControl>
-                    <FormMessage />
+                  <FormItem className="w-full">
+                    <div className="flex items-center gap-4">
+                      <FormControl>
+                        <Switch
+                          id="enableSwitch"
+                          checked={form.getValues("enabled")}
+                          onCheckedChange={(e) => {
+                            field.onChange(e);
+                          }}
+                        />
+                      </FormControl>{" "}
+                      <FormLabel htmlFor="enabled">
+                        {form.getValues("enabled") ? "Enabled" : "Disabled"}
+                      </FormLabel>
+                    </div>
                   </FormItem>
                 )}
               />
@@ -93,11 +98,11 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
           </CardContent>
           <CardFooter className="justify-end">
             <Button
-              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              disabled={updateEnabled.isLoading || !form.formState.isValid}
               className="mt-4 "
               type="submit"
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              {updateEnabled.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

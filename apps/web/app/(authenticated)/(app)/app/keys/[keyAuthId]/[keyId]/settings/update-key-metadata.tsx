@@ -95,7 +95,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
               />
             </div>
           </CardContent>
-          <CardFooter className="justify-end gap-4">
+          <CardFooter className="items-center justify-end gap-4">
             <Button
               variant="secondary"
               type="button"
@@ -110,12 +110,8 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
             >
               Format Json
             </Button>
-            <Button
-              disabled={form.formState.isSubmitting || !form.formState.isValid}
-              className="mt-4 "
-              type="submit"
-            >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+            <Button disabled={updateMetadata.isLoading || !form.formState.isValid} type="submit">
+              {updateMetadata.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

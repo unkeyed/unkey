@@ -15,7 +15,7 @@ export const keyRouter = t.router({
       z.object({
         prefix: z.string().optional(),
         bytesLength: z.number().int().gte(1).default(16),
-        apiId: z.string(),
+        keyAuthId: z.string(),
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
@@ -50,17 +50,14 @@ export const keyRouter = t.router({
         });
       }
 
-      const api = await db.query.apis.findFirst({
-        where: (table, { eq }) => eq(table.id, input.apiId),
+      const keyAuth = await db.query.keyAuth.findFirst({
+        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        with: {
+          api: true,
+        },
       });
-      if (!api) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
-      }
-      if (!api.keyAuthId) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "api is not setup to handle keys",
-        });
+      if (!keyAuth) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "keyAuth not found" });
       }
 
       const keyId = newId("key");
@@ -72,7 +69,7 @@ export const keyRouter = t.router({
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
-          keyAuthId: api.keyAuthId!,
+          keyAuthId: keyAuth.id,
           name: input.name,
           hash,
           start,
@@ -98,11 +95,11 @@ export const keyRouter = t.router({
           id: newId("auditLog"),
           time: new Date(),
           workspaceId: workspace.id,
-          apiId: api.id,
+          apiId: keyAuth.api?.id,
           actorType: "user",
           actorId: ctx.user.id,
           event: "key.create",
-          description: `created key ${keyId} for api ${api.id}`,
+          description: `created key ${keyId} for api ${keyAuth.api?.id}`,
           keyId: keyId,
         });
       });

@@ -33,17 +33,17 @@ export default async function ApiPageLayout(props: Props) {
   const navigation = [
     {
       label: "Overview",
-      href: `/app/apis/${props.params.apiId}`,
+      href: `/app/apis/${api.id}`,
       segment: null,
     },
     {
       label: "Keys",
-      href: `/app/apis/${props.params.apiId}/keys`,
+      href: `/app/keys/${api.keyAuthId}`,
       segment: "keys",
     },
     {
       label: "Settings",
-      href: `/app/apis/${props.params.apiId}/settings`,
+      href: `/app/apis/${api.id}/settings`,
       segment: "settings",
     },
   ];
@@ -62,7 +62,7 @@ export default async function ApiPageLayout(props: Props) {
             {api.id}
             <CopyButton value={api.id} />
           </Badge>,
-          <CreateKeyButton apiId={api.id} />,
+          <CreateKeyButton keyAuthId={api.keyAuthId!} />,
         ]}
       />
 

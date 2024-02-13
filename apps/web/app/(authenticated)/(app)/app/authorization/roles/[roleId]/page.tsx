@@ -1,10 +1,10 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { Permission, db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@radix-ui/react-tooltip";
+import { ChevronRight } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { DeleteRole } from "./delete-role";
 import { PermissionToggle } from "./permission-toggle";
@@ -21,6 +21,7 @@ type Props = {
 type NestedPermission = {
   id: string;
   name: string;
+  checked: boolean;
   part: string;
   path: string;
   permissions: NestedPermissions;
@@ -37,6 +38,9 @@ export default async function RolesPage(props: Props) {
     with: {
       roles: {
         where: (table, { eq }) => eq(table.id, props.params.roleId),
+        with: {
+          permissions: true,
+        },
       },
       permissions: {
         with: {
@@ -65,6 +69,7 @@ export default async function RolesPage(props: Props) {
         n[p] = {
           id: permission.id,
           name: permission.name,
+          checked: role.permissions.some((p) => p.permissionId === permission.id),
           part: p,
           permissions: {},
           level: i,
@@ -74,10 +79,9 @@ export default async function RolesPage(props: Props) {
       n = n[p].permissions;
     }
   }
-  console.log(JSON.stringify({ nested }, null, 2));
 
   return (
-    <div className="flex flex-col min-h-screen gap-4">
+    <div className="flex flex-col min-h-screen gap-8">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -91,23 +95,30 @@ export default async function RolesPage(props: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 mt-8 mb-20">
-        {Object.entries(nested).map(([k, p]) => (
-          <RecursivePermission
-            k={k}
-            {...p}
-            allPermissions={workspace.permissions}
-            roleId={role.id}
-          />
-        ))}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Permissions</CardTitle>
+          <CardDescription>Add or remove permissions from this role</CardDescription>
+        </CardHeader>
+
+        <CardContent className="flex flex-col gap-1 ">
+          {Object.entries(nested).map(([k, p]) => (
+            <RecursivePermission
+              k={k}
+              {...p}
+              allPermissions={workspace.permissions}
+              roleId={role.id}
+            />
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 const RecursivePermission: React.FC<
   NestedPermission & { allPermissions: Permission[]; k: string; roleId: string }
-> = ({ k, id, name, part, permissions, roleId, allPermissions }) => {
+> = ({ k, id, level, name, permissions, roleId, allPermissions, checked }) => {
   const permission = allPermissions.find((p) => p.id === id)!;
 
   const children = Object.values(permissions);
@@ -117,20 +128,20 @@ const RecursivePermission: React.FC<
       <div className="px-2 py-1 ml-4 hover:bg-secondary">
         <p className="text-xs text-content-subtle">{permission.description}</p>
         <div className="flex items-center gap-2">
-          <PermissionToggle permissionId={id} roleId={roleId} checked={false} />
-          <pre>{name}</pre>
+          <PermissionToggle permissionId={id} roleId={roleId} checked={checked} />
+          {/* TODO  */}
+          <pre className="text-sm">{k}</pre>
         </div>
       </div>
     );
   }
   return (
-    <div className="p-2 ml-4 border rounded-lg border-border border-opacity-20">
-      <div className="flex items-center gap-2">
-        <PermissionToggle permissionId={id} roleId={roleId} checked={false} />
-
-        <pre className="">{k}</pre>
+    <div className="p-2 ml-4">
+      <div className="flex items-center gap-1">
+        <ChevronRight className="w-4 h-4" />
+        <pre className="text-sm">{k}</pre>
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 ml-2 border-l border-border">
         {Object.entries(permissions).map(([k2, p]) => (
           <RecursivePermission
             key={p.id}

@@ -15,12 +15,13 @@ type Option = {
 type Props = {
   options: Option[];
   placeholder?: string;
+  selected: Option[];
+  setSelected: React.Dispatch<React.SetStateAction<Option[]>>;
 };
 
-export const MultiSelect: React.FC<Props> = ({ options, placeholder }) => {
+export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, setSelected }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [open, setOpen] = React.useState(false);
-  const [selected, setSelected] = React.useState<Option[]>([]);
   const [inputValue, setInputValue] = React.useState("");
 
   const handleUnselect = React.useCallback((o: Option) => {
@@ -101,11 +102,13 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder }) => {
                     }}
                     onSelect={(_value) => {
                       setInputValue("");
-                      setSelected((prev) => [...prev, o]);
+                      setSelected((prev) => {
+                        return [...new Set([...prev, o])];
+                      });
                     }}
                     className={"cursor-pointer"}
                   >
-                    {o.label}
+                    {o.label} x
                   </CommandItem>
                 );
               })}

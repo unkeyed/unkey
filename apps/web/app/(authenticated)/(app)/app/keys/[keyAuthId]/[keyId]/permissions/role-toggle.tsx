@@ -8,27 +8,27 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 type Props = {
-  permissionId: string;
+  keyId: string;
   roleId: string;
   checked: boolean;
 };
 
-export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checked }) => {
+export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-  const connect = trpc.rbac.connectPermissionToRole.useMutation({
+  const connect = trpc.rbac.connectRoleToKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
-      toast.loading("Adding Permission");
+      toast.loading("Adding Role");
     },
     onSuccess: () => {
-      toast.success("Permission added", {
+      toast.success("Role added", {
         description: "Changes may take up to 60 seconds to take effect.",
         cancel: {
           label: "Undo",
           onClick: () => {
-            disconnect.mutate({ roleId, permissionId });
+            disconnect.mutate({ roleId, keyId });
           },
         },
       });
@@ -40,18 +40,18 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
       router.refresh();
     },
   });
-  const disconnect = trpc.rbac.disconnectPermissionToRole.useMutation({
+  const disconnect = trpc.rbac.disconnectRoleFromKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
-      toast.loading("Removing Permission");
+      toast.loading("Removing role");
     },
     onSuccess: () => {
-      toast.success("Permission removed", {
+      toast.success("Role removed", {
         description: "Changes may take up to 60 seconds to take effect.",
         cancel: {
           label: "Undo",
           onClick: () => {
-            connect.mutate({ roleId, permissionId });
+            connect.mutate({ roleId, keyId });
           },
         },
       });
@@ -71,9 +71,9 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
       checked={optimisticChecked}
       onClick={() => {
         if (optimisticChecked) {
-          disconnect.mutate({ roleId, permissionId });
+          disconnect.mutate({ roleId, keyId });
         } else {
-          connect.mutate({ roleId, permissionId });
+          connect.mutate({ roleId, keyId });
         }
       }}
     />

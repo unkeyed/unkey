@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { PropsWithChildren } from "react";
 type Props = PropsWithChildren<{
   params: {
+    keyAuthId: string;
     keyId: string;
   };
 }>;
@@ -38,13 +39,18 @@ export default async function ApiPageLayout(props: Props) {
   const navigation = [
     {
       label: "Overview",
-      href: `/app/keys/${props.params.keyId}`,
+      href: `/app/keys/${props.params.keyAuthId}/${props.params.keyId}`,
       segment: null,
     },
     {
       label: "Settings",
-      href: `/app/keys/${props.params.keyId}/settings`,
+      href: `/app/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`,
       segment: "settings",
+    },
+    {
+      label: "Permissions",
+      href: `/app/keys/${props.params.keyAuthId}/${props.params.keyId}/permissions`,
+      segment: "permissions",
     },
     { label: "API", href: `/app/apis/${api.id}`, segment: api.id },
   ];
@@ -52,13 +58,12 @@ export default async function ApiPageLayout(props: Props) {
   return (
     <div>
       <PageHeader
-        title={props.params.keyId}
-        description="Here is an overview of your key usage"
+        title={key.name ?? key.id}
         actions={[
           <Badge
             key="keyId"
             variant="secondary"
-            className="ph-no-capture flex w-full justify-between font-mono font-medium gap-2"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
           >
             {key.id}
             <CopyButton value={key.id} />
@@ -66,7 +71,7 @@ export default async function ApiPageLayout(props: Props) {
         ]}
       />
       <Navbar navigation={navigation} />
-      <main className="mb-20 mt-8">{props.children}</main>
+      <main className="mt-8 mb-20">{props.children}</main>
     </div>
   );
 }

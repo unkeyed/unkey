@@ -1,4 +1,5 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
@@ -11,6 +12,7 @@ import {
   getVerificationsDaily,
   getVerificationsHourly,
 } from "@/lib/tinybird";
+import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
 
@@ -139,40 +141,52 @@ export default async function ApiPage(props: {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="grid grid-cols-3 divide-x">
-            <Metric
-              label="Successful Verifications"
-              value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
+      {verificationsData.some((d) => d.y > 0) ? (
+        <Card>
+          <CardHeader>
+            <div className="grid grid-cols-3 divide-x">
+              <Metric
+                label="Successful Verifications"
+                value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
+              />
+              <Metric
+                label="Ratelimited"
+                value={formatNumber(
+                  verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
+                )}
+              />
+              <Metric
+                label="Usage Exceeded"
+                value={formatNumber(
+                  verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
+                )}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <StackedColumnChart
+              data={verificationsData}
+              timeGranularity={
+                granularity >= 1000 * 60 * 60 * 24 * 30
+                  ? "month"
+                  : granularity >= 1000 * 60 * 60 * 24
+                    ? "day"
+                    : "hour"
+              }
             />
-            <Metric
-              label="Ratelimited"
-              value={formatNumber(
-                verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
-              )}
-            />
-            <Metric
-              label="Usage Exceeded"
-              value={formatNumber(
-                verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
-              )}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <StackedColumnChart
-            data={verificationsData}
-            timeGranularity={
-              granularity >= 1000 * 60 * 60 * 24 * 30
-                ? "month"
-                : granularity >= 1000 * 60 * 60 * 24
-                  ? "day"
-                  : "hour"
-            }
-          />
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <EmptyPlaceholder>
+          <EmptyPlaceholder.Icon>
+            <BarChart />
+          </EmptyPlaceholder.Icon>
+          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Description>
+            Verify a key or change the range
+          </EmptyPlaceholder.Description>
+        </EmptyPlaceholder>
+      )}
 
       <Separator className="my-8" />
       <div className="flex items-center justify-between">
@@ -182,29 +196,41 @@ export default async function ApiPage(props: {
           <IntervalSelect defaultSelected={interval} />
         </div>
       </div>
-      <Card>
-        <CardHeader>
-          <div className="grid grid-cols-4 divide-x">
-            <Metric
-              label="Total Active Keys"
-              value={formatNumber(activeKeysTotal.data.at(0)?.keys ?? 0)}
+      {activeKeysOverTime.some((k) => k.y > 0) ? (
+        <Card>
+          <CardHeader>
+            <div className="grid grid-cols-4 divide-x">
+              <Metric
+                label="Total Active Keys"
+                value={formatNumber(activeKeysTotal.data.at(0)?.keys ?? 0)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <AreaChart
+              data={activeKeysOverTime}
+              tooltipLabel="Active Keys"
+              timeGranularity={
+                granularity >= 1000 * 60 * 60 * 24 * 30
+                  ? "month"
+                  : granularity >= 1000 * 60 * 60 * 24
+                    ? "day"
+                    : "hour"
+              }
             />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <AreaChart
-            data={activeKeysOverTime}
-            tooltipLabel="Active Keys"
-            timeGranularity={
-              granularity >= 1000 * 60 * 60 * 24 * 30
-                ? "month"
-                : granularity >= 1000 * 60 * 60 * 24
-                  ? "day"
-                  : "hour"
-            }
-          />
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <EmptyPlaceholder>
+          <EmptyPlaceholder.Icon>
+            <BarChart />
+          </EmptyPlaceholder.Icon>
+          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Description>
+            Verify a key or change the range
+          </EmptyPlaceholder.Description>
+        </EmptyPlaceholder>
+      )}
     </div>
   );
 }
@@ -269,7 +295,7 @@ function prepareInterval(interval: Interval) {
 
 const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
   return (
-    <div className="flex flex-col items-start justify-center py-2 px-4">
+    <div className="flex flex-col items-start justify-center px-4 py-2">
       <p className="text-sm text-content-subtle">{label}</p>
       <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>

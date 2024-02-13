@@ -150,10 +150,10 @@ const formSchema = z.object({
 });
 
 type Props = {
-  apiId: string;
+  keyAuthId: string;
 };
 
-export const CreateKey: React.FC<Props> = ({ apiId }) => {
+export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -198,7 +198,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     }
 
     await key.mutateAsync({
-      apiId,
+      keyAuthId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
@@ -208,7 +208,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
     });
   }
 
-  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys/verify' \\
+  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key}"
@@ -280,7 +280,7 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
             </div>
           </Code>
           <div className="flex justify-end my-4 space-x-4">
-            <Link href={`/app/apis/${apiId}`}>
+            <Link href={`/app/keys/${keyAuthId}`}>
               <Button variant="secondary">Back</Button>
             </Link>
             <Button
@@ -301,13 +301,13 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
         <>
           <div>
             <div className="w-full">
+              <h2 className="text-2xl font-semibold tracking-tight">Create a new key</h2>
               <Form {...form}>
                 <form
-                  className="flex flex-col h-full gap-8 md:flex-row"
+                  className="flex flex-col h-full gap-8 mt-4 md:flex-row"
                   onSubmit={form.handleSubmit(onSubmit)}
                 >
                   <div className="z-0 flex flex-col w-full h-full gap-4 md:sticky top-24 md:w-1/2">
-                    <h2 className="text-2xl font-semibold tracking-tight">Create a new key</h2>
                     <FormField
                       control={form.control}
                       name="prefix"
@@ -341,7 +341,10 @@ export const CreateKey: React.FC<Props> = ({ apiId }) => {
                           <FormControl>
                             <Input type="number" {...field} />
                           </FormControl>
-                          <FormDescription>How many bytes to use.</FormDescription>
+                          <FormDescription>
+                            How long the key will be. Longer keys are harder to guess and more
+                            secure.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
