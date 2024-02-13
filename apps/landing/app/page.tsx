@@ -108,7 +108,7 @@ export default async function Landing() {
         <RateLimitsBento />
       </div>
       <SectionTitle
-        className="mt-[400px] ml-10"
+        className="mt-[400px] md:ml-10"
         title="Leveled-up API Auth"
         titleWidth={719}
         contentWidth={557}
