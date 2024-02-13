@@ -361,9 +361,9 @@ export const AuditLogsMobile = ({ className }: { className?: string }) => (
       width={896}
       height={328}
     >
-      <path transform="translate(-39)" fill="url(#a)" d="M0 0h896v328H0z" />
+      <path transform="translate(-39)" fill="url(#a_)" d="M0 0h896v328H0z" />
     </mask>
-    <g mask="url(#b)">
+    <g mask="url(#b_)">
       <rect
         x={0.625}
         y={39.625}
@@ -442,7 +442,7 @@ export const AuditLogsMobile = ({ className }: { className?: string }) => (
         fill="#fff"
         fillOpacity={0.6}
       />
-      <rect x={1} y={96} width={810} height={32} rx={6} fill="url(#c)" />
+      <rect x={1} y={96} width={810} height={32} rx={6} fill="url(#c_)" />
       <rect
         x={0.625}
         y={95.625}

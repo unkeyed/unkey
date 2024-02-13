@@ -468,10 +468,10 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         align="center"
         titleWidth={543}
         contentWidth={591}
-        className="relative py-20 "
+        className="relative"
       >
         <div className="mt-10">
-          <div className="flex space-x-6 ">
+          <div className="flex space-x-6 pb-10">
             <Link key="get-started" href="/app">
               <PrimaryButton label="Get Started" IconRight={ChevronRight} />
             </Link>
@@ -481,7 +481,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </Link>
           </div>
         </div>
-        <HighlightAbove className="absolute bottom-0 w-full mx-auto pointer-events-none" />
+        <HighlightAbove className="absolute bottom-0 w-full h-full mx-auto pointer-events-none" />
       </SectionTitle>
       <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black">
         <Tabs
