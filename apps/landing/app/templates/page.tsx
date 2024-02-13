@@ -267,7 +267,7 @@ export default function Templates() {
               />
             </Form>
           </div>
-          <div className="grid w-full grid-cols-1 gap-8 lg:w-3/4 lauto-rows-fr lg:grid-cols-3 md:grid-cols-2">
+          <div className="grid w-full Eng 544 -cols-1 gap-8 lg:w-3/4 lauto-rows-fr lg:grid-cols-3 md:grid-cols-2">
             {Object.entries(filteredTemplates).map(([id, template]) => (
               <Link
                 key={id}

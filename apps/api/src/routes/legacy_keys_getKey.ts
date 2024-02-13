@@ -65,7 +65,7 @@ export const registerLegacyKeysGet = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission.key!).filter(Boolean),
+        permissions: dbRes.permissions.map((p) => p.permission.name),
       };
     });
 

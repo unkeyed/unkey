@@ -31,7 +31,7 @@ export const PermissionToggle: React.FC<Props> = ({
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-  const addPermission = trpc.permission.addPermissionToRootKey.useMutation({
+  const addPermission = trpc.rbac.addPermissionToRootKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
     },
@@ -53,7 +53,7 @@ export const PermissionToggle: React.FC<Props> = ({
       router.refresh();
     },
   });
-  const removeRole = trpc.permission.removePermissionFromRootKey.useMutation({
+  const removeRole = trpc.rbac.removePermissionFromRootKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
     },
