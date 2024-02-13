@@ -1,5 +1,7 @@
 import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
+
+import { YoutubeEmbed } from "@/components/youtube-embed";
 import { PrimaryButton, SecondaryButton } from "../components/button";
 
 export const Hero: React.FC = () => {
@@ -74,7 +76,7 @@ export const Hero: React.FC = () => {
 
       <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10 mt-16 xl:mt-0 ">
         <div className="m-[10px] rounded-[28px] border border-gray-800">
-          <img src="/images/hero.png" alt="Youtube" />
+          <YoutubeEmbed />
         </div>
         <SubHeroMainboardStuff className="absolute inset-x-0 top-[70%]  -left-[50%]" />
       </div>
