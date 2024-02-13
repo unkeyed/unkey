@@ -13,7 +13,7 @@ export const OpenSource: React.FC = () => {
       <div className="absolute top-[-460px] md:right-[250px] z-[-1]">
         <OssLight />
       </div>
-      <div className="flex flex-col items-center xl:flex-row xl:w-full xl:justify-between">
+      <div className="flex container flex-col items-center xl:flex-row xl:w-full xl:justify-between">
         <SectionTitle
           align="left"
           title="Empowering the community"
