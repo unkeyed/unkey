@@ -1,4 +1,4 @@
-export function OssLight() {
+export function OssLight({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -6,6 +6,7 @@ export function OssLight() {
       height="638"
       viewBox="0 0 472 638"
       fill="none"
+      className={className}
     >
       <g opacity="0.4">
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter0_f_825_3716)">

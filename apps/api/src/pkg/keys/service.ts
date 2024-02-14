@@ -179,7 +179,7 @@ export class KeyService {
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission),
+        permissions: dbRes.permissions.map((p) => p.permission.name),
       };
     });
 
@@ -242,10 +242,7 @@ export class KeyService {
     }
 
     if (req.permissionQuery) {
-      const rbacResp = this.rbac.evaluatePermissions(
-        req.permissionQuery,
-        data.permissions.map((p) => p.name),
-      );
+      const rbacResp = this.rbac.evaluatePermissions(req.permissionQuery, data.permissions);
       if (rbacResp.error) {
         return result.fail({ message: rbacResp.error.message, code: "INTERNAL_SERVER_ERROR" });
       }

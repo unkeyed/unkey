@@ -1,5 +1,5 @@
-import { useRuntimeConfig } from "#imports";
 import { Unkey } from "@unkey/api";
+import { useRuntimeConfig } from "#imports";
 import { version } from "../../../../package.json";
 
 import type { H3Event } from "h3";

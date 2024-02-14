@@ -16,11 +16,11 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
             role: orgRole,
           }
         : userId
-        ? {
-            id: userId,
-            role: "owner",
-          }
-        : null,
+          ? {
+              id: userId,
+              role: "owner",
+            }
+          : null,
   };
 }
 

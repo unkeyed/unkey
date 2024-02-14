@@ -6,7 +6,7 @@ import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
-import { upsertPermission } from "./permission";
+import { upsertPermission } from "./rbac";
 
 export const keyRouter = t.router({
   create: t.procedure
@@ -159,7 +159,10 @@ export const keyRouter = t.router({
 
       const keyId = newId("key");
 
-      const { key, hash, start } = await newKey({ prefix: "unkey", byteLength: 16 });
+      const { key, hash, start } = await newKey({
+        prefix: "unkey",
+        byteLength: 16,
+      });
 
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({

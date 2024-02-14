@@ -25,9 +25,9 @@ pip install -U git+https://github.com/Jonxslays/unkey.py
 
 For more information on using `pip`, check out the [pip documentation](https://pip.pypa.io/en/stable/).
 
-## Example
+## Examples
 
-Verifying an api key:
+### Verifying an api key manually
 
 ```py
 import asyncio
@@ -37,6 +37,8 @@ import unkey
 
 
 async def main() -> None:
+    # NOTE: Verifying keys don't require an unkey root api key
+    # but all other endpoints the client hits do
     client = unkey.Client(api_key=os.environ["API_KEY"])
     await client.start()
 
@@ -56,7 +58,43 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
 
+### Using the `protected` decorator
+
+```py
+import os
+from typing import Any, Dict, Optional
+
+import fastapi  # pip install fastapi
+import unkey  # pip install unkey.py
+import uvicorn  # pip install uvicorn
+
+app = fastapi.FastAPI()
+
+
+def key_extractor(*args: Any, **kwargs: Any) -> Optional[str]:
+    if isinstance(auth := kwargs.get("authorization"), str):
+        return auth.split(" ")[-1]
+
+    return None
+
+
+@app.get("/protected")
+@unkey.protected(os.environ["UNKEY_API_ID"], key_extractor)
+async def protected_route(
+    *,
+    authorization: str = fastapi.Header(None),
+    unkey_verification: Any = None,
+) -> Dict[str, Optional[str]]:
+    assert isinstance(unkey_verification, unkey.ApiKeyVerification)
+    assert unkey_verification.valid
+    print(unkey_verification.owner_id)
+    return {"message": "protected!"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app)
 ```
 
 Other examples may omit the async main function, setup, and imports for brevity.
@@ -64,6 +102,7 @@ Other examples may omit the async main function, setup, and imports for brevity.
 ## Guides
 
 - [Installation](https://jonxslays.github.io/unkey.py/stable/getting-started/installation/)
+- [The `protected` decorator](https://jonxslays.github.io/unkey.py/stable/getting-started/protected/)
 - [Using the Client](https://jonxslays.github.io/unkey.py/stable/getting-started/client/)
 - [The Result type](https://jonxslays.github.io/unkey.py/stable/getting-started/result/)
 - [Contributing](https://jonxslays.github.io/unkey.py/stable/contributing/)

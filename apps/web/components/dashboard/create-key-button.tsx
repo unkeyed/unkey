@@ -14,11 +14,10 @@ export const CreateKeyButton = (props: { apiId: string }) => {
         Create Key
       </Button>
     );
-  } else {
-    return (
-      <Link key="new" href={`/app/apis/${props.apiId}/keys/new`}>
-        <Button variant="secondary">Create Key</Button>
-      </Link>
-    );
   }
+  return (
+    <Link key="new" href={`/app/apis/${props.apiId}/keys/new`}>
+      <Button variant="secondary">Create Key</Button>
+    </Link>
+  );
 };

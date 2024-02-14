@@ -52,12 +52,12 @@ export default async function ApiPageLayout(props: Props) {
     <div>
       <PageHeader
         title={api.name}
-        description={" "}
+        description="Manage your API"
         actions={[
           <Badge
             key="apiId"
             variant="secondary"
-            className="ph-no-capture flex w-full justify-between font-mono font-medium gap-2"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
           >
             {api.id}
             <CopyButton value={api.id} />
@@ -65,10 +65,10 @@ export default async function ApiPageLayout(props: Props) {
           <CreateKeyButton apiId={api.id} />,
         ]}
       />
-      <div className="-mt-4 md:space-x-4 ">
-        <Navbar navigation={navigation} />
-      </div>
-      <main className="mb-20 mt-8">{props.children}</main>
+
+      <Navbar navigation={navigation} className="z-20" />
+
+      <main className="relative mt-8 mb-20 ">{props.children}</main>
     </div>
   );
 }

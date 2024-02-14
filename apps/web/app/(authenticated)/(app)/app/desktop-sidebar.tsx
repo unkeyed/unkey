@@ -4,7 +4,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { Activity, BookOpen, Code, Crown, Loader2, LucideIcon, Settings } from "lucide-react";
+import {
+  Activity,
+  BookOpen,
+  Code,
+  Crown,
+  Loader2,
+  LucideIcon,
+  Settings,
+  ShieldHalf,
+} from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -32,6 +41,12 @@ type NavItem = {
   tag?: React.ReactNode;
 };
 
+const Tag: React.FC<{ label: string }> = ({ label }) => (
+  <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ">
+    {label}
+  </div>
+);
+
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   const segments = useSelectedLayoutSegments();
   const navigation: NavItem[] = [
@@ -53,19 +68,20 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       external: true,
       label: "Docs",
     },
+
+    {
+      icon: ShieldHalf,
+      label: "Authorization",
+      href: "/app/authorization/roles",
+      active: segments.some((s) => s === "authorization"),
+      tag: <Tag label="alpha" />,
+    },
     {
       icon: Activity,
       href: "/app/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
-      disabled: !workspace.betaFeatures.auditLogRetentionDays,
-      tooltip:
-        "Audit logs are in private beta, please contact support@unkey.dev if you want early access.",
-      tag: (
-        <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5 font-mono">
-          beta
-        </div>
-      ),
+      tag: <Tag label="beta" />,
     },
   ];
   if (workspace.features.successPage) {
@@ -152,11 +168,13 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
     <Link
       prefetch
       href={item.href}
-      onClick={() =>
-        startTransition(() => {
-          router.push(item.href);
-        })
-      }
+      onClick={() => {
+        if (!item.external) {
+          startTransition(() => {
+            router.push(item.href);
+          });
+        }
+      }}
       target={item.external ? "_blank" : undefined}
       className={cn(
         "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 justify-between",

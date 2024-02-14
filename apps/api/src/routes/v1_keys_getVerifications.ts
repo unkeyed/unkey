@@ -71,7 +71,7 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type V1KeysGetVerificationsResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
@@ -103,7 +103,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         return {
           key: dbRes,
           api: dbRes.keyAuth.api,
-          permissions: dbRes.permissions.map((p) => p.permission),
+          permissions: dbRes.permissions.map((p) => p.permission.name),
         };
       });
 

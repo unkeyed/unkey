@@ -28,7 +28,7 @@ const route = createRoute({
 
 export type Route = typeof route;
 export type LegacyKeysDeleteKeyResponse = z.infer<
-  typeof route.responses[200]["content"]["application/json"]["schema"]
+  (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
 export const registerLegacyKeysDelete = (app: App) =>
@@ -59,7 +59,7 @@ export const registerLegacyKeysDelete = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission),
+        permissions: dbRes.permissions.map((p) => p.permission.name),
       };
     });
 

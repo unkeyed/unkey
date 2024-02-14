@@ -12,7 +12,7 @@ import { MemoryCache } from "./cache/memory";
 import { CacheWithMetrics } from "./cache/metrics";
 import { TieredCache } from "./cache/tiered";
 import { ZoneCache } from "./cache/zone";
-import { type Api, type Database, type Key, Permission, createConnection } from "./db";
+import { type Api, type Database, type Key, createConnection } from "./db";
 import { Env } from "./env";
 import { KeyService } from "./keys/service";
 import { ConsoleLogger, Logger } from "./logging";
@@ -27,12 +27,12 @@ export type CacheNamespaces = {
   keyById: {
     key: Key;
     api: Api;
-    permissions: Permission[];
+    permissions: string[];
   } | null;
   keyByHash: {
     key: Key;
     api: Api;
-    permissions: Permission[];
+    permissions: string[];
   } | null;
   apiById: Api | null;
   keysByOwnerId: {
@@ -74,11 +74,11 @@ export async function init(opts: { env: Env }): Promise<void> {
   metrics = opts.env.METRICS
     ? new QueueMetrics({ queue: opts.env.METRICS })
     : opts.env.AXIOM_TOKEN
-    ? new AxiomMetrics({
-        axiomToken: opts.env.AXIOM_TOKEN,
-        environment: opts.env.ENVIRONMENT,
-      })
-    : new NoopMetrics();
+      ? new AxiomMetrics({
+          axiomToken: opts.env.AXIOM_TOKEN,
+          environment: opts.env.ENVIRONMENT,
+        })
+      : new NoopMetrics();
 
   cache = new TieredCache(
     new CacheWithMetrics<CacheNamespaces>({
@@ -109,8 +109,8 @@ export async function init(opts: { env: Env }): Promise<void> {
   logger = opts.env.LOGS
     ? new QueueLogger({ queue: opts.env.LOGS })
     : opts.env.AXIOM_TOKEN
-    ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
-    : new ConsoleLogger();
+      ? new AxiomLogger({ axiomToken: opts.env.AXIOM_TOKEN, environment: opts.env.ENVIRONMENT })
+      : new ConsoleLogger();
 
   usageLimiter = opts.env.DO_USAGELIMIT
     ? new DurableUsageLimiter({
