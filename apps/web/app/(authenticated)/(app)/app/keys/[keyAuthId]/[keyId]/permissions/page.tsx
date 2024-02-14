@@ -76,7 +76,10 @@ export default async function (props: Props) {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <CreateNewRole trigger={<Button variant="secondary">Create New Role</Button>} />
+          <CreateNewRole
+            trigger={<Button variant="secondary">Create New Role</Button>}
+            permissions={key.workspace.permissions}
+          />
           <CreateNewPermission
             trigger={<Button variant="secondary">Create New Permission</Button>}
           />

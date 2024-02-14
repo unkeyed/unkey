@@ -51,8 +51,8 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
 
   return (
     <Command onKeyDown={handleKeyDown} className="overflow-visible bg-transparent">
-      <div className="flex items-center h-8 text-sm border rounded-md group focus-within:border-primary">
-        <div className="flex flex-wrap w-full gap-1 mx-2">
+      <div className="flex items-center p-1 text-sm border rounded-md min-h-8 group focus-within:border-primary">
+        <div className="flex flex-wrap w-full gap-1 ">
           {selected.map((o) => {
             return (
               <Badge key={o.value} variant="secondary">
