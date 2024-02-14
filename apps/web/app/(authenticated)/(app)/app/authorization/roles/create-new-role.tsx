@@ -166,7 +166,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                       selected={field.value ?? []}
                       setSelected={(cb) => {
                         if (typeof cb === "function") {
-                          return field.onChange(() => cb(field.value ?? []));
+                          return form.setValue("permissionOptions", cb(field.value ?? []));
                         }
                       }}
                     />
@@ -174,11 +174,6 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                   </FormItem>
                 )}
               />
-              // setSelected((prev) => {
-              //   const newSelected = [...prev];
-              //   newSelected.pop();
-              //   return newSelected;
-              // });
             ) : null}
             <DialogFooter>
               <Button type="submit">

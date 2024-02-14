@@ -5,6 +5,7 @@ import {
   type Api,
   type Database,
   type KeyAuth,
+  Permission,
   type Workspace,
   createConnection,
   schema,
@@ -85,12 +86,14 @@ export class Harness {
       createdAt: new Date(),
     });
     if (roles && roles.length > 0) {
-      const permissions = roles.map((name) => ({
+      const permissions: Permission[] = roles.map((name) => ({
         id: newId("permission"),
         name,
         key: name,
         description: null,
         workspaceId: this.resources.unkeyWorkspace.id,
+        createdAt: new Date(),
+        updatedAt: null,
       }));
 
       await this.db.insert(schema.permissions).values(permissions);

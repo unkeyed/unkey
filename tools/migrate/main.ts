@@ -16,9 +16,8 @@ async function main() {
       schema,
     },
   );
-  console.log("X");
   const oldRoles = await db.query.roles.findMany({
-    with: { key: true },
+    with: { keys: true },
   });
   let i = 0;
   for (const oldRole of oldRoles) {
@@ -28,7 +27,7 @@ async function main() {
     await db.transaction(async (tx) => {
       const existingPermission = await tx.query.permissions.findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, oldRole.workspaceId), eq(table.name, oldRole.role)),
+          and(eq(table.workspaceId, oldRole.workspaceId), eq(table.name, oldRole.name)),
       });
 
       let permissionId: string = newId("permission");
@@ -37,23 +36,23 @@ async function main() {
       } else {
         await tx.insert(schema.permissions).values({
           id: permissionId,
-          name: oldRole.role,
+          name: oldRole.name,
           workspaceId: oldRole.workspaceId,
         });
       }
 
-      await tx
-        .insert(schema.keysPermissions)
-        .values({
-          keyId: oldRole.key.id,
-          permissionId,
-          workspaceId: oldRole.workspaceId,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            permissionId,
-          },
-        });
+      // await tx
+      //   .insert(schema.keysPermissions)
+      //   .values({
+      //     keyId: oldRole.keys.at(0)!.id,
+      //     permissionId,
+      //     workspaceId: oldRole.workspaceId,
+      //   })
+      //   .onDuplicateKeyUpdate({
+      //     set: {
+      //       permissionId,
+      //     },
+      //   });
     });
   }
 }
