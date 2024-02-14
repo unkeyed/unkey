@@ -173,13 +173,12 @@ export const rbacRouter = t.router({
         permissionId: permission.id,
         roleId: role.id,
       };
-      const res = await db
+      await db
         .insert(schema.rolesPermissions)
         .values({ ...tuple, createdAt: new Date() })
         .onDuplicateKeyUpdate({
           set: { ...tuple, updatedAt: new Date() },
         });
-      console.log({ res });
     }),
   disconnectPermissionToRole: t.procedure
     .use(auth)
@@ -257,13 +256,12 @@ export const rbacRouter = t.router({
         keyId: key.id,
         roleId: role.id,
       };
-      const res = await db
+      await db
         .insert(schema.keysRoles)
         .values({ ...tuple, createdAt: new Date() })
         .onDuplicateKeyUpdate({
           set: { ...tuple, updatedAt: new Date() },
         });
-      console.log({ res });
     }),
   disconnectRoleFromKey: t.procedure
     .use(auth)
