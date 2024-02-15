@@ -2,7 +2,7 @@ import { SectionTitle } from "@/app/section-title";
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { PrimaryButton } from "./button";
-import { GithubSvg } from "./svg/github";
+import { Github, GithubMobile } from "./svg/github";
 import { OssChip } from "./svg/oss-chip";
 import { OssLight } from "./svg/oss-light";
 
@@ -30,7 +30,8 @@ export const OpenSource: React.FC = () => {
           </div>
         </SectionTitle>
         <div className="relative">
-          <GithubSvg className="w-[380px] md:w-[640px] mt-24 xl:mt-0" />
+          <GithubMobile className="flex xs:hidden mt-24" />
+          <Github className="hidden xs:flex w-[380px] md:w-[640px] mt-24 xl:mt-0" />
           <div className="absolute w-[1000px] h-[400px] top-[400px] left-[150px]">
             <OssChip />
           </div>
