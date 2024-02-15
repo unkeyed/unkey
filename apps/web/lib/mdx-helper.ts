@@ -202,7 +202,6 @@ export const getPost = async (filepath: string): Promise<Post<Frontmatter>> => {
   const serialized = await mdxSerialized({ rawMdx });
   const frontmatter = serialized.frontmatter as Frontmatter;
   const headings = await getHeadings({ rawMdx });
-  console.log(rawMdx);
   return {
     frontmatter,
     serialized,
