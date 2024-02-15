@@ -2,6 +2,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { keyService } from "@/pkg/global";
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
+import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -26,6 +27,19 @@ The key will be verified against the api's configuration. If the key does not be
                 description: "The key to verify",
                 example: "sk_1234",
               }),
+              authorization: z
+                .object({
+                  permissions: permissionQuerySchema.openapi({
+                    description: "A query for which permissions you require",
+                    example: {
+                      or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
+                    },
+                  }),
+                })
+                .optional()
+                .openapi({
+                  description: "Perform RBAC checks",
+                }),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -148,9 +162,13 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key } = c.req.valid("json");
+    const { apiId, key, authorization } = c.req.valid("json");
+    console.log("VALID request");
 
-    const { value, error } = await keyService.verifyKey(c, { key, apiId });
+    const permissionQuery = authorization
+      ? { version: 1, query: authorization.permissions }
+      : undefined;
+    const { value, error } = await keyService.verifyKey(c, { key, apiId, permissionQuery });
     if (error) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",

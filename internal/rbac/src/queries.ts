@@ -4,7 +4,7 @@ import { unkeyPermissionValidation } from "./permissions";
 type Rule = "and" | "or";
 
 export type PermissionQuery<R extends string = string> = {
-  version: 1;
+  version: number;
   query: NestedQuery<R>;
 };
 
@@ -20,7 +20,7 @@ export type NestedQuery<R extends string = string> =
     };
 
 export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
-  unkeyPermissionValidation,
+  z.string(),
   z.object({
     and: z.array(z.lazy(() => permissionQuerySchema)),
   }),
