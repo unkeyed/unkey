@@ -209,7 +209,7 @@ export async function GET(req: NextRequest): Promise<ImageResponse> {
                   borderRadius: "100%",
                   marginRight: "10px",
                 }}
-                src={`${image}`}
+                src={`${decodeURIComponent(image || "")}`}
               />
             ) : null}
             <p>{author ? `by ${author}` : null}</p>
