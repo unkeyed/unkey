@@ -106,7 +106,6 @@ export default function Templates() {
           Jumpstart your api development with our pre-built solutions.
         </p>
       </PageIntro>
-
       <Container className="mt-24 text-white">
         <div className="flex flex-col lg:space-x-8 lg:flex-row mb-24">
           <div className="w-full lg:w-[232px]">
