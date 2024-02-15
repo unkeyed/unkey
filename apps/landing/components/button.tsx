@@ -46,10 +46,10 @@ export const SecondaryButton: React.FC<Props> = ({ className, IconLeft, label, I
 
 export const RainbowDarkButton: React.FC<Props> = ({ className, label, IconRight }) => {
   return (
-    <div className={cn("p-[.75px] hero-hiring-gradient rounded-full w-fit mx-auto", className)}>
+    <div className={cn("p-[.75px] hero-hiring-gradient rounded-full w-fit mx-auto ", className)}>
       <button
         type="button"
-        className="items-center gap-4 px-3 py-1.5 xs:flex bg-black text-white  rounded-full"
+        className="items-center gap-4 px-3 py-1.5 bg-black text-white rounded-full flex flex-row"
       >
         <SparkleIcon className="text-white" />
         {label}

@@ -15,11 +15,11 @@ export function PageIntro({
   centered?: boolean;
 }) {
   return (
-    <Container className={clsx("mt-24 sm:mt-32 lg:mt-40", centered && "text-center")}>
+    <Container className={clsx("max-xs:mt-10", centered && "text-center")}>
       <RainbowDarkButton
         label="Submit Your Template"
         IconRight={ArrowRight}
-        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01]"
+        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0 "
       />
       <h1>
         <span className="block font-sans text-base font-semibold font-display text-white">
@@ -28,14 +28,14 @@ export function PageIntro({
         <span className="sr-only"> - </span>
         <span
           className={clsx(
-            "mt-6 block max-w-5xl font-display text-5xl font-medium tracking-tight blog-heading-gradient [text-wrap:balance] sm:text-6xl",
+            "mt-6 block max-w-5xl font-display text-5xl font-medium tracking-tight blog-heading-gradient [text-wrap:balance] max-xs:text-4xl xs:mt-2 sm:text-6xl",
             centered && "mx-auto",
           )}
         >
           {title}
         </span>
       </h1>
-      <div className={clsx("mt-6 max-w-3xl text-xl text-white/60", centered && "mx-auto")}>
+      <div className={clsx("max-w-3xl text-xl text-white/60", centered && "mx-auto")}>
         {children}
       </div>
     </Container>
