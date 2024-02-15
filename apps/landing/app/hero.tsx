@@ -75,7 +75,7 @@ export const Hero: React.FC = () => {
       </div>
 
       <div className="rounded-[38px] bg-white/5 border border-gray-800 z-10 mt-16 xl:mt-0 ">
-        <div className="m-[10px] rounded-[28px] border border-gray-800">
+        <div className="m-[10px] rounded-[28px] flex items-center justify-center">
           <YoutubeEmbed />
         </div>
         <SubHeroMainboardStuff className="absolute inset-x-0 top-[70%]  -left-[50%]" />
