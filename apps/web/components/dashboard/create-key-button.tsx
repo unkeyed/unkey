@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "../ui/button";
 
 export const CreateKeyButton = (props: { keyAuthId: string }) => {
-  const href = `/app/apis/${props.keyAuthId}/new`;
+  const href = `/app/keys/${props.keyAuthId}/new`;
   const path = usePathname();
   const setUrl = () => {
     window.location.href = href;

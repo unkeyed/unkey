@@ -114,13 +114,11 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="domain.create" {...field} />
+                    <Input placeholder="domain.manager" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A unique key to identify your role. We suggest using <code>.</code> (dot)
-                    separated names, to structure your hierarchy. For example we use{" "}
-                    <code>api.create_key</code> or <code>api.update_api</code> in our own
-                    permissions.
+                    A unique name for your role. You will use this when managing roles through the
+                    API. These are not customer facing.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -140,7 +138,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                   <FormControl>
                     <Textarea
                       rows={form.getValues().description?.split("\n").length ?? 3}
-                      placeholder="Create a new domain in this account."
+                      placeholder="Manage domains and DNS records "
                       {...field}
                     />
                   </FormControl>
@@ -148,7 +146,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                 </FormItem>
               )}
             />
-            {permissions ? (
+            {permissions && permissions.length > 0 ? (
               <FormField
                 control={form.control}
                 name="permissionOptions"
