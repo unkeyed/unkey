@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 
+import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
@@ -78,7 +79,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
               disabled={deleteKey.isLoading}
               onClick={() => deleteKey.mutate({ keyIds: [apiKey.id] })}
             >
-              Delete Key
+              {deleteKey.isLoading ? <Loading /> : "Delete Key"}
             </Button>
           </DialogFooter>
         </DialogContent>

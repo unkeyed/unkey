@@ -19,11 +19,6 @@ export default async function RolesPage() {
     with: {
       permissions: {
         with: {
-          keys: {
-            columns: {
-              keyId: true,
-            },
-          },
           roles: {
             with: {
               role: true,
@@ -76,11 +71,6 @@ export default async function RolesPage() {
                   {Intl.NumberFormat(undefined, { notation: "compact" }).format(p.roles.length)}{" "}
                   Role
                   {p.roles.length !== 1 ? "s" : ""}
-                </Badge>
-
-                <Badge variant="secondary">
-                  {Intl.NumberFormat(undefined, { notation: "compact" }).format(p.keys.length)} Key
-                  {p.keys.length !== 1 ? "s" : ""}
                 </Badge>
               </div>
 
