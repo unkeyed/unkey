@@ -1,6 +1,6 @@
-import { authors } from "@/content/blog/authors";
-import { getPost } from "@/lib/mdx-helper";
 import { ImageResponse } from "@vercel/og";
+import { NextRequest } from "next/server";
+export const runtime = "edge";
 
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
@@ -9,23 +9,16 @@ const truncate = (str: string | null, length: number) => {
   return `${str.slice(0, length - 3)}...`;
 };
 
-export const contentType = "image/png";
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
-export default async function Image({ params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest): Promise<ImageResponse> {
+  const { searchParams } = new URL(req.url);
+
+  const title = searchParams.get("title") || "Blog";
+  const author = searchParams.get("author");
+  const image = searchParams.get("image");
   try {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
-    const { frontmatter } = await getPost(params.slug);
-    if (!frontmatter) {
-      return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
-        width: 1280,
-        height: 720,
-      });
-    }
-    const author = authors[frontmatter.author];
     return new ImageResponse(
       <div
         style={{
@@ -180,7 +173,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
             textAlign: "center",
           }}
         >
-          {truncate(frontmatter.title, 55)}
+          {truncate(title, 55)}
         </h1>
 
         <div
@@ -204,9 +197,9 @@ export default async function Image({ params }: { params: { slug: string } }) {
               alignItems: "center",
             }}
           >
-            {author.image ? (
+            {author ? (
               <img
-                alt={author.name}
+                alt={author}
                 width={64}
                 height={64}
                 style={{
@@ -216,10 +209,10 @@ export default async function Image({ params }: { params: { slug: string } }) {
                   borderRadius: "100%",
                   marginRight: "10px",
                 }}
-                src={`${baseUrl}${author.image.src}`}
+                src={`${image}`}
               />
             ) : null}
-            <p>{author.name ? `by ${author.name}` : null}</p>
+            <p>{author ? `by ${author}` : null}</p>
           </div>
           <p style={{ marginLeft: "4px" }}>Unkey.dev</p>
         </div>
@@ -236,7 +229,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
       },
     );
   } catch (e) {
-    console.error(`Error generating image using fallback for blog route ${params.slug}`, e);
+    console.error(`Error generating image using fallback for blog  ${title}`, e);
     return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
       width: 1280,
       height: 720,
