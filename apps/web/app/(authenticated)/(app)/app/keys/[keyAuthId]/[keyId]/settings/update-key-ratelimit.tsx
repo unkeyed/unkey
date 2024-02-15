@@ -225,11 +225,11 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
               )}
             />
             <Button
-              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              disabled={updateRatelimit.isLoading || !form.formState.isValid}
               className="mt-4 "
               type="submit"
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              {updateRatelimit.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

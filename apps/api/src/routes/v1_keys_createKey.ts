@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { Permission, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -267,11 +267,13 @@ export const registerV1KeysCreateKey = (app: App) =>
         enabled: req.enabled,
       });
       if (req.roles && req.roles.length > 0) {
-        const permissions = req.roles.map((name) => ({
+        const permissions: Permission[] = req.roles.map((name) => ({
           id: newId("permission"),
           name,
-          key: name,
+          description: null,
           workspaceId: authorizedWorkspaceId,
+          createdAt: new Date(),
+          updatedAt: null,
         }));
 
         await tx.insert(schema.permissions).values(permissions);

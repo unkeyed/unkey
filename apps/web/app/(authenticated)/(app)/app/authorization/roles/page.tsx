@@ -17,6 +17,7 @@ export default async function RolesPage() {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
+      permissions: true,
       roles: {
         with: {
           keys: {
@@ -46,7 +47,10 @@ export default async function RolesPage() {
             {Intl.NumberFormat().format(workspace.roles.length)} /{" "}
             {Intl.NumberFormat().format(Number.POSITIVE_INFINITY)} used{" "}
           </Badge>
-          <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} />
+          <CreateNewRole
+            trigger={<Button variant="primary">Create New Role</Button>}
+            permissions={workspace.permissions}
+          />
         </div>
       </div>
 
@@ -57,7 +61,10 @@ export default async function RolesPage() {
           </EmptyPlaceholder.Icon>
           <EmptyPlaceholder.Title>No roles found</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>Create your first role</EmptyPlaceholder.Description>
-          <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} />
+          <CreateNewRole
+            trigger={<Button variant="primary">Create New Role</Button>}
+            permissions={workspace.permissions}
+          />
         </EmptyPlaceholder>
       ) : (
         <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">

@@ -237,11 +237,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               )}
             />
             <Button
-              disabled={form.formState.isSubmitting || !form.formState.isValid}
+              disabled={updateRemaining.isLoading || !form.formState.isValid}
               className="mt-4 "
               type="submit"
             >
-              {form.formState.isSubmitting ? <Loading /> : "Save"}
+              {updateRemaining.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </Card>

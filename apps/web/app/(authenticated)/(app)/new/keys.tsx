@@ -41,9 +41,10 @@ type Steps =
 
 type Props = {
   apiId: string;
+  keyAuthId: string;
 };
 
-export const Keys: React.FC<Props> = ({ apiId }) => {
+export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   const [step, setStep] = useState<Steps>({ step: "CREATE_ROOT_KEY" });
   const rootKey = trpc.key.createInternalRootKey.useMutation({
     onSuccess(res) {
@@ -187,7 +188,7 @@ export const Keys: React.FC<Props> = ({ apiId }) => {
                 size="sm"
                 variant="link"
                 disabled={key.isLoading}
-                onClick={() => key.mutate({ apiId })}
+                onClick={() => key.mutate({ keyAuthId })}
               >
                 {key.isLoading ? <Loading /> : "Or click here to create a key"}
               </Button>
