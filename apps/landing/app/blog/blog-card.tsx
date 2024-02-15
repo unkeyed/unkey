@@ -1,5 +1,3 @@
-"use client";
-
 import { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";

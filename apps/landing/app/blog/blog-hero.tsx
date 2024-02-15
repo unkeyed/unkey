@@ -1,4 +1,3 @@
-"use client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";

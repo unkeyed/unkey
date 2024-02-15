@@ -1,4 +1,3 @@
-"use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-tabs";
 import { cn } from "@/lib/utils";
 import { Highlight } from "prism-react-renderer";
