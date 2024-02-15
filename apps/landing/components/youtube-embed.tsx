@@ -14,7 +14,7 @@ export function YoutubeEmbed() {
         onClick={() => setToggler(!toggler)}
       >
         <BorderBeam size={400} colorFrom="#72FFF9" />
-        <img src="/images/hero3.png" alt="Youtube" />
+        <img src="/images/hero.png" alt="Youtube" />
         <div className="absolute top-[calc(50%-80px/2)] left-[calc(50%-112px/2)] bg-[#ffffff/30] h-[80px] w-[112px] bg-yt-button-gradient hover:bg-[#111111] transition-all rounded-[20px] flex items-center justify-center">
           <BorderBeam />
           <svg
