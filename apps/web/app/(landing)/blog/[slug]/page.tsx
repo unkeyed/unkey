@@ -35,7 +35,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ogUrl.searchParams.set("image", new URL(author.image.src, baseUrl).toString());
   }
 
-  console.log(ogUrl.toString());
 
   return {
     title: `${frontmatter.title} | Unkey`,
