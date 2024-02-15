@@ -1,6 +1,7 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
+import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +30,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
+import { Permission } from "@unkey/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -36,6 +38,7 @@ import { z } from "zod";
 
 type Props = {
   trigger: React.ReactNode;
+  permissions?: Permission[];
 };
 
 const formSchema = z.object({
@@ -48,9 +51,17 @@ const formSchema = z.object({
     }),
 
   description: z.string().optional(),
+  permissionOptions: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+      }),
+    )
+    .optional(),
 });
 
-export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
+export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -60,15 +71,15 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
   });
 
   const createRole = trpc.rbac.createRole.useMutation({
-    onSuccess() {
+    onSuccess({ roleId }) {
       toast.success("Role created");
 
-      router.refresh();
       form.reset({
         name: "",
         description: "",
       });
       setOpen(false);
+      router.push(`/app/authorization/roles/${roleId}`);
     },
     onError(err) {
       console.error(err);
@@ -77,7 +88,12 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    createRole.mutate(values);
+    console.log({ values });
+    createRole.mutate({
+      name: values.name,
+      description: values.description,
+      permissionIds: values.permissionOptions?.map((o) => o.value),
+    });
   }
 
   return (
@@ -98,13 +114,11 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="domain.create" {...field} />
+                    <Input placeholder="domain.manager" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A unique key to identify your role. We suggest using <code>.</code> (dot)
-                    separated names, to structure your hierarchy. For example we use{" "}
-                    <code>api.create_key</code> or <code>api.update_api</code> in our own
-                    permissions.
+                    A unique name for your role. You will use this when managing roles through the
+                    API. These are not customer facing.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -124,7 +138,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
                   <FormControl>
                     <Textarea
                       rows={form.getValues().description?.split("\n").length ?? 3}
-                      placeholder="Create a new domain in this account."
+                      placeholder="Manage domains and DNS records "
                       {...field}
                     />
                   </FormControl>
@@ -132,6 +146,33 @@ export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
                 </FormItem>
               )}
             />
+            {permissions && permissions.length > 0 ? (
+              <FormField
+                control={form.control}
+                name="permissionOptions"
+                render={({ field }) => (
+                  <FormItem>
+                    {" "}
+                    <FormLabel>
+                      Add existing permissions{" "}
+                      <Badge variant="secondary" size="sm">
+                        Optional
+                      </Badge>
+                    </FormLabel>
+                    <MultiSelect
+                      options={permissions.map((p) => ({ label: p.name, value: p.id }))}
+                      selected={field.value ?? []}
+                      setSelected={(cb) => {
+                        if (typeof cb === "function") {
+                          return form.setValue("permissionOptions", cb(field.value ?? []));
+                        }
+                      }}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
             <DialogFooter>
               <Button type="submit">
                 {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}

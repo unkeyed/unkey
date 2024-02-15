@@ -10,6 +10,7 @@ import React from "react";
 import { EmptyPlaceholder } from "./dashboard/empty-placeholder";
 
 import { toast } from "@/components/ui/toaster";
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import { Loading } from "./dashboard/loading";
 type Props = {
   title: string;
@@ -21,6 +22,10 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
   const router = useRouter();
   const optIn = trpc.workspace.optIntoBeta.useMutation({
     onSuccess() {
+      PostHogEvent({
+        name: "self-serve-opt-in",
+        properties: { feature },
+      });
       toast.success("Successfully opted in");
       router.refresh();
     },
