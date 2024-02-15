@@ -9,7 +9,7 @@ import {
 } from "./v1_keys_updateRemaining";
 
 test("when the key does not exist", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const keyId = newId("key");

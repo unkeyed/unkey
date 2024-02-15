@@ -10,7 +10,7 @@ import {
 } from "./v1_apis_deleteApi";
 
 test("deletes the api", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisDeleteApi);
 
   const apiId = newId("api");

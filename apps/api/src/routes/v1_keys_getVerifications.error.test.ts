@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { registerV1KeysGetVerifications } from "./v1_keys_getVerifications";
 
 test("when the key does not exist", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const keyId = newId("api");
@@ -31,7 +31,7 @@ test("when the key does not exist", async () => {
 });
 
 test("without keyId or ownerId", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const res = await h.get<ErrorResponse>({

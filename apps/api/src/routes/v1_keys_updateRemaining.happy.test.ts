@@ -12,7 +12,7 @@ import {
 } from "./v1_keys_updateRemaining";
 
 test("increment", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -46,7 +46,7 @@ test("increment", async () => {
 });
 
 test("decrement", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -80,7 +80,7 @@ test("decrement", async () => {
 });
 
 test("set", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -114,7 +114,7 @@ test("set", async () => {
 });
 
 test("invalid operation", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {

@@ -44,7 +44,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1ApisDeleteApi);
 
     const apiId = newId("api");

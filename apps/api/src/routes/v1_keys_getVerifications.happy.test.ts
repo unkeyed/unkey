@@ -10,7 +10,7 @@ import {
 } from "./v1_keys_getVerifications";
 
 test("returns an empty verifications array", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const keyId = newId("key");
@@ -38,7 +38,7 @@ test("returns an empty verifications array", async () => {
 });
 
 test("ownerId works too", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const ownerId = crypto.randomUUID();

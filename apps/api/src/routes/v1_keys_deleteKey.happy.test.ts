@@ -13,7 +13,7 @@ import {
 } from "./v1_keys_deleteKey";
 
 test("soft deletes key", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysDeleteKey);
 
   const keyId = newId("key");

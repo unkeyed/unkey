@@ -7,7 +7,7 @@ import { expect, test } from "vitest";
 import { V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysGetKey);
 
   const root = await h.createRootKey(["api.*.read_key"]);

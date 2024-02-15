@@ -8,7 +8,7 @@ import { KeyV1 } from "@unkey/keys";
 import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 test("get api", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
@@ -42,7 +42,7 @@ test("get api", async () => {
 });
 
 test("filter by ownerId", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const ownerId = crypto.randomUUID();
@@ -78,7 +78,7 @@ test("filter by ownerId", async () => {
 });
 
 test("with limit", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
@@ -111,7 +111,7 @@ test("with limit", async () => {
 }, 10_000);
 
 test("with cursor", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const keyIds = new Array(10).fill(0).map(() => newId("key"));

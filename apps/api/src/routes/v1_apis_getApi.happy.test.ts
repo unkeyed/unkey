@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { type V1ApisGetApiResponse, registerV1ApisGetApi } from "./v1_apis_getApi";
 
 test("return the api", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisGetApi);
 
   const root = await h.createRootKey(["api.*.read_api"]);
@@ -27,7 +27,7 @@ test("return the api", async () => {
 });
 
 test("with ip whitelist", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisGetApi);
 
   const api = {

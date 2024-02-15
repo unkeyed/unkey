@@ -14,7 +14,7 @@ import {
 } from "./legacy_keys_verifyKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysVerifyKey);
 
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -44,7 +44,7 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyKeysVerifyKey);
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -75,7 +75,7 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(registerLegacyKeysVerifyKey);
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -123,7 +123,7 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(registerLegacyKeysVerifyKey);
 
       const keyAuthId = newId("keyAuth");
@@ -173,7 +173,7 @@ describe("with ip whitelist", () => {
   });
   describe("with invalid ip", () => {
     test("returns invalid", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(registerLegacyKeysVerifyKey);
 
       const keyAuthid = newId("keyAuth");

@@ -41,7 +41,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyKeysDelete);
 
     const keyId = newId("key");

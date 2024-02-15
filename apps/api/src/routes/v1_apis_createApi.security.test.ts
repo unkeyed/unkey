@@ -28,7 +28,7 @@ describe("correct roles", () => {
     { name: "wildcard", roles: ["api.*.create_api"] },
     { name: "wildcard and more", roles: ["api.*.create_api", randomUUID()] },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1ApisCreateApi);
 
     const root = await h.createRootKey(roles);

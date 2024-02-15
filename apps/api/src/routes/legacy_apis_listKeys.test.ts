@@ -12,7 +12,7 @@ import {
 
 describe("simple", () => {
   test("returns 200", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
@@ -44,7 +44,7 @@ describe("simple", () => {
 
 describe("filter by ownerId", () => {
   test("returns all keys owned ", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyApisListKeys);
 
     const ownerId = crypto.randomUUID();
@@ -77,7 +77,7 @@ describe("filter by ownerId", () => {
 
 describe("with limit", () => {
   test("returns only a few keys", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
@@ -107,7 +107,7 @@ describe("with limit", () => {
 
 describe("with offset", () => {
   test("returns the correct keys", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyApisListKeys);
 
     const keyIds = new Array(10).fill(0).map(() => newId("key"));

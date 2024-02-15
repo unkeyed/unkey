@@ -47,7 +47,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.read_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1KeysGetVerifications);
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -74,7 +74,7 @@ describe("correct roles", () => {
 });
 
 test("cannot read keys from a different workspace", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const workspaceId = newId("workspace");

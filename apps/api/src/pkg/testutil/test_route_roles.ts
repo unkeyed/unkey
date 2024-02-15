@@ -34,7 +34,7 @@ export function runSharedRoleTests<TReq>(config: {
 }) {
   describe("shared role tests", () => {
     test("without a key", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(config.registerHandler);
 
       const req = await config.prepareRequest(h);
@@ -50,7 +50,7 @@ export function runSharedRoleTests<TReq>(config: {
     });
 
     test("with wrong key", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(config.registerHandler);
 
       const req = await config.prepareRequest(h);
@@ -89,7 +89,7 @@ export function runSharedRoleTests<TReq>(config: {
           ],
         },
       ])("$name", async ({ roles }) => {
-        const h = await Harness.init();
+        await using h = await Harness.init();
         h.useRoutes(config.registerHandler);
 
         const { key: rootKey } = await h.createRootKey(roles);

@@ -12,7 +12,7 @@ import {
 
 describe("simple", () => {
   test("creates key", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyKeysCreate);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({
@@ -39,7 +39,7 @@ describe("simple", () => {
 
 describe("wrong ratelimit type", () => {
   test("reject the request", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyKeysCreate);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, ErrorResponse>({
@@ -65,7 +65,7 @@ describe("wrong ratelimit type", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerLegacyKeysCreate);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({

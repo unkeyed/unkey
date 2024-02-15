@@ -11,7 +11,7 @@ import {
 } from "./legacy_apis_createApi";
 
 test("creates the api", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
 
   h.useRoutes(registerLegacyApisCreateApi);
 
@@ -38,7 +38,7 @@ test("creates the api", async () => {
 });
 
 test("creates rejects invalid root key", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyApisCreateApi);
   const res = await h.post<LegacyApisCreateApiRequest, ErrorResponse>({
     url: "/v1/apis",

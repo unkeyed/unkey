@@ -5,7 +5,7 @@ import { Harness } from "@/pkg/testutil/harness";
 import { newId } from "@unkey/id";
 import { registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 test("key not found", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysDelete);
 
   const keyId = newId("key");

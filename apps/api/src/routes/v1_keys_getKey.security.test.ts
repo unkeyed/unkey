@@ -58,7 +58,7 @@ describe("correct roles", () => {
       ],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1KeysGetKey);
 
     const keyId = newId("key");

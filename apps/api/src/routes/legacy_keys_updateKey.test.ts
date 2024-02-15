@@ -11,7 +11,7 @@ import {
 } from "./legacy_keys_updateKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -42,7 +42,7 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -94,7 +94,7 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -141,7 +141,7 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -180,7 +180,7 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {

@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("api not found", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyApisDeleteApi);
 
   const apiId = newId("api");

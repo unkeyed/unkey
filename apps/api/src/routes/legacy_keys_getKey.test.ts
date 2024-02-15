@@ -8,7 +8,7 @@ import { KeyV1 } from "@unkey/keys";
 import { LegacyKeysGetKeyResponse, registerLegacyKeysGet } from "./legacy_keys_getKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysGet);
 
   const key = {

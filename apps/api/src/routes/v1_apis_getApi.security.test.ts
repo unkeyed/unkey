@@ -34,7 +34,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.read_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1ApisGetApi);
 
     const apiId = newId("api");

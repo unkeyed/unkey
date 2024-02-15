@@ -28,7 +28,7 @@ export type Resources = {
   database: Database;
 };
 
-export class Harness implements Disposable {
+export class Harness implements AsyncDisposable {
   public readonly db: Database;
   public readonly resources: Resources;
   public readonly app: App;
@@ -49,8 +49,7 @@ export class Harness implements Disposable {
     return new Harness(resources);
   }
 
-  async [Symbol.dispose]() {
-    console.log("Disposing harness...");
+  async [Symbol.asyncDispose]() {
     const tables = [
       schema.keysPermissions,
       schema.rolesPermissions,
@@ -72,7 +71,8 @@ export class Harness implements Disposable {
             eq(table.workspaceId, this.resources.userWorkspace.id),
             eq(table.workspaceId, this.resources.unkeyWorkspace.id),
           ),
-        );
+        )
+        .execute();
     }
     // this one is special, where the id is not prefixed
     await this.db
@@ -82,7 +82,8 @@ export class Harness implements Disposable {
           eq(schema.workspaces.id, this.resources.userWorkspace.id),
           eq(schema.workspaces.id, this.resources.unkeyWorkspace.id),
         ),
-      );
+      )
+      .execute();
   }
 
   public useRoutes(...registerFunctions: ((app: App) => any)[]): void {
@@ -169,8 +170,10 @@ export class Harness implements Disposable {
       createdAt: new Date(),
     });
 
+    const addedPermissions = new Set<string>();
     for (const role of opts.roles) {
       const roleId = newId("role");
+
       await this.db.insert(schema.roles).values({
         id: roleId,
         name: role.name,
@@ -184,6 +187,11 @@ export class Harness implements Disposable {
       });
 
       for (const permissionName of role.permissions ?? []) {
+        if (addedPermissions.has(permissionName)) {
+          continue;
+        }
+        addedPermissions.add(permissionName);
+
         const permissionId = newId("permission");
         await this.db.insert(schema.permissions).values({
           id: permissionId,
@@ -198,6 +206,7 @@ export class Harness implements Disposable {
         });
       }
     }
+
     return {
       keyId,
       key,

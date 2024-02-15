@@ -8,7 +8,7 @@ import { Harness } from "@/pkg/testutil/harness";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 
 test("soft deletes key", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyKeysDelete);
 
   const keyId = newId("key");

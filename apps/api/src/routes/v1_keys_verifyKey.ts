@@ -29,11 +29,16 @@ The key will be verified against the api's configuration. If the key does not be
               }),
               authorization: z
                 .object({
-                  permissions: permissionQuerySchema.openapi({
-                    description: "A query for which permissions you require",
-                    example: {
-                      or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
-                    },
+                  permissions: z.object({
+                    version: z.number().optional().default(1).openapi({
+                      description: "The version of this query, for backwards compatibility",
+                    }),
+                    query: permissionQuerySchema.openapi({
+                      description: "A query for which permissions you require",
+                      example: {
+                        or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
+                      },
+                    }),
                   }),
                 })
                 .optional()
@@ -163,12 +168,12 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, key, authorization } = c.req.valid("json");
-    console.log("VALID request");
 
-    const permissionQuery = authorization
-      ? { version: 1, query: authorization.permissions }
-      : undefined;
-    const { value, error } = await keyService.verifyKey(c, { key, apiId, permissionQuery });
+    const { value, error } = await keyService.verifyKey(c, {
+      key,
+      apiId,
+      permissionQuery: authorization?.permissions,
+    });
     if (error) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",

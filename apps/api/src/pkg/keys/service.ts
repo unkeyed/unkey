@@ -153,6 +153,19 @@ export class KeyService {
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          roles: {
+            with: {
+              role: {
+                with: {
+                  permissions: {
+                    with: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           permissions: {
             with: {
               permission: true,
@@ -176,10 +189,19 @@ export class KeyService {
       if (!dbRes.keyAuth.api) {
         this.logger.error("database did not return api for key", dbRes);
       }
+
+      /**
+       * Createa a unique set of all permissions, whether they're attached directly or connected
+       * through a role.
+       */
+      const permissions = new Set<string>([
+        ...dbRes.permissions.map((p) => p.permission.name),
+        ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+      ]);
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission.name),
+        permissions: Array.from(permissions.values()),
       };
     });
 

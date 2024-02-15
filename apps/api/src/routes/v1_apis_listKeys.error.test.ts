@@ -8,7 +8,7 @@ import { newId } from "@unkey/id";
 import { registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 test("when the api does not exist", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const apiId = newId("api");
@@ -36,7 +36,7 @@ test("when the api does not exist", async () => {
 });
 
 test("when the api has no keyAuth", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const apiId = newId("api");

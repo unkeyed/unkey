@@ -7,7 +7,7 @@ import { Harness } from "@/pkg/testutil/harness";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("soft deletes api", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerLegacyApisDeleteApi);
 
   const apiId = newId("key");

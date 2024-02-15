@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 test("api not found", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1ApisListKeys);
 
   const apiId = newId("api");

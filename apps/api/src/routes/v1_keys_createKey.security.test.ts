@@ -49,7 +49,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.create_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1KeysCreateKey);
 
     const keyAuthId = newId("keyAuth");

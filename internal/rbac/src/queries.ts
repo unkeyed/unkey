@@ -29,6 +29,10 @@ export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
   }),
 ]);
 
+export const v1Query = z.object({
+  version: z.number().refine((n) => n === 1),
+  query: permissionQuerySchema,
+});
 function merge<R extends string>(rule: Rule, ...args: NestedQuery<R>[]): NestedQuery<R> {
   return args.reduce(
     (acc: NestedQuery<R>, arg) => {

@@ -10,7 +10,7 @@ import {
 } from "./v1_keys_createKey";
 
 test("creates key", async () => {
-  const h = await Harness.init();
+  await using h = await Harness.init();
   h.useRoutes(registerV1KeysCreateKey);
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
@@ -40,7 +40,7 @@ test("creates key", async () => {
 describe("with enabled flag", () => {
   describe("not set", () => {
     test("should still create an enabled key", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(registerV1KeysCreateKey);
 
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
@@ -69,7 +69,7 @@ describe("with enabled flag", () => {
   });
   describe("enabled: false", () => {
     test("should create a disabled key", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(registerV1KeysCreateKey);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -98,7 +98,7 @@ describe("with enabled flag", () => {
   });
   describe("enabled: true", () => {
     test("should create an enabled key", async () => {
-      const h = await Harness.init();
+      await using h = await Harness.init();
       h.useRoutes(registerV1KeysCreateKey);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -129,7 +129,7 @@ describe("with enabled flag", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    const h = await Harness.init();
+    await using h = await Harness.init();
     h.useRoutes(registerV1KeysCreateKey);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
