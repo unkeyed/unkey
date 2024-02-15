@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 
+.bg-yt-button-gradient {
+  background: linear-gradient(243deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);
+  backdrop-filter: blur(5px);
+}
 
 .section-title-heading-gradient {
   background: linear-gradient(
