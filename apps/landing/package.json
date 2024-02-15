@@ -12,6 +12,7 @@
     "@chronark/zod-bird": "^0.3.3",
     "@hookform/resolvers": "^3.3.4",
     "@planetscale/database": "^1.11.0",
+    "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-avatar": "^1.0.3",
     "@radix-ui/react-checkbox": "^1.0.4",
     "@radix-ui/react-label": "^2.0.2",
@@ -47,7 +48,7 @@
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.8.9",
-    "zod": "link:@hookform/resolvers/zod"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",

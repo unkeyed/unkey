@@ -2,8 +2,8 @@ import { t } from "../trpc";
 import { apiRouter } from "./api";
 import { keyRouter } from "./key";
 import { keySettingsRouter } from "./keySettings";
-import { permissionRouter } from "./permission";
 import { plainRouter } from "./plain";
+import { rbacRouter } from "./rbac";
 import { vercelRouter } from "./vercel";
 import { workspaceRouter } from "./workspace";
 export const router = t.router({
@@ -12,7 +12,7 @@ export const router = t.router({
   workspace: workspaceRouter,
   vercel: vercelRouter,
   plain: plainRouter,
-  permission: permissionRouter,
+  rbac: rbacRouter,
   keySettings: keySettingsRouter,
 });
 

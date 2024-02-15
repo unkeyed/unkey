@@ -19,10 +19,10 @@ export function PageIntro({
       <RainbowDarkButton
         label="Submit Your Template"
         IconRight={ArrowRight}
-        className="mx-auto mb-12"
+        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01]"
       />
       <h1>
-        <span className="block font-sans text-base font-semibold font-display text-gray-950">
+        <span className="block font-sans text-base font-semibold font-display text-white">
           {eyebrow}
         </span>
         <span className="sr-only"> - </span>

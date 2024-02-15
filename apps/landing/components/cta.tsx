@@ -6,8 +6,8 @@ import { PrimaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="relative pb-40 overflow-hidden">
-      <Highlights className="absolute inset-x-0 mx-auto -bottom-40" />
+    <div className="relative pb-40 overflow-hidden pt-14">
+      <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8" />
       <SectionTitle
         align="center"
         title={
