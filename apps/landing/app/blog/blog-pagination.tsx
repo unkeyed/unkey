@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Pagination,
   PaginationContent,
@@ -6,16 +7,17 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "../ui/pagination";
+} from "../../components/ui/pagination";
 
 export function BlogPagination({
   currentPage,
   numPages,
-  updatePageNumber,
-}: { currentPage: number; numPages: number; updatePageNumber: (pageNumber: number) => void }) {
+  buildPath,
+}: { currentPage: number; numPages: number; buildPath: (page: number) => string }) {
   if (numPages === 1) {
     return null;
   }
+
   function GetPageButtons() {
     const content = [];
     for (let count = 1; count <= numPages; count++) {
@@ -25,12 +27,10 @@ export function BlogPagination({
 
       if (!isEllipses) {
         content.push(
-          <PaginationLink
-            isActive={currentPage === count ? true : false}
-            onClick={() => updatePageNumber(count)}
-          >
-            {count}
-          </PaginationLink>,
+          <Link prefetch href={buildPath(count)}>
+            <PaginationLink isActive={currentPage === count ? true : false}>{count}</PaginationLink>
+            ,
+          </Link>,
         );
       } else {
         content.push(<PaginationEllipsis />);
@@ -43,11 +43,15 @@ export function BlogPagination({
     <Pagination>
       <PaginationContent>
         <PaginationItem>
-          <PaginationPrevious onClick={() => updatePageNumber(currentPage - 1)} />
+          <Link prefetch href={buildPath(currentPage - 1)}>
+            <PaginationPrevious />
+          </Link>
         </PaginationItem>
         <GetPageButtons />
         <PaginationItem>
-          <PaginationNext onClick={() => updatePageNumber(currentPage + 1)} />
+          <Link prefetch href={buildPath(currentPage + 1)}>
+            <PaginationNext />
+          </Link>
         </PaginationItem>
       </PaginationContent>
     </Pagination>

@@ -1,9 +1,9 @@
 "use client";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
-import { BlogCodeBlock } from "./blog/blog-code-block";
-import { BlogImage } from "./blog/blog-image";
-import { BlogList, BlogListItem, BlogListNumbered } from "./blog/blog-list";
-import { BlogQuote } from "./blog/blog-quote";
+import { BlogCodeBlock } from "../app/blog/blog-code-block";
+import { BlogImage } from "../app/blog/blog-image";
+import { BlogList, BlogListItem, BlogListNumbered } from "../app/blog/blog-list";
+import { BlogQuote } from "../app/blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
 
 type MdxContentProps = {

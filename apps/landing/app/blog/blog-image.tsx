@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Frame } from "../frame";
+import { Frame } from "../../components/frame";
 
 export function BlogImage({
   size,
