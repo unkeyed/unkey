@@ -37,7 +37,7 @@ export const Tree: React.FC<Props> = ({ nestedPermissions, role }) => {
     <Card>
       <CardHeader className="flex-row items-start justify-between">
         <div className="flex flex-col space-y-1.5 ">
-          <CardTitle>Permissions</CardTitle>
+          <CardTitle>Permissions for role</CardTitle>
           <CardDescription>Add or remove permissions from this role</CardDescription>
         </div>
         <div className="flex items-center gap-2">
