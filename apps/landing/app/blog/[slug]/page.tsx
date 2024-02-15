@@ -1,5 +1,3 @@
-import { BlogAuthors } from "@/components/blog/blog-authors";
-import { SuggestedBlogs } from "@/components/blog/suggested-blogs";
 import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
 import { MdxContent } from "@/components/mdx-content";
@@ -10,6 +8,8 @@ import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-help
 import { format } from "date-fns";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { BlogAuthors } from "../blog-authors";
+import { SuggestedBlogs } from "../suggested-blogs";
 
 type Props = {
   params: { slug: string };
