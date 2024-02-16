@@ -3,6 +3,7 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 import { generateErrorMessage } from "zod-error";
+import { logger } from "../global";
 
 const ErrorCode = z.enum([
   "BAD_REQUEST",
@@ -146,6 +147,13 @@ export function handleZodError(
 
 export function handleError(err: Error, c: Context): Response {
   if (err instanceof UnkeyApiError) {
+    if (err.status >= 500) {
+      logger.error(err.message, {
+        name: err.name,
+        code: err.code,
+        status: err.status,
+      });
+    }
     return c.json<z.infer<typeof ErrorSchema>>(
       {
         error: {
@@ -158,8 +166,9 @@ export function handleError(err: Error, c: Context): Response {
       { status: err.status },
     );
   }
-  console.error(err);
-
+  logger.error(err.message, {
+    name: err.name,
+  });
   return c.json<z.infer<typeof ErrorSchema>>(
     {
       error: {
