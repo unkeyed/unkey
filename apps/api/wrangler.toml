@@ -2,6 +2,9 @@ name = "api"
 main = "src/worker.ts"
 compatibility_date = "2023-11-06"
 
+compatibility_flags = [ "nodejs_compat" ]
+
+
 ## these are in local dev
 [durable_objects]
 bindings = [

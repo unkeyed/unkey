@@ -18,6 +18,8 @@ export const zEnv = z.object({
   LOGS: z.custom<Queue<any>>((ns) => typeof ns === "object"),
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object"),
   METRICS: z.custom<Queue<Metric[]>>((ns) => typeof ns === "object"),
+
+  BASELIME_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof zEnv>;
