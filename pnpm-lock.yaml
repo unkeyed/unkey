@@ -66,8 +66,8 @@ importers:
         specifier: ^0.9.0
         version: 0.9.0(hono@3.11.7)(zod@3.22.4)
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -94,7 +94,7 @@ importers:
         version: link:../../internal/zod-queue
       drizzle-orm:
         specifier: ^0.29.2
-        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
+        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
       hono:
         specifier: ^3.11.7
         version: 3.11.7
@@ -138,8 +138,8 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4(react-hook-form@7.49.3)
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@radix-ui/react-accordion':
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@18.2.18)(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
@@ -184,7 +184,7 @@ importers:
         version: 3.2.0
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
       framer-motion:
         specifier: 10.16.2
         version: 10.16.2(react-dom@18.2.0)(react@18.2.0)
@@ -320,8 +320,8 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4(react-hook-form@7.49.3)
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@radix-ui/react-accordion':
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@18.2.18)(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
@@ -438,7 +438,7 @@ importers:
         version: 3.2.0
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
       framer-motion:
         specifier: 10.16.2
         version: 10.16.2(react-dom@18.2.0)(react@18.2.0)
@@ -576,8 +576,8 @@ importers:
         specifier: ^4.29.3
         version: 4.29.3(next@14.0.3)(react-dom@18.2.0)(react@18.2.0)
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@trigger.dev/nextjs':
         specifier: ^2.3.17
         version: 2.3.17(@trigger.dev/sdk@2.3.16)(next@14.0.3)
@@ -598,7 +598,7 @@ importers:
         version: link:../../internal/resend
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
       next:
         specifier: 14.0.3
         version: 14.0.3(@babel/core@7.23.9)(react-dom@18.2.0)(react@18.2.0)
@@ -653,8 +653,8 @@ importers:
   internal/db:
     dependencies:
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@unkey/billing':
         specifier: workspace:^
         version: link:../billing
@@ -676,7 +676,7 @@ importers:
         version: 0.20.13
       drizzle-orm:
         specifier: ^0.29.2
-        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
       typescript:
         specifier: ^5.2.2
         version: 5.2.2
@@ -969,8 +969,8 @@ importers:
   tools/bootstrap:
     dependencies:
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -979,7 +979,7 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.29.2
-        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
       mysql2:
         specifier: ^3.6.2
         version: 3.6.2
@@ -1012,8 +1012,8 @@ importers:
   tools/migrate:
     dependencies:
       '@planetscale/database':
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -1025,7 +1025,7 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.29.2
-        version: 0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
+        version: 0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0)
       mysql2:
         specifier: ^3.6.2
         version: 3.6.2
@@ -6084,8 +6084,8 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  /@planetscale/database@1.11.0:
-    resolution: {integrity: sha512-aWbU+D/IRHoDE9975y+Q4c+EwwAWxCPwFId+N1AhQVFXzbeJMkj6KN2iQtoi03elcLMRdfT+V3i9Z4WRw+/oIA==}
+  /@planetscale/database@1.16.0:
+    resolution: {integrity: sha512-HNUrTqrd8aTRZYMDcsoZ62s36sIWkMMmKZBOehoCWR2WrfNPKq+Q1yQef5okl3pSVlldFnu2h/dbHjOsDTHXug==}
     engines: {node: '>=16'}
 
   /@pnpm/constants@7.1.1:
@@ -12192,7 +12192,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.29.2(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0):
+  /drizzle-orm@0.29.2(@cloudflare/workers-types@4.20231121.0)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0):
     resolution: {integrity: sha512-BhwCwuSQqUoLVc7wtgIkuWexY127Z9+yDbuXU7QWZbMC2XE48jecvAThW9apQaDoaxQmwQ+ObyPfPb4zL4Bgsw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -12258,13 +12258,13 @@ packages:
         optional: true
     dependencies:
       '@cloudflare/workers-types': 4.20231121.0
-      '@planetscale/database': 1.11.0
+      '@planetscale/database': 1.16.0
       '@types/react': 18.2.48
       expo-sqlite: 13.2.2(expo@50.0.6)
       react: 18.2.0
     dev: false
 
-  /drizzle-orm@0.29.2(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0):
+  /drizzle-orm@0.29.2(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(mysql2@3.6.2)(react@18.2.0):
     resolution: {integrity: sha512-BhwCwuSQqUoLVc7wtgIkuWexY127Z9+yDbuXU7QWZbMC2XE48jecvAThW9apQaDoaxQmwQ+ObyPfPb4zL4Bgsw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -12329,7 +12329,7 @@ packages:
       sqlite3:
         optional: true
     dependencies:
-      '@planetscale/database': 1.11.0
+      '@planetscale/database': 1.16.0
       '@types/react': 18.2.48
       expo-sqlite: 13.2.2(expo@50.0.6)
       mysql2: 3.6.2
