@@ -5,7 +5,7 @@ const AnalyticsDashboard = ({ className }: { className: string }) => (
     viewBox="0 0 1209 601"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    {...props}
+    className={className}
   >
     <g clipPath="url(#a)">
       <mask id="G" maskUnits="userSpaceOnUse" x={0} y={0} width={1209} height={641} fill="#000">

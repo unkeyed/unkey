@@ -102,6 +102,7 @@ export function BillingItem({
   text,
 }: { className?: string; icon: React.ReactNode; text: string }) {
   let [first, ...rest] = text.split(" ");
+  //@ts-ignore
   rest = rest.join(" ");
   return (
     <div
