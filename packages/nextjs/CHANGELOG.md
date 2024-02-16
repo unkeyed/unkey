@@ -1,5 +1,11 @@
 # @unkey/nextjs
 
+## 0.15.1
+
+### Patch Changes
+
+- 9433394: Fix NextContext type
+
 ## 0.15.0
 
 ### Minor Changes
