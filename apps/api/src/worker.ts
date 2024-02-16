@@ -1,7 +1,6 @@
 import { Env, zEnv } from "@/pkg/env";
 import { analytics, init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { ResolveConfigFn, instrument } from "@microlabs/otel-cf-workers";
 import { newId } from "@unkey/id";
 import type { Metric } from "@unkey/metrics";
 import { cors } from "hono/cors";
@@ -145,32 +144,21 @@ registerLegacyApisGetApi(app);
 registerLegacyApisDeleteApi(app);
 registerLegacyApisListKeys(app);
 
-const tracingConfig: ResolveConfigFn = (env: Env, _trigger) => ({
-  exporter: {
-    url: "https://otel.baselime.io/v1",
-    headers: { "x-api-key": env.BASELIME_API_KEY! },
-  },
-  service: { name: `unkey.api.${env.ENVIRONMENT}` },
-});
+export default {
+  fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
+    const parsedEnv = zEnv.safeParse(env);
+    if (!parsedEnv.success) {
+      return Response.json(
+        {
+          code: "BAD_ENVIRONMENT",
+          message: "Some environment variables are missing or are invalid",
+          errors: parsedEnv.error,
+        },
+        { status: 500 },
+      );
+    }
+    init({ env: parsedEnv.data });
 
-export default instrument(
-  {
-    fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
-      const parsedEnv = zEnv.safeParse(env);
-      if (!parsedEnv.success) {
-        return Response.json(
-          {
-            code: "BAD_ENVIRONMENT",
-            message: "Some environment variables are missing or are invalid",
-            errors: parsedEnv.error,
-          },
-          { status: 500 },
-        );
-      }
-      init({ env: parsedEnv.data });
-
-      return app.fetch(req, parsedEnv.data, executionCtx);
-    },
+    return app.fetch(req, parsedEnv.data, executionCtx);
   },
-  tracingConfig,
-);
+};
