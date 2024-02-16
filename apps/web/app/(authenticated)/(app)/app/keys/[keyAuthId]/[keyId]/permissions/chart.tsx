@@ -244,7 +244,7 @@ const RoleNode: React.FC<
   NodeProps<{ name: string; active: boolean; roleId: string; keyId: string }>
 > = ({ data }) => {
   return (
-    <NodeShell active={data.active}>
+    <NodeShell active={data.active} className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 ml-2">
         <RoleToggle keyId={data.keyId} roleId={data.roleId} checked={data.active} />
 
@@ -283,7 +283,7 @@ const RoleNode: React.FC<
 const PermissionNode: React.FC<NodeProps<{ name: string; active: boolean; permissionId: string }>> =
   ({ data }) => {
     return (
-      <NodeShell active={data.active}>
+      <NodeShell active={data.active} className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 ml-2 shrink">
           <span
             className={cn("font-mono text-content-subtle text-sm truncate text-ellipsis", {
@@ -316,11 +316,19 @@ const PermissionNode: React.FC<NodeProps<{ name: string; active: boolean; permis
     );
   };
 
-const NodeShell: React.FC<PropsWithChildren<{ active: boolean }>> = ({ active, children }) => (
+const NodeShell: React.FC<PropsWithChildren<{ active: boolean; className?: string }>> = ({
+  active,
+  children,
+  className,
+}) => (
   <div
-    className={cn("p-2 border rounded-md bg-background w-[250px] overflow-hidden cursor-auto", {
-      "border-[#0239FC] ": active,
-    })}
+    className={cn(
+      "p-2 border rounded-md bg-background w-[250px] overflow-hidden cursor-auto",
+      {
+        "border-[#0239FC] ": active,
+      },
+      className,
+    )}
   >
     {children}
   </div>
