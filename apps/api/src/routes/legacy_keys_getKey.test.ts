@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -8,7 +8,7 @@ import { KeyV1 } from "@unkey/keys";
 import { LegacyKeysGetKeyResponse, registerLegacyKeysGet } from "./legacy_keys_getKey";
 
 test("returns 200", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysGet);
 

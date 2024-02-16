@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { type V1ApisGetApiResponse, registerV1ApisGetApi } from "./v1_apis_getApi";
 
 test("return the api", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisGetApi);
 
@@ -28,7 +28,7 @@ test("return the api", async () => {
 });
 
 test("with ip whitelist", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisGetApi);
 

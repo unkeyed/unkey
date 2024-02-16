@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import {
   V1ApisCreateApiRequest,
   V1ApisCreateApiResponse,
@@ -9,7 +9,7 @@ import {
 } from "./v1_apis_createApi";
 
 test("creates new api", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisCreateApi);
 

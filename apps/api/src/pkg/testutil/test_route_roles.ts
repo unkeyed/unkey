@@ -9,7 +9,7 @@ import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { App } from "../hono/app";
 import { StepRequest } from "./request";
@@ -34,7 +34,7 @@ export function runSharedRoleTests<TReq>(config: {
 }) {
   describe("shared role tests", () => {
     test("without a key", async () => {
-      using h = new Harness();
+      using h = new RouteHarness();
       await h.seed();
       h.useRoutes(config.registerHandler);
 
@@ -51,7 +51,7 @@ export function runSharedRoleTests<TReq>(config: {
     });
 
     test("with wrong key", async () => {
-      using h = new Harness();
+      using h = new RouteHarness();
       await h.seed();
       h.useRoutes(config.registerHandler);
 
@@ -91,7 +91,7 @@ export function runSharedRoleTests<TReq>(config: {
           ],
         },
       ])("$name", async ({ roles }) => {
-        using h = new Harness();
+        using h = new RouteHarness();
         await h.seed();
         h.useRoutes(config.registerHandler);
 

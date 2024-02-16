@@ -28,6 +28,10 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
       });
     },
     onSuccess() {
+      PostHogEvent({
+        name: "self-serve-opt-in",
+        properties: { feature },
+      });
       toast.success("Successfully opted in");
       router.refresh();
     },

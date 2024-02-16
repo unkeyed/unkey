@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +12,7 @@ import {
 } from "./v1_keys_updateRemaining";
 
 test("increment", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
@@ -47,7 +47,7 @@ test("increment", async () => {
 });
 
 test("decrement", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
@@ -82,7 +82,7 @@ test("decrement", async () => {
 });
 
 test("set", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
@@ -117,7 +117,7 @@ test("set", async () => {
 });
 
 test("invalid operation", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 

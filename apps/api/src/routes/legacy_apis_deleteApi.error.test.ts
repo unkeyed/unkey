@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("api not found", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyApisDeleteApi);
 

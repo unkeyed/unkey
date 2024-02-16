@@ -4,11 +4,11 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 
 test("soft deletes key", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysDelete);
 

@@ -1,9 +1,9 @@
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { expect, test } from "vitest";
 import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
 
 test("returns 200", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1Liveness);
   const res = await h.get<V1LivenessResponse>({

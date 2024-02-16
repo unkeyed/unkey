@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +12,7 @@ import {
 } from "./v1_keys_updateKey";
 
 test("returns 200", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -49,7 +49,7 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -105,7 +105,7 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -156,7 +156,7 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -199,7 +199,7 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -248,7 +248,7 @@ test("update should not affect undefined fields", async () => {
 });
 
 test("update enabled true", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -288,7 +288,7 @@ test("update enabled true", async () => {
 });
 
 test("update enabled false", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
@@ -328,7 +328,7 @@ test("update enabled false", async () => {
 });
 
 test("omit enabled update", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 

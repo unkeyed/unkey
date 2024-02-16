@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -13,7 +13,7 @@ import {
 } from "./v1_keys_verifyKey";
 
 test("returns 200", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysVerifyKey);
 
@@ -44,7 +44,7 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerV1KeysVerifyKey);
 
@@ -76,7 +76,7 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async () => {
-      using h = new Harness();
+      using h = new RouteHarness();
       await h.seed();
       h.useRoutes(registerV1KeysVerifyKey);
 
@@ -125,7 +125,7 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
-      using h = new Harness();
+      using h = new RouteHarness();
       await h.seed();
       h.useRoutes(registerV1KeysVerifyKey);
 
@@ -176,7 +176,7 @@ describe("with ip whitelist", () => {
     test(
       "returns invalid",
       async () => {
-        using h = new Harness();
+        using h = new RouteHarness();
         await h.seed();
         h.useRoutes(registerV1KeysVerifyKey);
 
@@ -230,7 +230,7 @@ describe("with ip whitelist", () => {
 
 describe("with enabled key", () => {
   test("returns valid", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerV1KeysVerifyKey);
 
@@ -279,7 +279,7 @@ describe("with enabled key", () => {
 
 describe("with disabled key", () => {
   test("returns invalid", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerV1KeysVerifyKey);
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -44,7 +44,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerV1ApisDeleteApi);
 

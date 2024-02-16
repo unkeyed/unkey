@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +12,7 @@ import {
 
 describe("simple", () => {
   test("returns 200", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyApisListKeys);
 
@@ -46,7 +46,7 @@ describe("simple", () => {
 
 describe("filter by ownerId", () => {
   test("returns all keys owned ", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyApisListKeys);
 
@@ -81,7 +81,7 @@ describe("filter by ownerId", () => {
 
 describe("with limit", () => {
   test("returns only a few keys", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyApisListKeys);
 
@@ -113,7 +113,7 @@ describe("with limit", () => {
 
 describe("with offset", () => {
   test("returns the correct keys", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyApisListKeys);
 

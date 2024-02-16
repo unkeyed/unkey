@@ -1,4 +1,4 @@
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -11,7 +11,7 @@ import {
 } from "./legacy_keys_updateKey";
 
 test("returns 200", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
@@ -44,7 +44,7 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
@@ -98,7 +98,7 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
@@ -147,7 +147,7 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
@@ -189,7 +189,7 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 

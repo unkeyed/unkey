@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import {
   LegacyKeysCreateKeyRequest,
   LegacyKeysCreateKeyResponse,
@@ -12,7 +12,7 @@ import {
 
 describe("simple", () => {
   test("creates key", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyKeysCreate);
     const { key: rootKey } = await h.createRootKey(["*"]);
@@ -41,7 +41,7 @@ describe("simple", () => {
 
 describe("wrong ratelimit type", () => {
   test("reject the request", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyKeysCreate);
     const { key: rootKey } = await h.createRootKey(["*"]);
@@ -69,7 +69,7 @@ describe("wrong ratelimit type", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyKeysCreate);
     const { key: rootKey } = await h.createRootKey(["*"]);

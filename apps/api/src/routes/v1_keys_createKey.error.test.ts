@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import {
@@ -12,7 +12,7 @@ import {
 } from "./v1_keys_createKey";
 
 test("when the api does not exist", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysCreateKey);
 
@@ -43,7 +43,7 @@ test("when the api does not exist", async () => {
 });
 
 test("when the api has no keyAuth", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysCreateKey);
 
@@ -78,7 +78,7 @@ test("when the api has no keyAuth", async () => {
 });
 
 test("reject invalid ratelimit config", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysCreateKey);
 

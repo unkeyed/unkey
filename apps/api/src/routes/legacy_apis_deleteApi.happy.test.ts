@@ -3,11 +3,11 @@ import { expect, test } from "vitest";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("soft deletes api", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerLegacyApisDeleteApi);
 

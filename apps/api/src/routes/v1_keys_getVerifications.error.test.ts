@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { registerV1KeysGetVerifications } from "./v1_keys_getVerifications";
 
 test("when the key does not exist", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
@@ -32,7 +32,7 @@ test("when the key does not exist", async () => {
 });
 
 test("without keyId or ownerId", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 

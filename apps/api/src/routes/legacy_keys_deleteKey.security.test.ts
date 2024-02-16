@@ -4,7 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { describe, expect, test } from "vitest";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
@@ -41,7 +41,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyKeysDelete);
 

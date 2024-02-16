@@ -1,4 +1,4 @@
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { PermissionQuery, buildQuery } from "@unkey/rbac";
 import { expect, test } from "vitest";
@@ -253,7 +253,7 @@ test.each<TestCase>([
 ])(
   "$name",
   async ({ roles, query, expected }) => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerV1KeysVerifyKey);
 
@@ -275,9 +275,12 @@ test.each<TestCase>([
       },
     });
     expect(res.status).toEqual(expected.status);
-    expect(res.body.valid, `key is not valid, received body: ${JSON.stringify(res.body)}`).toBe(
-      expected.valid,
-    );
+    expect(
+      res.body.valid,
+      `key is ${res.body.valid ? "valid" : "not valid"}, received body: ${JSON.stringify(
+        res.body,
+      )}`,
+    ).toBe(expected.valid);
   },
-  { timeout: 10_000 },
+  { timeout: 60_000 },
 );

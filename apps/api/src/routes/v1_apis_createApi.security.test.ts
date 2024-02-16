@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { describe, expect, test } from "vitest";
 import {
@@ -28,7 +28,7 @@ describe("correct roles", () => {
     { name: "wildcard", roles: ["api.*.create_api"] },
     { name: "wildcard and more", roles: ["api.*.create_api", randomUUID()] },
   ])("$name", async ({ roles }) => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerV1ApisCreateApi);
 

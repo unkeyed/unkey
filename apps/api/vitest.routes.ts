@@ -13,5 +13,11 @@ export default defineConfig({
     alias: {
       "@/": new URL("./src/", import.meta.url).pathname,
     },
+    pool: "threads",
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 });

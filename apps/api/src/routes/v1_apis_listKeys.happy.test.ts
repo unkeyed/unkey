@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -8,7 +8,7 @@ import { KeyV1 } from "@unkey/keys";
 import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 test("get api", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
@@ -43,7 +43,7 @@ test("get api", async () => {
 });
 
 test("filter by ownerId", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
@@ -80,7 +80,7 @@ test("filter by ownerId", async () => {
 });
 
 test("with limit", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
@@ -114,7 +114,7 @@ test("with limit", async () => {
 }, 10_000);
 
 test("with cursor", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 

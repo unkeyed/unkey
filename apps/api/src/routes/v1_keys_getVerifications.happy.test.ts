@@ -1,4 +1,4 @@
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -10,7 +10,7 @@ import {
 } from "./v1_keys_getVerifications";
 
 test("returns an empty verifications array", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
@@ -39,7 +39,7 @@ test("returns an empty verifications array", async () => {
 });
 
 test("ownerId works too", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 

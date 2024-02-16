@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { V1ApisGetApiResponse, registerV1ApisGetApi } from "./v1_apis_getApi";
 
 test("api does not exist", async () => {
-  using h = new Harness();
+  using h = new RouteHarness();
   await h.seed();
   h.useRoutes(registerV1ApisGetApi);
 

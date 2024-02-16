@@ -3,7 +3,7 @@ import { newId } from "@unkey/id";
 
 import { randomUUID } from "node:crypto";
 import { describe } from "node:test";
-import { Harness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { expect, test } from "vitest";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
@@ -37,7 +37,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    using h = new Harness();
+    using h = new RouteHarness();
     await h.seed();
     h.useRoutes(registerLegacyApisDeleteApi);
 
