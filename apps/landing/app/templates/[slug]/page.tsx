@@ -1,4 +1,3 @@
-import { Container } from "@/components/container";
 import { ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -39,9 +38,9 @@ export default async function Templates(props: Props) {
 
   const readme = await fetch(template.readmeUrl).then((res) => res.text());
   return (
-    <div className="flex flex-col xl:max-w-[1440px] mx-6 md:mx-20 xl:mx-auto">
+    <div className="flex flex-col xl:max-w-[1440px] mx-6 md:mx-20 xl:mx-auto lg:mx-auto lg:px-10">
       <div className="flex flex-col xl:flex-row items-start mt-16 lg:mt-32 lg:space-y-0 mb-24 gap-12">
-        <div className="self-start w-full mx-auto xl:sticky">
+        <div className="self-start w-full mx-auto xl:sticky xl:w-1/4">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"
