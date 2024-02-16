@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -8,7 +8,8 @@ import { KeyV1 } from "@unkey/keys";
 import { LegacyKeysGetKeyResponse, registerLegacyKeysGet } from "./legacy_keys_getKey";
 
 test("returns 200", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysGet);
 
   const key = {
@@ -20,12 +21,13 @@ test("returns 200", async () => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
+  const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.get<LegacyKeysGetKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey}`,
     },
   });
 

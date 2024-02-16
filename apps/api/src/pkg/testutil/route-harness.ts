@@ -21,35 +21,31 @@ export type Resources = {
   unkeyWorkspace: Workspace;
   unkeyApi: Api;
   unkeyKeyAuth: KeyAuth;
-  rootKey: string;
   userWorkspace: Workspace;
   userApi: Api;
   userKeyAuth: KeyAuth;
-  database: Database;
 };
 
-export class Harness implements AsyncDisposable {
+export class Harness implements Disposable {
   public readonly db: Database;
   public readonly resources: Resources;
   public readonly app: App;
+  private seeded = false;
 
-  private constructor(resources: Resources) {
-    this.db = resources.database;
-    this.resources = resources;
-    this.app = newApp();
-  }
-
-  static async init(): Promise<Harness> {
+  constructor() {
     const env = unitTestEnv.parse(process.env);
-
-    // @ts-ignore
+    this.db = createConnection({
+      host: env.DATABASE_HOST,
+      username: env.DATABASE_USERNAME,
+      password: env.DATABASE_PASSWORD,
+    });
+    this.app = newApp();
+    this.resources = this.createResources();
+    // @ts-expect-error
     init({ env });
-    const resources = await seed(env);
-
-    return new Harness(resources);
   }
 
-  async [Symbol.asyncDispose]() {
+  async [Symbol.dispose]() {
     const tables = [
       schema.keysPermissions,
       schema.rolesPermissions,
@@ -63,27 +59,27 @@ export class Harness implements AsyncDisposable {
       schema.keyAuth,
       schema.apis,
     ];
-    for (const table of tables) {
-      await this.db
-        .delete(table)
+    await this.db.transaction(async (tx) => {
+      for (const table of tables) {
+        await tx
+          .delete(table)
+          .where(
+            or(
+              eq(table.workspaceId, this.resources.userWorkspace.id),
+              eq(table.workspaceId, this.resources.unkeyWorkspace.id),
+            ),
+          );
+      }
+      // this one is special, where the id is not prefixed
+      await tx
+        .delete(schema.workspaces)
         .where(
           or(
-            eq(table.workspaceId, this.resources.userWorkspace.id),
-            eq(table.workspaceId, this.resources.unkeyWorkspace.id),
+            eq(schema.workspaces.id, this.resources.userWorkspace.id),
+            eq(schema.workspaces.id, this.resources.unkeyWorkspace.id),
           ),
-        )
-        .execute();
-    }
-    // this one is special, where the id is not prefixed
-    await this.db
-      .delete(schema.workspaces)
-      .where(
-        or(
-          eq(schema.workspaces.id, this.resources.userWorkspace.id),
-          eq(schema.workspaces.id, this.resources.unkeyWorkspace.id),
-        ),
-      )
-      .execute();
+        );
+    });
   }
 
   public useRoutes(...registerFunctions: ((app: App) => any)[]): void {
@@ -109,7 +105,7 @@ export class Harness implements AsyncDisposable {
   /**
    * Create a new root key with optional roles
    */
-  async createRootKey(roles?: string[]) {
+  async createRootKey(permissions?: string[]) {
     const rootKey = new KeyV1({ byteLength: 16, prefix: "unkey" }).toString();
     const start = rootKey.slice(0, 10);
     const keyId = newId("key");
@@ -124,8 +120,8 @@ export class Harness implements AsyncDisposable {
       forWorkspaceId: this.resources.userWorkspace.id,
       createdAt: new Date(),
     });
-    if (roles && roles.length > 0) {
-      const permissions: Permission[] = roles.map((name) => ({
+    if (permissions && permissions.length > 0) {
+      const create: Permission[] = permissions.map((name) => ({
         id: newId("permission"),
         name,
         key: name,
@@ -135,9 +131,9 @@ export class Harness implements AsyncDisposable {
         updatedAt: null,
       }));
 
-      await this.db.insert(schema.permissions).values(permissions);
+      await this.db.insert(schema.permissions).values(create);
       await this.db.insert(schema.keysPermissions).values(
-        permissions.map((p) => ({
+        create.map((p) => ({
           keyId,
           permissionId: p.id,
           workspaceId: this.resources.unkeyWorkspace.id,
@@ -212,120 +208,99 @@ export class Harness implements AsyncDisposable {
       key,
     };
   }
-}
 
-async function seed(env: {
-  DATABASE_HOST: string;
-  DATABASE_USERNAME: string;
-  DATABASE_PASSWORD: string;
-  DATABASE_MODE: "planetscale" | "mysql";
-}): Promise<Resources> {
-  const database = createConnection({
-    host: env.DATABASE_HOST,
-    username: env.DATABASE_USERNAME,
-    password: env.DATABASE_PASSWORD,
-  });
+  public createResources(): Resources {
+    const unkeyWorkspace: Workspace = {
+      id: newId("workspace"),
+      name: "unkey",
+      tenantId: newId("test"),
+      plan: "enterprise",
+      features: {},
+      betaFeatures: {},
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      trialEnds: null,
+      subscriptions: null,
+      planLockedUntil: null,
+      planChanged: null,
+      createdAt: new Date(),
+      deletedAt: null,
+      planDowngradeRequest: null,
+    };
+    const userWorkspace: Workspace = {
+      id: newId("workspace"),
+      name: "user",
+      tenantId: newId("test"),
+      plan: "pro",
+      features: {},
+      betaFeatures: {},
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      trialEnds: null,
+      subscriptions: null,
+      planLockedUntil: null,
+      planChanged: null,
+      createdAt: new Date(),
+      deletedAt: null,
+      planDowngradeRequest: null,
+    };
 
-  const unkeyWorkspace: Workspace = {
-    id: newId("workspace"),
-    name: "unkey",
-    tenantId: newId("test"),
-    plan: "enterprise",
-    features: {},
-    betaFeatures: {},
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
-    trialEnds: null,
-    subscriptions: null,
-    planLockedUntil: null,
-    planChanged: null,
-    createdAt: new Date(),
-    deletedAt: null,
-    planDowngradeRequest: null,
-  };
-  const userWorkspace: Workspace = {
-    id: newId("workspace"),
-    name: "user",
-    tenantId: newId("test"),
-    plan: "pro",
-    features: {},
-    betaFeatures: {},
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
-    trialEnds: null,
-    subscriptions: null,
-    planLockedUntil: null,
-    planChanged: null,
-    createdAt: new Date(),
-    deletedAt: null,
-    planDowngradeRequest: null,
-  };
+    const unkeyKeyAuth: KeyAuth = {
+      id: newId("keyAuth"),
+      workspaceId: unkeyWorkspace.id,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
+    const userKeyAuth: KeyAuth = {
+      id: newId("keyAuth"),
+      workspaceId: userWorkspace.id,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
 
-  const unkeyKeyAuth: KeyAuth = {
-    id: newId("keyAuth"),
-    workspaceId: unkeyWorkspace.id,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
-  const userKeyAuth: KeyAuth = {
-    id: newId("keyAuth"),
-    workspaceId: userWorkspace.id,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
+    const unkeyApi: Api = {
+      id: newId("api"),
+      name: "unkey",
+      workspaceId: unkeyWorkspace.id,
+      authType: "key",
+      keyAuthId: unkeyKeyAuth.id,
+      ipWhitelist: null,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
+    const userApi: Api = {
+      id: newId("api"),
+      name: "user",
+      workspaceId: userWorkspace.id,
+      authType: "key",
+      keyAuthId: userKeyAuth.id,
+      ipWhitelist: null,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
 
-  const unkeyApi: Api = {
-    id: newId("api"),
-    name: "unkey",
-    workspaceId: unkeyWorkspace.id,
-    authType: "key",
-    keyAuthId: unkeyKeyAuth.id,
-    ipWhitelist: null,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
-  const userApi: Api = {
-    id: newId("api"),
-    name: "user",
-    workspaceId: userWorkspace.id,
-    authType: "key",
-    keyAuthId: userKeyAuth.id,
-    ipWhitelist: null,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
+    return {
+      unkeyWorkspace,
+      unkeyApi,
+      unkeyKeyAuth,
+      userWorkspace,
+      userApi,
+      userKeyAuth,
+    };
+  }
 
-  await database.insert(schema.workspaces).values(unkeyWorkspace);
-  await database.insert(schema.keyAuth).values(unkeyKeyAuth);
-  await database.insert(schema.apis).values(unkeyApi);
+  public async seed(): Promise<void> {
+    if (this.seeded) {
+      return;
+    }
 
-  await database.insert(schema.workspaces).values(userWorkspace);
-  await database.insert(schema.keyAuth).values(userKeyAuth);
-  await database.insert(schema.apis).values(userApi);
+    await this.db.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
+    await this.db.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
+    await this.db.insert(schema.apis).values(this.resources.unkeyApi);
 
-  const rootKey = new KeyV1({ byteLength: 16, prefix: "unkey" }).toString();
-  const start = rootKey.slice(0, 10);
-  const keyId = newId("key");
-  const hash = await sha256(rootKey);
-
-  await database.insert(schema.keys).values({
-    id: keyId,
-    keyAuthId: unkeyKeyAuth.id,
-    hash,
-    start,
-    workspaceId: unkeyWorkspace.id,
-    forWorkspaceId: userWorkspace.id,
-    createdAt: new Date(),
-  });
-
-  return {
-    database,
-    unkeyWorkspace,
-    unkeyApi,
-    unkeyKeyAuth,
-    rootKey,
-    userWorkspace,
-    userApi,
-    userKeyAuth,
-  };
+    await this.db.insert(schema.workspaces).values(this.resources.userWorkspace);
+    await this.db.insert(schema.keyAuth).values(this.resources.userKeyAuth);
+    await this.db.insert(schema.apis).values(this.resources.userApi);
+    this.seeded = true;
+  }
 }

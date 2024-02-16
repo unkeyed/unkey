@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +12,8 @@ import {
 } from "./v1_keys_updateRemaining";
 
 test("increment", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -25,7 +26,7 @@ test("increment", async () => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
 
   const root = await h.createRootKey(["api.*.update_key"]);
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
@@ -46,7 +47,8 @@ test("increment", async () => {
 });
 
 test("decrement", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -59,7 +61,7 @@ test("decrement", async () => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
@@ -80,7 +82,8 @@ test("decrement", async () => {
 });
 
 test("set", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -93,7 +96,7 @@ test("set", async () => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
@@ -114,7 +117,8 @@ test("set", async () => {
 });
 
 test("invalid operation", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const key = {
@@ -127,7 +131,7 @@ test("invalid operation", async () => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({

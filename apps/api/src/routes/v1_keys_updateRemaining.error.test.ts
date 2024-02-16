@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import {
   type V1KeysUpdateRemainingRequest,
@@ -9,7 +9,8 @@ import {
 } from "./v1_keys_updateRemaining";
 
 test("when the key does not exist", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdateRemaining);
 
   const keyId = newId("key");

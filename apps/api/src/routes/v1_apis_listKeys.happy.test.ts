@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -8,7 +8,8 @@ import { KeyV1 } from "@unkey/keys";
 import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 test("get api", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
@@ -42,14 +43,15 @@ test("get api", async () => {
 });
 
 test("filter by ownerId", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
   const ownerId = crypto.randomUUID();
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -78,13 +80,14 @@ test("filter by ownerId", async () => {
 });
 
 test("with limit", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -111,13 +114,14 @@ test("with limit", async () => {
 }, 10_000);
 
 test("with cursor", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),

@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import {
   LegacyKeysCreateKeyRequest,
   LegacyKeysCreateKeyResponse,
@@ -12,14 +12,16 @@ import {
 
 describe("simple", () => {
   test("creates key", async () => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerLegacyKeysCreate);
+    const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({
       url: "/v1/keys",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${h.resources.rootKey}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         byteLength: 16,
@@ -39,14 +41,16 @@ describe("simple", () => {
 
 describe("wrong ratelimit type", () => {
   test("reject the request", async () => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerLegacyKeysCreate);
+    const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, ErrorResponse>({
       url: "/v1/keys",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${h.resources.rootKey}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         byteLength: 16,
@@ -65,14 +69,16 @@ describe("wrong ratelimit type", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerLegacyKeysCreate);
+    const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({
       url: "/v1/keys",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${h.resources.rootKey}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         byteLength: 16,

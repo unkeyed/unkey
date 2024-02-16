@@ -3,11 +3,12 @@ import { expect, test } from "vitest";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
 test("soft deletes api", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerLegacyApisDeleteApi);
 
   const apiId = newId("key");
@@ -27,7 +28,7 @@ test("soft deletes api", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.apis.findFirst({
+  const found = await h.db.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, apiId),
   });
   expect(found).toBeDefined();

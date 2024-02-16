@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -34,7 +34,8 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.read_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerV1ApisGetApi);
 
     const apiId = newId("api");

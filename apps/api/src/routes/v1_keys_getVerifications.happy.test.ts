@@ -1,4 +1,4 @@
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -10,12 +10,13 @@ import {
 } from "./v1_keys_getVerifications";
 
 test("returns an empty verifications array", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.resources.database.insert(schema.keys).values({
+  await h.db.insert(schema.keys).values({
     id: keyId,
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
@@ -38,14 +39,15 @@ test("returns an empty verifications array", async () => {
 });
 
 test("ownerId works too", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const ownerId = crypto.randomUUID();
   const keyIds = [newId("key"), newId("key"), newId("key")];
   for (const keyId of keyIds) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),

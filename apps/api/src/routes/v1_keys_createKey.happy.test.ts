@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import {
   V1KeysCreateKeyRequest,
   V1KeysCreateKeyResponse,
@@ -10,7 +10,8 @@ import {
 } from "./v1_keys_createKey";
 
 test("creates key", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1KeysCreateKey);
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
@@ -30,7 +31,7 @@ test("creates key", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(found).toBeDefined();
@@ -40,7 +41,8 @@ test("creates key", async () => {
 describe("with enabled flag", () => {
   describe("not set", () => {
     test("should still create an enabled key", async () => {
-      await using h = await Harness.init();
+      using h = new Harness();
+      await h.seed();
       h.useRoutes(registerV1KeysCreateKey);
 
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
@@ -59,7 +61,7 @@ describe("with enabled flag", () => {
 
       expect(res.status).toEqual(200);
 
-      const found = await h.resources.database.query.keys.findFirst({
+      const found = await h.db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -69,7 +71,8 @@ describe("with enabled flag", () => {
   });
   describe("enabled: false", () => {
     test("should create a disabled key", async () => {
-      await using h = await Harness.init();
+      using h = new Harness();
+      await h.seed();
       h.useRoutes(registerV1KeysCreateKey);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -88,7 +91,7 @@ describe("with enabled flag", () => {
 
       expect(res.status).toEqual(200);
 
-      const found = await h.resources.database.query.keys.findFirst({
+      const found = await h.db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -98,7 +101,8 @@ describe("with enabled flag", () => {
   });
   describe("enabled: true", () => {
     test("should create an enabled key", async () => {
-      await using h = await Harness.init();
+      using h = new Harness();
+      await h.seed();
       h.useRoutes(registerV1KeysCreateKey);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -117,7 +121,7 @@ describe("with enabled flag", () => {
 
       expect(res.status).toEqual(200);
 
-      const found = await h.resources.database.query.keys.findFirst({
+      const found = await h.db.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -129,7 +133,8 @@ describe("with enabled flag", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerV1KeysCreateKey);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -149,7 +154,7 @@ describe("with prefix", () => {
 
     expect(res.status).toEqual(200);
 
-    const key = await h.resources.database.query.keys.findFirst({
+    const key = await h.db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();

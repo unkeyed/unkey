@@ -1,11 +1,12 @@
 import { expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 test("key not found", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysDelete);
 
   const keyId = newId("key");

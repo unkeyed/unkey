@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import {
   V1ApisDeleteApiRequest,
@@ -9,7 +9,8 @@ import {
 } from "./v1_apis_deleteApi";
 
 test("api does not exist", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerV1ApisDeleteApi);
 
   const apiId = newId("api");

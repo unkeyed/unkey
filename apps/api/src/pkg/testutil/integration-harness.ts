@@ -1,6 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { z } from "zod";
 import {
   type Api,
   type Database,
@@ -8,11 +9,12 @@ import {
   Permission,
   type Workspace,
   createConnection,
+  eq,
+  or,
   schema,
 } from "../db";
 import { init } from "../global";
-import { App, newApp } from "../hono/app";
-import { unitTestEnv } from "./env";
+import { integrationTestEnv } from "./env";
 import { StepRequest, StepResponse, step } from "./request";
 
 export type Resources = {
@@ -26,29 +28,65 @@ export type Resources = {
   database: Database;
 };
 
-export class IntegrationTestHarness {
+export class Harness implements AsyncDisposable {
+  public readonly baseUrl: string;
   public readonly db: Database;
   public readonly resources: Resources;
-  public readonly app: App;
 
-  private constructor(resources: Resources) {
-    this.db = resources.database;
-    this.resources = resources;
-    this.app = newApp();
+  private constructor(opts: { baseUrl: string; resources: Resources }) {
+    this.baseUrl = opts.baseUrl;
+    this.db = opts.resources.database;
+    this.resources = opts.resources;
   }
 
-  static async init(): Promise<IntegrationTestHarness> {
-    const env = unitTestEnv.parse(process.env);
+  static async init(): Promise<Harness> {
+    const env = integrationTestEnv.parse(process.env);
 
     // @ts-ignore
     init({ env });
     const resources = await seed(env);
 
-    return new IntegrationTestHarness(resources);
+    return new Harness({
+      baseUrl: env.UNKEY_BASE_URL,
+      resources,
+    });
   }
 
-  public useRoutes(...registerFunctions: ((app: App) => any)[]): void {
-    registerFunctions.forEach((fn) => fn(this.app));
+  async [Symbol.asyncDispose]() {
+    const tables = [
+      schema.keysPermissions,
+      schema.rolesPermissions,
+      schema.keysRoles,
+      schema.permissions,
+      schema.roles,
+      schema.auditLogs,
+      schema.vercelBindings,
+      schema.vercelIntegrations,
+      schema.keys,
+      schema.keyAuth,
+      schema.apis,
+    ];
+    for (const table of tables) {
+      await this.db
+        .delete(table)
+        .where(
+          or(
+            eq(table.workspaceId, this.resources.userWorkspace.id),
+            eq(table.workspaceId, this.resources.unkeyWorkspace.id),
+          ),
+        )
+        .execute();
+    }
+    // this one is special, where the id is not prefixed
+    await this.db
+      .delete(schema.workspaces)
+      .where(
+        or(
+          eq(schema.workspaces.id, this.resources.userWorkspace.id),
+          eq(schema.workspaces.id, this.resources.unkeyWorkspace.id),
+        ),
+      )
+      .execute();
   }
 
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
@@ -107,14 +145,76 @@ export class IntegrationTestHarness {
       key: rootKey,
     };
   }
+
+  public async createKey(opts: {
+    roles: {
+      name: string;
+      permissions: string[];
+    }[];
+  }): Promise<{ keyId: string; key: string }> {
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("key");
+    await this.db.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: this.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: this.resources.userWorkspace.id,
+      createdAt: new Date(),
+    });
+
+    await this.createaAndAttachRolesAndPermissions(keyId, opts.roles);
+
+    return {
+      keyId,
+      key,
+    };
+  }
+
+  private async createaAndAttachRolesAndPermissions(
+    keyId: string,
+    roles: { name: string; permissions: string[] }[],
+  ): Promise<void> {
+    const addedPermissions = new Set<string>();
+    for (const role of roles) {
+      const roleId = newId("role");
+
+      await this.db.insert(schema.roles).values({
+        id: roleId,
+        name: role.name,
+        createdAt: new Date(),
+        workspaceId: this.resources.userWorkspace.id,
+      });
+      await this.db.insert(schema.keysRoles).values({
+        keyId,
+        roleId,
+        workspaceId: this.resources.userWorkspace.id,
+      });
+
+      for (const permissionName of role.permissions ?? []) {
+        if (addedPermissions.has(permissionName)) {
+          continue;
+        }
+        addedPermissions.add(permissionName);
+
+        const permissionId = newId("permission");
+        await this.db.insert(schema.permissions).values({
+          id: permissionId,
+          name: permissionName,
+          createdAt: new Date(),
+          workspaceId: this.resources.userWorkspace.id,
+        });
+        await this.db.insert(schema.rolesPermissions).values({
+          roleId,
+          permissionId,
+          workspaceId: this.resources.userWorkspace.id,
+        });
+      }
+    }
+  }
 }
 
-async function seed(env: {
-  DATABASE_HOST: string;
-  DATABASE_USERNAME: string;
-  DATABASE_PASSWORD: string;
-  DATABASE_MODE: "planetscale" | "mysql";
-}): Promise<Resources> {
+async function seed(env: z.infer<typeof integrationTestEnv>): Promise<Resources> {
   const database = createConnection({
     host: env.DATABASE_HOST,
     username: env.DATABASE_USERNAME,

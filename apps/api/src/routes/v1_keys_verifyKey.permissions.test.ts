@@ -1,12 +1,7 @@
-import { describe, expect, test } from "vitest";
-
-import { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
-import { and, schema } from "@unkey/db";
-import { sha256 } from "@unkey/hash";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
-import { KeyV1 } from "@unkey/keys";
-import { NestedQuery, PermissionQuery, buildQuery } from "@unkey/rbac";
+import { PermissionQuery, buildQuery } from "@unkey/rbac";
+import { expect, test } from "vitest";
 import {
   V1KeysVerifyKeyRequest,
   V1KeysVerifyKeyResponse,
@@ -258,7 +253,8 @@ test.each<TestCase>([
 ])(
   "$name",
   async ({ roles, query, expected }) => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerV1KeysVerifyKey);
 
     const { key } = await h.createKey({ roles });

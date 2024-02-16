@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -13,7 +13,7 @@ runSharedRoleTests({
   prepareRequest: async (h) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -58,12 +58,13 @@ describe("correct roles", () => {
       ],
     },
   ])("$name", async ({ roles }) => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerV1KeysGetKey);
 
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),

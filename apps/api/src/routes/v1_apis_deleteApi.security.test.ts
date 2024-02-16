@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -44,7 +44,8 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    await using h = await Harness.init();
+    using h = new Harness();
+    await h.seed();
     h.useRoutes(registerV1ApisDeleteApi);
 
     const apiId = newId("api");
@@ -69,7 +70,7 @@ describe("correct roles", () => {
     });
     expect(res.status).toEqual(200);
 
-    const found = await h.resources.database.query.apis.findFirst({
+    const found = await h.db.query.apis.findFirst({
       where: (table, { eq }) => eq(table.id, apiId),
     });
     expect(found).toBeDefined();

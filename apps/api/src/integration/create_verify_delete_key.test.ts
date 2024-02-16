@@ -1,5 +1,6 @@
 import { integrationTestEnv } from "@/pkg/testutil/env";
 import { step } from "@/pkg/testutil/request";
+import { Harness } from "@/pkg/testutil/route-harness";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "@/routes/v1_keys_deleteKey";

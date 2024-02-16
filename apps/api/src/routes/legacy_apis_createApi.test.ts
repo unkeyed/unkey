@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
+import { Harness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { eq } from "drizzle-orm";
 import {
@@ -11,15 +11,17 @@ import {
 } from "./legacy_apis_createApi";
 
 test("creates the api", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
 
   h.useRoutes(registerLegacyApisCreateApi);
+  const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.post<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>({
     url: "/v1/apis",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       name: "my api",
@@ -38,7 +40,8 @@ test("creates the api", async () => {
 });
 
 test("creates rejects invalid root key", async () => {
-  await using h = await Harness.init();
+  using h = new Harness();
+  await h.seed();
   h.useRoutes(registerLegacyApisCreateApi);
   const res = await h.post<LegacyApisCreateApiRequest, ErrorResponse>({
     url: "/v1/apis",
