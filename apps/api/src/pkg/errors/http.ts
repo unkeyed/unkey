@@ -3,13 +3,13 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 import { generateErrorMessage } from "zod-error";
+import { logger } from "../global";
 
 const ErrorCode = z.enum([
   "BAD_REQUEST",
   "FORBIDDEN",
   "INTERNAL_SERVER_ERROR",
   "USAGE_EXCEEDED",
-  "INVALID_KEY_TYPE",
   "DISABLED",
   "NOT_FOUND",
   "NOT_UNIQUE",
@@ -66,24 +66,19 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): number {
     case "BAD_REQUEST":
       return 400;
     case "FORBIDDEN":
-      return 403;
-    case "PRECONDITION_FAILED":
-      return 412;
-    case "INVALID_KEY_TYPE":
-      return 500;
-    case "USAGE_EXCEEDED":
-      return 500;
-    case "NOT_FOUND":
-      return 404;
-    case "NOT_UNIQUE":
-      return 500;
-    case "RATE_LIMITED":
-      return 500;
     case "DISABLED":
     case "UNAUTHORIZED":
     case "INSUFFICIENT_PERMISSIONS":
+    case "USAGE_EXCEEDED":
       return 403;
-
+    case "NOT_FOUND":
+      return 404;
+    case "NOT_UNIQUE":
+      return 409;
+    case "PRECONDITION_FAILED":
+      return 412;
+    case "RATE_LIMITED":
+      return 429;
     case "INTERNAL_SERVER_ERROR":
       return 500;
   }
@@ -146,6 +141,13 @@ export function handleZodError(
 
 export function handleError(err: Error, c: Context): Response {
   if (err instanceof UnkeyApiError) {
+    if (err.status >= 500) {
+      logger.error(err.message, {
+        name: err.name,
+        code: err.code,
+        status: err.status,
+      });
+    }
     return c.json<z.infer<typeof ErrorSchema>>(
       {
         error: {
@@ -158,8 +160,9 @@ export function handleError(err: Error, c: Context): Response {
       { status: err.status },
     );
   }
-  console.error(err);
-
+  logger.error(err.message, {
+    name: err.name,
+  });
   return c.json<z.infer<typeof ErrorSchema>>(
     {
       error: {
