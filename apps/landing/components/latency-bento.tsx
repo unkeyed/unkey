@@ -3,7 +3,7 @@ import { LatencyMap } from "@/components/svg/latency-map";
 export function LatencyBento() {
   return (
     <div className="w-full relative border-[.75px] h-[576px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
-      <LatencyMap className="h-[500px] w-full" />
+      {/* <LatencyMap className="h-[500px] w-full" /> */}
       <LatencyText />
     </div>
   );
