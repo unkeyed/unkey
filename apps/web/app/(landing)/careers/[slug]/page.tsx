@@ -15,6 +15,12 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
   const { frontmatter } = await getJob(params.slug);
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+  const ogUrl = new URL("/og/careers", baseUrl);
+
+  ogUrl.searchParams.set("title", frontmatter.title ?? "");
 
   return {
     title: `${frontmatter?.title} | Unkey`,
@@ -23,6 +29,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${frontmatter?.title} | Unkey`,
       description: frontmatter?.description,
       url: `https://unkey.dev/careers/${params.slug}`,
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: frontmatter.title,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -30,6 +44,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: frontmatter?.description,
       site: "@unkeydev",
       creator: "@unkeydev",
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: frontmatter.title,
+        },
+      ],
     },
     icons: {
       shortcut: "/images/landing/unkey.png",
