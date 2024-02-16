@@ -67,24 +67,21 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): number {
     case "BAD_REQUEST":
       return 400;
     case "FORBIDDEN":
-      return 403;
-    case "PRECONDITION_FAILED":
-      return 412;
-    case "INVALID_KEY_TYPE":
-      return 500;
-    case "USAGE_EXCEEDED":
-      return 500;
-    case "NOT_FOUND":
-      return 404;
-    case "NOT_UNIQUE":
-      return 500;
-    case "RATE_LIMITED":
-      return 429;
     case "DISABLED":
     case "UNAUTHORIZED":
     case "INSUFFICIENT_PERMISSIONS":
       return 403;
-
+    case "NOT_FOUND":
+      return 404;
+    case "NOT_UNIQUE":
+      return 409;
+    case "PRECONDITION_FAILED":
+      return 412;
+    case "RATE_LIMITED":
+      return 429;
+    case "INVALID_KEY_TYPE":
+    case "USAGE_EXCEEDED":
+      return 500;
     case "INTERNAL_SERVER_ERROR":
       return 500;
   }
