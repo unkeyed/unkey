@@ -79,7 +79,7 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): number {
     case "NOT_UNIQUE":
       return 500;
     case "RATE_LIMITED":
-      return 500;
+      return 429;
     case "DISABLED":
     case "UNAUTHORIZED":
     case "INSUFFICIENT_PERMISSIONS":
