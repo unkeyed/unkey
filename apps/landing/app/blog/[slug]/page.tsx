@@ -61,7 +61,6 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
     contentPath: BLOG_PATH,
     filepath: params.slug,
   });
-  console.log(JSON.stringify(serialized));
 
   return (
     <>
