@@ -110,7 +110,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             your users.
           </p>
         </div>
-        <div className="space-y-2 max-sm:mt-4">
+        <div className="space-y-2 max-sm:mt-4 md:mt-8">
           <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
             <KeyRound className="w-6 h-6 text-primary" />
           </div>
