@@ -517,8 +517,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1(react-dom@18.2.0)(react@18.2.0)
       stripe:
-        specifier: ^12.18.0
-        version: 12.18.0
+        specifier: ^14.17.0
+        version: 14.17.0
       superjson:
         specifier: ^1.13.3
         version: 1.13.3
@@ -611,8 +611,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       stripe:
-        specifier: ^12.18.0
-        version: 12.18.0
+        specifier: ^14.17.0
+        version: 14.17.0
       zod:
         specifier: ^3.22.4
         version: 3.22.4
@@ -20361,8 +20361,8 @@ packages:
     dependencies:
       acorn: 8.11.3
 
-  /stripe@12.18.0:
-    resolution: {integrity: sha512-cYjgBM2SY/dTm8Lr6eMyyONaHTZHA/QjHxFUIW5WH8FevSRIGAVtXEmBkUXF1fsqe7QvvRgQSGSJZmjDacegGg==}
+  /stripe@14.17.0:
+    resolution: {integrity: sha512-iwV5SKoXuRIQFne4twGwiiczOkVW73eE2CKn6ltUKCacDy4SGHBX6kj1/xCV2bzzzQjcVtsh5F1aAbJTmf3tLw==}
     engines: {node: '>=12.*'}
     dependencies:
       '@types/node': 20.11.5
