@@ -129,6 +129,8 @@ importers:
 
   apps/docs: {}
 
+  apps/engineering: {}
+
   apps/landing:
     dependencies:
       '@chronark/zod-bird':
