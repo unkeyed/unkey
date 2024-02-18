@@ -97,7 +97,7 @@ importers:
         version: link:../../internal/zod-queue
       drizzle-orm:
         specifier: ^0.29.2
-        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
+        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
       hono:
         specifier: ^3.11.7
         version: 3.11.7
@@ -189,7 +189,7 @@ importers:
         version: 3.2.0
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
+        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
       framer-motion:
         specifier: 10.16.2
         version: 10.16.2(react-dom@18.2.0)(react@18.2.0)
@@ -443,7 +443,7 @@ importers:
         version: 3.2.0
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
+        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
       framer-motion:
         specifier: 10.16.2
         version: 10.16.2(react-dom@18.2.0)(react@18.2.0)
@@ -603,7 +603,7 @@ importers:
         version: link:../../internal/resend
       drizzle-orm:
         specifier: ^0.29.1
-        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
+        version: 0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0)
       next:
         specifier: 14.0.3
         version: 14.0.3(@babel/core@7.23.9)(react-dom@18.2.0)(react@18.2.0)
@@ -12336,7 +12336,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.11.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0):
+  /drizzle-orm@0.29.2(@cloudflare/workers-types@4.20231121.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.2.48)(expo-sqlite@13.2.2)(react@18.2.0):
     resolution: {integrity: sha512-BhwCwuSQqUoLVc7wtgIkuWexY127Z9+yDbuXU7QWZbMC2XE48jecvAThW9apQaDoaxQmwQ+ObyPfPb4zL4Bgsw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -12403,7 +12403,7 @@ packages:
     dependencies:
       '@cloudflare/workers-types': 4.20231121.0
       '@opentelemetry/api': 1.4.1
-      '@planetscale/database': 1.11.0
+      '@planetscale/database': 1.16.0
       '@types/react': 18.2.48
       expo-sqlite: 13.2.2(expo@50.0.6)
       react: 18.2.0
