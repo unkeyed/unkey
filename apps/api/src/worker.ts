@@ -1,6 +1,7 @@
 import { Env, zEnv } from "@/pkg/env";
 import { analytics, init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
+import { ResolveConfigFn, instrument } from "@microlabs/otel-cf-workers";
 import { newId } from "@unkey/id";
 import type { Metric } from "@unkey/metrics";
 import { cors } from "hono/cors";
@@ -151,7 +152,7 @@ registerLegacyApisGetApi(app);
 registerLegacyApisDeleteApi(app);
 registerLegacyApisListKeys(app);
 
-export default {
+const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
@@ -169,3 +170,15 @@ export default {
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
 };
+
+const config: ResolveConfigFn = (env: Env, _trigger) => {
+  return {
+    exporter: {
+      url: "https://otel.baselime.io/v1",
+      headers: { "x-api-key": env.BASELIME_API_KEY },
+    },
+    service: { name: env.BASELIME_SERVICE_NAME },
+  };
+};
+
+export default instrument(handler, config);

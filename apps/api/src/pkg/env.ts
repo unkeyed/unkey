@@ -19,7 +19,8 @@ export const zEnv = z.object({
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object"),
   METRICS: z.custom<Queue<Metric[]>>((ns) => typeof ns === "object"),
 
-  BASELIME_API_KEY: z.string().optional(),
+  BASELIME_API_KEY: z.string(),
+  BASELIME_SERVICE_NAME: z.string(),
 });
 
 export type Env = z.infer<typeof zEnv>;
