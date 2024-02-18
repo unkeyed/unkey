@@ -20,7 +20,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@planetscale/database": "^1.11.0",
+    "@planetscale/database": "^1.16.0",
     "@unkey/billing": "workspace:^",
     "mysql2": "^3.6.2"
   }

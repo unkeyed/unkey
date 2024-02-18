@@ -21,7 +21,7 @@
     "@react-email/container": "^0.0.10",
     "@react-email/head": "^0.0.6",
     "@react-email/heading": "^0.0.9",
-    "@react-email/hr": "^0.0.6",
+    "@react-email/hr": "^0.0.7",
     "@react-email/html": "0.0.6",
     "@react-email/link": "^0.0.6",
     "@react-email/render": "^0.0.12",
