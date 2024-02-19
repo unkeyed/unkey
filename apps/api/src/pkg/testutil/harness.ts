@@ -172,7 +172,7 @@ export abstract class Harness implements Disposable {
     return permission;
   }
 
-  private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Permission> {
+  private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Role> {
     let role: Role = {
       id: newId("role"),
       name,

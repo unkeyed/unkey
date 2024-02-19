@@ -5,6 +5,7 @@ import {
   index,
   mysqlTable,
   primaryKey,
+  unique,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
@@ -15,25 +16,28 @@ export const permissions = mysqlTable(
   "permissions",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
-    createdAt: datetime("created_at", { fsp: 3 }),
-    updatedAt: datetime("updated_at", { fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
-  (table) => ({
-    uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
-      table.name,
-      table.workspaceId,
-    ),
-    uniqueKeyPerWorkspace: uniqueIndex("unique_key_per_workspace_idx").on(
-      table.name,
-      table.workspaceId,
-    ),
-    workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),
-  }),
+  (table) => {
+    return {
+      workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
+      uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
+        table.name,
+        table.workspaceId,
+      ),
+      uniqueKeyPerWorkspaceIdx: unique("unique_key_per_workspace_idx").on(
+        table.name,
+        table.workspaceId,
+      ),
+    };
+  },
 );
-
 export const permissionsRelations = relations(permissions, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [permissions.workspaceId],
@@ -50,19 +54,27 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
 export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
-    tempId: bigint("temp_id", { mode: "bigint" }).notNull().unique().autoincrement(),
+    tempId: bigint("temp_id", { mode: "number" }).autoincrement().notNull(),
     keyId: varchar("key_id", { length: 256 }).notNull(),
     permissionId: varchar("permission_id", { length: 256 })
       .notNull()
       .references(() => permissions.id, { onDelete: "cascade" }),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    createdAt: datetime("created_at", { fsp: 3 }),
-    updatedAt: datetime("updated_at", { fsp: 3 }),
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.keyId, table.permissionId, table.workspaceId] }),
-    uniqueTuple: uniqueIndex("key_id_permission_id_idx").on(table.keyId, table.permissionId),
-  }),
+  (table) => {
+    return {
+      keysPermissionsKeyIdPermissionIdWorkspaceId: primaryKey({
+        columns: [table.keyId, table.permissionId, table.workspaceId],
+        name: "keys_permissions_key_id_permission_id_workspace_id",
+      }),
+      keysPermissionsTempIdUnique: unique("keys_permissions_temp_id_unique").on(table.tempId),
+      keyIdPermissionIdIdx: unique("key_id_permission_id_idx").on(table.keyId, table.permissionId),
+    };
+  },
 );
 
 export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => ({
@@ -77,7 +89,6 @@ export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => 
     relationName: "permissions_keys_permissions_relations",
   }),
 }));
-
 export const roles = mysqlTable(
   "roles",
   {
@@ -87,17 +98,20 @@ export const roles = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
-    createdAt: datetime("created_at", { fsp: 3 }),
-    updatedAt: datetime("updated_at", { fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
-  (table) => ({
-    uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
-      table.name,
-      table.workspaceId,
-    ),
-    workspaceIdIndex: index("workspace_id_idx").on(table.workspaceId),
-  }),
+  (table) => {
+    return {
+      workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
+      uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
+        table.name,
+        table.workspaceId,
+      ),
+    };
+  },
 );
+
 export const rolesRelations = relations(roles, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [roles.workspaceId],
@@ -111,9 +125,6 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
   }),
 }));
 
-/**
- * N:M table to connect roles and permissions
- */
 export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
@@ -126,16 +137,21 @@ export const rolesPermissions = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 })
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    createdAt: datetime("created_at", { fsp: 3 }),
-    updatedAt: datetime("updated_at", { fsp: 3 }),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
   },
-  (table) => ({
-    primaryKey: primaryKey({ columns: [table.roleId, table.permissionId, table.workspaceId] }),
-    uniquePermissionIdRoleId: uniqueIndex("unique_tuple_permission_id_role_id").on(
-      table.permissionId,
-      table.roleId,
-    ),
-  }),
+  (table) => {
+    return {
+      rolesPermissionsRoleIdPermissionIdWorkspaceId: primaryKey({
+        columns: [table.roleId, table.permissionId, table.workspaceId],
+        name: "roles_permissions_role_id_permission_id_workspace_id",
+      }),
+      uniqueTuplePermissionIdRoleId: unique("unique_tuple_permission_id_role_id").on(
+        table.permissionId,
+        table.roleId,
+      ),
+    };
+  },
 );
 
 export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) => ({
@@ -163,14 +179,18 @@ export const keysRoles = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 })
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    createdAt: datetime("created_at", { fsp: 3 }),
-    updatedAt: datetime("updated_at", { fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
-  (table) => ({
-    primaryKey: primaryKey({ columns: [table.roleId, table.keyId, table.workspaceId] }),
-
-    uniqueTuples: uniqueIndex("unique_key_id_role_id").on(table.keyId, table.roleId),
-  }),
+  (table) => {
+    return {
+      keysRolesRoleIdKeyIdWorkspaceId: primaryKey({
+        columns: [table.roleId, table.keyId, table.workspaceId],
+        name: "keys_roles_role_id_key_id_workspace_id",
+      }),
+      uniqueKeyIdRoleId: uniqueIndex("unique_key_id_role_id").on(table.keyId, table.roleId),
+    };
+  },
 );
 
 export const keysRolesRelations = relations(keysRoles, ({ one }) => ({
