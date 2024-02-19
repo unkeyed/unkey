@@ -136,18 +136,6 @@ const PythonIcon = () => (
   </svg>
 );
 
-const FlaskIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path
-      opacity="0.2"
-      fill-rule="evenodd"
-      clip-rule="evenodd"
-      d="M9.05263 5.64352C9.05263 5.92219 8.95628 6.17757 8.79618 6.37597L11.6316 7.54939C11.6316 12.1235 13.8421 15.1729 17.5263 16.6976L19 17.4599L18.2632 18.4284C11.6316 18.9846 6.0806 16.3411 5 9.07408L7.37195 6.62004C7.05419 6.41918 6.84211 6.05698 6.84211 5.64352C6.84211 5.01197 7.33695 4.5 7.94737 4.5C8.55779 4.5 9.05263 5.01197 9.05263 5.64352ZM9.17544 8.56585L8.68421 9.07408L8.78922 10.4864C9.12713 15.0313 13.1916 18.2754 17.5263 17.4599L17.186 17.3426C13.4289 16.0468 10.8948 12.4091 10.8948 8.31174L10.1579 7.54939L7.21052 8.31174V9.07408L9.17544 8.56585Z"
-      fill="white"
-    />
-  </svg>
-);
-
 const TSIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g opacity={0.3}>
@@ -337,12 +325,6 @@ const languagesList = {
       codeBlock: pythonCodeBlock,
       editorLanguage: "python",
     },
-    {
-      name: "Flask",
-      icon: <FlaskIcon />,
-      codeBlock: pythonCodeBlock,
-      editorLanguage: "python",
-    },
   ],
   Golang: [
     {
@@ -466,12 +448,12 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         title="Any language, any framework, always secure"
         text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
         align="center"
-        titleWidth={543}
-        contentWidth={591}
+        titleWidth={653}
+        contentWidth={741}
         className="relative"
       >
         <div className="mt-10">
-          <div className="flex space-x-6 pb-10">
+          <div className="flex space-x-6 pb-14">
             <Link key="get-started" href="/app">
               <PrimaryButton label="Get Started" IconRight={ChevronRight} />
             </Link>

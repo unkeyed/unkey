@@ -19,7 +19,6 @@ import {
 } from "@/components/svg/hero";
 import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
-import { cn } from "@/lib/utils";
 import { ChevronRight, LogIn } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -62,7 +61,7 @@ export default async function Landing() {
 
       <Hero />
 
-      <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px]" />
+      <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
       <div className="mt-[200px]" />
       <Suspense fallback={null}>
         <Stats />
