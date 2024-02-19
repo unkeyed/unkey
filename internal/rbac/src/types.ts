@@ -7,17 +7,27 @@
  *
  *  In the example, we define a new MyActions type that matches the Actions type from the original
  *  question, and then use the Result type to transform it into the desired MyResult type. The
- *  resulting type is "team::read" | "team::write", which matches the expected output.
+ *  resulting type is:
+ *  "team.read" | "team.write" | "domain.dns.read_record" | "domain.dns.create_record"
  *
  *
- *  @example
+ *
+ * @example
  * type Resources = {
  *   team: 'read' | 'write';
+ *   domain: {
+ *     dns: "read_record" | "create_record"
+ *   }
  * };
  *
- * type MyResult = Flatten<Resources>; // type MyResult = "team::read" | "team::write"
+ * type MyResult = Flatten<Resources>; // type MyResult = "team.read" | "team.write" | "domain.dns.read_record" | "domain.dns.create_record"
+ *
+ * You can also choose a custom delimiter:
+ * @example
+ * Flatten<Resources, "::">
  */
-
-export type Flatten<T extends Record<string, string>, Delimiter extends string = "."> = {
-  [K in keyof T]: `${K & string}${Delimiter}${T[K] & string}`;
+export type Flatten<T extends Record<string, unknown>, Delimiter extends string = "."> = {
+  [K in keyof T]: T[K] extends Record<string, unknown>
+    ? `${string & K}${Delimiter}${Flatten<T[K], Delimiter>}`
+    : `${string & K}${Delimiter}${string & T[K]}`;
 }[keyof T];

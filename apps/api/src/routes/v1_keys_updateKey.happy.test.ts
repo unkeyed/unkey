@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +12,8 @@ import {
 } from "./v1_keys_updateKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -48,7 +49,8 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -103,7 +105,8 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -115,7 +118,7 @@ test("update ratelimit", async () => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
@@ -138,7 +141,7 @@ test("update ratelimit", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -153,7 +156,8 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -166,7 +170,7 @@ test("delete expires", async () => {
     createdAt: new Date(),
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
@@ -184,7 +188,7 @@ test("delete expires", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -195,7 +199,8 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -209,7 +214,7 @@ test("update should not affect undefined fields", async () => {
     ownerId: "ownerId",
     expires: new Date(Date.now() + 60 * 60 * 1000),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
@@ -227,7 +232,7 @@ test("update should not affect undefined fields", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -243,7 +248,8 @@ test("update should not affect undefined fields", async () => {
 });
 
 test("update enabled true", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -256,7 +262,7 @@ test("update enabled true", async () => {
     createdAt: new Date(),
     enabled: false,
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
@@ -273,7 +279,7 @@ test("update enabled true", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -282,7 +288,8 @@ test("update enabled true", async () => {
 });
 
 test("update enabled false", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -295,7 +302,7 @@ test("update enabled false", async () => {
     createdAt: new Date(),
     enabled: true,
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
@@ -312,7 +319,7 @@ test("update enabled false", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -321,7 +328,8 @@ test("update enabled false", async () => {
 });
 
 test("omit enabled update", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysUpdate);
 
   const key = {
@@ -334,7 +342,7 @@ test("omit enabled update", async () => {
     createdAt: new Date(),
     enabled: true,
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
@@ -350,7 +358,7 @@ test("omit enabled update", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();

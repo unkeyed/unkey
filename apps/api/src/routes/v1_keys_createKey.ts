@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { Permission, schema } from "@unkey/db";
+import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -70,7 +70,7 @@ When validating a key, we will return this back to you, so you can clearly ident
               .optional()
               .openapi({
                 description:
-                  "A list of roles that this key should have. New roles will be created if they don't exist yet.",
+                  "A list of roles that this key should have. If the role does not exist, an error is thrown",
                 example: ["admin", "finance"],
               }),
             expires: z.number().int().optional().openapi({
@@ -241,7 +241,24 @@ export const registerV1KeysCreateKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
+    let roleIds: string[] = [];
     await db.transaction(async (tx) => {
+      if (req.roles && req.roles.length > 0) {
+        const roles = await tx.query.roles.findMany({
+          where: (table, { inArray, and, eq }) =>
+            and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.roles!)),
+        });
+        if (roles.length < req.roles.length) {
+          const missingRoles = req.roles.filter(
+            (name) => !roles.some((role) => role.name === name),
+          );
+          throw new UnkeyApiError({
+            code: "PRECONDITION_FAILED",
+            message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+          });
+        }
+        roleIds = roles.map((r) => r.id);
+      }
       await tx.insert(schema.keys).values({
         id: keyId,
         keyAuthId: api.keyAuthId!,
@@ -266,25 +283,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         deletedAt: null,
         enabled: req.enabled,
       });
-      if (req.roles && req.roles.length > 0) {
-        const permissions: Permission[] = req.roles.map((name) => ({
-          id: newId("permission"),
-          name,
-          description: null,
-          workspaceId: authorizedWorkspaceId,
-          createdAt: new Date(),
-          updatedAt: null,
-        }));
 
-        await tx.insert(schema.permissions).values(permissions);
-        await tx.insert(schema.keysPermissions).values(
-          permissions.map((p) => ({
-            keyId,
-            permissionId: p.id,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        );
-      }
       await tx.insert(schema.auditLogs).values({
         id: newId("auditLog"),
         time: new Date(),
@@ -296,6 +295,15 @@ export const registerV1KeysCreateKey = (app: App) =>
         apiId: api.id,
         keyAuthId: api.keyAuthId,
       });
+      if (roleIds.length > 0) {
+        await tx.insert(schema.keysRoles).values(
+          roleIds.map((roleId) => ({
+            keyId,
+            roleId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        );
+      }
     });
     // TODO: emit event to tinybird
     return c.json({
