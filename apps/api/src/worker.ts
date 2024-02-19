@@ -124,6 +124,7 @@ app.use("*", cors());
 
 // misc
 registerV1Liveness(app);
+
 // keys
 registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);

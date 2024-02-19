@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "roles utilities used by unkey internally",
   "main": "src/index.ts",
+  "module": "src/index.ts",
   "types": "src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
@@ -19,5 +20,6 @@
   "dependencies": {
     "@unkey/result": "workspace:^",
     "zod": "^3.22.4"
-  }
+  },
+  "type": "module"
 }
