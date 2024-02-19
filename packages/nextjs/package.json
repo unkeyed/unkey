@@ -27,8 +27,8 @@
   "devDependencies": {
     "@types/node": "^20.11.19",
     "next": "^14.1.0",
-    "tsup": "^8.0.1",
-    "typescript": "^5.2.2"
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@unkey/api": "workspace:^"
