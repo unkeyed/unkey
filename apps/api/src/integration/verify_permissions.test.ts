@@ -18,10 +18,7 @@ test("without permissions", async () => {
       key,
       authorization: {
         permissions: {
-          version: 1,
-          query: {
-            and: ["p1", "p2"],
-          },
+          and: ["p1", "p2"],
         },
       },
     },
@@ -54,10 +51,7 @@ test("with roles but not permissions", async () => {
       key,
       authorization: {
         permissions: {
-          version: 1,
-          query: {
-            and: ["p1", "p2"],
-          },
+          and: ["p1", "p2"],
         },
       },
     },
@@ -90,10 +84,7 @@ test("with roles and insufficient permissions", async () => {
       apiId: h.resources.userApi.id,
       key,
       authorization: {
-        permissions: {
-          version: 1,
-          query: "p3",
-        },
+        permissions: "p3",
       },
     },
   });
@@ -126,10 +117,7 @@ test("has all required permissions", async () => {
       key,
       authorization: {
         permissions: {
-          version: 1,
-          query: {
-            and: ["p1", "p2"],
-          },
+          and: ["p1", "p2"],
         },
       },
     },
@@ -194,15 +182,11 @@ describe(
           key,
           authorization: {
             permissions: {
-              version: 1,
-              query: {
-                and: ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"],
-              },
+              and: ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"],
             },
           },
         },
       });
-      console.log(res);
 
       expect(res.status).toBe(200);
       expect(res.body.valid).toBe(true);

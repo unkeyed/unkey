@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { NestedQuery, and, or } from "./queries";
+import { PermissionQuery, and, or } from "./queries";
 
 describe("serialising the schema", () => {
   const testCases: {
     name: string;
-    input: NestedQuery;
-    output: NestedQuery;
+    input: PermissionQuery;
+    output: PermissionQuery;
   }[] = [
     {
       name: "Simple role check",

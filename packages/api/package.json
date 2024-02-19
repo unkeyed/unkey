@@ -2,6 +2,7 @@
   "name": "@unkey/api",
   "version": "0.17.0",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "license": "MIT",
   "private": false,

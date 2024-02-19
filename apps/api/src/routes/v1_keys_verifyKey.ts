@@ -29,16 +29,12 @@ The key will be verified against the api's configuration. If the key does not be
               }),
               authorization: z
                 .object({
-                  permissions: z.object({
-                    version: z.number().optional().default(1).openapi({
-                      description: "The version of this query, for backwards compatibility",
-                    }),
-                    query: permissionQuerySchema.openapi({
-                      description: "A query for which permissions you require",
-                      example: {
-                        or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
-                      },
-                    }),
+                  permissions: permissionQuerySchema.openapi({
+                    type: "object",
+                    description: "A query for which permissions you require",
+                    example: {
+                      or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
+                    },
                   }),
                 })
                 .optional()

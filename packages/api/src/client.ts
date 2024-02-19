@@ -1,3 +1,4 @@
+import { PermissionQuery } from "@unkey/rbac";
 import { ErrorResponse } from "./errors";
 import type { paths } from "./openapi";
 
@@ -231,8 +232,11 @@ export class Unkey {
           body: req,
         });
       },
-      verify: async (
-        req: paths["/v1/keys.verifyKey"]["post"]["requestBody"]["content"]["application/json"],
+      verify: async <TPermission extends string = string>(
+        req: Omit<
+          paths["/v1/keys.verifyKey"]["post"]["requestBody"]["content"]["application/json"],
+          "authorization"
+        > & { authorization?: { permissions: PermissionQuery<TPermission> } },
       ): Promise<
         Result<
           paths["/v1/keys.verifyKey"]["post"]["responses"]["200"]["content"]["application/json"]
