@@ -11,6 +11,11 @@ jobs:
   test_routes:
      name: Unit Test API
      runs-on: ubuntu-latest
+     env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      DATABASE_BRANCH_NAME: pre-release-tests
+
 
      steps:
        - uses: actions/checkout@v4
@@ -23,17 +28,9 @@ jobs:
 
        - name: Create a branch
          run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-         env:
-          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-          DATABASE_BRANCH_NAME: pre-release-tests
-
-
 
        - name: Create a password
          id: database_password
-         env:
-          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-          DATABASE_BRANCH_NAME: pre-release-tests
          run: |
            res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
 
@@ -60,15 +57,9 @@ jobs:
        - name: Test Routes
          run: pnpm test:routes
          working-directory: apps/api
-         env:
-          DATABASE_BRANCH_NAME: pre-release-tests
-          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-          
+
        - name: Delete planetscale branch
          if: always()
-         env:
-          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-          DATABASE_BRANCH_NAME: pre-release-tests
          run: |
            pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
 
