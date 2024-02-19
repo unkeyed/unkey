@@ -6,10 +6,6 @@ import { workspaces } from "./workspaces";
 
 export const auditLogs = mysqlTable("audit_logs", {
   id: varchar("id", { length: 256 }).primaryKey(),
-
-  /**
-   * A machine readable description of what happened
-   */
   event: mysqlEnum("event", [
     "workspace.create",
     "workspace.update",
@@ -27,29 +23,20 @@ export const auditLogs = mysqlTable("audit_logs", {
     "vercelBinding.update",
     "vercelBinding.delete",
   ]).notNull(),
-
-  /**
-   * A human readable description of what happened.
-   */
   description: varchar("description", { length: 512 }).notNull(),
-  time: datetime("time", { fsp: 3 }).notNull(), // unix milli
-
+  time: datetime("time", { mode: "date", fsp: 3 }).notNull(),
   actorType: mysqlEnum("actor_type", ["user", "key"]).notNull(),
   actorId: varchar("actor_id", { length: 256 }).notNull(),
-
-  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+  workspaceId: varchar("workspace_id", { length: 256 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   apiId: varchar("api_id", { length: 256 }),
   keyId: varchar("key_id", { length: 256 }),
   keyAuthId: varchar("key_auth_id", { length: 256 }),
   vercelIntegrationId: varchar("vercel_integration_id", { length: 256 }),
   vercelBindingId: varchar("vercel_binding_id", { length: 256 }),
-
-  /**
-   * For any additional tags
-   */
-  tags: json("tags").$type<unknown>(),
+  tags: json("tags"),
 });
-
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   key: one(keys, {
     fields: [auditLogs.keyId],
