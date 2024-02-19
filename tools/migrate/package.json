@@ -12,14 +12,14 @@
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.29.2",
-    "mysql2": "^3.6.2"
+    "drizzle-orm": "^0.29.3",
+    "mysql2": "^3.9.1"
   },
   "devDependencies": {
-    "@types/node": "20.11.5",
+    "@types/node": "20.11.19",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.3.0",
-    "tsx": "^3.14.0",
-    "typescript": "^5.2.2"
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
   }
 }
