@@ -41,7 +41,7 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     }
 
     const stripe = new Stripe(stripeEnv()!.STRIPE_SECRET_KEY, {
-      apiVersion: "2022-11-15",
+      apiVersion: "2023-10-16",
       typescript: true,
     });
 
