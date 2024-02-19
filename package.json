@@ -24,8 +24,8 @@
   "devDependencies": {
     "@biomejs/biome": "^1.5.3",
     "@changesets/cli": "^2.27.1",
-    "@types/node": "^20.11.5",
-    "@vitest/ui": "^1.2.0",
+    "@types/node": "^20.11.19",
+    "@vitest/ui": "^1.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.3",
     "is-ci": "^3.0.1",
