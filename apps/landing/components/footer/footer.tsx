@@ -157,7 +157,7 @@ function MobileNavigation() {
 export function Footer() {
   return (
     <>
-      <footer className="hidden xs:block relative pt-32 overflow-hidden border-t max-sm:pt-8 border-white/10">
+      <footer className="hidden xs:block relative pt-32 xl:pt-0 overflow-hidden border-t max-sm:pt-8 border-white/10">
         <div className="absolute inset-x-0 w-full h-full -top-[50%] bg-gradient-radial from-white/10 to-transparent pointer-events-none" />
         <div className="flex flex-col mx-auto lg:w-fit max-sm:w-full ">
           <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row lg:gap-20 xl:gap-48">
@@ -169,8 +169,8 @@ export function Footer() {
             </div>
           </div>
         </div>
-        <div className="flex justify-center w-full lg:mt-24">
-          <UnkeyFooterLogo />
+        <div className="flex justify-center w-full">
+          <UnkeyFooterLogo className="mt-4" />
         </div>
       </footer>
       <MobileNavigation />
