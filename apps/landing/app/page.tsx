@@ -10,6 +10,7 @@ import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Stats } from "@/components/stats";
+import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import {
   HeroMainboardStuff,
   HeroMainboardStuffMobile,
@@ -136,7 +137,10 @@ export default async function Landing() {
           </div>
         </SectionTitle>
       </div>
-      <FeatureGrid className="mt-20" />
+      <FeatureGrid className="mt-20 relative z-50" />
+      <div className="relative -z-10">
+        <FeatureGridChip className="absolute top-[-90px]" />
+      </div>
       <SectionTitle
         align="center"
         className="mt-[200px]"
