@@ -8,7 +8,7 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231121.0",
+    "@cloudflare/workers-types": "^4.20240208.0",
     "@types/node": "^20.11.5",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.2.2"

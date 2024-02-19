@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@chronark/zod-bird": "0.3.3",
-    "@clerk/nextjs": "^4.29.3",
+    "@clerk/nextjs": "^4.29.7",
     "@planetscale/database": "^1.16.0",
     "@trigger.dev/nextjs": "^2.3.17",
     "@trigger.dev/sdk": "^2.3.16",

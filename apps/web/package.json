@@ -12,7 +12,7 @@
     "@ant-design/graphs": "^1.4.1",
     "@ant-design/plots": "^1.2.5",
     "@chronark/zod-bird": "0.3.3",
-    "@clerk/nextjs": "^4.29.3",
+    "@clerk/nextjs": "^4.29.7",
     "@hookform/resolvers": "^3.3.4",
     "@planetscale/database": "^1.16.0",
     "@radix-ui/react-accordion": "^1.1.2",
@@ -90,8 +90,8 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@builder.io/react-hydration-overlay": "^0.0.7",
-    "@clerk/types": "^3.60.0",
+    "@builder.io/react-hydration-overlay": "^0.0.8",
+    "@clerk/types": "^3.62.0",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/dagre": "^0.7.52",
     "@types/ms": "^0.7.33",
