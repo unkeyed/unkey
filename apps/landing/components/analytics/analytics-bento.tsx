@@ -1,6 +1,7 @@
 "use client";
 import { Highlight, PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
+import { AnalyticsWebApp } from "../svg/analytics-web-app";
 
 export const theme = {
   plain: {
@@ -76,7 +77,7 @@ export function AnalyticsBento() {
         </div>
         Hide API Code
       </button>
-      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
         <LightSvg className="absolute left-[250px] top-[-150px]" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
@@ -103,10 +104,8 @@ function AnalyticsApiView() {
 
 function AnalyticsWebAppView() {
   return (
-    <div className="xl:w-[1120px]  overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
-      <p className="text-white ml-[100px] mt-[100px]">
-        We need an export of this SVG for desktop. The largest in the Figma is 960px currently.
-      </p>
+    <div className="relative w-full analytics-dashboard-gradient flex justify-center">
+      <AnalyticsWebApp className="pt-10" />
     </div>
   );
 }
