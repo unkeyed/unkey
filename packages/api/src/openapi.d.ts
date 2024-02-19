@@ -248,7 +248,7 @@ export interface paths {
               [key: string]: unknown;
             };
             /**
-             * @description A list of roles that this key should have. New roles will be created if they don't exist yet.
+             * @description A list of roles that this key should have. If the role does not exist, an error is thrown
              * @example [
              *   "admin",
              *   "finance"
@@ -2215,6 +2215,14 @@ export interface components {
         | "INSUFFICIENT_PERMISSIONS";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
+      /**
+       * @description A list of all the permissions this key is connected to.
+       * @example [
+       *   "dns.record.update",
+       *   "dns.record.delete"
+       * ]
+       */
+      permissions?: string[];
     };
     V1KeysVerifyKeyRequest: {
       /**
@@ -2228,6 +2236,24 @@ export interface components {
        * @example sk_1234
        */
       key: string;
+      /** @description Perform RBAC checks */
+      authorization?: {
+        /**
+         * @description A query for which permissions you require
+         * @example {
+         *   "or": [
+         *     {
+         *       "and": [
+         *         "dns.record.read",
+         *         "dns.record.update"
+         *       ]
+         *     },
+         *     "admin"
+         *   ]
+         * }
+         */
+        permissions: Record<string, never>;
+      };
     };
   };
   responses: never;

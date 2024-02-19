@@ -10,26 +10,26 @@
   },
   "dependencies": {
     "@chronark/zod-bird": "0.3.3",
-    "@clerk/nextjs": "^4.29.3",
+    "@clerk/nextjs": "^4.29.7",
     "@planetscale/database": "^1.16.0",
-    "@trigger.dev/nextjs": "^2.3.17",
-    "@trigger.dev/sdk": "^2.3.16",
-    "@trigger.dev/slack": "^2.3.6",
+    "@trigger.dev/nextjs": "^2.3.18",
+    "@trigger.dev/sdk": "^2.3.18",
+    "@trigger.dev/slack": "^2.3.18",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/resend": "workspace:^",
-    "drizzle-orm": "^0.29.1",
-    "next": "14.0.3",
+    "drizzle-orm": "^0.29.3",
+    "next": "14.1.0",
     "react": "^18",
     "react-dom": "^18",
-    "stripe": "^12.18.0",
+    "stripe": "^14.17.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.5",
-    "@types/react": "^18.2.48",
-    "@types/react-dom": "^18.2.18",
-    "typescript": "^5"
+    "@types/node": "^20.11.19",
+    "@types/react": "^18.2.56",
+    "@types/react-dom": "^18.2.19",
+    "typescript": "^5.3.3"
   },
   "trigger.dev": {
     "endpointId": "workflows-6eiv"

@@ -3,24 +3,19 @@ import { unkeyPermissionValidation } from "./permissions";
 
 type Rule = "and" | "or";
 
-export type PermissionQuery<R extends string = string> = {
-  version: 1;
-  query: NestedQuery<R>;
-};
-
-export type NestedQuery<R extends string = string> =
+export type PermissionQuery<R extends string = string> =
   | R
   | {
-      and: NestedQuery<R>[];
+      and: PermissionQuery<R>[];
       or?: never;
     }
   | {
       and?: never;
-      or: NestedQuery<R>[];
+      or: PermissionQuery<R>[];
     };
 
-export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
-  unkeyPermissionValidation,
+export const permissionQuerySchema: z.ZodType<PermissionQuery> = z.union([
+  z.string(),
   z.object({
     and: z.array(z.lazy(() => permissionQuerySchema)),
   }),
@@ -29,9 +24,9 @@ export const permissionQuerySchema: z.ZodType<NestedQuery> = z.union([
   }),
 ]);
 
-function merge<R extends string>(rule: Rule, ...args: NestedQuery<R>[]): NestedQuery<R> {
+function merge<R extends string>(rule: Rule, ...args: PermissionQuery<R>[]): PermissionQuery<R> {
   return args.reduce(
-    (acc: NestedQuery<R>, arg) => {
+    (acc: PermissionQuery<R>, arg) => {
       if (typeof acc === "string") {
         throw new Error("Cannot merge into a string");
       }
@@ -41,24 +36,21 @@ function merge<R extends string>(rule: Rule, ...args: NestedQuery<R>[]): NestedQ
       acc[rule]!.push(arg);
       return acc;
     },
-    {} as NestedQuery<R>,
+    {} as PermissionQuery<R>,
   );
 }
 
-export function or<R extends string = string>(...args: NestedQuery<R>[]): NestedQuery<R> {
+export function or<R extends string = string>(...args: PermissionQuery<R>[]): PermissionQuery<R> {
   return merge("or", ...args);
 }
 
-export function and<R extends string = string>(...args: NestedQuery<R>[]): NestedQuery<R> {
+export function and<R extends string = string>(...args: PermissionQuery<R>[]): PermissionQuery<R> {
   return merge("and", ...args);
 }
 export function buildQuery<R extends string = string>(
-  fn: (ops: { or: typeof or<R>; and: typeof and<R> }) => NestedQuery<R>,
+  fn: (ops: { or: typeof or<R>; and: typeof and<R> }) => PermissionQuery<R>,
 ): PermissionQuery {
-  return {
-    version: 1,
-    query: fn({ or, and }),
-  };
+  return fn({ or, and });
 }
 
 /**

@@ -1,18 +1,15 @@
 import { type Result, result } from "@unkey/result";
-import { NestedQuery, PermissionQuery } from "./queries";
+import type { PermissionQuery } from "./queries";
 export class RBAC {
   public evaluatePermissions(
     q: PermissionQuery,
     roles: string[],
   ): Result<{ valid: true } | { valid: false; message: string }> {
-    if (q.version !== 1) {
-      return result.fail({ valid: false, message: "invalid version, only version 1 is supported" });
-    }
-    return this.evaluateNestedQueryV1(q.query, roles);
+    return this.evaluateQueryV1(q, roles);
   }
 
-  private evaluateNestedQueryV1(
-    query: NestedQuery,
+  private evaluateQueryV1(
+    query: PermissionQuery,
     roles: string[],
   ): Result<{ valid: true } | { valid: false; message: string }> {
     if (typeof query === "string") {
@@ -24,7 +21,7 @@ export class RBAC {
     }
 
     if (query.and) {
-      const results = query.and.map((q) => this.evaluateNestedQueryV1(q, roles));
+      const results = query.and.map((q) => this.evaluateQueryV1(q, roles));
       for (const r of results) {
         if (r.error) {
           return r;
@@ -38,7 +35,7 @@ export class RBAC {
 
     if (query.or) {
       for (const q of query.or) {
-        const r = this.evaluateNestedQueryV1(q, roles);
+        const r = this.evaluateQueryV1(q, roles);
         if (r.error) {
           return r;
         }

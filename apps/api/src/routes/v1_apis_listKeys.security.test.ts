@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -52,7 +52,8 @@ describe("correct roles", () => {
       ],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    using h = new RouteHarness();
+    await h.seed();
     h.useRoutes(registerV1ApisListKeys);
 
     const keyAuthId = newId("keyAuth");

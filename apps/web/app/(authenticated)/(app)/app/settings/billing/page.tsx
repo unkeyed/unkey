@@ -131,7 +131,7 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   }
 
   const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-    apiVersion: "2022-11-15",
+    apiVersion: "2023-10-16",
     typescript: true,
   });
 

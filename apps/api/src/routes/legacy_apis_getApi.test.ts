@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
 import { fetchRoute } from "@/pkg/testutil/request";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { type LegacyApisGetApiResponse, registerLegacyApisGetApi } from "./legacy_apis_getApi";
@@ -10,7 +10,8 @@ import { type LegacyApisGetApiResponse, registerLegacyApisGetApi } from "./legac
 describe("when api exists", () => {
   describe("with a `*` role", () => {
     test("returns the api", async () => {
-      const h = await Harness.init();
+      using h = new RouteHarness();
+      await h.seed();
 
       h.useRoutes(registerLegacyApisGetApi);
 
@@ -36,7 +37,8 @@ describe("when api exists", () => {
   describe("with ip whitelist", () => {
     describe("with `*` role", () => {
       test("returns the ip whitelist", async () => {
-        const h = await Harness.init();
+        using h = new RouteHarness();
+        await h.seed();
 
         const api = {
           id: newId("api"),
@@ -47,7 +49,7 @@ describe("when api exists", () => {
           deletedAt: null,
         };
 
-        await h.resources.database.insert(schema.apis).values(api);
+        await h.db.insert(schema.apis).values(api);
 
         const rootKey = await h.createRootKey(["*"]);
 
@@ -72,7 +74,8 @@ describe("when api exists", () => {
 });
 describe("when api does not exist", () => {
   test("returns an error", async () => {
-    const h = await Harness.init();
+    using h = new RouteHarness();
+    await h.seed();
 
     h.useRoutes(registerLegacyApisGetApi);
     const rootKey = await h.createRootKey(["*"]);
@@ -95,13 +98,17 @@ describe("without roles", () => {
   describe("when api exists", () => {
     describe("basic", () => {
       test("returns the api", async () => {
-        const h = await Harness.init();
+        using h = new RouteHarness();
+        await h.seed();
 
         h.useRoutes(registerLegacyApisGetApi);
+
+        const { key: rootKey } = await h.createRootKey([]);
+
         const res = await h.get<ErrorResponse>({
           url: `/v1/apis/${h.resources.userApi.id}`,
           headers: {
-            Authorization: `Bearer ${h.resources.rootKey}`,
+            Authorization: `Bearer ${rootKey}`,
           },
         });
 
@@ -112,20 +119,22 @@ describe("without roles", () => {
   });
   describe("when api does not exist", () => {
     test("returns an error", async () => {
-      const h = await Harness.init();
+      using h = new RouteHarness();
+      await h.seed();
       h.useRoutes(registerLegacyApisGetApi);
 
       const fakeApiId = newId("api");
+      const { key: rootKey } = await h.createRootKey(["*"]);
 
       const res = await h.get<ErrorResponse>({
         url: `/v1/apis/${fakeApiId}`,
         headers: {
-          Authorization: `Bearer ${h.resources.rootKey}`,
+          Authorization: `Bearer ${rootKey}`,
         },
       });
 
-      expect(res.status).toEqual(403);
-      expect(res.body.error.code).toEqual("INSUFFICIENT_PERMISSIONS");
+      expect(res.status).toEqual(404);
+      expect(res.body.error.code).toEqual("NOT_FOUND");
     });
   });
 });

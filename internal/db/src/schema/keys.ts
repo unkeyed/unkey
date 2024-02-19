@@ -20,14 +20,18 @@ export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
+    keyAuthId: varchar("key_auth_id", { length: 256 })
+      .notNull()
+      .references(() => keyAuth.id, { onDelete: "cascade" }),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
     /**
      * This is the workspace that owns the key.
      */
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
 
     /**
      * For internal keys, this is the workspace that the key is for.

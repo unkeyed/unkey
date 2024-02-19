@@ -3,7 +3,7 @@ import { newId } from "@unkey/id";
 
 import { randomUUID } from "node:crypto";
 import { describe } from "node:test";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { expect, test } from "vitest";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
@@ -37,7 +37,8 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    using h = new RouteHarness();
+    await h.seed();
     h.useRoutes(registerLegacyApisDeleteApi);
 
     const apiId = newId("api");
@@ -59,7 +60,7 @@ describe("correct roles", () => {
     });
     expect(res.status).toEqual(200);
 
-    const found = await h.resources.database.query.apis.findFirst({
+    const found = await h.db.query.apis.findFirst({
       where: (table, { eq }) => eq(table.id, apiId),
     });
     expect(found).toBeDefined();

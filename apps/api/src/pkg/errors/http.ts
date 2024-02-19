@@ -1,6 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { StatusCode } from "hono/utils/http-status";
 import { ZodError } from "zod";
 import { generateErrorMessage } from "zod-error";
 import { logger } from "../global";
@@ -61,7 +62,7 @@ export const ErrorSchema = z.object({
 
 export type ErrorResponse = z.infer<typeof ErrorSchema>;
 
-function codeToStatus(code: z.infer<typeof ErrorCode>): number {
+function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
   switch (code) {
     case "BAD_REQUEST":
       return 400;

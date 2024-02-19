@@ -37,6 +37,7 @@ type VerifyKeyResult =
         reset: number;
       };
       remaining?: number;
+      permissions?: string[];
     }
   | {
       code?: never;
@@ -54,6 +55,7 @@ type VerifyKeyResult =
        * the workspace of the user, even if this is a root key
        */
       authorizedWorkspaceId: string;
+      permissions?: string[];
     };
 
 export class KeyService {
@@ -153,6 +155,19 @@ export class KeyService {
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          roles: {
+            with: {
+              role: {
+                with: {
+                  permissions: {
+                    with: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           permissions: {
             with: {
               permission: true,
@@ -176,10 +191,19 @@ export class KeyService {
       if (!dbRes.keyAuth.api) {
         this.logger.error("database did not return api for key", dbRes);
       }
+
+      /**
+       * Createa a unique set of all permissions, whether they're attached directly or connected
+       * through a role.
+       */
+      const permissions = new Set<string>([
+        ...dbRes.permissions.map((p) => p.permission.name),
+        ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+      ]);
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission.name),
+        permissions: Array.from(permissions.values()),
       };
     });
 
@@ -196,6 +220,7 @@ export class KeyService {
         api: data.api,
         valid: false,
         code: "DISABLED",
+        permissions: data.permissions,
       });
     }
 
@@ -205,6 +230,7 @@ export class KeyService {
         api: data.api,
         valid: false,
         code: "FORBIDDEN",
+        permissions: data.permissions,
       });
     }
 
@@ -228,6 +254,7 @@ export class KeyService {
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
+          permissions: data.permissions,
         });
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
@@ -237,6 +264,7 @@ export class KeyService {
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
+          permissions: data.permissions,
         });
       }
     }
@@ -252,6 +280,7 @@ export class KeyService {
           api: data.api,
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
+          permissions: data.permissions,
         });
       }
     }
@@ -267,6 +296,7 @@ export class KeyService {
         valid: false,
         code: "RATE_LIMITED",
         ratelimit,
+        permissions: data.permissions,
       });
     }
 
@@ -288,6 +318,7 @@ export class KeyService {
           ratelimit,
           isRootKey: !!data.key.forWorkspaceId,
           authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
+          permissions: data.permissions,
         });
       }
     }
@@ -303,6 +334,7 @@ export class KeyService {
       remaining,
       isRootKey: !!data.key.forWorkspaceId,
       authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
+      permissions: data.permissions,
     });
   }
 
