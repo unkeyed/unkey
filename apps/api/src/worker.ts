@@ -174,7 +174,7 @@ const handler = {
 const config: ResolveConfigFn = (env: Env, _trigger) => {
   return {
     exporter: {
-      url: "https://otel.baselime.io/v1",
+      url: "https://otel.baselime.io/v1/",
       headers: { "x-api-key": env.BASELIME_API_KEY },
     },
     service: { name: env.BASELIME_SERVICE_NAME },
