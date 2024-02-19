@@ -231,7 +231,7 @@ importers:
         version: 1.2.0
       rehype-pretty-code:
         specifier: ^0.10.1
-        version: 0.10.1(shiki@0.14.7)
+        version: 0.10.1(shiki@1.1.5)
       rehype-raw:
         specifier: ^7.0.0
         version: 7.0.0
@@ -242,8 +242,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
       shiki:
-        specifier: ^0.14.7
-        version: 0.14.7
+        specifier: ^1.1.5
+        version: 1.1.5
       tailwind-merge:
         specifier: ^2.2.1
         version: 2.2.1
@@ -500,7 +500,7 @@ importers:
         version: 1.2.0
       rehype-pretty-code:
         specifier: ^0.10.1
-        version: 0.10.1(shiki@0.14.7)
+        version: 0.10.1(shiki@1.1.5)
       rehype-raw:
         specifier: ^7.0.0
         version: 7.0.0
@@ -514,8 +514,8 @@ importers:
         specifier: 3.2.0
         version: 3.2.0
       shiki:
-        specifier: ^0.14.7
-        version: 0.14.7
+        specifier: ^1.1.5
+        version: 1.1.5
       sonner:
         specifier: ^1.4.0
         version: 1.4.0(react-dom@18.2.0)(react@18.2.0)
@@ -4706,6 +4706,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -6970,6 +6971,10 @@ packages:
     dependencies:
       domhandler: 5.0.3
       selderee: 0.11.0
+    dev: false
+
+  /@shikijs/core@1.1.5:
+    resolution: {integrity: sha512-cKc5vGQ4p/4sjx48BHIO7CvLaN32vqpz5Wh7v2n+U1EezGdfX4Wms7khBctKz3iCg9yYq4sfGUc2t+JWj6EUsw==}
     dev: false
 
   /@shuding/opentype.js@1.4.0-beta.0:
@@ -14477,6 +14482,10 @@ packages:
     hasBin: true
     dev: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -16505,7 +16514,7 @@ packages:
       unist-util-visit: 4.1.2
     dev: false
 
-  /rehype-pretty-code@0.10.1(shiki@0.14.7):
+  /rehype-pretty-code@0.10.1(shiki@1.1.5):
     resolution: {integrity: sha512-WHjRvGlqPXG8BVRB9mK0255WvIOnzvHivAWhFkA2OG+NTkQWtTbCULZMokOHLf3Yy8q8I8/F8QNjDSQBhjMK5w==}
     engines: {node: '>=16'}
     peerDependencies:
@@ -16514,7 +16523,7 @@ packages:
       '@types/hast': 2.3.10
       hash-obj: 4.0.0
       parse-numeric-range: 1.3.0
-      shiki: 0.14.7
+      shiki: 1.1.5
     dev: false
 
   /rehype-raw@7.0.0:
@@ -17059,6 +17068,12 @@ packages:
       jsonc-parser: 3.2.1
       vscode-oniguruma: 1.7.0
       vscode-textmate: 8.0.0
+    dev: false
+
+  /shiki@1.1.5:
+    resolution: {integrity: sha512-754GuKIwkUdT810Xm8btuyNQPL+q3PqOkwGW/VlmAWyMYp+HbvvDt69sWXO1sm5aeczBJQjmQTTMR4GkKQNQPw==}
+    dependencies:
+      '@shikijs/core': 1.1.5
     dev: false
 
   /side-channel@1.0.5:
