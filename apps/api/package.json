@@ -31,8 +31,8 @@
     "@unkey/rbac": "workspace:^",
     "@unkey/result": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
-    "drizzle-orm": "^0.29.2",
-    "hono": "^3.11.7",
+    "drizzle-orm": "^0.29.3",
+    "hono": "^4.0.4",
     "superjson": "^1.13.3",
     "zod": "^3.22.4",
     "zod-error": "^1.5.0"
