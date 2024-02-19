@@ -149,6 +149,13 @@ Possible values are:
                 description:
                   "Sets the key to be enabled or disabled. Disabled keys will not verify.",
               }),
+              permissions: z
+                .array(z.string())
+                .optional()
+                .openapi({
+                  description: "A list of all the permissions this key is connected to.",
+                  example: ["dns.record.update", "dns.record.delete"],
+                }),
             })
             .openapi("V1KeysVerifyKeyResponse"),
         },
@@ -199,5 +206,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       remaining: value.remaining ?? undefined,
       ratelimit: value.ratelimit ?? undefined,
       enabled: value.key.enabled,
+      permissions: value.permissions,
     });
   });

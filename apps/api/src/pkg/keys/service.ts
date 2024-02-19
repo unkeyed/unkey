@@ -37,6 +37,7 @@ type VerifyKeyResult =
         reset: number;
       };
       remaining?: number;
+      permissions?: string[];
     }
   | {
       code?: never;
@@ -54,6 +55,7 @@ type VerifyKeyResult =
        * the workspace of the user, even if this is a root key
        */
       authorizedWorkspaceId: string;
+      permissions?: string[];
     };
 
 export class KeyService {
@@ -218,6 +220,7 @@ export class KeyService {
         api: data.api,
         valid: false,
         code: "DISABLED",
+        permissions: data.permissions,
       });
     }
 
@@ -227,6 +230,7 @@ export class KeyService {
         api: data.api,
         valid: false,
         code: "FORBIDDEN",
+        permissions: data.permissions,
       });
     }
 
@@ -250,6 +254,7 @@ export class KeyService {
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
+          permissions: data.permissions,
         });
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
@@ -259,6 +264,7 @@ export class KeyService {
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
+          permissions: data.permissions,
         });
       }
     }
@@ -274,6 +280,7 @@ export class KeyService {
           api: data.api,
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
+          permissions: data.permissions,
         });
       }
     }
@@ -289,6 +296,7 @@ export class KeyService {
         valid: false,
         code: "RATE_LIMITED",
         ratelimit,
+        permissions: data.permissions,
       });
     }
 
@@ -310,6 +318,7 @@ export class KeyService {
           ratelimit,
           isRootKey: !!data.key.forWorkspaceId,
           authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
+          permissions: data.permissions,
         });
       }
     }
@@ -325,6 +334,7 @@ export class KeyService {
       remaining,
       isRootKey: !!data.key.forWorkspaceId,
       authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
+      permissions: data.permissions,
     });
   }
 

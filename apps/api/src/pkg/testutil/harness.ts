@@ -1,4 +1,3 @@
-import { DatabaseError } from "@planetscale/database";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -11,7 +10,6 @@ import {
   type Workspace,
   createConnection,
   eq,
-  or,
   schema,
 } from "../db";
 import { init } from "../global";
@@ -96,7 +94,7 @@ export abstract class Harness implements Disposable {
     };
   }
 
-  public async createKey(opts: {
+  public async createKey(opts?: {
     roles: {
       name: string;
       permissions?: string[];
@@ -116,7 +114,7 @@ export abstract class Harness implements Disposable {
       createdAt: new Date(),
     });
 
-    for (const role of opts.roles) {
+    for (const role of opts?.roles ?? []) {
       const { id: roleId } = await this.optimisticUpsertRole(
         this.resources.userWorkspace.id,
         role.name,

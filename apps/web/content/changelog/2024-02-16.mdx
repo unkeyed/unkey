@@ -1,0 +1,53 @@
+---
+  title: Authorization Alpha Release
+  date: 2024-02-16,
+  description: This release includes the ability to create and manage roles and permissions, and to assign them to your keys.
+---
+
+## Authorization through RBAC
+
+We are excited to announce the Alpha release of our Authorization offering. This feature is opt-in and is available to all customers; while it is in Alpha, we advise keeping it to development environments. 
+
+### Create roles
+
+When creating roles, we wanted to give you the ability to provide them with an intuitive name and a description. This allows others in your organization to understand the purpose of the role and also gives you the ability to match the systems you have in place.
+
+<Image src="/images/changelog/2024-02-16/create-role.png" alt="Create Role" width="500" height="500"/>
+
+If you have permissions created already, you can assign them to your roles during the creation process. If you don't have permissions created yet, you can create them after creating your role and assign them later.
+
+### Creating permissions
+
+Our permissions are designed to be flexible; you can create permissions specific to a single API or service, or you can create more general permissions that can be used across multiple roles. We also offer the ability to wild card your permissions for more flexibility.
+
+<Image src="/images/changelog/2024-02-16/create-perms.png" alt="Create Permission" width="500" height="500"/>
+
+After you have created your permissions, you can assign them to your roles.
+
+### Visualizing roles and permissions
+
+Unkey has always focused on making securing your APIs more accessible than ever. With the introduction of our Authorization offering, we wanted to simplify how you can see what roles and permissions are assigned to a key and update them as needed.
+
+<Image src="/images/changelog/2024-02-16/connect-key.png" alt="Roles and Permissions" width="1920" height="1080"/>
+
+### Permission details 
+
+If you want to understand which roles are using permission, when it was last used, what keys are attached, and when it was last updated, you can do so by clicking on the permission.
+
+<Image src="/images/changelog/2024-02-16/permissions-details.png" alt="Permission Details" width="1920" height="1080"/>
+
+## Create key UI updates
+
+The team refined our create key UI to provide a better User experience. The new UI offers toggles for enabling features while ensuring you are provided with actionable feedback when there is an error.
+ 
+<Image src="/images/changelog/2024-02-16/create-key-ui.png" alt="Create Key UI example" width="1920" height="1080"/>
+
+## Content Roundup
+
+### How to build and authenticate an AI API using Modal, Neon, and Unkey
+
+If you want to learn how to use Neon Postgres and Modal to build, host, and deploy an OpenAI Whisper API - fully secured by Unkey. We collaborated with the team at Neon team to create a tutorial that walks you through the process. You can find the tutorial [here](https://neon.tech/blog/how-to-build-and-authenticate-an-ai-api-using-modal-neon-and-unkey).
+
+### Decoding CLI Auth 
+
+Command Line Interfaces (CLI) have become integral tools for developers looking to streamline their workflows, but how does CLI authentication work? In our latest blog post, we break down the process of authenticating a CLI tool and how Unkey can help. You can find the blog post [here](https://unkey.dev/blog/cli-auth).

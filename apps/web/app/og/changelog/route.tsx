@@ -1,5 +1,6 @@
-import { getChangelog } from "@/lib/mdx-helper";
 import { ImageResponse } from "@vercel/og";
+import { NextRequest } from "next/server";
+export const runtime = "edge";
 
 const truncate = (str: string | null, length: number) => {
   if (!str || str.length <= length) {
@@ -8,24 +9,15 @@ const truncate = (str: string | null, length: number) => {
   return `${str.slice(0, length - 3)}...`;
 };
 
-export const contentType = "image/png";
-export const alt = "Changelog OG Image";
+export async function GET(req: NextRequest): Promise<ImageResponse> {
+  const { searchParams } = new URL(req.url);
 
-export default async function Image({ params }: { params: { date: string } }) {
+  const title = searchParams.get("title") || "Changelog";
+  const date = searchParams.get("date");
   try {
     const satoshiBold = await fetch(new URL("@/styles/Satoshi-Bold.ttf", import.meta.url)).then(
       (res) => res.arrayBuffer(),
     );
-    const { frontmatter } = await getChangelog(params.date);
-
-    // Rare case where the changelog is not found?
-    if (!frontmatter) {
-      return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
-        width: 1280,
-        height: 720,
-      });
-    }
-
     return new ImageResponse(
       <div
         style={{
@@ -179,7 +171,7 @@ export default async function Image({ params }: { params: { date: string } }) {
             color: "transparent",
           }}
         >
-          {truncate(frontmatter.title, 55)}
+          {truncate(title, 55)}
         </h1>
 
         <div
@@ -197,9 +189,7 @@ export default async function Image({ params }: { params: { date: string } }) {
             width: "100%",
           }}
         >
-          <p>
-            {frontmatter.date ? `Changelog - ${new Date(frontmatter.date).toDateString()}` : null}
-          </p>
+          <p>{date ? `Changelog - ${date}` : null}</p>
           <p>Unkey.dev</p>
         </div>
       </div>,
@@ -215,7 +205,7 @@ export default async function Image({ params }: { params: { date: string } }) {
       },
     );
   } catch (e) {
-    console.error(`Error generating image using fallback for changelog route ${params.date}`, e);
+    console.error(`Error generating image using fallback for changelog  ${title}`, e);
     return new ImageResponse(<img src="https://unkey.dev/images/landing/og.png" alt="Unkey" />, {
       width: 1280,
       height: 720,

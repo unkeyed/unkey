@@ -32,7 +32,7 @@ export const createInvoiceJob = client.defineJob({
 
     const db = connectDatabase();
     const stripe = new Stripe(env().STRIPE_SECRET_KEY, {
-      apiVersion: "2022-11-15",
+      apiVersion: "2023-10-16",
       typescript: true,
     });
     const tinybird = new Tinybird(env().TINYBIRD_TOKEN);

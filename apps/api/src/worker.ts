@@ -71,23 +71,30 @@ app.use("*", async (c, next) => {
     m.requestId = requestId;
     c.set("requestId", requestId);
 
-    c.executionCtx.waitUntil(
-      analytics
-        .ingestSdkTelemetry({
-          runtime: c.req.header("Unkey-Telemetry-Runtime") || "unknown",
-          platform: c.req.header("Unkey-Telemetry-Platform") || "unknown",
-          versions: c.req.header("Unkey-Telemetry-SDK")?.split(",") || [],
-          requestId,
-          time: Date.now(),
-        })
-        .catch((err) => {
-          logger.error("Error ingesting SDK telemetry", {
-            method: c.req.method,
-            path: c.req.path,
-            error: err.message,
-          });
-        }),
-    );
+    const telemetry = {
+      runtime: c.req.header("Unkey-Telemetry-Runtime"),
+      platform: c.req.header("Unkey-Telemetry-Platform"),
+      versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
+    };
+    if (telemetry.runtime || telemetry.platform || telemetry.versions) {
+      c.executionCtx.waitUntil(
+        analytics
+          .ingestSdkTelemetry({
+            runtime: telemetry.runtime || "unknown",
+            platform: telemetry.platform || "unknown",
+            versions: telemetry.versions || [],
+            requestId,
+            time: Date.now(),
+          })
+          .catch((err) => {
+            logger.error("Error ingesting SDK telemetry", {
+              method: c.req.method,
+              path: c.req.path,
+              error: err.message,
+            });
+          }),
+      );
+    }
 
     await next();
     // headers should be set after calling `next()`, otherwise they will be lowercased by the framework

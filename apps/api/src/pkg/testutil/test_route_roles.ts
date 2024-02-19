@@ -29,7 +29,7 @@ type StepRequestWithoutAuthorizationHeader<TReq> = Omit<StepRequest<TReq>, "head
 };
 
 export function runSharedRoleTests<TReq>(config: {
-  prepareRequest: (h: Harness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
+  prepareRequest: (h: RouteHarness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
   registerHandler: (app: App) => any;
 }) {
   describe("shared role tests", () => {
