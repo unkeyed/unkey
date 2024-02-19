@@ -17,6 +17,7 @@ import {
   TopLeftShiningLight,
   TopRightShiningLight,
 } from "@/components/svg/hero";
+import { LeveledUpApiAuthChip } from "@/components/svg/leveled-up-api-auth-chip";
 import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
 import { ChevronRight, LogIn } from "lucide-react";
@@ -110,28 +111,31 @@ export default async function Landing() {
         <HashedKeysBento />
         <AuditLogsBento />
       </div>
-      <div className=" grid xl:grid-cols-[3fr_2fr] gap-6">
+      <div className="grid xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
         <IpWhitelistingBento />
         <RateLimitsBento />
       </div>
-      <SectionTitle
-        className="mt-[400px] md:ml-10"
-        title="Leveled-up API Auth"
-        titleWidth={719}
-        contentWidth={557}
-        text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
-        label="More"
-      >
-        <div className="flex mt-10 mb-10 space-x-6">
-          <Link href="/app" className="group">
-            <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
-          </Link>
+      <div className="relative">
+        <LeveledUpApiAuthChip className="absolute top-[-450px] right-0" />
+        <SectionTitle
+          className="mt-[400px] md:ml-10"
+          title="Leveled-up API Auth"
+          titleWidth={719}
+          contentWidth={557}
+          text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+          label="More"
+        >
+          <div className="flex mt-10 mb-10 space-x-6">
+            <Link href="/app" className="group">
+              <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+            </Link>
 
-          <Link href="/docs">
-            <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
-          </Link>
-        </div>
-      </SectionTitle>
+            <Link href="/docs">
+              <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
+            </Link>
+          </div>
+        </SectionTitle>
+      </div>
       <FeatureGrid className="mt-20" />
       <SectionTitle
         align="center"
