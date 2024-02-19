@@ -79,6 +79,20 @@
   pointer-events: none;
 }
 
+.rate-limits-background-gradient {
+  position: relative;
+}
+
+.rate-limits-background-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+}
+
 
 .line-number {
   color: rgba(255, 255, 255, 0.3);

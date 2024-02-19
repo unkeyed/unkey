@@ -1,6 +1,6 @@
 export function RateLimitsBento() {
   return (
-    <div className="w-full xl:mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full xl:mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden rate-limits-background-gradient">
       <RateLimits />
       <RateLimitsText />
     </div>
@@ -19,7 +19,7 @@ export function RateLimits() {
           <p>5</p>
           <p>6</p>
         </div>
-        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8">
+        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8 rounded-br-xl">
           {JSON.stringify({ rateLimit: { limit: 10, interval: 1000 } }, null, 2)}
         </div>
       </div>
