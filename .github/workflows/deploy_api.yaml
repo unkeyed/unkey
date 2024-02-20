@@ -6,15 +6,16 @@ on:
 
 concurrency: "only one deploy at a time"
 
-env:
-  DATABASE_BRANCH_NAME: pre-release-tests
-  PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-  PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
 
 jobs:
   test_routes:
      name: Unit Test API
      runs-on: ubuntu-latest
+     env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      DATABASE_BRANCH_NAME: pre-release-tests
+
 
      steps:
        - uses: actions/checkout@v4
@@ -27,7 +28,6 @@ jobs:
 
        - name: Create a branch
          run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-
 
        - name: Create a password
          id: database_password
@@ -57,8 +57,7 @@ jobs:
        - name: Test Routes
          run: pnpm test:routes
          working-directory: apps/api
-         env:
-           UNKEY_ROOT_KEY: "not-empty" # this is not requried for these tests, but it is required for the env validation, I should fix this
+
        - name: Delete planetscale branch
          if: always()
          run: |
@@ -108,7 +107,9 @@ jobs:
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
-          UNKEY_ROOT_KEY: ${{ secrets.PREVIEW_ROOT_KEY }}
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
   canary:
       needs:
@@ -149,7 +150,9 @@ jobs:
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev
-          UNKEY_ROOT_KEY: ${{ secrets.CANARY_ROOT_KEY }}
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
   # canary-latency:
   #   environment: Canary

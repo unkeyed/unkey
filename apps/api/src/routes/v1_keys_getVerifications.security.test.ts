@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -16,7 +16,7 @@ runSharedRoleTests({
   prepareRequest: async (h) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -47,11 +47,12 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.read_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    using h = new RouteHarness();
+    await h.seed();
     h.useRoutes(registerV1KeysGetVerifications);
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -74,7 +75,8 @@ describe("correct roles", () => {
 });
 
 test("cannot read keys from a different workspace", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const workspaceId = newId("workspace");
@@ -103,7 +105,7 @@ test("cannot read keys from a different workspace", async () => {
 
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.resources.database.insert(schema.keys).values({
+  await h.db.insert(schema.keys).values({
     id: keyId,
     keyAuthId: keyAuthId,
     hash: await sha256(key),
@@ -114,7 +116,7 @@ test("cannot read keys from a different workspace", async () => {
 
   const keyId2 = newId("key");
   const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.resources.database.insert(schema.keys).values({
+  await h.db.insert(schema.keys).values({
     id: keyId2,
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key2),

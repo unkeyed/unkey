@@ -4,7 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { describe, expect, test } from "vitest";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
@@ -13,7 +13,7 @@ runSharedRoleTests<LegacyKeysDeleteKeyResponse>({
   prepareRequest: async (h) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -41,12 +41,13 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
+    using h = new RouteHarness();
+    await h.seed();
     h.useRoutes(registerLegacyKeysDelete);
 
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -67,7 +68,7 @@ describe("correct roles", () => {
     });
     expect(res.status).toEqual(200);
 
-    const found = await h.resources.database.query.keys.findFirst({
+    const found = await h.db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
     });
     expect(found).toBeDefined();

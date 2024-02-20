@@ -28,6 +28,14 @@ let nextConfig = {
       source: "/docs/:match*",
       destination: "https://unkey.mintlify.dev/docs/:match*",
     },
+    {
+      source: "/engineering",
+      destination: "https://engineering.mintlify.dev/engineering",
+    },
+    {
+      source: "/engineering/:match*",
+      destination: "https://engineering.mintlify.dev/engineering/:match*",
+    },
   ],
 };
 

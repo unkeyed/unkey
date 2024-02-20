@@ -1,4 +1,4 @@
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -7,7 +7,8 @@ import { expect, test } from "vitest";
 import { V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1KeysGetKey);
 
   const root = await h.createRootKey(["api.*.read_key"]);

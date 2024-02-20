@@ -8,12 +8,12 @@
     "start": "wrangler dev"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231121.0",
-    "typescript": "^5.0.4",
-    "wrangler": "^3.26.0"
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.28.4"
   },
   "dependencies": {
-    "@axiomhq/js": "1.0.0-rc.1",
+    "@axiomhq/js": "1.0.0-rc.2",
     "@unkey/metrics": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
     "zod": "^3.22.4"
