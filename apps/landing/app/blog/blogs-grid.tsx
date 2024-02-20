@@ -2,8 +2,6 @@ import { authors } from "@/content/blog/authors";
 import { Frontmatter, Tags } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { BlogCard } from "./blog-card";
 import { BlogPagination } from "./blog-pagination";
 
