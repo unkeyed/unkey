@@ -2,7 +2,10 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
+import { db } from "@/pkg/global";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
+import { schema } from "@unkey/db";
+import { newId } from "@unkey/id";
 import {
   V1KeysCreateKeyRequest,
   V1KeysCreateKeyResponse,
@@ -159,5 +162,54 @@ describe("with prefix", () => {
     });
     expect(key).toBeDefined();
     expect(key!.start.startsWith("prefix_")).toBe(true);
+  });
+});
+
+describe("roles", () => {
+  test("connects the specified roles", async () => {
+    using h = new RouteHarness();
+    await h.seed();
+    h.useRoutes(registerV1KeysCreateKey);
+
+    const roles = ["r1", "r2"];
+    await h.db.insert(schema.roles).values(
+      roles.map((name) => ({
+        id: newId("role"),
+        name,
+        workspaceId: h.resources.userWorkspace.id,
+      })),
+    );
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        roles,
+      },
+    });
+
+    expect(res.status).toEqual(200);
+
+    const key = await db.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        roles: {
+          with: {
+            role: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.roles.length).toBe(2);
+    for (const r of key!.roles!) {
+      expect(roles).include(r.role.name);
+    }
   });
 });

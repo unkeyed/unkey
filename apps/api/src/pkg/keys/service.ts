@@ -204,6 +204,7 @@ export class KeyService {
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
+        roles: dbRes.roles.map((r) => r.role.name),
       };
     });
 

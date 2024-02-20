@@ -28,11 +28,13 @@ export type CacheNamespaces = {
     key: Key;
     api: Api;
     permissions: string[];
+    roles: string[];
   } | null;
   keyByHash: {
     key: Key;
     api: Api;
     permissions: string[];
+    roles: string[];
   } | null;
   apiById: Api | null;
   keysByOwnerId: {
