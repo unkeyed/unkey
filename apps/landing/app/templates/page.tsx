@@ -1,7 +1,9 @@
 "use client";
 import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
+import { BlogBackgroundLines } from "@/components/svg/blog-page";
 import { CodeIcon, FrameworkIcon, TemplatesRightArrow } from "@/components/svg/template-page";
+import { TemplateTopLight } from "@/components/svg/template-page";
 import { Checkbox } from "@/components/template/checkbox";
 import {
   Form,
@@ -98,9 +100,17 @@ export default function Templates() {
       ),
     [fields],
   );
+  console.log(window.innerWidth);
 
   return (
     <>
+      <div className="flex justify-center xl:w-[1100px]">
+        <TemplateTopLight />
+      </div>
+      <div className="flex justify-center mx-auto lx:max-[1100px]">
+        <BlogBackgroundLines />
+      </div>
+
       <PageIntro title="Find your Template">
         <p className="text-white/60 mt-10">
           Jumpstart your api development with our pre-built solutions.
