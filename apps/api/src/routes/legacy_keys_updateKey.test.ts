@@ -1,4 +1,4 @@
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -11,7 +11,8 @@ import {
 } from "./legacy_keys_updateKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -23,12 +24,13 @@ test("returns 200", async () => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
+  const { key: rootKey } = await h.createRootKey(["*"]);
   const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       name: "test2",
@@ -42,7 +44,8 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -54,13 +57,14 @@ test("update all", async () => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
+  const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       name: "newName",
@@ -79,7 +83,7 @@ test("update all", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -94,7 +98,8 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -106,13 +111,14 @@ test("update ratelimit", async () => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
+  const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       ratelimit: {
@@ -126,7 +132,7 @@ test("update ratelimit", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -141,7 +147,8 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -154,13 +161,15 @@ test("delete expires", async () => {
     createdAt: new Date(),
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
+
+  const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       expires: null,
@@ -169,7 +178,7 @@ test("delete expires", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -180,7 +189,8 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysUpdate);
 
   const key = {
@@ -194,13 +204,15 @@ test("update should not affect undefined fields", async () => {
     ownerId: "ownerId",
     expires: new Date(Date.now() + 60 * 60 * 1000),
   };
-  await h.resources.database.insert(schema.keys).values(key);
+  await h.db.insert(schema.keys).values(key);
+
+  const rootKey = await h.createRootKey(["*"]);
 
   const res = await h.put<LegacyKeysUpdateKeyRequest, LegacyKeysUpdateKeyResponse>({
     url: `/v1/keys/${key.id}`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${rootKey.key}`,
     },
     body: {
       ownerId: "newOwnerId",
@@ -209,7 +221,7 @@ test("update should not affect undefined fields", async () => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.resources.database.query.keys.findFirst({
+  const found = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();

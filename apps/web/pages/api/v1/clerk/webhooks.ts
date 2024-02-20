@@ -42,7 +42,7 @@ export default async function handler(
     try {
       await alertSlack(email);
       await resend.client.contacts.create({
-        audience_id: RESEND_AUDIENCE_ID,
+        audienceId: RESEND_AUDIENCE_ID,
         email: email,
       });
       await resend.sendWelcomeEmail({

@@ -15,7 +15,7 @@ export async function addEmail(formData: FormData) {
   const resend = new Resend(RESEND_API_KEY);
 
   await resend.contacts.create({
-    audience_id: RESEND_AUDIENCE_ID,
+    audienceId: RESEND_AUDIENCE_ID,
     email: email,
   });
 

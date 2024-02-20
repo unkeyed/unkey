@@ -27,15 +27,14 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.11.5",
-    "hono": "^3.11.7",
-    "tsup": "^8.0.1",
-    "typescript": "^5.2.2"
+    "@types/node": "^20.11.19",
+    "hono": "^4.0.4",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@unkey/api": "workspace:^"
   },
   "peerDependencies": {
     "hono": "^3.7.2"
-  }
-}
+  }}

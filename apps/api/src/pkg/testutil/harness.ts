@@ -6,71 +6,54 @@ import {
   type Database,
   type KeyAuth,
   Permission,
+  Role,
   type Workspace,
   createConnection,
+  eq,
   schema,
 } from "../db";
 import { init } from "../global";
-import { App, newApp } from "../hono/app";
 import { unitTestEnv } from "./env";
-import { StepRequest, StepResponse, fetchRoute } from "./request";
 
 export type Resources = {
   unkeyWorkspace: Workspace;
   unkeyApi: Api;
   unkeyKeyAuth: KeyAuth;
-  rootKey: string;
   userWorkspace: Workspace;
   userApi: Api;
   userKeyAuth: KeyAuth;
-  database: Database;
 };
 
-export class Harness {
+export abstract class Harness implements Disposable {
   public readonly db: Database;
   public readonly resources: Resources;
-  public readonly app: App;
+  private seeded = false;
 
-  private constructor(resources: Resources) {
-    this.db = resources.database;
-    this.resources = resources;
-    this.app = newApp();
-  }
-
-  static async init(): Promise<Harness> {
+  constructor() {
     const env = unitTestEnv.parse(process.env);
-
-    // @ts-ignore
+    this.db = createConnection({
+      host: env.DATABASE_HOST,
+      username: env.DATABASE_USERNAME,
+      password: env.DATABASE_PASSWORD,
+    });
+    this.resources = this.createResources();
+    // @ts-expect-error
     init({ env });
-    const resources = await seed(env);
-
-    return new Harness(resources);
   }
 
-  public useRoutes(...registerFunctions: ((app: App) => any)[]): void {
-    registerFunctions.forEach((fn) => fn(this.app));
-  }
-
-  async do<TReq, TRes>(req: StepRequest<TReq>): Promise<StepResponse<TRes>> {
-    return await fetchRoute<TReq, TRes>(this.app, req);
-  }
-  async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
-    return await this.do<never, TRes>({ method: "GET", ...req });
-  }
-  async post<TReq, TRes>(req: Omit<StepRequest<TReq>, "method">): Promise<StepResponse<TRes>> {
-    return await this.do<TReq, TRes>({ method: "POST", ...req });
-  }
-  async put<TReq, TRes>(req: Omit<StepRequest<TReq>, "method">): Promise<StepResponse<TRes>> {
-    return await this.do<TReq, TRes>({ method: "PUT", ...req });
-  }
-  async delete<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
-    return await this.do<never, TRes>({ method: "DELETE", ...req });
+  async [Symbol.dispose]() {
+    await this.db
+      .delete(schema.workspaces)
+      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id));
+    await this.db
+      .delete(schema.workspaces)
+      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id));
   }
 
   /**
    * Create a new root key with optional roles
    */
-  async createRootKey(roles?: string[]) {
+  async createRootKey(permissions?: string[]) {
     const rootKey = new KeyV1({ byteLength: 16, prefix: "unkey" }).toString();
     const start = rootKey.slice(0, 10);
     const keyId = newId("key");
@@ -85,8 +68,8 @@ export class Harness {
       forWorkspaceId: this.resources.userWorkspace.id,
       createdAt: new Date(),
     });
-    if (roles && roles.length > 0) {
-      const permissions: Permission[] = roles.map((name) => ({
+    if (permissions && permissions.length > 0) {
+      const create: Permission[] = permissions.map((name) => ({
         id: newId("permission"),
         name,
         key: name,
@@ -96,9 +79,9 @@ export class Harness {
         updatedAt: null,
       }));
 
-      await this.db.insert(schema.permissions).values(permissions);
+      await this.db.insert(schema.permissions).values(create);
       await this.db.insert(schema.keysPermissions).values(
-        permissions.map((p) => ({
+        create.map((p) => ({
           keyId,
           permissionId: p.id,
           workspaceId: this.resources.unkeyWorkspace.id,
@@ -110,120 +93,205 @@ export class Harness {
       key: rootKey,
     };
   }
-}
 
-async function seed(env: {
-  DATABASE_HOST: string;
-  DATABASE_USERNAME: string;
-  DATABASE_PASSWORD: string;
-  DATABASE_MODE: "planetscale" | "mysql";
-}): Promise<Resources> {
-  const database = createConnection({
-    host: env.DATABASE_HOST,
-    username: env.DATABASE_USERNAME,
-    password: env.DATABASE_PASSWORD,
-  });
+  public async createKey(opts?: {
+    roles: {
+      name: string;
+      permissions?: string[];
+    }[];
+  }): Promise<{ keyId: string; key: string }> {
+    /**
+     * Prepare the key we'll use
+     */
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("key");
+    await this.db.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: this.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: this.resources.userWorkspace.id,
+      createdAt: new Date(),
+    });
 
-  const unkeyWorkspace: Workspace = {
-    id: newId("workspace"),
-    name: "unkey",
-    tenantId: newId("test"),
-    plan: "enterprise",
-    features: {},
-    betaFeatures: {},
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
-    trialEnds: null,
-    subscriptions: null,
-    planLockedUntil: null,
-    planChanged: null,
-    createdAt: new Date(),
-    deletedAt: null,
-    planDowngradeRequest: null,
-  };
-  const userWorkspace: Workspace = {
-    id: newId("workspace"),
-    name: "user",
-    tenantId: newId("test"),
-    plan: "pro",
-    features: {},
-    betaFeatures: {},
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
-    trialEnds: null,
-    subscriptions: null,
-    planLockedUntil: null,
-    planChanged: null,
-    createdAt: new Date(),
-    deletedAt: null,
-    planDowngradeRequest: null,
-  };
+    for (const role of opts?.roles ?? []) {
+      const { id: roleId } = await this.optimisticUpsertRole(
+        this.resources.userWorkspace.id,
+        role.name,
+      );
+      await this.db.insert(schema.keysRoles).values({
+        keyId,
+        roleId,
+        workspaceId: this.resources.userWorkspace.id,
+      });
 
-  const unkeyKeyAuth: KeyAuth = {
-    id: newId("keyAuth"),
-    workspaceId: unkeyWorkspace.id,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
-  const userKeyAuth: KeyAuth = {
-    id: newId("keyAuth"),
-    workspaceId: userWorkspace.id,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
+      for (const permissionName of role.permissions ?? []) {
+        const permission = await this.optimisticUpsertPermission(
+          this.resources.userWorkspace.id,
+          permissionName,
+        );
+        await this.db.insert(schema.rolesPermissions).values({
+          roleId,
+          permissionId: permission.id,
+          workspaceId: this.resources.userWorkspace.id,
+        });
+      }
+    }
 
-  const unkeyApi: Api = {
-    id: newId("api"),
-    name: "unkey",
-    workspaceId: unkeyWorkspace.id,
-    authType: "key",
-    keyAuthId: unkeyKeyAuth.id,
-    ipWhitelist: null,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
-  const userApi: Api = {
-    id: newId("api"),
-    name: "user",
-    workspaceId: userWorkspace.id,
-    authType: "key",
-    keyAuthId: userKeyAuth.id,
-    ipWhitelist: null,
-    createdAt: new Date(),
-    deletedAt: null,
-  };
+    return {
+      keyId,
+      key,
+    };
+  }
 
-  await database.insert(schema.workspaces).values(unkeyWorkspace);
-  await database.insert(schema.keyAuth).values(unkeyKeyAuth);
-  await database.insert(schema.apis).values(unkeyApi);
+  private async optimisticUpsertPermission(workspaceId: string, name: string): Promise<Permission> {
+    let permission: Permission = {
+      id: newId("permission"),
+      name,
+      workspaceId,
+      createdAt: new Date(),
+      updatedAt: null,
+      description: null,
+    };
+    await this.db
+      .insert(schema.permissions)
+      .values(permission)
+      .catch(async (err) => {
+        // it's a duplicate
 
-  await database.insert(schema.workspaces).values(userWorkspace);
-  await database.insert(schema.keyAuth).values(userKeyAuth);
-  await database.insert(schema.apis).values(userApi);
+        const found = await this.db.query.permissions.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+        });
+        if (!found) {
+          throw err;
+        }
+        permission = found;
+      });
 
-  const rootKey = new KeyV1({ byteLength: 16, prefix: "unkey" }).toString();
-  const start = rootKey.slice(0, 10);
-  const keyId = newId("key");
-  const hash = await sha256(rootKey);
+    return permission;
+  }
 
-  await database.insert(schema.keys).values({
-    id: keyId,
-    keyAuthId: unkeyKeyAuth.id,
-    hash,
-    start,
-    workspaceId: unkeyWorkspace.id,
-    forWorkspaceId: userWorkspace.id,
-    createdAt: new Date(),
-  });
+  private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Role> {
+    let role: Role = {
+      id: newId("role"),
+      name,
+      workspaceId,
+      createdAt: new Date(),
+      updatedAt: null,
+      description: null,
+    };
+    await this.db
+      .insert(schema.roles)
+      .values(role)
+      .catch(async (err) => {
+        // it's a duplicate
 
-  return {
-    database,
-    unkeyWorkspace,
-    unkeyApi,
-    unkeyKeyAuth,
-    rootKey,
-    userWorkspace,
-    userApi,
-    userKeyAuth,
-  };
+        const found = await this.db.query.roles.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+        });
+        if (!found) {
+          throw err;
+        }
+        role = found;
+      });
+
+    return role;
+  }
+
+  public createResources(): Resources {
+    const unkeyWorkspace: Workspace = {
+      id: newId("workspace"),
+      name: "unkey",
+      tenantId: newId("test"),
+      plan: "enterprise",
+      features: {},
+      betaFeatures: {},
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      trialEnds: null,
+      subscriptions: null,
+      planLockedUntil: null,
+      planChanged: null,
+      createdAt: new Date(),
+      deletedAt: null,
+      planDowngradeRequest: null,
+    };
+    const userWorkspace: Workspace = {
+      id: newId("workspace"),
+      name: "user",
+      tenantId: newId("test"),
+      plan: "pro",
+      features: {},
+      betaFeatures: {},
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      trialEnds: null,
+      subscriptions: null,
+      planLockedUntil: null,
+      planChanged: null,
+      createdAt: new Date(),
+      deletedAt: null,
+      planDowngradeRequest: null,
+    };
+
+    const unkeyKeyAuth: KeyAuth = {
+      id: newId("keyAuth"),
+      workspaceId: unkeyWorkspace.id,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
+    const userKeyAuth: KeyAuth = {
+      id: newId("keyAuth"),
+      workspaceId: userWorkspace.id,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
+
+    const unkeyApi: Api = {
+      id: newId("api"),
+      name: "unkey",
+      workspaceId: unkeyWorkspace.id,
+      authType: "key",
+      keyAuthId: unkeyKeyAuth.id,
+      ipWhitelist: null,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
+    const userApi: Api = {
+      id: newId("api"),
+      name: "user",
+      workspaceId: userWorkspace.id,
+      authType: "key",
+      keyAuthId: userKeyAuth.id,
+      ipWhitelist: null,
+      createdAt: new Date(),
+      deletedAt: null,
+    };
+
+    return {
+      unkeyWorkspace,
+      unkeyApi,
+      unkeyKeyAuth,
+      userWorkspace,
+      userApi,
+      userKeyAuth,
+    };
+  }
+
+  public async seed(): Promise<void> {
+    if (this.seeded) {
+      return;
+    }
+
+    await this.db.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
+    await this.db.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
+    await this.db.insert(schema.apis).values(this.resources.unkeyApi);
+
+    await this.db.insert(schema.workspaces).values(this.resources.userWorkspace);
+    await this.db.insert(schema.keyAuth).values(this.resources.userKeyAuth);
+    await this.db.insert(schema.apis).values(this.resources.userApi);
+    this.seeded = true;
+  }
 }

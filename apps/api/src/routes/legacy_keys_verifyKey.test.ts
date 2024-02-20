@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -14,11 +14,12 @@ import {
 } from "./legacy_keys_verifyKey";
 
 test("returns 200", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerLegacyKeysVerifyKey);
 
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.resources.database.insert(schema.keys).values({
+  await h.db.insert(schema.keys).values({
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
@@ -44,11 +45,12 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
-    const h = await Harness.init();
+    using h = new RouteHarness();
+    await h.seed();
     h.useRoutes(registerLegacyKeysVerifyKey);
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: newId("key"),
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -75,11 +77,12 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async () => {
-      const h = await Harness.init();
+      using h = new RouteHarness();
+      await h.seed();
       h.useRoutes(registerLegacyKeysVerifyKey);
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.resources.database.insert(schema.keys).values({
+      await h.db.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
@@ -123,11 +126,12 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
-      const h = await Harness.init();
+      using h = new RouteHarness();
+      await h.seed();
       h.useRoutes(registerLegacyKeysVerifyKey);
 
       const keyAuthId = newId("keyAuth");
-      await h.resources.database.insert(schema.keyAuth).values({
+      await h.db.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
@@ -135,7 +139,7 @@ describe("with ip whitelist", () => {
       });
 
       const apiId = newId("api");
-      await h.resources.database.insert(schema.apis).values({
+      await h.db.insert(schema.apis).values({
         id: apiId,
         workspaceId: h.resources.userWorkspace.id,
         name: "test",
@@ -147,7 +151,7 @@ describe("with ip whitelist", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.resources.database.insert(schema.keys).values({
+      await h.db.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: keyAuthId,
         hash: await sha256(key),
@@ -173,11 +177,12 @@ describe("with ip whitelist", () => {
   });
   describe("with invalid ip", () => {
     test("returns invalid", async () => {
-      const h = await Harness.init();
+      using h = new RouteHarness();
+      await h.seed();
       h.useRoutes(registerLegacyKeysVerifyKey);
 
       const keyAuthid = newId("keyAuth");
-      await h.resources.database.insert(schema.keyAuth).values({
+      await h.db.insert(schema.keyAuth).values({
         id: keyAuthid,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
@@ -185,7 +190,7 @@ describe("with ip whitelist", () => {
       });
 
       const apiId = newId("api");
-      await h.resources.database.insert(schema.apis).values({
+      await h.db.insert(schema.apis).values({
         id: apiId,
         workspaceId: h.resources.userWorkspace.id,
         name: "test",
@@ -197,7 +202,7 @@ describe("with ip whitelist", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.resources.database.insert(schema.keys).values({
+      await h.db.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: keyAuthid,
         hash: await sha256(key),
