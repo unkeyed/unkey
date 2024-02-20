@@ -24,7 +24,8 @@ const config = {
       sm: "640px",
       md: "840px",
       lg: "960px",
-      xl: "1440px",
+      xl: "960px",
+      xxl: "1440px",
     },
     extend: {
       typography: {},
