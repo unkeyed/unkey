@@ -25,7 +25,6 @@ import { registerLegacyApisGetApi } from "./routes/legacy_apis_getApi";
 import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
 import { registerLegacyKeysDelete } from "./routes/legacy_keys_deleteKey";
-import { registerLegacyKeysGet } from "./routes/legacy_keys_getKey";
 import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
@@ -142,7 +141,6 @@ registerV1ApisDeleteApi(app);
 
 // legacy REST style routes
 registerLegacyKeysUpdate(app);
-registerLegacyKeysGet(app);
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
 registerLegacyKeysDelete(app);
