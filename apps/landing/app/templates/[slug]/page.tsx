@@ -1,4 +1,3 @@
-import { Container } from "@/components/container";
 import { ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -6,7 +5,9 @@ import remarkGfm from "remark-gfm";
 import { templates } from "../data";
 
 import { CTA } from "@/components/cta";
+import { Frame } from "@/components/frame";
 import { TemplateComponents } from "@/components/template/mdx-components";
+import { Separator } from "@/components/ui/separator";
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -37,26 +38,26 @@ export default async function Templates(props: Props) {
 
   const readme = await fetch(template.readmeUrl).then((res) => res.text());
   return (
-    <Container>
-      <div className="relative flex flex-col items-start mt-16 space-y-8 lg:flex-row lg:mt-32 lg:space-y-0 mb-24">
-        <div className="self-start w-full px-4 mx-auto lg:sticky top-32 h-max lg:w-2/5 sm:px-6 lg:px-8 ">
+    <div className="flex flex-col xl:max-w-[1440px] mx-6 md:mx-20 xl:mx-auto lg:mx-auto lg:px-10">
+      <div className="flex flex-col xl:flex-row items-start mt-16 lg:mt-32 lg:space-y-0 mb-24 gap-12">
+        <div className="self-start w-full mx-auto xl:sticky xl:w-1/4">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Templates
           </Link>
-          <div className="pb-10 mt-4">
-            <h2 className="text-3xl font-bold tracking-tight blog-heading-gradient">
+          <div className="mb-8 xxs:mt-16">
+            <h2 className="text-[40px] sm:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xl:w-full text-balance">
               {template.title}
             </h2>
-            <p className="mt-2 text-white/60">{template.description}</p>
+            <p className="xxs:mt-6 lg:mt-12 mt-2 text-white/60">{template.description}</p>
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-6 sm:mt-20">
             {template.url ? (
               <Link
                 target="_blank"
-                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black duration-150 border rounded-md bg-white"
+                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black duration-150 border rounded-md bg-white max-w-1/2"
                 href={`${template.url}?ref=unkey.dev`}
               >
                 Website
@@ -64,44 +65,46 @@ export default async function Templates(props: Props) {
             ) : null}
             <Link
               target="_blank"
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-white/60 duration-150 border rounded-md hover:border-white/10"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-white/60 duration-150 border rounded-md border-white/10  max-w-1/2"
               href={template.repository}
             >
               Repository
             </Link>
           </div>
 
-          <dl className="grid grid-rows-2 gap-12 mt-12 lg:w-3/9">
-            <div className="flex flex-row w-full">
-              <span className="text-sm text-white/60 w-1/2">Written by </span>
+          <dl className="grid grid-rows-2 mt-12">
+            <div className="flex flex-row w-full h-fit">
+              <span className="text-sm text-white/30 w-1/2">Written by </span>
               <span className="text-sm font-medium text-white text-end w-1/2">
                 {template.authors.join(", ")}
               </span>
             </div>
+
             {Object.entries(tags)
               .filter(([_, value]) => !!value)
               .map(([key, value]) => (
-                <div key={key} className="flex flex-row w-full">
-                  <dd className="text-sm text-white/60 w-1/2">{key}</dd>
-                  <dt className="text-sm font-medium text-white text-end w-1/2">{value}</dt>
+                <div>
+                  <Separator orientation="horizontal" />
+                  <div key={key} className="flex flex-row w-full my-4">
+                    <dd className="text-sm text-white/30 w-1/2">{key}</dd>
+                    <dt className="text-sm font-medium text-white text-end w-1/2">{value}</dt>
+                  </div>
                 </div>
               ))}
           </dl>
+          <Separator orientation="horizontal" />
         </div>
 
-        <div className="w-full lg:pl-8 lg:w-6/9">
-          {template.image ? (
-            <div className="rounded-[30.5px] bg-gradient-to-b from-white/0 to-white/10 p-[.75px] overflow-hidden">
-              <div className="p-2 bg-gradient-to-r from-white/10 to-white/20">
-                <div className="rounded-[24px] bg-gradient-to-b from-white/20 to-white/10 p-[.75px] overflow-hidden">
-                  <img src={template.image} alt={template.description} />
-                </div>
-              </div>
-            </div>
-          ) : null}
-
+        <div className="w-full xxs:mt-12 sm:mt-20 md:mt-0 lg:pt-24 xl:w-2/3">
+          <div className="">
+            {template.image ? (
+              <Frame size={"lg"} className="xl:ml-10">
+                <img src={template.image} alt={template.description} />
+              </Frame>
+            ) : null}
+          </div>
           <ReactMarkdown
-            className="max-w-5xl mx-auto mt-16 prose lg:prose-md"
+            className="max-w-5xl mx-auto xxs:mt-20 mt-16 prose lg:prose-md"
             remarkPlugins={[remarkGfm]}
             //  @ts-ignore
             rehypePlugins={[rehypeRaw]}
@@ -112,7 +115,7 @@ export default async function Templates(props: Props) {
         </div>
       </div>
       <CTA />
-    </Container>
+    </div>
   );
 }
 
