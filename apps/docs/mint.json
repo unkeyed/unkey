@@ -82,7 +82,6 @@
         "features/analytics",
         {
           "group": "Authorization",
-          "icon": "lock",
           "pages": [
             "features/authorization/introduction",
             "features/authorization/roles-and-permissions",
