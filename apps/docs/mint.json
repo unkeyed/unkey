@@ -85,8 +85,9 @@
           "icon": "lock",
           "pages": [
             "features/authorization/introduction",
-            "features/authorization/examples"
-            
+            "features/authorization/roles-and-permissions",
+            "features/authorization/verifying",
+            "features/authorization/example"
           ]
         },
         "features/audit-log",
