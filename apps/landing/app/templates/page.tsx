@@ -280,7 +280,7 @@ export default function Templates() {
               <Link
                 key={id}
                 href={`/templates/${id}`}
-                className="flex flex-col w-full items-start overflow-hidden duration-200 border border-white/10 shadow rounded-[28px] hover:shadow-md hover:scale-[1.01]  aspect-[12/16] sm:aspect-[6/5] md:aspect-[11/16]"
+                className="flex flex-col w-full items-start overflow-hidden duration-200 border border-white/10 shadow rounded-[28px] hover:shadow-md hover:scale-[1.01] aspect-[12/16] sm:aspect-[6/5] md:aspect-[11/16]"
               >
                 <div className="flex w-full justify-center items-center h-1/2 border-[.75px] border-white/10">
                   {template.image ? (

@@ -80,6 +80,15 @@
         "features/remaining",
         "features/refill",
         "features/analytics",
+        {
+          "group": "Authorization",
+          "pages": [
+            "features/authorization/introduction",
+            "features/authorization/roles-and-permissions",
+            "features/authorization/verifying",
+            "features/authorization/example"
+          ]
+        },
         "features/audit-log",
         "features/whitelist",
         "features/revocation",

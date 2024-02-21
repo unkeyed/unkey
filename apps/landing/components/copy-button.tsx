@@ -14,7 +14,7 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
   navigator.clipboard.writeText(value);
 }
 
-export function CopyButton({ value, className, src, ...props }: CopyButtonProps) {
+export function CopyButton({ value, className, src, children, ...props }: CopyButtonProps) {
   const [hasCopied, setHasCopied] = React.useState(false);
 
   React.useEffect(() => {
@@ -26,7 +26,7 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
   return (
     <button
       type="button"
-      className={cn("relative p-1 text-primary focus:outline-none ", className)}
+      className={cn("relative p-1 text-primary focus:outline-none inline-flex", className)}
       onClick={() => {
         copyToClipboardWithMeta(value, {
           component: src,
@@ -37,6 +37,7 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
     >
       <span className="sr-only">Copy</span>
       {hasCopied ? <CopyCheck className="w-6 h-6" /> : <BlogCodeCopy className="w-6 h-6" />}
+      {children}
     </button>
   );
 }

@@ -2,13 +2,14 @@ import { expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { registerV1ApisListKeys } from "./v1_apis_listKeys";
 
 test("when the api does not exist", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
   const apiId = newId("api");
@@ -36,7 +37,8 @@ test("when the api does not exist", async () => {
 });
 
 test("when the api has no keyAuth", async () => {
-  const h = await Harness.init();
+  using h = new RouteHarness();
+  await h.seed();
   h.useRoutes(registerV1ApisListKeys);
 
   const apiId = newId("api");

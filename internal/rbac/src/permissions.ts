@@ -45,6 +45,7 @@ export type UnkeyPermission = Flatten<Resources> | "*";
  * Validation for roles used for our root keys
  */
 export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) => {
+  z.string().parse(s);
   if (s === "*") {
     /**
      * This is a legacy role granting access to everything

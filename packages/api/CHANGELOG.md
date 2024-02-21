@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.18.0
+
+### Minor Changes
+
+- 2af9a51: Add permission checks
+
 ## 0.17.0
 
 ### Minor Changes

@@ -63,6 +63,11 @@ export const registerV1KeysDeleteKey = (app: App) =>
               permission: true,
             },
           },
+          roles: {
+            with: {
+              role: true,
+            },
+          },
           keyAuth: {
             with: {
               api: true,
@@ -77,6 +82,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: dbRes.permissions.map((p) => p.permission.name),
+        roles: dbRes.roles.map((r) => r.role.name),
       };
     });
 

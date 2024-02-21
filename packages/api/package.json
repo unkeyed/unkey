@@ -1,7 +1,8 @@
 {
   "name": "@unkey/api",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "license": "MIT",
   "private": false,
@@ -26,10 +27,13 @@
     "build": "pnpm generate && tsup"
   },
   "devDependencies": {
-    "@types/node": "^20.11.5",
+    "@types/node": "^20.11.19",
     "@unkey/tsconfig": "workspace:^",
     "openapi-typescript": "^6.7.4",
-    "tsup": "^8.0.1",
-    "typescript": "^5.2.2"
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@unkey/rbac": "workspace:^"
   }
 }

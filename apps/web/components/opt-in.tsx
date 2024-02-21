@@ -21,6 +21,12 @@ type Props = {
 export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
   const router = useRouter();
   const optIn = trpc.workspace.optIntoBeta.useMutation({
+    onMutate() {
+      PostHogEvent({
+        name: "self-serve-opt-in",
+        properties: { feature },
+      });
+    },
     onSuccess() {
       PostHogEvent({
         name: "self-serve-opt-in",

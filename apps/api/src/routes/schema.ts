@@ -120,6 +120,13 @@ export const keySchema = z
         description: "All roles this key belongs to",
         example: ["admin", "finance"],
       }),
+    permissions: z
+      .array(z.string())
+      .optional()
+      .openapi({
+        description: "All permissions this key has",
+        example: ["domain.dns.create_record", "finance.read_receipt"],
+      }),
     enabled: z.boolean().optional().openapi({
       description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
       example: true,

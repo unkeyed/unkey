@@ -94,12 +94,12 @@ export function Footer() {
   return (
     <footer className="relative pt-32 border-t max-sm:pt-8 border-white/10 blog-footer-radial-gradient h-fit w-full">
       <div className="absolute inset-x-0 w-full h-full " />
-      <div className="flex flex-col mx-auto lg:w-fit max-sm:w-full ">
+      <div className="flex flex-col mx-auto lg:w-fit ">
         <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row lg:gap-20 xl:gap-48">
-          <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 md:pl-12 lg:pl-14 md:w-fit shrink-0 xl:pl-28">
+          <div className="flex mb-8 lg:mx-auto max-sm:flex sm:flex-row sm:w-full md:pl-12 lg:pl-14 md:w-fit shrink-0 xl:pl-28 max-sm:justify-center max-sm:text-center">
             <CompanyInfo />
           </div>
-          <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 sm:pl-28 md:pl-18 lg:pl-6 max-sm:mb-8">
+          <div className="flex w-full max-sm:pt-6 max-sm:mt-22 md:pl-18 lg:pl-6 max-sm:mb-8 max-sm:justify-center max-sm:text-center">
             <Navigation />
           </div>
         </div>
