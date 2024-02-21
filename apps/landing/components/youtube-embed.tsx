@@ -12,10 +12,10 @@ export function YoutubeEmbed() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: "easeOut" }}
-      className="rounded-[38px] bg-white/5 border border-gray-800 z-10 mt-16 xl:mt-0 "
+      className="rounded-[38px] bg-white/5 border border-gray-800/40 z-10 mt-16 xl:mt-0 "
     >
       <div className="m-[10px] rounded-[28px] flex items-center justify-center">
-        <div>
+        <div className="flex items-center justify-center">
           <button
             type="button"
             className="relative rounded-[28px]"
