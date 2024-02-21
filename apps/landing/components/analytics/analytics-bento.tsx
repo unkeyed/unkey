@@ -1,4 +1,5 @@
 "use client";
+import { motion } from "framer-motion";
 import { Highlight, PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
 import { AnalyticsWebApp } from "../svg/analytics-web-app";
@@ -116,21 +117,30 @@ export function Editor({
   theme,
 }: { codeBlock: string; language: string; theme?: PrismTheme }) {
   return (
-    <Highlight theme={theme} code={codeBlock} language={language}>
-      {({ tokens, getLineProps, getTokenProps }) => (
-        <pre className="leading-10">
-          {tokens.map((line, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-            <div key={`${line}-${i}`} {...getLineProps({ line })}>
-              <span className="line-number">{i + 1}</span>
-              {line.map((token, key) => (
-                <span key={`${key}-${token}`} {...getTokenProps({ token })} />
-              ))}
-            </div>
-          ))}
-        </pre>
-      )}
-    </Highlight>
+    <motion.div
+      key={theme + codeBlock + language}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      whileInView="visible"
+    >
+      <Highlight theme={theme} code={codeBlock} language={language}>
+        {({ tokens, getLineProps, getTokenProps }) => (
+          <pre className="leading-10">
+            {tokens.map((line, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+              <div key={`${line}-${i}`} {...getLineProps({ line })}>
+                <span className="line-number">{i + 1}</span>
+                {line.map((token, key) => (
+                  <span key={`${key}-${token}`} {...getTokenProps({ token })} />
+                ))}
+              </div>
+            ))}
+          </pre>
+        )}
+      </Highlight>
+    </motion.div>
   );
 }
 
