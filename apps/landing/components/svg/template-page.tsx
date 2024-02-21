@@ -95,12 +95,17 @@ export const FrameworkIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export const TemplateTopLight = ({ className }: { className?: string }) => (
+export const TemplateTopLight = ({
+  className,
+  width,
+  height,
+}: {
+  className?: string;
+  width?: number;
+  height?: number;
+}) => (
   <svg
-    style={{ width: "inherit", height: "inherit" }}
-    className={cn("absolute left-0 right-0 top-0 mx-auto -z-20", className)}
-    // width={scale * 942}
-    // height={scale * 622}
+    className={cn("absolute top-0 left-0 right-0 pointer-events-none overflow-hidden", className)}
     viewBox="0 0 942 622"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"

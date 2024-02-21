@@ -39,7 +39,7 @@ const navigation = [
 
 function CompanyInfo() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col xxs:mx-auto">
       <UnkeyLogoSmall />
       <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.5)] mt-8">
         Seriously Fast API Authentication.
@@ -53,8 +53,8 @@ function CompanyInfo() {
 
 function Navigation() {
   return (
-    <nav>
-      <ul className="flex flex-auto gap-16">
+    <nav className="xxs:w-full">
+      <ul className="flex flex-auto xxs:flex-col sm:flex-row gap-16 xxs:mx-auto xxs:text-center text-left">
         {navigation.map((section) => (
           <li key={section.title}>
             <div className="text-sm font-medium tracking-wider text-white font-display">

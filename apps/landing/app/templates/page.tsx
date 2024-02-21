@@ -103,13 +103,9 @@ export default function Templates() {
   console.log(window.innerWidth);
 
   return (
-    <>
-      <div className="flex justify-center xl:w-[1100px]">
-        <TemplateTopLight />
-      </div>
-      <div className="flex justify-center mx-auto lx:max-[1100px]">
-        <BlogBackgroundLines />
-      </div>
+    <div>
+      <BlogBackgroundLines className="w-full max-w-[717px] mx-auto" />
+      <TemplateTopLight className="w-full max-w-[942px] mx-auto" />
 
       <PageIntro title="Find your Template">
         <p className="text-white/60 mt-10">
@@ -335,6 +331,6 @@ export default function Templates() {
         </div>
       </Container>
       <CTA />
-    </>
+    </div>
   );
 }
