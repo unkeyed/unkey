@@ -446,7 +446,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
-        text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
+        text="Add authentication to your APIs in a few lines of code. We provide SDKs for a range of languages and frameworks, and an intuitive REST API with public OpenAPI spec."
         align="center"
         titleWidth={653}
         contentWidth={671}

@@ -93,8 +93,8 @@ export default async function Landing() {
         className="mt-[300px]"
         titleWidth={743}
         contentWidth={581}
-        title="Unleashing Operational security"
-        text="Unkey enables operational security with innovative open-source contributions, secure API validation, and automated access control for global developers."
+        title="Secure from day one"
+        text="Don’t waste time building boring-but-necessary features like audit logs. Unkey provides everything you need out of the box to build secure, infinitely scalable APIs."
         align="center"
         label="Protection"
       >
