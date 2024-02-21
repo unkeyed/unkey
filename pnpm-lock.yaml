@@ -482,8 +482,8 @@ importers:
         specifier: ^9.0.1
         version: 9.0.1(postcss@8.4.35)
       posthog-js:
-        specifier: ^1.106.1
-        version: 1.106.1
+        specifier: ^1.108.0
+        version: 1.108.0
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -5263,6 +5263,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -15630,6 +15631,10 @@ packages:
     hasBin: true
     dev: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -17148,8 +17153,8 @@ packages:
       picocolors: 1.0.0
       source-map-js: 1.0.2
 
-  /posthog-js@1.106.1:
-    resolution: {integrity: sha512-+Ei83la12wV+cQhZ8SEP9VmFGaE1jYnPj/h6snNryaq4xRKUXx8WmxKGUvcYyCSxGs6aYHeshIEgNwUwUNWc+A==}
+  /posthog-js@1.108.0:
+    resolution: {integrity: sha512-BTQC5qWafdy2n4HpibkPPjZO/24YzxRokynMJ3avftUVIKSqFkU2dFeAA4ij0j43uFzAcRIacdwRdeXERd4WAA==}
     dependencies:
       fflate: 0.4.8
       preact: 10.19.5
