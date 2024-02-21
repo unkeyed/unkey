@@ -3,7 +3,7 @@ import { UsageSparkles } from "@/components/svg/usage";
 
 export function UsageBento() {
   return (
-    <div className="w-full relative border-[.75px] h-[576px] mt-10 xl:mt-0 w-[700px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/20 flex overflow-x-hidden flex justify-center items-start ">
+    <div className="w-full relative border-[.75px] h-[576px] mt-10 xl:mt-0 w-[700px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10 flex overflow-x-hidden flex justify-center items-start ">
       <UsageSparkles />
       <div className="absolute top-[-50px] left-[80px] xs:left-auto">
         <BillingItem

@@ -2,7 +2,7 @@ import { IpWhitelisting } from "@/components/svg/ip-whitelisting";
 
 export function IpWhitelistingBento() {
   return (
-    <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       <IpWhitelisting className="h-[500px] w-full" />
       <IpWhitelistingText />
     </div>

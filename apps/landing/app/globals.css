@@ -25,7 +25,7 @@
 
 .stats-border-gradient {
   background: linear-gradient(black, black) padding-box,
-    linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 1))
+    linear-gradient(to right, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.2))
       border-box;
   border-radius: 32px;
   border: 0.75px solid transparent;

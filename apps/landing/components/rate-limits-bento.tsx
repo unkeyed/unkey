@@ -1,6 +1,6 @@
 export function RateLimitsBento() {
   return (
-    <div className="w-full xl:mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden rate-limits-background-gradient">
+    <div className="w-full xl:mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden rate-limits-background-gradient">
       <RateLimits />
       <RateLimitsText />
     </div>

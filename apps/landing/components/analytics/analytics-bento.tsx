@@ -78,7 +78,7 @@ export function AnalyticsBento() {
         </div>
         Hide API Code
       </button>
-      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
+      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end border rounded-3xl border-[.5px] border-white/10 relative">
         <LightSvg className="absolute left-[250px] top-[-150px]" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
