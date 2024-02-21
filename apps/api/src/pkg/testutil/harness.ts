@@ -56,7 +56,7 @@ export abstract class Harness implements Disposable {
   async createRootKey(permissions?: string[]) {
     const rootKey = new KeyV1({ byteLength: 16, prefix: "unkey" }).toString();
     const start = rootKey.slice(0, 10);
-    const keyId = newId("key");
+    const keyId = newId("test");
     const hash = await sha256(rootKey);
 
     await this.db.insert(schema.keys).values({
@@ -70,7 +70,7 @@ export abstract class Harness implements Disposable {
     });
     if (permissions && permissions.length > 0) {
       const create: Permission[] = permissions.map((name) => ({
-        id: newId("permission"),
+        id: newId("test"),
         name,
         key: name,
         description: null,
@@ -104,7 +104,7 @@ export abstract class Harness implements Disposable {
      * Prepare the key we'll use
      */
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    const keyId = newId("key");
+    const keyId = newId("test");
     await this.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: this.resources.userKeyAuth.id,
@@ -146,7 +146,7 @@ export abstract class Harness implements Disposable {
 
   private async optimisticUpsertPermission(workspaceId: string, name: string): Promise<Permission> {
     let permission: Permission = {
-      id: newId("permission"),
+      id: newId("test"),
       name,
       workspaceId,
       createdAt: new Date(),
@@ -174,7 +174,7 @@ export abstract class Harness implements Disposable {
 
   private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Role> {
     let role: Role = {
-      id: newId("role"),
+      id: newId("test"),
       name,
       workspaceId,
       createdAt: new Date(),
@@ -202,7 +202,7 @@ export abstract class Harness implements Disposable {
 
   public createResources(): Resources {
     const unkeyWorkspace: Workspace = {
-      id: newId("workspace"),
+      id: newId("test"),
       name: "unkey",
       tenantId: newId("test"),
       plan: "enterprise",
@@ -219,7 +219,7 @@ export abstract class Harness implements Disposable {
       planDowngradeRequest: null,
     };
     const userWorkspace: Workspace = {
-      id: newId("workspace"),
+      id: newId("test"),
       name: "user",
       tenantId: newId("test"),
       plan: "pro",
@@ -237,20 +237,20 @@ export abstract class Harness implements Disposable {
     };
 
     const unkeyKeyAuth: KeyAuth = {
-      id: newId("keyAuth"),
+      id: newId("test"),
       workspaceId: unkeyWorkspace.id,
       createdAt: new Date(),
       deletedAt: null,
     };
     const userKeyAuth: KeyAuth = {
-      id: newId("keyAuth"),
+      id: newId("test"),
       workspaceId: userWorkspace.id,
       createdAt: new Date(),
       deletedAt: null,
     };
 
     const unkeyApi: Api = {
-      id: newId("api"),
+      id: newId("test"),
       name: "unkey",
       workspaceId: unkeyWorkspace.id,
       authType: "key",
@@ -260,7 +260,7 @@ export abstract class Harness implements Disposable {
       deletedAt: null,
     };
     const userApi: Api = {
-      id: newId("api"),
+      id: newId("test"),
       name: "user",
       workspaceId: userWorkspace.id,
       authType: "key",
