@@ -55,7 +55,7 @@ export const revalidate = 300;
 
 export default async function Landing() {
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto relative">
       <TopLeftShiningLight />
       <TopRightShiningLight />
       <HeroMainboardStuff className="absolute right-0 -top-[5%]" />
