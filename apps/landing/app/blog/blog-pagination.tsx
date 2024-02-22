@@ -29,7 +29,6 @@ export function BlogPagination({
         content.push(
           <Link prefetch href={buildPath(count)}>
             <PaginationLink isActive={currentPage === count ? true : false}>{count}</PaginationLink>
-            ,
           </Link>,
         );
       } else {
