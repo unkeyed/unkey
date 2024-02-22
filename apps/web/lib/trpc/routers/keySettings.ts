@@ -34,19 +34,19 @@ export const keySettingsRouter = t.router({
             enabled: input.enabled,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: input.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} enabled to ${input.enabled}`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: input.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} enabled to ${input.enabled}`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
     }),
   updateRatelimit: t.procedure
@@ -125,19 +125,19 @@ export const keySettingsRouter = t.router({
             ratelimitRefillInterval,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: input.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} rate limit`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: input.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} rate limit`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
     }),
   updateOwnerId: t.procedure
@@ -165,19 +165,19 @@ export const keySettingsRouter = t.router({
             ownerId: input.ownerId ?? null,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} ownerId`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: key.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} ownerId`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
 
       return true;
@@ -210,19 +210,19 @@ export const keySettingsRouter = t.router({
             name: input.name ?? null,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} name`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: key.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} name`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
       return true;
     }),
@@ -271,19 +271,19 @@ export const keySettingsRouter = t.router({
             meta: meta ? JSON.stringify(meta) : null,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} metadata`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: key.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} metadata`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
       return true;
     }),
@@ -332,19 +332,19 @@ export const keySettingsRouter = t.router({
             expires,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} expiration`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: key.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} expiration`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
       return true;
     }),
@@ -398,19 +398,19 @@ export const keySettingsRouter = t.router({
             lastRefillAt: input.refill?.interval ? new Date() : null,
           })
           .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} remaining`,
-          keyId: input.keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: key.workspaceId,
+        //   apiId: null,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.update",
+        //   description: `updated key ${input.keyId} remaining`,
+        //   keyId: input.keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
       return true;
     }),

@@ -1,11 +1,10 @@
-import { cache, db, usageLimiter } from "@/pkg/global";
+import { analytics, cache, db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
-import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
@@ -212,18 +211,21 @@ export const registerV1KeysUpdate = (app: App) =>
         })
         .where(eq(schema.keys.id, req.keyId));
 
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
+      await analytics.ingestAuditLogs({
         workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
         event: "key.update",
-        description: "Key was updated",
-        keyId: key.id,
-        keyAuthId: key.keyAuthId,
-        ipAddress: c.get("ipAddress"),
-        userAgent: c.get("userAgent"),
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+
+        context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
       });
 
       await Promise.all([

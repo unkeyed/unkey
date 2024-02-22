@@ -19,13 +19,7 @@ import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
 // Legacy Routes
-import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
-import { registerLegacyApisDeleteApi } from "./routes/legacy_apis_deleteApi";
-import { registerLegacyApisGetApi } from "./routes/legacy_apis_getApi";
-import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
-import { registerLegacyKeysDelete } from "./routes/legacy_keys_deleteKey";
-import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
@@ -140,15 +134,8 @@ registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
 
 // legacy REST style routes
-registerLegacyKeysUpdate(app);
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
-registerLegacyKeysDelete(app);
-
-registerLegacyApisCreateApi(app);
-registerLegacyApisGetApi(app);
-registerLegacyApisDeleteApi(app);
-registerLegacyApisListKeys(app);
 
 export default {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {

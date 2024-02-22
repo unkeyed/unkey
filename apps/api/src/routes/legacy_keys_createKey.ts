@@ -1,4 +1,4 @@
-import { cache, db } from "@/pkg/global";
+import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -194,42 +194,44 @@ export const registerLegacyKeysCreate = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-    await db.transaction(async (tx) => {
-      await tx.insert(schema.keys).values({
-        id: keyId,
-        keyAuthId: api.keyAuthId!,
-        name: req.name,
-        hash,
-        start,
-        ownerId: req.ownerId,
-        meta: req.meta ? JSON.stringify(req.meta) : null,
-        workspaceId: authorizedWorkspaceId,
-        forWorkspaceId: null,
-        expires: req.expires ? new Date(req.expires) : null,
-        createdAt: new Date(),
-        ratelimitLimit: req.ratelimit?.limit,
-        ratelimitRefillRate: req.ratelimit?.refillRate,
-        ratelimitRefillInterval: req.ratelimit?.refillInterval,
-        ratelimitType: req.ratelimit?.type,
-        remaining: req.remaining,
-        totalUses: 0,
-        deletedAt: null,
-      });
-
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
-        workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
-        event: "key.create",
-        description: "Key created",
-        keyAuthId: api.keyAuthId,
-        apiId: api.id,
-        ipAddress: c.get("ipAddress"),
-        userAgent: c.get("userAgent"),
-      });
+    await db.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: api.keyAuthId!,
+      name: req.name,
+      hash,
+      start,
+      ownerId: req.ownerId,
+      meta: req.meta ? JSON.stringify(req.meta) : null,
+      workspaceId: authorizedWorkspaceId,
+      forWorkspaceId: null,
+      expires: req.expires ? new Date(req.expires) : null,
+      createdAt: new Date(),
+      ratelimitLimit: req.ratelimit?.limit,
+      ratelimitRefillRate: req.ratelimit?.refillRate,
+      ratelimitRefillInterval: req.ratelimit?.refillInterval,
+      ratelimitType: req.ratelimit?.type,
+      remaining: req.remaining,
+      totalUses: 0,
+      deletedAt: null,
     });
+
+    await analytics.ingestAuditLogs({
+      workspaceId: authorizedWorkspaceId,
+      event: "key.create",
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      resources: [
+        {
+          type: "keyAuth",
+          id: api.keyAuthId!,
+        },
+      ],
+
+      context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+    });
+
     // TODO: emit event to tinybird
     return c.json({
       keyId,

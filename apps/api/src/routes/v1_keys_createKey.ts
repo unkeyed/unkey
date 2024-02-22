@@ -1,4 +1,4 @@
-import { cache, db } from "@/pkg/global";
+import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -284,18 +284,25 @@ export const registerV1KeysCreateKey = (app: App) =>
         enabled: req.enabled,
       });
 
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
+      await analytics.ingestAuditLogs({
         workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
         event: "key.create",
-        description: "Key created",
-        apiId: api.id,
-        keyAuthId: api.keyAuthId,
-        ipAddress: c.get("ipAddress"),
-        userAgent: c.get("userAgent"),
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        resources: [
+          {
+            type: "key",
+            id: keyId,
+          },
+          {
+            type: "keyAuth",
+            id: api.keyAuthId!,
+          },
+        ],
+
+        context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
       });
       if (roleIds.length > 0) {
         await tx.insert(schema.keysRoles).values(

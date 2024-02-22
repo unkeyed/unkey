@@ -1,13 +1,12 @@
-import { cache, db } from "@/pkg/global";
+import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
-import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 const route = createRoute({
   method: "post",
@@ -71,22 +70,63 @@ export const registerV1ApisDeleteApi = (app: App) =>
     }
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
+
     await db.transaction(async (tx) => {
       await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
+
+      await analytics.ingestAuditLogs({
         workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
         event: "api.delete",
-        description: `API ${api.name} deleted`,
-        apiId: apiId,
-        ipAddress: c.get("ipAddress"),
-        userAgent: c.get("userAgent"),
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        resources: [
+          {
+            type: "api",
+            id: apiId,
+          },
+        ],
+
+        context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
       });
+
+      const keyIds = await tx.query.keys.findMany({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.keyAuthId, api.keyAuthId!), isNull(table.deletedAt)),
+        columns: {
+          id: true,
+        },
+      });
+      await tx
+        .update(schema.keys)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)));
+
+      await analytics.ingestAuditLogs(
+        keyIds.map((key) => ({
+          workspaceId: authorizedWorkspaceId,
+          event: "key.delete",
+          actor: {
+            type: "key",
+            id: rootKeyId,
+          },
+          resources: [
+            {
+              type: "keyAuth",
+              id: api.keyAuthId!,
+            },
+            {
+              type: "key",
+              id: key.id,
+            },
+          ],
+
+          context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+        })),
+      );
     });
-    // TODO: Delete all keys for this api
+
     await cache.remove(c, "apiById", apiId);
 
     return c.json({});

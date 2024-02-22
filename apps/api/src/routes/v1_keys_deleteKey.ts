@@ -1,11 +1,10 @@
-import { cache, db } from "@/pkg/global";
+import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
@@ -104,25 +103,29 @@ export const registerV1KeysDeleteKey = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.keys)
-        .set({
-          deletedAt: new Date(),
-        })
-        .where(eq(schema.keys.id, data.key.id));
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
-        workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
-        event: "key.delete",
-        description: `revoked key ${data.key.id}`,
-        keyAuthId: data.key.keyAuthId,
-        ipAddress: c.get("ipAddress"),
-        userAgent: c.get("userAgent"),
-      });
+
+    await db
+      .update(schema.keys)
+      .set({
+        deletedAt: new Date(),
+      })
+      .where(eq(schema.keys.id, data.key.id));
+
+    await analytics.ingestAuditLogs({
+      workspaceId: authorizedWorkspaceId,
+      event: "key.delete",
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      resources: [
+        {
+          type: "key",
+          id: data.key.id,
+        },
+      ],
+
+      context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
     });
 
     await Promise.all([

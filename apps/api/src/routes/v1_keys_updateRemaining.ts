@@ -1,11 +1,10 @@
-import { cache, db, usageLimiter } from "@/pkg/global";
+import { analytics, cache, db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { eq, schema, sql } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -147,19 +146,27 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
           break;
         }
       }
-
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
+      await analytics.ingestAuditLogs({
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        event: "key.update",
         workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
-        event: "api.create",
-        description: `updated remaining requests for key ${req.keyId}`,
-        keyAuthId: key.keyAuthId,
-        keyId: key.id,
-        ipAddress: c.get("ipAddress"),
-        userAgent: c.get("userAgent"),
+        resources: [
+          {
+            type: "keyAuth",
+            id: key.keyAuthId,
+          },
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          ipAddress: c.get("ipAddress"),
+          userAgent: c.get("userAgent"),
+        },
       });
     });
 

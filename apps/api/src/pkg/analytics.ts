@@ -1,4 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import { newId } from "@unkey/id";
 import { z } from "zod";
 
 // const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
@@ -27,6 +28,74 @@ export class Analytics {
         versions: z.array(z.string()),
         requestId: z.string(),
         time: z.number(),
+      }),
+    });
+  }
+
+  public get ingestAuditLogs() {
+    return this.client.buildIngestEndpoint({
+      datasource: "audit_logs__v1",
+      event: z.object({
+        workspaceId: z.string(),
+        auditLogId: z.string().default(() => newId("auditLog")),
+        event: z.enum([
+          "workspace.create",
+          "workspace.update",
+          "workspace.delete",
+          "api.create",
+          "api.update",
+          "api.delete",
+          "key.create",
+          "key.update",
+          "key.delete",
+          "vercelIntegration.create",
+          "vercelIntegration.update",
+          "vercelIntegration.delete",
+          "vercelBinding.create",
+          "vercelBinding.update",
+          "vercelBinding.delete",
+          "role.create",
+          "role.update",
+          "role.delete",
+          "permission.create",
+          "permission.update",
+          "permission.delete",
+          "authorization.connect_role_and_permission",
+          "authorization.disconnect_role_and_permissions",
+          "authorization.connect_role_and_key",
+          "authorization.disconnect_role_and_key",
+          "authorization.connect_permission_and_key",
+          "authorization.disconnect_permission_and_key",
+        ]),
+        time: z.number().default(() => Date.now()),
+        actor: z.object({
+          type: z.enum(["user", "key"]),
+          id: z.string(),
+        }),
+        resources: z.array(
+          z
+            .object({
+              type: z.enum([
+                "key",
+                "api",
+                "workspace",
+                "role",
+                "permission",
+                "keyAuth",
+                "vercelBinding",
+                "vercelIntegration",
+              ]),
+              id: z.string(),
+              meta: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+            })
+            .transform((r) => JSON.stringify(r)),
+        ),
+        context: z
+          .object({
+            userAgent: z.string().nullable(),
+            ipAddress: z.string().ip().nullable(),
+          })
+          .optional(),
       }),
     });
   }

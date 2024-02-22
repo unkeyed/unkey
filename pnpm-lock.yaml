@@ -1030,6 +1030,9 @@ importers:
 
   tools/migrate:
     dependencies:
+      '@chronark/zod-bird':
+        specifier: ^0.3.3
+        version: 0.3.3
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.16.0
@@ -1048,6 +1051,9 @@ importers:
       mysql2:
         specifier: ^3.9.1
         version: 3.9.1
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
     devDependencies:
       '@types/node':
         specifier: 20.11.19

@@ -91,19 +91,19 @@ export const keyRouter = t.router({
           deletedAt: null,
           enabled: input.enabled,
         });
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: workspace.id,
-          apiId: keyAuth.api?.id,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.create",
-          description: `created key ${keyId} for api ${keyAuth.api?.id}`,
-          keyId: keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: workspace.id,
+        //   apiId: keyAuth.api?.id,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.create",
+        //   description: `created key ${keyId} for api ${keyAuth.api?.id}`,
+        //   keyId: keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
       });
       return { keyId, key };
     }),
@@ -187,19 +187,19 @@ export const keyRouter = t.router({
           deletedAt: null,
           enabled: true,
         });
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: workspace.id,
-          apiId: unkeyApi.id,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.create",
-          description: `created key ${keyId} for api ${unkeyApi.id}`,
-          keyId: keyId,
-          ipAddress: ctx.audit.ipAddress,
-          userAgent: ctx.audit.userAgent,
-        });
+        // await tx.insert(schema.auditLogs).values({
+        //   id: newId("auditLog"),
+        //   time: new Date(),
+        //   workspaceId: workspace.id,
+        //   apiId: unkeyApi.id,
+        //   actorType: "user",
+        //   actorId: ctx.user.id,
+        //   event: "key.create",
+        //   description: `created key ${keyId} for api ${unkeyApi.id}`,
+        //   keyId: keyId,
+        //   ipAddress: ctx.audit.ipAddress,
+        //   userAgent: ctx.audit.userAgent,
+        // });
 
         const permissions: Permission[] = [];
         for (const name of input.permissions) {
@@ -264,19 +264,19 @@ export const keyRouter = t.router({
                 deletedAt: new Date(),
               })
               .where(eq(schema.keys.id, keyId));
-            await tx.insert(schema.auditLogs).values({
-              id: newId("auditLog"),
-              time: new Date(),
-              workspaceId: workspace.id,
-              apiId: key.keyAuth.api?.id,
-              actorType: "user",
-              actorId: ctx.user.id,
-              event: "key.delete",
-              description: `deleted key ${keyId}`,
-              keyId: keyId,
-              ipAddress: ctx.audit.ipAddress,
-              userAgent: ctx.audit.userAgent,
-            });
+            // await tx.insert(schema.auditLogs).values({
+            //   id: newId("auditLog"),
+            //   time: new Date(),
+            //   workspaceId: workspace.id,
+            //   apiId: key.keyAuth.api?.id,
+            //   actorType: "user",
+            //   actorId: ctx.user.id,
+            //   event: "key.delete",
+            //   description: `deleted key ${keyId}`,
+            //   keyId: keyId,
+            //   ipAddress: ctx.audit.ipAddress,
+            //   userAgent: ctx.audit.userAgent,
+            // });
           });
         }),
       );
