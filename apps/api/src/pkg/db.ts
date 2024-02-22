@@ -21,8 +21,13 @@ export function createConnection(opts: ConnectionOptions): { db: Database; rawDB
         password: opts.password,
 
         fetch: (url: string, init: any) => {
-          delete init.cache;
-          return fetch(url, init);
+          (init as any).cache = undefined; // Remove cache header
+          const u = new URL(url);
+          // set protocol to http if localhost for CI testing
+          if (u.host.includes("localhost")) {
+            u.protocol = "http";
+          }
+          return fetch(u, init);
         },
       }),
       {
@@ -35,8 +40,13 @@ export function createConnection(opts: ConnectionOptions): { db: Database; rawDB
       password: opts.password,
 
       fetch: (url: string, init: any) => {
-        delete init.cache;
-        return fetch(url, init);
+        (init as any).cache = undefined; // Remove cache header
+        const u = new URL(url);
+        // set protocol to http if localhost for CI testing
+        if (u.host.includes("localhost")) {
+          u.protocol = "http";
+        }
+        return fetch(u, init);
       },
     }),
   };
