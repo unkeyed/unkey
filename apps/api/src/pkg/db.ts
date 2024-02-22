@@ -1,8 +1,7 @@
 import { type PlanetScaleDatabase, drizzle } from "drizzle-orm/planetscale-serverless";
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { context } from "@opentelemetry/api";
-import { Connection, connect } from "@planetscale/database";
+import { connect } from "@planetscale/database";
 import { schema } from "@unkey/db";
 export type Database = PlanetScaleDatabase<typeof schema>;
 
