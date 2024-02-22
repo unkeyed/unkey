@@ -178,7 +178,7 @@ const config = (env: Env) => {
       url: "https://otel.baselime.io/v1",
       headers: { "x-api-key": env.BASELIME_API_KEY },
     },
-    service: { name: "boo" },
+    service: { name: "unkey-api" },
   };
 };
 export default instrument(handler, config as ResolveConfigFn);

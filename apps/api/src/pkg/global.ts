@@ -68,7 +68,6 @@ let initialized = false;
  *
  * Call this once before any hono handlers run.
  */
-
 export async function init(opts: { env: Env }): Promise<void> {
   if (initialized) {
     return;

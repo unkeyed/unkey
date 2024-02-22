@@ -152,7 +152,6 @@ export class KeyService {
 
     const data = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
-
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
