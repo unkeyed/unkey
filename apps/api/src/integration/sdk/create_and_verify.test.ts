@@ -62,7 +62,6 @@ test("create with roles and permissions", async () => {
 
   expect(verify.error).toBeUndefined();
   expect(verify.result).toBeDefined();
-  console.log("res", verify.result);
 
   expect(verify.result!.valid).toBe(true);
 });
