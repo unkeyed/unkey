@@ -199,3 +199,40 @@ describe(
   },
   { timeout: 20_000 },
 );
+
+describe(
+  "invalid permission query",
+  () => {
+    test("returns BAD_REQUEST", async () => {
+      using h = new IntegrationHarness();
+      await h.seed();
+
+      const { key } = await h.createKey();
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: `${h.baseUrl}/v1/keys.verifyKey`,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          apiId: h.resources.userApi.id,
+          key,
+          authorization: {
+            permissions: {
+              and: [
+                "p1",
+                // @ts-expect-error
+                {},
+              ],
+            },
+          },
+        },
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.valid).toBe(false);
+      expect(res.body.code).toBe("BAD_REQUEST");
+    });
+  },
+  { timeout: 20_000 },
+);
