@@ -1,32 +1,37 @@
+import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
-import { FadeIn } from "@/components/fade-in";
-import { Frontmatter, Tags } from "@/lib/mdx-helper";
+import { Tags } from "@/lib/mdx-helper";
 import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
+import { ArrowRight } from "lucide-react";
 import { ChangelogGrid } from "./changelog-grid";
 
-type Changelog = {
-  frontmatter: Frontmatter;
-  slug: string;
+type Props = {
+  searchParams?: {
+    tag?: Tags;
+    page?: number;
+  };
 };
 
-type ChangelogsType = Changelog[];
-
-function Changelog({ changelogs }: { changelogs: ChangelogsType }) {
+export default async function Changelog(props: Props) {
+  const changelogs = (await getAllMDXData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
+    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
+  });
   return (
-    <Container className="flex mt-40 text-white/60">
-      <div className="flex flex-row w-full">
-        <FadeIn className="mx-auto text-center mb-12">
-          <h2 className="font-display blog-heading-gradient text-[4rem] font-medium leading-[5rem]">
-            Changelog
-          </h2>
-          <p className="font-normal leading-7 mt-6 px-32">
-            We are constantly improving our product, fixing bugs and introducing features.
-          </p>
-          <p>Here you can find the latest updates and changes to Unkey.</p>
-        </FadeIn>
+    <Container className="flex flex-col mt-40 text-white/60 w-full">
+      <div className="text-center">
+        <a href="https://twitter.com/unkeydev">
+          <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
+        </a>
+        <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">
+          Changelog
+        </h2>
+        <p className="font-normal leading-7 mt-6 px-32">
+          We are constantly improving our product, fixing bugs and introducing features.
+        </p>
+        <p>Here you can find the latest updates and changes to Unkey.</p>
       </div>
-      <ChangelogGrid changelogs={changelogs} />
+      <ChangelogGrid changelogs={changelogs} searchParams={props.searchParams} />
       <CTA />
     </Container>
   );
@@ -56,14 +61,3 @@ export const metadata = {
     shortcut: "/images/landing/unkey.png",
   },
 };
-
-export default async function Changelogs() {
-  const changelogs = (await getAllMDXData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
-    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
-  });
-  return (
-    <>
-      <Changelog changelogs={changelogs} />
-    </>
-  );
-}
