@@ -16,7 +16,7 @@ export class DurableObjectUsagelimiter {
       host: env.DATABASE_HOST,
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
-    }).db;
+    });
 
     const defaultFields = {
       durableObjectId: state.id.toString(),
