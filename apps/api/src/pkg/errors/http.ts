@@ -161,6 +161,7 @@ export function handleError(err: Error, c: Context): Response {
       { status: err.status },
     );
   }
+  console.log(err);
   logger.error(err.message, {
     name: err.name,
   });
