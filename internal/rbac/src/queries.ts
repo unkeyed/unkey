@@ -17,10 +17,10 @@ export type PermissionQuery<R extends string = string> =
 export const permissionQuerySchema: z.ZodType<PermissionQuery> = z.union([
   z.string(),
   z.object({
-    and: z.array(z.lazy(() => permissionQuerySchema)),
+    and: z.array(z.lazy(() => permissionQuerySchema)).min(2),
   }),
   z.object({
-    or: z.array(z.lazy(() => permissionQuerySchema)),
+    or: z.array(z.lazy(() => permissionQuerySchema)).min(2),
   }),
 ]);
 
