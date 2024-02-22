@@ -87,7 +87,7 @@ export type Frontmatter = {
   tags: Tags[] | undefined;
 };
 
-export type Tags = "product" | "engineering" | "company" | "industry";
+export type Tags = "product" | "engineering" | "company" | "industry" | "security";
 
 // const options = {
 //   theme: themes.jettwaveDark,
