@@ -1,5 +1,6 @@
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import { ErrorResponse } from "@unkey/api/src";
 import { describe, expect, test } from "vitest";
 
 test("without permissions", async () => {
@@ -195,6 +196,42 @@ describe(
       for (const p of ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"]) {
         expect(res.body.permissions!).includes(p);
       }
+    });
+  },
+  { timeout: 20_000 },
+);
+
+describe(
+  "invalid permission query",
+  () => {
+    test("returns BAD_REQUEST", async () => {
+      using h = new IntegrationHarness();
+      await h.seed();
+
+      const { key } = await h.createKey();
+
+      const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
+        url: `${h.baseUrl}/v1/keys.verifyKey`,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          apiId: h.resources.userApi.id,
+          key,
+          authorization: {
+            permissions: {
+              and: [
+                "p1",
+                // @ts-expect-error
+                {},
+              ],
+            },
+          },
+        },
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("BAD_REQUEST");
     });
   },
   { timeout: 20_000 },

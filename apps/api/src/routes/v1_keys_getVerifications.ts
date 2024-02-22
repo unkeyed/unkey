@@ -37,7 +37,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "The configuration for a single key",
+      description: "Usage numbers over time",
       content: {
         "application/json": {
           schema: z.object({
@@ -149,6 +149,13 @@ export const registerV1KeysGetVerifications = (app: App) =>
           workspaceId: key.workspaceId,
         })),
       );
+    }
+
+    if (ids.length === 0) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: "No keys were found to match your query",
+      });
     }
 
     const apiIds = Array.from(new Set(ids.map(({ apiId }) => apiId)));
