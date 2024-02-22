@@ -4,9 +4,15 @@ import { db, desc, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { User } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { DataTable } from "./table";
-import { columns } from "./table-columns";
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -38,7 +44,32 @@ export default async function AuditPage() {
       />
 
       <main className="mt-8 mb-20">
-        <DataTable data={logs} columns={columns} />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Time</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {/* {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )} */}
+          </TableBody>
+        </Table>
       </main>
     </div>
   );
