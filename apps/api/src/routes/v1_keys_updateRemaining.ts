@@ -158,6 +158,8 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         description: `updated remaining requests for key ${req.keyId}`,
         keyAuthId: key.keyAuthId,
         keyId: key.id,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
 

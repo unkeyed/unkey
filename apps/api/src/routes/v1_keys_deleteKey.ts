@@ -120,6 +120,8 @@ export const registerV1KeysDeleteKey = (app: App) =>
         event: "key.delete",
         description: `revoked key ${data.key.id}`,
         keyAuthId: data.key.keyAuthId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
 

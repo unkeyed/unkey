@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
 import { db, desc, schema } from "@/lib/db";
+import { clerkClient } from "@clerk/nextjs";
+import { User } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import { DataTable } from "./table";
 import { columns } from "./table-columns";
@@ -28,7 +30,6 @@ export default async function AuditPage() {
     orderBy: desc(schema.auditLogs.time),
     limit: 10_000,
   });
-
   return (
     <div>
       <PageHeader
@@ -36,7 +37,7 @@ export default async function AuditPage() {
         description={`You have access to the last ${workspace.betaFeatures.auditLogRetentionDays} days.`}
       />
 
-      <main className="mb-20 mt-8">
+      <main className="mt-8 mb-20">
         <DataTable data={logs} columns={columns} />
       </main>
     </div>

@@ -82,6 +82,8 @@ export const registerV1ApisDeleteApi = (app: App) =>
         event: "api.delete",
         description: `API ${api.name} deleted`,
         apiId: apiId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
     // TODO: Delete all keys for this api

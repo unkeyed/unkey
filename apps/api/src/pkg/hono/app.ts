@@ -7,6 +7,8 @@ export type HonoEnv = {
   Bindings: Env;
   Variables: {
     requestId: string;
+    userAgent: string | null;
+    ipAddress: string | null;
   };
 };
 export function newApp() {
@@ -16,6 +18,13 @@ export function newApp() {
 
   app.onError(handleError);
   app.use(prettyJSON());
+
+  app.use("*", (c, next) => {
+    c.set("ipAddress", c.req.header("True-Client-IP") || c.req.header("CF-Connecting-IP") || null);
+    c.set("userAgent", c.req.header("User-Agent") || null);
+
+    return next();
+  });
 
   app.doc("/openapi.json", {
     openapi: "3.0.0",

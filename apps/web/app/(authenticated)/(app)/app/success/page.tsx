@@ -68,7 +68,7 @@ export default async function SuccessPage() {
   const activeWorkspaces = await getQ1ActiveWorkspaces({});
   const chartData = activeWorkspaces.data.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
-    y: workspaces - time >= 1708383600000 ? 160 : 0, // I accidentally added integration test workspaces to this
+    y: workspaces - (time >= 1708470000000 ? 160 : 0), // I accidentally added integration test workspaces to this
   }));
   const customerGoal = 6;
   const activeWorkspaceGoal = 300;

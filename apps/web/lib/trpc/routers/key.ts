@@ -101,6 +101,8 @@ export const keyRouter = t.router({
           event: "key.create",
           description: `created key ${keyId} for api ${keyAuth.api?.id}`,
           keyId: keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
       return { keyId, key };
@@ -195,6 +197,8 @@ export const keyRouter = t.router({
           event: "key.create",
           description: `created key ${keyId} for api ${unkeyApi.id}`,
           keyId: keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
 
         const permissions: Permission[] = [];
@@ -270,6 +274,8 @@ export const keyRouter = t.router({
               event: "key.delete",
               description: `deleted key ${keyId}`,
               keyId: keyId,
+              ipAddress: ctx.audit.ipAddress,
+              userAgent: ctx.audit.userAgent,
             });
           });
         }),

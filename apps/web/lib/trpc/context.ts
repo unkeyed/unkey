@@ -8,6 +8,10 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
 
   return {
     req,
+    audit: {
+      userAgent: req.headers.get("user-agent"),
+      ipAddress: req.headers.get("x-forwarded-for"),
+    },
     user: userId ? { id: userId } : null,
     tenant:
       orgId && orgRole

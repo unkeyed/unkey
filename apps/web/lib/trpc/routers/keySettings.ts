@@ -44,6 +44,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} enabled to ${input.enabled}`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
     }),
@@ -133,6 +135,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} rate limit`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
     }),
@@ -171,6 +175,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} ownerId`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
 
@@ -214,6 +220,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} name`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
       return true;
@@ -273,6 +281,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} metadata`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
       return true;
@@ -332,6 +342,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} expiration`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
       return true;
@@ -396,6 +408,8 @@ export const keySettingsRouter = t.router({
           event: "key.update",
           description: `updated key ${input.keyId} remaining`,
           keyId: input.keyId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
       return true;

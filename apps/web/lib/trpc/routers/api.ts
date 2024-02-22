@@ -43,6 +43,8 @@ export const apiRouter = t.router({
           event: "api.delete",
           description: `API ${api.name} deleted`,
           apiId: api.id,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
 
         const keyIds = await tx.query.keys.findMany({
@@ -50,7 +52,7 @@ export const apiRouter = t.router({
           columns: { id: true },
         });
 
-        if (keyIds.length) {
+        if (keyIds.length > 0) {
           await tx
             .update(schema.keys)
             .set({ deletedAt: new Date() })
@@ -64,7 +66,7 @@ export const apiRouter = t.router({
                   time: new Date(),
                   workspaceId: api.workspaceId,
                   actorType: "user",
-                  event: "key.delete" as any,
+                  event: "key.delete",
                   description: `key ${id} deleted`,
                   actorId: ctx.user.id,
                   keyId: id,
@@ -73,6 +75,10 @@ export const apiRouter = t.router({
                   vercelIntegrationId: null,
                   tags: null,
                   apiId: api.id,
+                  roleId: null,
+                  permissionId: null,
+                  userAgent: ctx.audit.userAgent,
+                  ipAddress: ctx.audit.ipAddress,
                 }) satisfies AuditLog,
             ),
           );
@@ -127,6 +133,8 @@ export const apiRouter = t.router({
           event: "api.create",
           description: `API ${input.name} created`,
           apiId: apiId,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
 
@@ -182,6 +190,8 @@ export const apiRouter = t.router({
           event: "api.update",
           description: `API updated from ${api.name} to ${input.name}`,
           apiId: api.id,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
     }),
@@ -246,6 +256,8 @@ export const apiRouter = t.router({
           time: new Date(),
           actorType: "user",
           actorId: ctx.user.id,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
     }),

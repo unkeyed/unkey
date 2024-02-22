@@ -29,6 +29,18 @@ export const events = [
   "vercelBinding.create",
   "vercelBinding.update",
   "vercelBinding.delete",
+  "role.create",
+  "role.update",
+  "role.delete",
+  "permission.create",
+  "permission.update",
+  "permission.delete",
+  "authorization.connect_role_and_permission",
+  "authorization.disconnect_role_and_permissions",
+  "authorization.connect_role_and_key",
+  "authorization.disconnect_role_and_key",
+  "authorization.connect_permission_and_key",
+  "authorization.disconnect_permission_and_key",
 ];
 
 export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>) {
@@ -36,7 +48,7 @@ export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>)
 
   return (
     <div className="flex items-center justify-between">
-      <div className="flex flex-1 items-center space-x-2">
+      <div className="flex items-center flex-1 space-x-2">
         <Input
           placeholder="Filter events..."
           value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
@@ -53,13 +65,6 @@ export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>)
           }))}
         />
 
-        {/* {table.getColumn("priority") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("priority")}
-            title="Priority"
-            options={priorities}
-          />
-        )}  */}
         {isFiltered && (
           <Button
             variant="ghost"
@@ -67,7 +72,7 @@ export function DataTableToolbar<TData>({ table }: DataTableToolbarProps<TData>)
             className="h-8 px-2 lg:px-3"
           >
             Reset
-            <X className="ml-2 h-4 w-4" />
+            <X className="w-4 h-4 ml-2" />
           </Button>
         )}
       </div>

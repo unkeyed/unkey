@@ -96,6 +96,8 @@ export const registerV1ApisCreateApi = (app: App) =>
         event: "api.create",
         description: `API ${name} created`,
         apiId: apiId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
     return c.json({

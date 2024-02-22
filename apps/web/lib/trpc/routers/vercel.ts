@@ -89,6 +89,8 @@ export const vercelRouter = t.router({
             actorId: ctx.user.id,
             event: "key.create",
             description: "Created new root key for Vercel integration",
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
 
@@ -129,6 +131,8 @@ export const vercelRouter = t.router({
             event: "vercelBinding.create",
             description: "Created Vercel binding",
             vercelBindingId,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
 
@@ -170,6 +174,8 @@ export const vercelRouter = t.router({
             event: "vercelBinding.create",
             description: "Created Vercel binding",
             vercelBindingId,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
       }
@@ -241,6 +247,8 @@ export const vercelRouter = t.router({
             description: "Updated Vercel binding",
             vercelIntegrationId: integration.id,
             vercelBindingId: existingBinding.id,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
       } else {
@@ -269,6 +277,8 @@ export const vercelRouter = t.router({
             description: "Created Vercel binding",
             vercelIntegrationId: integration.id,
             vercelBindingId,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
       }
@@ -346,6 +356,8 @@ export const vercelRouter = t.router({
           actorId: ctx.user.id,
           event: "key.create",
           description: "Created root key",
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
 
@@ -387,6 +399,8 @@ export const vercelRouter = t.router({
             description: "Updated Vercel binding",
             vercelIntegrationId: integration.id,
             vercelBindingId: existingBinding.id,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
       } else {
@@ -416,6 +430,8 @@ export const vercelRouter = t.router({
             description: "Created Vercel binding",
             vercelIntegrationId: integration.id,
             vercelBindingId,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
       }
@@ -466,6 +482,8 @@ export const vercelRouter = t.router({
           description: "Deleted Vercel binding",
           vercelBindingId: binding.id,
           vercelIntegrationId: binding.vercelIntegrations.id,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
     }),
@@ -518,6 +536,8 @@ export const vercelRouter = t.router({
             description: "Deleted Vercel binding",
             vercelBindingId: binding.id,
             vercelIntegrationId: integration.id,
+            ipAddress: ctx.audit.ipAddress,
+            userAgent: ctx.audit.userAgent,
           });
         });
       }

@@ -4,9 +4,12 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AuditLog } from "@/lib/db";
-import { Key, Minus, User } from "lucide-react";
+import { useClerk, useOrganization } from "@clerk/nextjs";
+import { AvatarFallback } from "@radix-ui/react-avatar";
+import { Minus } from "lucide-react";
 import Link from "next/link";
 import { DataTableColumnHeader } from "./table-column-header";
 
@@ -19,7 +22,7 @@ export const columns: ColumnDef<AuditLog>[] = [
         <Tooltip>
           <TooltipTrigger className="flex flex-col">
             <span className="text-content">{row.original.time.toLocaleTimeString()}</span>
-            <span className="text-content-subtle text-xs">
+            <span className="text-xs text-content-subtle">
               {row.original.time.toLocaleDateString()}
             </span>
           </TooltipTrigger>
@@ -37,13 +40,18 @@ export const columns: ColumnDef<AuditLog>[] = [
     accessorKey: "actorId",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Actor" />,
     cell: ({ row }) => {
+      // if (row.original.actorType === "user") {
+      //   return (
+      //     <Avatar className="w-8 h-8">
+      //       <AvatarImage src={user.imageUrl} alt="Profile picture" />
+      //       <AvatarFallback className="w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md ">
+      //         {/* {(user?.firstName ?? "U").slice(0, 2).toUpperCase()} */}
+      //       </AvatarFallback>
+      //     </Avatar>
+      //   );
+      // }
       return (
         <div className="flex items-center">
-          {row.original.actorType === "user" ? (
-            <User className="mr-2 h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Key className="mr-2 h-4 w-4 text-muted-foreground" />
-          )}
           <span>{row.original.actorId}</span>
         </div>
       );
@@ -78,11 +86,10 @@ export const columns: ColumnDef<AuditLog>[] = [
           </Badge>
         </Link>
       ) : (
-        <Minus className="h-4 w-4 text-content-subtle" />
+        <Minus className="w-4 h-4 text-content-subtle" />
       );
     },
 
-    enableSorting: false,
     enableHiding: true,
   },
   {
@@ -97,11 +104,23 @@ export const columns: ColumnDef<AuditLog>[] = [
           </Badge>
         </Link>
       ) : (
-        <Minus className="h-4 w-4 text-content-subtle" />
+        <Minus className="w-4 h-4 text-content-subtle" />
       );
     },
 
-    enableSorting: false,
+    enableHiding: true,
+  },
+  {
+    accessorKey: "ipAddress",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="IP address" />,
+    cell: ({ row }) => {
+      return row.original.ipAddress ? (
+        <pre className="text-xs text-content-subtle">{row.original.ipAddress}</pre>
+      ) : (
+        <Minus className="w-4 h-4 text-content-subtle" />
+      );
+    },
+
     enableHiding: true,
   },
   {
@@ -110,7 +129,13 @@ export const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => (
       <div className="text-sm text-content-subtle">{row.getValue("description")}</div>
     ),
-    enableSorting: false,
     enableHiding: true,
   },
 ];
+
+const UserCell: React.FC<{ userId: string }> = ({ userId }) => {
+  const { memberships } = useOrganization({
+    memberships: { infinite: true },
+  });
+  return <div>Hello</div>;
+};

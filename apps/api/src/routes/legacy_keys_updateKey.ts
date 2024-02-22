@@ -161,6 +161,8 @@ export const registerLegacyKeysUpdate = (app: App) =>
         event: "key.update",
         description: `Key ${keyId} updated`,
         keyAuthId: key.keyAuthId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
     await usageLimiter.revalidate({ keyId: key.id });

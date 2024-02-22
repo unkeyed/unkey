@@ -70,6 +70,8 @@ export const registerLegacyApisDeleteApi = (app: App) =>
         event: "api.delete",
         description: "API deleted",
         apiId: apiId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
     // TODO: delete all keys for this api

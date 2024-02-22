@@ -100,6 +100,8 @@ export const registerLegacyKeysDelete = (app: App) =>
         event: "key.delete",
         description: `Key ${data.key.id} deleted`,
         apiId: data.api.id,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
     await cache.remove(c, "keyById", data.key.id);

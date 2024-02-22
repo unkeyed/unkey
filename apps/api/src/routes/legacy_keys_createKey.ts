@@ -226,6 +226,8 @@ export const registerLegacyKeysCreate = (app: App) =>
         description: "Key created",
         keyAuthId: api.keyAuthId,
         apiId: api.id,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
     });
     // TODO: emit event to tinybird

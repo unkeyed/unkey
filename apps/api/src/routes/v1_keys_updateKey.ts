@@ -222,6 +222,8 @@ export const registerV1KeysUpdate = (app: App) =>
         description: "Key was updated",
         keyId: key.id,
         keyAuthId: key.keyAuthId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
 
       await Promise.all([

@@ -37,6 +37,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
     apiId: false,
     keyId: false,
+    description: false,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);

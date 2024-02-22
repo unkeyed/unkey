@@ -57,6 +57,8 @@ export const workspaceRouter = t.router({
           actorId: ctx.user.id,
           event: "workspace.create",
           description: `Workspace ${input.name} created`,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
       });
 
@@ -171,6 +173,8 @@ export const workspaceRouter = t.router({
               actorId: ctx.user.id,
               event: "workspace.update",
               description: `Workspace ${workspace.name} changed plan to ${input.plan}`,
+              ipAddress: ctx.audit.ipAddress,
+              userAgent: ctx.audit.userAgent,
             });
           });
           return {
@@ -201,6 +205,8 @@ export const workspaceRouter = t.router({
               actorId: ctx.user.id,
               event: "workspace.update",
               description: `Workspace ${workspace.name} changed plan to free`,
+              ipAddress: ctx.audit.ipAddress,
+              userAgent: ctx.audit.userAgent,
             });
           });
           return {
@@ -243,6 +249,8 @@ export const workspaceRouter = t.router({
               actorId: ctx.user.id,
               event: "workspace.update",
               description: `Workspace ${workspace.name} changed plan to pro`,
+              ipAddress: ctx.audit.ipAddress,
+              userAgent: ctx.audit.userAgent,
             });
           });
           return { title: "Your workspace has been upgraded" };
@@ -280,6 +288,8 @@ export const workspaceRouter = t.router({
           actorId: ctx.user.id,
           event: "workspace.update",
           description: `Changed name to ${input.name}`,
+          ipAddress: ctx.audit.ipAddress,
+          userAgent: ctx.audit.userAgent,
         });
         if (ctx.tenant.id.startsWith("org_")) {
           await clerkClient.organizations.updateOrganization(ctx.tenant.id, {

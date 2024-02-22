@@ -294,6 +294,8 @@ export const registerV1KeysCreateKey = (app: App) =>
         description: "Key created",
         apiId: api.id,
         keyAuthId: api.keyAuthId,
+        ipAddress: c.get("ipAddress"),
+        userAgent: c.get("userAgent"),
       });
       if (roleIds.length > 0) {
         await tx.insert(schema.keysRoles).values(
