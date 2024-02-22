@@ -1,5 +1,6 @@
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
+import { ErrorResponse } from "@unkey/api/src";
 import { describe, expect, test } from "vitest";
 
 test("without permissions", async () => {
@@ -209,7 +210,7 @@ describe(
 
       const { key } = await h.createKey();
 
-      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
         url: `${h.baseUrl}/v1/keys.verifyKey`,
         headers: {
           "Content-Type": "application/json",
@@ -230,8 +231,7 @@ describe(
       });
 
       expect(res.status).toBe(400);
-      expect(res.body.valid).toBe(false);
-      expect(res.body.code).toBe("BAD_REQUEST");
+      expect(res.body.error.code).toBe("BAD_REQUEST");
     });
   },
   { timeout: 20_000 },
