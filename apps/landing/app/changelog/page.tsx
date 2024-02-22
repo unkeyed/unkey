@@ -20,7 +20,7 @@ export default async function Changelog(props: Props) {
   return (
     <Container className="flex flex-col mt-40 text-white/60 w-full">
       <div className="text-center">
-        <a href="https://twitter.com/unkeydev">
+        <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
           <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
         </a>
         <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">
