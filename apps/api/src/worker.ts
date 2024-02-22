@@ -5,6 +5,7 @@ import { newId } from "@unkey/id";
 import type { Metric } from "@unkey/metrics";
 import { cors } from "hono/cors";
 
+import { otel } from "./otelMiddleware";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -18,6 +19,7 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
+import { ResolveConfigFn, instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
 import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
 import { registerLegacyApisDeleteApi } from "./routes/legacy_apis_deleteApi";
@@ -34,6 +36,7 @@ export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 
 const app = newApp();
 
+app.use(otel());
 app.get("/routes", (c) => {
   return c.json(
     app.routes.map((r) => ({
@@ -150,7 +153,7 @@ registerLegacyApisGetApi(app);
 registerLegacyApisDeleteApi(app);
 registerLegacyApisListKeys(app);
 
-export default {
+const handler: ExportedHandler<Env> = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
@@ -168,3 +171,14 @@ export default {
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
 };
+
+const config = (env: Env) => {
+  return {
+    exporter: {
+      url: "https://otel.baselime.io/v1",
+      headers: { "x-api-key": env.BASELIME_API_KEY },
+    },
+    service: { name: "boo" },
+  };
+};
+export default instrument(handler, config as ResolveConfigFn);
