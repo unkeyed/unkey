@@ -151,3 +151,18 @@ describe("evaluating a query", () => {
     });
   }
 });
+
+describe("bad queries", () => {
+  test("catch empty {}", () => {
+    const res = new RBAC().validateQuery({
+      or: [
+        "*",
+        "api.*.read_key",
+        // @ts-expect-error
+        {},
+      ],
+    });
+    expect(res.error).toBeDefined();
+    expect(res.error!.message).toMatchInlineSnapshot(`"invalid_union: : Invalid input"`);
+  });
+});

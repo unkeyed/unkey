@@ -271,7 +271,14 @@ export class KeyService {
     }
 
     if (req.permissionQuery) {
-      const rbacResp = this.rbac.evaluatePermissions(req.permissionQuery, data.permissions);
+      const q = this.rbac.validateQuery(req.permissionQuery);
+      if (q.error) {
+        return result.fail({
+          message: `The permission query is malformed: ${q.error.message}`,
+          code: "BAD_REQUEST",
+        });
+      }
+      const rbacResp = this.rbac.evaluatePermissions(q.value.query, data.permissions);
       if (rbacResp.error) {
         logger.error("evaluating permissions failed", {
           query: JSON.stringify(req.permissionQuery),
