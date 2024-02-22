@@ -9,7 +9,7 @@ import { PermissionQuery, RBAC } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
-import { CacheNamespaces } from "../global";
+import { CacheNamespaces, logger } from "../global";
 
 type VerifyKeyResult =
   | {
@@ -273,6 +273,10 @@ export class KeyService {
     if (req.permissionQuery) {
       const rbacResp = this.rbac.evaluatePermissions(req.permissionQuery, data.permissions);
       if (rbacResp.error) {
+        logger.error("evaluating permissions failed", {
+          query: JSON.stringify(req.permissionQuery),
+          permissions: JSON.stringify(data.permissions),
+        });
         return result.fail({ message: rbacResp.error.message, code: "INTERNAL_SERVER_ERROR" });
       }
       if (!rbacResp.value.valid) {
