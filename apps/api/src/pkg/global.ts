@@ -7,7 +7,6 @@
  * Use the hono context for that.
  */
 
-import { Connection } from "@planetscale/database";
 import { Analytics } from "./analytics";
 import { MemoryCache } from "./cache/memory";
 import { CacheWithMetrics } from "./cache/metrics";
@@ -55,7 +54,6 @@ const stale = 24 * 60 * 60 * 1000; // 24 hours
 
 export let cache: TieredCache<CacheNamespaces>;
 export let db: Database;
-export let rawDb: Connection;
 export let metrics: Metrics;
 export let logger: Logger;
 export let keyService: KeyService;
@@ -71,12 +69,6 @@ let initialized = false;
  * Call this once before any hono handlers run.
  */
 
-export function useDB(): Database {
-  if (!db) {
-    throw new Error("db not initialized");
-  }
-  return db;
-}
 export async function init(opts: { env: Env }): Promise<void> {
   if (initialized) {
     return;
@@ -112,13 +104,11 @@ export async function init(opts: { env: Env }): Promise<void> {
       : undefined,
   );
 
-  const conn = createConnection({
+  db = createConnection({
     host: opts.env.DATABASE_HOST,
     username: opts.env.DATABASE_USERNAME,
     password: opts.env.DATABASE_PASSWORD,
   });
-  db = conn.db;
-  rawDb = conn.rawDB;
   logger = opts.env.LOGS
     ? new QueueLogger({ queue: opts.env.LOGS })
     : opts.env.AXIOM_TOKEN
@@ -142,7 +132,6 @@ export async function init(opts: { env: Env }): Promise<void> {
     cache,
     logger,
     db,
-    rawDB: rawDb,
     metrics,
     rateLimiter,
     usageLimiter,

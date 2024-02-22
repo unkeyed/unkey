@@ -4,7 +4,6 @@ import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { Connection } from "@planetscale/database";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
@@ -64,7 +63,6 @@ export class KeyService {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
-  private readonly rawDB: Connection;
   private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
@@ -76,7 +74,6 @@ export class KeyService {
     logger: Logger;
     metrics: Metrics;
     db: Database;
-    rawDB: Connection;
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
@@ -85,7 +82,6 @@ export class KeyService {
     this.logger = opts.logger;
     this.db = opts.db;
     this.metrics = opts.metrics;
-    this.rawDB = opts.rawDB;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = new Map();
@@ -156,9 +152,7 @@ export class KeyService {
 
     const data = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
-      console.log(this.db);
-      const wow = await this.rawDB.execute("SELECT * FROM keys LIMIT 1");
-      console.log(wow);
+
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
