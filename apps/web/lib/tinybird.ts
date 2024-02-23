@@ -411,7 +411,7 @@ export const getAuditLogs = tb.buildPipe({
       "authorization.connect_permission_and_key",
       "authorization.disconnect_permission_and_key",
     ]),
-    resources: z.array(z.string()).refine((ss) =>
+    resources: z.array(z.string()).transform((ss) =>
       ss.map((s) =>
         z
           .object({
