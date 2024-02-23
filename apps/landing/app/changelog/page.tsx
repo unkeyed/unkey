@@ -1,12 +1,12 @@
 import { RainbowDarkButton } from "@/components/button";
-import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import MeteorLines from "@/components/ui/meteorLines";
 import { Tags } from "@/lib/mdx-helper";
 import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { ArrowRight } from "lucide-react";
-import { ChangelogGrid } from "./changelog-grid";
+import { ChangelogGridItem } from "./changelog-grid-item";
+import { SideList } from "./side-list";
 
 type Props = {
   searchParams?: {
@@ -15,38 +15,58 @@ type Props = {
   };
 };
 
-export default async function Changelog(props: Props) {
+export default async function Changelog(_props: Props) {
   const changelogs = (await getAllMDXData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
 
   return (
     <>
-      <Container className="flex flex-col mt-32 text-white/60 w-full">
-        <div className="relative -z-100 ">
-          <ChangelogLight className="w-full -top-20" />
+      <div className="flex flex-col mt-32 text-white/60 mx-auto">
+        <div>
+          <div className="relative -z-100 ">
+            <ChangelogLight className="w-full" />
+          </div>
+          <div className="w-full overflow-hidden">
+            <MeteorLines number={1} xPos={60} direction="left" />
+            <MeteorLines number={1} xPos={200} direction="left" />
+            <MeteorLines number={1} xPos={350} direction="left" />
+            <MeteorLines number={1} xPos={60} direction="right" />
+            <MeteorLines number={1} xPos={200} direction="right" />
+            <MeteorLines number={1} xPos={350} direction="right" />
+          </div>
         </div>
-        <MeteorLines number={1} xPos={60} direction="left" />
-        <MeteorLines number={1} xPos={200} direction="left" />
-        <MeteorLines number={1} xPos={350} direction="left" />
-        <MeteorLines number={1} xPos={60} direction="right" />
-        <MeteorLines number={1} xPos={200} direction="right" />
-        <MeteorLines number={1} xPos={350} direction="right" />
-        <div className="text-center ">
-          <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
-            <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
-          </a>
-          <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">
-            Changelog
-          </h2>
-          <p className="font-normal leading-7 mt-6 px-32">
-            We are constantly improving our product, fixing bugs and introducing features.
-          </p>
-          <p>Here you can find the latest updates and changes to Unkey.</p>
+        <div>
+          <div className="text-center flex flex-row mx-auto ">
+            <div className="flex-flex-col mx-auto">
+              <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
+                <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
+              </a>
+              <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">
+                Changelog
+              </h2>
+              <p className="font-normal leading-7 mt-6">
+                We are constantly improving our product, fixing bugs and introducing features.
+              </p>
+              <p>Here you can find the latest updates and changes to Unkey.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
+            <SideList
+              logs={changelogs}
+              className="top-0 mt-0 pt-0 w-80 mx-12 hidden xl:block sticky"
+            />
+
+            <div className="flex flex-col w-full mr-0">
+              {changelogs.map((changelog) => (
+                <ChangelogGridItem key={changelog.slug} changelog={changelog} />
+              ))}
+            </div>
+          </div>
         </div>
-        <ChangelogGrid changelogs={changelogs} searchParams={props.searchParams} />
-        <CTA />
-      </Container>
+      </div>
+      <CTA />
     </>
   );
 }
