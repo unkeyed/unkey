@@ -97,12 +97,8 @@ export const FrameworkIcon = ({ className }: { className?: string }) => (
 
 export const TemplateTopLight = ({
   className,
-  width,
-  height,
 }: {
   className?: string;
-  width?: number;
-  height?: number;
 }) => (
   <svg
     className={cn("absolute top-0 left-0 right-0 pointer-events-none overflow-hidden", className)}

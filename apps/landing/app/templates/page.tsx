@@ -104,9 +104,10 @@ export default function Templates() {
 
   return (
     <div>
-      <BlogBackgroundLines className="w-full max-w-[717px] mx-auto" />
-      <TemplateTopLight className="w-full max-w-[942px] mx-auto" />
-
+      <div className="overflow-hidden">
+        <BlogBackgroundLines className="w-full max-w-[717px] mx-auto" />
+        <TemplateTopLight className="w-full max-w-[942px] mx-auto" />
+      </div>
       <PageIntro title="Find your Template">
         <p className="text-white/60 mt-10">
           Jumpstart your api development with our pre-built solutions.
