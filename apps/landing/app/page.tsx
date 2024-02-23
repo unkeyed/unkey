@@ -1,6 +1,6 @@
 import { Hero } from "@/app/hero";
 import { SectionTitle } from "@/app/section-title";
-import { AnalyticsBento } from "@/components/analytics/analytics-bento";
+import { AnalyticsBento, LightSvg } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { FeatureGrid } from "@/components/feature/feature-grid";
@@ -71,7 +71,7 @@ export default async function Landing() {
 
       <CodeExamples className="mt-20" />
       <div className="mt-[220px]" />
-      <OpenSource />
+      {/* <OpenSource /> */}
       <SectionTitle
         className="mt-[300px]"
         title="Efficient integration and process, always"

@@ -28,6 +28,7 @@ const config = {
       xxl: "1440px",
     },
     extend: {
+      opacity: { "02": "0.7 " },
       typography: {},
       borderRadius: {
         "4xl": "2rem",

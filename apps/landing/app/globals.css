@@ -47,9 +47,14 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.00) 50%, rgba(255, 255, 255, 0.00) 100%), #000;
 }
 
+.analytics-linear-gradient {
+  background: red;
+  background: linear-gradient(to bottom, #11111199 0%, #11111199 40%, rgba(0, 0, 0, 50%) 100%)
+}
+
 .analytics-background-gradient::before {
   background: radial-gradient(
-    300% 82.5% at 10.25% 100%,
+    80% 82.5% at 5.25% 85%,
     black,
     rgba(200, 200, 200, 0.08)
   );
