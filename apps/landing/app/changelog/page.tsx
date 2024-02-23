@@ -1,6 +1,7 @@
 import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
+import { ChangelogLight, ChangelogLines } from "@/components/svg/changelog";
 import { Tags } from "@/lib/mdx-helper";
 import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { ArrowRight } from "lucide-react";
@@ -19,6 +20,8 @@ export default async function Changelog(props: Props) {
   });
   return (
     <Container className="flex flex-col mt-40 text-white/60 w-full">
+      <ChangelogLight className="mx-auto h-1/2" />
+      <ChangelogLines className="" />
       <div className="text-center">
         <a href="https://twitter.com/unkeydev">
           <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
