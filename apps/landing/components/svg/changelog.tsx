@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 export function ChangelogLines({ className }: { className?: string }) {
   return (
     <svg
-      className={cn(className, "absolute top-0 left-0 right-0 z-0 xl:px-24")}
+      className={cn(className, "absolute top-0 left-0 right-0 z-0 xl:px-24 ")}
       //   width="1340"
       //   height="432"
       viewBox="0 0 1340 432"
@@ -185,7 +185,7 @@ export function ChangelogLines({ className }: { className?: string }) {
 export function ChangelogLight({ className }: { className?: string }) {
   return (
     <svg
-      className={cn(className, "absolute top-0 left-0 right-0 z-0")}
+      className={cn(className, "absolute -top-52 left-0 right-0 -z-10 overflow-x-hidden")}
       //   width="943"
       //   height="622"
       viewBox="0 0 943 622"
