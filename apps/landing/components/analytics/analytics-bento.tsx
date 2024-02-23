@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { Highlight, PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
+import { AnalyticsStars } from "../svg/analytics-stars";
 import { AnalyticsWebApp } from "../svg/analytics-web-app";
 
 export const theme = {
@@ -60,26 +61,44 @@ export function AnalyticsBento() {
         onClick={() => toggleShowApi(!showApi)}
         className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3"
       >
-        <div className="p-1 rounded-lg bg-gray-200 mr-3">
+        <div className="mr-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
+            width="34"
+            height="34"
+            viewBox="0 0 34 34"
+            className="scale-90"
             fill="none"
           >
+            <rect width="34" height="34" rx="8" fill="black" fill-opacity="0.08" />
             <path
               fill-rule="evenodd"
               clip-rule="evenodd"
-              d="M15.5579 2.32588C15.8019 2.0818 16.1977 2.0818 16.4418 2.32588L17.674 3.55811C17.9181 3.80219 17.9181 4.19792 17.674 4.442L14.9114 7.20456L12.7953 5.08844L15.5579 2.32588ZM12.0882 5.79555L2.32564 15.5581C2.08156 15.8022 2.08156 16.1979 2.32564 16.442L3.55787 17.6742C3.80195 17.9183 4.19768 17.9183 4.44175 17.6742L14.2043 7.91167L12.0882 5.79555ZM17.3256 1.442C16.5934 0.709764 15.4062 0.709764 14.674 1.442L1.44175 14.6742C0.70952 15.4065 0.70952 16.5936 1.44175 17.3259L2.67399 18.5581C3.40622 19.2903 4.5934 19.2903 5.32564 18.5581L18.5579 5.32588C19.2901 4.59365 19.2901 3.40646 18.5579 2.67423L17.3256 1.442Z"
+              d="M22.5579 9.32588C22.8019 9.0818 23.1977 9.0818 23.4418 9.32588L24.674 10.5581C24.9181 10.8022 24.9181 11.1979 24.674 11.442L21.9114 14.2046L19.7953 12.0884L22.5579 9.32588ZM19.0882 12.7956L9.32564 22.5581C9.08156 22.8022 9.08156 23.1979 9.32564 23.442L10.5579 24.6742C10.8019 24.9183 11.1977 24.9183 11.4418 24.6742L21.2043 14.9117L19.0882 12.7956ZM24.3256 8.442C23.5934 7.70976 22.4062 7.70976 21.674 8.442L8.44175 21.6742C7.70952 22.4065 7.70952 23.5936 8.44175 24.3259L9.67399 25.5581C10.4062 26.2903 11.5934 26.2903 12.3256 25.5581L25.5579 12.3259C26.2901 11.5936 26.2901 10.4065 25.5579 9.67423L24.3256 8.442Z"
+              fill="black"
+            />
+            <path
+              opacity="0.4"
+              d="M15.25 8.25L16 6.5L16.75 8.25L18.5 9L16.75 9.75L16 11.5L15.25 9.75L13.5 9L15.25 8.25Z"
+              fill="black"
+            />
+            <path
+              opacity="0.6"
+              d="M8.5 11.5L9.5 9L10.5 11.5L13 12.5L10.5 13.5L9.5 16L8.5 13.5L6 12.5L8.5 11.5Z"
+              fill="black"
+            />
+            <path
+              opacity="0.9"
+              d="M21.5 20.5L22.5 18L23.5 20.5L26 21.5L23.5 22.5L22.5 25L21.5 22.5L19 21.5L21.5 20.5Z"
               fill="black"
             />
           </svg>
         </div>
         Hide API Code
       </button>
-      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end border rounded-3xl border-[.5px] border-white/10 relative">
+      <div className="bg-gradient-to-b w-full from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
         <LightSvg className="absolute left-[250px] top-[-150px]" />
+        <AnalyticsStars />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
       </div>
@@ -89,7 +108,7 @@ export function AnalyticsBento() {
 
 function AnalyticsApiView() {
   return (
-    <div className="xl:w-[1120px] overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
+    <div className="xl:w-[1220px] mr-10 overflow-y-hidden border-white/10 border border-b-0 border-l-0  flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
       <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/10">
         <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
           <TerminalIcon className="w-6 h-6" />

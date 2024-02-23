@@ -69,7 +69,7 @@ export function HeroMainSection() {
         that you can safely expose it developers.
       </p>
 
-      <div className="flex items-center gap-6 mt-12">
+      <div className="flex items-center gap-6 mt-16">
         <Link href="/app" className="group">
           <PrimaryButton IconLeft={LogIn} label="Get started" className="h-10" />
         </Link>

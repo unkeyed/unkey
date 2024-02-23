@@ -58,7 +58,7 @@ export default async function Landing() {
     <div className="container mx-auto relative">
       <TopLeftShiningLight />
       <TopRightShiningLight />
-      <HeroMainboardStuff className="absolute right-0 -top-[5%]" />
+      <HeroMainboardStuff className="absolute right-0 -top-[4%]" />
       <HeroMainboardStuffMobile className="absolute right-0 -top-[5%]" />
 
       <Hero />
