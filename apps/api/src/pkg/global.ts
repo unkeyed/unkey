@@ -62,17 +62,19 @@ export let analytics: Analytics;
 export let usageLimiter: UsageLimiter;
 export let rateLimiter: RateLimiter;
 
-let initialized = false;
-
+const cacheMap = new Map();
+const rlMap = new Map();
 /**
  * Initialize all services.
  *
  * Call this once before any hono handlers run.
  */
 export async function init(opts: { env: Env }): Promise<void> {
-  if (initialized) {
-    return;
-  }
+  db = createConnection({
+    host: opts.env.DATABASE_HOST,
+    username: opts.env.DATABASE_USERNAME,
+    password: opts.env.DATABASE_PASSWORD,
+  });
 
   metrics = opts.env.METRICS
     ? new QueueMetrics({ queue: opts.env.METRICS })
@@ -83,34 +85,6 @@ export async function init(opts: { env: Env }): Promise<void> {
         })
       : new NoopMetrics();
 
-  cache = new TieredCache(
-    CacheWithTracing.wrap(
-      CacheWithMetrics.wrap({
-        cache: new MemoryCache<CacheNamespaces>({ fresh, stale }),
-        metrics,
-      }),
-    ),
-    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
-      ? CacheWithTracing.wrap(
-          CacheWithMetrics.wrap({
-            cache: new ZoneCache<CacheNamespaces>({
-              domain: "cache.unkey.dev",
-              fresh,
-              stale,
-              zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-              cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
-            }),
-            metrics,
-          }),
-        )
-      : undefined,
-  );
-
-  db = createConnection({
-    host: opts.env.DATABASE_HOST,
-    username: opts.env.DATABASE_USERNAME,
-    password: opts.env.DATABASE_PASSWORD,
-  });
   logger = opts.env.LOGS
     ? new QueueLogger({ queue: opts.env.LOGS })
     : opts.env.AXIOM_TOKEN
@@ -130,7 +104,39 @@ export async function init(opts: { env: Env }): Promise<void> {
       })
     : new NoopRateLimiter();
 
+  /**
+   * **********************************************************************************************
+   * EVERYTHING AFTER THIS WILL BE REUSED BETWEEN REQUESTS
+   * **********************************************************************************************
+   */
+  // if (initialized) {
+  //   return;
+  // }
+  cache = new TieredCache(
+    CacheWithTracing.wrap(
+      CacheWithMetrics.wrap({
+        cache: new MemoryCache<CacheNamespaces>(cacheMap, { fresh, stale }),
+        metrics,
+      }),
+    ),
+    opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
+      ? CacheWithTracing.wrap(
+          CacheWithMetrics.wrap({
+            cache: new ZoneCache<CacheNamespaces>({
+              domain: "cache.unkey.dev",
+              fresh,
+              stale,
+              zoneId: opts.env.CLOUDFLARE_ZONE_ID,
+              cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+            }),
+            metrics,
+          }),
+        )
+      : undefined,
+  );
+
   keyService = new KeyService({
+    persistenceMap: rlMap,
     cache,
     logger,
     db,
@@ -139,6 +145,4 @@ export async function init(opts: { env: Env }): Promise<void> {
     usageLimiter,
     analytics,
   });
-
-  initialized = true;
 }

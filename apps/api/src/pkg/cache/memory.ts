@@ -8,8 +8,8 @@ export class MemoryCache<TNamespaces extends Record<string, unknown>>
   private readonly config: CacheConfig;
   public readonly tier = "memory";
 
-  constructor(config: CacheConfig) {
-    this.state = new Map();
+  constructor(persistentMap: Map<`${string}:${string}`, Entry<unknown>>, config: CacheConfig) {
+    this.state = persistentMap;
     this.config = config;
   }
 
