@@ -68,6 +68,11 @@ export default async function ApiPageLayout(props: Props) {
             {key.id}
             <CopyButton value={key.id} />
           </Badge>,
+          key.environment ? (
+            <Badge key="environment" variant="secondary">
+              {key.environment}
+            </Badge>
+          ) : null,
         ]}
       />
       <Navbar navigation={navigation} />

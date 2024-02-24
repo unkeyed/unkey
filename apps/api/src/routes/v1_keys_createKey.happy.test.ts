@@ -213,3 +213,33 @@ describe("roles", () => {
     }
   });
 });
+
+test("creates a key with environment", async () => {
+  using h = new RouteHarness();
+  await h.seed();
+  h.useRoutes(registerV1KeysCreateKey);
+
+  const environment = "test";
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      environment,
+    },
+  });
+
+  expect(res.status).toEqual(200);
+
+  const key = await db.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, res.body.keyId),
+  });
+  expect(key).toBeDefined();
+  expect(key!.environment).toBe(environment);
+});
