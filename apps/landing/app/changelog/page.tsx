@@ -17,10 +17,15 @@ export default async function Changelog(props: Props) {
   const changelogs = (await getAllMDXData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
+
   return (
-    <Container className="flex flex-col mt-40 text-white/60 w-full">
-      <div className="text-center">
-        <a href="https://twitter.com/unkeydev">
+    <Container className="flex flex-col mt-32 text-white/60 w-full">
+      {/* <div className="relative -top-60 left-0 right-0 w-screen overflow-x-hidden">
+        <ChangelogBackgroundLines className="shrink-0" />
+      </div> */}
+
+      <div className="text-center ">
+        <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
           <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
         </a>
         <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">

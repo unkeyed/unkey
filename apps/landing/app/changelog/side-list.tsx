@@ -23,7 +23,7 @@ export function SideList({ logs, className }: SideListProps) {
     <div className={cn("lg:flex hidden", className)}>
       <ScrollArea className="h-96 pr-20">
         {logs?.map((log, _index) => (
-          <Link href={`/changelog/${log.slug}`}>
+          <Link href={`/changelog/#${log.slug}`}>
             <p key={log.slug} className="text-sm text-white text-left mb-6 ">
               {format(new Date(log.frontmatter.date), "MMMM dd, yyyy")}
             </p>

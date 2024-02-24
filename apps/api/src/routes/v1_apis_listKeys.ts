@@ -146,6 +146,7 @@ export const registerV1ApisListKeys = (app: App) =>
                 lastRefillAt: k.lastRefillAt?.getTime(),
               }
             : undefined,
+        environment: k.environment ?? undefined,
       })),
       // @ts-ignore, mysql sucks
       total: parseInt(total.at(0)?.count ?? "0"),

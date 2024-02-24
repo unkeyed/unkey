@@ -25,15 +25,14 @@ export type UnkeyContext = {
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS"
     | undefined;
+  environment?: string;
 };
 
 export type UnkeyConfig = {
   /**
-   * The apiId to verify against.
-   *
-   * This will be required soon.
+   * The apiId to verify against. Only keys belonging to this api will be valid.
    */
-  apiId?: string;
+  apiId: string;
 
   /**
    *
@@ -67,9 +66,9 @@ export type UnkeyConfig = {
   onError?: (c: Context, err: ErrorResponse["error"]) => Response | Promise<Response>;
 };
 
-export function unkey(config?: UnkeyConfig): MiddlewareHandler {
+export function unkey(config: UnkeyConfig): MiddlewareHandler {
   return async (c, next) => {
-    const key = config?.getKey
+    const key = config.getKey
       ? config.getKey(c)
       : c.req.header("Authorization")?.replace("Bearer ", "") ?? null;
     if (!key) {
@@ -81,15 +80,13 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
 
     const unkeyInstance = new Unkey({
       rootKey: "public",
-      disableTelemetry: config?.disableTelemetry,
+      disableTelemetry: config.disableTelemetry,
       wrapperSdkVersion: `@unkey/hono@${version}`,
     });
 
-    const res = await unkeyInstance.keys.verify(
-      config?.apiId ? { key, apiId: config.apiId } : { key },
-    );
+    const res = await unkeyInstance.keys.verify({ key, apiId: config.apiId });
     if (res.error) {
-      if (config?.onError) {
+      if (config.onError) {
         return config.onError(c, res.error);
       }
       throw new HTTPException(500, {
@@ -97,7 +94,7 @@ export function unkey(config?: UnkeyConfig): MiddlewareHandler {
       });
     }
 
-    if (!res.result.valid && config?.handleInvalidKey) {
+    if (!res.result.valid && config.handleInvalidKey) {
       return config.handleInvalidKey(c, res.result);
     }
 
