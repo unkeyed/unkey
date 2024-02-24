@@ -25,6 +25,7 @@ export type UnkeyContext = {
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS"
     | undefined;
+  environment?: string;
 };
 
 export type UnkeyConfig = {

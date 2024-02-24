@@ -326,3 +326,35 @@ describe("with disabled key", () => {
     expect(res.body.code).toEqual("DISABLED");
   });
 });
+
+test("returns the environment of a key", async () => {
+  using h = new RouteHarness();
+  await h.seed();
+  h.useRoutes(registerV1KeysVerifyKey);
+
+  const environment = "test";
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+  await h.db.insert(schema.keys).values({
+    id: newId("key"),
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAt: new Date(),
+    environment,
+  });
+
+  const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+    url: "/v1/keys.verifyKey",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: {
+      key,
+      apiId: h.resources.userApi.id,
+    },
+  });
+  expect(res.status).toEqual(200);
+  expect(res.body.valid).toBe(true);
+  expect(res.body.environment).toEqual(environment);
+});
