@@ -1,4 +1,4 @@
-const AnalyticsDashboard = ({ className }: { className: string }) => (
+const _AnalyticsDashboard = ({ className }: { className: string }) => (
   <svg
     width={1209}
     height={601}

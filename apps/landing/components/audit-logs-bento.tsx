@@ -1,13 +1,18 @@
-import { AuditLogs, AuditLogsMobile } from "@/components/svg/audit-logs";
+import { AuditLogs, AuditLogsMobile } from "@/components/audit/audit-logs";
 
 export function AuditLogsBento() {
   return (
-    <div className="w-full xl:mt-10 relative audit-logs-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
-      <div className="audit-logs-fade-gradient">
-        <AuditLogs className="hidden xs:flex h-[400px] w-full ml-[40px]" />
+    <div className="group w-full xl:mt-10 relative audit-logs-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden bg-gradient-to-br from-white/10 to-black">
+      {/*
+      TODO: andreas reenable this and fix it
+      <div className="audit-logs-fade-gradient"> */}
+      <div>
+        <AuditLogs className="hidden xs:block  h-[400px] w-full ml-[40px]" />
         <AuditLogsMobile className="flex xs:hidden h-[400px] w-full ml-[40px]" />
       </div>
-      <AuditLogsText />
+      <div className="duration-200 group-hover:opacity-0 ">
+        <AuditLogsText />
+      </div>
     </div>
   );
 }
@@ -15,7 +20,7 @@ export function AuditLogsBento() {
 export function AuditLogsText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[350px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -31,9 +36,9 @@ export function AuditLogsText() {
             fill-opacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">Audit Logs</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">Audit Logs</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
+      <p className="mt-4 leading-6 text-white/60">
         Maintain detailed audit logs for comprehensive and transparent monitoring, ensuring security
         and compliance.
       </p>

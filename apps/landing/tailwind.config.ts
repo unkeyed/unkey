@@ -28,6 +28,7 @@ const config = {
       xxl: "1440px",
     },
     extend: {
+      borderWidth: { DEFAULT: "0.75px" },
       typography: {},
       borderRadius: {
         "4xl": "2rem",

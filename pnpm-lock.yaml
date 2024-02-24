@@ -134,12 +134,21 @@ importers:
       '@chronark/zod-bird':
         specifier: ^0.3.3
         version: 0.3.3
+      '@faker-js/faker':
+        specifier: ^8.4.1
+        version: 8.4.1
       '@planetscale/database':
         specifier: ^1.11.0
         version: 1.11.0
       '@radix-ui/react-avatar':
         specifier: ^1.0.3
         version: 1.0.3(@types/react-dom@18.2.18)(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-dialog':
+        specifier: ^1.0.4
+        version: 1.0.5(@types/react-dom@18.2.18)(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-popover':
+        specifier: ^1.0.7
+        version: 1.0.7(@types/react-dom@18.2.18)(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
       '@radix-ui/react-separator':
         specifier: ^1.0.3
         version: 1.0.3(@types/react-dom@18.2.18)(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
@@ -161,6 +170,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.0
+      cmdk:
+        specifier: ^0.2.0
+        version: 0.2.0(@types/react@18.2.48)(react-dom@18.2.0)(react@18.2.0)
       date-fns:
         specifier: ^3.2.0
         version: 3.2.0
@@ -4348,14 +4360,14 @@ packages:
     resolution: {integrity: sha512-bOhuFnlRaS7CU33+rFFIWdcET/Vkyn1vsN8BYFwCDEF5P1fVVvYN7bFOsQLTMD3nvi35C1AGmtqUr/Wfv8Xaow==}
     engines: {node: '>=12'}
     dependencies:
-      '@expo/spawn-async': 1.5.0
+      '@expo/spawn-async': 1.7.2
       exec-async: 2.2.0
 
   /@expo/package-manager@1.4.2:
     resolution: {integrity: sha512-LKdo/6y4W7llZ6ghsg1kdx2CeH/qR/c6QI/JI8oPUvppsZoeIYjSkdflce978fAMfR8IXoi0wt0jA2w0kWpwbg==}
     dependencies:
       '@expo/json-file': 8.3.0
-      '@expo/spawn-async': 1.5.0
+      '@expo/spawn-async': 1.7.2
       ansi-regex: 5.0.1
       chalk: 4.1.2
       find-up: 5.0.0
@@ -4443,6 +4455,11 @@ packages:
       chalk: 4.1.2
       find-up: 5.0.0
       js-yaml: 4.1.0
+
+  /@faker-js/faker@8.4.1:
+    resolution: {integrity: sha512-XQ3cU+Q8Uqmrbf2e0cIC/QN43sTBSC8KF12u29Mb47tWrt2hAgBXSgpZMj4Ao8Uk0iJcU99QsOCaIL8934obCg==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0, npm: '>=6.14.13'}
+    dev: false
 
   /@fastify/busboy@2.1.0:
     resolution: {integrity: sha512-+KpH+QxZU7O4675t3mnkQKcZZg56u+K/Ct2K+N2AZYNVK8kyeo/bI18tI8aPm3tvNNRyTWfj6s5tnGNlcbQRsA==}
@@ -5735,6 +5752,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -5801,7 +5819,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -5811,7 +5829,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.8
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.4.1
+      tslib: 2.6.2
       webcrypto-core: 1.7.8
     dev: false
 
@@ -11423,7 +11441,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /dot-prop@8.0.2:
@@ -14894,7 +14912,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /lru-cache@10.2.0:
@@ -16068,6 +16086,10 @@ packages:
     hasBin: true
     dev: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -16346,7 +16368,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /node-addon-api@7.1.0:
@@ -19054,7 +19076,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /snakecase-keys@3.2.1:
