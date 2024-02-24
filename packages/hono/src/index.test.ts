@@ -1,14 +1,61 @@
 import { Hono } from "hono";
-import { describe, expect, test } from "vitest";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import { z } from "zod";
 import { UnkeyContext, unkey } from "./index";
 
-const key = "hono_3ZHg8eyRMts88vxy5uvWLb8S";
+const key = "test_key";
+const apiId = "api_test";
+
+const server = setupServer(
+  http.post("https://api.unkey.dev/v1/keys.verifyKey", async ({ request }) => {
+    const req = z
+      .object({
+        apiId: z.string(),
+        key: z.string(),
+      })
+      .parse(await request.json());
+
+    if (req.apiId !== apiId) {
+      return HttpResponse.json({
+        valid: false,
+        code: "FORBDIDDEN",
+      });
+    }
+    if (req.key !== key) {
+      return HttpResponse.json({
+        valid: false,
+        code: "NOT_FOUND",
+      });
+    }
+
+    return HttpResponse.json({
+      valid: true,
+    });
+  }),
+);
+
+beforeAll(() => {
+  server.listen();
+});
+afterEach(() => {
+  server.resetHandlers();
+});
+afterAll(() => {
+  server.close();
+});
 
 describe("No custom Config", () => {
   describe("happy path", () => {
     const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
-    app.use("/*", unkey());
+    app.use(
+      "*",
+      unkey({
+        apiId,
+      }),
+    );
 
     app.get("/", (c) => c.json(c.get("unkey")));
 
@@ -26,7 +73,12 @@ describe("No custom Config", () => {
   describe("No Authorization header", () => {
     const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
-    app.use("/*", unkey());
+    app.use(
+      "*",
+      unkey({
+        apiId,
+      }),
+    );
 
     app.get("/", (c) => c.json(c.get("unkey")));
 
@@ -47,6 +99,7 @@ describe("With custom key getter", () => {
     app.use(
       "/*",
       unkey({
+        apiId,
         getKey: (c) => {
           return c.text("oh well");
         },
@@ -71,6 +124,7 @@ describe("With custom invald handler", () => {
     app.use(
       "/*",
       unkey({
+        apiId,
         handleInvalidKey: (c, result) => {
           calledWith = result;
           return c.text("oh well");

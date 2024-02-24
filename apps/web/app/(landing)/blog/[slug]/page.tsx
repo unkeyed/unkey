@@ -24,9 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!frontmatter) {
     return notFound();
   }
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://unkey.dev`
-    : "http://localhost:3000";
+  const baseUrl = process.env.VERCEL_URL ? "https://unkey.dev" : "http://localhost:3000";
   const ogUrl = new URL("/og/blog", baseUrl);
   const author = authors[frontmatter.author];
   ogUrl.searchParams.set("title", frontmatter.title ?? "");
