@@ -77,6 +77,7 @@ export class KeyService {
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
+    persistenceMap: Map<string, number>;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -84,7 +85,7 @@ export class KeyService {
     this.metrics = opts.metrics;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
-    this.rlCache = new Map();
+    this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
     this.rbac = new RBAC();
   }
