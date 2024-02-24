@@ -9,6 +9,7 @@ const key = "test_key";
 const apiId = "api_test";
 
 const server = setupServer(
+  // @ts-expect-error
   http.post("https://api.unkey.dev/v1/keys.verifyKey", async ({ request }) => {
     const req = z
       .object({
@@ -32,6 +33,7 @@ const server = setupServer(
 
     return HttpResponse.json({
       valid: true,
+      environment: "test",
     });
   }),
 );
@@ -89,6 +91,34 @@ describe("No custom Config", () => {
         error: "unauthorized",
       });
     });
+  });
+});
+
+describe("with key environment", () => {
+  const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+
+  app.use(
+    "/*",
+    unkey({
+      apiId,
+    }),
+  );
+
+  let returnedEnvironment: string | undefined = undefined;
+
+  app.get("/", (c) => {
+    returnedEnvironment = c.get("unkey").environment;
+    return c.text("hello");
+  });
+
+  test("environment should be returned in context", async () => {
+    const res = await app.request("http://localhost/", {
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(returnedEnvironment).toBe("test");
   });
 });
 
