@@ -279,7 +279,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         refillInterval: req.refill?.interval,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
-        totalUses: 0,
         deletedAt: null,
         enabled: req.enabled,
       });
