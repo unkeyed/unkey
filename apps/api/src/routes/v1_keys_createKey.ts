@@ -148,6 +148,21 @@ When validating a key, we will return this back to you, so you can clearly ident
               description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
               example: false,
             }),
+            environment: z
+              .string()
+              .max(256)
+              .optional()
+              .openapi({
+                description: `Environments allow you to divide your keyspace. 
+
+Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to 
+give the developer a way to develop their own application without the risk of modifying real world 
+resources.
+
+When you set an environment, we will return it back to you when validating the key, so you can
+handle it correctly.
+              `,
+              }),
           }),
         },
       },
@@ -279,9 +294,9 @@ export const registerV1KeysCreateKey = (app: App) =>
         refillInterval: req.refill?.interval,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
-        totalUses: 0,
         deletedAt: null,
         enabled: req.enabled,
+        environment: req.environment ?? null,
       });
 
       await tx.insert(schema.auditLogs).values({

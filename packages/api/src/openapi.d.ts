@@ -669,7 +669,7 @@ export interface paths {
         };
       };
       responses: {
-        /** @description The configuration for a single key */
+        /** @description Usage numbers over time */
         200: {
           content: {
             "application/json": {
