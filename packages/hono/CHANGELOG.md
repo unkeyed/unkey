@@ -1,5 +1,11 @@
 # @unkey/hono
 
+## 1.0.0
+
+### Major Changes
+
+- 7d94063: Require apiId for verifying keys
+
 ## 0.11.1
 
 ### Patch Changes
