@@ -8,6 +8,7 @@ export class TieredCache<TNamespaces extends Record<string, unknown>>
   implements Cache<TNamespaces>
 {
   private readonly tiers: Cache<TNamespaces>[];
+  public readonly tier = "tiered";
 
   /**
    * Create a new tiered cache

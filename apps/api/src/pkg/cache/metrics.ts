@@ -2,23 +2,29 @@ import { Metrics } from "@/pkg/metrics";
 import { Context } from "hono";
 import { Cache } from "./interface";
 
-type Tier = "memory" | "zone";
-
-export class CacheWithMetrics<TNamespaces extends Record<string, unknown>> {
+export class CacheWithMetrics<TNamespaces extends Record<string, unknown>>
+  implements Cache<TNamespaces>
+{
   private cache: Cache<TNamespaces>;
   private readonly metrics: Metrics | undefined = undefined;
-  private readonly tier: Tier;
 
-  constructor(opts: {
+  private constructor(opts: {
     cache: Cache<TNamespaces>;
-    tier: Tier;
     metrics?: Metrics;
   }) {
     this.cache = opts.cache;
-    this.tier = opts.tier;
     this.metrics = opts.metrics;
   }
+  static wrap<TNamespaces extends Record<string, unknown>>(opts: {
+    cache: Cache<TNamespaces>;
+    metrics?: Metrics;
+  }): Cache<TNamespaces> {
+    return new CacheWithMetrics(opts);
+  }
 
+  public get tier() {
+    return this.cache.tier;
+  }
   public async get<TName extends keyof TNamespaces>(
     c: Context,
     namespace: TName,

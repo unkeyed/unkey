@@ -172,13 +172,13 @@ const handler: ExportedHandler<Env> = {
   },
 };
 
-const config = (env: Env) => {
+const config: ResolveConfigFn = (env: Env) => {
   return {
     exporter: {
       url: "https://otel.baselime.io/v1",
-      headers: { "x-api-key": env.BASELIME_API_KEY },
+      headers: { "x-api-key": env.BASELIME_API_KEY! },
     },
-    service: { name: "unkey-api" },
+    service: { name: "unkey-api", version: env.VERSION },
   };
 };
-export default instrument(handler, config as ResolveConfigFn);
+export default instrument(handler, config);

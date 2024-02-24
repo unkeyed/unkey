@@ -6,6 +6,7 @@ export class MemoryCache<TNamespaces extends Record<string, unknown>>
 {
   private readonly state: Map<`${string}:${string}`, Entry<unknown>>;
   private readonly config: CacheConfig;
+  public readonly tier = "memory";
 
   constructor(config: CacheConfig) {
     this.state = new Map();
