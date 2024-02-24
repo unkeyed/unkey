@@ -87,7 +87,6 @@ export const keyRouter = t.router({
           refillInterval: input.refill?.interval ?? null,
           refillAmount: input.refill?.amount ?? null,
           lastRefillAt: input.refill?.interval ? new Date() : null,
-          totalUses: 0,
           deletedAt: null,
           enabled: input.enabled,
         });
@@ -181,7 +180,6 @@ export const keyRouter = t.router({
           refillInterval: null,
           refillAmount: null,
           lastRefillAt: null,
-          totalUses: 0,
           deletedAt: null,
           enabled: true,
         });

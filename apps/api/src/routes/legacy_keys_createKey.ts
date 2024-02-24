@@ -212,7 +212,6 @@ export const registerLegacyKeysCreate = (app: App) =>
         ratelimitRefillInterval: req.ratelimit?.refillInterval,
         ratelimitType: req.ratelimit?.type,
         remaining: req.remaining,
-        totalUses: 0,
         deletedAt: null,
       });
 
