@@ -36,6 +36,7 @@ export const keyRouter = t.router({
           })
           .optional(),
         enabled: z.boolean().default(true),
+        environment: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -89,6 +90,7 @@ export const keyRouter = t.router({
           lastRefillAt: input.refill?.interval ? new Date() : null,
           deletedAt: null,
           enabled: input.enabled,
+          environment: input.environment,
         });
         await tx.insert(schema.auditLogs).values({
           id: newId("auditLog"),
