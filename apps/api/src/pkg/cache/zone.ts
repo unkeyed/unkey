@@ -13,6 +13,7 @@ export type ZoneCacheConfig = CacheConfig & {
 
 export class ZoneCache<TNamespaces extends Record<string, unknown>> implements Cache<TNamespaces> {
   private readonly config: ZoneCacheConfig;
+  public readonly tier = "zone";
 
   constructor(config: ZoneCacheConfig) {
     this.config = config;

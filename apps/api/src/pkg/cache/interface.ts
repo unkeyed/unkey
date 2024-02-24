@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { MaybePromise } from "../types/promise";
 
 export type Entry<TValue> = {
   value: TValue;
@@ -25,6 +26,7 @@ export type CacheConfig = {
 };
 
 export interface Cache<TNamespaces extends Record<string, unknown>> {
+  tier: string;
   /**
    * Return the cached value
    *
@@ -36,9 +38,7 @@ export interface Cache<TNamespaces extends Record<string, unknown>> {
     c: Context,
     namespace: TName,
     key: string,
-  ) =>
-    | [TNamespaces[TName] | undefined, boolean]
-    | Promise<[TNamespaces[TName] | undefined, boolean]>;
+  ) => MaybePromise<[TNamespaces[TName] | undefined, boolean]>;
 
   /**
    * Sets the value for the given key.
@@ -48,10 +48,10 @@ export interface Cache<TNamespaces extends Record<string, unknown>> {
     namespace: keyof TNamespaces,
     key: string,
     value: TNamespaces[TName],
-  ) => void;
+  ) => MaybePromise<void>;
 
   /**
    * Removes the key from the cache.
    */
-  remove: (c: Context, namespace: keyof TNamespaces, key: string) => void;
+  remove: (c: Context, namespace: keyof TNamespaces, key: string) => MaybePromise<void>;
 }

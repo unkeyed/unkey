@@ -11,6 +11,7 @@ import { Analytics } from "./analytics";
 import { MemoryCache } from "./cache/memory";
 import { CacheWithMetrics } from "./cache/metrics";
 import { TieredCache } from "./cache/tiered";
+import { CacheWithTracing } from "./cache/tracing";
 import { ZoneCache } from "./cache/zone";
 import { type Api, type Database, type Key, createConnection } from "./db";
 import { Env } from "./env";
@@ -83,23 +84,25 @@ export async function init(opts: { env: Env }): Promise<void> {
       : new NoopMetrics();
 
   cache = new TieredCache(
-    new CacheWithMetrics<CacheNamespaces>({
-      cache: new MemoryCache<CacheNamespaces>({ fresh, stale }),
-      metrics,
-      tier: "memory",
-    }),
+    CacheWithTracing.wrap(
+      CacheWithMetrics.wrap({
+        cache: new MemoryCache<CacheNamespaces>({ fresh, stale }),
+        metrics,
+      }),
+    ),
     opts.env.CLOUDFLARE_ZONE_ID && opts.env.CLOUDFLARE_API_KEY
-      ? new CacheWithMetrics<CacheNamespaces>({
-          cache: new ZoneCache<CacheNamespaces>({
-            domain: "cache.unkey.dev",
-            fresh,
-            stale,
-            zoneId: opts.env.CLOUDFLARE_ZONE_ID,
-            cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+      ? CacheWithTracing.wrap(
+          CacheWithMetrics.wrap({
+            cache: new ZoneCache<CacheNamespaces>({
+              domain: "cache.unkey.dev",
+              fresh,
+              stale,
+              zoneId: opts.env.CLOUDFLARE_ZONE_ID,
+              cloudflareApiKey: opts.env.CLOUDFLARE_API_KEY,
+            }),
+            metrics,
           }),
-          metrics,
-          tier: "zone",
-        })
+        )
       : undefined,
   );
 
