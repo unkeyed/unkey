@@ -2,7 +2,7 @@ import { integrationTestEnv } from "./env";
 import { Harness } from "./harness";
 import { StepRequest, StepResponse, step } from "./request";
 
-export class IntegrationHarness extends Harness implements Disposable {
+export class IntegrationHarness extends Harness {
   public readonly baseUrl: string;
 
   constructor() {

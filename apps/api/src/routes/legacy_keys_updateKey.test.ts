@@ -3,18 +3,23 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import {
   LegacyKeysUpdateKeyRequest,
   LegacyKeysUpdateKeyResponse,
   registerLegacyKeysUpdate,
 } from "./legacy_keys_updateKey";
 
-test("returns 200", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerLegacyKeysUpdate);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("returns 200", async () => {
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -44,10 +49,6 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerLegacyKeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -98,10 +99,6 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerLegacyKeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -147,10 +144,6 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerLegacyKeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -189,10 +182,6 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerLegacyKeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
@@ -10,12 +10,18 @@ import {
   registerLegacyApisListKeys,
 } from "./legacy_apis_listKeys";
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerLegacyApisListKeys);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+
 describe("simple", () => {
   test("returns 200", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyApisListKeys);
-
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -46,10 +52,6 @@ describe("simple", () => {
 
 describe("filter by ownerId", () => {
   test("returns all keys owned ", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyApisListKeys);
-
     const ownerId = crypto.randomUUID();
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
@@ -81,10 +83,6 @@ describe("filter by ownerId", () => {
 
 describe("with limit", () => {
   test("returns only a few keys", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyApisListKeys);
-
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -113,10 +111,6 @@ describe("with limit", () => {
 
 describe("with offset", () => {
   test("returns the correct keys", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyApisListKeys);
-
     const keyIds = new Array(10).fill(0).map(() => newId("key"));
     for (let i = 0; i < keyIds.length; i++) {
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

@@ -6,19 +6,30 @@ import { KeyV1 } from "@unkey/keys";
 import { randomUUID } from "crypto";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
+
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerLegacyKeysDelete);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+
 runSharedRoleTests<LegacyKeysDeleteKeyResponse>({
   registerHandler: registerLegacyKeysDelete,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await rh.db.insert(schema.keys).values({
       id: keyId,
-      keyAuthId: h.resources.userKeyAuth.id,
+      keyAuthId: rh.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
       createdAt: new Date(),
     });
 
@@ -41,10 +52,6 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyKeysDelete);
-
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.insert(schema.keys).values({
