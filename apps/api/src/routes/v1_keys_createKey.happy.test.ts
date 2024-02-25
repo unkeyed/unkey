@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
-import { db } from "@/pkg/global";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -196,7 +195,7 @@ describe("roles", () => {
 
     expect(res.status).toEqual(200);
 
-    const key = await db.query.keys.findFirst({
+    const key = await h.db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
       with: {
         roles: {
@@ -237,7 +236,7 @@ test("creates a key with environment", async () => {
 
   expect(res.status).toEqual(200);
 
-  const key = await db.query.keys.findFirst({
+  const key = await h.db.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(key).toBeDefined();

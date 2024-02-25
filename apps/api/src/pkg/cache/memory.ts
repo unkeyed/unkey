@@ -1,16 +1,16 @@
 import type { Context } from "hono";
-import { Cache, CacheConfig, Entry } from "./interface";
+import { Cache, Entry } from "./interface";
+import type { CacheNamespaces } from "./namespaces";
+import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 
-export class MemoryCache<TNamespaces extends Record<string, unknown>>
+export class MemoryCache<TNamespaces extends Record<string, unknown> = CacheNamespaces>
   implements Cache<TNamespaces>
 {
   private readonly state: Map<`${string}:${string}`, Entry<unknown>>;
-  private readonly config: CacheConfig;
   public readonly tier = "memory";
 
-  constructor(config: CacheConfig) {
-    this.state = new Map();
-    this.config = config;
+  constructor(persistentMap: Map<`${string}:${string}`, Entry<unknown>>) {
+    this.state = persistentMap;
   }
 
   public get<TName extends keyof TNamespaces>(
@@ -46,8 +46,8 @@ export class MemoryCache<TNamespaces extends Record<string, unknown>>
     const now = Date.now();
     this.state.set(`${String(namespace)}:${key}`, {
       value: value,
-      freshUntil: now + this.config.fresh,
-      staleUntil: now + this.config.stale,
+      freshUntil: now + CACHE_FRESHNESS_TIME_MS,
+      staleUntil: now + CACHE_STALENESS_TIME_MS,
     });
   }
 
