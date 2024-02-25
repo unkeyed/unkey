@@ -9,15 +9,17 @@ concurrency: "only one deploy at a time"
 
 jobs:
   test_routes:
-     name: Unit Test API
-     runs-on: ubuntu-latest
-     env:
+    strategy:
+      matrix:
+        shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
+    name: Test API Routes ${{matrix.shard}}
+    runs-on: ubuntu-latest
+    env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-      DATABASE_BRANCH_NAME: pre-release-tests
+      DATABASE_BRANCH_NAME: pre-release-tests-${{matrix.shard}}
 
-
-     steps:
+    steps:
        - uses: actions/checkout@v4
 
 
@@ -55,7 +57,7 @@ jobs:
 
 
        - name: Test Routes
-         run: pnpm test:routes
+         run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}
          working-directory: apps/api
 
        - name: Delete planetscale branch
