@@ -1,14 +1,20 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
-test("key not found", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerLegacyKeysDelete);
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerLegacyKeysDelete);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("key not found", async () => {
   const keyId = newId("key");
 
   const { key: rootKey } = await h.createRootKey(["*"]);

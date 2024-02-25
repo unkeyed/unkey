@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
@@ -11,11 +11,16 @@ import {
   registerV1KeysUpdate,
 } from "./v1_keys_updateKey";
 
-test("returns 200", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerV1KeysUpdate);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("returns 200", async () => {
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -49,10 +54,6 @@ test("returns 200", async () => {
 });
 
 test("update all", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -105,10 +106,6 @@ test("update all", async () => {
 });
 
 test("update ratelimit", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -156,10 +153,6 @@ test("update ratelimit", async () => {
 });
 
 test("delete expires", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -199,10 +192,6 @@ test("delete expires", async () => {
 });
 
 test("update should not affect undefined fields", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -248,10 +237,6 @@ test("update should not affect undefined fields", async () => {
 });
 
 test("update enabled true", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -288,10 +273,6 @@ test("update enabled true", async () => {
 });
 
 test("update enabled false", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -328,10 +309,6 @@ test("update enabled false", async () => {
 });
 
 test("omit enabled update", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysUpdate);
-
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
