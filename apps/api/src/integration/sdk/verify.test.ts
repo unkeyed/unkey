@@ -13,8 +13,6 @@ afterEach(async () => {
   await h.teardown();
 });
 test("with raw query", async () => {
-  await h.seed();
-
   const { key } = await h.createKey();
 
   const sdk = new Unkey({
@@ -40,8 +38,6 @@ test("with raw query", async () => {
 
 describe("with typesafe generated permissions", () => {
   test("returns valid", async () => {
-    await h.seed();
-
     const { key } = await h.createKey({
       roles: [
         {
@@ -79,8 +75,6 @@ describe("with typesafe generated permissions", () => {
   });
 
   test("with helper functions", async () => {
-    await h.seed();
-
     const { key } = await h.createKey();
 
     const sdk = new Unkey({

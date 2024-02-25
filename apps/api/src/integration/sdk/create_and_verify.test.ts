@@ -14,8 +14,6 @@ afterEach(async () => {
   await h.teardown();
 });
 test("create with roles and permissions", async () => {
-  await h.seed();
-
   type Resources = {
     domain: "create" | "delete" | "read";
     dns: {

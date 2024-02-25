@@ -18,7 +18,6 @@ afterEach(async () => {
 test(
   "create and list keys",
   async () => {
-    await h.seed();
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
@@ -85,7 +84,6 @@ test(
 test(
   "list keys does not return revoked keys",
   async () => {
-    await h.seed();
     const { key: rootKey } = await h.createRootKey(["*"]);
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
       url: `${h.baseUrl}/v1/apis.createApi`,

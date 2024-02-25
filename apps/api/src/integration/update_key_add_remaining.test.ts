@@ -21,7 +21,6 @@ afterEach(async () => {
 
 describe("some", () => {
   test("update a key's remaining limit", async () => {
-    await h.seed();
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

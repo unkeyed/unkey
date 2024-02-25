@@ -17,7 +17,6 @@ afterEach(async () => {
 });
 
 test("create, verify and delete a key", async () => {
-  await h.seed();
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
