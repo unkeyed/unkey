@@ -11,7 +11,7 @@ jobs:
   test_routes:
     strategy:
       matrix:
-        shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
+        shard: ["1", "2", "3", "4", "5", "6", "7", "8"]
     name: Test API Routes ${{matrix.shard}}
     runs-on: ubuntu-latest
     env:
@@ -20,50 +20,50 @@ jobs:
       DATABASE_BRANCH_NAME: pre-release-tests-${{matrix.shard}}
 
     steps:
-       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
 
-       - name: Setup pscale
-         uses: planetscale/setup-pscale-action@v1
-         with:
-           version: latest
+      - name: Setup pscale
+        uses: planetscale/setup-pscale-action@v1
+        with:
+          version: latest
 
-       - name: Create a branch
-         run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
+      - name: Create a branch
+        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
 
-       - name: Create a password
-         id: database_password
-         run: |
-           res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+      - name: Create a password
+        id: database_password
+        run: |
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
 
-           # Extract secrets
-           database_host=$(echo $res | jq -r '.access_host_url')
-           database_username=$(echo $res | jq -r '.username')
-           database_password=$(echo $res | jq -r '.plain_text')
+          # Extract secrets
+          database_host=$(echo $res | jq -r '.access_host_url')
+          database_username=$(echo $res | jq -r '.username')
+          database_password=$(echo $res | jq -r '.plain_text')
 
-           # Mask secrets
-           echo "::add-mask::$database_host"
-           echo "::add-mask::$database_username"
-           echo "::add-mask::$database_password"
+          # Mask secrets
+          echo "::add-mask::$database_host"
+          echo "::add-mask::$database_username"
+          echo "::add-mask::$database_password"
 
-           # Set outputs
-           echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-           echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-           echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
-
-
-       - name: Install
-         uses: ./.github/actions/install
+          # Set outputs
+          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
+          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
+          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
 
 
-       - name: Test Routes
-         run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}
-         working-directory: apps/api
+      - name: Install
+        uses: ./.github/actions/install
 
-       - name: Delete planetscale branch
-         if: always()
-         run: |
-           pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+
+      - name: Test Routes
+        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/8
+        working-directory: apps/api
+
+      - name: Delete planetscale branch
+        if: always()
+        run: |
+          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
 
 
 
