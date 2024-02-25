@@ -18,6 +18,13 @@ export function createConnection(opts: ConnectionOptions): Database {
       username: opts.username,
       password: opts.password,
 
+      /**
+       * AsyncLocalStorage is required to preserve otel trace context
+       *
+       * If we don't bind it, multiple traces are generated instead of a single one
+       *
+       * Cloudflare is addressing this in the runtime already
+       */
       fetch: AsyncLocalStorage.bind((url: string, init: any) => {
         (init as any).cache = undefined; // Remove cache header
         const u = new URL(url);

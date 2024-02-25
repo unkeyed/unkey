@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -39,6 +38,7 @@ export type V1KeysGetKeyResponse = z.infer<
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId } = c.req.query();
+    const { cache, db } = c.get("services");
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
