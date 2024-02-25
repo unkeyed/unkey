@@ -1,7 +1,6 @@
 import { PermissionQuery } from "@unkey/rbac";
 import { Context } from "hono";
 import { UnkeyApiError } from "../errors";
-import { keyService } from "../global";
 
 /**
  * rootKeyAuth takes the bearer token from the request and verifies the key
@@ -14,7 +13,9 @@ export async function rootKeyAuth(c: Context, permissionQuery?: PermissionQuery)
   if (!authorization) {
     throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
   }
-  const rootKey = await keyService.verifyKey(c, { key: authorization, permissionQuery });
+  const rootKey = await c
+    .get("services")
+    .keyService.verifyKey(c, { key: authorization, permissionQuery });
   if (rootKey.error) {
     throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: rootKey.error.message });
   }

@@ -12,7 +12,6 @@ import {
   eq,
   schema,
 } from "../db";
-import { init } from "../global";
 import { unitTestEnv } from "./env";
 
 export type Resources = {
@@ -37,8 +36,6 @@ export abstract class Harness implements Disposable {
       password: env.DATABASE_PASSWORD,
     });
     this.resources = this.createResources();
-    // @ts-expect-error
-    init({ env });
   }
 
   async [Symbol.dispose]() {
