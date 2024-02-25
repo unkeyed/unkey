@@ -5,7 +5,7 @@
  * files.
  */
 
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
@@ -28,14 +28,18 @@ type StepRequestWithoutAuthorizationHeader<TReq> = Omit<StepRequest<TReq>, "head
   };
 };
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  await h.seed();
+});
+
 export function runSharedRoleTests<TReq>(config: {
   prepareRequest: (h: RouteHarness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
   registerHandler: (app: App) => any;
 }) {
   describe("shared role tests", () => {
     test("without a key", async () => {
-      using h = new RouteHarness();
-      await h.seed();
       h.useRoutes(config.registerHandler);
 
       const req = await config.prepareRequest(h);
@@ -51,8 +55,6 @@ export function runSharedRoleTests<TReq>(config: {
     });
 
     test("with wrong key", async () => {
-      using h = new RouteHarness();
-      await h.seed();
       h.useRoutes(config.registerHandler);
 
       const req = await config.prepareRequest(h);
@@ -91,8 +93,6 @@ export function runSharedRoleTests<TReq>(config: {
           ],
         },
       ])("$name", async ({ roles }) => {
-        using h = new RouteHarness();
-        await h.seed();
         h.useRoutes(config.registerHandler);
 
         const { key: rootKey } = await h.createRootKey(roles);

@@ -1,15 +1,20 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
-test("api not found", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerLegacyApisDeleteApi);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("api not found", async () => {
   const apiId = newId("api");
 
   const { key: rootKey } = await h.createRootKey(["*"]);

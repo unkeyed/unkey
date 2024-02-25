@@ -5,17 +5,26 @@ import { randomUUID } from "node:crypto";
 import { describe } from "node:test";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  await h.seed();
+  h.useRoutes(registerLegacyApisDeleteApi);
+});
+afterEach(async () => {
+  await h.teardown();
+});
 runSharedRoleTests<LegacyApisDeleteApiResponse>({
   registerHandler: registerLegacyApisDeleteApi,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
+    await rh.db.insert(schema.apis).values({
       id: apiId,
       name: "test",
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
     });
 
     return {
@@ -37,10 +46,6 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyApisDeleteApi);
-
     const apiId = newId("api");
     await h.db.insert(schema.apis).values({
       id: apiId,

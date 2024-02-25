@@ -3,17 +3,27 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
+
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerV1ApisListKeys);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 
 runSharedRoleTests({
   registerHandler: registerV1ApisListKeys,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
+    await rh.db.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
     });
     return {
       method: "GET",
@@ -52,10 +62,6 @@ describe("correct roles", () => {
       ],
     },
   ])("$name", async ({ roles }) => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerV1ApisListKeys);
-
     const keyAuthId = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthId,

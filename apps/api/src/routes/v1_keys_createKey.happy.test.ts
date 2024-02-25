@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
@@ -11,11 +11,16 @@ import {
   registerV1KeysCreateKey,
 } from "./v1_keys_createKey";
 
-test("creates key", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerV1KeysCreateKey);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("creates key", async () => {
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
   const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -43,10 +48,6 @@ test("creates key", async () => {
 describe("with enabled flag", () => {
   describe("not set", () => {
     test("should still create an enabled key", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerV1KeysCreateKey);
-
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
       const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -73,9 +74,6 @@ describe("with enabled flag", () => {
   });
   describe("enabled: false", () => {
     test("should create a disabled key", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerV1KeysCreateKey);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
       const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -103,9 +101,6 @@ describe("with enabled flag", () => {
   });
   describe("enabled: true", () => {
     test("should create an enabled key", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerV1KeysCreateKey);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
       const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -135,9 +130,6 @@ describe("with enabled flag", () => {
 
 describe("with prefix", () => {
   test("start includes prefix", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerV1KeysCreateKey);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
     const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -166,10 +158,6 @@ describe("with prefix", () => {
 
 describe("roles", () => {
   test("connects the specified roles", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerV1KeysCreateKey);
-
     const roles = ["r1", "r2"];
     await h.db.insert(schema.roles).values(
       roles.map((name) => ({
@@ -214,10 +202,6 @@ describe("roles", () => {
 });
 
 test("creates a key with environment", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1KeysCreateKey);
-
   const environment = "test";
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);

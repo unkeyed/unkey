@@ -1,11 +1,6 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  esbuild: {
-    // This allows us to use the `using` keyword
-    // see https://github.com/vitejs/vite/issues/15464
-    target: "es2020",
-  },
   test: {
     dir: "./src/routes",
     reporters: ["html", "verbose"],
@@ -13,11 +8,11 @@ export default defineConfig({
     alias: {
       "@/": new URL("./src/", import.meta.url).pathname,
     },
-    pool: "threads",
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    // pool: "threads",
+    // poolOptions: {
+    //   threads: {
+    //     singleThread: true,
+    //   },
+    // },
   },
 });
