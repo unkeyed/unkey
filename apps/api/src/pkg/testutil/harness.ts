@@ -41,10 +41,16 @@ export abstract class Harness {
   public async teardown(): Promise<void> {
     await this.db
       .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id));
+      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id))
+      .catch((err) => {
+        console.error(err);
+      });
     await this.db
       .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id));
+      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id))
+      .catch((err) => {
+        console.error(err);
+      });
   }
   /**
    * Create a new root key with optional roles
