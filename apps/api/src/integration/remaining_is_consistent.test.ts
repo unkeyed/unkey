@@ -16,7 +16,6 @@ afterEach(async () => {
   await h.teardown();
 });
 test("remaining consistently counts down", async () => {
-  await h.seed();
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

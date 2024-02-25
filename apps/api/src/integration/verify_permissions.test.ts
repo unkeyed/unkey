@@ -13,8 +13,6 @@ afterEach(async () => {
   await h.teardown();
 });
 test("without permissions", async () => {
-  await h.seed();
-
   const { key } = await h.createKey();
 
   const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -39,8 +37,6 @@ test("without permissions", async () => {
 });
 
 test("with roles but not permissions", async () => {
-  await h.seed();
-
   const { key } = await h.createKey({
     roles: [
       {
@@ -71,8 +67,6 @@ test("with roles but not permissions", async () => {
 });
 
 test("with roles and insufficient permissions", async () => {
-  await h.seed();
-
   const { key } = await h.createKey({
     roles: [
       {
@@ -102,8 +96,6 @@ test("with roles and insufficient permissions", async () => {
 });
 
 test("has all required permissions", async () => {
-  await h.seed();
-
   const { key } = await h.createKey({
     roles: [
       {
@@ -138,8 +130,6 @@ describe(
   "many roles and permissions",
   () => {
     test("returns valid=true", async () => {
-      await h.seed();
-
       const { key } = await h.createKey({
         roles: [
           {
@@ -209,8 +199,6 @@ describe(
   "invalid permission query",
   () => {
     test("returns BAD_REQUEST", async () => {
-      await h.seed();
-
       const { key } = await h.createKey();
 
       const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
