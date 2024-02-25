@@ -51,7 +51,7 @@ export class DurableUsageLimiter implements UsageLimiter {
         });
       return limitResponseSchema.parse(await res.json());
     } catch (e) {
-      this.logger.error("usagelimit failed", { error: e });
+      this.logger.error("usagelimit failed", { keyId: req.keyId, error: (e as Error).message });
       return { valid: false };
     } finally {
       this.metrics.emit({
