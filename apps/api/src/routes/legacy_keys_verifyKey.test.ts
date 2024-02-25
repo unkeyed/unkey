@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 
@@ -13,11 +13,16 @@ import {
   registerLegacyKeysVerifyKey,
 } from "./legacy_keys_verifyKey";
 
-test("returns 200", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerLegacyKeysVerifyKey);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("returns 200", async () => {
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
     id: newId("key"),
@@ -45,10 +50,6 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerLegacyKeysVerifyKey);
-
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.insert(schema.keys).values({
       id: newId("key"),
@@ -77,10 +78,6 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerLegacyKeysVerifyKey);
-
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.insert(schema.keys).values({
         id: newId("key"),
@@ -126,10 +123,6 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerLegacyKeysVerifyKey);
-
       const keyAuthId = newId("keyAuth");
       await h.db.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -177,10 +170,6 @@ describe("with ip whitelist", () => {
   });
   describe("with invalid ip", () => {
     test("returns invalid", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerLegacyKeysVerifyKey);
-
       const keyAuthid = newId("keyAuth");
       await h.db.insert(schema.keyAuth).values({
         id: keyAuthid,

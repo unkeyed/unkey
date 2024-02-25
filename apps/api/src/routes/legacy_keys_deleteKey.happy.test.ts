@@ -2,16 +2,21 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { LegacyKeysDeleteKeyResponse, registerLegacyKeysDelete } from "./legacy_keys_deleteKey";
 
-test("soft deletes key", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerLegacyKeysDelete);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("soft deletes key", async () => {
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({

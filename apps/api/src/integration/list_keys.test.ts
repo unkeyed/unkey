@@ -4,12 +4,20 @@ import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_api
 import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysDeleteKeyRequest } from "@/routes/v1_keys_deleteKey";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
+let h: IntegrationHarness;
+
+beforeEach(async () => {
+  h = new IntegrationHarness();
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 test(
   "create and list keys",
   async () => {
-    using h = new IntegrationHarness();
     await h.seed();
     const { key: rootKey } = await h.createRootKey(["*"]);
 
@@ -77,7 +85,6 @@ test(
 test(
   "list keys does not return revoked keys",
   async () => {
-    using h = new IntegrationHarness();
     await h.seed();
     const { key: rootKey } = await h.createRootKey(["*"]);
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
@@ -6,11 +6,16 @@ import { newId } from "@unkey/id";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { LegacyApisDeleteApiResponse, registerLegacyApisDeleteApi } from "./legacy_apis_deleteApi";
 
-test("soft deletes api", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerLegacyApisDeleteApi);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("soft deletes api", async () => {
   const apiId = newId("key");
   await h.db.insert(schema.apis).values({
     id: apiId,
