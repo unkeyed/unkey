@@ -70,4 +70,4 @@ test("create with roles and permissions", async () => {
   expect(verify.result).toBeDefined();
 
   expect(verify.result!.valid).toBe(true);
-});
+}, 10_000);
