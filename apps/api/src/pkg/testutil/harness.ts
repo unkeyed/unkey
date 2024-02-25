@@ -23,7 +23,7 @@ export type Resources = {
   userKeyAuth: KeyAuth;
 };
 
-export abstract class Harness implements Disposable {
+export abstract class Harness {
   public readonly db: Database;
   public readonly resources: Resources;
   private seeded = false;
@@ -38,7 +38,7 @@ export abstract class Harness implements Disposable {
     this.resources = this.createResources();
   }
 
-  async [Symbol.dispose]() {
+  public async teardown(): Promise<void> {
     await this.db
       .delete(schema.workspaces)
       .where(eq(schema.workspaces.id, this.resources.userWorkspace.id));
@@ -46,7 +46,6 @@ export abstract class Harness implements Disposable {
       .delete(schema.workspaces)
       .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id));
   }
-
   /**
    * Create a new root key with optional roles
    */

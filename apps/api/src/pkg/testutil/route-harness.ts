@@ -13,7 +13,7 @@ export type Resources = {
   userKeyAuth: KeyAuth;
 };
 
-export class RouteHarness extends Harness implements Disposable {
+export class RouteHarness extends Harness {
   public readonly app: App;
 
   constructor() {
