@@ -1,4 +1,3 @@
-import { db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -53,8 +52,10 @@ export type LegacyApisCreateApiResponse = z.infer<
 
 export const registerLegacyApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const auth = await rootKeyAuth(c);
     const { name } = c.req.valid("json");
+    const { db } = c.get("services");
+
+    const auth = await rootKeyAuth(c);
 
     const keyAuth: KeyAuth = {
       id: newId("keyAuth"),
