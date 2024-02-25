@@ -202,9 +202,7 @@ jobs:
 
   production:
     needs:
-      - canary
       - canary-tests
-      # - canary-latency
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Production
