@@ -401,8 +401,8 @@ importers:
         specifier: ^8.12.0
         version: 8.12.0(react-dom@18.2.0)(react@18.2.0)
       '@team-plain/typescript-sdk':
-        specifier: ^2.19.0
-        version: 2.19.0
+        specifier: ^3.7.0
+        version: 3.7.0
       '@trpc/client':
         specifier: ^10.45.1
         version: 10.45.1(@trpc/server@10.45.1)
@@ -5465,6 +5465,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -8071,8 +8072,8 @@ packages:
     engines: {node: '>=12'}
     dev: false
 
-  /@team-plain/typescript-sdk@2.19.0:
-    resolution: {integrity: sha512-BloaZrzHLS2jfgdM9Q/wvpmkHw8ZoVCNaq3z5YsR8NOgbDuVNdzmAUzGqMDmdCRiZ5xbD8CUILHxap1AAJrY5A==}
+  /@team-plain/typescript-sdk@3.7.0:
+    resolution: {integrity: sha512-0kQdSzr3NbyoINjJvPxjB6Qib6ILLWnJvZAlbd38s1dOPZqGIQShDqcHPveGZod2eXRXV85eMGqPtz2sLu3GnA==}
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.1)
       graphql: 16.8.1
@@ -15937,6 +15938,10 @@ packages:
     resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
     engines: {node: ^14 || ^16 || >=18}
     hasBin: true
+    dev: true
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
     dev: true
 
   /natural-compare@1.4.0:
