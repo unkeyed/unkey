@@ -2,13 +2,14 @@ import { trace } from "@opentelemetry/api";
 import { flatten } from "flat";
 
 import type { MiddlewareHandler } from "hono";
+import { HonoEnv } from "../hono/env";
 
 interface OtelConfiguration {
   captureRequestBody?: boolean;
   captureResponseBody?: boolean;
 }
 
-export function otel(config: OtelConfiguration = {}): MiddlewareHandler {
+export function otel(config: OtelConfiguration = {}): MiddlewareHandler<HonoEnv> {
   const tracer = trace.getTracer("@baselime/hono-js", "0.0.1");
   return async (c, next) => {
     return tracer.startActiveSpan("hono", async (span) => {

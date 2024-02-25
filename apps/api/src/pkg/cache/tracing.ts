@@ -1,8 +1,9 @@
 import { Tracer, trace } from "@opentelemetry/api";
 import type { Context } from "hono";
 import { Cache } from "./interface";
+import type { CacheNamespaces } from "./namespaces";
 
-export class CacheWithTracing<TNamespaces extends Record<string, unknown>>
+export class CacheWithTracing<TNamespaces extends Record<string, unknown> = CacheNamespaces>
   implements Cache<TNamespaces>
 {
   private readonly cache: Cache<TNamespaces>;
@@ -12,11 +13,10 @@ export class CacheWithTracing<TNamespaces extends Record<string, unknown>>
     this.tracer = trace.getTracer("cache");
     this.cache = cache;
   }
-
-  static wrap<TNamespaces extends Record<string, unknown>>(
+  static wrap<TNamespaces extends Record<string, unknown> = CacheNamespaces>(
     cache: Cache<TNamespaces>,
   ): Cache<TNamespaces> {
-    return new CacheWithTracing(cache);
+    return new CacheWithTracing<TNamespaces>(cache);
   }
 
   public get tier() {

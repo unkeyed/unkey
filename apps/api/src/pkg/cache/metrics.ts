@@ -1,8 +1,8 @@
 import { Metrics } from "@/pkg/metrics";
 import { Context } from "hono";
 import { Cache } from "./interface";
-
-export class CacheWithMetrics<TNamespaces extends Record<string, unknown>>
+import { CacheNamespaces } from "./namespaces";
+export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = CacheNamespaces>
   implements Cache<TNamespaces>
 {
   private cache: Cache<TNamespaces>;
@@ -15,11 +15,11 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown>>
     this.cache = opts.cache;
     this.metrics = opts.metrics;
   }
-  static wrap<TNamespaces extends Record<string, unknown>>(opts: {
-    cache: Cache<TNamespaces>;
-    metrics?: Metrics;
-  }): Cache<TNamespaces> {
-    return new CacheWithMetrics(opts);
+  static wrap<TNamespaces extends Record<string, unknown>>(
+    cache: Cache<TNamespaces>,
+    metrics: Metrics,
+  ): Cache<TNamespaces> {
+    return new CacheWithMetrics<TNamespaces>({ cache, metrics });
   }
 
   public get tier() {

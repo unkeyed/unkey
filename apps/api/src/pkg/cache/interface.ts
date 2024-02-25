@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { MaybePromise } from "../types/promise";
-
+import type { CacheNamespaces } from "./namespaces";
 export type Entry<TValue> = {
   value: TValue;
 
@@ -11,21 +11,7 @@ export type Entry<TValue> = {
   staleUntil: number;
 };
 
-export type CacheConfig = {
-  /**
-   * How long an entry should be fresh in milliseconds
-   */
-  fresh: number;
-
-  /**
-   * How long an entry should be stale in milliseconds
-   *
-   * Stale entries are still valid but should be refreshed in the background
-   */
-  stale: number;
-};
-
-export interface Cache<TNamespaces extends Record<string, unknown>> {
+export interface Cache<TNamespaces extends Record<string, unknown> = CacheNamespaces> {
   tier: string;
   /**
    * Return the cached value
