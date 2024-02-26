@@ -59,7 +59,7 @@ export function AnalyticsBento() {
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
-        className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3"
+        className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3 w-[164px]"
       >
         <div className="mr-2">
           <svg
@@ -94,9 +94,9 @@ export function AnalyticsBento() {
             />
           </svg>
         </div>
-        Hide API Code
+        {showApi ? "Hide API Code" : "Show API code"}
       </button>
-
+      "
       <div className="mt-[80px] xl:w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
         <LightSvg className="absolute top-[-180px] left-[330px] z-50 pointer-events-none" />
         <AnalyticsStars />
