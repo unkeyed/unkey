@@ -259,3 +259,19 @@ li > p {
   }
 
 
+.changelog-gradient {
+  position: relative;
+}
+
+.changelog-gradient:after {
+  position: absolute;
+  bottom: 0;  
+  height: 100%;
+  width: 100%;
+  content: "";
+  background: linear-gradient(to top,
+     rgba(0,0,0, 1) 20%, 
+     rgba(255,255,255, 0) 80%
+  );
+  pointer-events: none; /* so the text is still selectable */
+}
