@@ -55,7 +55,7 @@ export function AnalyticsBento() {
   const [showApi, toggleShowApi] = useState(true);
 
   return (
-    <div className="flex justify-center relative w-full">
+    <div className="flex justify-center relative w-full xl:w-[1379px]">
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
@@ -97,7 +97,7 @@ export function AnalyticsBento() {
         {showApi ? "Hide API Code" : "Show API code"}
       </button>
       "
-      <div className="mt-[80px] xl:w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
+      <div className="mt-[80px] xl:w-[1379px] h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
         <LightSvg className="absolute top-[-180px] left-[330px] z-50 pointer-events-none" />
         <AnalyticsStars />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
@@ -109,25 +109,41 @@ export function AnalyticsBento() {
 
 function AnalyticsApiView() {
   return (
-    <div className="xl:w-[1220px] bg-[#000000] bg-opacity-02 analytics-background-gradient mr-10 overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex">
-      <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
-        <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
-          <TerminalIcon className="w-6 h-6" />
-          <div className="ml-3">cURL</div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      whileInView="visible"
+    >
+      <div className="xl:w-[1220px] bg-[#000000] bg-opacity-02 analytics-background-gradient mr-10 overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+        <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
+          <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
+            <TerminalIcon className="w-6 h-6" />
+            <div className="ml-3">cURL</div>
+          </div>
+        </div>
+        <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
+          <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
         </div>
       </div>
-      <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
-        <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
-      </div>
-    </div>
+    </motion.div>
   );
 }
 
 function AnalyticsWebAppView() {
   return (
-    <div className="relative w-full  flex justify-center  w-full">
-      <AnalyticsWebApp className="pt-16" />
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      whileInView="visible"
+    >
+      <div className="relative overflow-y-hidden analytics-background-gradient flex justify-center w-full h-full  h-[600px] xl:h-[576px]  xl:w-[1220px] mr-10">
+        <AnalyticsWebApp />
+      </div>
+    </motion.div>
   );
 }
 
@@ -137,30 +153,22 @@ export function Editor({
   theme,
 }: { codeBlock: string; language: string; theme?: PrismTheme }) {
   return (
-    <motion.div
-      key={theme + codeBlock + language}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      whileInView="visible"
-    >
-      <Highlight theme={theme} code={codeBlock} language={language}>
-        {({ tokens, getLineProps, getTokenProps }) => (
-          <pre className="leading-10">
-            {tokens.map((line, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-              <div key={`${line}-${i}`} {...getLineProps({ line })}>
-                <span className="line-number">{i + 1}</span>
-                {line.map((token, key) => (
-                  <span key={`${key}-${token}`} {...getTokenProps({ token })} />
-                ))}
-              </div>
-            ))}
-          </pre>
-        )}
-      </Highlight>
-    </motion.div>
+    <Highlight theme={theme} code={codeBlock} language={language}>
+      {({ tokens, getLineProps, getTokenProps }) => (
+        <pre className="leading-10">
+          {tokens.map((line, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+            <div key={`${line}-${i}`} {...getLineProps({ line })}>
+              <span className="line-number">{i + 1}</span>
+              {line.map((token, key) => (
+                <span key={`${key}-${token}`} {...getTokenProps({ token })} />
+              ))}
+            </div>
+          ))}
+        </pre>
+      )}
+    </Highlight>
+    // </motion.div>
   );
 }
 

@@ -48,7 +48,6 @@
 }
 
 .analytics-linear-gradient {
-  background: red;
   background: linear-gradient(to bottom, #11111199 0%, #11111199 40%, rgba(0, 0, 0, 50%) 100%)
 }
 

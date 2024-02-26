@@ -110,7 +110,7 @@ export default async function Landing() {
       </SectionTitle>
       <div className="grid xl:grid-cols-[2fr_3fr] gap-6">
         <HashedKeysBento />
-        <AuditLogsBento />
+        {/* <AuditLogsBento /> */}
       </div>
       <div className="grid xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
         <IpWhitelistingBento />
