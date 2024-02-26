@@ -24,7 +24,7 @@ export default async function Changelog(_props: Props) {
     <>
       <div className="flex flex-col mt-32 text-white/60 mx-auto">
         <div>
-          <div className="relative -z-100 ">
+          <div className="relative -z-100 max-w-[1000px] left-0 right-0">
             <ChangelogLight className="w-full" />
           </div>
           <div className="w-full overflow-hidden">
@@ -38,14 +38,14 @@ export default async function Changelog(_props: Props) {
         </div>
         <div>
           <div className="text-center flex flex-row mx-auto ">
-            <div className="flex-flex-col mx-auto">
+            <div className="flex-flex-col mx-auto px-4">
               <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
                 <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
               </a>
               <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">
                 Changelog
               </h2>
-              <p className="font-normal leading-7 mt-6">
+              <p className="font-normal leading-7 mt-6 ">
                 We are constantly improving our product, fixing bugs and introducing features.
               </p>
               <p>Here you can find the latest updates and changes to Unkey.</p>
@@ -58,7 +58,7 @@ export default async function Changelog(_props: Props) {
               className="top-0 mt-0 pt-0 w-80 mx-12 hidden xl:block sticky"
             />
 
-            <div className="flex flex-col w-full mr-0">
+            <div className="flex flex-col w-full mr-0 xxs:overflow-hidden">
               {changelogs.map((changelog) => (
                 <ChangelogGridItem key={changelog.slug} changelog={changelog} />
               ))}

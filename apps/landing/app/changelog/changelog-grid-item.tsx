@@ -52,13 +52,13 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           />
         </Frame>
       )}
-      <div className="w-full prose prose-base lg:prose-2xl xl:px-24 px-8">
+      <div className="w-full prose lg:prose-2xl xl:px-24 px-8">
         <MdxContentChangelog source={serialized} />
       </div>
       <div>
         <CopyButton
-          value={`https://unkey.dev/changelog/${changelog.slug}`}
-          className="mb-6 mt-12 xl:ml-24 lg:ml-8 "
+          value={`https://unkey.dev/changelog#${changelog.slug}`}
+          className="mb-6 mt-12 xl:ml-24 lg:ml-8 ml-6"
         >
           <p className="">Copy Link</p>
         </CopyButton>

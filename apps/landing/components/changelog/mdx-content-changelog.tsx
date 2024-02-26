@@ -28,9 +28,24 @@ const MdxComponents = {
     <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient " />
   ),
   p: (props: any) => (
-    <p {...props} className="text-lg font-normal leading-8 text-white/60 text-left " />
+    <p
+      {...props}
+      className="sm:text-sm md:text-lg font-normal leading-8 text-white/60 text-left "
+    />
   ),
   hr: (_props: any) => <Separator orientation="horizontal" />,
+  code: (props: any) => (
+    <div
+      {...props}
+      className="inline font-mono text-xs rounded-lg leading-6 xxs:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1.5 w-full text-nowrap overflow-x-auto"
+    />
+  ),
+  pre: (props: any) => (
+    <pre
+      {...props}
+      className="bg-transparent my-6 [&>*]:py-6 [&>*]:px-4 [&>*]:block w-full [&>*]:rounded-xl sm:m-0 sm:p-0"
+    />
+  ),
 };
 
 export function MdxContentChangelog({ source }: MdxContentProps) {
