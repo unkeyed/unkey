@@ -8,15 +8,15 @@ import { V1KeysDeleteKeyRequest, registerV1KeysDeleteKey } from "./v1_keys_delet
 
 runSharedRoleTests<V1KeysDeleteKeyRequest>({
   registerHandler: registerV1KeysDeleteKey,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await rh.db.insert(schema.keys).values({
       id: keyId,
-      keyAuthId: h.resources.userKeyAuth.id,
+      keyAuthId: rh.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
       createdAt: new Date(),
     });
 

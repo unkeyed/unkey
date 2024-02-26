@@ -1,17 +1,24 @@
-import { logger, metrics } from "@/pkg/global";
 import { z } from "zod";
+import { Logger } from "../logging";
+import { Metrics } from "../metrics";
 import { RateLimiter, RatelimitRequest, RatelimitResponse } from "./interface";
 
 export class DurableRateLimiter implements RateLimiter {
   private readonly namespace: DurableObjectNamespace;
   private readonly domain: string;
+  private readonly logger: Logger;
+  private readonly metrics: Metrics;
   constructor(opts: {
     namespace: DurableObjectNamespace;
 
     domain?: string;
+    logger: Logger;
+    metrics: Metrics;
   }) {
     this.namespace = opts.namespace;
     this.domain = opts.domain ?? "unkey.dev";
+    this.logger = opts.logger;
+    this.metrics = opts.metrics;
   }
 
   public async limit(req: RatelimitRequest): Promise<RatelimitResponse> {
@@ -32,7 +39,7 @@ export class DurableRateLimiter implements RateLimiter {
           body: JSON.stringify({ reset }),
         })
         .catch(async (e) => {
-          logger.warn("calling the ratelimit DO failed, retrying ...", {
+          this.logger.warn("calling the ratelimit DO failed, retrying ...", {
             keyId: req.keyId,
             error: (e as Error).message,
           });
@@ -52,14 +59,14 @@ export class DurableRateLimiter implements RateLimiter {
         pass: current <= req.limit,
       };
     } catch (e) {
-      logger.error("ratelimit failed", { keyId: req.keyId, error: (e as Error).message });
+      this.logger.error("ratelimit failed", { keyId: req.keyId, error: (e as Error).message });
       return {
         current: 0,
         reset,
         pass: false,
       };
     } finally {
-      metrics.emit({
+      this.metrics.emit({
         metric: "metric.usagelimit",
         latency: performance.now() - start,
         keyId: req.keyId,

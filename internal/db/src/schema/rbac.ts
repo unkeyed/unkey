@@ -31,10 +31,6 @@ export const permissions = mysqlTable(
         table.name,
         table.workspaceId,
       ),
-      uniqueKeyPerWorkspaceIdx: unique("unique_key_per_workspace_idx").on(
-        table.name,
-        table.workspaceId,
-      ),
     };
   },
 );

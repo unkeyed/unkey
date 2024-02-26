@@ -310,6 +310,17 @@ export interface paths {
              * @example false
              */
             enabled?: boolean;
+            /**
+             * @description Environments allow you to divide your keyspace.
+             *
+             * Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+             * give the developer a way to develop their own application without the risk of modifying real world
+             * resources.
+             *
+             * When you set an environment, we will return it back to you when validating the key, so you can
+             * handle it correctly.
+             */
+            environment?: string;
           };
         };
       };
@@ -669,7 +680,7 @@ export interface paths {
         };
       };
       responses: {
-        /** @description The configuration for a single key */
+        /** @description Usage numbers over time */
         200: {
           content: {
             "application/json": {
@@ -2179,6 +2190,11 @@ export interface components {
        * ]
        */
       permissions?: string[];
+      /**
+       * @description The environment of the key, this is what what you set when you crated the key
+       * @example test
+       */
+      environment?: string;
     };
     V1KeysVerifyKeyRequest: {
       /**

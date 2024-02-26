@@ -4,7 +4,10 @@ import { HTTPException } from "hono/http-exception";
 import { StatusCode } from "hono/utils/http-status";
 import { ZodError } from "zod";
 import { generateErrorMessage } from "zod-error";
-import { logger } from "../global";
+import { HonoEnv } from "../hono/env";
+import { ConsoleLogger } from "../logging";
+import { AxiomLogger } from "../logging/axiom";
+import { QueueLogger } from "../logging/queue";
 
 const ErrorCode = z.enum([
   "BAD_REQUEST",
@@ -140,7 +143,12 @@ export function handleZodError(
   }
 }
 
-export function handleError(err: Error, c: Context): Response {
+export function handleError(err: Error, c: Context<HonoEnv>): Response {
+  const logger = c.env.LOGS
+    ? new QueueLogger({ queue: c.env.LOGS })
+    : c.env.AXIOM_TOKEN
+      ? new AxiomLogger({ axiomToken: c.env.AXIOM_TOKEN, environment: c.env.ENVIRONMENT })
+      : new ConsoleLogger();
   if (err instanceof UnkeyApiError) {
     if (err.status >= 500) {
       logger.error(err.message, {
@@ -161,9 +169,9 @@ export function handleError(err: Error, c: Context): Response {
       { status: err.status },
     );
   }
-  logger.error(err.message, {
-    name: err.name,
-  });
+  // logger.error(err.message, {
+  //   name: err.name,
+  // });
   return c.json<z.infer<typeof ErrorSchema>>(
     {
       error: {

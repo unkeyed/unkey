@@ -75,7 +75,6 @@ export const vercelRouter = t.router({
             ratelimitRefillInterval: 1000,
             ratelimitType: "fast",
             remaining: null,
-            totalUses: 0,
             deletedAt: null,
           });
           await tx.insert(schema.auditLogs).values({
@@ -332,7 +331,6 @@ export const vercelRouter = t.router({
           ratelimitRefillInterval: 1000,
           ratelimitType: "fast",
           remaining: null,
-          totalUses: 0,
           deletedAt: null,
         });
         await tx.insert(schema.auditLogs).values({

@@ -9,59 +9,61 @@ concurrency: "only one deploy at a time"
 
 jobs:
   test_routes:
-     name: Unit Test API
-     runs-on: ubuntu-latest
-     env:
+    strategy:
+      matrix:
+        shard: ["1", "2", "3", "4", "5", "6", "7", "8"]
+    name: Test API Routes ${{matrix.shard}}
+    runs-on: ubuntu-latest
+    env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-      DATABASE_BRANCH_NAME: pre-release-tests
+      DATABASE_BRANCH_NAME: pre-release-tests-${{matrix.shard}}
+
+    steps:
+      - uses: actions/checkout@v4
 
 
-     steps:
-       - uses: actions/checkout@v4
+      - name: Setup pscale
+        uses: planetscale/setup-pscale-action@v1
+        with:
+          version: latest
+
+      - name: Create a branch
+        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
+
+      - name: Create a password
+        id: database_password
+        run: |
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+
+          # Extract secrets
+          database_host=$(echo $res | jq -r '.access_host_url')
+          database_username=$(echo $res | jq -r '.username')
+          database_password=$(echo $res | jq -r '.plain_text')
+
+          # Mask secrets
+          echo "::add-mask::$database_host"
+          echo "::add-mask::$database_username"
+          echo "::add-mask::$database_password"
+
+          # Set outputs
+          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
+          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
+          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
 
 
-       - name: Setup pscale
-         uses: planetscale/setup-pscale-action@v1
-         with:
-           version: latest
-
-       - name: Create a branch
-         run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-
-       - name: Create a password
-         id: database_password
-         run: |
-           res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
-
-           # Extract secrets
-           database_host=$(echo $res | jq -r '.access_host_url')
-           database_username=$(echo $res | jq -r '.username')
-           database_password=$(echo $res | jq -r '.plain_text')
-
-           # Mask secrets
-           echo "::add-mask::$database_host"
-           echo "::add-mask::$database_username"
-           echo "::add-mask::$database_password"
-
-           # Set outputs
-           echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-           echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-           echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
+      - name: Install
+        uses: ./.github/actions/install
 
 
-       - name: Install
-         uses: ./.github/actions/install
+      - name: Test Routes
+        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/8
+        working-directory: apps/api
 
-
-       - name: Test Routes
-         run: pnpm test:routes
-         working-directory: apps/api
-
-       - name: Delete planetscale branch
-         if: always()
-         run: |
-           pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+      - name: Delete planetscale branch
+        if: always()
+        run: |
+          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
 
 
 
@@ -200,9 +202,7 @@ jobs:
 
   production:
     needs:
-      - canary
       - canary-tests
-      # - canary-latency
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Production

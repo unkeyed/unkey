@@ -1,4 +1,3 @@
-import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -37,7 +36,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "The configuration for a single key",
+      description: "Usage numbers over time",
       content: {
         "application/json": {
           schema: z.object({
@@ -76,6 +75,8 @@ export type V1KeysGetVerificationsResponse = z.infer<
 export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId, ownerId, start, end } = c.req.query();
+
+    const { analytics, cache, db } = c.get("services");
 
     const ids: {
       keyId: string;
@@ -149,6 +150,13 @@ export const registerV1KeysGetVerifications = (app: App) =>
           workspaceId: key.workspaceId,
         })),
       );
+    }
+
+    if (ids.length === 0) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: "No keys were found to match your query",
+      });
     }
 
     const apiIds = Array.from(new Set(ids.map(({ apiId }) => apiId)));

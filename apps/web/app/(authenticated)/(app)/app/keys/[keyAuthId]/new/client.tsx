@@ -3,6 +3,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
@@ -147,6 +148,7 @@ const formSchema = z.object({
         .positive({ message: "Limit must be greater than 0" }),
     })
     .optional(),
+  environment: z.string().optional(),
 });
 
 type Props = {
@@ -313,7 +315,12 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                       name="prefix"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Prefix</FormLabel>
+                          <FormLabel>
+                            Prefix{" "}
+                            <Badge variant="secondary" size="sm">
+                              Optional
+                            </Badge>
+                          </FormLabel>
                           <FormControl>
                             <Input
                               {...field}
@@ -337,7 +344,12 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                       name="bytes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Bytes</FormLabel>
+                          <FormLabel>
+                            Bytes{" "}
+                            <Badge variant="secondary" size="sm">
+                              Optional
+                            </Badge>
+                          </FormLabel>
                           <FormControl>
                             <Input type="number" {...field} />
                           </FormControl>
@@ -354,7 +366,12 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                       name="ownerId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Owner</FormLabel>
+                          <FormLabel>
+                            Owner{" "}
+                            <Badge variant="secondary" size="sm">
+                              Optional
+                            </Badge>
+                          </FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -371,12 +388,39 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name</FormLabel>
+                          <FormLabel>
+                            Name{" "}
+                            <Badge variant="secondary" size="sm">
+                              Optional
+                            </Badge>
+                          </FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
                           <FormDescription>
                             To make it easier to identify a particular key, you can provide a name.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="environment"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Environment{" "}
+                            <Badge variant="secondary" size="sm">
+                              Optional
+                            </Badge>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Separate keys into different environments, for example{" "}
+                            <strong>test</strong> and <strong>live</strong>.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -775,6 +819,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                         ) : null}
                       </CardContent>
                     </Card>
+
                     <div className="w-full">
                       <Button
                         className="w-full"

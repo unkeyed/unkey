@@ -9,7 +9,6 @@ import { PermissionQuery, RBAC } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
-import { CacheNamespaces } from "../global";
 
 type VerifyKeyResult =
   | {
@@ -59,7 +58,7 @@ type VerifyKeyResult =
     };
 
 export class KeyService {
-  private readonly cache: TieredCache<CacheNamespaces>;
+  private readonly cache: TieredCache;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
@@ -70,13 +69,14 @@ export class KeyService {
   private readonly rbac: RBAC;
 
   constructor(opts: {
-    cache: TieredCache<CacheNamespaces>;
+    cache: TieredCache;
     logger: Logger;
     metrics: Metrics;
     db: Database;
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
+    persistenceMap: Map<string, number>;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -84,7 +84,7 @@ export class KeyService {
     this.metrics = opts.metrics;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
-    this.rlCache = new Map();
+    this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
     this.rbac = new RBAC();
   }
@@ -149,7 +149,6 @@ export class KeyService {
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
-
     const data = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
@@ -271,8 +270,19 @@ export class KeyService {
     }
 
     if (req.permissionQuery) {
-      const rbacResp = this.rbac.evaluatePermissions(req.permissionQuery, data.permissions);
+      const q = this.rbac.validateQuery(req.permissionQuery);
+      if (q.error) {
+        return result.fail({
+          message: `The permission query is malformed: ${q.error.message}`,
+          code: "BAD_REQUEST",
+        });
+      }
+      const rbacResp = this.rbac.evaluatePermissions(q.value.query, data.permissions);
       if (rbacResp.error) {
+        this.logger.error("evaluating permissions failed", {
+          query: JSON.stringify(req.permissionQuery),
+          permissions: JSON.stringify(data.permissions),
+        });
         return result.fail({ message: rbacResp.error.message, code: "INTERNAL_SERVER_ERROR" });
       }
       if (!rbacResp.value.valid) {
