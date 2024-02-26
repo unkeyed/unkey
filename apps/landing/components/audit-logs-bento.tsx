@@ -2,15 +2,13 @@ import { AuditLogs, AuditLogsMobile } from "@/components/audit/audit-logs";
 
 export function AuditLogsBento() {
   return (
-    <div className="group w-full xl:mt-10 relative audit-logs-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden bg-gradient-to-br from-white/10 to-black">
-      {/*
-      TODO: andreas reenable this and fix it
-      <div className="audit-logs-fade-gradient"> */}
+    <div className="relative group w-full xl:mt-10  border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden bg-gradient-to-br from-white/10 to-black">
       <div>
         <AuditLogs className="hidden xs:block  h-[400px] w-full ml-[40px]" />
         <AuditLogsMobile className="flex xs:hidden h-[400px] w-full ml-[40px]" />
       </div>
-      <div className="duration-200 group-hover:opacity-0 ">
+      <div className="absolute inset-0 w-full h-full duration-1000 pointer-events-none bg-gradient-to-tr from-black via-black/40 to-black/0 group-hover:opacity-0" />
+      <div className="duration-1000 group-hover:opacity-0 group-hover:pointer-events-none">
         <AuditLogsText />
       </div>
     </div>

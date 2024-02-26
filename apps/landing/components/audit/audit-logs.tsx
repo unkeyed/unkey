@@ -3,7 +3,8 @@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { faker } from "@faker-js/faker";
-import { Check, ChevronDown, KeySquare, User } from "lucide-react";
+import { Check, ChevronDown, KeySquare, User, X } from "lucide-react";
+import { customAlphabet } from "nanoid";
 import React, { PropsWithChildren, useState } from "react";
 import {
   Command,
@@ -38,85 +39,127 @@ const allEvents = [
   "permission.create",
   "permission.update",
   "permission.delete",
-  "authorization.connect_role_and_permission",
-  "authorization.disconnect_role_and_permissions",
-  "authorization.connect_role_and_key",
-  "authorization.disconnect_role_and_key",
-  "authorization.connect_permission_and_key",
-  "authorization.disconnect_permission_and_key",
 ];
+
+const generateId = customAlphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz", 8);
+
+const ids: { user: string[]; key: string[] } = {
+  user: [],
+  key: [],
+};
 const logs: {
   auditLogId: string;
   time: number;
   event: string;
   actor: {
-    type: "key" | "user";
+    type: string;
     id: string;
   };
   ipAddress: string;
-}[] = new Array(10).fill(0).map(() => {
-  return {
-    auditLogId: Math.random().toString(),
-    time: Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000),
-    event: allEvents[Math.floor(Math.random() * allEvents.length)],
-    actor:
-      Math.random() > 0.8
-        ? {
-            type: "user",
-            id: `user_${faker.git.commitSha()}`,
-          }
-        : {
-            type: "key",
-            id: `key_${faker.git.commitSha()}`,
-          },
-    ipAddress: Math.random() > 0.8 ? faker.internet.ipv6() : faker.internet.ipv4(),
-  };
-});
+}[] = new Array(100)
+  .fill(0)
+  .map(() => {
+    const actorType = Math.random() > 0.8 ? "user" : "key";
+    let actorId: string;
+    if (ids[actorType].length > 0 && Math.random() > 0.5) {
+      actorId = ids[actorType][Math.floor(Math.random() * ids[actorType].length)];
+    } else {
+      actorId = `${actorType}_${generateId()}`;
+      ids[actorType].push(actorId);
+    }
+
+    return {
+      auditLogId: `log_${generateId()}`,
+      time: Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000),
+      event: allEvents[Math.floor(Math.random() * allEvents.length)],
+      actor: {
+        type: actorType,
+        id: actorId,
+      },
+      ipAddress: Math.random() > 0.8 ? faker.internet.ipv6() : faker.internet.ipv4(),
+    };
+  })
+  .sort((a, b) => b.time - a.time);
 
 export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [selectedRootKeys, setSelectedRootKeys] = useState<string[]>([]);
+  const [selectedActors, setSelectedActors] = useState<string[]>([]);
+
+  const filteredLogs = logs
+    .filter((l) => {
+      if (
+        selectedActors.length > 0 &&
+        !selectedActors.map((s) => s.toLowerCase()).includes(l.actor.id.toLowerCase())
+      ) {
+        return false;
+      }
+      if (
+        selectedEvents.length > 0 &&
+        !selectedEvents.map((s) => s.toLowerCase()).includes(l.event.toLowerCase())
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .slice(0, 8);
 
   return (
     <div className={className}>
-      <div className="flex flex-col gap-6 mt-10 text-white/60">
+      <div className="flex flex-col gap-6 mt-10 overflow-hidden text-white/60">
         <div className="flex items-center justify-start gap-2">
           <Filter
             title="Events"
-            options={allEvents.map((value) => ({ value, label: value }))}
+            options={allEvents}
             selected={selectedEvents}
             setSelected={setSelectedEvents}
           />
           <Filter
-            title="User"
-            selected={selectedUsers}
-            setSelected={setSelectedUsers}
-            options={[]}
+            title="Actor"
+            selected={selectedActors}
+            setSelected={setSelectedActors}
+            options={Array.from(new Set(logs.map((l) => l.actor.id)))}
           />
-          <Filter
-            title="Root Keys"
-            selected={selectedRootKeys}
-            setSelected={setSelectedRootKeys}
-            options={[]}
-          />
+
+          {selectedEvents.length > 0 || selectedActors.length > 0 ? (
+            <button
+              className="flex items-center h-8 gap-2 px-2 text-sm border rounded-lg border-white/15"
+              type="button"
+              onClick={() => {
+                setSelectedEvents([]);
+                setSelectedActors([]);
+              }}
+            >
+              Clear
+              <X className="w-4 h-4" />
+            </button>
+          ) : null}
         </div>
 
         <div>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Time</TableHead>
                 <TableHead>Actor</TableHead>
                 <TableHead>Event</TableHead>
                 <TableHead>IP address</TableHead>
-                <TableHead>Time</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs.map((l) => {
+              {filteredLogs.map((l) => {
                 return (
                   <TableRow key={l.auditLogId}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white" suppressHydrationWarning>
+                          {new Date(l.time).toLocaleTimeString()}
+                        </span>
+                        <span className="text-xxs text-white/60" suppressHydrationWarning>
+                          {new Date(l.time).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
@@ -135,16 +178,6 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
 
                     <TableCell>
                       <pre className="text-xs text-content-subtle">{l.ipAddress}</pre>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-content">
-                          {new Date(l.time).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs text-content-subtle">
-                          {new Date(l.time).toLocaleTimeString()}
-                        </span>
-                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -171,7 +204,7 @@ const Badge: React.FC<PropsWithChildren<{ className?: string }>> = ({ children, 
 };
 
 type FilterProps = {
-  options: { value: string; label: string }[];
+  options: string[];
   selected: string[];
   setSelected: (s: string[]) => void;
   title: string;
@@ -195,8 +228,8 @@ export const Filter: React.FC<FilterProps> = ({ selected, options, title, setSel
                   <Badge>{selected.length} selected</Badge>
                 ) : (
                   options
-                    .filter((option) => selected.includes(option.value))
-                    .map((option) => <Badge key={option.value}>{option.label}</Badge>)
+                    .filter((option) => selected.includes(option))
+                    .map((option) => <Badge key={option}>{option}</Badge>)
                 )}
               </div>
             </>
@@ -209,21 +242,21 @@ export const Filter: React.FC<FilterProps> = ({ selected, options, title, setSel
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Events" />
+          <CommandInput placeholder={title} />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
-                const isSelected = selected.includes(option.value);
+                const isSelected = selected.includes(option);
 
                 return (
                   <CommandItem
-                    key={option.value}
+                    key={option}
                     onSelect={() => {
                       setSelected(
                         isSelected
-                          ? selected.filter((v) => v !== option.value)
-                          : Array.from(new Set([...selected, option.value])),
+                          ? selected.filter((v) => v !== option)
+                          : Array.from(new Set([...selected, option])),
                       );
                     }}
                   >
@@ -237,7 +270,7 @@ export const Filter: React.FC<FilterProps> = ({ selected, options, title, setSel
                     >
                       <Check className={cn("h-4 w-4")} />
                     </div>
-                    <span className="truncate text-ellipsis">{option.label}</span>
+                    <span className="truncate text-ellipsis">{option}</span>
                   </CommandItem>
                 );
               })}
