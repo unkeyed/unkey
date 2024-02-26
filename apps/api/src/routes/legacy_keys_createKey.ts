@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -154,6 +153,7 @@ export type LegacyKeysCreateKeyResponse = z.infer<
 
 export const registerLegacyKeysCreate = (app: App) =>
   app.openapi(route, async (c) => {
+    const { cache, db } = c.get("services");
     const auth = await rootKeyAuth(c);
 
     const req = c.req.valid("json");
@@ -212,7 +212,6 @@ export const registerLegacyKeysCreate = (app: App) =>
         ratelimitRefillInterval: req.ratelimit?.refillInterval,
         ratelimitType: req.ratelimit?.type,
         remaining: req.remaining,
-        totalUses: 0,
         deletedAt: null,
       });
 

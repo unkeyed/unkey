@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -53,6 +52,7 @@ export type V1ApisGetApiResponse = z.infer<
 export const registerV1ApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId } = c.req.query();
+    const { cache, db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,

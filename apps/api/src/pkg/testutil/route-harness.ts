@@ -1,5 +1,6 @@
 import { type Api, type KeyAuth, type Workspace } from "../db";
 import { App, newApp } from "../hono/app";
+import { init } from "../middleware";
 import { Harness } from "./harness";
 import { StepRequest, StepResponse, fetchRoute } from "./request";
 
@@ -12,12 +13,23 @@ export type Resources = {
   userKeyAuth: KeyAuth;
 };
 
-export class RouteHarness extends Harness implements Disposable {
+export class RouteHarness extends Harness {
   public readonly app: App;
 
   constructor() {
     super();
     this.app = newApp();
+    /**
+     * Hono doesn't get the environment variables autoamtically, so we inject them
+     */
+    this.app.use("*", async (c, next) => {
+      c.env = {
+        ...process.env,
+        ...c.env,
+      };
+      await next();
+    });
+    this.app.use("*", init());
   }
 
   public useRoutes(...registerFunctions: ((app: App) => any)[]): void {

@@ -1,7 +1,7 @@
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { PermissionQuery, buildQuery } from "@unkey/rbac";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import {
   V1KeysVerifyKeyRequest,
   V1KeysVerifyKeyResponse,
@@ -20,6 +20,16 @@ type TestCase = {
     valid: boolean;
   };
 };
+
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerV1KeysVerifyKey);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 
 test.each<TestCase>([
   {
@@ -253,10 +263,6 @@ test.each<TestCase>([
 ])(
   "$name",
   async ({ roles, query, expected }) => {
-    using h = new RouteHarness();
-    await h.seed();
-    h.useRoutes(registerV1KeysVerifyKey);
-
     const { key } = await h.createKey({ roles });
 
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

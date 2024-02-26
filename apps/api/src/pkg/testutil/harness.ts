@@ -12,7 +12,6 @@ import {
   eq,
   schema,
 } from "../db";
-import { init } from "../global";
 import { unitTestEnv } from "./env";
 
 export type Resources = {
@@ -24,7 +23,7 @@ export type Resources = {
   userKeyAuth: KeyAuth;
 };
 
-export abstract class Harness implements Disposable {
+export abstract class Harness {
   public readonly db: Database;
   public readonly resources: Resources;
   private seeded = false;
@@ -37,19 +36,22 @@ export abstract class Harness implements Disposable {
       password: env.DATABASE_PASSWORD,
     });
     this.resources = this.createResources();
-    // @ts-expect-error
-    init({ env });
   }
 
-  async [Symbol.dispose]() {
+  public async teardown(): Promise<void> {
     await this.db
       .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id));
+      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id))
+      .catch((err) => {
+        console.error(err);
+      });
     await this.db
       .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id));
+      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id))
+      .catch((err) => {
+        console.error(err);
+      });
   }
-
   /**
    * Create a new root key with optional roles
    */

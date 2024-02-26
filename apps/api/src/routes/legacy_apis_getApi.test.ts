@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { fetchRoute } from "@/pkg/testutil/request";
@@ -7,14 +7,18 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { type LegacyApisGetApiResponse, registerLegacyApisGetApi } from "./legacy_apis_getApi";
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerLegacyApisGetApi);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 describe("when api exists", () => {
   describe("with a `*` role", () => {
     test("returns the api", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-
-      h.useRoutes(registerLegacyApisGetApi);
-
       const rootKey = await h.createRootKey(["*"]);
 
       const res = await fetchRoute<never, LegacyApisGetApiResponse>(h.app, {
@@ -37,9 +41,6 @@ describe("when api exists", () => {
   describe("with ip whitelist", () => {
     describe("with `*` role", () => {
       test("returns the ip whitelist", async () => {
-        using h = new RouteHarness();
-        await h.seed();
-
         const api = {
           id: newId("api"),
           name: "with ip whitelist",
@@ -52,8 +53,6 @@ describe("when api exists", () => {
         await h.db.insert(schema.apis).values(api);
 
         const rootKey = await h.createRootKey(["*"]);
-
-        h.useRoutes(registerLegacyApisGetApi);
 
         const res = await h.get<LegacyApisGetApiResponse>({
           url: `/v1/apis/${api.id}`,
@@ -74,10 +73,6 @@ describe("when api exists", () => {
 });
 describe("when api does not exist", () => {
   test("returns an error", async () => {
-    using h = new RouteHarness();
-    await h.seed();
-
-    h.useRoutes(registerLegacyApisGetApi);
     const rootKey = await h.createRootKey(["*"]);
 
     const fakeApiId = newId("api");
@@ -98,11 +93,6 @@ describe("without roles", () => {
   describe("when api exists", () => {
     describe("basic", () => {
       test("returns the api", async () => {
-        using h = new RouteHarness();
-        await h.seed();
-
-        h.useRoutes(registerLegacyApisGetApi);
-
         const { key: rootKey } = await h.createRootKey([]);
 
         const res = await h.get<ErrorResponse>({
@@ -119,10 +109,6 @@ describe("without roles", () => {
   });
   describe("when api does not exist", () => {
     test("returns an error", async () => {
-      using h = new RouteHarness();
-      await h.seed();
-      h.useRoutes(registerLegacyApisGetApi);
-
       const fakeApiId = newId("api");
       const { key: rootKey } = await h.createRootKey(["*"]);
 
