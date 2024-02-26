@@ -1,4 +1,5 @@
 "use client";
+import { Table } from "@/app/blog/blog-table";
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { BlogImage } from "../../app/blog/blog-image";
 import { Alert } from "../ui/alert/alert";
@@ -10,6 +11,9 @@ type MdxContentProps = {
 
 /** Custom components here!*/
 const MdxComponents = {
+  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
+  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
+  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
   Image: (props: any) => <BlogImage size="lg" imageUrl={props} />,
   Callout: Alert,
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60 ellipsis" />,

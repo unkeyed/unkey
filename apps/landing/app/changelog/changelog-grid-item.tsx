@@ -55,7 +55,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           />
         </Frame>
       )}
-      <div className="w-full prose lg:prose-2xl xl:px-24 px-8">
+      <div className="w-full prose lg:prose-2xl xl:px-24 px-8 prose-thead:border-none">
         <MdxContentChangelog source={serialized} />
       </div>
       <div>
