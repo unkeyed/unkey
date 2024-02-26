@@ -28,7 +28,7 @@
     "clsx": "^2.1.0",
     "date-fns": "^3.3.1",
     "drizzle-orm": "^0.29.3",
-    "framer-motion": "11.0.5",
+    "framer-motion": "11.0.6",
     "geist": "^1.2.2",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.334.0",
