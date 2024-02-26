@@ -1,4 +1,3 @@
-import { newId } from "@unkey/id";
 import { Metric } from "@unkey/metrics";
 import { MiddlewareHandler } from "hono";
 import { HonoEnv } from "../hono/env";
@@ -29,9 +28,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       fromAgent: c.req.header("Unkey-Redirect"),
     } as DiscriminateMetric<"metric.http.request">;
     try {
-      const requestId = newId("request");
-      m.requestId = requestId;
-      c.set("requestId", requestId);
+      m.requestId = c.get("requestId");
 
       const telemetry = {
         runtime: c.req.header("Unkey-Telemetry-Runtime"),
@@ -45,7 +42,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
               runtime: telemetry.runtime || "unknown",
               platform: telemetry.platform || "unknown",
               versions: telemetry.versions || [],
-              requestId,
+              requestId: m.requestId,
               time: Date.now(),
             })
             .catch((err) => {
@@ -60,7 +57,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
 
       await next();
       // headers should be set after calling `next()`, otherwise they will be lowercased by the framework
-      c.res.headers.append("Unkey-Request-Id", requestId);
+      c.res.headers.append("Unkey-Request-Id", m.requestId);
     } catch (e) {
       m.error = (e as Error).message;
       c.get("services").logger.error("request", {
