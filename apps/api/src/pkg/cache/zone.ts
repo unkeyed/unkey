@@ -1,8 +1,10 @@
 import type { Context } from "hono";
 import superjson from "superjson";
-import { Cache, CacheConfig, Entry } from "./interface";
+import { Cache, Entry } from "./interface";
+import type { CacheNamespaces } from "./namespaces";
+import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 
-export type ZoneCacheConfig = CacheConfig & {
+export type ZoneCacheConfig = {
   domain: string;
   zoneId: string;
   /**
@@ -11,8 +13,11 @@ export type ZoneCacheConfig = CacheConfig & {
   cloudflareApiKey: string;
 };
 
-export class ZoneCache<TNamespaces extends Record<string, unknown>> implements Cache<TNamespaces> {
+export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamespaces>
+  implements Cache<TNamespaces>
+{
   private readonly config: ZoneCacheConfig;
+  public readonly tier = "zone";
 
   constructor(config: ZoneCacheConfig) {
     this.config = config;
@@ -67,8 +72,8 @@ export class ZoneCache<TNamespaces extends Record<string, unknown>> implements C
     const now = Date.now();
     const entry: Entry<TNamespaces[TName] | null> = {
       value: value,
-      freshUntil: now + this.config.fresh,
-      staleUntil: now + this.config.stale,
+      freshUntil: now + CACHE_FRESHNESS_TIME_MS,
+      staleUntil: now + CACHE_STALENESS_TIME_MS,
     };
     const req = new Request(this.createCacheKey(namespace, key));
     const res = new Response(superjson.stringify(entry), {

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
@@ -7,11 +7,16 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
 
-test("get api", async () => {
-  using h = new RouteHarness();
-  await h.seed();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerV1ApisListKeys);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("get api", async () => {
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -43,10 +48,6 @@ test("get api", async () => {
 });
 
 test("filter by ownerId", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1ApisListKeys);
-
   const ownerId = crypto.randomUUID();
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
@@ -80,10 +81,6 @@ test("filter by ownerId", async () => {
 });
 
 test("with limit", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1ApisListKeys);
-
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -114,10 +111,6 @@ test("with limit", async () => {
 }, 10_000);
 
 test("with cursor", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerV1ApisListKeys);
-
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

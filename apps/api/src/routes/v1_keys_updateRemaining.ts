@@ -1,4 +1,3 @@
-import { analytics, cache, db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -63,6 +62,7 @@ export type V1KeysUpdateRemainingResponse = z.infer<
 export const registerV1KeysUpdateRemaining = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
+    const { cache, db, usageLimiter, analytics } = c.get("services");
 
     const key = await db.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),

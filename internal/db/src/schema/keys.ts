@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import {
-  bigint,
   boolean,
   datetime,
   index,
@@ -75,7 +74,15 @@ export const keys = mysqlTable(
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
     ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
     ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
-    totalUses: bigint("total_uses", { mode: "number" }).default(0),
+    /**
+     * A custom environment flag for our users to divide keys.
+     * For example stripe has `live` and `test` keys.
+     *
+     * This field is an optional string on purpose, we do not make any assumptions at this level.
+     * A schema for enums or other enforcements should happen at the keyAuth level instead, where
+     * common settings can be configured by the user.
+     */
+    environment: varchar("environment", { length: 256 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),

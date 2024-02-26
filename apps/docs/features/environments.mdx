@@ -1,0 +1,78 @@
+---
+title: Environments 
+description: Separate your keys into live and test environments.
+---
+
+For many applications it's useful to provide keys for developing and testing to your users. They can
+not interact with real production resources and may have lower ratelimits but use the exact same
+flow as your `live` keys.
+
+
+Unkey allows you to set an arbitrary value as `environment` for each key, so you can model your
+domain however you want. In practice we often see two distinct environments being used a lot:
+
+- `live` Live keys are used in production and affect real resources.
+- `test` Test keys allow you to develop and test your code without modifying real resources. It's
+great to ensure your code is working manually or can be used in automated tests.
+
+You may also want to associate different ratelimits per environment or bill usage differently. 
+Perhaps test keys have lower limits but are free to use.
+
+
+### Creating a key with an environment
+
+Using the prefix to indicate the environment is optional but highly recommended. It can prevent
+your user from accidentally using keys interchangably and modifying resources unintentionally.
+
+<CodeGroup>
+```bash Test
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "environment": "test",
+    "prefix": "sk_test"
+  }'
+```
+
+```bash Live
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "environment": "live",
+    "prefix": "sk_live"
+  }'
+```
+</CodeGroup>
+For more details, see the [API reference](/api-reference/keys/create)
+
+
+
+
+### Verifying a key
+
+When you are using different environments, you obviously need a way to know what environment the
+used key is in.
+We provide this as part of the verification response:
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "apiId": "api_1234",
+    "key": "sk_1234"
+  }'
+```
+The response would look something like this:
+```json
+{
+  "valid": true,
+  "environment": "test",
+  // ... omited
+}
+
+```

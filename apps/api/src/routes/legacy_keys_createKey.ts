@@ -1,4 +1,3 @@
-import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -154,6 +153,7 @@ export type LegacyKeysCreateKeyResponse = z.infer<
 
 export const registerLegacyKeysCreate = (app: App) =>
   app.openapi(route, async (c) => {
+    const { cache, db } = c.get("services");
     const auth = await rootKeyAuth(c);
 
     const req = c.req.valid("json");
@@ -194,25 +194,38 @@ export const registerLegacyKeysCreate = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-    await db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: api.keyAuthId!,
-      name: req.name,
-      hash,
-      start,
-      ownerId: req.ownerId,
-      meta: req.meta ? JSON.stringify(req.meta) : null,
-      workspaceId: authorizedWorkspaceId,
-      forWorkspaceId: null,
-      expires: req.expires ? new Date(req.expires) : null,
-      createdAt: new Date(),
-      ratelimitLimit: req.ratelimit?.limit,
-      ratelimitRefillRate: req.ratelimit?.refillRate,
-      ratelimitRefillInterval: req.ratelimit?.refillInterval,
-      ratelimitType: req.ratelimit?.type,
-      remaining: req.remaining,
-      totalUses: 0,
-      deletedAt: null,
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.keys).values({
+        id: keyId,
+        keyAuthId: api.keyAuthId!,
+        name: req.name,
+        hash,
+        start,
+        ownerId: req.ownerId,
+        meta: req.meta ? JSON.stringify(req.meta) : null,
+        workspaceId: authorizedWorkspaceId,
+        forWorkspaceId: null,
+        expires: req.expires ? new Date(req.expires) : null,
+        createdAt: new Date(),
+        ratelimitLimit: req.ratelimit?.limit,
+        ratelimitRefillRate: req.ratelimit?.refillRate,
+        ratelimitRefillInterval: req.ratelimit?.refillInterval,
+        ratelimitType: req.ratelimit?.type,
+        remaining: req.remaining,
+        deletedAt: null,
+      });
+
+      await tx.insert(schema.auditLogs).values({
+        id: newId("auditLog"),
+        time: new Date(),
+        workspaceId: authorizedWorkspaceId,
+        actorType: "key",
+        actorId: rootKeyId,
+        event: "key.create",
+        description: "Key created",
+        keyAuthId: api.keyAuthId,
+        apiId: api.id,
+      });
     });
 
     await analytics.ingestAuditLogs({
