@@ -34,8 +34,8 @@ const app = newApp();
 
 app.use("*", init());
 app.use("*", cors());
-app.use("*", metrics());
 app.use(otel());
+app.use("*", metrics());
 
 /**
  * Registering all route handlers

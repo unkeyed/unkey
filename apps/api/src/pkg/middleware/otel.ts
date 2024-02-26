@@ -11,8 +11,10 @@ interface OtelConfiguration {
 
 export function otel(config: OtelConfiguration = {}): MiddlewareHandler<HonoEnv> {
   const tracer = trace.getTracer("@baselime/hono-js", "0.0.1");
+
   return async (c, next) => {
     return tracer.startActiveSpan("hono", async (span) => {
+      c.set("requestId", `req_${span.spanContext().traceId}`);
       if (config.captureRequestBody) {
         if (c.req.header("content-type") === "application/json") {
           const body = await c.req.json();
