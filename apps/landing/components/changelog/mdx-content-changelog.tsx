@@ -43,7 +43,7 @@ const MdxComponents = {
   pre: (props: any) => (
     <pre
       {...props}
-      className="bg-transparent my-6 [&>*]:py-6 [&>*]:px-4 [&>*]:block w-full [&>*]:rounded-xl sm:m-0 sm:p-0"
+      className="bg-transparent [&>*]my-6 [&>*]:py-6 [&>*]:px-4 [&>*]:block w-full [&>*]:rounded-xl m-0 p-0"
     />
   ),
 };
