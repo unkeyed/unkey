@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
@@ -10,11 +10,16 @@ import {
   registerLegacyApisCreateApi,
 } from "./legacy_apis_createApi";
 
-test("creates the api", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerLegacyApisCreateApi);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("creates the api", async () => {
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.post<LegacyApisCreateApiRequest, LegacyApisCreateApiResponse>({
@@ -40,9 +45,6 @@ test("creates the api", async () => {
 });
 
 test("creates rejects invalid root key", async () => {
-  using h = new RouteHarness();
-  await h.seed();
-  h.useRoutes(registerLegacyApisCreateApi);
   const res = await h.post<LegacyApisCreateApiRequest, ErrorResponse>({
     url: "/v1/apis",
     headers: {

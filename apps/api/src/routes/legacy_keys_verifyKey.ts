@@ -1,5 +1,4 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { keyService } from "@/pkg/global";
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -149,6 +148,7 @@ export type LegacyKeysVerifyKeyResponse = z.infer<
 export const registerLegacyKeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, key } = c.req.valid("json");
+    const { keyService } = c.get("services");
 
     const { value, error } = await keyService.verifyKey(c, { key, apiId });
     if (error) {

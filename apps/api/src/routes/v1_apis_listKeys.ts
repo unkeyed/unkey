@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
@@ -63,6 +62,7 @@ export type V1ApisListKeysResponse = z.infer<
 export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, limit, cursor, ownerId } = c.req.query();
+    const { cache, db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -146,6 +146,7 @@ export const registerV1ApisListKeys = (app: App) =>
                 lastRefillAt: k.lastRefillAt?.getTime(),
               }
             : undefined,
+        environment: k.environment ?? undefined,
       })),
       // @ts-ignore, mysql sucks
       total: parseInt(total.at(0)?.count ?? "0"),

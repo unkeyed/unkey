@@ -1,5 +1,4 @@
 import { openApiErrorResponses } from "@/pkg/errors";
-import { analytics, logger, metrics, rateLimiter, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -48,6 +47,8 @@ export type V1LivenessResponse = z.infer<
 
 export const registerV1Liveness = (app: App) =>
   app.openapi(route, async (c) => {
+    const { analytics, logger, metrics, rateLimiter, usageLimiter } = c.get("services");
+
     return c.json({
       status: "we're so back",
       services: {

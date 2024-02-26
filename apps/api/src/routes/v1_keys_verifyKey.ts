@@ -1,5 +1,4 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { keyService } from "@/pkg/global";
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { permissionQuerySchema } from "@unkey/rbac";
@@ -152,6 +151,11 @@ Possible values are:
                   description: "A list of all the permissions this key is connected to.",
                   example: ["dns.record.update", "dns.record.delete"],
                 }),
+              environment: z.string().optional().openapi({
+                description:
+                  "The environment of the key, this is what what you set when you crated the key",
+                example: "test",
+              }),
             })
             .openapi("V1KeysVerifyKeyResponse"),
         },
@@ -171,6 +175,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId, key, authorization } = c.req.valid("json");
+    const { keyService } = c.get("services");
 
     const { value, error } = await keyService.verifyKey(c, {
       key,
@@ -203,5 +208,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       ratelimit: value.ratelimit ?? undefined,
       enabled: value.key.enabled,
       permissions: value.permissions,
+      environment: value.key.environment ?? undefined,
     });
   });

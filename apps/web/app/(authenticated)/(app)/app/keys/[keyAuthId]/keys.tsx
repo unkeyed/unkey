@@ -45,6 +45,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
       start: string | null;
       roles: number;
       permissions: number;
+      environment: string | null;
     }[];
   };
   const keysByOwnerId = keys.reduce((acc, curr) => {
@@ -59,6 +60,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
       start: curr.start,
       roles: curr.roles.length,
       permissions: curr.permissions.length,
+      environment: curr.environment,
     });
     return acc;
   }, {} as KeysByOwnerId);
@@ -120,6 +122,10 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
                     <pre className="text-xs text-content-subtle">{k.id}</pre>
                   </div>
 
+                  <div className="flex items-center col-span-2 gap-2">
+                    {k.environment ? <Badge variant="secondary">env: {k.environment}</Badge> : null}
+                  </div>
+
                   <div className="flex items-center col-span-3 gap-2">
                     <Badge variant="secondary">
                       {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.permissions)}{" "}
@@ -133,7 +139,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-end col-span-3">
+                  <div className="flex items-center justify-end col-span-1">
                     <Button variant="ghost">
                       <ChevronRight className="w-4 h-4" />
                     </Button>

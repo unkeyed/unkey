@@ -5,10 +5,7 @@ describe("MemoryCache", () => {
   let memoryCache: MemoryCache<{ name: string }>;
 
   beforeEach(() => {
-    memoryCache = new MemoryCache({
-      fresh: 1_000_000,
-      stale: 1_000_000,
-    });
+    memoryCache = new MemoryCache(new Map());
   });
 
   test("should store value in the cache", () => {

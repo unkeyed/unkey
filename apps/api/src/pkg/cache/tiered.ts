@@ -1,13 +1,15 @@
 import { type Context } from "hono";
 import { type Cache } from "./interface";
+import type { CacheNamespaces } from "./namespaces";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredCache<TNamespaces extends Record<string, unknown>>
+export class TieredCache<TNamespaces extends Record<string, unknown> = CacheNamespaces>
   implements Cache<TNamespaces>
 {
   private readonly tiers: Cache<TNamespaces>[];
+  public readonly tier = "tiered";
 
   /**
    * Create a new tiered cache
