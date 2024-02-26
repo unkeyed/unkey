@@ -1,4 +1,290 @@
-export const AuditLogs = ({ className }: { className?: string }) => (
+"use client";
+
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { faker } from "@faker-js/faker";
+import { Check, ChevronDown, KeySquare, User, X } from "lucide-react";
+import { customAlphabet } from "nanoid";
+import React, { PropsWithChildren, useState } from "react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./command";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
+
+const allEvents = [
+  "workspace.create",
+  "workspace.update",
+  "workspace.delete",
+  "api.create",
+  "api.update",
+  "api.delete",
+  "key.create",
+  "key.update",
+  "key.delete",
+  "vercelIntegration.create",
+  "vercelIntegration.update",
+  "vercelIntegration.delete",
+  "vercelBinding.create",
+  "vercelBinding.update",
+  "vercelBinding.delete",
+  "role.create",
+  "role.update",
+  "role.delete",
+  "permission.create",
+  "permission.update",
+  "permission.delete",
+];
+
+const generateId = customAlphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz", 8);
+
+const ids: { user: string[]; key: string[] } = {
+  user: [],
+  key: [],
+};
+const logs: {
+  auditLogId: string;
+  time: number;
+  event: string;
+  actor: {
+    type: string;
+    id: string;
+  };
+  ipAddress: string;
+}[] = new Array(100)
+  .fill(0)
+  .map(() => {
+    const actorType = Math.random() > 0.8 ? "user" : "key";
+    let actorId: string;
+    if (ids[actorType].length > 0 && Math.random() > 0.5) {
+      actorId = ids[actorType][Math.floor(Math.random() * ids[actorType].length)];
+    } else {
+      actorId = `${actorType}_${generateId()}`;
+      ids[actorType].push(actorId);
+    }
+
+    return {
+      auditLogId: `log_${generateId()}`,
+      time: Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000),
+      event: allEvents[Math.floor(Math.random() * allEvents.length)],
+      actor: {
+        type: actorType,
+        id: actorId,
+      },
+      ipAddress: Math.random() > 0.8 ? faker.internet.ipv6() : faker.internet.ipv4(),
+    };
+  })
+  .sort((a, b) => b.time - a.time);
+
+export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [selectedActors, setSelectedActors] = useState<string[]>([]);
+
+  const filteredLogs = logs
+    .filter((l) => {
+      if (
+        selectedActors.length > 0 &&
+        !selectedActors.map((s) => s.toLowerCase()).includes(l.actor.id.toLowerCase())
+      ) {
+        return false;
+      }
+      if (
+        selectedEvents.length > 0 &&
+        !selectedEvents.map((s) => s.toLowerCase()).includes(l.event.toLowerCase())
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .slice(0, 8);
+
+  return (
+    <div className={className}>
+      <div className="flex flex-col gap-6 mt-10 overflow-hidden text-white/60">
+        <div className="flex items-center justify-start gap-2">
+          <Filter
+            title="Events"
+            options={allEvents}
+            selected={selectedEvents}
+            setSelected={setSelectedEvents}
+          />
+          <Filter
+            title="Actor"
+            selected={selectedActors}
+            setSelected={setSelectedActors}
+            options={Array.from(new Set(logs.map((l) => l.actor.id)))}
+          />
+
+          {selectedEvents.length > 0 || selectedActors.length > 0 ? (
+            <button
+              className="flex items-center h-8 gap-2 px-2 text-sm border rounded-lg border-white/15"
+              type="button"
+              onClick={() => {
+                setSelectedEvents([]);
+                setSelectedActors([]);
+              }}
+            >
+              Clear
+              <X className="w-4 h-4" />
+            </button>
+          ) : null}
+        </div>
+
+        <div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Actor</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead>IP address</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLogs.map((l) => {
+                return (
+                  <TableRow key={l.auditLogId}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white" suppressHydrationWarning>
+                          {new Date(l.time).toLocaleTimeString()}
+                        </span>
+                        <span className="text-xxs text-white/60" suppressHydrationWarning>
+                          {new Date(l.time).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
+                          {l.actor.type === "user" ? (
+                            <User className="w-4 h-4" />
+                          ) : (
+                            <KeySquare className="w-4 h-4" />
+                          )}
+                          <span className="font-mono text-xs text-content" suppressHydrationWarning>
+                            {l.actor.id}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <pre className="text-xs text-content-subtle">{l.event}</pre>
+                    </TableCell>
+
+                    <TableCell>
+                      <pre className="text-xs text-content-subtle">{l.ipAddress}</pre>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Badge: React.FC<PropsWithChildren<{ className?: string }>> = ({ children, className }) => {
+  return (
+    <div
+      className={cn(
+        "border-white/10 border text-xs bg-white/15 px-1 h-4 items-center flex text-white font-mono rounded",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
+type FilterProps = {
+  options: string[];
+  selected: string[];
+  setSelected: (s: string[]) => void;
+  title: string;
+};
+
+export const Filter: React.FC<FilterProps> = ({ selected, options, title, setSelected }) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className="flex items-center h-8 gap-2 px-2 text-sm border rounded-lg border-white/15"
+          type="button"
+        >
+          {title}
+          {selected.length > 0 && (
+            <>
+              <Separator orientation="vertical" className="h-4 mx-2" />
+              <Badge className="px-1 font-normal rounded-sm lg:hidden">{selected.length}</Badge>
+              <div className="hidden space-x-1 lg:flex">
+                {selected.length > 2 ? (
+                  <Badge>{selected.length} selected</Badge>
+                ) : (
+                  options
+                    .filter((option) => selected.includes(option))
+                    .map((option) => <Badge key={option}>{option}</Badge>)
+                )}
+              </div>
+            </>
+          )}
+          <ChevronDown className="w-4 h-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[400px] p-0 bg-gradient-to-br from-white/10 to-black text-white/60"
+        align="start"
+      >
+        <Command>
+          <CommandInput placeholder={title} />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = selected.includes(option);
+
+                return (
+                  <CommandItem
+                    key={option}
+                    onSelect={() => {
+                      setSelected(
+                        isSelected
+                          ? selected.filter((v) => v !== option)
+                          : Array.from(new Set([...selected, option])),
+                      );
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible",
+                      )}
+                    >
+                      <Check className={cn("h-4 w-4")} />
+                    </div>
+                    <span className="truncate text-ellipsis">{option}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+export const AuditLogsOld = ({ className }: { className?: string }) => (
   <svg viewBox="0 50 817 328" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <mask
       id="b"

@@ -157,23 +157,6 @@ li > p {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.audit-logs-fade-gradient { position: relative; }
-.audit-logs-fade-gradient::after {
-  position: absolute;
-  background:
-  radial-gradient(
-    300% 82.5% at 10.25% 100%,
-    black,
-    rgba(200, 200, 200, 0.08)
-  );
-  display: block;
-  content: "";
-  height: 340px;
-  top: 0;
-  left: 0;
-  width: 100%;
-}
-
 .ip-whitelisting-bg-gradient {
   background: radial-gradient(78.93% 63.85% at 50% 29.44%,  rgba(17, 17, 17, 0.90) 0%, rgba(17, 17, 17, 0.50) 54.3%, rgba(255, 255, 255, 0.00) 79.35%);
 }

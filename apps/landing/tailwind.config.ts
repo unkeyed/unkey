@@ -28,6 +28,10 @@ const config = {
       xxl: "1440px",
     },
     extend: {
+      fontSize: {
+        xxs: ["10px", "16px"],
+      },
+      borderWidth: { DEFAULT: "0.75px" },
       opacity: { "02": "0.7 " },
       typography: {},
       borderRadius: {
