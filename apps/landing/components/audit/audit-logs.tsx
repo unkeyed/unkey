@@ -168,7 +168,9 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
                           ) : (
                             <KeySquare className="w-4 h-4" />
                           )}
-                          <span className="font-mono text-xs text-content">{l.actor.id}</span>
+                          <span className="font-mono text-xs text-content" suppressHydrationWarning>
+                            {l.actor.id}
+                          </span>
                         </div>
                       </div>
                     </TableCell>
