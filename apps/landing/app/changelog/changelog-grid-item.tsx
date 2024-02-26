@@ -16,6 +16,9 @@ type Props = {
 };
 
 export async function ChangelogGridItem({ className, changelog }: Props) {
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
   const tagList = changelog.frontmatter.tags?.toString().split(" ") || [];
   const { serialized } = await getChangelog(changelog.slug);
 
@@ -57,7 +60,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       </div>
       <div>
         <CopyButton
-          value={`https://unkey.dev/changelog#${changelog.slug}`}
+          value={`${baseUrl}/changelog#${changelog.slug}`}
           className="mb-6 mt-12 xl:ml-24 lg:ml-8 ml-6"
         >
           <p className="">Copy Link</p>
