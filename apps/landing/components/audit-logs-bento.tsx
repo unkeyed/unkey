@@ -34,7 +34,7 @@ export function AuditLogsText() {
         <h3 className="ml-4 text-lg font-medium text-white">Audit Logs</h3>
       </div>
       <p className="mt-4 leading-6 text-white/60">
-        Maintain detailed audit logs for comprehensive and transparent monitoring, ensuring security
+        Unkey gives you audit logs out of the box. Focus on building your API rather than security
         and compliance.
       </p>
     </div>

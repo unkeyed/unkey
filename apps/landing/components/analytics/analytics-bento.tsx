@@ -294,8 +294,8 @@ export function BentoText() {
         <h3 className="text-lg font-medium text-white ml-4">Realtime Analytics</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Empower decision-making with real-time analytics for swift, informed actions based on the
-        latest data trends.
+        Access real-time insights into your API usage through our dashboard, or build your own on
+        top of our APi.
       </p>
     </div>
   );

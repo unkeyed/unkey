@@ -166,11 +166,11 @@ export function UsageText() {
             fill-opacity="0.4"
           />
         </svg>
-        <h3 className="ml-4 text-lg font-medium text-white">Usage based billing</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">Monetize your API</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6 max-w-[350px]">
-        Commercialise your API, establish transparent billing effortlessly on the Unkey platform for
-        efficient and streamlined financial processes.
+        Unkey tracks all user actions in your API, making it straightforward to bill users based on
+        their usage.
       </p>
     </div>
   );

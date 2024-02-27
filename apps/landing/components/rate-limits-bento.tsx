@@ -229,8 +229,8 @@ export function RateLimitsText() {
         <h3 className="text-lg font-medium text-white ml-4">Rate Limits</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Implement granular control over access with per-key rate limiting, preventing abuse and
-        optimizing the performance of your services.
+        Implement granular control over access with custom rate limiting per key, preventing abuse
+        and optimizing the performance of your services.
       </p>
     </div>
   );

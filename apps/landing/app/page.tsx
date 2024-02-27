@@ -94,9 +94,9 @@ export default async function Landing() {
         titleWidth={743}
         contentWidth={581}
         title="Secure from day one"
-        text="Don’t waste time building boring-but-necessary features like audit logs. Unkey provides everything you need out of the box to build secure, infinitely scalable APIs."
+        text="Don't waste time building boring-but-necessary features like audit logs. Unkey provides everything you need out of the box to build secure, infinitely scalable APIs."
         align="center"
-        label="Protection"
+        label="Security"
       >
         <div className="flex mt-10 mb-10 space-x-6">
           <Link href="/app" className="group">

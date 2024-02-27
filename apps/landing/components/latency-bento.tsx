@@ -31,8 +31,8 @@ export function LatencyText() {
         <h3 className="text-lg font-medium text-white ml-4">Global low latency</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Deliver a global, seamless user experience with our low-latency infrastructure for swift
-        access to your services.
+        Unkey is fast globally, regardless of which cloud providers you’re using or where your users
+        are located.
       </p>
     </div>
   );

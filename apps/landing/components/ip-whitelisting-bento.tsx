@@ -32,7 +32,7 @@ export function IpWhitelistingText() {
       </div>
       <p className="mt-4 text-white/60 leading-6">
         Ensure secure access control by allowing only designated IP addresses to interact with your
-        system, adding an extra layer of protection.
+        system, adding an extra layer of protection.p
       </p>
     </div>
   );
