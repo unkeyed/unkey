@@ -66,9 +66,9 @@ export default async function Landing() {
 
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
-        {/* <Suspense fallback={null}>
-        <Stats />
-      </Suspense> */}
+        <Suspense fallback={null}>
+          <Stats />
+        </Suspense>
 
         <CodeExamples className="mt-20" />
         <div className="mt-[220px]" />
