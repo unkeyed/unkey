@@ -1,6 +1,6 @@
 import { CTA } from "@/components/cta";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
-import { BlogBackgroundLines } from "@/components/svg/blog-page";
+import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import { BLOG_PATH, Frontmatter, Tags, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
@@ -63,7 +63,11 @@ export default async function Blog(props: Props) {
     <>
       <BlogContainer className="max-w-full mt-32 scroll-smooth">
         <TopLeftShiningLight />
-        <BlogBackgroundLines />
+        <div className="w-full overflow-clip">
+          <MeteorLinesAngular number={2} xPos={0} />
+          <MeteorLinesAngular number={2} xPos={200} />
+          <MeteorLinesAngular number={2} xPos={400} />
+        </div>
         <TopRightShiningLight />
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
           <BlogHero

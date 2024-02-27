@@ -6,7 +6,9 @@ import { templates } from "../data";
 
 import { CTA } from "@/components/cta";
 import { Frame } from "@/components/frame";
+import { ChangelogLight } from "@/components/svg/changelog";
 import { TemplateComponents } from "@/components/template/mdx-components";
+import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -39,6 +41,16 @@ export default async function Templates(props: Props) {
   const readme = await fetch(template.readmeUrl).then((res) => res.text());
   return (
     <div className="flex flex-col xl:max-w-[1440px] mx-6 md:mx-20 xl:mx-auto lg:mx-auto lg:px-10">
+      <div>
+        <div className="relative -z-100 max-w-[1000px] mx-auto">
+          <ChangelogLight className="w-full top-40" />
+        </div>
+        <div className="w-full overflow-clip">
+          <MeteorLinesAngular number={2} xPos={0} />
+          <MeteorLinesAngular number={2} xPos={200} />
+          <MeteorLinesAngular number={2} xPos={400} />
+        </div>
+      </div>
       <div className="flex flex-col xl:flex-row items-start mt-16 lg:mt-32 lg:space-y-0 mb-24 gap-12">
         <div className="self-start w-full mx-auto xl:sticky xl:w-1/4">
           <Link

@@ -1,6 +1,7 @@
 "use client";
 import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
+import { ChangelogLight } from "@/components/svg/changelog";
 import { CodeIcon, FrameworkIcon, TemplatesRightArrow } from "@/components/svg/template-page";
 import { Checkbox } from "@/components/template/checkbox";
 import {
@@ -19,6 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
 import {
   TemplatesFormValues,
@@ -100,7 +102,18 @@ export default function Templates() {
   );
 
   return (
-    <>
+    <div className="flex flex-col mt-32 text-white/60 mx-auto">
+      <div>
+        <div className="relative -z-100 max-w-[1000px] mx-auto">
+          <ChangelogLight className="w-full top-40" />
+        </div>
+        <div className="w-full overflow-clip">
+          <MeteorLinesAngular number={2} xPos={0} />
+          <MeteorLinesAngular number={2} xPos={200} />
+          <MeteorLinesAngular number={2} xPos={400} />
+        </div>
+      </div>
+
       <PageIntro title="Find your Template">
         <p className="text-white/60 mt-10">
           Jumpstart your api development with our pre-built solutions.
@@ -325,6 +338,6 @@ export default function Templates() {
         </div>
       </Container>
       <CTA />
-    </>
+    </div>
   );
 }

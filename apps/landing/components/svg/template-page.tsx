@@ -1,3 +1,6 @@
+import { cn } from "@/lib/utils";
+import { PropsWithChildren } from "react";
+
 export const SparkleIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
