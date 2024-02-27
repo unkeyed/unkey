@@ -38,9 +38,18 @@ const config = {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
       animation: {
+        meteorAngle: "meteorAngle 10s linear infinite",
         meteor: "meteor 20s linear infinite",
       },
       keyframes: {
+        meteorAngle: {
+          "0%": { tranform: "rotate(300deg) translateX(0)", opacity: "1" },
+          "70%": { opacity: "1" },
+          "100%": {
+            transform: "rotate(300deg) translateX(-400px) ",
+            opacity: "0",
+          },
+        },
         meteor: {
           "0%": { transform: "rotate(270deg) translateX(0)", opacity: ".9" },
           "50%": { opacity: ".4" },
