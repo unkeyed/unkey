@@ -59,6 +59,7 @@
   );
   content: "";
   border-top-right-radius: 24px;
+  border-bottom-left-radius: 24px;
   border-top-left-radius: 24px;
   position: absolute;
   left: 0px;
@@ -260,6 +261,14 @@ li > p {
   block-size: var(--line-thickness);
   inset-inline-start: 0;
   inset-block-start: calc(var(--line-offset) * -1);
+}
+
+@media only screen and (max-width: 960px) {
+  .analytics-background-gradient::before {
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+  }
 }
 
 @media only screen and (min-width: 840px) {

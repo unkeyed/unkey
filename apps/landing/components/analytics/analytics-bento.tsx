@@ -97,7 +97,7 @@ export function AnalyticsBento() {
         {showApi ? "Hide API Code" : "Show API code"}
       </button>
       "
-      <div className="mt-[80px] xl:w-[1379px] h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
+      <div className="mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
         <LightSvg className="absolute top-[-180px] left-[330px] z-50 pointer-events-none" />
         <AnalyticsStars />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
@@ -139,9 +139,10 @@ function AnalyticsWebAppView() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       whileInView="visible"
+      className="w-full"
     >
-      <div className="relative overflow-y-hidden analytics-background-gradient flex justify-center w-full h-full  h-[600px] xl:h-[576px]  xl:w-[1220px] mr-10">
-        <AnalyticsWebApp />
+      <div className="relative overflow-hidden w-full analytics-background-gradient h-[600px] xl:h-[576px]  xl:w-[1220px] mr-10">
+        <AnalyticsWebApp className="" />
       </div>
     </motion.div>
   );
