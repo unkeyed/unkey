@@ -6,6 +6,8 @@ import freeDomains from "free-email-domains";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { WebhookRequiredHeaders } from "svix";
 import { Webhook } from "svix";
+
+export const maxDuration = 60;
 export const config = {
   runtime: "nodejs",
 };
