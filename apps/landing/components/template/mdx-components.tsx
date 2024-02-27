@@ -2,6 +2,9 @@ import React from "react";
 import { Alert } from "../ui/alert/alert";
 
 export const TemplateComponents = {
+  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
+  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
+  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
   img: (props: any) => (
     <img {...props} className="object-cover object-center rounded-3xl p-0" alt="" />
   ),
