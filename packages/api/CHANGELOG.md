@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.19.0
+
+### Minor Changes
+
+- eddab6b: RBAC introduction
+
 ## 0.18.0
 
 ### Minor Changes
