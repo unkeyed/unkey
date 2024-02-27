@@ -30,7 +30,7 @@ export default async function Layout({ children }: LayoutProps) {
         <UsageBanner />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar className="lg:hidden" />
-        <div className="p-4 border-l bg-background border-border lg:w-full lg:p-6 lg:ml-64">
+        <div className="p-4 border-l bg-background border-border lg:w-full lg:p-8 lg:ml-64">
           {children}
         </div>
       </div>

@@ -1,0 +1,16 @@
+{
+  "name": "@unkey/schema",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@unkey/tsconfig": "workspace:*",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
+}

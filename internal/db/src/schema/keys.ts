@@ -10,7 +10,6 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { auditLogs } from "./audit";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
 import { workspaces } from "./workspaces";
@@ -111,6 +110,4 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   roles: many(keysRoles, {
     relationName: "keys_roles_key_relations",
   }),
-
-  auditLog: many(auditLogs),
 }));
