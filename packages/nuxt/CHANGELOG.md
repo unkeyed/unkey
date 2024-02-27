@@ -1,5 +1,13 @@
 # @unkey/nuxt
 
+## 1.1.3
+
+### Patch Changes
+
+- d561b57: Release rbac as separate package
+- Updated dependencies [d561b57]
+  - @unkey/api@0.19.1
+
 ## 1.1.2
 
 ### Patch Changes
