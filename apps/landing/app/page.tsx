@@ -72,7 +72,7 @@ export default async function Landing() {
 
         <CodeExamples className="mt-20" />
         <div className="mt-[220px]" />
-        <OpenSource />
+        {/* <OpenSource /> */}
         <SectionTitle
           className="mt-[300px]"
           title="Efficient integration and process, always"

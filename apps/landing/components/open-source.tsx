@@ -12,7 +12,7 @@ export const OpenSource: React.FC = () => {
   return (
     <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
       {/* TODO: add additional line SVGs from Figma – current export is broken */}
-      <div className="absolute top-[-460px] md:right-[250px] z-[-1]">
+      <div className="absolute top-[-460px] md:right-[120px] z-[-1]">
         <OssLight />
       </div>
       <div className="flex container flex-col items-center xl:flex-row xl:w-full xl:justify-between">
