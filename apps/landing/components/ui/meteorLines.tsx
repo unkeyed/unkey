@@ -44,9 +44,8 @@ const MeteorLines = ({ number = 20, xPos = 60, direction = "left" }: MeteorsProp
     </>
   );
 };
-export default MeteorLines;
 
-export const MeteorLinesAngular = ({ number = 20, xPos = 60 }: MeteorsProps) => {
+const MeteorLinesAngular = ({ number = 20, xPos = 60 }: MeteorsProps) => {
   const [meteorStyles, setMeteorStyles] = useState<Array<React.CSSProperties>>([]);
   const [windowWidth, setWindowWidth] = useState<number>(0);
 
@@ -80,3 +79,5 @@ export const MeteorLinesAngular = ({ number = 20, xPos = 60 }: MeteorsProps) => 
     </>
   );
 };
+
+export { MeteorLines, MeteorLinesAngular };
