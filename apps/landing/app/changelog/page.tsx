@@ -1,7 +1,7 @@
 import { RainbowDarkButton } from "@/components/button";
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
-import MeteorLines from "@/components/ui/meteorLines";
+import { MeteorLines } from "@/components/ui/meteorLines";
 import { Tags } from "@/lib/mdx-helper";
 import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { ArrowRight } from "lucide-react";
@@ -28,12 +28,12 @@ export default async function Changelog(_props: Props) {
             <ChangelogLight className="w-full" />
           </div>
           <div className="w-full overflow-hidden">
-            <MeteorLines number={1} xPos={60} direction="left" />
-            <MeteorLines number={1} xPos={200} direction="left" />
-            <MeteorLines number={1} xPos={350} direction="left" />
-            <MeteorLines number={1} xPos={60} direction="right" />
-            <MeteorLines number={1} xPos={200} direction="right" />
-            <MeteorLines number={1} xPos={350} direction="right" />
+            <MeteorLines number={2} xPos={60} direction="left" />
+            <MeteorLines number={2} xPos={200} direction="left" />
+            <MeteorLines number={2} xPos={350} direction="left" />
+            <MeteorLines number={2} xPos={60} direction="right" />
+            <MeteorLines number={2} xPos={200} direction="right" />
+            <MeteorLines number={2} xPos={350} direction="right" />
           </div>
         </div>
         <div>
