@@ -1,32 +1,36 @@
+"use client";
 // import { BillingData } from "@/components/svg/billing-data";
-import { UsageSparkles } from "@/components/svg/usage";
+import { AnimatedList } from "@/components/animated-list";
 
+import { UsageSparkles } from "@/components/svg/usage";
 export function UsageBento() {
   return (
-    <div className="w-full relative border-[.75px] h-[576px] mt-10 xl:mt-0 w-[700px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10 flex overflow-x-hidden flex justify-center items-start ">
-      <UsageSparkles />
-      <div className="absolute top-[-50px] left-[80px] xs:left-auto">
-        <BillingItem
-          className="billing-border-link"
-          icon={<LocationIcon />}
-          text="Unkey verified and logged API key"
-        />
-        <BillingItem
-          className="billing-border-link"
-          icon={<ExchangeIcon />}
-          text="Andreas retrieved API key usage data"
-        />
-        <BillingItem
-          className="billing-border-link"
-          icon={<OptionsIcon />}
-          text="Andreas set invoice preferences"
-        />
-        <BillingItem
-          className="billing-border-link"
-          icon={<BillingIcon />}
-          text="Unkey sent invoice to customers"
-        />
-        <BillingItem icon={<PaymentsIcon />} text="Andreas collected payments" />
+    <div className="w-full  overflow-hidden relative border-[.75px] h-[576px] w-[700px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10">
+      <UsageSparkles className="absolute top-0" />
+      <div className="relative top-0 left-[250px] top-[-40px]">
+        <AnimatedList>
+          <BillingItem icon={<PaymentsIcon />} text="Andreas collected payments" latency="2 s" />
+          <BillingItem
+            icon={<BillingIcon />}
+            text="Unkey sent invoice to customers"
+            latency="1 s"
+          />
+          <BillingItem
+            icon={<OptionsIcon />}
+            text="Andreas set invoice preferences"
+            latency="8 ms"
+          />
+          <BillingItem
+            icon={<ExchangeIcon />}
+            text="Andreas retrieved API key usage data"
+            latency="3 s"
+          />
+          <BillingItem
+            icon={<LocationIcon />}
+            text="Unkey verified and logged API key"
+            latency="1 s"
+          />
+        </AnimatedList>
       </div>
       <UsageText />
     </div>
@@ -100,13 +104,14 @@ export function BillingItem({
   className,
   icon,
   text,
-}: { className?: string; icon: React.ReactNode; text: string }) {
+  latency,
+}: { className?: string; latency: string; icon: React.ReactNode; text: string }) {
   let [first, ...rest] = text.split(" ");
   //@ts-ignore
   rest = rest.join(" ");
   return (
     <div
-      className={`flex rounded-xl border-[.75px] w-[440px] usage-item-gradient border-white/20 mt-6 flex items-center py-[12px] px-[16px] ${className}`}
+      className={`flex rounded-xl border-[.75px] w-[440px] usage-item-gradient border-white/20 mt-4 flex items-center py-[12px] px-[16px] ${className}`}
     >
       <div className="rounded-full bg-gray-500 flex items-center justify-center h-8 w-8 border-.75px border-white/20 bg-white/10">
         {icon}
@@ -136,7 +141,7 @@ export function BillingItem({
           <circle cx="8" cy="8" r="5.5" stroke="white" stroke-opacity="0.25" />
           <path d="M8.5 5V8L10.5 9.5" stroke="white" stroke-opacity="0.25" />
         </svg>
-        <p className="ml-2 text-sm text-white/20">8 ms</p>
+        <p className="ml-2 text-sm text-white/20">{latency}</p>
       </div>
     </div>
   );

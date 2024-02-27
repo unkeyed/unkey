@@ -1,4 +1,4 @@
-export function UsageSparkles() {
+export function UsageSparkles({ className }: { className: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -6,6 +6,7 @@ export function UsageSparkles() {
       height="548"
       viewBox="0 0 771 548"
       fill="none"
+      className={className}
     >
       <path d="M51 29H52V30H51V29Z" fill="url(#paint0_linear_841_12886)" />
       <path d="M135 0H136V1H135V0Z" fill="url(#paint1_linear_841_12886)" />
