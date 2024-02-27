@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 
 import { CTA } from "@/components/cta";
 import { MdxContent } from "@/components/mdx-content";
+import { ChangelogLight } from "@/components/svg/changelog";
+import { MeteorLines } from "@/components/ui/meteorLines";
 import { CHANGELOG_PATH, getChangelog, getContentData, getFilePaths } from "@/lib/mdx-helper";
 import type { Metadata } from "next";
 
@@ -92,34 +94,31 @@ export default async function ChangeLogLayout({
 
   return (
     <>
-      <article className="mt-24 sm:mt-32 lg:mt-40">
-        <header>
-          {/* <PageIntro
-            eyebrow={new Date(frontmatter.date).toDateString()}
-            title={frontmatter.title}
-            centered
-          >
-            <p>{frontmatter.description}</p>
-          </PageIntro> */}
-        </header>
-
-        <Container className="mt-24 sm:mt-32 lg:mt-40">
-          <FadeIn>
-            <div className="prose lg:prose-md prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto max-w-5xl ">
-              <MdxContent source={serialized} />
-            </div>
-          </FadeIn>
-        </Container>
-      </article>
-      <CTA />
-      {/* {moreChangelogs.length > 0 && (
-        <PageLinks
-          className="mt-24 sm:mt-32 lg:mt-40"
-          title="Read more changelogs"
-          pages={moreChangelogs}
-          contentType="changelog"
-        />
-      )} */}
+      <div className="flex flex-col mt-32 text-white/60 mx-auto">
+        <div>
+          <div className="relative -z-100 max-w-[1000px] mx-auto">
+            <ChangelogLight className="w-full" />
+          </div>
+          <div className="w-full overflow-hidden">
+            <MeteorLines number={2} xPos={60} direction="left" />
+            <MeteorLines number={2} xPos={200} direction="left" />
+            <MeteorLines number={2} xPos={350} direction="left" />
+            <MeteorLines number={2} xPos={60} direction="right" />
+            <MeteorLines number={2} xPos={200} direction="right" />
+            <MeteorLines number={2} xPos={350} direction="right" />
+          </div>
+        </div>
+        <article className="mt-24 sm:mt-32 lg:mt-40">
+          <Container className="mt-24 sm:mt-32 lg:mt-40">
+            <FadeIn>
+              <div className="prose lg:prose-md prose-neutral dark:prose-invert prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-img:rounded-lg prose-img:border prose-img:border-border mx-auto max-w-5xl ">
+                <MdxContent source={serialized} />
+              </div>
+            </FadeIn>
+          </Container>
+        </article>
+        <CTA />
+      </div>
     </>
   );
 }

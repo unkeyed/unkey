@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
 import { MdxContent } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
-import { BlogBackgroundLines } from "@/components/svg/blog-page";
+import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
 import { format } from "date-fns";
@@ -66,7 +66,11 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
     <>
       <Container className="scroll-smooth">
         <TopLeftShiningLight />
-        <BlogBackgroundLines />
+        <div className="w-full overflow-clip">
+          <MeteorLinesAngular number={2} xPos={0} />
+          <MeteorLinesAngular number={2} xPos={200} />
+          <MeteorLinesAngular number={2} xPos={400} />
+        </div>
         <TopRightShiningLight />
         <div className="relative flex flex-col items-start mt-16 space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
           <div className="w-full mx-auto xl:pl-6">

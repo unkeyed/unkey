@@ -2,13 +2,14 @@ import React from "react";
 import { Alert } from "../ui/alert/alert";
 
 export const TemplateComponents = {
-  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
-  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
-  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
   img: (props: any) => (
     <img {...props} className="object-cover object-center rounded-3xl p-0" alt="" />
   ),
   Callout: Alert,
+  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
+  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
+  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
+
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60" />,
 
   ol: (props: any) => (
@@ -32,7 +33,7 @@ export const TemplateComponents = {
     <p {...props} className="text-lg font-normal leading-8 text-white/60 text-left xl:pl-24" />
   ),
   code: (props: any) => (
-    <div
+    <code
       {...props}
       className="inline font-mono text-xs rounded-lg leading-6 font-normal bg-white/10 text-white px-1.5 py-1.5 w-fit text-nowrap overflow-x-auto"
     />
