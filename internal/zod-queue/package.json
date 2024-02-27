@@ -9,7 +9,7 @@
   "license": "ISC",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240208.0",
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.20",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.3.3"
   },
