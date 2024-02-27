@@ -14,7 +14,7 @@
     "@unkey/id": "workspace:^",
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.29.3",
-    "mysql2": "^3.9.1",
+    "mysql2": "^3.9.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
