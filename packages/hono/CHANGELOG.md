@@ -1,5 +1,12 @@
 # @unkey/hono
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [eddab6b]
+  - @unkey/api@0.19.0
+
 ## 1.1.0
 
 ### Minor Changes
