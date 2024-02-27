@@ -9,6 +9,7 @@ import { Webhook } from "svix";
 
 export const maxDuration = 60;
 export const config = {
+  maxDuration: 60,
   runtime: "nodejs",
 };
 
