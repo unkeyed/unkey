@@ -1,0 +1,39 @@
+{
+  "name": "@unkey/rbac",
+  "version": "0.1.9",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "AGPL-3.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "unkey",
+    "rbac"
+  ],
+  "bugs": {
+    "url": "https://github.com/unkeyed/unkey/issues"
+  },
+  "homepage": "https://github.com/unkeyed/unkey#readme",
+  "files": [
+    "./dist/**"
+  ],
+  "author": "Andreas Thomas <andreas@chronark.com>",
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@unkey/tsconfig": "workspace:*",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.0"
+  },
+  "dependencies": {
+    "zod": "^3.22.4",
+    "zod-error": "^1.5.0"
+  },
+  "type": "module"
+}
