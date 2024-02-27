@@ -421,7 +421,7 @@ export const getAuditLogs = tb.buildPipe({
                 "vercelIntegration",
               ]),
               id: z.string(),
-              meta: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+              meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
             }),
           )
           .parse(JSON.parse(rs)),
@@ -475,7 +475,7 @@ export function ingestAuditLogs(
         | "vercelBinding"
         | "vercelIntegration";
       id: string;
-      meta?: Record<string, string | number | boolean>;
+      meta?: Record<string, string | number | boolean | null>;
     }>;
     context: {
       userAgent?: string;

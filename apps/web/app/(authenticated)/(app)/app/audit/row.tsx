@@ -1,9 +1,7 @@
 "use client";
 
-import exp from "constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -21,7 +19,11 @@ type Props = {
     };
     location: string | null;
     description: string;
-    resources: { type: string; id: string; meta?: Record<string, string | number | boolean> }[];
+    resources: {
+      type: string;
+      id: string;
+      meta?: Record<string, string | number | boolean | null>;
+    }[];
   };
   user?: {
     imageUrl: string;

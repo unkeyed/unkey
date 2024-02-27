@@ -141,6 +141,12 @@ export const keySettingsRouter = t.router({
           {
             type: "key",
             id: key.id,
+            meta: {
+              "ratelimit.type": ratelimitType,
+              "ratelimit.limit": ratelimitLimit,
+              "ratelimit.refillRate": ratelimitRefillRate,
+              "ratelimit.refillInterval": ratelimitRefillInterval,
+            },
           },
         ],
         context: {

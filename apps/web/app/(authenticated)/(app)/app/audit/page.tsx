@@ -23,9 +23,9 @@ export const runtime = "edge";
 type Props = {
   searchParams: {
     before?: number;
-    event?: string | string[];
-    user?: string | string[];
-    rootKey?: string | string[];
+    events?: string | string[];
+    users?: string | string[];
+    rootKeys?: string | string[];
   };
 };
 
@@ -44,9 +44,9 @@ export default async function AuditPage(props: Props) {
     return notFound();
   }
 
-  const selectedEvents = filterParser.parseServerSide(props.searchParams.event);
-  const selectedUsers = filterParser.parseServerSide(props.searchParams.user);
-  const selectedRootKeys = filterParser.parseServerSide(props.searchParams.rootKey);
+  const selectedEvents = filterParser.parseServerSide(props.searchParams.events);
+  const selectedUsers = filterParser.parseServerSide(props.searchParams.users);
+  const selectedRootKeys = filterParser.parseServerSide(props.searchParams.rootKeys);
 
   return (
     <div>
@@ -78,7 +78,7 @@ export default async function AuditPage(props: Props) {
                 size="sm"
                 className="flex items-center h-8 gap-2 bg-background-subtle"
               >
-                Reset
+                Clear
                 <X className="w-4 h-4" />
               </Button>
             </Link>
@@ -118,6 +118,7 @@ const AuditLogTable: React.FC<{
   const isFiltered =
     selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 || before;
 
+  console.log({ selectedEvents });
   const logs = await getAuditLogs({
     workspaceId: workspaceId,
     before,
