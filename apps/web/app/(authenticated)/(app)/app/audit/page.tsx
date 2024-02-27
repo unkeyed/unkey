@@ -263,7 +263,7 @@ const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {
 
   return (
     <Filter
-      param="user"
+      param="users"
       title="Users"
       options={members
         .filter((m) => Boolean(m.publicUserData))
@@ -289,7 +289,7 @@ const RootKeyFilter: React.FC<{ workspaceId: string }> = async ({ workspaceId })
 
   return (
     <Filter
-      param="rootKey"
+      param="rootKeys"
       title="Root Keys"
       options={rootKeys.map((k) => ({
         label: k.id ?? k.id,
