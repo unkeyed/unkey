@@ -54,7 +54,7 @@ export type V1ApisCreateApiResponse = z.infer<
 
 export const registerV1ApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const { db } = c.get("services");
+    const { db, analytics } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -62,6 +62,9 @@ export const registerV1ApisCreateApi = (app: App) =>
     );
 
     const { name } = c.req.valid("json");
+
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const rootKeyId = auth.key.id;
 
     const keyAuth = {
       id: newId("keyAuth"),
@@ -76,8 +79,6 @@ export const registerV1ApisCreateApi = (app: App) =>
      */
     const apiId = newId("api");
 
-    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-    const rootKeyId = auth.key.id;
     await db.insert(schema.apis).values({
       id: apiId,
       name,
@@ -94,6 +95,7 @@ export const registerV1ApisCreateApi = (app: App) =>
         type: "key",
         id: rootKeyId,
       },
+      description: `Created ${apiId}`,
       resources: [
         {
           type: "api",
@@ -101,7 +103,7 @@ export const registerV1ApisCreateApi = (app: App) =>
         },
       ],
 
-      context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+      context: { location: c.get("location"), userAgent: c.get("userAgent") },
     });
 
     return c.json({

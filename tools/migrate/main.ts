@@ -7,7 +7,7 @@ import { drizzle } from "drizzle-orm/planetscale-serverless";
 import { z } from "zod";
 
 const ingestAuditLog = new Tinybird({ token: process.env.TINYBIRD_TOKEN! }).buildIngestEndpoint({
-  datasource: "audit_logs__v1",
+  datasource: "audit_logs__v2",
   event: z.object({
     workspaceId: z.string(),
     auditLogId: z.string().default(() => newId("auditLog")),

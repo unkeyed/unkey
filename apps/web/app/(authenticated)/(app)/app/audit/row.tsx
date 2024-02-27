@@ -14,8 +14,13 @@ type Props = {
   auditLog: {
     time: number;
     event: string;
-    actorId: string;
-    ipAddress: string | null;
+    actor: {
+      id: string;
+      type: "key" | "user";
+      name: string | null;
+    };
+    location: string | null;
+    description: string;
     resources: { type: string; id: string; meta?: Record<string, string | number | boolean> }[];
   };
   user?: {
@@ -43,12 +48,13 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
             ) : (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <KeySquare className="w-4 h-4" />
-                <span className="font-mono text-xs text-content">{auditLog.actorId}</span>
+                <span className="font-mono text-xs text-content">{auditLog.actor.id}</span>
               </div>
             )}
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="flex flex-col gap-1">
+          <p className="text-xs text-content-subtle">{auditLog.description}</p>
           <button
             type="button"
             onClick={() => {
@@ -67,8 +73,8 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
           </button>
         </TableCell>
         <TableCell>
-          {auditLog.ipAddress ? (
-            <pre className="text-xs text-content-subtle">{auditLog.ipAddress}</pre>
+          {auditLog.location ? (
+            <pre className="text-xs text-content-subtle">{auditLog.location}</pre>
           ) : (
             <Minus className="w-4 h-4 text-content-subtle" />
           )}
@@ -88,7 +94,7 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
         <TableRow>
           <TableCell />
           <TableCell colSpan={4}>
-            <Code className="text-xs text-content-subtle">
+            <Code className="text-xxs">
               {JSON.stringify(
                 auditLog.resources.reduce((acc, r) => {
                   acc[r.type] = r.id;

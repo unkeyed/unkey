@@ -1,7 +1,9 @@
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
+import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
+import { MaybeArray } from "./types";
 
 const token = env().TINYBIRD_TOKEN;
 const tb = token ? new Tinybird({ token }) : new NoopTinybird();
@@ -365,142 +367,140 @@ export const getQ1ActiveWorkspaces = tb.buildPipe({
   },
 });
 
-export const getAuditLogs = tb.buildPipe({
-  pipe: "endpoint__audit_logs__v1",
+export const getAuditLogActors = tb.buildPipe({
+  pipe: "endpoint__audit_log_actor_ids__v1",
   parameters: z.object({
     workspaceId: z.string(),
-    before: z.number().int().optional(),
-    after: z.number().int(),
-    events: z.array(z.string())
-
-    .optional(),
+    type: z.enum(["user", "key"]).optional(),
   }),
-
   data: z.object({
-    workspaceId: z.string(),
-    auditLogId: z.string(),
-    time: z.number().int(),
-    actorType: z.enum(["key", "user"]),
     actorId: z.string(),
-    event: z.enum([
-      "workspace.create",
-      "workspace.update",
-      "workspace.delete",
-      "api.create",
-      "api.update",
-      "api.delete",
-      "key.create",
-      "key.update",
-      "key.delete",
-      "vercelIntegration.create",
-      "vercelIntegration.update",
-      "vercelIntegration.delete",
-      "vercelBinding.create",
-      "vercelBinding.update",
-      "vercelBinding.delete",
-      "role.create",
-      "role.update",
-      "role.delete",
-      "permission.create",
-      "permission.update",
-      "permission.delete",
-      "authorization.connect_role_and_permission",
-      "authorization.disconnect_role_and_permissions",
-      "authorization.connect_role_and_key",
-      "authorization.disconnect_role_and_key",
-      "authorization.connect_permission_and_key",
-      "authorization.disconnect_permission_and_key",
-    ]),
-    resources: z.array(z.string()).transform((ss) =>
-      ss.map((s) =>
-        z
-          .object({
-            type: z.enum([
-              "key",
-              "api",
-              "workspace",
-              "role",
-              "permission",
-              "keyAuth",
-              "vercelBinding",
-              "vercelIntegration",
-            ]),
-            id: z.string(),
-            meta: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
-          })
-          .parse(JSON.parse(s)),
-      ),
-    ),
-    ipAddress: z.string().nullable(),
-    userAgent: z.string().nullable(),
+    actorType: z.enum(["user", "key"]).optional(),
+    lastSeen: z.number(),
   }),
   opts: {
     cache: "no-store",
   },
 });
 
-export const ingestAuditLogs = tb.buildIngestEndpoint({
-  datasource: "audit_logs__v1",
-  event: z.object({
+export const getAuditLogs = tb.buildPipe({
+  pipe: "endpoint__audit_logs__v1",
+  parameters: z.object({
     workspaceId: z.string(),
-    auditLogId: z.string().default(() => newId("auditLog")),
-    event: z.enum([
-      "workspace.create",
-      "workspace.update",
-      "workspace.delete",
-      "api.create",
-      "api.update",
-      "api.delete",
-      "key.create",
-      "key.update",
-      "key.delete",
-      "vercelIntegration.create",
-      "vercelIntegration.update",
-      "vercelIntegration.delete",
-      "vercelBinding.create",
-      "vercelBinding.update",
-      "vercelBinding.delete",
-      "role.create",
-      "role.update",
-      "role.delete",
-      "permission.create",
-      "permission.update",
-      "permission.delete",
-      "authorization.connect_role_and_permission",
-      "authorization.disconnect_role_and_permissions",
-      "authorization.connect_role_and_key",
-      "authorization.disconnect_role_and_key",
-      "authorization.connect_permission_and_key",
-      "authorization.disconnect_permission_and_key",
-    ]),
-    time: z.number().default(() => Date.now()),
-    actor: z.object({
-      type: z.enum(["user", "key"]),
-      id: z.string(),
-    }),
-    resources: z.array(
-      z
-        .object({
-          type: z.enum([
-            "key",
-            "api",
-            "workspace",
-            "role",
-            "permission",
-            "keyAuth",
-            "vercelBinding",
-            "vercelIntegration",
-          ]),
-          id: z.string(),
-          meta: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
-        })
-        .transform((r) => JSON.stringify(r)),
-    ),
-    context: z
-      .object({
-        userAgent: z.string().nullable(),
-        ipAddress: z.string().ip().nullable(),
-      })
-      .optional(),
+    bucket: z.string().default("unkey_mutations"),
+    before: z.number().int().optional(),
+    after: z.number().int(),
+    events: z.array(z.string()).optional(),
+    actorIds: z.array(z.string()).optional(),
   }),
+
+  data: z
+    .object({
+      workspaceId: z.string(),
+      bucket: z.string(),
+      auditLogId: z.string(),
+      time: z.number().int(),
+      actorType: z.enum(["key", "user"]),
+      actorId: z.string(),
+      actorName: z.string().nullable(),
+      actorMeta: z.string().nullable(),
+      event: unkeyAuditLogEvents,
+      description: z.string(),
+      resources: z.string().transform((rs) =>
+        z
+          .array(
+            z.object({
+              type: z.enum([
+                "key",
+                "api",
+                "workspace",
+                "role",
+                "permission",
+                "keyAuth",
+                "vercelBinding",
+                "vercelIntegration",
+              ]),
+              id: z.string(),
+              meta: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+            }),
+          )
+          .parse(JSON.parse(rs)),
+      ),
+
+      location: z.string(),
+      userAgent: z.string().nullable(),
+    })
+    .transform((l) => ({
+      workspaceId: l.workspaceId,
+      bucket: l.bucket,
+      auditLogId: l.auditLogId,
+      time: l.time,
+      actor: {
+        type: l.actorType,
+        id: l.actorId,
+        name: l.actorName,
+        meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
+      },
+      event: l.event,
+      description: l.description,
+      resources: l.resources,
+      context: {
+        location: l.location,
+        userAgent: l.userAgent,
+      },
+    })),
+  opts: {
+    cache: "no-store",
+  },
 });
+
+export function ingestAuditLogs(
+  logs: MaybeArray<{
+    workspaceId: string;
+    event: z.infer<typeof unkeyAuditLogEvents>;
+    description: string;
+    actor: {
+      type: "user" | "key";
+      name?: string;
+      id: string;
+    };
+    resources: Array<{
+      type:
+        | "key"
+        | "api"
+        | "workspace"
+        | "role"
+        | "permission"
+        | "keyAuth"
+        | "vercelBinding"
+        | "vercelIntegration";
+      id: string;
+      meta?: Record<string, string | number | boolean>;
+    }>;
+    context: {
+      userAgent?: string;
+      location: string;
+    };
+  }>,
+) {
+  return tb.buildIngestEndpoint({
+    datasource: "audit_logs__v2",
+    event: auditLogSchemaV1
+      .merge(
+        z.object({
+          event: unkeyAuditLogEvents,
+          auditLogId: z.string().default(newId("auditLog")),
+          bucket: z.string().default("unkey_mutations"),
+          time: z.number().default(Date.now()),
+        }),
+      )
+      .transform((l) => ({
+        ...l,
+        actor: {
+          ...l.actor,
+          meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
+        },
+        resources: JSON.stringify(l.resources),
+      })),
+  })(logs);
+}

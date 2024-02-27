@@ -202,7 +202,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db } = c.get("services");
+    const { cache, db, analytics } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -307,6 +307,7 @@ export const registerV1KeysCreateKey = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
+        description: `Created ${keyId} in ${api.keyAuthId}`,
         resources: [
           {
             type: "key",
@@ -318,7 +319,7 @@ export const registerV1KeysCreateKey = (app: App) =>
           },
         ],
 
-        context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
       if (roleIds.length > 0) {
         await tx.insert(schema.keysRoles).values(
@@ -326,6 +327,28 @@ export const registerV1KeysCreateKey = (app: App) =>
             keyId,
             roleId,
             workspaceId: authorizedWorkspaceId,
+          })),
+        );
+        await analytics.ingestAuditLogs(
+          roleIds.map((roleId) => ({
+            workspaceId: authorizedWorkspaceId,
+            actor: { type: "key", id: rootKeyId },
+            event: "authorization.connect_role_and_key",
+            description: `Connected ${roleId} and ${keyId}`,
+            resources: [
+              {
+                type: "key",
+                id: keyId,
+              },
+              {
+                type: "role",
+                id: roleId,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
           })),
         );
       }

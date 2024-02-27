@@ -90,85 +90,61 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-    await db.transaction(async (tx) => {
-      switch (req.op) {
-        case "increment": {
-          if (key.remaining === null) {
-            throw new UnkeyApiError({
-              code: "BAD_REQUEST",
-              message:
-                "cannot increment a key with unlimited remaining requests, please 'set' a value instead.",
-            });
-          }
-          if (req.value === null) {
-            throw new UnkeyApiError({
-              code: "BAD_REQUEST",
-              message: "cannot increment a key by null.",
-            });
-          }
-          await tx
-            .update(schema.keys)
-            .set({
-              remaining: sql`remaining_requests + ${req.value}`,
-            })
-            .where(eq(schema.keys.id, req.keyId));
-          break;
+    switch (req.op) {
+      case "increment": {
+        if (key.remaining === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message:
+              "cannot increment a key with unlimited remaining requests, please 'set' a value instead.",
+          });
         }
-        case "decrement": {
-          if (key.remaining === null) {
-            throw new UnkeyApiError({
-              code: "BAD_REQUEST",
-              message:
-                "cannot decrement a key with unlimited remaining requests, please 'set' a value instead.",
-            });
-          }
-          if (req.value === null) {
-            throw new UnkeyApiError({
-              code: "BAD_REQUEST",
-              message: "cannot decrement a key by null.",
-            });
-          }
-          await tx
-            .update(schema.keys)
-            .set({
-              remaining: sql`remaining_requests - ${req.value}`,
-            })
-            .where(eq(schema.keys.id, req.keyId));
-          break;
+        if (req.value === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "cannot increment a key by null.",
+          });
         }
-        case "set": {
-          await tx
-            .update(schema.keys)
-            .set({
-              remaining: req.value,
-            })
-            .where(eq(schema.keys.id, req.keyId));
-          break;
-        }
+        await db
+          .update(schema.keys)
+          .set({
+            remaining: sql`remaining_requests + ${req.value}`,
+          })
+          .where(eq(schema.keys.id, req.keyId));
+        break;
       }
-      await analytics.ingestAuditLogs({
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        event: "key.update",
-        workspaceId: authorizedWorkspaceId,
-        resources: [
-          {
-            type: "keyAuth",
-            id: key.keyAuthId,
-          },
-          {
-            type: "key",
-            id: key.id,
-          },
-        ],
-        context: {
-          ipAddress: c.get("ipAddress"),
-          userAgent: c.get("userAgent"),
-        },
-      });
-    });
+      case "decrement": {
+        if (key.remaining === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message:
+              "cannot decrement a key with unlimited remaining requests, please 'set' a value instead.",
+          });
+        }
+        if (req.value === null) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "cannot decrement a key by null.",
+          });
+        }
+        await db
+          .update(schema.keys)
+          .set({
+            remaining: sql`remaining_requests - ${req.value}`,
+          })
+          .where(eq(schema.keys.id, req.keyId));
+        break;
+      }
+      case "set": {
+        await db
+          .update(schema.keys)
+          .set({
+            remaining: req.value,
+          })
+          .where(eq(schema.keys.id, req.keyId));
+        break;
+      }
+    }
 
     await Promise.all([
       usageLimiter.revalidate({ keyId: key.id }),
@@ -185,6 +161,29 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         message: "key not found after update, this should not happen",
       });
     }
+    await analytics.ingestAuditLogs({
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      event: "key.update",
+      workspaceId: authorizedWorkspaceId,
+      description: `Changed remaining to ${keyAfterUpdate.remaining}`,
+      resources: [
+        {
+          type: "keyAuth",
+          id: key.keyAuthId,
+        },
+        {
+          type: "key",
+          id: key.id,
+        },
+      ],
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    });
 
     return c.json({
       remaining: keyAfterUpdate.remaining,

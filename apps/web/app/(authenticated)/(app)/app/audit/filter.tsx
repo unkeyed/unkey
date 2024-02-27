@@ -14,38 +14,41 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Check, ChevronDown } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useState } from "react";
-
+import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
+import React from "react";
 type Props = {
   options: { value: string; label: string }[];
-  selected: string[];
   title: string;
   param: string;
 };
 
-export const Filter: React.FC<Props> = ({ selected, options, title, param }) => {
-  const [selectedValues, setSelectedValues] = useState<string[]>(selected);
-
-  const params = useModifySearchParams();
+export const Filter: React.FC<Props> = ({ options, title, param }) => {
+  const [selected, setSelected] = useQueryState(
+    param,
+    parseAsArrayOf(parseAsString).withDefault([]).withOptions({
+      history: "push",
+      shallow: false, // otherwise server components won't notice the change
+      clearOnDefault: true,
+    }),
+  );
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center h-8 gap-2 ">
           {title}
-          {selectedValues.length > 0 && (
+          {selected.length > 0 && (
             <>
               <Separator orientation="vertical" className="h-4 mx-2" />
               <Badge variant="secondary" className="px-1 font-normal rounded-sm lg:hidden">
-                {selectedValues.length}
+                {selected.length}
               </Badge>
               <div className="hidden space-x-1 lg:flex">
-                {selectedValues.length > 2 ? (
-                  <Badge variant="secondary">{selectedValues.length} selected</Badge>
+                {selected.length > 2 ? (
+                  <Badge variant="secondary">{selected.length} selected</Badge>
                 ) : (
                   options
-                    .filter((option) => selectedValues.includes(option.value))
+                    .filter((option) => selected.includes(option.value))
                     .map((option) => (
                       <Badge variant="secondary" key={option.value}>
                         {option.label}
@@ -65,7 +68,7 @@ export const Filter: React.FC<Props> = ({ selected, options, title, param }) => 
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
-                const isSelected = selectedValues.includes(option.value);
+                const isSelected = selected.includes(option.value);
 
                 return (
                   <CommandItem
@@ -73,22 +76,22 @@ export const Filter: React.FC<Props> = ({ selected, options, title, param }) => 
                      * We're simulating next/link behavior here and prefetching the page when they hover over an item
                      */
                     onMouseEnter={() => {
-                      const copySelected = new Set(selectedValues);
+                      const copySelected = new Set(selected);
                       if (isSelected) {
                         copySelected.delete(option.value);
                       } else {
                         copySelected.add(option.value);
                       }
-                      params.prefetch(param, Array.from(copySelected).join(","));
+                      // params.prefetch(param, Array.from(copySelected).join(","));
                     }}
                     key={option.value}
                     onSelect={() => {
                       const next = isSelected
-                        ? selectedValues.filter((v) => v !== option.value)
-                        : Array.from(new Set([...selectedValues, option.value]));
+                        ? selected.filter((v) => v !== option.value)
+                        : Array.from(new Set([...selected, option.value]));
 
-                      setSelectedValues(next);
-                      params.set(param, next);
+                      setSelected(next);
+                      // params.set(param, next);
                     }}
                   >
                     <div
@@ -106,12 +109,15 @@ export const Filter: React.FC<Props> = ({ selected, options, title, param }) => 
                 );
               })}
             </CommandGroup>
-            {selectedValues.length > 0 && (
+            {selected.length > 0 && (
               <>
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => params.set(param, null)}
+                    onSelect={() => {
+                      setSelected([]);
+                      // params.set(param, null);
+                    }}
                     className="justify-center text-center"
                   >
                     Clear filters
@@ -125,42 +131,3 @@ export const Filter: React.FC<Props> = ({ selected, options, title, param }) => 
     </Popover>
   );
 };
-
-/**
- * Utility hook to modify the search params of the current URL
- */
-export function useModifySearchParams() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams()!;
-
-  const hrefWithSearchparam = useCallback(
-    (name: string, value: string | string[] | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete(name);
-
-      if (value === null) {
-        // do nothing, we have already deleted it above
-      } else if (Array.isArray(value)) {
-        value.forEach((v) => {
-          params.append(name, v);
-        });
-      } else {
-        params.set(name, value);
-      }
-      return `${pathname}?${params.toString()}`;
-    },
-    [pathname, searchParams],
-  );
-
-  return {
-    prefetch: (key: string, value: string | string[] | null) => {
-      const href = hrefWithSearchparam(key, value);
-      router.prefetch(href);
-    },
-    set: (key: string, value: string | string[] | null) => {
-      const href = hrefWithSearchparam(key, value);
-      router.push(href, { scroll: false });
-    },
-  };
-}

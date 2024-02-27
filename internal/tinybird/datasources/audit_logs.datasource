@@ -1,15 +1,19 @@
-VERSION 1
+VERSION 2
 SCHEMA >
     `workspaceId` String `json:$.workspaceId`,
+    `bucket` String `json:$.bucket`,
     `auditLogId` String `json:$.auditLogId`,
     `event` String `json:$.event`,
     `time` Int64 `json:$.time`,
     `actorType` String `json:$.actor.type`,
     `actorId` String `json:$.actor.id`,
-    `resources` Array(String) `json:$.resources[:]`,
+    `actorName` Nullable(String) `json:$.actor.name`,
+    `actorMeta` Nullable(String) `json:$.actor.meta`,
+    `description` String `json:$.description`,
+    `resources` String `json:$.resources`,
     `userAgent` Nullable(String) `json:$.context.usageAgent`,
-    `ipAddress` Nullable(String) `json:$.context.ipAddress`
+    `location` Nullable(String) `json:$.context.location`
 
 ENGINE "MergeTree"
-ENGINE_SORTING_KEY "workspaceId,time"
+ENGINE_SORTING_KEY "workspaceId,bucket,time"
 

@@ -51,7 +51,7 @@ export type V1ApisDeleteApiResponse = z.infer<
 export const registerV1ApisDeleteApi = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId } = c.req.valid("json");
-    const { cache, db } = c.get("services");
+    const { cache, db, analytics } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -82,6 +82,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
+        description: `Deleted ${apiId}`,
         resources: [
           {
             type: "api",
@@ -89,7 +90,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
           },
         ],
 
-        context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
 
       const keyIds = await tx.query.keys.findMany({
@@ -112,6 +113,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
             type: "key",
             id: rootKeyId,
           },
+          description: `Deleted ${key.id} as part of ${api.id} deletion`,
           resources: [
             {
               type: "keyAuth",
@@ -123,7 +125,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
             },
           ],
 
-          context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+          context: { location: c.get("location"), userAgent: c.get("userAgent") },
         })),
       );
     });

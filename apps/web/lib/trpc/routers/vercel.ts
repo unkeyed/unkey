@@ -1,5 +1,6 @@
 import { VercelBinding, and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
@@ -77,20 +78,26 @@ export const vercelRouter = t.router({
             remaining: null,
             deletedAt: null,
           });
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   apiId: unkeyApi.id,
-          //   vercelIntegrationId: integration.id,
-          //   keyId: keyId,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "key.create",
-          //   description: "Created new root key for Vercel integration",
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "key.create",
+            description: `Created ${keyId}`,
+            resources: [
+              {
+                type: "key",
+                id: keyId,
+              },
+              {
+                type: "vercelIntegration",
+                id: integration.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
 
         const setRootKeyRes = await vercel.upsertEnvironmentVariable(
@@ -121,18 +128,26 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.create",
-          //   description: "Created Vercel binding",
-          //   vercelBindingId,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.create",
+            description: `Created ${vercelBindingId} for ${keyId}`,
+            resources: [
+              {
+                type: "vercelBinding",
+                id: vercelBindingId,
+              },
+              {
+                type: "key",
+                id: keyId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
 
         // Api Id stuff
@@ -164,18 +179,26 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.create",
-          //   description: "Created Vercel binding",
-          //   vercelBindingId,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.create",
+            description: `Created ${vercelBindingId} for ${apiId}`,
+            resources: [
+              {
+                type: "vercelBinding",
+                id: vercelBindingId,
+              },
+              {
+                type: "api",
+                id: apiId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
       }
     }),
@@ -236,19 +259,29 @@ export const vercelRouter = t.router({
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.update",
-          //   description: "Updated Vercel binding",
-          //   vercelIntegrationId: integration.id,
-          //   vercelBindingId: existingBinding.id,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.update",
+            description: `Updated ${existingBinding.id}`,
+            resources: [
+              {
+                type: "vercelBinding",
+                id: existingBinding.id,
+                meta: {
+                  vercelEnvironment: res.value.created.id,
+                },
+              },
+              {
+                type: "api",
+                id: input.apiId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
       } else {
         await db.transaction(async (tx) => {
@@ -266,19 +299,26 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.create",
-          //   description: "Created Vercel binding",
-          //   vercelIntegrationId: integration.id,
-          //   vercelBindingId,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.create",
+            description: `Created ${vercelBindingId} for ${input.apiId}`,
+            resources: [
+              {
+                type: "vercelBinding",
+                id: vercelBindingId,
+              },
+              {
+                type: "api",
+                id: input.apiId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
       }
     }),
@@ -343,20 +383,22 @@ export const vercelRouter = t.router({
           remaining: null,
           deletedAt: null,
         });
-        // await tx.insert(schema.auditLogs).values({
-        //   id: newId("auditLog"),
-        //   time: new Date(),
-        //   workspaceId: integration.workspace.id,
-        //   apiId: unkeyApi.id,
-        //   keyId,
-        //   vercelIntegrationId: integration.id,
-        //   actorType: "user",
-        //   actorId: ctx.user.id,
-        //   event: "key.create",
-        //   description: "Created root key",
-        //   ipAddress: ctx.audit.ipAddress,
-        //   userAgent: ctx.audit.userAgent,
-        // });
+        await ingestAuditLogs({
+          workspaceId: integration.workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "key.create",
+          description: `Created ${keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: keyId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       });
 
       const res = await vercel.upsertEnvironmentVariable(
@@ -386,20 +428,29 @@ export const vercelRouter = t.router({
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   keyId,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.update",
-          //   description: "Updated Vercel binding",
-          //   vercelIntegrationId: integration.id,
-          //   vercelBindingId: existingBinding.id,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.update",
+            description: `Updated ${existingBinding.id}`,
+            resources: [
+              {
+                type: "vercelBinding",
+                id: existingBinding.id,
+                meta: {
+                  vercelEnvironment: res.value.created.id,
+                },
+              },
+              {
+                type: "key",
+                id: keyId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
       } else {
         await db.transaction(async (tx) => {
@@ -417,20 +468,34 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   keyId,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.create",
-          //   description: "Created Vercel binding",
-          //   vercelIntegrationId: integration.id,
-          //   vercelBindingId,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.create",
+            description: `Created ${vercelBindingId} for ${keyId}`,
+            resources: [
+              {
+                type: "vercelIntegration",
+                id: integration.id,
+              },
+              {
+                type: "vercelBinding",
+                id: vercelBindingId,
+                meta: {
+                  environment: input.environment,
+                  projectId: input.projectId,
+                },
+              },
+              {
+                type: "key",
+                id: keyId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
       }
     }),
@@ -470,19 +535,22 @@ export const vercelRouter = t.router({
           .update(schema.vercelBindings)
           .set({ deletedAt: new Date() })
           .where(eq(schema.vercelBindings.id, binding.id));
-        // await tx.insert(schema.auditLogs).values({
-        //   id: newId("auditLog"),
-        //   time: new Date(),
-        //   workspaceId: binding.vercelIntegrations.workspace.id,
-        //   actorType: "user",
-        //   actorId: ctx.user.id,
-        //   event: "vercelBinding.delete",
-        //   description: "Deleted Vercel binding",
-        //   vercelBindingId: binding.id,
-        //   vercelIntegrationId: binding.vercelIntegrations.id,
-        //   ipAddress: ctx.audit.ipAddress,
-        //   userAgent: ctx.audit.userAgent,
-        // });
+        await ingestAuditLogs({
+          workspaceId: binding.vercelIntegrations.workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "vercelBinding.delete",
+          description: `Deleted ${binding.id}`,
+          resources: [
+            {
+              type: "vercelBinding",
+              id: binding.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       });
     }),
   disconnectProject: t.procedure
@@ -524,19 +592,27 @@ export const vercelRouter = t.router({
             .update(schema.vercelBindings)
             .set({ deletedAt: new Date() })
             .where(eq(schema.vercelBindings.id, binding.id));
-          // await tx.insert(schema.auditLogs).values({
-          //   id: newId("auditLog"),
-          //   time: new Date(),
-          //   workspaceId: integration.workspace.id,
-          //   actorType: "user",
-          //   actorId: ctx.user.id,
-          //   event: "vercelBinding.delete",
-          //   description: "Deleted Vercel binding",
-          //   vercelBindingId: binding.id,
-          //   vercelIntegrationId: integration.id,
-          //   ipAddress: ctx.audit.ipAddress,
-          //   userAgent: ctx.audit.userAgent,
-          // });
+          await ingestAuditLogs({
+            workspaceId: integration.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "vercelBinding.delete",
+            description: `Deleted ${binding.id}`,
+            resources: [
+              {
+                type: "vercelBinding",
+                id: binding.id,
+                meta: {
+                  vercelProjectId: binding.projectId,
+                  vercelEnvironment: binding.environment,
+                  vercelEnvironmentVariableId: binding.vercelEnvId,
+                },
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         });
       }
     }),

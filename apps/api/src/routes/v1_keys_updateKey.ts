@@ -138,7 +138,7 @@ export type V1KeysUpdateKeyResponse = z.infer<
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, usageLimiter } = c.get("services");
+    const { cache, db, usageLimiter, analytics } = c.get("services");
 
     await db.transaction(async (tx) => {
       const key = await tx.query.keys.findFirst({
@@ -218,6 +218,11 @@ export const registerV1KeysUpdate = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
+        description: `Updated key config: ${Object.entries(req)
+          .filter(([_, v]) => v !== undefined)
+          .reduce((description, [k, v]) => {
+            return `${description}${description.length > 0 ? ", " : ""}${k}=${v}`;
+          }, "")}`,
         resources: [
           {
             type: "key",
@@ -225,7 +230,7 @@ export const registerV1KeysUpdate = (app: App) =>
           },
         ],
 
-        context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
 
       await Promise.all([

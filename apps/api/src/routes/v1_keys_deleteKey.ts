@@ -51,7 +51,7 @@ export type V1KeysDeleteKeyResponse = z.infer<
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId } = c.req.valid("json");
-    const { cache, db } = c.get("services");
+    const { cache, db, analytics } = c.get("services");
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
@@ -118,6 +118,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
         type: "key",
         id: rootKeyId,
       },
+      description: `Deleted ${data.key.id}`,
       resources: [
         {
           type: "key",
@@ -125,7 +126,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
         },
       ],
 
-      context: { ipAddress: c.get("ipAddress"), userAgent: c.get("userAgent") },
+      context: { location: c.get("location"), userAgent: c.get("userAgent") },
     });
 
     await Promise.all([

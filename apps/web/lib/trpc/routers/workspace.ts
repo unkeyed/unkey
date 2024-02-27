@@ -1,5 +1,6 @@
 import { Workspace, db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
@@ -47,19 +48,22 @@ export const workspaceRouter = t.router({
         deletedAt: null,
         planDowngradeRequest: null,
       };
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values(workspace);
-        // await tx.insert(schema.auditLogs).values({
-        //   id: newId("auditLog"),
-        //   time: new Date(),
-        //   workspaceId: workspace.id,
-        //   actorType: "user",
-        //   actorId: ctx.user.id,
-        //   event: "workspace.create",
-        //   description: `Workspace ${input.name} created`,
-        //   ipAddress: ctx.audit.ipAddress,
-        //   userAgent: ctx.audit.userAgent,
-        // });
+      await db.insert(schema.workspaces).values(workspace);
+      await ingestAuditLogs({
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "workspace.create",
+        description: `Created ${workspace.id}`,
+        resources: [
+          {
+            type: "workspace",
+            id: workspace.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
 
       return {
@@ -103,6 +107,22 @@ export const workspaceRouter = t.router({
           betaFeatures: workspace.betaFeatures,
         })
         .where(eq(schema.workspaces.id, workspace.id));
+      await ingestAuditLogs({
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "workspace.create",
+        description: `Opted ${workspace.id} into beta: ${input.feature}`,
+        resources: [
+          {
+            type: "workspace",
+            id: workspace.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
     }),
   changePlan: t.procedure
     .use(auth)
@@ -165,17 +185,22 @@ export const workspaceRouter = t.router({
                 planDowngradeRequest: null,
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
-            // await tx.insert(schema.auditLogs).values({
-            //   id: newId("auditLog"),
-            //   time: new Date(),
-            //   workspaceId: workspace.id,
-            //   actorType: "user",
-            //   actorId: ctx.user.id,
-            //   event: "workspace.update",
-            //   description: `Workspace ${workspace.name} changed plan to ${input.plan}`,
-            //   ipAddress: ctx.audit.ipAddress,
-            //   userAgent: ctx.audit.userAgent,
-            // });
+            await ingestAuditLogs({
+              workspaceId: workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.update",
+              description: "Removed downgrade request",
+              resources: [
+                {
+                  type: "workspace",
+                  id: workspace.id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
+            });
           });
           return {
             title: "You have resubscribed",
@@ -197,17 +222,22 @@ export const workspaceRouter = t.router({
                 planDowngradeRequest: "free",
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
-            // await tx.insert(schema.auditLogs).values({
-            //   id: newId("auditLog"),
-            //   time: new Date(),
-            //   workspaceId: workspace.id,
-            //   actorType: "user",
-            //   actorId: ctx.user.id,
-            //   event: "workspace.update",
-            //   description: `Workspace ${workspace.name} changed plan to free`,
-            //   ipAddress: ctx.audit.ipAddress,
-            //   userAgent: ctx.audit.userAgent,
-            // });
+            await ingestAuditLogs({
+              workspaceId: workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.update",
+              description: "Requested downgrade to 'free'",
+              resources: [
+                {
+                  type: "workspace",
+                  id: workspace.id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
+            });
           });
           return {
             title: "Your plan is scheduled to downgrade on the first of next month.",
@@ -241,17 +271,22 @@ export const workspaceRouter = t.router({
                 planDowngradeRequest: null,
               })
               .where(eq(schema.workspaces.id, input.workspaceId));
-            // await tx.insert(schema.auditLogs).values({
-            //   id: newId("auditLog"),
-            //   time: new Date(),
-            //   workspaceId: workspace.id,
-            //   actorType: "user",
-            //   actorId: ctx.user.id,
-            //   event: "workspace.update",
-            //   description: `Workspace ${workspace.name} changed plan to pro`,
-            //   ipAddress: ctx.audit.ipAddress,
-            //   userAgent: ctx.audit.userAgent,
-            // });
+            await ingestAuditLogs({
+              workspaceId: workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.update",
+              description: "Changed plan to 'pro'",
+              resources: [
+                {
+                  type: "workspace",
+                  id: workspace.id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
+            });
           });
           return { title: "Your workspace has been upgraded" };
         }
@@ -280,17 +315,22 @@ export const workspaceRouter = t.router({
             name: input.name,
           })
           .where(eq(schema.workspaces.id, input.workspaceId));
-        // await tx.insert(schema.auditLogs).values({
-        //   id: newId("auditLog"),
-        //   time: new Date(),
-        //   workspaceId: input.workspaceId,
-        //   actorType: "user",
-        //   actorId: ctx.user.id,
-        //   event: "workspace.update",
-        //   description: `Changed name to ${input.name}`,
-        //   ipAddress: ctx.audit.ipAddress,
-        //   userAgent: ctx.audit.userAgent,
-        // });
+        await ingestAuditLogs({
+          workspaceId: ws.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "workspace.update",
+          description: `Changed name from ${ws.name} to ${input.name}`,
+          resources: [
+            {
+              type: "workspace",
+              id: ws.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
         if (ctx.tenant.id.startsWith("org_")) {
           await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
             name: input.name,
