@@ -19,7 +19,7 @@ const config: KnipConfig = {
     "internal/db": {
       entry: "src/index.ts",
     },
-    "internal/rbac": {
+    "packages/rbac": {
       entry: ["src/index.ts", "**/*.test.ts"],
     },
     "internal/hash": {
