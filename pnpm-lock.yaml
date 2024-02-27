@@ -207,8 +207,8 @@ importers:
         specifier: ^0.29.3
         version: 0.29.3(@planetscale/database@1.16.0)(@types/react@18.2.56)(react@18.2.0)
       framer-motion:
-        specifier: 11.0.5
-        version: 11.0.5(react-dom@18.2.0)(react@18.2.0)
+        specifier: 11.0.6
+        version: 11.0.6(react-dom@18.2.0)(react@18.2.0)
       geist:
         specifier: ^1.2.2
         version: 1.2.2(next@14.1.0)
@@ -461,8 +461,8 @@ importers:
         specifier: ^0.29.3
         version: 0.29.3(@planetscale/database@1.16.0)(@types/react@18.2.56)(react@18.2.0)
       framer-motion:
-        specifier: 11.0.5
-        version: 11.0.5(react-dom@18.2.0)(react@18.2.0)
+        specifier: 11.0.6
+        version: 11.0.6(react-dom@18.2.0)(react@18.2.0)
       free-email-domains:
         specifier: ^1.2.13
         version: 1.2.13
@@ -12633,8 +12633,8 @@ packages:
       '@emotion/is-prop-valid': 0.8.8
     dev: false
 
-  /framer-motion@11.0.5(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-Lb0EYbQcSK/pgyQUJm+KzsQrKrJRX9sFRyzl9hSr9gFG4Mk8yP7BjhuxvRXzblOM/+JxycrJdCDVmOQBsjpYlw==}
+  /framer-motion@11.0.6(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-BpO3mWF8UwxzO3Ca5AmSkrg14QYTeJa9vKgoLOoBdBdTPj0e81i1dMwnX6EQJXRieUx20uiDBXq8bA6y7N6b8Q==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
