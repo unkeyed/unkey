@@ -8,12 +8,14 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
+    "@chronark/zod-bird": "^0.3.3",
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.29.3",
-    "mysql2": "^3.9.1"
+    "mysql2": "^3.9.1",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "20.11.19",

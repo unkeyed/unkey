@@ -20,8 +20,12 @@ export async function RbacOptIn() {
   const optedIn = await db
     .select({ count: sql<string>`count(*)` })
     .from(schema.workspaces)
-    .where(sql`beta_features->>"$.rbac" = 1`)
-    .then((res) => res.at(0)?.count ?? "0");
+    .where(sql`beta_features->>'$.rbac' = 'true' `)
+    .then((res) => res.at(0)?.count ?? "0")
+    .catch((err) => {
+      console.error(err);
+      throw err;
+    });
 
   return (
     <Card className="flex flex-col w-full h-fit">

@@ -8,6 +8,10 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
 
   return {
     req,
+    audit: {
+      userAgent: req.headers.get("user-agent") ?? undefined,
+      location: req.headers.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+    },
     user: userId ? { id: userId } : null,
     tenant:
       orgId && orgRole

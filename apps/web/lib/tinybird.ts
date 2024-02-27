@@ -1,6 +1,9 @@
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import { newId } from "@unkey/id";
+import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
+import { MaybeArray } from "./types";
 
 const token = env().TINYBIRD_TOKEN;
 const tb = token ? new Tinybird({ token }) : new NoopTinybird();
@@ -363,3 +366,141 @@ export const getQ1ActiveWorkspaces = tb.buildPipe({
     cache: "no-store",
   },
 });
+
+export const getAuditLogActors = tb.buildPipe({
+  pipe: "endpoint__audit_log_actor_ids__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    type: z.enum(["user", "key"]).optional(),
+  }),
+  data: z.object({
+    actorId: z.string(),
+    actorType: z.enum(["user", "key"]).optional(),
+    lastSeen: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getAuditLogs = tb.buildPipe({
+  pipe: "endpoint__audit_logs__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    bucket: z.string().default("unkey_mutations"),
+    before: z.number().int().optional(),
+    after: z.number().int(),
+    events: z.array(z.string()).optional(),
+    actorIds: z.array(z.string()).optional(),
+  }),
+
+  data: z
+    .object({
+      workspaceId: z.string(),
+      bucket: z.string(),
+      auditLogId: z.string(),
+      time: z.number().int(),
+      actorType: z.enum(["key", "user"]),
+      actorId: z.string(),
+      actorName: z.string().nullable(),
+      actorMeta: z.string().nullable(),
+      event: unkeyAuditLogEvents,
+      description: z.string(),
+      resources: z.string().transform((rs) =>
+        z
+          .array(
+            z.object({
+              type: z.enum([
+                "key",
+                "api",
+                "workspace",
+                "role",
+                "permission",
+                "keyAuth",
+                "vercelBinding",
+                "vercelIntegration",
+              ]),
+              id: z.string(),
+              meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+            }),
+          )
+          .parse(JSON.parse(rs)),
+      ),
+
+      location: z.string(),
+      userAgent: z.string().nullable(),
+    })
+    .transform((l) => ({
+      workspaceId: l.workspaceId,
+      bucket: l.bucket,
+      auditLogId: l.auditLogId,
+      time: l.time,
+      actor: {
+        type: l.actorType,
+        id: l.actorId,
+        name: l.actorName,
+        meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
+      },
+      event: l.event,
+      description: l.description,
+      resources: l.resources,
+      context: {
+        location: l.location,
+        userAgent: l.userAgent,
+      },
+    })),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export function ingestAuditLogs(
+  logs: MaybeArray<{
+    workspaceId: string;
+    event: z.infer<typeof unkeyAuditLogEvents>;
+    description: string;
+    actor: {
+      type: "user" | "key";
+      name?: string;
+      id: string;
+    };
+    resources: Array<{
+      type:
+        | "key"
+        | "api"
+        | "workspace"
+        | "role"
+        | "permission"
+        | "keyAuth"
+        | "vercelBinding"
+        | "vercelIntegration";
+      id: string;
+      meta?: Record<string, string | number | boolean | null>;
+    }>;
+    context: {
+      userAgent?: string;
+      location: string;
+    };
+  }>,
+) {
+  return tb.buildIngestEndpoint({
+    datasource: "audit_logs__v2",
+    event: auditLogSchemaV1
+      .merge(
+        z.object({
+          event: unkeyAuditLogEvents,
+          auditLogId: z.string().default(newId("auditLog")),
+          bucket: z.string().default("unkey_mutations"),
+          time: z.number().default(Date.now()),
+        }),
+      )
+      .transform((l) => ({
+        ...l,
+        actor: {
+          ...l.actor,
+          meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
+        },
+        resources: JSON.stringify(l.resources),
+      })),
+  })(logs);
+}

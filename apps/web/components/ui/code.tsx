@@ -8,7 +8,7 @@ const codeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-muted text-primary hover:border-primary",
+        default: " text-primary bg-background-subtle hover:border-primary",
 
         outline: "text-foreground",
       },

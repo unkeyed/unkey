@@ -9,7 +9,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
-import { auditLogs } from "./audit";
 import { keys } from "./keys";
 import { permissions, roles } from "./rbac";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
@@ -100,5 +99,4 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   }),
   roles: many(roles),
   permissions: many(permissions),
-  auditLogs: many(auditLogs),
 }));

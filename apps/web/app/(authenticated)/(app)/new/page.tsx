@@ -1,9 +1,11 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { db, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { ArrowRight } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
@@ -99,6 +101,27 @@ export default async function (props: Props) {
         subscriptions: null,
         createdAt: new Date(),
       });
+      await ingestAuditLogs({
+        workspaceId: workspaceId,
+        event: "workspace.create",
+        actor: {
+          type: "user",
+          id: userId,
+        },
+        description: `Created ${workspaceId}`,
+        resources: [
+          {
+            type: "workspace",
+            id: workspaceId,
+          },
+        ],
+
+        context: {
+          userAgent: headers().get("user-agent") ?? undefined,
+          location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+        },
+      });
+
       return redirect(`/new?workspaceId=${workspaceId}`);
     }
   }

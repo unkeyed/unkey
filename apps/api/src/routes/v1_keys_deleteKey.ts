@@ -4,7 +4,6 @@ import { schema } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
@@ -52,7 +51,7 @@ export type V1KeysDeleteKeyResponse = z.infer<
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId } = c.req.valid("json");
-    const { cache, db } = c.get("services");
+    const { cache, db, analytics } = c.get("services");
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
@@ -104,23 +103,30 @@ export const registerV1KeysDeleteKey = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.keys)
-        .set({
-          deletedAt: new Date(),
-        })
-        .where(eq(schema.keys.id, data.key.id));
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
-        workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
-        event: "key.delete",
-        description: `revoked key ${data.key.id}`,
-        keyAuthId: data.key.keyAuthId,
-      });
+
+    await db
+      .update(schema.keys)
+      .set({
+        deletedAt: new Date(),
+      })
+      .where(eq(schema.keys.id, data.key.id));
+
+    await analytics.ingestAuditLogs({
+      workspaceId: authorizedWorkspaceId,
+      event: "key.delete",
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      description: `Deleted ${data.key.id}`,
+      resources: [
+        {
+          type: "key",
+          id: data.key.id,
+        },
+      ],
+
+      context: { location: c.get("location"), userAgent: c.get("userAgent") },
     });
 
     await Promise.all([
