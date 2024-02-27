@@ -42,8 +42,8 @@ export const OpenSource: React.FC = () => {
           <motion.div
             initial={{ opacity: 0 }} // Start with the component invisible
             whileInView={{ opacity: 1 }} // Animate to fully visible when in view
-            transition={{ duration: 1, ease: "easeOut" }} // Define the transition
             viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 1, ease: "easeOut" }} // Define the transition
           >
             <GithubMobile className="flex xs:hidden mt-24" />
             <Github className="hidden xs:flex w-[380px] md:w-[640px] mt-24 xl:mt-0" />

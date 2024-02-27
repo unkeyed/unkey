@@ -66,7 +66,7 @@ export function HeroMainSection() {
 
       <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-sm xs:text-[15px] sm:text-base leading-[28px]">
         Unkey allows you to quickly add API keys, rate limiting, and usage analytics to your API, so
-        that you can safely expose it developers.
+        that you can safely expose it to developers.
       </p>
 
       <div className="flex items-center gap-6 mt-16">

@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from "framer-motion";
-import React, { ReactElement, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import React, { ReactElement, useEffect, useMemo, useState, useRef } from "react";
 
 export const AnimatedList = React.memo(
   ({
@@ -15,19 +15,26 @@ export const AnimatedList = React.memo(
 
     const childrenArray = React.Children.toArray(children);
 
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setIndex((prevIndex) => {
-          if (prevIndex >= childrenArray.length - 1) {
-            clearInterval(interval); // Stop the interval when the last item is reached
-            return prevIndex;
-          }
-          return prevIndex + 1;
-        });
-      }, delay);
+    const ref = useRef(null);
+    const inView = useInView(ref);
 
-      return () => clearInterval(interval);
-    }, [childrenArray.length, delay]);
+    console.log(inView);
+
+    useEffect(() => {
+      if (inView) {
+        const interval = setInterval(() => {
+          setIndex((prevIndex) => {
+            if (prevIndex >= childrenArray.length - 1) {
+              clearInterval(interval); // Stop the interval when the last item is reached
+              return prevIndex;
+            }
+            return prevIndex + 1;
+          });
+        }, delay);
+
+        return () => clearInterval(interval);
+      }
+    }, [childrenArray.length, delay, inView]);
 
     const itemsToShow = useMemo(
       () => childrenArray.slice(0, index + 1).reverse(),
@@ -35,7 +42,7 @@ export const AnimatedList = React.memo(
     );
 
     return (
-      <div className={`flex flex-col items-center gap-4 ${className}`}>
+      <div className={`flex flex-col items-center gap-4 ${className}`} ref={ref}>
         <AnimatePresence>
           {itemsToShow.map((item) => (
             <AnimatedListItem key={(item as ReactElement).key}>{item}</AnimatedListItem>
@@ -51,6 +58,8 @@ AnimatedList.displayName = "AnimatedList";
 export function AnimatedListItem({ children }: { children: React.ReactNode }) {
   const animations = {
     initial: { scale: 0, opacity: 0 },
+    whileInView: { opacity: 1 },
+    viewport: { once: true, amount: 0.5 },
     animate: { scale: 1, opacity: 1, originY: 0 },
     exit: { scale: 0, opacity: 0 },
     transition: { type: "spring", stiffness: 350, damping: 40 },
