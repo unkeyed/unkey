@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export const TopLeftShiningLight: React.FC = () => (
   <svg
-    className="absolute -top-[4%] -left-[3%] left-0 pointer-events-none"
+    className="absolute left-0 top-0 pointer-events-none"
     width="579"
     height="511"
     viewBox="0 0 579 511"
