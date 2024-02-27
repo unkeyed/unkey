@@ -16,13 +16,7 @@ import { registerV1Liveness } from "./routes/v1_liveness";
 
 import { ResolveConfigFn, instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
-import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
-import { registerLegacyApisDeleteApi } from "./routes/legacy_apis_deleteApi";
-import { registerLegacyApisGetApi } from "./routes/legacy_apis_getApi";
-import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
-import { registerLegacyKeysDelete } from "./routes/legacy_keys_deleteKey";
-import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
@@ -60,15 +54,8 @@ registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
 
 // legacy REST style routes
-registerLegacyKeysUpdate(app);
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
-registerLegacyKeysDelete(app);
-
-registerLegacyApisCreateApi(app);
-registerLegacyApisGetApi(app);
-registerLegacyApisDeleteApi(app);
-registerLegacyApisListKeys(app);
 
 app.get("/routes", (c) => {
   return c.json(

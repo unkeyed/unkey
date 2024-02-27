@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { MaybePromise } from "../types/promise";
+import { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 export type Entry<TValue> = {
   value: TValue;

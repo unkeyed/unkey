@@ -1,5 +1,4 @@
 export * from "./apis";
-export * from "./audit";
 export * from "./rbac";
 export * from "./keyAuth";
 export * from "./keys";

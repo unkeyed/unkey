@@ -24,5 +24,10 @@ export type HonoEnv = {
   Variables: {
     requestId: string;
     services: ServiceContext;
+    /**
+     * IP address or region information
+     */
+    location: string;
+    userAgent?: string;
   };
 };

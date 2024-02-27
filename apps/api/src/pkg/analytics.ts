@@ -1,6 +1,8 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import { newId } from "@unkey/id";
+import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
-
+import { MaybeArray } from "./types/maybe";
 // const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
 /**
@@ -29,6 +31,57 @@ export class Analytics {
         time: z.number(),
       }),
     });
+  }
+
+  public ingestAuditLogs(
+    logs: MaybeArray<{
+      workspaceId: string;
+      event: z.infer<typeof unkeyAuditLogEvents>;
+      description: string;
+      actor: {
+        type: "user" | "key";
+        name?: string;
+        id: string;
+      };
+      resources: Array<{
+        type:
+          | "key"
+          | "api"
+          | "workspace"
+          | "role"
+          | "permission"
+          | "keyAuth"
+          | "vercelBinding"
+          | "vercelIntegration";
+        id: string;
+        meta?: Record<string, string | number | boolean>;
+      }>;
+      context: {
+        userAgent?: string;
+        location: string;
+      };
+    }>,
+  ) {
+    return this.client.buildIngestEndpoint({
+      datasource: "audit_logs__v2",
+      event: auditLogSchemaV1
+        .merge(
+          z.object({
+            event: unkeyAuditLogEvents,
+            auditLogId: z.string().default(newId("auditLog")),
+            bucket: z.string().default("unkey_mutations"),
+            time: z.number().default(Date.now()),
+          }),
+        )
+        .transform((l) => ({
+          ...l,
+          actor: {
+            ...l.actor,
+            meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
+          },
+          resources: JSON.stringify(l.resources),
+        })),
+    })(logs);
   }
 
   public get ingestKeyVerification() {
