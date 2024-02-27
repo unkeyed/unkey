@@ -9,7 +9,7 @@ interface MeteorsProps {
 // function getRandomFromSet(set: number[]) {
 //   return set[Math.floor(Math.random() * set.length)];
 // }
-export const MeteorLines = ({ number = 20, xPos = 60, direction = "left" }: MeteorsProps) => {
+const MeteorLines = ({ number = 20, xPos = 60, direction = "left" }: MeteorsProps) => {
   const [meteorStyles, setMeteorStyles] = useState<Array<React.CSSProperties>>([]);
   const [windowWidth, _setWindowWidth] = useState<number>(0);
   useEffect(() => {
@@ -44,6 +44,7 @@ export const MeteorLines = ({ number = 20, xPos = 60, direction = "left" }: Mete
     </>
   );
 };
+export default MeteorLines;
 
 export const MeteorLinesAngular = ({ number = 20, xPos = 60 }: MeteorsProps) => {
   const [meteorStyles, setMeteorStyles] = useState<Array<React.CSSProperties>>([]);
