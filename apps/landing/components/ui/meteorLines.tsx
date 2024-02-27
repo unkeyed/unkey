@@ -11,19 +11,20 @@ interface MeteorsProps {
 // }
 export const MeteorLines = ({ number = 20, xPos = 60, direction = "left" }: MeteorsProps) => {
   const [meteorStyles, setMeteorStyles] = useState<Array<React.CSSProperties>>([]);
-  const [_windowWidth, _setWindowWidth] = useState<number>(0);
+  const [windowWidth, _setWindowWidth] = useState<number>(0);
+  useEffect(() => {
+    const width = window.innerWidth;
+    const pos = direction === "left" ? xPos : width - (xPos + 75);
 
-  const width = window.innerWidth;
-  const pos = direction === "left" ? xPos : width - (xPos + 75);
+    const styles = [...new Array(number)].map(() => ({
+      top: -50,
+      left: pos,
+      animationDelay: `${Math.random() * 1 + 0.2}s`,
+      animationDuration: `${Math.floor(Math.random() * 20 + 2)}s`,
+    }));
 
-  const styles = [...new Array(number)].map(() => ({
-    top: -50,
-    left: pos,
-    animationDelay: `${Math.random() * 1 + 0.2}s`,
-    animationDuration: `${Math.floor(Math.random() * 20 + 2)}s`,
-  }));
-
-  setMeteorStyles(styles);
+    setMeteorStyles(styles);
+  }, [number, windowWidth]);
 
   return (
     <>
@@ -47,16 +48,11 @@ export const MeteorLines = ({ number = 20, xPos = 60, direction = "left" }: Mete
 export const MeteorLinesAngular = ({ number = 20, xPos = 60 }: MeteorsProps) => {
   const [meteorStyles, setMeteorStyles] = useState<Array<React.CSSProperties>>([]);
   const [windowWidth, setWindowWidth] = useState<number>(0);
-  const handleResize = () => {
-    setWindowWidth(window.innerWidth);
-    return function unMount() {
-      window.removeEventListener("resize", handleResize, false);
-    };
-  };
+
   useEffect(() => {
     const width = window.innerWidth;
+    setWindowWidth(width);
     const pos = width / 2 + xPos;
-    window.addEventListener("resize", handleResize, false);
     const styles = [...new Array(number)].map(() => ({
       top: -100,
       left: pos,

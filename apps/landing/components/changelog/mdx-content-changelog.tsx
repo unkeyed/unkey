@@ -11,11 +11,15 @@ type MdxContentProps = {
 
 /** Custom components here!*/
 const MdxComponents = {
+  Image: (props: any) => <BlogImage size="lg" imageUrl={props} />,
+  Callout: Alert,
+  img: (props: any) => (
+    <img {...props} className="object-cover object-center rounded-3xl p-0" alt="" />
+  ),
   th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
   tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
   td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
-  Image: (props: any) => <BlogImage size="lg" imageUrl={props} />,
-  Callout: Alert,
+
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60 ellipsis" />,
 
   ol: (props: any) => <ol {...props} className="text-white list-decimal marker:text-white " />,
@@ -39,7 +43,7 @@ const MdxComponents = {
   ),
   hr: (_props: any) => <Separator orientation="horizontal" />,
   code: (props: any) => (
-    <div
+    <code
       {...props}
       className="inline font-mono text-xs rounded-lg leading-6 xxs:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1.5 w-full text-nowrap overflow-x-auto"
     />
