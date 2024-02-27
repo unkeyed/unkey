@@ -37,6 +37,19 @@ const config = {
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
+      animation: {
+        meteor: "meteor 20s linear infinite",
+      },
+      keyframes: {
+        meteor: {
+          "0%": { transform: "rotate(270deg) translateX(0)", opacity: ".9" },
+          "50%": { opacity: ".4" },
+          "100%": {
+            transform: "rotate(270deg) translateX(-500px)",
+            opacity: "0",
+          },
+        },
+      },
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
