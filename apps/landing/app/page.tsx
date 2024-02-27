@@ -65,13 +65,13 @@ export default async function Landing() {
 
       <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
       <div className="mt-[200px]" />
-      <Suspense fallback={null}>
+      {/* <Suspense fallback={null}>
         <Stats />
-      </Suspense>
+      </Suspense> */}
 
       <CodeExamples className="mt-20" />
       <div className="mt-[220px]" />
-      {/* <OpenSource /> */}
+      <OpenSource />
       <SectionTitle
         className="mt-[300px]"
         title="Efficient integration and process, always"
