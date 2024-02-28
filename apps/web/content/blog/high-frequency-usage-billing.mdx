@@ -5,24 +5,13 @@ description: "Building a real-time billing pipeline for millions of daily events
 author: andreas
 tags: [ "engineering" ]
 ---
-{/* 
 
-<p className="text-center">
-TLDR: Please don't do this:
-</p>
-```bash
-https://company.com/resource/c6b10dd3-1dcf-416c-8ed8-ae561807fcaf
-``` */}
-
-
-
-___
 
 Usage billing is nothing new anymore. A lot of developers don't want to spend a large fixed amount
-of money each month regardless of what they use. Especially when building out new unproven projects, it's essential to meet the developer where they are at: **Zero users**
+of money each month regardless of what they actually use. Especially when building out new unproven projects, it's essential to meet the developer where they are at: **zero users**
 
 As long as your customer is too small to generate revenue, they don't want to pay for your service and that's okay. 
-Generous free tiers are a good solution for this, but after they upgrade, you shouldn't send them an insane bill for resources they're not even using. Pricing that scales with usage is preferrable for many, but not all, products.
+Generous free tiers are a good solution to attract users, but even after they upgrade, you shouldn't send them an insane bill for resources they're not even using. Pricing that scales with usage is preferrable for many, but not all, products.
 
 Some companies have different billing tiers, where you'd pay for example: $10 for 10k, $20 for 30k, $50 for 100k. The issue with that is paying the next higher tier just because you have exceeded the previous tier by a small margin, ie: paying $50 for 31k.
 This system is very easy to implement, but at Unkey we do prorated usaged based billing, which means you pay for your exact usage, not whatever billing tier your usage fits in.
