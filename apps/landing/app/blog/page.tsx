@@ -62,13 +62,66 @@ export default async function Blog(props: Props) {
   return (
     <>
       <BlogContainer className="max-w-full mt-32 scroll-smooth">
-        <div className="">
+        <div>
           <TopLeftShiningLight />
         </div>
         <div className="w-full overflow-clip ">
-          <MeteorLinesAngular number={2} xPos={0} />
-          <MeteorLinesAngular number={2} xPos={200} />
-          <MeteorLinesAngular number={2} xPos={400} />
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={5}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={0}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={7}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={2}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={7}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={2}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={5}
+            className="overflow-hidden xxs:hidden md:block"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={0}
+            className="overflow-hidden xxs:hidden md:block"
+          />
         </div>
         <div className="">
           <TopRightShiningLight />

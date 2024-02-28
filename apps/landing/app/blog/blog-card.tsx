@@ -41,8 +41,10 @@ export function BlogCard({
         : null
       </div>
 
-      <h2 className="font-medium text-3xl leading-10 blog-heading-gradient">{title}</h2>
-      <p className="text-base leading-6 font-normal text-white/60 line-clamp-2">{subTitle}</p>
+      <h2 className="font-medium xxs:text-xl text-3xl leading-10 blog-heading-gradient">{title}</h2>
+      <p className="text-base xxs:text-[15px] leading-6 font-normal text-white/60 line-clamp-2">
+        {subTitle}
+      </p>
       <div className="flex flex-row">
         {/* Todo: Needs ability to add multiple authors at some point */}
         <Avatar className="w-8 h-8 mt-2">

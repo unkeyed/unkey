@@ -49,7 +49,9 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
             prefetch
             href={tag === "all" ? "/blog" : `/blog?tag=${tag}`}
             className={cn(
-              tag === (selectedTag ?? "all") ? "bg-white text-black" : "bg-white/10 text-white/60",
+              tag === (selectedTag ?? "all")
+                ? "bg-white text-black"
+                : "xxs:text-sm bg-white/10 text-white/60",
               "py-1 px-3 rounded-lg",
               className,
             )}

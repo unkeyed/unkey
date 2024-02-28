@@ -14,10 +14,16 @@ type MdxContentProps = {
 const MdxComponents = {
   Image: (props: any) => <BlogImage size="lg" imageUrl={props} />,
   Callout: Alert,
-  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
-  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
-  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
-  a: (props: any) => <a {...props} className="text-white underline hover:text-white/60" />,
+  th: (props: any) => (
+    <th {...props} className="text-white font-semibold text-base text-left pb-4" />
+  ),
+  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
+  td: (props: any) => (
+    <td {...props} className="text-white/70 text-base font-normal py-4 text-left" />
+  ),
+  a: (props: any) => (
+    <a {...props} className="text-white underline hover:text-white/60 text-left" />
+  ),
   blockquote: (props: any) => BlogQuote(props),
   BlogQuote: (props: any) => BlogQuote(props),
   ol: (props: any) => BlogListNumbered(props),

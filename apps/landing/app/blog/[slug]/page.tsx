@@ -97,7 +97,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <p className="text-white/30 text-md">Contents</p>
 
               <div className="relative mt-6 overflow-hidden whitespace-nowrap">
-                <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-transparent to-black" />
+                <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-black/50 to-black" />
                 {headings.map((heading) => {
                   return (
                     <div key={`#${heading.slug}`} className="z-0 my-8 text-ellipsis">
@@ -115,11 +115,11 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                     </div>
                   );
                 })}
-                <div className="">
-                  <p className="pt-10 text-white/30 text-md">Suggested</p>
-                  <div>
-                    <SuggestedBlogs />
-                  </div>
+              </div>
+              <div className="">
+                <p className="pt-10 text-white/30 text-md">Suggested</p>
+                <div>
+                  <SuggestedBlogs currentPostSlug={params.slug} />
                 </div>
               </div>
             </div>
