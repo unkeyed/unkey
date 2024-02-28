@@ -551,8 +551,8 @@ importers:
         specifier: ^2.2.1
         version: 2.2.1
       svix:
-        specifier: ^1.18.0
-        version: 1.18.0
+        specifier: ^1.20.0
+        version: 1.20.0
       tailwind-merge:
         specifier: ^2.2.1
         version: 2.2.1
@@ -19595,8 +19595,8 @@ packages:
       - encoding
     dev: false
 
-  /svix@1.18.0:
-    resolution: {integrity: sha512-JvF8ymN83erBaWjFcRvoCH+jesx8E6Ag2Sb2gDcN1g0g4xMZBuMIu3dX8NxI+laPdXiIdiQrFoWCs0xDf5w2mA==}
+  /svix@1.20.0:
+    resolution: {integrity: sha512-SFyNXS9shhcKNxK9fosagw0U9QdUl18tsFVKTljaLcTgkvilKUA3P+Ca4Lh5fk/LrruWJlYSxz1p5084q28ddw==}
     dependencies:
       '@stablelib/base64': 1.0.1
       es6-promise: 4.2.8
