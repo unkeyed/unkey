@@ -1,5 +1,19 @@
 # @unkey/api
 
+## 0.19.1
+
+### Patch Changes
+
+- d561b57: Release rbac as separate package
+- Updated dependencies [d561b57]
+  - @unkey/rbac@0.1.10
+
+## 0.19.0
+
+### Minor Changes
+
+- eddab6b: RBAC introduction
+
 ## 0.18.0
 
 ### Minor Changes

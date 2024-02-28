@@ -1,5 +1,12 @@
 # @unkey/web
 
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [d561b57]
+  - @unkey/rbac@0.1.10
+
 ## 0.1.10
 
 ### Patch Changes

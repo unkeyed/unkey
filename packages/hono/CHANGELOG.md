@@ -1,5 +1,20 @@
 # @unkey/hono
 
+## 1.1.2
+
+### Patch Changes
+
+- d561b57: Release rbac as separate package
+- Updated dependencies [d561b57]
+  - @unkey/api@0.19.1
+
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies [eddab6b]
+  - @unkey/api@0.19.0
+
 ## 1.1.0
 
 ### Minor Changes

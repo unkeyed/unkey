@@ -1,5 +1,20 @@
 # @unkey/nextjs
 
+## 0.15.4
+
+### Patch Changes
+
+- d561b57: Release rbac as separate package
+- Updated dependencies [d561b57]
+  - @unkey/api@0.19.1
+
+## 0.15.3
+
+### Patch Changes
+
+- Updated dependencies [eddab6b]
+  - @unkey/api@0.19.0
+
 ## 0.15.2
 
 ### Patch Changes

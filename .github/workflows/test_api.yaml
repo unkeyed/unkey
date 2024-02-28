@@ -35,12 +35,16 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
 
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
+
 
       - name: Test
         run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}
