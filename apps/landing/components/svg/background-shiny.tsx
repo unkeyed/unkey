@@ -15,7 +15,7 @@ export const TopLeftShiningLight: React.FC = () => (
         ry="293.346"
         transform="rotate(20.0538 -5.14484 -64.8282)"
         fill="url(#paint0_linear_574_3059)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_574_3059)">
@@ -26,7 +26,7 @@ export const TopLeftShiningLight: React.FC = () => (
         ry="381.284"
         transform="rotate(-10 198.822 3.50066)"
         fill="url(#paint2_linear_574_3059)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_574_3059)">
@@ -37,7 +37,7 @@ export const TopLeftShiningLight: React.FC = () => (
         ry="180.667"
         transform="rotate(-10 163.986 -194.068)"
         fill="url(#paint3_linear_574_3059)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_574_3059)">
@@ -48,7 +48,7 @@ export const TopLeftShiningLight: React.FC = () => (
         ry="381.5"
         transform="rotate(5 88.5057 41.4464)"
         fill="url(#paint4_linear_574_3059)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_574_3059)">
@@ -59,7 +59,7 @@ export const TopLeftShiningLight: React.FC = () => (
         ry="187.5"
         transform="rotate(5 107.823 -182.221)"
         fill="url(#paint5_linear_574_3059)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </g>
     <defs>
@@ -70,9 +70,9 @@ export const TopLeftShiningLight: React.FC = () => (
         width="388.449"
         height="729.588"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3059" />
       </filter>
@@ -83,9 +83,9 @@ export const TopLeftShiningLight: React.FC = () => (
         width="251.489"
         height="762.287"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3059" />
       </filter>
@@ -96,9 +96,9 @@ export const TopLeftShiningLight: React.FC = () => (
         width="317.6"
         height="929.023"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3059" />
       </filter>
@@ -109,9 +109,9 @@ export const TopLeftShiningLight: React.FC = () => (
         width="254.687"
         height="533.932"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3059" />
       </filter>
@@ -122,9 +122,9 @@ export const TopLeftShiningLight: React.FC = () => (
         width="257.93"
         height="938.107"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3059" />
       </filter>
@@ -135,9 +135,9 @@ export const TopLeftShiningLight: React.FC = () => (
         width="941.402"
         height="677.805"
         filterUnits="userSpaceOnUse"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_574_3059" />
       </filter>
@@ -149,8 +149,8 @@ export const TopLeftShiningLight: React.FC = () => (
         y2="228.517"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint1_linear_574_3059"
@@ -160,8 +160,8 @@ export const TopLeftShiningLight: React.FC = () => (
         y2="216.681"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint2_linear_574_3059"
@@ -171,8 +171,8 @@ export const TopLeftShiningLight: React.FC = () => (
         y2="384.784"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint3_linear_574_3059"
@@ -182,8 +182,8 @@ export const TopLeftShiningLight: React.FC = () => (
         y2="-13.4011"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint4_linear_574_3059"
@@ -193,8 +193,8 @@ export const TopLeftShiningLight: React.FC = () => (
         y2="422.946"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint5_linear_574_3059"
@@ -204,8 +204,8 @@ export const TopLeftShiningLight: React.FC = () => (
         y2="5.27896"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
     </defs>
   </svg>
@@ -229,7 +229,7 @@ export const TopRightShiningLight: React.FC = () => {
           ry="293.346"
           transform="rotate(30.0538 336.291 119.962)"
           fill="url(#paint0_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
 
@@ -240,7 +240,7 @@ export const TopRightShiningLight: React.FC = () => {
           rx="22.3794"
           ry="381.284"
           fill="url(#paint2_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_574_3050)">
@@ -250,7 +250,7 @@ export const TopRightShiningLight: React.FC = () => {
           rx="22.3794"
           ry="180.667"
           fill="url(#paint3_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_574_3050)">
@@ -261,7 +261,7 @@ export const TopRightShiningLight: React.FC = () => {
           ry="381.5"
           transform="rotate(15 410.065 240.884)"
           fill="url(#paint4_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_574_3050)">
@@ -272,7 +272,7 @@ export const TopRightShiningLight: React.FC = () => {
           ry="187.5"
           transform="rotate(15 467.928 23.9689)"
           fill="url(#paint5_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_574_3050)">
@@ -283,7 +283,7 @@ export const TopRightShiningLight: React.FC = () => {
           ry="95.5"
           transform="rotate(15 491.74 -64.8963)"
           fill="url(#paint6_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_574_3050)">
@@ -294,7 +294,7 @@ export const TopRightShiningLight: React.FC = () => {
           ry="80.25"
           transform="rotate(15 489.863 -57.8934)"
           fill="url(#paint7_linear_574_3050)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <defs>
@@ -305,9 +305,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="477.308"
           height="686.892"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -318,9 +318,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="338.241"
           height="744.685"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -331,9 +331,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="222.759"
           height="940.567"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -344,9 +344,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="222.759"
           height="539.335"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -357,9 +357,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="380.146"
           height="915.093"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -370,9 +370,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="928.719"
           height="698.72"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -383,9 +383,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="614.024"
           height="502.385"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -396,9 +396,9 @@ export const TopRightShiningLight: React.FC = () => {
           width="564.126"
           height="470.095"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_574_3050" />
         </filter>
@@ -410,8 +410,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="413.307"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_574_3050"
@@ -421,8 +421,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="420.271"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_574_3050"
@@ -432,8 +432,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="603.955"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_574_3050"
@@ -443,8 +443,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="202.721"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_574_3050"
@@ -454,8 +454,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="622.384"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_574_3050"
@@ -465,8 +465,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="211.469"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_574_3050"
@@ -476,8 +476,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="30.6037"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_574_3050"
@@ -487,8 +487,8 @@ export const TopRightShiningLight: React.FC = () => {
           y2="22.3566"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>

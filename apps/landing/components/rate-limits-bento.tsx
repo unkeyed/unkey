@@ -57,7 +57,7 @@ export function RateLimits() {
                     height="24"
                     rx="6"
                     fill="black"
-                    fill-opacity="0.15"
+                    fillOpacity="0.15"
                     shape-rendering="crispEdges"
                   />
                   <rect
@@ -67,7 +67,7 @@ export function RateLimits() {
                     height="23.25"
                     rx="5.625"
                     stroke="white"
-                    stroke-opacity="0.1"
+                    strokeOpacity="0.1"
                     stroke-width="0.75"
                     shape-rendering="crispEdges"
                   />
@@ -84,9 +84,9 @@ export function RateLimits() {
                     width="84"
                     height="84"
                     filterUnits="userSpaceOnUse"
-                    color-interpolation-filters="sRGB"
+                    colorInterpolationFilters="sRGB"
                   >
-                    <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                    <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feColorMatrix
                       in="SourceAlpha"
                       type="matrix"
@@ -143,7 +143,7 @@ export function RateLimits() {
                 height="24"
                 rx="6"
                 fill="black"
-                fill-opacity="0.15"
+                fillOpacity="0.15"
                 shape-rendering="crispEdges"
               />
               <rect
@@ -153,7 +153,7 @@ export function RateLimits() {
                 height="23.25"
                 rx="5.625"
                 stroke="white"
-                stroke-opacity="0.1"
+                strokeOpacity="0.1"
                 stroke-width="0.75"
                 shape-rendering="crispEdges"
               />
@@ -170,9 +170,9 @@ export function RateLimits() {
                 width="84"
                 height="84"
                 filterUnits="userSpaceOnUse"
-                color-interpolation-filters="sRGB"
+                colorInterpolationFilters="sRGB"
               >
-                <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
                 <feColorMatrix
                   in="SourceAlpha"
                   type="matrix"
@@ -219,11 +219,11 @@ export function RateLimitsText() {
           fill="none"
         >
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M21 4H18V3H21.5H22V3.5V8.42105V20.5V21H21.5H18V20H21V16H18V15H21V12H18V11H21V8.42105V8H18V7H21V4ZM9.85355 5.14645L9.5 4.79289L9.14645 5.14645L5.64645 8.64645L5.29289 9L5.64645 9.35355L6.79289 10.5L2.14645 15.1464L2 15.2929V15.5V17.5V18H2.5H5.5H6V17.5V16H7.5H8V15.5V14.7071L9.5 13.2071L10.6464 14.3536L11 14.7071L11.3536 14.3536L14.8536 10.8536L15.2071 10.5L14.8536 10.1464L9.85355 5.14645ZM7.85355 10.1464L7.5 9.79289L6.70711 9L9.5 6.20711L13.7929 10.5L11 13.2929L10.2071 12.5L9.85355 12.1464L7.85355 10.1464ZM3 15.7071L7.5 11.2071L8.79289 12.5L7.14645 14.1464L7 14.2929V14.5V15H5.5H5V15.5V17H3V15.7071ZM9.14645 9.35355L10.6464 10.8536L11.3536 10.1464L9.85355 8.64645L9.14645 9.35355Z"
             fill="white"
-            fill-opacity="0.4"
+            fillOpacity="0.4"
           />
         </svg>
         <h3 className="text-lg font-medium text-white ml-4">Rate Limits</h3>

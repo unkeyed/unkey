@@ -21,13 +21,13 @@ export function ChangelogLines({ className }: { className?: string }) {
       <path
         d="M1089.5 0V432H1090.5V0H1089.5ZM250.5 432V0H249.5V432H250.5Z"
         fill="url(#paint1_angular_6033_44)"
-        fill-opacity="0.25"
+        fillOpacity="0.25"
         mask="url(#path-1-inside-1_6033_44)"
       />
       <path
         d="M1089.5 0V432H1090.5V0H1089.5ZM250.5 432V0H249.5V432H250.5Z"
         fill="url(#paint2_angular_6033_44)"
-        fill-opacity="0.25"
+        fillOpacity="0.25"
         mask="url(#path-1-inside-1_6033_44)"
       />
       <mask id="path-3-inside-2_6033_44" fill="white">
@@ -41,13 +41,13 @@ export function ChangelogLines({ className }: { className?: string }) {
       <path
         d="M1339.5 0V432H1340.5V0H1339.5ZM0.5 432V0H-0.5V432H0.5Z"
         fill="url(#paint4_angular_6033_44)"
-        fill-opacity="0.15"
+        fillOpacity="0.15"
         mask="url(#path-3-inside-2_6033_44)"
       />
       <path
         d="M1339.5 0V432H1340.5V0H1339.5ZM0.5 432V0H-0.5V432H0.5Z"
         fill="url(#paint5_angular_6033_44)"
-        fill-opacity="0.15"
+        fillOpacity="0.15"
         mask="url(#path-3-inside-2_6033_44)"
       />
       <mask id="path-5-inside-3_6033_44" fill="white">
@@ -61,13 +61,13 @@ export function ChangelogLines({ className }: { className?: string }) {
       <path
         d="M1214.5 0V322H1215.5V0H1214.5ZM125.5 322V0H124.5V322H125.5Z"
         fill="url(#paint7_angular_6033_44)"
-        fill-opacity="0.25"
+        fillOpacity="0.25"
         mask="url(#path-5-inside-3_6033_44)"
       />
       <path
         d="M1214.5 0V322H1215.5V0H1214.5ZM125.5 322V0H124.5V322H125.5Z"
         fill="url(#paint8_angular_6033_44)"
-        fill-opacity="0.25"
+        fillOpacity="0.25"
         mask="url(#path-5-inside-3_6033_44)"
       />
       <defs>
@@ -79,9 +79,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           y2="432"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.15" />
-          <stop offset="0.5" stop-color="white" stop-opacity="0.07" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.15" />
+          <stop offset="0.5" stopColor="white" stopOpacity="0.07" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <radialGradient
           id="paint1_angular_6033_44"
@@ -91,9 +91,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(1008 276) scale(105 86.8269)"
         >
-          <stop stop-color="white" stop-opacity="0" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.175" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.175" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint2_angular_6033_44"
@@ -103,9 +103,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(299 216) rotate(180) scale(116 114)"
         >
-          <stop stop-color="white" stop-opacity="0" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.175" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.175" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint3_linear_6033_44"
@@ -115,8 +115,8 @@ export function ChangelogLines({ className }: { className?: string }) {
           y2="432"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0.189815" stop-color="white" stop-opacity="0.12" />
-          <stop offset="0.814815" stop-color="white" stop-opacity="0" />
+          <stop offset="0.189815" stopColor="white" stopOpacity="0.12" />
+          <stop offset="0.814815" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <radialGradient
           id="paint4_angular_6033_44"
@@ -126,9 +126,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(1265.27 238.807) scale(158.481 118.193)"
         >
-          <stop stop-color="white" stop-opacity="0" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.175" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.175" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint5_angular_6033_44"
@@ -138,9 +138,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(70 292) rotate(180) scale(141 164)"
         >
-          <stop stop-color="white" stop-opacity="0" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.175" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.175" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint6_linear_6033_44"
@@ -150,8 +150,8 @@ export function ChangelogLines({ className }: { className?: string }) {
           y2="322"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0.189815" stop-color="white" stop-opacity="0.15" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop offset="0.189815" stopColor="white" stopOpacity="0.15" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <radialGradient
           id="paint7_angular_6033_44"
@@ -161,9 +161,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(1154.21 178) scale(128.913 123)"
         >
-          <stop stop-color="white" stop-opacity="0" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.175" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.175" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint8_angular_6033_44"
@@ -173,9 +173,9 @@ export function ChangelogLines({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(167 140) rotate(180) scale(101 144.55)"
         >
-          <stop stop-color="white" stop-opacity="0" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.175" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.175" stopColor="white" stopOpacity="0" />
         </radialGradient>
       </defs>
     </svg>
@@ -200,7 +200,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           ry="293.346"
           transform="rotate(15.0538 369.193 53.7926)"
           fill="url(#paint0_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "darken" }} filter="url(#filter1_f_6033_132)">
@@ -210,7 +210,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           rx="26.5"
           ry="293.25"
           fill="url(#paint1_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_6033_132)">
@@ -221,7 +221,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           ry="381.284"
           transform="rotate(-15 578.34 104.085)"
           fill="url(#paint2_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_6033_132)">
@@ -232,7 +232,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           ry="180.667"
           transform="rotate(-15 526.416 -89.6963)"
           fill="url(#paint3_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_6033_132)">
@@ -242,7 +242,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           rx="22.25"
           ry="381.5"
           fill="url(#paint4_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_6033_132)">
@@ -252,7 +252,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           rx="321.5"
           ry="187.5"
           fill="url(#paint5_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_6033_132)">
@@ -262,7 +262,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           rx="160.5"
           ry="95.5"
           fill="url(#paint6_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_6033_132)">
@@ -272,7 +272,7 @@ export function ChangelogLight({ className }: { className?: string }) {
           rx="135"
           ry="80.25"
           fill="url(#paint7_linear_6033_132)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
         />
       </g>
       <defs>
@@ -283,9 +283,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="343.05"
           height="744.818"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -296,9 +296,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="231"
           height="764.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -309,9 +309,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="380.089"
           height="914.676"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -322,9 +322,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="281.055"
           height="527.218"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -335,9 +335,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="222.5"
           height="941"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -348,9 +348,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="943"
           height="675"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -361,9 +361,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="621"
           height="491"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -374,9 +374,9 @@ export function ChangelogLight({ className }: { className?: string }) {
           width="570"
           height="460.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_6033_132" />
         </filter>
@@ -388,8 +388,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="347.138"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_6033_132"
@@ -399,8 +399,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="326.001"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_6033_132"
@@ -410,8 +410,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="485.368"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_6033_132"
@@ -421,8 +421,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="90.9709"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_6033_132"
@@ -432,8 +432,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="533.001"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_6033_132"
@@ -443,8 +443,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="114.501"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_6033_132"
@@ -454,8 +454,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="-69.4993"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_6033_132"
@@ -465,8 +465,8 @@ export function ChangelogLight({ className }: { className?: string }) {
           y2="-77.4994"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>

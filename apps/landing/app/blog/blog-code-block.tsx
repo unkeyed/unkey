@@ -73,7 +73,7 @@ export function BlogCodeBlock({ className, children }: any) {
           <TabsList className="w-full flex flex-row gap-4 justify-start h-fit align-bottom">
             {React.Children.map(buttonLabels, (label: string) => {
               return (
-                <TabsTrigger value={label} className="capitalize text-white/30">
+                <TabsTrigger key={label} value={label} className="capitalize text-white/30">
                   {label}
                 </TabsTrigger>
               );
@@ -88,7 +88,7 @@ export function BlogCodeBlock({ className, children }: any) {
         </div>
         {blocks.map((block: any, index: number) => {
           return (
-            <TabsContent value={buttonLabels[index]}>
+            <TabsContent value={buttonLabels[index]} key={buttonLabels[index]}>
               <Highlight
                 theme={theme}
                 code={block.children}

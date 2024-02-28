@@ -945,7 +945,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="146.673"
               transform="rotate(-164.946 370.903 418.354)"
               fill="url(#paint4_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_840_3548)">
@@ -956,7 +956,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="146.625"
               transform="rotate(180 318 428.875)"
               fill="url(#paint5_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_840_3548)">
@@ -967,7 +967,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="190.642"
               transform="rotate(165 266.33 393.208)"
               fill="url(#paint6_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_840_3548)">
@@ -978,7 +978,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="90.3336"
               transform="rotate(165 292.292 490.099)"
               fill="url(#paint7_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_840_3548)">
@@ -989,7 +989,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="190.75"
               transform="rotate(180 319.625 369.5)"
               fill="url(#paint8_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_840_3548)">
@@ -1000,7 +1000,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="93.75"
               transform="rotate(180 319.75 481.75)"
               fill="url(#paint9_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_840_3548)">
@@ -1011,7 +1011,7 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="47.75"
               transform="rotate(180 319.75 527.75)"
               fill="url(#paint10_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
           <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_840_3548)">
@@ -1022,14 +1022,14 @@ export function GithubSvg({ className }: { className?: string }) {
               ry="40.125"
               transform="rotate(180 319.75 524.125)"
               fill="url(#paint11_linear_840_3548)"
-              fill-opacity="0.5"
+              fillOpacity="0.5"
             />
           </g>
         </g>
         <path
           d="M413.656 159.832L413.552 159.625H413.321H401.337C390.724 159.625 380.791 160.625 371.024 163.749C364.122 165.957 357.802 169.063 351.687 173.045C341.972 171.325 332.15 170.534 322.473 170.534C311.609 170.534 300.653 171.415 289.783 173.374C283.645 169.354 277.301 166.18 270.355 163.909C260.521 160.694 250.504 159.625 239.711 159.625H227.672H227.44L227.336 159.833L221.977 170.62C217.536 179.559 213.789 187.459 213.789 201.174C213.789 206.509 214.276 211.911 215.288 217.268C204.827 232.78 199.625 250.76 199.625 269.311C199.625 284.738 202.29 302.339 210.203 318.076L210.212 318.094L210.212 318.095L210.238 318.145L210.238 318.145L210.238 318.146L210.238 318.146C222.368 342.033 244.96 352.062 265.285 356.429C283.873 360.423 303.882 360.394 318.755 360.372H318.77L319.171 360.372H319.172L319.175 360.372H319.177L325.228 360.37H325.229H325.244C339.968 360.382 359.719 360.398 377.997 356.235C397.809 351.722 419.353 341.502 430.99 317.953L431.002 317.928L431.003 317.926L431.038 317.856C439.033 301.453 440.375 283.607 440.375 269.311C440.375 251.394 436.197 233.199 425.739 217.171C426.749 211.907 427.259 206.548 427.259 201.174C427.259 187.495 423.588 179.619 419.034 170.547L413.656 159.832Z"
           stroke="white"
-          stroke-opacity="0.1"
+          strokeOpacity="0.1"
           stroke-width="0.75"
         />
         <path
@@ -1039,37 +1039,37 @@ export function GithubSvg({ className }: { className?: string }) {
         />
         <g filter="url(#filter8_i_840_3548)">
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M421.689 313.356L421.711 313.31C428.659 299.058 430 283.129 430 269.311C430 251.633 425.545 234.177 414.632 219.355C416.127 213.424 416.884 207.311 416.884 201.174C416.884 189.931 414.08 183.805 409.762 175.201L407.151 170H401.337C391.367 170 382.588 170.943 374.184 173.631C367.045 175.915 360.529 179.344 353.977 184.048C343.589 181.897 332.968 180.909 322.473 180.909C310.774 180.909 299.037 181.986 287.491 184.386C280.879 179.629 274.323 176.122 267.131 173.77C258.668 171.003 249.822 170 239.711 170H233.87L231.269 175.236C227.026 183.776 224.164 189.914 224.164 201.174C224.164 207.29 224.89 213.489 226.405 219.547C215.473 234.031 210 251.295 210 269.311C210 283.669 212.499 299.547 219.472 313.415L219.489 313.448C229.588 333.337 248.562 342.224 267.464 346.285C284.964 350.045 304.062 350.018 319.161 349.997L322.431 349.994L324.805 349.995C339.773 350.006 358.56 350.021 375.693 346.119C393.936 341.964 411.989 332.985 421.689 313.356Z"
             fill="black"
           />
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M421.689 313.356L421.711 313.31C428.659 299.058 430 283.129 430 269.311C430 251.633 425.545 234.177 414.632 219.355C416.127 213.424 416.884 207.311 416.884 201.174C416.884 189.931 414.08 183.805 409.762 175.201L407.151 170H401.337C391.367 170 382.588 170.943 374.184 173.631C367.045 175.915 360.529 179.344 353.977 184.048C343.589 181.897 332.968 180.909 322.473 180.909C310.774 180.909 299.037 181.986 287.491 184.386C280.879 179.629 274.323 176.122 267.131 173.77C258.668 171.003 249.822 170 239.711 170H233.87L231.269 175.236C227.026 183.776 224.164 189.914 224.164 201.174C224.164 207.29 224.89 213.489 226.405 219.547C215.473 234.031 210 251.295 210 269.311C210 283.669 212.499 299.547 219.472 313.415L219.489 313.448C229.588 333.337 248.562 342.224 267.464 346.285C284.964 350.045 304.062 350.018 319.161 349.997L322.431 349.994L324.805 349.995C339.773 350.006 358.56 350.021 375.693 346.119C393.936 341.964 411.989 332.985 421.689 313.356Z"
             fill="white"
-            fill-opacity="0.01"
+            fillOpacity="0.01"
           />
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M421.689 313.356L421.711 313.31C428.659 299.058 430 283.129 430 269.311C430 251.633 425.545 234.177 414.632 219.355C416.127 213.424 416.884 207.311 416.884 201.174C416.884 189.931 414.08 183.805 409.762 175.201L407.151 170H401.337C391.367 170 382.588 170.943 374.184 173.631C367.045 175.915 360.529 179.344 353.977 184.048C343.589 181.897 332.968 180.909 322.473 180.909C310.774 180.909 299.037 181.986 287.491 184.386C280.879 179.629 274.323 176.122 267.131 173.77C258.668 171.003 249.822 170 239.711 170H233.87L231.269 175.236C227.026 183.776 224.164 189.914 224.164 201.174C224.164 207.29 224.89 213.489 226.405 219.547C215.473 234.031 210 251.295 210 269.311C210 283.669 212.499 299.547 219.472 313.415L219.489 313.448C229.588 333.337 248.562 342.224 267.464 346.285C284.964 350.045 304.062 350.018 319.161 349.997L322.431 349.994L324.805 349.995C339.773 350.006 358.56 350.021 375.693 346.119C393.936 341.964 411.989 332.985 421.689 313.356Z"
             fill="url(#paint13_radial_840_3548)"
           />
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M421.689 313.356L421.711 313.31C428.659 299.058 430 283.129 430 269.311C430 251.633 425.545 234.177 414.632 219.355C416.127 213.424 416.884 207.311 416.884 201.174C416.884 189.931 414.08 183.805 409.762 175.201L407.151 170H401.337C391.367 170 382.588 170.943 374.184 173.631C367.045 175.915 360.529 179.344 353.977 184.048C343.589 181.897 332.968 180.909 322.473 180.909C310.774 180.909 299.037 181.986 287.491 184.386C280.879 179.629 274.323 176.122 267.131 173.77C258.668 171.003 249.822 170 239.711 170H233.87L231.269 175.236C227.026 183.776 224.164 189.914 224.164 201.174C224.164 207.29 224.89 213.489 226.405 219.547C215.473 234.031 210 251.295 210 269.311C210 283.669 212.499 299.547 219.472 313.415L219.489 313.448C229.588 333.337 248.562 342.224 267.464 346.285C284.964 350.045 304.062 350.018 319.161 349.997L322.431 349.994L324.805 349.995C339.773 350.006 358.56 350.021 375.693 346.119C393.936 341.964 411.989 332.985 421.689 313.356Z"
             fill="url(#pattern0)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
             style={{ mixBlendMode: "overlay" }}
           />
         </g>
         <path
           d="M414.269 219.263L414.225 219.435L414.33 219.577C425.186 234.322 429.625 251.696 429.625 269.311C429.625 283.111 428.284 298.971 421.374 313.146L421.353 313.19C411.723 332.677 393.796 341.611 375.61 345.753C358.525 349.644 339.781 349.631 324.805 349.62L322.431 349.619H322.43L319.161 349.622C304.055 349.643 284.997 349.669 267.543 345.919C248.693 341.869 229.849 333.023 219.823 313.278L219.489 313.448L219.823 313.278L219.807 313.246C219.807 313.246 219.807 313.246 219.806 313.245C212.867 299.445 210.375 283.63 210.375 269.311C210.375 251.373 215.824 234.189 226.704 219.773L226.812 219.63L226.768 219.457C225.262 213.429 224.539 207.26 224.539 201.174C224.539 190.003 227.369 183.928 231.605 175.403L234.102 170.375H239.711C249.797 170.375 258.601 171.376 267.014 174.127C274.164 176.465 280.685 179.952 287.272 184.691L287.406 184.787L287.568 184.753C299.086 182.359 310.797 181.284 322.473 181.284C332.944 181.284 343.54 182.27 353.901 184.415L354.062 184.448L354.196 184.352C360.721 179.668 367.202 176.258 374.299 173.988C382.653 171.316 391.391 170.375 401.337 170.375H406.92L409.427 175.369C413.737 183.956 416.509 190.019 416.509 201.174C416.509 207.28 415.756 213.362 414.269 219.263Z"
           stroke="white"
-          stroke-opacity="0.1"
+          strokeOpacity="0.1"
           stroke-width="0.75"
         />
         <path
@@ -1079,7 +1079,7 @@ export function GithubSvg({ className }: { className?: string }) {
         <path
           d="M338.911 254.916C340.576 254.685 342.224 254.439 343.86 254.195L343.861 254.194C350.045 253.271 356.056 252.375 362.27 252.375C371.938 252.375 379.515 256.426 384.682 262.771C389.855 269.125 392.625 277.796 392.625 287.034C392.625 296.297 390.54 303.571 386.977 309.277C383.413 314.984 378.355 319.147 372.371 322.163C360.387 328.202 344.721 329.625 330.034 329.625H309.882C295.259 329.625 279.614 328.192 267.635 322.147C261.653 319.129 256.593 314.964 253.028 309.259C249.462 303.555 247.375 296.286 247.375 287.034C247.375 277.796 250.145 269.125 255.318 262.771C260.486 256.426 268.063 252.375 277.73 252.375C284.077 252.375 290.24 253.3 296.485 254.238C298.014 254.468 299.548 254.698 301.089 254.916C307.382 255.895 313.631 256.277 320 256.277C326.411 256.277 332.659 255.895 338.911 254.916Z"
           fill="white"
-          fill-opacity="0.01"
+          fillOpacity="0.01"
         />
         <path
           d="M338.911 254.916C340.576 254.685 342.224 254.439 343.86 254.195L343.861 254.194C350.045 253.271 356.056 252.375 362.27 252.375C371.938 252.375 379.515 256.426 384.682 262.771C389.855 269.125 392.625 277.796 392.625 287.034C392.625 296.297 390.54 303.571 386.977 309.277C383.413 314.984 378.355 319.147 372.371 322.163C360.387 328.202 344.721 329.625 330.034 329.625H309.882C295.259 329.625 279.614 328.192 267.635 322.147C261.653 319.129 256.593 314.964 253.028 309.259C249.462 303.555 247.375 296.286 247.375 287.034C247.375 277.796 250.145 269.125 255.318 262.771C260.486 256.426 268.063 252.375 277.73 252.375C284.077 252.375 290.24 253.3 296.485 254.238C298.014 254.468 299.548 254.698 301.089 254.916C307.382 255.895 313.631 256.277 320 256.277C326.411 256.277 332.659 255.895 338.911 254.916Z"
@@ -1088,13 +1088,13 @@ export function GithubSvg({ className }: { className?: string }) {
         <path
           d="M338.911 254.916C340.576 254.685 342.224 254.439 343.86 254.195L343.861 254.194C350.045 253.271 356.056 252.375 362.27 252.375C371.938 252.375 379.515 256.426 384.682 262.771C389.855 269.125 392.625 277.796 392.625 287.034C392.625 296.297 390.54 303.571 386.977 309.277C383.413 314.984 378.355 319.147 372.371 322.163C360.387 328.202 344.721 329.625 330.034 329.625H309.882C295.259 329.625 279.614 328.192 267.635 322.147C261.653 319.129 256.593 314.964 253.028 309.259C249.462 303.555 247.375 296.286 247.375 287.034C247.375 277.796 250.145 269.125 255.318 262.771C260.486 256.426 268.063 252.375 277.73 252.375C284.077 252.375 290.24 253.3 296.485 254.238C298.014 254.468 299.548 254.698 301.089 254.916C307.382 255.895 313.631 256.277 320 256.277C326.411 256.277 332.659 255.895 338.911 254.916Z"
           fill="url(#pattern1)"
-          fill-opacity="0.5"
+          fillOpacity="0.5"
           style={{ mixBlendMode: "overlay" }}
         />
         <path
           d="M338.911 254.916C340.576 254.685 342.224 254.439 343.86 254.195L343.861 254.194C350.045 253.271 356.056 252.375 362.27 252.375C371.938 252.375 379.515 256.426 384.682 262.771C389.855 269.125 392.625 277.796 392.625 287.034C392.625 296.297 390.54 303.571 386.977 309.277C383.413 314.984 378.355 319.147 372.371 322.163C360.387 328.202 344.721 329.625 330.034 329.625H309.882C295.259 329.625 279.614 328.192 267.635 322.147C261.653 319.129 256.593 314.964 253.028 309.259C249.462 303.555 247.375 296.286 247.375 287.034C247.375 277.796 250.145 269.125 255.318 262.771C260.486 256.426 268.063 252.375 277.73 252.375C284.077 252.375 290.24 253.3 296.485 254.238C298.014 254.468 299.548 254.698 301.089 254.916C307.382 255.895 313.631 256.277 320 256.277C326.411 256.277 332.659 255.895 338.911 254.916Z"
           stroke="white"
-          stroke-opacity="0.2"
+          strokeOpacity="0.2"
           stroke-width="0.75"
         />
         <path
@@ -1106,7 +1106,7 @@ export function GithubSvg({ className }: { className?: string }) {
           <path
             d="M282 314C292.545 314 297 299.724 297 291C297 282.276 292.545 268 282 268C271.455 268 267 282.276 267 291C267 299.724 271.455 314 282 314Z"
             fill="white"
-            fill-opacity="0.01"
+            fillOpacity="0.01"
           />
           <path
             d="M282 314C292.545 314 297 299.724 297 291C297 282.276 292.545 268 282 268C271.455 268 267 282.276 267 291C267 299.724 271.455 314 282 314Z"
@@ -1115,14 +1115,14 @@ export function GithubSvg({ className }: { className?: string }) {
           <path
             d="M282 314C292.545 314 297 299.724 297 291C297 282.276 292.545 268 282 268C271.455 268 267 282.276 267 291C267 299.724 271.455 314 282 314Z"
             fill="url(#pattern2)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
             style={{ mixBlendMode: "overlay" }}
           />
         </g>
         <path
           d="M296.625 291C296.625 295.311 295.522 301 293.122 305.598C290.721 310.199 287.072 313.625 282 313.625C276.928 313.625 273.279 310.199 270.878 305.598C268.478 301 267.375 295.311 267.375 291C267.375 286.689 268.478 281 270.878 276.402C273.279 271.801 276.928 268.375 282 268.375C287.072 268.375 290.721 271.801 293.122 276.402C295.522 281 296.625 286.689 296.625 291Z"
           stroke="white"
-          stroke-opacity="0.15"
+          strokeOpacity="0.15"
           stroke-width="0.75"
         />
         <path
@@ -1134,7 +1134,7 @@ export function GithubSvg({ className }: { className?: string }) {
           <path
             d="M343 291C343 282.276 347.455 268 358 268C368.545 268 373 282.276 373 291C373 299.724 368.545 314 358 314C347.455 314 343 299.724 343 291Z"
             fill="white"
-            fill-opacity="0.01"
+            fillOpacity="0.01"
           />
           <path
             d="M343 291C343 282.276 347.455 268 358 268C368.545 268 373 282.276 373 291C373 299.724 368.545 314 358 314C347.455 314 343 299.724 343 291Z"
@@ -1143,14 +1143,14 @@ export function GithubSvg({ className }: { className?: string }) {
           <path
             d="M343 291C343 282.276 347.455 268 358 268C368.545 268 373 282.276 373 291C373 299.724 368.545 314 358 314C347.455 314 343 299.724 343 291Z"
             fill="url(#pattern3)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
             style={{ mixBlendMode: "overlay" }}
           />
         </g>
         <path
           d="M343.375 291C343.375 286.689 344.478 281 346.878 276.402C349.279 271.801 352.928 268.375 358 268.375C363.072 268.375 366.721 271.801 369.122 276.402C371.522 281 372.625 286.689 372.625 291C372.625 295.311 371.522 301 369.122 305.598C366.721 310.199 363.072 313.625 358 313.625C352.928 313.625 349.279 310.199 346.878 305.598C344.478 301 343.375 295.311 343.375 291Z"
           stroke="white"
-          stroke-opacity="0.15"
+          strokeOpacity="0.15"
           stroke-width="0.75"
         />
         <path
@@ -1247,13 +1247,13 @@ export function GithubSvg({ className }: { className?: string }) {
           d="M476 68L564 -20"
           stroke="url(#paint37_linear_840_3548)"
           stroke-width="2"
-          stroke-linecap="round"
+          strokeLinecap="round"
         />
         <path
           d="M136 448L224 360"
           stroke="url(#paint38_linear_840_3548)"
           stroke-width="2"
-          stroke-linecap="round"
+          strokeLinecap="round"
         />
       </g>
       <rect
@@ -1263,7 +1263,7 @@ export function GithubSvg({ className }: { className?: string }) {
         height="519.25"
         rx="31.625"
         stroke="url(#paint39_linear_840_3548)"
-        stroke-opacity="0.7"
+        strokeOpacity="0.7"
         stroke-width="0.75"
       />
       <rect
@@ -1292,9 +1292,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="171.525"
           height="372.409"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1305,9 +1305,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="115.5"
           height="382.25"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1318,9 +1318,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="190.045"
           height="457.338"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1331,9 +1331,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="140.527"
           height="263.609"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1344,9 +1344,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="111.25"
           height="470.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1357,9 +1357,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="471.5"
           height="337.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1370,9 +1370,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="310.5"
           height="245.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1383,9 +1383,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="285"
           height="230.25"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_840_3548" />
         </filter>
@@ -1396,9 +1396,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="244"
           height="204"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feColorMatrix
             in="SourceAlpha"
@@ -1435,9 +1435,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="42"
           height="58"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feColorMatrix
             in="SourceAlpha"
@@ -1466,9 +1466,9 @@ export function GithubSvg({ className }: { className?: string }) {
           width="42"
           height="58"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feColorMatrix
             in="SourceAlpha"
@@ -1498,8 +1498,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 520) rotate(-90) scale(520 764.789)"
         >
-          <stop stop-color="#111111" />
-          <stop offset="1" stop-opacity="0" />
+          <stop stopColor="#111111" />
+          <stop offset="1" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint1_radial_840_3548"
@@ -1509,8 +1509,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 500) rotate(-90) scale(286.5 851.511)"
         >
-          <stop stop-color="white" stop-opacity="0.15" />
-          <stop offset="0.583333" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.15" />
+          <stop offset="0.583333" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint2_radial_840_3548"
@@ -1520,8 +1520,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 500) rotate(-90) scale(136.154 137.334)"
         >
-          <stop stop-color="white" stop-opacity="0.1" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.1" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint3_radial_840_3548"
@@ -1531,8 +1531,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 520) rotate(-90) scale(520 320)"
         >
-          <stop stop-color="white" stop-opacity="0.5" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.5" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint4_linear_840_3548"
@@ -1542,8 +1542,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="565.027"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_840_3548"
@@ -1553,8 +1553,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="575.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_840_3548"
@@ -1564,8 +1564,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="583.85"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_840_3548"
@@ -1575,8 +1575,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="580.432"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint8_linear_840_3548"
@@ -1586,8 +1586,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="560.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint9_linear_840_3548"
@@ -1597,8 +1597,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="575.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint10_linear_840_3548"
@@ -1608,8 +1608,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="575.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint11_linear_840_3548"
@@ -1619,8 +1619,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="564.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <radialGradient
           id="paint12_angular_840_3548"
@@ -1630,9 +1630,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(265.5 269.5) rotate(-180) scale(96)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.25" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.25" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint13_radial_840_3548"
@@ -1642,9 +1642,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 350) rotate(-90) scale(163 292.494)"
         >
-          <stop stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.5" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.5" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint14_radial_840_3548"
@@ -1654,8 +1654,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 330) rotate(-90) scale(78 369.952)"
         >
-          <stop stop-color="white" stop-opacity="0.2" />
-          <stop offset="0.630501" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.2" />
+          <stop offset="0.630501" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint15_angular_840_3548"
@@ -1665,9 +1665,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 291) rotate(-90) scale(49 49)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.1644" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.1644" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint16_radial_840_3548"
@@ -1677,8 +1677,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(282 268) rotate(90) scale(46 44.0455)"
         >
-          <stop stop-color="white" stop-opacity="0.2" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.2" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint17_angular_840_3548"
@@ -1688,9 +1688,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(282 291) scale(24.5)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.25" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.25" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint18_radial_840_3548"
@@ -1700,8 +1700,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(358 268) rotate(90) scale(46 44.0455)"
         >
-          <stop stop-color="white" stop-opacity="0.2" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.2" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint19_angular_840_3548"
@@ -1711,9 +1711,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(358 291) rotate(135) scale(31.1127)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.25" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.25" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint20_linear_840_3548"
@@ -1723,8 +1723,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="149"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.1" />
-          <stop offset="1" stop-color="white" stop-opacity="0.05" />
+          <stop stopColor="white" stopOpacity="0.1" />
+          <stop offset="1" stopColor="white" stopOpacity="0.05" />
         </linearGradient>
         <radialGradient
           id="paint21_angular_840_3548"
@@ -1734,10 +1734,10 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(561 138) rotate(58.4486) scale(66.888 66.888)"
         >
-          <stop stop-color="#9D72FF" />
-          <stop offset="0.0001" stop-color="#9D72FF" stop-opacity="0" />
-          <stop offset="0.199397" stop-color="#9D72FF" stop-opacity="0" />
-          <stop offset="0.856188" stop-color="#9D72FF" stop-opacity="0" />
+          <stop stopColor="#9D72FF" />
+          <stop offset="0.0001" stopColor="#9D72FF" stopOpacity="0" />
+          <stop offset="0.199397" stopColor="#9D72FF" stopOpacity="0" />
+          <stop offset="0.856188" stopColor="#9D72FF" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint22_linear_840_3548"
@@ -1747,8 +1747,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="208.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.1" />
-          <stop offset="1" stop-color="white" stop-opacity="0.05" />
+          <stop stopColor="white" stopOpacity="0.1" />
+          <stop offset="1" stopColor="white" stopOpacity="0.05" />
         </linearGradient>
         <linearGradient
           id="paint23_linear_840_3548"
@@ -1758,8 +1758,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="268.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.1" />
-          <stop offset="1" stop-color="white" stop-opacity="0.05" />
+          <stop stopColor="white" stopOpacity="0.1" />
+          <stop offset="1" stopColor="white" stopOpacity="0.05" />
         </linearGradient>
         <radialGradient
           id="paint24_angular_840_3548"
@@ -1769,10 +1769,10 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(620 329) rotate(91.4321) scale(80.025)"
         >
-          <stop stop-color="#9D72FF" />
-          <stop offset="0.0001" stop-color="#9D72FF" stop-opacity="0" />
-          <stop offset="0.199397" stop-color="#9D72FF" stop-opacity="0" />
-          <stop offset="0.811465" stop-color="#9D72FF" stop-opacity="0" />
+          <stop stopColor="#9D72FF" />
+          <stop offset="0.0001" stopColor="#9D72FF" stopOpacity="0" />
+          <stop offset="0.199397" stopColor="#9D72FF" stopOpacity="0" />
+          <stop offset="0.811465" stopColor="#9D72FF" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint25_linear_840_3548"
@@ -1782,8 +1782,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="268.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.1" />
-          <stop offset="1" stop-color="white" stop-opacity="0.05" />
+          <stop stopColor="white" stopOpacity="0.1" />
+          <stop offset="1" stopColor="white" stopOpacity="0.05" />
         </linearGradient>
         <radialGradient
           id="paint26_angular_840_3548"
@@ -1793,9 +1793,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(606 348) rotate(-92.3215) scale(74.0608 74.0608)"
         >
-          <stop offset="0.863837" stop-color="#3CEEAE" stop-opacity="0" />
-          <stop offset="0.9999" stop-color="#3CEEAE" />
-          <stop offset="1" stop-color="#3CEEAE" stop-opacity="0" />
+          <stop offset="0.863837" stopColor="#3CEEAE" stopOpacity="0" />
+          <stop offset="0.9999" stopColor="#3CEEAE" />
+          <stop offset="1" stopColor="#3CEEAE" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint27_linear_840_3548"
@@ -1805,8 +1805,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="268.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.1" />
-          <stop offset="1" stop-color="white" stop-opacity="0.05" />
+          <stop stopColor="white" stopOpacity="0.1" />
+          <stop offset="1" stopColor="white" stopOpacity="0.05" />
         </linearGradient>
         <linearGradient
           id="paint28_linear_840_3548"
@@ -1816,8 +1816,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="148.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.05" />
-          <stop offset="1" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.05" />
+          <stop offset="1" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <radialGradient
           id="paint29_angular_840_3548"
@@ -1827,10 +1827,10 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(87 236) rotate(-50.7106) scale(99.4887 99.4887)"
         >
-          <stop stop-color="#9D72FF" />
-          <stop offset="0.0001" stop-color="#9D72FF" stop-opacity="0" />
-          <stop offset="0.199397" stop-color="#9D72FF" stop-opacity="0" />
-          <stop offset="0.8298" stop-color="#9D72FF" stop-opacity="0" />
+          <stop stopColor="#9D72FF" />
+          <stop offset="0.0001" stopColor="#9D72FF" stopOpacity="0" />
+          <stop offset="0.199397" stopColor="#9D72FF" stopOpacity="0" />
+          <stop offset="0.8298" stopColor="#9D72FF" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint30_linear_840_3548"
@@ -1840,8 +1840,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="208.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.05" />
-          <stop offset="1" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.05" />
+          <stop offset="1" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <linearGradient
           id="paint31_linear_840_3548"
@@ -1851,8 +1851,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="268.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.05" />
-          <stop offset="1" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.05" />
+          <stop offset="1" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <radialGradient
           id="paint32_angular_840_3548"
@@ -1862,9 +1862,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(100 389) rotate(-130.776) scale(124.79 124.79)"
         >
-          <stop offset="0.870086" stop-color="#3CEEAE" stop-opacity="0" />
-          <stop offset="0.9999" stop-color="#3CEEAE" />
-          <stop offset="1" stop-color="#3CEEAE" stop-opacity="0" />
+          <stop offset="0.870086" stopColor="#3CEEAE" stopOpacity="0" />
+          <stop offset="0.9999" stopColor="#3CEEAE" />
+          <stop offset="1" stopColor="#3CEEAE" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint33_linear_840_3548"
@@ -1874,8 +1874,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="268.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.05" />
-          <stop offset="1" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.05" />
+          <stop offset="1" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <radialGradient
           id="paint34_angular_840_3548"
@@ -1885,10 +1885,10 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(149 324) rotate(-106.827) scale(214.17 214.17)"
         >
-          <stop stop-color="#3DC5FA" />
-          <stop offset="0.0001" stop-color="#3DC5FA" stop-opacity="0" />
-          <stop offset="0.199397" stop-color="#3DC5FA" stop-opacity="0" />
-          <stop offset="0.826319" stop-color="#3DC5FA" stop-opacity="0" />
+          <stop stopColor="#3DC5FA" />
+          <stop offset="0.0001" stopColor="#3DC5FA" stopOpacity="0" />
+          <stop offset="0.199397" stopColor="#3DC5FA" stopOpacity="0" />
+          <stop offset="0.826319" stopColor="#3DC5FA" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint35_linear_840_3548"
@@ -1898,8 +1898,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="268.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.05" />
-          <stop offset="1" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.05" />
+          <stop offset="1" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <radialGradient
           id="paint36_angular_840_3548"
@@ -1909,10 +1909,10 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(172 235.5) rotate(90) scale(86.5 86.5)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.0001" stop-color="white" />
-          <stop offset="0.150221" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.0001" stopColor="white" />
+          <stop offset="0.150221" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint37_linear_840_3548"
@@ -1922,12 +1922,12 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="-19.7507"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="0.2" stop-color="white" stop-opacity="0.1" />
-          <stop offset="0.4" stop-color="white" stop-opacity="0" />
-          <stop offset="0.6" stop-color="white" stop-opacity="0" />
-          <stop offset="0.8" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.2" stopColor="white" stopOpacity="0.1" />
+          <stop offset="0.4" stopColor="white" stopOpacity="0" />
+          <stop offset="0.6" stopColor="white" stopOpacity="0" />
+          <stop offset="0.8" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint38_linear_840_3548"
@@ -1937,12 +1937,12 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="360.249"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="0.2" stop-color="white" stop-opacity="0.1" />
-          <stop offset="0.4" stop-color="white" stop-opacity="0" />
-          <stop offset="0.6" stop-color="white" stop-opacity="0" />
-          <stop offset="0.8" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.2" stopColor="white" stopOpacity="0.1" />
+          <stop offset="0.4" stopColor="white" stopOpacity="0" />
+          <stop offset="0.6" stopColor="white" stopOpacity="0" />
+          <stop offset="0.8" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint39_linear_840_3548"
@@ -1952,8 +1952,8 @@ export function GithubSvg({ className }: { className?: string }) {
           y2="520"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.25" />
-          <stop offset="1" stop-color="white" stop-opacity="0.15" />
+          <stop stopColor="white" stopOpacity="0.25" />
+          <stop offset="1" stopColor="white" stopOpacity="0.15" />
         </linearGradient>
         <radialGradient
           id="paint40_radial_840_3548"
@@ -1963,8 +1963,8 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(320 520) rotate(-90) scale(147.5 173.043)"
         >
-          <stop stop-color="white" stop-opacity="0.25" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.25" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint41_angular_840_3548"
@@ -1974,9 +1974,9 @@ export function GithubSvg({ className }: { className?: string }) {
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(108.5 14.5) rotate(-90) scale(65.5 63.8623)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.25" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.25" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <clipPath id="clip0_840_3548">
           <rect width="640" height="520" rx="32" fill="white" />
