@@ -55,7 +55,7 @@ export function AnalyticsBento() {
   const [showApi, toggleShowApi] = useState(true);
 
   return (
-    <div className="flex justify-center relative w-full xl:w-[1379px]">
+    <div className="flex justify-center relative w-full">
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
@@ -98,7 +98,7 @@ export function AnalyticsBento() {
       </button>
       "
       <div className="mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
-        <LightSvg className="absolute top-[-180px] left-[330px] z-50 pointer-events-none" />
+        {/* <LightSvg className="absolute top-[-180px] left-[330px] z-50 pointer-events-none" /> */}
         <AnalyticsStars />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
@@ -116,7 +116,7 @@ function AnalyticsApiView() {
       transition={{ duration: 0.2, ease: "easeOut" }}
       whileInView="visible"
     >
-      <div className="xl:w-[1220px] bg-[#000000] bg-opacity-02 analytics-background-gradient mr-10 overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <div className=" w-full bg-[#000000] bg-opacity-02 analytics-background-gradient mr-10 overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex">
         <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
           <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
             <TerminalIcon className="w-6 h-6" />
@@ -141,8 +141,8 @@ function AnalyticsWebAppView() {
       whileInView="visible"
       className="w-full"
     >
-      <div className="relative overflow-hidden w-full analytics-background-gradient h-[600px] xl:h-[576px]  xl:w-[1220px] mr-10">
-        <AnalyticsWebApp className="" />
+      <div className="max-w-[1221px] relative overflow-hidden w-full analytics-background-gradient h-[600px] xl:h-[576px]  w-full  mr-10">
+        <AnalyticsWebApp className="rounded-br-lg" />
       </div>
     </motion.div>
   );

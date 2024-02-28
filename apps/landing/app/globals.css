@@ -58,8 +58,8 @@
     rgba(200, 200, 200, 0.08)
   );
   content: "";
-  border-top-right-radius: 24px;
   border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
   border-top-left-radius: 24px;
   position: absolute;
   left: 0px;
@@ -76,6 +76,7 @@
   );
   content: "";
   border-top-right-radius: 24px;
+  border-bottom-right-radius: 24px;
   border-top-left-radius: 24px;
   position: absolute;
   left: 0px;
@@ -263,10 +264,10 @@ li > p {
   inset-block-start: calc(var(--line-offset) * -1);
 }
 
-@media only screen and (max-width: 960px) {
+@media only screen and (min-width: 960px) {
   .analytics-background-gradient::before {
-    border-top-right-radius: 0px;
     border-bottom-right-radius: 0px;
+    border-top-right-radius: 24px;
     border-bottom-left-radius: 0px;
   }
 }

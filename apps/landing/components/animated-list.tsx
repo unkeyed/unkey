@@ -18,8 +18,6 @@ export const AnimatedList = React.memo(
     const ref = useRef(null);
     const inView = useInView(ref);
 
-    console.log(inView);
-
     useEffect(() => {
       if (inView) {
         const interval = setInterval(() => {
