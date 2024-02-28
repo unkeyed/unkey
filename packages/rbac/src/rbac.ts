@@ -1,5 +1,5 @@
-import { type Result, result } from "@unkey/result";
 import { generateErrorMessage } from "zod-error";
+import { type Result, result } from "../../../internal/result";
 import { type PermissionQuery, permissionQuerySchema } from "./queries";
 export class RBAC {
   public evaluatePermissions(
