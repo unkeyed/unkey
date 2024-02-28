@@ -28,7 +28,7 @@ Some companies have different billing tiers, where you'd pay for example: $10 fo
 This system is very easy to implement, but at Unkey we do prorated usaged based billing, which means you pay for your exact usage, not whatever billing tier your usage fits in.
 
 
-## Challenges with usage-based billing
+## Challenges
 
 ### Tracking usage
 
@@ -148,7 +148,10 @@ And we will get back the total number of successful verifications for workspace 
 <Image src="/images/blog-images/usage-based-billing/monthly_active_keys.png" alt="monthly active keys pipes" width="1920" height="1080"/>
 
 
-```sql title="Aggregating keys monthly"
+Again we create an intermediate materialized view first. We could've reused the previous one, but it's nice to have them separated in case we want to change things later.
+This results in a materialized view, where there's t most one row per keyId and month, making it super cheap to query later.
+
+```sql title="aggregate_active_keys_monthly_by_workspace_id.pipe"
 SELECT
     workspaceId,
     apiId,
@@ -160,30 +163,51 @@ GROUP BY
     apiId,
     keyId,
     time
-    ```
+```
 
-    ```sql title="Endpoint active keys by workspace id"
-    %
+The query uses `count(DISTINCT keyId)` to return how many unique keyIds have been observed in the given month.
+
+```sql title="endpoint__active_keys_by_workspace_id.pipe"
 SELECT count(DISTINCT keyId) as keys
 FROM mv__monthly_active_keys__v1
-where
+WHERE
     workspaceId = {{ String(workspaceId, required=True) }}
-    and time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
-group by  time
+    AND time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
+GROUP BY time
 ```
+
+When querying the endpoint, we'll get back how many keys had at least 1 verification in a specific workspace and month.
 
 ### Invoicing
 
-- use trigger for durability
+Now that we know how to find out what to charge, let's figure out how to charge our customers.
+We're still using Stripe to create the invoice and [trigger.dev](https://trigger.dev) for durable workflow execution.
+Once a month, a workflow starts to load all billable workspaces, load their usage and create an invoice.
 
+We simply store a `stripeCustomerId` and `subscription`column in our database and can query all workspaces easily:
 
-## Results and Lessons Learned
+```ts title="query billable workspaces"
+const workspaces = await io.runTask("list workspaces", async () =>
+    db.query.workspaces.findMany({
+    where: (table, { isNotNull, isNull, not, eq, and }) =>
+        and(
+            isNotNull(table.stripeCustomerId),
+            isNotNull(table.subscriptions),
+            not(eq(table.plan, "free")),
+            isNull(table.deletedAt),
+        ),
+    }),
+);
+```
 
-- Analysis of the results after implementing our solution
-- Lessons we learned from the process
-- How we plan to improve in the future
+Afterwards we fetch the usage for both keys and verifications and finalize the invoice. The code is all open source, if you're interested: [create-invoice.ts](https://github.com/unkeyed/unkey/blob/main/apps/workflows/jobs/create-invoice.ts)
 
-## Conclusion
+## Results
 
-- Recap of the blog post
-- An invitation for feedback and discussion
+Doing invoicing ourselves made it easier to customize its behaviour. That being said, it definitely took longer to implement than sitting down and fixing subscription timing issues properly. 
+Especially prorations are pretty annoying to handle.
+
+We're still happy with the result, as it allows us to edit and tweak things as we go, whereas Stripe makes a ton of options non-editable. And we can also potentially switch providers cause we're not as locked into Stripe. 
+
+Time will tell if this was useful or not.
+
