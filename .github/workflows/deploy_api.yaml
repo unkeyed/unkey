@@ -54,7 +54,9 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
-
+        
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
 
       - name: Test Routes
         run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/8

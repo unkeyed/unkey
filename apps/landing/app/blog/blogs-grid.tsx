@@ -63,7 +63,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
           <Link href={`/blog/${post.slug}`} key={post.slug}>
             <BlogCard
               tags={post.frontmatter.tags?.toString()}
-              imageUrl={post.frontmatter.image}
+              imageUrl={post.frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
               title={post.frontmatter.title}
               subTitle={post.frontmatter.description}
               author={authors[post.frontmatter.author]}

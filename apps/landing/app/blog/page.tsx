@@ -76,7 +76,7 @@ export default async function Blog(props: Props) {
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
           <BlogHero
             tags={postTags}
-            imageUrl={posts[0].frontmatter.image}
+            imageUrl={posts[0].frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
             title={posts[0].frontmatter.title}
             subTitle={posts[0].frontmatter.description}
             author={authors[posts[0].frontmatter.author]}
