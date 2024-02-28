@@ -115,7 +115,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                     </div>
                   );
                 })}
-                <div className="md:hidden">
+                <div className="xxs:hidden lg:flew">
                   <p className="pt-10 text-white/30 text-md">Suggested</p>
                   <div>
                     <SuggestedBlogs />
