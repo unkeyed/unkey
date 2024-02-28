@@ -41,7 +41,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
   const visiblePosts = filteredPosts.slice(blogsPerPage * (page - 1), blogsPerPage * page);
 
   return (
-    <div>
+    <div className="">
       <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full", className)}>
         {allTags.map((tag) => (
           <Link
@@ -58,7 +58,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
           </Link>
         ))}
       </div>
-      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24", className)}>
+      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 xxs-mx-auto", className)}>
         {visiblePosts.map((post) => (
           <Link href={`/blog/${post.slug}`} key={post.slug}>
             <BlogCard
@@ -72,20 +72,22 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
           </Link>
         ))}
       </div>
-      <BlogPagination
-        currentPage={page}
-        numPages={Math.ceil(filteredPosts.length / blogsPerPage)}
-        buildPath={(p: number) => {
-          const newParams = new URLSearchParams();
-          newParams.set("page", p.toString());
-          if (selectedTag) {
-            newParams.set("tag", selectedTag);
-          }
+      <div>
+        <BlogPagination
+          currentPage={page}
+          numPages={Math.ceil(filteredPosts.length / blogsPerPage)}
+          buildPath={(p: number) => {
+            const newParams = new URLSearchParams();
+            newParams.set("page", p.toString());
+            if (selectedTag) {
+              newParams.set("tag", selectedTag);
+            }
 
-          // returns this: /blog?page=${p}&tag=${tag}
-          return `/blog?${newParams.toString()}`;
-        }}
-      />
+            // returns this: /blog?page=${p}&tag=${tag}
+            return `/blog?${newParams.toString()}`;
+          }}
+        />
+      </div>
     </div>
   );
 };

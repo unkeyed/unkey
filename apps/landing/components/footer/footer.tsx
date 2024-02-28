@@ -54,7 +54,7 @@ function CompanyInfo() {
 function Navigation() {
   return (
     <nav className="xxs:w-full">
-      <ul className="flex flex-auto xxs:flex-col sm:flex-row gap-16 xxs:mx-auto xxs:text-center text-left">
+      <ul className="flex flex-auto xxs:flex-col sm:flex-row gap-16 xxs:mx-auto xxs:text-center text-left justify-evenly">
         {navigation.map((section) => (
           <li key={section.title}>
             <div className="text-sm font-medium tracking-wider text-white font-display">

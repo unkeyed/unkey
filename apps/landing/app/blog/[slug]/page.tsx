@@ -65,18 +65,18 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   return (
     <>
       <Container className="scroll-smooth">
-        <TopLeftShiningLight />
+        {/* <TopLeftShiningLight />
         <div className="w-full overflow-clip">
           <MeteorLinesAngular number={2} xPos={0} />
           <MeteorLinesAngular number={2} xPos={200} />
           <MeteorLinesAngular number={2} xPos={400} />
         </div>
-        <TopRightShiningLight />
+        <TopRightShiningLight /> */}
         <div className="relative flex flex-col items-start mt-16 space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
           <div className="w-full mx-auto xl:pl-6">
-            <h2 className="text-left text-6xl font-medium tracking-tight blog-heading-gradient leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
+            <h1 className="text-left text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
-            </h2>
+            </h1>
             <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40 xl:pr-40">
               {frontmatter.description}
             </p>

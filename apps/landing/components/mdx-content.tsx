@@ -23,14 +23,17 @@ const MdxComponents = {
   ol: (props: any) => BlogListNumbered(props),
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
+  h1: (props: any) => (
+    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+  ),
   h2: (props: any) => (
-    <h2 {...props} className="pl-24 text-2xl font-medium leading-8 blog-heading-gradient" />
+    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   h3: (props: any) => (
-    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient" />
+    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   h4: (props: any) => (
-    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient" />
+    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   p: (props: any) => (
     <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
