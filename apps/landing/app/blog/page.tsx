@@ -62,15 +62,15 @@ export default async function Blog(props: Props) {
   return (
     <>
       <BlogContainer className="max-w-full mt-32 scroll-smooth">
-        <div className="hidden">
+        <div className="">
           <TopLeftShiningLight />
         </div>
-        <div className="w-full overflow-clip hidden">
+        <div className="w-full overflow-clip ">
           <MeteorLinesAngular number={2} xPos={0} />
           <MeteorLinesAngular number={2} xPos={200} />
           <MeteorLinesAngular number={2} xPos={400} />
         </div>
-        <div className="hidden">
+        <div className="">
           <TopRightShiningLight />
         </div>
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>

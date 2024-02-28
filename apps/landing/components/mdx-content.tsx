@@ -39,9 +39,15 @@ const MdxComponents = {
     <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
   ),
   code: (props: any) => (
-    <span
+    <code
       {...props}
-      className="font-mono rounded-md code-inline-gradient text-white/50 px-3 pt-0.5 pb-1 mx-1"
+      className="inline font-mono text-xs rounded-lg leading-6 xxs:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
+    />
+  ),
+  pre: (props: any) => (
+    <pre
+      {...props}
+      className="bg-transparent [&>*]my-6 [&>*]:py-6 [&>*]:px-4 [&>*]:block w-full [&>*]:rounded-xl m-0 p-0"
     />
   ),
   BlogCodeBlock: (props: any) => BlogCodeBlock(props),

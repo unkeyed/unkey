@@ -25,7 +25,7 @@ export async function SuggestedBlogs({ className }: BlogListProps) {
               <Frame size="sm">
                 <Image
                   alt="Blog Image"
-                  src={`${post?.frontmatter?.image}`}
+                  src={`${post?.frontmatter?.image ?? "/images/blog-images/defaultBlog.png"}`}
                   width={600}
                   height={400}
                 />

@@ -72,7 +72,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <MeteorLinesAngular number={2} xPos={400} />
         </div>
         <TopRightShiningLight /> */}
-        <div className="relative flex flex-col items-start mt-16 space-y-8 lg:mt-32 lg:flex-row lg:space-y-0">
+        <div className="relative flex flex-col items-start mt-16 space-y-8 lg:mt-32 lg:flex-row lg:space-y-0 mb-24">
           <div className="w-full mx-auto xl:pl-6">
             <h1 className="text-left text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
@@ -115,7 +115,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                     </div>
                   );
                 })}
-                <div className="xxs:hidden lg:flew">
+                <div className="">
                   <p className="pt-10 text-white/30 text-md">Suggested</p>
                   <div>
                     <SuggestedBlogs />
