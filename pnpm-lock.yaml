@@ -542,8 +542,8 @@ importers:
         specifier: ^0.14.7
         version: 0.14.7
       sonner:
-        specifier: ^1.4.0
-        version: 1.4.0(react-dom@18.2.0)(react@18.2.0)
+        specifier: ^1.4.2
+        version: 1.4.2(react-dom@18.2.0)(react@18.2.0)
       stripe:
         specifier: ^14.18.0
         version: 14.18.0
@@ -19138,8 +19138,8 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /sonner@1.4.0(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-nvkTsIuOmi9e5Wz5If8ldasJjZNVfwiXYijBi2dbijvTQnQppvMcXTFNxL/NUFWlI2yJ1JX7TREDsg+gYm9WyA==}
+  /sonner@1.4.2(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-x3Kfzfhb56V/ErvUnH5dZcsu6QkZpyIlRAogO4vAbN+AkBsA/8CFqOV+5djqbE5pQCpejtO4JBWL1zRj2sO/Vg==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
