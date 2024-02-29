@@ -46,11 +46,29 @@ const config = {
       },
       animation: {
         "border-beam": "border-beam calc(var(--duration)*1s) infinite linear",
+        meteorAngle: "meteorAngle 10s linear infinite",
+        meteor: "meteor 20s linear infinite",
       },
       keyframes: {
         "border-beam": {
           "100%": {
             "offset-distance": "100%",
+          },
+        },
+        meteorAngle: {
+          "0%": { tranform: "rotate(300deg) translateX(0)", opacity: "1" },
+          "70%": { opacity: "1" },
+          "100%": {
+            transform: "rotate(300deg) translateX(-400px) ",
+            opacity: "0",
+          },
+        },
+        meteor: {
+          "0%": { transform: "rotate(270deg) translateX(0)", opacity: ".9" },
+          "50%": { opacity: ".4" },
+          "100%": {
+            transform: "rotate(270deg) translateX(-500px)",
+            opacity: "0",
           },
         },
       },
