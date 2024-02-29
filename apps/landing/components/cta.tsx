@@ -6,8 +6,8 @@ import { PrimaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="relative pb-40 overflow-hidden">
-      <Highlights className="absolute inset-x-0 mx-auto -bottom-40" />
+    <div className="relative pb-40 overflow-hidden pt-14">
+      <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8" />
       <SectionTitle
         align="center"
         title={
@@ -54,7 +54,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="293.346"
             transform="rotate(-164.946 574.307 568.208)"
             fill="url(#paint0_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_3208)">
@@ -65,7 +65,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="293.25"
             transform="rotate(180 468.5 589.25)"
             fill="url(#paint1_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_3208)">
@@ -76,7 +76,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="381.284"
             transform="rotate(165 365.16 517.917)"
             fill="url(#paint2_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_2076_3208)">
@@ -87,7 +87,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="180.667"
             transform="rotate(165 417.083 711.695)"
             fill="url(#paint3_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_2076_3208)">
@@ -98,7 +98,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="381.5"
             transform="rotate(180 471.75 470.5)"
             fill="url(#paint4_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_2076_3208)">
@@ -109,7 +109,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="187.5"
             transform="rotate(180 472 695)"
             fill="url(#paint5_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_2076_3208)">
@@ -120,7 +120,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="95.5"
             transform="rotate(180 472 787)"
             fill="url(#paint6_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_2076_3208)">
@@ -131,7 +131,7 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
             ry="80.25"
             transform="rotate(180 472 779.75)"
             fill="url(#paint7_linear_2076_3208)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
       </g>
@@ -143,9 +143,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="343.05"
           height="744.818"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -156,9 +156,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="231"
           height="764.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -169,9 +169,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="380.089"
           height="914.677"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -182,9 +182,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="281.055"
           height="527.218"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -195,9 +195,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="222.5"
           height="941"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="44.5" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -208,9 +208,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="943"
           height="675"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -221,9 +221,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="621"
           height="491"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -234,9 +234,9 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           width="570"
           height="460.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="75" result="effect1_foregroundBlur_2076_3208" />
         </filter>
@@ -248,8 +248,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="861.554"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_2076_3208"
@@ -259,8 +259,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="882.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_2076_3208"
@@ -270,8 +270,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="899.2"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_2076_3208"
@@ -281,8 +281,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="892.362"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_2076_3208"
@@ -292,8 +292,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="852"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_2076_3208"
@@ -303,8 +303,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="882.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_2076_3208"
@@ -314,8 +314,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="882.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_2076_3208"
@@ -325,8 +325,8 @@ const Highlights: React.FC<{ className: string }> = ({ className }) => {
           y2="860"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>

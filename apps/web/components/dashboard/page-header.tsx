@@ -1,6 +1,10 @@
 type Props = {
-  title: string;
+  title: React.ReactNode;
   description?: string;
+  /**
+   * A set of components displayed in the top right
+   * null components are filtered out
+   */
   actions?: React.ReactNode[];
 };
 

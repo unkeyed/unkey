@@ -130,16 +130,6 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
         ),
     },
     {
-      accessorKey: "remaining",
-      header: "Remaining",
-      cell: ({ row }) =>
-        row.original.remaining ? (
-          <span>{row.original.remaining.toLocaleString()}</span>
-        ) : (
-          <Minus className="w-4 h-4 text-gray-300" />
-        ),
-    },
-    {
       accessorKey: "ownerId",
       header: "Owner",
       cell: ({ row }) =>
@@ -155,22 +145,6 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) =>
         row.original.name ? (
           <Badge variant="secondary">{row.original.name}</Badge>
-        ) : (
-          <Minus className="w-4 h-4 text-gray-300" />
-        ),
-    },
-    {
-      accessorKey: "ratelimit",
-      header: "Ratelimit",
-      cell: ({ row }) =>
-        row.original.ratelimitType &&
-        row.original.ratelimitLimit &&
-        row.original.ratelimitRefillInterval &&
-        row.original.ratelimitRefillRate ? (
-          <div>
-            <span>{row.original.ratelimitRefillRate}</span> /{" "}
-            <span>{ms(row.original.ratelimitRefillInterval)}</span>
-          </div>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
         ),

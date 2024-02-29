@@ -1,11 +1,9 @@
-import { cache, db, usageLimiter } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
-import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
@@ -140,6 +138,7 @@ export type V1KeysUpdateKeyResponse = z.infer<
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
+    const { cache, db, usageLimiter, analytics } = c.get("services");
 
     await db.transaction(async (tx) => {
       const key = await tx.query.keys.findFirst({
@@ -212,16 +211,26 @@ export const registerV1KeysUpdate = (app: App) =>
         })
         .where(eq(schema.keys.id, req.keyId));
 
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
+      await analytics.ingestAuditLogs({
         workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
         event: "key.update",
-        description: "Key was updated",
-        keyId: key.id,
-        keyAuthId: key.keyAuthId,
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        description: `Updated key config: ${Object.entries(req)
+          .filter(([_, v]) => v !== undefined)
+          .reduce((description, [k, v]) => {
+            return `${description}${description.length > 0 ? ", " : ""}${k}=${v}`;
+          }, "")}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
 
       await Promise.all([

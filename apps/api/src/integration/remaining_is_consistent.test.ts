@@ -1,21 +1,28 @@
-import { integrationTestEnv } from "@/pkg/testutil/env";
-import { step } from "@/pkg/testutil/request";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysGetKeyResponse } from "@/routes/v1_keys_getKey";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
-const env = integrationTestEnv.parse(process.env);
+let h: IntegrationHarness;
 
+beforeEach(async () => {
+  h = new IntegrationHarness();
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 test("remaining consistently counts down", async () => {
-  const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,
-    method: "POST",
+  const { key: rootKey } = await h.createRootKey(["*"]);
+
+  const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
+    url: `${h.baseUrl}/v1/apis.createApi`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       name: "scenario-test-pls-delete",
@@ -27,12 +34,11 @@ test("remaining consistently counts down", async () => {
 
   const remaining = 100;
 
-  const createKeyResponse = await step<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/keys.createKey`,
-    method: "POST",
+  const createKeyResponse = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: `${h.baseUrl}/v1/keys.createKey`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       apiId: createApiResponse.body.apiId,
@@ -45,9 +51,8 @@ test("remaining consistently counts down", async () => {
   expect(createKeyResponse.status).toEqual(200);
 
   for (let i = remaining - 1; i >= 0; i--) {
-    const valid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-      method: "POST",
+    const valid = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: `${h.baseUrl}/v1/keys.verifyKey`,
       headers: {
         "Content-Type": "application/json",
       },
@@ -62,12 +67,10 @@ test("remaining consistently counts down", async () => {
     expect(valid.body.remaining).toEqual(i);
   }
 
-  const invalid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-    method: "POST",
+  const invalid = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+    url: `${h.baseUrl}/v1/keys.verifyKey`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
     },
     body: {
       apiId: createApiResponse.body.apiId,
@@ -78,11 +81,14 @@ test("remaining consistently counts down", async () => {
   expect(invalid.body.valid).toBe(false);
   expect(invalid.body.remaining).toEqual(0);
 
-  const key = await step<never, V1KeysGetKeyResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/keys.getKey?keyId=${createKeyResponse.body.keyId}`,
-    method: "GET",
+  // wait until the updates can propagate from the durable object to the db
+  await new Promise((r) => setTimeout(r, 2000));
+
+  const key = await h.get<V1KeysGetKeyResponse>({
+    url: `${h.baseUrl}/v1/keys.getKey?keyId=${createKeyResponse.body.keyId}`,
+
     headers: {
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      Authorization: `Bearer ${rootKey}`,
     },
   });
   expect(key.status).toEqual(200);
@@ -93,12 +99,11 @@ test("remaining consistently counts down", async () => {
   /**
    * Teardown
    */
-  const deleteApi = await step<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>({
-    url: `${env.UNKEY_BASE_URL}/v1/apis.deleteApi`,
-    method: "POST",
+  const deleteApi = await h.post<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>({
+    url: `${h.baseUrl}/v1/apis.deleteApi`,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+      Authorization: `Bearer ${rootKey}`,
     },
     body: {
       apiId: createApiResponse.body.apiId,

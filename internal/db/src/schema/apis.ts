@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
-import { datetime, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
-import { auditLogs } from "./audit";
+import { datetime, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { workspaces } from "./workspaces";
 
@@ -9,21 +8,24 @@ export const apis = mysqlTable(
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     name: varchar("name", { length: 256 }).notNull(),
-    createdAt: datetime("created_at", { fsp: 3 }),
-    deletedAt: datetime("deleted_at", { fsp: 3 }),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    // comma separated ips or cidr blocks
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /**
+     * comma separated ips
+     */
     ipWhitelist: varchar("ip_whitelist", { length: 512 }),
-
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
-    keyAuthId: varchar("key_auth_id", { length: 256 }),
+    keyAuthId: varchar("key_auth_id", { length: 256 }).unique(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
+    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => ({
-    keyAuthIdIndex: uniqueIndex("key_auth_id_idx").on(table.keyAuthId),
+    workspaceId: index("workspace_id_idx").on(table.workspaceId),
   }),
 );
 
-export const apisRelations = relations(apis, ({ one, many }) => ({
+export const apisRelations = relations(apis, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [apis.workspaceId],
     references: [workspaces.id],
@@ -32,5 +34,4 @@ export const apisRelations = relations(apis, ({ one, many }) => ({
     fields: [apis.keyAuthId],
     references: [keyAuth.id],
   }),
-  auditLogs: many(auditLogs),
 }));

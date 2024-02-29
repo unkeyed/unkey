@@ -1,8 +1,8 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import {
@@ -11,10 +11,16 @@ import {
   registerV1KeysCreateKey,
 } from "./v1_keys_createKey";
 
-test("when the api does not exist", async () => {
-  const h = await Harness.init();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerV1KeysCreateKey);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("when the api does not exist", async () => {
   const apiId = newId("api");
 
   const root = await h.createRootKey([`api.${apiId}.create_key`]);
@@ -42,9 +48,6 @@ test("when the api does not exist", async () => {
 });
 
 test("when the api has no keyAuth", async () => {
-  const h = await Harness.init();
-  h.useRoutes(registerV1KeysCreateKey);
-
   const apiId = newId("api");
   await h.db.insert(schema.apis).values({
     id: apiId,
@@ -76,14 +79,13 @@ test("when the api has no keyAuth", async () => {
 });
 
 test("reject invalid ratelimit config", async () => {
-  const h = await Harness.init();
-  h.useRoutes(registerV1KeysCreateKey);
+  const { key } = await h.createRootKey(["*"]);
 
   const res = await h.post<V1KeysCreateKeyRequest, ErrorResponse>({
     url: "/v1/keys.createKey",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${key}`,
     },
     body: {
       byteLength: 16,

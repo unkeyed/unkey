@@ -61,6 +61,7 @@ const MobileLinks: React.FC<{ className: string }> = ({ className }) => (
             <MobileNavLink href="/blog" label="Blog" />
             <MobileNavLink href="/pricing" label="Pricing" />
             <MobileNavLink href="/changelog" label="Changelog" />
+            <MobileNavLink href="/templates" label="Templates" />
             <MobileNavLink href="/docs" label="Docs" />
           </ul>
         </div>
@@ -95,6 +96,7 @@ const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
     <DesktopNavLink href="/blog" label="Blog" />
     <DesktopNavLink href="/pricing" label="Pricing" />
     <DesktopNavLink href="/changelog" label="Changelog" />
+    <DesktopNavLink href="/templates" label="Templates" />
     <DesktopNavLink href="/docs" label="Docs" />
   </ul>
 );

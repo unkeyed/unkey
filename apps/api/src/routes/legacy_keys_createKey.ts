@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -154,6 +153,7 @@ export type LegacyKeysCreateKeyResponse = z.infer<
 
 export const registerLegacyKeysCreate = (app: App) =>
   app.openapi(route, async (c) => {
+    const { cache, db, analytics } = c.get("services");
     const auth = await rootKeyAuth(c);
 
     const req = c.req.valid("json");
@@ -212,22 +212,32 @@ export const registerLegacyKeysCreate = (app: App) =>
         ratelimitRefillInterval: req.ratelimit?.refillInterval,
         ratelimitType: req.ratelimit?.type,
         remaining: req.remaining,
-        totalUses: 0,
         deletedAt: null,
       });
 
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
+      await analytics.ingestAuditLogs({
         workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
+        actor: { type: "key", id: rootKeyId },
         event: "key.create",
-        description: "Key created",
-        keyAuthId: api.keyAuthId,
-        apiId: api.id,
+        description: `Created ${keyId}`,
+        resources: [
+          {
+            type: "key",
+            id: keyId,
+          },
+          {
+            type: "keyAuth",
+            id: api.keyAuthId!,
+          },
+          { type: "api", id: api.id },
+        ],
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
       });
     });
+
     // TODO: emit event to tinybird
     return c.json({
       keyId,

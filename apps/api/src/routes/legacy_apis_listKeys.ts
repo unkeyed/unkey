@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -66,6 +65,7 @@ export type LegacyApisListKeysResponse = z.infer<
 
 export const registerLegacyApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
+    const { db, cache } = c.get("services");
     const auth = await rootKeyAuth(c);
 
     const apiId = c.req.param("apiId");

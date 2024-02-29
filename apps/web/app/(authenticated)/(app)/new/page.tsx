@@ -1,11 +1,13 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { db, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { ArrowRight } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
@@ -21,6 +23,12 @@ export default async function (props: Props) {
   const { userId } = auth();
 
   if (props.searchParams.apiId) {
+    const api = await db.query.apis.findFirst({
+      where: (table, { eq }) => eq(table.id, props.searchParams.apiId!),
+    });
+    if (!api) {
+      return notFound();
+    }
     return (
       <div className="container m-16 mx-auto">
         <PageHeader
@@ -30,16 +38,16 @@ export default async function (props: Props) {
             <Link
               key="skip"
               href="/app"
-              className="text-content-subtle hover:text-foreground flex items-center gap-1 text-sm duration-200"
+              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
-              Skip <ArrowRight className="h-4 w-4" />{" "}
+              Skip <ArrowRight className="w-4 h-4" />{" "}
             </Link>,
           ]}
         />
 
         <Separator className="my-6" />
 
-        <Keys apiId={props.searchParams.apiId} />
+        <Keys keyAuthId={api.keyAuthId!} apiId={api.id} />
       </div>
     );
   }
@@ -60,9 +68,9 @@ export default async function (props: Props) {
             <Link
               key="skip"
               href="/app"
-              className="text-content-subtle hover:text-foreground flex items-center gap-1 text-sm duration-200"
+              className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
-              Skip <ArrowRight className="h-4 w-4" />{" "}
+              Skip <ArrowRight className="w-4 h-4" />{" "}
             </Link>,
           ]}
         />
@@ -93,6 +101,27 @@ export default async function (props: Props) {
         subscriptions: null,
         createdAt: new Date(),
       });
+      await ingestAuditLogs({
+        workspaceId: workspaceId,
+        event: "workspace.create",
+        actor: {
+          type: "user",
+          id: userId,
+        },
+        description: `Created ${workspaceId}`,
+        resources: [
+          {
+            type: "workspace",
+            id: workspaceId,
+          },
+        ],
+
+        context: {
+          userAgent: headers().get("user-agent") ?? undefined,
+          location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+        },
+      });
+
       return redirect(`/new?workspaceId=${workspaceId}`);
     }
   }

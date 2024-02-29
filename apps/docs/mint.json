@@ -80,12 +80,23 @@
         "features/remaining",
         "features/refill",
         "features/analytics",
+        {
+          "group": "Authorization",
+          "pages": [
+            "features/authorization/introduction",
+            "features/authorization/roles-and-permissions",
+            "features/authorization/verifying",
+            "features/authorization/example"
+          ]
+        },
         "features/audit-log",
+        "features/environments",
         "features/whitelist",
         "features/revocation",
         "features/enabled"
       ]
     },
+
     {
       "group": "Integrations",
       "icon": "bolt",
@@ -187,7 +198,7 @@
           "pages": [
             "libraries/ex/functions/create_key",
             "libraries/ex/functions/verify_key",
-            "libraries/ex/functions/revoke_key",
+            "libraries/ex/functions/delete_key",
             "libraries/ex/functions/update_key",
             "libraries/ex/functions/update_remaining"
           ]

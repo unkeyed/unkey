@@ -157,6 +157,26 @@ li > p {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.audit-logs-bg-gradient {
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0.90) 0%, rgba(0, 0, 0, 0.50) 100%), #000;
+}
+
+.audit-logs-fade-gradient { position: relative; }
+.audit-logs-fade-gradient::after {
+  position: absolute;
+  background: radial-gradient(
+    300% 82.5% at 10.25% 100%,
+    black,
+    rgba(200, 200, 200, 0.08)
+  );
+  display: block;
+  content: "";
+  height: 340px;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
 .ip-whitelisting-bg-gradient {
   background: radial-gradient(78.93% 63.85% at 50% 29.44%,  rgba(17, 17, 17, 0.90) 0%, rgba(17, 17, 17, 0.50) 54.3%, rgba(255, 255, 255, 0.00) 79.35%);
 }
@@ -298,3 +318,24 @@ li > p {
 }
 
 
+.blog-footer-radial-gradient {
+    background: radial-gradient(at top center, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 40%);
+  }
+
+
+.changelog-gradient {
+  position: relative;
+}
+
+.changelog-gradient:after {
+  position: absolute;
+  bottom: 0;  
+  height: 100%;
+  width: 100%;
+  content: "";
+  background: linear-gradient(to top,
+     rgba(0,0,0, 1) 20%, 
+     rgba(255,255,255, 0) 80%
+  );
+  pointer-events: none; /* so the text is still selectable */
+}

@@ -1,4 +1,3 @@
-import { cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -39,12 +38,14 @@ export type V1KeysGetKeyResponse = z.infer<
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId } = c.req.query();
+    const { cache, db } = c.get("services");
 
     const data = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
           permissions: { with: { permission: true } },
+          roles: { with: { role: true } },
           keyAuth: {
             with: {
               api: true,
@@ -58,7 +59,8 @@ export const registerV1KeysGetKey = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
-        permissions: dbRes.permissions.map((p) => p.permission.key!).filter(Boolean),
+        permissions: dbRes.permissions.map((p) => p.permission.name),
+        roles: dbRes.roles.map((p) => p.role.name),
       };
     });
 
@@ -114,8 +116,8 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: data.key.ratelimitRefillInterval,
             }
           : undefined,
-      roles: [],
-      // roles:  data.key.roles?.map((r) => r.role) ?? undefined,
+      roles: data.roles,
+      permissions: data.permissions,
       enabled: data.key.enabled,
     });
   });

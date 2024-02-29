@@ -1,9 +1,12 @@
-import { BlogHero } from "@/components/blog-hero";
-import { BlogGrid } from "@/components/blogs-grid";
-import { Container } from "@/components/container";
+import { CTA } from "@/components/cta";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
+import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
-import { BLOG_PATH, Frontmatter, getAllMDXData } from "@/lib/mdx-helper";
+import { BLOG_PATH, Frontmatter, Tags, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
+import { BlogContainer } from "./blog-container";
+import { BlogHero } from "./blog-hero";
+import { BlogGrid } from "./blogs-grid";
 
 export const metadata = {
   title: "Blog | Unkey",
@@ -42,7 +45,15 @@ function getAllTags(posts: { frontmatter: Frontmatter; slug: string }[]) {
   });
   return tempTags;
 }
-export default async function Blog() {
+
+type Props = {
+  searchParams?: {
+    tag?: Tags;
+    page?: number;
+  };
+};
+
+export default async function Blog(props: Props) {
   const posts = (await getAllMDXData({ contentPath: BLOG_PATH })).sort((a, b) => {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
@@ -50,19 +61,84 @@ export default async function Blog() {
   const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
-      <Container className="scroll-smooth mt-20">
+      <BlogContainer className="max-w-full mt-32 scroll-smooth">
+        <div>
+          <TopLeftShiningLight />
+        </div>
+        <div className="w-full overflow-clip ">
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={5}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={0}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={7}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={2}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={7}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={2}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={5}
+            className="overflow-hidden xxs:hidden md:block"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={0}
+            className="overflow-hidden xxs:hidden md:block"
+          />
+        </div>
+        <div className="">
+          <TopRightShiningLight />
+        </div>
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
           <BlogHero
             tags={postTags}
-            imageUrl={posts[0].frontmatter.image}
+            imageUrl={posts[0].frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
             title={posts[0].frontmatter.title}
             subTitle={posts[0].frontmatter.description}
             author={authors[posts[0].frontmatter.author]}
             publishDate={posts[0].frontmatter.date}
           />
         </Link>
-        <BlogGrid posts={posts} />
-      </Container>
+        <BlogGrid posts={posts} searchParams={props.searchParams} />
+        <CTA />
+      </BlogContainer>
     </>
   );
 }

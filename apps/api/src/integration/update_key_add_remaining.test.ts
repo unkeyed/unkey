@@ -1,5 +1,4 @@
-import { integrationTestEnv } from "@/pkg/testutil/env";
-import { step } from "@/pkg/testutil/request";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
@@ -8,18 +7,27 @@ import type {
   V1KeysUpdateRemainingResponse,
 } from "@/routes/v1_keys_updateRemaining";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-const env = integrationTestEnv.parse(process.env);
+let h: IntegrationHarness;
+
+beforeEach(async () => {
+  h = new IntegrationHarness();
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 
 describe("some", () => {
   test("update a key's remaining limit", async () => {
-    const createApiResponse = await step<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/apis.createApi`,
-      method: "POST",
+    const { key: rootKey } = await h.createRootKey(["*"]);
+
+    const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
+      url: `${h.baseUrl}/v1/apis.createApi`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         name: "scenario-test-pls-delete",
@@ -29,12 +37,11 @@ describe("some", () => {
     expect(createApiResponse.body.apiId).toBeDefined();
     expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
 
-    const createKeyResponse = await step<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/keys.createKey`,
-      method: "POST",
+    const createKeyResponse = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: `${h.baseUrl}/v1/keys.createKey`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         apiId: createApiResponse.body.apiId,
@@ -47,12 +54,11 @@ describe("some", () => {
     expect(createKeyResponse.status).toEqual(200);
 
     for (let i = 4; i >= 0; i--) {
-      const valid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-        url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-        method: "POST",
+      const valid = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: `${h.baseUrl}/v1/keys.verifyKey`,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+          Authorization: `Bearer ${rootKey}`,
         },
         body: {
           apiId: createApiResponse.body.apiId,
@@ -65,12 +71,11 @@ describe("some", () => {
       expect(valid.body.remaining).toEqual(i);
     }
 
-    const invalid = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-      method: "POST",
+    const invalid = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: `${h.baseUrl}/v1/keys.verifyKey`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         apiId: createApiResponse.body.apiId,
@@ -81,15 +86,14 @@ describe("some", () => {
     expect(invalid.body.valid).toBe(false);
     expect(invalid.body.remaining).toEqual(0);
 
-    const updateKeyResponse = await step<
+    const updateKeyResponse = await h.post<
       V1KeysUpdateRemainingRequest,
       V1KeysUpdateRemainingResponse
     >({
-      url: `${env.UNKEY_BASE_URL}/v1/keys.updateRemaining`,
-      method: "POST",
+      url: `${h.baseUrl}/v1/keys.updateRemaining`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         keyId: createKeyResponse.body.keyId,
@@ -101,12 +105,11 @@ describe("some", () => {
     expect(updateKeyResponse.status).toEqual(200);
     expect(updateKeyResponse.body.remaining).toEqual(5);
 
-    const validAfterUpdate = await step<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/keys.verifyKey`,
-      method: "POST",
+    const validAfterUpdate = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: `${h.baseUrl}/v1/keys.verifyKey`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         apiId: createApiResponse.body.apiId,
@@ -120,12 +123,11 @@ describe("some", () => {
     /**
      * Teardown
      */
-    const deleteApi = await step<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>({
-      url: `${env.UNKEY_BASE_URL}/v1/apis.deleteApi`,
-      method: "POST",
+    const deleteApi = await h.post<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>({
+      url: `${h.baseUrl}/v1/apis.deleteApi`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.UNKEY_ROOT_KEY}`,
+        Authorization: `Bearer ${rootKey}`,
       },
       body: {
         apiId: createApiResponse.body.apiId,

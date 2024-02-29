@@ -1,4 +1,3 @@
-import { analytics, cache, db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -37,7 +36,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "The configuration for a single key",
+      description: "Usage numbers over time",
       content: {
         "application/json": {
           schema: z.object({
@@ -77,6 +76,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId, ownerId, start, end } = c.req.query();
 
+    const { analytics, cache, db } = c.get("services");
+
     const ids: {
       keyId: string;
       apiId: string;
@@ -89,6 +90,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
           where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
             permissions: { with: { permission: true } },
+            roles: { with: { role: true } },
             keyAuth: {
               with: {
                 api: true,
@@ -103,7 +105,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
         return {
           key: dbRes,
           api: dbRes.keyAuth.api,
-          permissions: dbRes.permissions.map((p) => p.permission.key!).filter(Boolean),
+          permissions: dbRes.permissions.map((p) => p.permission.name),
+          roles: dbRes.roles.map((p) => p.role.name),
         };
       });
 
@@ -147,6 +150,13 @@ export const registerV1KeysGetVerifications = (app: App) =>
           workspaceId: key.workspaceId,
         })),
       );
+    }
+
+    if (ids.length === 0) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: "No keys were found to match your query",
+      });
     }
 
     const apiIds = Array.from(new Set(ids.map(({ apiId }) => apiId)));

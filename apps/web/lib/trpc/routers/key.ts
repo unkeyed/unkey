@@ -1,12 +1,13 @@
 import { Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../trpc";
-import { upsertPermission } from "./permission";
+import { upsertPermission } from "./rbac";
 
 export const keyRouter = t.router({
   create: t.procedure
@@ -15,7 +16,7 @@ export const keyRouter = t.router({
       z.object({
         prefix: z.string().optional(),
         bytesLength: z.number().int().gte(1).default(16),
-        apiId: z.string(),
+        keyAuthId: z.string(),
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
         remaining: z.number().int().positive().optional(),
@@ -36,6 +37,7 @@ export const keyRouter = t.router({
           })
           .optional(),
         enabled: z.boolean().default(true),
+        environment: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -50,17 +52,14 @@ export const keyRouter = t.router({
         });
       }
 
-      const api = await db.query.apis.findFirst({
-        where: (table, { eq }) => eq(table.id, input.apiId),
+      const keyAuth = await db.query.keyAuth.findFirst({
+        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        with: {
+          api: true,
+        },
       });
-      if (!api) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
-      }
-      if (!api.keyAuthId) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "api is not setup to handle keys",
-        });
+      if (!keyAuth) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "keyAuth not found" });
       }
 
       const keyId = newId("key");
@@ -69,43 +68,48 @@ export const keyRouter = t.router({
         byteLength: input.bytesLength,
       });
 
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.keys).values({
-          id: keyId,
-          keyAuthId: api.keyAuthId!,
-          name: input.name,
-          hash,
-          start,
-          ownerId: input.ownerId,
-          meta: JSON.stringify(input.meta ?? {}),
-          workspaceId: workspace.id,
-          forWorkspaceId: null,
-          expires: input.expires ? new Date(input.expires) : null,
-          createdAt: new Date(),
-          ratelimitLimit: input.ratelimit?.limit,
-          ratelimitRefillRate: input.ratelimit?.refillRate,
-          ratelimitRefillInterval: input.ratelimit?.refillInterval,
-          ratelimitType: input.ratelimit?.type,
-          remaining: input.remaining,
-          refillInterval: input.refill?.interval ?? null,
-          refillAmount: input.refill?.amount ?? null,
-          lastRefillAt: input.refill?.interval ? new Date() : null,
-          totalUses: 0,
-          deletedAt: null,
-          enabled: input.enabled,
-        });
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: workspace.id,
-          apiId: api.id,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.create",
-          description: `created key ${keyId} for api ${api.id}`,
-          keyId: keyId,
-        });
+      await db.insert(schema.keys).values({
+        id: keyId,
+        keyAuthId: keyAuth.id,
+        name: input.name,
+        hash,
+        start,
+        ownerId: input.ownerId,
+        meta: JSON.stringify(input.meta ?? {}),
+        workspaceId: workspace.id,
+        forWorkspaceId: null,
+        expires: input.expires ? new Date(input.expires) : null,
+        createdAt: new Date(),
+        ratelimitLimit: input.ratelimit?.limit,
+        ratelimitRefillRate: input.ratelimit?.refillRate,
+        ratelimitRefillInterval: input.ratelimit?.refillInterval,
+        ratelimitType: input.ratelimit?.type,
+        remaining: input.remaining,
+        refillInterval: input.refill?.interval ?? null,
+        refillAmount: input.refill?.amount ?? null,
+        lastRefillAt: input.refill?.interval ? new Date() : null,
+        deletedAt: null,
+        enabled: input.enabled,
+        environment: input.environment,
       });
+
+      await ingestAuditLogs({
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "key.create",
+        description: `Created ${keyId}`,
+        resources: [
+          {
+            type: "key",
+            id: keyId,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
+
       return { keyId, key };
     }),
   createInternalRootKey: t.procedure
@@ -184,25 +188,29 @@ export const keyRouter = t.router({
           refillInterval: null,
           refillAmount: null,
           lastRefillAt: null,
-          totalUses: 0,
           deletedAt: null,
           enabled: true,
         });
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
+        await ingestAuditLogs({
           workspaceId: workspace.id,
-          apiId: unkeyApi.id,
-          actorType: "user",
-          actorId: ctx.user.id,
+          actor: { type: "user", id: ctx.user.id },
           event: "key.create",
-          description: `created key ${keyId} for api ${unkeyApi.id}`,
-          keyId: keyId,
+          description: `Created ${keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: keyId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
 
         const permissions: Permission[] = [];
         for (const name of input.permissions) {
-          permissions.push(await upsertPermission(env().UNKEY_WORKSPACE_ID, name));
+          permissions.push(await upsertPermission(ctx, env().UNKEY_WORKSPACE_ID, name));
         }
 
         await tx.insert(schema.keysPermissions).values(
@@ -210,6 +218,28 @@ export const keyRouter = t.router({
             keyId,
             permissionId: p.id,
             workspaceId: env().UNKEY_WORKSPACE_ID,
+          })),
+        );
+        await ingestAuditLogs(
+          permissions.map((p) => ({
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "authorization.connect_permission_and_key",
+            description: `Connected ${p.id} and ${keyId}`,
+            resources: [
+              {
+                type: "key",
+                id: keyId,
+              },
+              {
+                type: "permission",
+                id: p.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
           })),
         );
       });
@@ -256,24 +286,27 @@ export const keyRouter = t.router({
             console.warn(`key ${keyId} already deleted, skipping deletion`);
             return;
           }
-          await db.transaction(async (tx) => {
-            await tx
-              .update(schema.keys)
-              .set({
-                deletedAt: new Date(),
-              })
-              .where(eq(schema.keys.id, keyId));
-            await tx.insert(schema.auditLogs).values({
-              id: newId("auditLog"),
-              time: new Date(),
-              workspaceId: workspace.id,
-              apiId: key.keyAuth.api?.id,
-              actorType: "user",
-              actorId: ctx.user.id,
-              event: "key.delete",
-              description: `deleted key ${keyId}`,
-              keyId: keyId,
-            });
+          await db
+            .update(schema.keys)
+            .set({
+              deletedAt: new Date(),
+            })
+            .where(eq(schema.keys.id, keyId));
+          await ingestAuditLogs({
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "key.delete",
+            description: `Deleted ${keyId}`,
+            resources: [
+              {
+                type: "key",
+                id: keyId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
           });
         }),
       );

@@ -1,23 +1,32 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   V1ApisDeleteApiRequest,
   V1ApisDeleteApiResponse,
   registerV1ApisDeleteApi,
 } from "./v1_apis_deleteApi";
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerV1ApisDeleteApi);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
 runSharedRoleTests<V1ApisDeleteApiRequest>({
   registerHandler: registerV1ApisDeleteApi,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
+    await rh.db.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
     });
     return {
       method: "POST",
@@ -44,9 +53,6 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
-    h.useRoutes(registerV1ApisDeleteApi);
-
     const apiId = newId("api");
     await h.db.insert(schema.apis).values({
       id: apiId,
@@ -69,7 +75,7 @@ describe("correct roles", () => {
     });
     expect(res.status).toEqual(200);
 
-    const found = await h.resources.database.query.apis.findFirst({
+    const found = await h.db.query.apis.findFirst({
       where: (table, { eq }) => eq(table.id, apiId),
     });
     expect(found).toBeDefined();

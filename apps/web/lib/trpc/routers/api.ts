@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { AuditLog, db, eq, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
 import { auth, t } from "../trpc";
 
@@ -34,15 +35,28 @@ export const apiRouter = t.router({
           .update(schema.apis)
           .set({ deletedAt: new Date() })
           .where(eq(schema.apis.id, input.apiId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
+
+        await ingestAuditLogs({
           workspaceId: api.workspaceId,
-          actorType: "user",
-          actorId: ctx.user.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
           event: "api.delete",
-          description: `API ${api.name} deleted`,
-          apiId: api.id,
+          description: `Deleted ${api.id}`,
+          resources: [
+            {
+              type: "api",
+              id: api.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        }).catch((err) => {
+          tx.rollback();
+          throw err;
         });
 
         const keyIds = await tx.query.keys.findMany({
@@ -50,32 +64,39 @@ export const apiRouter = t.router({
           columns: { id: true },
         });
 
-        if (keyIds.length) {
+        if (keyIds.length > 0) {
           await tx
             .update(schema.keys)
             .set({ deletedAt: new Date() })
             .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
-
-          await tx.insert(schema.auditLogs).values(
-            keyIds.map(
-              ({ id }) =>
-                ({
-                  id: newId("auditLog"),
-                  time: new Date(),
-                  workspaceId: api.workspaceId,
-                  actorType: "user",
-                  event: "key.delete" as any,
-                  description: `key ${id} deleted`,
-                  actorId: ctx.user.id,
-                  keyId: id,
-                  keyAuthId: api.keyAuthId,
-                  vercelBindingId: null,
-                  vercelIntegrationId: null,
-                  tags: null,
-                  apiId: api.id,
-                }) satisfies AuditLog,
-            ),
-          );
+          await ingestAuditLogs(
+            keyIds.map(({ id }) => ({
+              workspaceId: api.workspace.id,
+              actor: {
+                type: "user",
+                id: ctx.user.id,
+              },
+              event: "key.delete",
+              description: `Deleted ${id} as part of the ${api.id} deletion`,
+              resources: [
+                {
+                  type: "api",
+                  id: api.id,
+                },
+                {
+                  type: "key",
+                  id: id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
+            })),
+          ).catch((err) => {
+            tx.rollback();
+            throw err;
+          });
         }
       });
     }),
@@ -87,11 +108,11 @@ export const apiRouter = t.router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const workspace = await db.query.workspaces.findFirst({
+      const ws = await db.query.workspaces.findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       });
-      if (!workspace) {
+      if (!ws) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "workspace not found",
@@ -99,35 +120,40 @@ export const apiRouter = t.router({
       }
 
       const keyAuthId = newId("keyAuth");
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.keyAuth).values({
-          id: keyAuthId,
-          workspaceId: workspace.id,
-          createdAt: new Date(),
-        });
+      await db.insert(schema.keyAuth).values({
+        id: keyAuthId,
+        workspaceId: ws.id,
+        createdAt: new Date(),
       });
 
       const apiId = newId("api");
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.apis).values({
-          id: apiId,
-          name: input.name,
-          workspaceId: workspace.id,
-          keyAuthId,
-          authType: "key",
-          ipWhitelist: null,
-          createdAt: new Date(),
-        });
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: workspace.id,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "api.create",
-          description: `API ${input.name} created`,
-          apiId: apiId,
-        });
+      await db.insert(schema.apis).values({
+        id: apiId,
+        name: input.name,
+        workspaceId: ws.id,
+        keyAuthId,
+        authType: "key",
+        ipWhitelist: null,
+        createdAt: new Date(),
+      });
+      await ingestAuditLogs({
+        workspaceId: ws.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "api.create",
+        description: `Created ${apiId}`,
+        resources: [
+          {
+            type: "api",
+            id: apiId,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
 
       return {
@@ -166,23 +192,30 @@ export const apiRouter = t.router({
         throw new TRPCError({ message: "api not found", code: "NOT_FOUND" });
       }
 
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.apis)
-          .set({
-            name: input.name,
-          })
-          .where(eq(schema.apis.id, input.apiId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: ws.tenantId,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "api.update",
-          description: `API updated from ${api.name} to ${input.name}`,
-          apiId: api.id,
-        });
+      await db
+        .update(schema.apis)
+        .set({
+          name: input.name,
+        })
+        .where(eq(schema.apis.id, input.apiId));
+      await ingestAuditLogs({
+        workspaceId: ws.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "api.update",
+        description: `Changed ${api.id} name from ${api.name} to ${input.name}`,
+        resources: [
+          {
+            type: "api",
+            id: api.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
     }),
   updateIpWhitelist: t.procedure
@@ -230,23 +263,32 @@ export const apiRouter = t.router({
         throw new TRPCError({ message: "api not found", code: "NOT_FOUND" });
       }
 
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.apis)
-          .set({
-            ipWhitelist: input.ipWhitelist === null ? null : input.ipWhitelist.join(","),
-          })
-          .where(eq(schema.apis.id, input.apiId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          workspaceId: ws.id,
-          apiId: api.id,
-          event: "api.update",
-          description: "IP whitelist updated",
-          time: new Date(),
-          actorType: "user",
-          actorId: ctx.user.id,
-        });
+      const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
+      await db
+        .update(schema.apis)
+        .set({
+          ipWhitelist: newIpWhitelist,
+        })
+        .where(eq(schema.apis.id, input.apiId));
+
+      await ingestAuditLogs({
+        workspaceId: ws.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "api.update",
+        description: `Changed ${api.id} IP whitelist from ${api.ipWhitelist} to ${newIpWhitelist}`,
+        resources: [
+          {
+            type: "api",
+            id: api.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
     }),
 });

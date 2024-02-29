@@ -1,4 +1,5 @@
 import { db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -27,24 +28,30 @@ export const keySettingsRouter = t.router({
       if (key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            enabled: input.enabled,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: input.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} enabled to ${input.enabled}`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          enabled: input.enabled,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `${input.enabled ? "Enabled" : "Disabled"} ${key.id}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
     }),
   updateRatelimit: t.procedure
@@ -113,27 +120,39 @@ export const keySettingsRouter = t.router({
       if (key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            ratelimitType,
-            ratelimitLimit,
-            ratelimitRefillRate,
-            ratelimitRefillInterval,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: input.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} rate limit`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          ratelimitType,
+          ratelimitLimit,
+          ratelimitRefillRate,
+          ratelimitRefillInterval,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `Changed ratelimit of ${key.id}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+            meta: {
+              "ratelimit.type": ratelimitType,
+              "ratelimit.limit": ratelimitLimit,
+              "ratelimit.refillRate": ratelimitRefillRate,
+              "ratelimit.refillInterval": ratelimitRefillInterval,
+            },
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
     }),
   updateOwnerId: t.procedure
@@ -154,24 +173,30 @@ export const keySettingsRouter = t.router({
       if (!key || key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            ownerId: input.ownerId ?? null,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} ownerId`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          ownerId: input.ownerId ?? null,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `Changed ownerId of ${key.id} to ${input.ownerId}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
 
       return true;
@@ -197,24 +222,31 @@ export const keySettingsRouter = t.router({
       if (key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            name: input.name ?? null,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} name`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          name: input.name ?? null,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `Changed name of ${key.id} to ${input.name}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
       return true;
     }),
@@ -256,24 +288,30 @@ export const keySettingsRouter = t.router({
           code: "NOT_FOUND",
         });
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            meta: meta ? JSON.stringify(meta) : null,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} metadata`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          meta: meta ? JSON.stringify(meta) : null,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `Updated metadata of ${key.id}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
       return true;
     }),
@@ -315,24 +353,34 @@ export const keySettingsRouter = t.router({
       if (!key || key.workspace.tenantId !== ctx.tenant.id) {
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            expires,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} expiration`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          expires,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `${
+          input.expiration
+            ? `Changed expiration of ${key.id} to ${input.expiration.toUTCString()}`
+            : `Disabled expiration for ${key.id}`
+        }`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
       return true;
     }),
@@ -373,30 +421,41 @@ export const keySettingsRouter = t.router({
         throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
       }
 
-      await db.transaction(async (tx) => {
-        await tx
-          .update(schema.keys)
-          .set({
-            remaining: input.remaining ?? null,
-            refillInterval:
-              input.refill?.interval === "none" || input.refill?.interval === undefined
-                ? null
-                : input.refill?.interval,
-            refillAmount: input.refill?.amount ?? null,
-            lastRefillAt: input.refill?.interval ? new Date() : null,
-          })
-          .where(eq(schema.keys.id, input.keyId));
-        await tx.insert(schema.auditLogs).values({
-          id: newId("auditLog"),
-          time: new Date(),
-          workspaceId: key.workspaceId,
-          apiId: null,
-          actorType: "user",
-          actorId: ctx.user.id,
-          event: "key.update",
-          description: `updated key ${input.keyId} remaining`,
-          keyId: input.keyId,
-        });
+      await db
+        .update(schema.keys)
+        .set({
+          remaining: input.remaining ?? null,
+          refillInterval:
+            input.refill?.interval === "none" || input.refill?.interval === undefined
+              ? null
+              : input.refill?.interval,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
+        })
+        .where(eq(schema.keys.id, input.keyId));
+
+      await ingestAuditLogs({
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: input.limitEnabled
+          ? `Changed remaining for ${key.id} to remaining=${input.remaining}, refill=${
+              input.refill ? `${input.refill.amount}@${input.refill.interval}` : "none"
+            }`
+          : `Disabled limit for ${key.id}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
       return true;
     }),

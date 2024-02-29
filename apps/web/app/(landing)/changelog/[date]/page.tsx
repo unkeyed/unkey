@@ -19,6 +19,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return notFound();
   }
 
+  const baseUrl = process.env.VERCEL_URL ? "https://unkey.dev" : "http://localhost:3000";
+  const ogUrl = new URL("/og/changelog", baseUrl);
+
+  ogUrl.searchParams.set("title", frontmatter.title ?? "");
+  ogUrl.searchParams.set("date", params.date ?? "");
+
   return {
     title: `${frontmatter?.title} | Unkey`,
     description: frontmatter?.description,
@@ -29,6 +35,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         frontmatter?.title,
       )}`,
       siteName: "unkey.dev",
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: frontmatter.title,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -36,6 +50,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: frontmatter?.description,
       site: "@unkeydev",
       creator: "@unkeydev",
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: frontmatter.title,
+        },
+      ],
     },
     icons: {
       shortcut: "/images/landing/unkey.png",

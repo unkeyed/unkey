@@ -23,7 +23,7 @@ type Props = {
 
 export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
   const router = useRouter();
-  const removeRole = trpc.permission.removePermissionFromRootKey.useMutation({
+  const removeRole = trpc.rbac.removePermissionFromRootKey.useMutation({
     onSuccess: () => {
       toast.success("Role removed", {
         description: "Changes may take up to 60 seconds to take effect.",

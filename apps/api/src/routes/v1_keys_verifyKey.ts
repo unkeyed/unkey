@@ -1,7 +1,7 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { keyService } from "@/pkg/global";
 import { type App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
+import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
@@ -26,6 +26,20 @@ The key will be verified against the api's configuration. If the key does not be
                 description: "The key to verify",
                 example: "sk_1234",
               }),
+              authorization: z
+                .object({
+                  permissions: permissionQuerySchema.openapi({
+                    type: "object",
+                    description: "A query for which permissions you require",
+                    example: {
+                      or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
+                    },
+                  }),
+                })
+                .optional()
+                .openapi({
+                  description: "Perform RBAC checks",
+                }),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -130,6 +144,18 @@ Possible values are:
                 description:
                   "Sets the key to be enabled or disabled. Disabled keys will not verify.",
               }),
+              permissions: z
+                .array(z.string())
+                .optional()
+                .openapi({
+                  description: "A list of all the permissions this key is connected to.",
+                  example: ["dns.record.update", "dns.record.delete"],
+                }),
+              environment: z.string().optional().openapi({
+                description:
+                  "The environment of the key, this is what what you set when you crated the key",
+                example: "test",
+              }),
             })
             .openapi("V1KeysVerifyKeyResponse"),
         },
@@ -148,9 +174,14 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key } = c.req.valid("json");
+    const { apiId, key, authorization } = c.req.valid("json");
+    const { keyService } = c.get("services");
 
-    const { value, error } = await keyService.verifyKey(c, { key, apiId });
+    const { value, error } = await keyService.verifyKey(c, {
+      key,
+      apiId,
+      permissionQuery: authorization?.permissions,
+    });
     if (error) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
@@ -176,5 +207,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       remaining: value.remaining ?? undefined,
       ratelimit: value.ratelimit ?? undefined,
       enabled: value.key.enabled,
+      permissions: value.permissions,
+      environment: value.key.environment ?? undefined,
     });
   });

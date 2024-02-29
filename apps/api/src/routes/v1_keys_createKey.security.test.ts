@@ -1,23 +1,33 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   type V1KeysCreateKeyRequest,
   V1KeysCreateKeyResponse,
   registerV1KeysCreateKey,
 } from "./v1_keys_createKey";
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerV1KeysCreateKey);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+
 runSharedRoleTests<V1KeysCreateKeyRequest>({
   registerHandler: registerV1KeysCreateKey,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
+    await rh.db.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
     });
     return {
       method: "POST",
@@ -49,9 +59,6 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.create_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
-    h.useRoutes(registerV1KeysCreateKey);
-
     const keyAuthId = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthId,

@@ -13,7 +13,7 @@ import { notFound } from "next/navigation";
 import { BLOG_PATH, getContentData, getFilePaths, getPost } from "@/lib/mdx-helper";
 
 type Props = {
-  params: { slug: string };
+  params: { slug: string; title: string; description: string; authorName: string };
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
@@ -25,6 +25,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return notFound();
   }
 
+  const baseUrl = process.env.VERCEL_URL ? "https://unkey.dev" : "http://localhost:3000";
+  const ogUrl = new URL("/og/blog", baseUrl);
+  const author = authors[frontmatter.author];
+  ogUrl.searchParams.set("title", frontmatter.title ?? "");
+  ogUrl.searchParams.set("author", author.name ?? "");
+  if (author.image.src) {
+    ogUrl.searchParams.set("image", new URL(author.image.src, baseUrl).toString());
+  }
+
   return {
     title: `${frontmatter.title} | Unkey`,
     description: frontmatter.description,
@@ -32,12 +41,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${frontmatter.title} | Unkey`,
       description: frontmatter.description,
       url: `https://unkey.dev/blog/${params.slug}`,
+      type: "article",
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: frontmatter.title,
+        },
+      ],
       siteName: "unkey.dev",
     },
     twitter: {
       card: "summary_large_image",
       title: `${frontmatter.title} | Unkey`,
       description: frontmatter.description,
+      images: [
+        {
+          url: ogUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: frontmatter.title,
+        },
+      ],
       site: "@unkeydev",
       creator: "@unkeydev",
     },

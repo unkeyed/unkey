@@ -1,18 +1,24 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import {
   V1ApisDeleteApiRequest,
   V1ApisDeleteApiResponse,
   registerV1ApisDeleteApi,
 } from "./v1_apis_deleteApi";
 
-test("deletes the api", async () => {
-  const h = await Harness.init();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerV1ApisDeleteApi);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("deletes the api", async () => {
   const apiId = newId("api");
   await h.db.insert(schema.apis).values({
     id: apiId,

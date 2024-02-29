@@ -1,4 +1,3 @@
-import { db } from "@/pkg/global";
 import { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
@@ -55,12 +54,17 @@ export type V1ApisCreateApiResponse = z.infer<
 
 export const registerV1ApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
+    const { db, analytics } = c.get("services");
+
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "api.*.create_api")),
     );
 
     const { name } = c.req.valid("json");
+
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const rootKeyId = auth.key.id;
 
     const keyAuth = {
       id: newId("keyAuth"),
@@ -75,29 +79,33 @@ export const registerV1ApisCreateApi = (app: App) =>
      */
     const apiId = newId("api");
 
-    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-    const rootKeyId = auth.key.id;
-    await db.transaction(async (tx) => {
-      await tx.insert(schema.apis).values({
-        id: apiId,
-        name,
-        workspaceId: authorizedWorkspaceId,
-        authType: "key",
-        keyAuthId: keyAuth.id,
-        createdAt: new Date(),
-        deletedAt: null,
-      });
-      await tx.insert(schema.auditLogs).values({
-        id: newId("auditLog"),
-        time: new Date(),
-        workspaceId: authorizedWorkspaceId,
-        actorType: "key",
-        actorId: rootKeyId,
-        event: "api.create",
-        description: `API ${name} created`,
-        apiId: apiId,
-      });
+    await db.insert(schema.apis).values({
+      id: apiId,
+      name,
+      workspaceId: authorizedWorkspaceId,
+      authType: "key",
+      keyAuthId: keyAuth.id,
+      createdAt: new Date(),
+      deletedAt: null,
     });
+    await analytics.ingestAuditLogs({
+      workspaceId: authorizedWorkspaceId,
+      event: "api.create",
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      description: `Created ${apiId}`,
+      resources: [
+        {
+          type: "api",
+          id: apiId,
+        },
+      ],
+
+      context: { location: c.get("location"), userAgent: c.get("userAgent") },
+    });
+
     return c.json({
       apiId,
       name,

@@ -1,10 +1,7 @@
 import { Env, zEnv } from "@/pkg/env";
-import { analytics, init, logger, metrics } from "@/pkg/global";
 import { newApp } from "@/pkg/hono/app";
-import { newId } from "@unkey/id";
-import type { Metric } from "@unkey/metrics";
-import { cors } from "hono/cors";
 
+import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -18,98 +15,23 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
+import { instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
-import { registerLegacyApisCreateApi } from "./routes/legacy_apis_createApi";
-import { registerLegacyApisDeleteApi } from "./routes/legacy_apis_deleteApi";
-import { registerLegacyApisGetApi } from "./routes/legacy_apis_getApi";
-import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
-import { registerLegacyKeysDelete } from "./routes/legacy_keys_deleteKey";
-import { registerLegacyKeysGet } from "./routes/legacy_keys_getKey";
-import { registerLegacyKeysUpdate } from "./routes/legacy_keys_updateKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
+import { cors, init, metrics, otel } from "@/pkg/middleware";
+import { traceConfig } from "./pkg/tracing/config";
 
 const app = newApp();
 
-app.get("/routes", (c) => {
-  return c.json(
-    app.routes.map((r) => ({
-      method: r.method,
-      path: r.path,
-    })),
-  );
-});
-type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
-
-app.use("*", async (c, next) => {
-  // logger.info("request", {
-  //   method: c.req.method,
-  //   path: c.req.path,
-  // });
-  const start = performance.now();
-  const m = {
-    metric: "metric.http.request",
-    path: c.req.path,
-    method: c.req.method,
-    // @ts-ignore - this is a bug in the types
-    continent: c.req.raw?.cf?.continent,
-    // @ts-ignore - this is a bug in the types
-    country: c.req.raw?.cf?.country,
-    // @ts-ignore - this is a bug in the types
-    colo: c.req.raw?.cf?.colo,
-    // @ts-ignore - this is a bug in the types
-    city: c.req.raw?.cf?.city,
-    userAgent: c.req.header("user-agent"),
-    fromAgent: c.req.header("Unkey-Redirect"),
-  } as DiscriminateMetric<"metric.http.request">;
-  try {
-    const requestId = newId("request");
-    m.requestId = requestId;
-    c.set("requestId", requestId);
-
-    c.executionCtx.waitUntil(
-      analytics
-        .ingestSdkTelemetry({
-          runtime: c.req.header("Unkey-Telemetry-Runtime") || "unknown",
-          platform: c.req.header("Unkey-Telemetry-Platform") || "unknown",
-          versions: c.req.header("Unkey-Telemetry-SDK")?.split(",") || [],
-          requestId,
-          time: Date.now(),
-        })
-        .catch((err) => {
-          logger.error("Error ingesting SDK telemetry", {
-            method: c.req.method,
-            path: c.req.path,
-            error: err.message,
-          });
-        }),
-    );
-
-    await next();
-    // headers should be set after calling `next()`, otherwise they will be lowercased by the framework
-    c.res.headers.append("Unkey-Request-Id", requestId);
-  } catch (e) {
-    m.error = (e as Error).message;
-    logger.error("request", {
-      method: c.req.method,
-      path: c.req.path,
-      error: e,
-    });
-    throw e;
-  } finally {
-    m.status = c.res.status;
-    m.serviceLatency = performance.now() - start;
-    c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
-    c.res.headers.append("Unkey-Version", c.env.VERSION);
-    metrics.emit(m);
-    c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
-  }
-});
+app.use("*", init());
 app.use("*", cors());
+app.use(otel());
+app.use("*", metrics());
 
 /**
  * Registering all route handlers
@@ -117,6 +39,7 @@ app.use("*", cors());
 
 // misc
 registerV1Liveness(app);
+
 // keys
 registerV1KeysGetKey(app);
 registerV1KeysDeleteKey(app);
@@ -133,18 +56,20 @@ registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
 
 // legacy REST style routes
-registerLegacyKeysUpdate(app);
-registerLegacyKeysGet(app);
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
-registerLegacyKeysDelete(app);
-
-registerLegacyApisCreateApi(app);
-registerLegacyApisGetApi(app);
-registerLegacyApisDeleteApi(app);
 registerLegacyApisListKeys(app);
 
-export default {
+app.get("/routes", (c) => {
+  return c.json(
+    app.routes.map((r) => ({
+      method: r.method,
+      path: r.path,
+    })),
+  );
+});
+
+const handler: ExportedHandler<Env> = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
@@ -157,8 +82,15 @@ export default {
         { status: 500 },
       );
     }
-    init({ env: parsedEnv.data });
 
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
 };
+
+export default instrument(
+  handler,
+  traceConfig((env) => ({
+    name: `api.${env.ENVIRONMENT}`,
+    version: env.VERSION,
+  })),
+);

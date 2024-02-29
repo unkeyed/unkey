@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import {
-  bigint,
   boolean,
   datetime,
   index,
@@ -11,23 +10,26 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { auditLogs } from "./audit";
 import { keyAuth } from "./keyAuth";
-import { keysPermissions } from "./rbac";
+import { keysPermissions, keysRoles } from "./rbac";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
+    keyAuthId: varchar("key_auth_id", { length: 256 })
+      .notNull()
+      .references(() => keyAuth.id, { onDelete: "cascade" }),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
     /**
      * This is the workspace that owns the key.
      */
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
 
     /**
      * For internal keys, this is the workspace that the key is for.
@@ -72,11 +74,20 @@ export const keys = mysqlTable(
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
     ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
     ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
-    totalUses: bigint("total_uses", { mode: "number" }).default(0),
+    /**
+     * A custom environment flag for our users to divide keys.
+     * For example stripe has `live` and `test` keys.
+     *
+     * This field is an optional string on purpose, we do not make any assumptions at this level.
+     * A schema for enums or other enforcements should happen at the keyAuth level instead, where
+     * common settings can be configured by the user.
+     */
+    environment: varchar("environment", { length: 256 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
     keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
+    forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
   }),
 );
 
@@ -95,8 +106,9 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     references: [workspaces.id],
   }),
   permissions: many(keysPermissions, {
-    relationName: "keys_permissions_relations",
+    relationName: "keys_keys_permissions_relations",
   }),
-
-  auditLog: many(auditLogs),
+  roles: many(keysRoles, {
+    relationName: "keys_roles_key_relations",
+  }),
 }));

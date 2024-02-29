@@ -8,8 +8,8 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.11.5",
-    "typescript": "^5.0.4"
+    "@types/node": "^20.11.19",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@unkey/result": "workspace:^",

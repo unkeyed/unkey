@@ -138,8 +138,8 @@ export function BillingItem({
           viewBox="0 0 16 16"
           fill="none"
         >
-          <circle cx="8" cy="8" r="5.5" stroke="white" stroke-opacity="0.25" />
-          <path d="M8.5 5V8L10.5 9.5" stroke="white" stroke-opacity="0.25" />
+          <circle cx="8" cy="8" r="5.5" stroke="white" strokeOpacity="0.25" />
+          <path d="M8.5 5V8L10.5 9.5" stroke="white" strokeOpacity="0.25" />
         </svg>
         <p className="ml-2 text-sm text-white/20">{latency}</p>
       </div>
@@ -159,11 +159,11 @@ export function UsageText() {
           fill="none"
         >
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M15.8536 1.85359L14.7047 3.00245C19.3045 3.11116 23 6.87404 23 11.5C23 16.1945 19.1944 20 14.5 20H14V19H14.5C18.6421 19 22 15.6422 22 11.5C22 7.42813 18.755 4.11412 14.71 4.00292L15.8536 5.14648L15.1464 5.85359L13.1464 3.85359L12.7929 3.50004L13.1464 3.14648L15.1464 1.14648L15.8536 1.85359ZM9.5 4.00004C5.35786 4.00004 2 7.3579 2 11.5C2 15.5719 5.24497 18.886 9.29001 18.9972L8.14645 17.8536L8.85355 17.1465L10.8536 19.1465L11.2071 19.5L10.8536 19.8536L8.85355 21.8536L8.14645 21.1465L9.29531 19.9976C4.69545 19.8889 1 16.126 1 11.5C1 6.80562 4.80558 3.00004 9.5 3.00004H10V4.00004H9.5ZM12 8.00004V7.00004H11V8.00004C9.89543 8.00004 9 8.89547 9 10C9 11.1046 9.89543 12 11 12H13C13.5523 12 14 12.4478 14 13C14 13.5523 13.5523 14 13 14H12.5H9.5V15H12V16H13V15C14.1046 15 15 14.1046 15 13C15 11.8955 14.1046 11 13 11H11C10.4477 11 10 10.5523 10 10C10 9.44775 10.4477 9.00004 11 9.00004H11.5H14.5V8.00004H12Z"
             fill="white"
-            fill-opacity="0.4"
+            fillOpacity="0.4"
           />
         </svg>
         <h3 className="ml-4 text-lg font-medium text-white">Monetize your API</h3>

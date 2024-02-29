@@ -1,27 +1,37 @@
 import { randomUUID } from "crypto";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   type V1KeysGetVerificationsResponse,
   registerV1KeysGetVerifications,
 } from "./v1_keys_getVerifications";
 
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
+  h.useRoutes(registerV1KeysGetVerifications);
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+
 runSharedRoleTests({
   registerHandler: registerV1KeysGetVerifications,
-  prepareRequest: async (h) => {
+  prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await rh.db.insert(schema.keys).values({
       id: keyId,
-      keyAuthId: h.resources.userKeyAuth.id,
+      keyAuthId: rh.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
-      workspaceId: h.resources.userWorkspace.id,
+      workspaceId: rh.resources.userWorkspace.id,
       createdAt: new Date(),
     });
     return {
@@ -47,11 +57,9 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.read_key`, randomUUID()],
     },
   ])("$name", async ({ roles }) => {
-    const h = await Harness.init();
-    h.useRoutes(registerV1KeysGetVerifications);
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.resources.database.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -74,7 +82,7 @@ describe("correct roles", () => {
 });
 
 test("cannot read keys from a different workspace", async () => {
-  const h = await Harness.init();
+  await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
   const workspaceId = newId("workspace");
@@ -103,7 +111,7 @@ test("cannot read keys from a different workspace", async () => {
 
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.resources.database.insert(schema.keys).values({
+  await h.db.insert(schema.keys).values({
     id: keyId,
     keyAuthId: keyAuthId,
     hash: await sha256(key),
@@ -114,7 +122,7 @@ test("cannot read keys from a different workspace", async () => {
 
   const keyId2 = newId("key");
   const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.resources.database.insert(schema.keys).values({
+  await h.db.insert(schema.keys).values({
     id: keyId2,
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key2),

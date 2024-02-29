@@ -1,14 +1,20 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
-import { Harness } from "@/pkg/testutil/harness";
+import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { registerV1KeysGetVerifications } from "./v1_keys_getVerifications";
 
-test("when the key does not exist", async () => {
-  const h = await Harness.init();
+let h: RouteHarness;
+beforeEach(async () => {
+  h = new RouteHarness();
   h.useRoutes(registerV1KeysGetVerifications);
-
+  await h.seed();
+});
+afterEach(async () => {
+  await h.teardown();
+});
+test("when the key does not exist", async () => {
   const keyId = newId("api");
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
@@ -31,13 +37,14 @@ test("when the key does not exist", async () => {
 });
 
 test("without keyId or ownerId", async () => {
-  const h = await Harness.init();
+  await h.seed();
   h.useRoutes(registerV1KeysGetVerifications);
 
+  const { key } = await h.createRootKey(["*"]);
   const res = await h.get<ErrorResponse>({
     url: "/v1/keys.getVerifications",
     headers: {
-      Authorization: `Bearer ${h.resources.rootKey}`,
+      Authorization: `Bearer ${key}`,
     },
   });
 

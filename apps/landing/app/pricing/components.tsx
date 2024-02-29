@@ -204,9 +204,9 @@ export const KeyIcon: React.FC<{ className?: string; color: Color }> = ({ classN
           y2="24.9999"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color={color} stop-opacity="0" />
-          <stop offset="0.5" stop-color={color} stop-opacity="0" />
-          <stop offset="1" stop-color={color} stop-opacity="0.1" />
+          <stop stopColor={color} stopOpacity="0" />
+          <stop offset="0.5" stopColor={color} stopOpacity="0" />
+          <stop offset="1" stopColor={color} stopOpacity="0.1" />
         </linearGradient>
         <linearGradient
           id={`paint1_linear_2076_26_${color}`}
@@ -216,9 +216,9 @@ export const KeyIcon: React.FC<{ className?: string; color: Color }> = ({ classN
           y2="24.9999"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color={color} />
-          <stop offset="0.5" stop-color={color} stop-opacity="0.3" />
-          <stop offset="1" stop-color={color} stop-opacity="0.1" />
+          <stop stopColor={color} />
+          <stop offset="0.5" stopColor={color} stopOpacity="0.3" />
+          <stop offset="1" stopColor={color} stopOpacity="0.1" />
         </linearGradient>
       </defs>
     </svg>
@@ -243,7 +243,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="146.673"
             transform="matrix(-0.966169 -0.257911 -0.257911 0.966169 357.14 -44.3057)"
             fill="url(#paint0_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_3302)">
@@ -254,7 +254,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="146.625"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 347.709 -62.7411)"
             fill="url(#paint1_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_3302)">
@@ -265,7 +265,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="190.642"
             transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 343.057 -64.2233)"
             fill="url(#paint2_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_2076_3302)">
@@ -276,7 +276,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="90.3336"
             transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 343.057 -64.2235)"
             fill="url(#paint3_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_2076_3302)">
@@ -287,7 +287,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="190.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 339.651 -49.7842)"
             fill="url(#paint4_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_2076_3302)">
@@ -298,7 +298,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="93.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 476.963 11.8842)"
             fill="url(#paint5_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_2076_3302)">
@@ -309,7 +309,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="47.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 407.248 -28.366)"
             fill="url(#paint6_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_2076_3302)">
@@ -320,7 +320,7 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
             ry="40.125"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 390.581 -24.9982)"
             fill="url(#paint7_linear_2076_3302)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
       </g>
@@ -332,9 +332,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="171.039"
           height="372.55"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -345,9 +345,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="237.432"
           height="343.314"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -358,9 +358,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="359.08"
           height="359.08"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -371,9 +371,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="217.741"
           height="217.741"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -384,9 +384,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="280.735"
           height="419.58"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -397,9 +397,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="443.867"
           height="378.49"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -410,9 +410,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="297.01"
           height="265.24"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -423,9 +423,9 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           width="273.641"
           height="246.883"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3302" />
         </filter>
@@ -437,8 +437,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="293.346"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_2076_3302"
@@ -448,8 +448,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="293.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_2076_3302"
@@ -459,8 +459,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="381.284"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_2076_3302"
@@ -470,8 +470,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="180.667"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_2076_3302"
@@ -481,8 +481,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="381.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_2076_3302"
@@ -492,8 +492,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="187.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_2076_3302"
@@ -503,8 +503,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="95.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_2076_3302"
@@ -514,8 +514,8 @@ export const FreeCardHighlight: React.FC<{ className: string }> = ({ className }
           y2="80.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>
@@ -541,7 +541,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="146.673"
             transform="matrix(-0.966169 -0.257911 -0.257911 0.966169 357.14 -44.3057)"
             fill="url(#paint0_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_3350)">
@@ -552,7 +552,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="146.625"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 347.709 -62.7411)"
             fill="url(#paint1_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_3350)">
@@ -563,7 +563,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="190.642"
             transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 343.057 -64.2233)"
             fill="url(#paint2_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_2076_3350)">
@@ -574,7 +574,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="90.3336"
             transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 343.057 -64.2235)"
             fill="url(#paint3_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_2076_3350)">
@@ -585,7 +585,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="190.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 339.651 -49.7842)"
             fill="url(#paint4_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_2076_3350)">
@@ -596,7 +596,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="93.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 476.963 11.8842)"
             fill="url(#paint5_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_2076_3350)">
@@ -607,7 +607,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="47.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 407.248 -28.366)"
             fill="url(#paint6_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_2076_3350)">
@@ -618,7 +618,7 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
             ry="40.125"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 390.581 -24.9982)"
             fill="url(#paint7_linear_2076_3350)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
       </g>
@@ -630,9 +630,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="171.039"
           height="372.55"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -643,9 +643,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="237.432"
           height="343.314"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -656,9 +656,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="359.08"
           height="359.08"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -669,9 +669,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="217.741"
           height="217.741"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -682,9 +682,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="280.735"
           height="419.58"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -695,9 +695,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="443.867"
           height="378.49"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -708,9 +708,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="297.01"
           height="265.24"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -721,9 +721,9 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           width="273.641"
           height="246.883"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3350" />
         </filter>
@@ -735,8 +735,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="293.346"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_2076_3350"
@@ -746,8 +746,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="293.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_2076_3350"
@@ -757,8 +757,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="381.284"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_2076_3350"
@@ -768,8 +768,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="180.667"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_2076_3350"
@@ -779,8 +779,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="381.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_2076_3350"
@@ -790,8 +790,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="187.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_2076_3350"
@@ -801,8 +801,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="95.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_2076_3350"
@@ -812,8 +812,8 @@ export const ProCardHighlight: React.FC<{ className: string }> = ({ className })
           y2="80.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#FFD600" />
-          <stop offset="1" stop-color="#FFD600" stop-opacity="0" />
+          <stop stopColor="#FFD600" />
+          <stop offset="1" stopColor="#FFD600" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>
@@ -839,7 +839,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="146.673"
             transform="matrix(-0.966169 -0.257911 -0.257911 0.966169 357.14 -44.3058)"
             fill="url(#paint0_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_3437)">
@@ -850,7 +850,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="146.625"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 347.709 -62.7412)"
             fill="url(#paint1_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_3437)">
@@ -861,7 +861,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="190.642"
             transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 343.057 -64.2233)"
             fill="url(#paint2_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_2076_3437)">
@@ -872,7 +872,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="90.3336"
             transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 343.057 -64.2235)"
             fill="url(#paint3_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_2076_3437)">
@@ -883,7 +883,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="190.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 339.651 -49.7842)"
             fill="url(#paint4_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_2076_3437)">
@@ -894,7 +894,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="93.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 476.963 11.8842)"
             fill="url(#paint5_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_2076_3437)">
@@ -905,7 +905,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="47.75"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 407.248 -28.366)"
             fill="url(#paint6_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_2076_3437)">
@@ -916,7 +916,7 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
             ry="40.125"
             transform="matrix(-0.866025 -0.5 -0.5 0.866025 390.581 -24.9983)"
             fill="url(#paint7_linear_2076_3437)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
       </g>
@@ -928,9 +928,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="171.039"
           height="372.55"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -941,9 +941,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="237.432"
           height="343.314"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -954,9 +954,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="359.08"
           height="359.08"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -967,9 +967,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="217.741"
           height="217.741"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -980,9 +980,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="280.735"
           height="419.58"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -993,9 +993,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="443.867"
           height="378.49"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -1006,9 +1006,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="297.01"
           height="265.24"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -1019,9 +1019,9 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           width="273.641"
           height="246.883"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_3437" />
         </filter>
@@ -1033,8 +1033,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="293.346"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_2076_3437"
@@ -1044,8 +1044,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="293.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_2076_3437"
@@ -1055,8 +1055,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="381.284"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_2076_3437"
@@ -1066,8 +1066,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="180.667"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_2076_3437"
@@ -1077,8 +1077,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="381.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_2076_3437"
@@ -1088,8 +1088,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="187.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_2076_3437"
@@ -1099,8 +1099,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="95.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_2076_3437"
@@ -1110,8 +1110,8 @@ export const EnterpriseCardHighlight: React.FC<{ className: string }> = ({ class
           y2="80.25"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6E56CF" />
-          <stop offset="1" stop-color="#6E56CF" stop-opacity="0" />
+          <stop stopColor="#6E56CF" />
+          <stop offset="1" stopColor="#6E56CF" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>
@@ -1148,7 +1148,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             ry="146.673"
             transform="rotate(15.0538 184.597 353.647)"
             fill="url(#paint0_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_2453)">
@@ -1158,7 +1158,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             rx="13.25"
             ry="146.625"
             fill="url(#paint1_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_2453)">
@@ -1169,7 +1169,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             ry="190.642"
             transform="rotate(-15 289.17 378.792)"
             fill="url(#paint2_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter3_f_2076_2453)">
@@ -1180,7 +1180,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             ry="90.3336"
             transform="rotate(-15 263.208 281.902)"
             fill="url(#paint3_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter4_f_2076_2453)">
@@ -1190,7 +1190,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             rx="11.125"
             ry="190.75"
             fill="url(#paint4_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter5_f_2076_2453)">
@@ -1200,7 +1200,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             rx="160.75"
             ry="93.75"
             fill="url(#paint5_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter6_f_2076_2453)">
@@ -1210,7 +1210,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             rx="80.25"
             ry="47.75"
             fill="url(#paint6_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
         <g style={{ mixBlendMode: "lighten" }} filter="url(#filter7_f_2076_2453)">
@@ -1220,7 +1220,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
             rx="67.5"
             ry="40.125"
             fill="url(#paint7_linear_2076_2453)"
-            fill-opacity="0.5"
+            fillOpacity="0.5"
           />
         </g>
       </g>
@@ -1230,7 +1230,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
       <path
         d="M211.5 161V593H212.5V161H211.5ZM204.5 593V161H203.5V593H204.5Z"
         fill="url(#paint8_angular_2076_2453)"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
         mask="url(#path-9-inside-1_2076_2453)"
       />
       <mask id="path-11-inside-2_2076_2453" fill="white">
@@ -1239,7 +1239,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
       <path
         d="M187.5 51V483H188.5V51H187.5ZM180.5 483V51H179.5V483H180.5Z"
         fill="url(#paint9_angular_2076_2453)"
-        fill-opacity="0.2"
+        fillOpacity="0.2"
         mask="url(#path-11-inside-2_2076_2453)"
       />
       <mask id="path-13-inside-3_2076_2453" fill="white">
@@ -1248,7 +1248,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
       <path
         d="M235.5 101V533H236.5V101H235.5ZM228.5 533V101H227.5V533H228.5Z"
         fill="url(#paint10_angular_2076_2453)"
-        fill-opacity="0.3"
+        fillOpacity="0.3"
         mask="url(#path-13-inside-3_2076_2453)"
       />
       <mask id="path-15-inside-4_2076_2453" fill="white">
@@ -1257,7 +1257,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
       <path
         d="M259.5 191V623H260.5V191H259.5ZM252.5 623V191H251.5V623H252.5Z"
         fill="url(#paint11_angular_2076_2453)"
-        fill-opacity="0.8"
+        fillOpacity="0.8"
         mask="url(#path-15-inside-4_2076_2453)"
       />
       <mask id="path-17-inside-5_2076_2453" fill="white">
@@ -1266,7 +1266,7 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
       <path
         d="M283.5 1V433H284.5V1H283.5ZM276.5 433V1H275.5V433H276.5Z"
         fill="url(#paint12_angular_2076_2453)"
-        fill-opacity="0.1"
+        fillOpacity="0.1"
         mask="url(#path-17-inside-5_2076_2453)"
       />
       <defs>
@@ -1277,9 +1277,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="171.525"
           height="372.409"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1290,9 +1290,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="115.5"
           height="382.25"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1303,9 +1303,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="190.045"
           height="457.338"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1316,9 +1316,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="140.527"
           height="263.609"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1329,9 +1329,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="111.25"
           height="470.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="22.25" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1342,9 +1342,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="471.5"
           height="337.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1355,9 +1355,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="310.5"
           height="245.5"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1368,9 +1368,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           width="285"
           height="230.25"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feGaussianBlur stdDeviation="37.5" result="effect1_foregroundBlur_2076_2453" />
         </filter>
@@ -1382,8 +1382,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="500.319"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_2076_2453"
@@ -1393,8 +1393,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="489.75"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_2076_2453"
@@ -1404,8 +1404,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="569.434"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_2076_2453"
@@ -1415,8 +1415,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="372.236"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_2076_2453"
@@ -1426,8 +1426,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="593.251"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_2076_2453"
@@ -1437,8 +1437,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="384.001"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_2076_2453"
@@ -1448,8 +1448,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="292"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_2076_2453"
@@ -1459,8 +1459,8 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           y2="288"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <radialGradient
           id="paint8_angular_2076_2453"
@@ -1470,9 +1470,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(208 481) scale(32 185)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.0001" stop-color="white" stop-opacity="0" />
-          <stop offset="0.784842" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.0001" stopColor="white" stopOpacity="0" />
+          <stop offset="0.784842" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint9_angular_2076_2453"
@@ -1482,9 +1482,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(184 371) scale(32 185)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.0001" stop-color="white" stop-opacity="0" />
-          <stop offset="0.784842" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.0001" stopColor="white" stopOpacity="0" />
+          <stop offset="0.784842" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint10_angular_2076_2453"
@@ -1494,9 +1494,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(232 421) scale(32 185)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.0001" stop-color="white" stop-opacity="0" />
-          <stop offset="0.784842" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.0001" stopColor="white" stopOpacity="0" />
+          <stop offset="0.784842" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint11_angular_2076_2453"
@@ -1506,9 +1506,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(256 511) scale(32 185)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.0001" stop-color="white" stop-opacity="0" />
-          <stop offset="0.784842" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.0001" stopColor="white" stopOpacity="0" />
+          <stop offset="0.784842" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <radialGradient
           id="paint12_angular_2076_2453"
@@ -1518,9 +1518,9 @@ export const BelowEnterpriseSvg: React.FC<{ className?: string }> = ({ className
           gradientUnits="userSpaceOnUse"
           gradientTransform="translate(280 321) scale(32 185)"
         >
-          <stop stop-color="white" />
-          <stop offset="0.0001" stop-color="white" stop-opacity="0" />
-          <stop offset="0.784842" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" />
+          <stop offset="0.0001" stopColor="white" stopOpacity="0" />
+          <stop offset="0.784842" stopColor="white" stopOpacity="0" />
         </radialGradient>
       </defs>
     </svg>

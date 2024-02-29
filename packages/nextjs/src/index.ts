@@ -73,18 +73,18 @@ export type UnkeyContext = {
     | undefined;
 };
 
-export type NextContext = { params: string };
+export type NextContext = { params: Record<string, string | string[]> };
 
 export type NextRequestWithUnkeyContext = NextRequest & { unkey: UnkeyContext };
 
-export function withUnkey(
+export function withUnkey<TContext extends NextContext = NextContext>(
   handler: (
     req: NextRequestWithUnkeyContext,
-    context: NextContext,
+    context: TContext,
   ) => Response | NextResponse | Promise<Response | NextResponse>,
   config?: WithUnkeyConfig,
 ) {
-  return async (req: NextRequest, context: NextContext) => {
+  return async (req: NextRequest, context: TContext) => {
     /**
      * Get key from request and return a response early if not found
      */
