@@ -438,8 +438,6 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
     return currentFramework?.codeBlock || "";
   }
 
-  console.log(getLanguage({ language, framework }));
-
   const LanguageTrigger = React.forwardRef<
     React.ElementRef<typeof TabsPrimitive.Trigger>,
     React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
@@ -466,14 +464,14 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
-        text="Unkey ensures security across any language or framework. Effortlessly manage API Keys with an intuitive console, providing timely data and streamlined settings for a seamless coding experience."
+        text="Add authentication to your APIs in a few lines of code. We provide SDKs for a range of languages and frameworks, and an intuitive REST API with public OpenAPI spec."
         align="center"
-        titleWidth={543}
-        contentWidth={591}
-        className="relative py-20 "
+        titleWidth={653}
+        contentWidth={671}
+        className="relative"
       >
         <div className="mt-10">
-          <div className="flex space-x-6 ">
+          <div className="flex space-x-6 pb-14">
             <Link key="get-started" href="/app">
               <PrimaryButton label="Get Started" IconRight={ChevronRight} />
             </Link>
@@ -483,7 +481,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </Link>
           </div>
         </div>
-        <HighlightAbove className="absolute bottom-0 w-full mx-auto pointer-events-none" />
+        <HighlightAbove className="absolute hidden xs:flex xs:bottom-[-105px] sm:bottom-[-70px] md:bottom-0 w-full h-full mx-auto pointer-events-none" />
       </SectionTitle>
       <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black">
         <Tabs
@@ -561,8 +559,8 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
                     y2="20.9494"
                     gradientUnits="userSpaceOnUse"
                   >
-                    <stop stopColor="white" stopOpacity="0.4" />
-                    <stop offset="1" stopColor="white" />
+                    <stop stop-color="white" stop-opacity="0.4" />
+                    <stop offset="1" stop-color="white" />
                   </linearGradient>
                 </defs>
               </svg>

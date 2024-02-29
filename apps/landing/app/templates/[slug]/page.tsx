@@ -6,9 +6,7 @@ import { templates } from "../data";
 
 import { CTA } from "@/components/cta";
 import { Frame } from "@/components/frame";
-import { ChangelogLight } from "@/components/svg/changelog";
 import { TemplateComponents } from "@/components/template/mdx-components";
-import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
 import { Metadata } from "next";
 import Link from "next/link";

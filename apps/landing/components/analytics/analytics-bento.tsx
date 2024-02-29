@@ -1,6 +1,9 @@
 "use client";
+import { motion } from "framer-motion";
 import { Highlight, PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
+import { AnalyticsStars } from "../svg/analytics-stars";
+import { AnalyticsWebApp, AnalyticsWebAppMobile } from "../svg/analytics-web-app";
 
 export const theme = {
   plain: {
@@ -52,32 +55,50 @@ export function AnalyticsBento() {
   const [showApi, toggleShowApi] = useState(true);
 
   return (
-    <div className="relative flex justify-center">
+    <div className="flex justify-center relative w-full">
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
-        className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3"
+        className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3 w-[164px]"
       >
-        <div className="p-1 mr-3 bg-gray-200 rounded-lg">
+        <div className="mr-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
+            width="34"
+            height="34"
+            viewBox="0 0 34 34"
+            className="scale-90"
             fill="none"
           >
+            <rect width="34" height="34" rx="8" fill="black" fill-opacity="0.08" />
             <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M15.5579 2.32588C15.8019 2.0818 16.1977 2.0818 16.4418 2.32588L17.674 3.55811C17.9181 3.80219 17.9181 4.19792 17.674 4.442L14.9114 7.20456L12.7953 5.08844L15.5579 2.32588ZM12.0882 5.79555L2.32564 15.5581C2.08156 15.8022 2.08156 16.1979 2.32564 16.442L3.55787 17.6742C3.80195 17.9183 4.19768 17.9183 4.44175 17.6742L14.2043 7.91167L12.0882 5.79555ZM17.3256 1.442C16.5934 0.709764 15.4062 0.709764 14.674 1.442L1.44175 14.6742C0.70952 15.4065 0.70952 16.5936 1.44175 17.3259L2.67399 18.5581C3.40622 19.2903 4.5934 19.2903 5.32564 18.5581L18.5579 5.32588C19.2901 4.59365 19.2901 3.40646 18.5579 2.67423L17.3256 1.442Z"
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M22.5579 9.32588C22.8019 9.0818 23.1977 9.0818 23.4418 9.32588L24.674 10.5581C24.9181 10.8022 24.9181 11.1979 24.674 11.442L21.9114 14.2046L19.7953 12.0884L22.5579 9.32588ZM19.0882 12.7956L9.32564 22.5581C9.08156 22.8022 9.08156 23.1979 9.32564 23.442L10.5579 24.6742C10.8019 24.9183 11.1977 24.9183 11.4418 24.6742L21.2043 14.9117L19.0882 12.7956ZM24.3256 8.442C23.5934 7.70976 22.4062 7.70976 21.674 8.442L8.44175 21.6742C7.70952 22.4065 7.70952 23.5936 8.44175 24.3259L9.67399 25.5581C10.4062 26.2903 11.5934 26.2903 12.3256 25.5581L25.5579 12.3259C26.2901 11.5936 26.2901 10.4065 25.5579 9.67423L24.3256 8.442Z"
+              fill="black"
+            />
+            <path
+              opacity="0.4"
+              d="M15.25 8.25L16 6.5L16.75 8.25L18.5 9L16.75 9.75L16 11.5L15.25 9.75L13.5 9L15.25 8.25Z"
+              fill="black"
+            />
+            <path
+              opacity="0.6"
+              d="M8.5 11.5L9.5 9L10.5 11.5L13 12.5L10.5 13.5L9.5 16L8.5 13.5L6 12.5L8.5 11.5Z"
+              fill="black"
+            />
+            <path
+              opacity="0.9"
+              d="M21.5 20.5L22.5 18L23.5 20.5L26 21.5L23.5 22.5L22.5 25L21.5 22.5L19 21.5L21.5 20.5Z"
               fill="black"
             />
           </svg>
         </div>
-        Hide API Code
+        {showApi ? "Hide API Code" : "Show API code"}
       </button>
-      <div className="bg-gradient-to-b from-[#111111] to-black mt-[80px] xl:w-full h-[640px] flex justify-center xl:justify-end items-end px-10 xl:pr-[40px] border border-gray-100 rounded-3xl border-[.5px] border-white/20 relative">
-        <LightSvg className="absolute left-[250px] top-[-150px]" />
+      <div className="mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
+        <LightSvg className="absolute top-[-180px] left:0 xl:left-[120px] xxl:left-[330px] z-50 pointer-events-none" />
+        <AnalyticsStars />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
       </div>
@@ -87,27 +108,44 @@ export function AnalyticsBento() {
 
 function AnalyticsApiView() {
   return (
-    <div className="xl:w-[1120px] overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
-      <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/10">
-        <div className="flex items-center cursor-pointer bg-white/10 py-1 px-2 rounded-lg w-[184px]">
-          <TerminalIcon className="w-6 h-6" />
-          <div className="ml-3">cURL</div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      whileInView="visible"
+      className="w-full "
+    >
+      <div className="max-w-[400px] w-full bg-[#000000] bg-opacity-02 analytics-background-gradient xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+        <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
+          <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
+            <TerminalIcon className="w-6 h-6" />
+            <div className="ml-3">cURL</div>
+          </div>
+        </div>
+        <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
+          <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
         </div>
       </div>
-      <div className="flex w-full pt-4 pl-8 font-mono text-xs text-white sm:text-sm">
-        <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
-      </div>
-    </div>
+    </motion.div>
   );
 }
 
 function AnalyticsWebAppView() {
   return (
-    <div className="xl:w-[1120px]  overflow-y-hidden flex-col md:flex-row relative analytics-background-gradient rounded-tr-3xl rounded-tl-3xl h-[600px] xl:h-[576px] flex bg-[#111111]/10">
-      <p className="text-white ml-[100px] mt-[100px]">
-        We need an export of this SVG for desktop. The largest in the Figma is 960px currently.
-      </p>
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      whileInView="visible"
+      className="w-full"
+    >
+      <div className="max-w-[1221px] relative overflow-hidden w-full analytics-background-gradient h-[600px] xl:h-[576px]  w-full  mr-10">
+        <AnalyticsWebApp className="hidden md:flex" />
+        <AnalyticsWebAppMobile />
+      </div>
+    </motion.div>
   );
 }
 
@@ -132,6 +170,7 @@ export function Editor({
         </pre>
       )}
     </Highlight>
+    // </motion.div>
   );
 }
 
@@ -236,8 +275,8 @@ export function TerminalIcon({ className }: { className?: string }) {
 
 export function BentoText() {
   return (
-    <div className="flex flex-col text-white absolute left-[90px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[336px]">
-      <div className="flex items-center w-full">
+    <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[286px]">
+      <div className="flex w-full items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -256,153 +295,154 @@ export function BentoText() {
         </svg>
         <h3 className="ml-4 text-lg font-medium text-white">Realtime Analytics</h3>
       </div>
-      <p className="mt-4 leading-6 text-white/60">
-        Empower decision-making with real-time analytics for swift, informed actions based on the
-        latest data trends.
+      <p className="mt-4 text-white/60 leading-6">
+        Access real-time insights into your API usage through our dashboard, or build your own on
+        top of our APi.
       </p>
     </div>
   );
 }
 
-function LightSvg({ className }: { className?: string }) {
+export function LightSvg({ className }: { className?: string }) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
       width={706}
       height={773}
+      viewBox="0 0 706 773"
       fill="none"
+      xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
       <g opacity={0.2}>
         <g
-          filter="url(#a)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#a)"
         >
           <ellipse
             cx={24.471}
             cy={219.174}
-            fill="url(#b)"
-            fillOpacity={0.5}
             rx={24.471}
             ry={219.174}
-            transform="rotate(15.067 -346.219 1160.893) skewX(.027)"
+            transform="rotate(15.067 -346.215 1160.893)skewX(.027)"
+            fill="url(#b)"
+            fillOpacity={0.5}
           />
         </g>
         <g
-          filter="url(#c)"
           style={{
             mixBlendMode: "color-dodge",
           }}
+          filter="url(#c)"
         >
           <ellipse
             cx={355.612}
-            cy={332.215}
-            fill="url(#d)"
-            fillOpacity={0.5}
+            cy={332.214}
             rx={19.782}
             ry={219.116}
+            fill="url(#d)"
+            fillOpacity={0.5}
           />
         </g>
         <g
-          filter="url(#e)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#e)"
         >
           <ellipse
             cx={16.707}
             cy={284.877}
-            fill="url(#f)"
-            fillOpacity={0.5}
             rx={16.707}
             ry={284.877}
-            transform="rotate(-15.013 621.533 -1357.818) skewX(-.027)"
+            transform="rotate(-15.013 621.533 -1357.818)skewX(-.027)"
+            fill="url(#f)"
+            fillOpacity={0.5}
           />
         </g>
         <g
-          filter="url(#g)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#g)"
         >
           <ellipse
             cx={16.707}
             cy={134.986}
-            fill="url(#h)"
-            fillOpacity={0.5}
             rx={16.707}
             ry={134.986}
-            transform="rotate(-15.013 606.533 -1243.985) skewX(-.027)"
+            transform="rotate(-15.013 606.533 -1243.985)skewX(-.027)"
+            fill="url(#h)"
+            fillOpacity={0.5}
           />
         </g>
         <g
-          filter="url(#i)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#i)"
         >
           <ellipse
             cx={353.187}
             cy={420.944}
+            rx={16.61}
+            ry={285.056}
             fill="url(#j)"
             fillOpacity={0.5}
-            rx={16.61}
-            ry={285.056}
           />
         </g>
         <g
-          filter="url(#k)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#k)"
         >
           <ellipse
             cx={353.187}
             cy={420.944}
-            fill="url(#l)"
-            fillOpacity={0.5}
             rx={16.61}
             ry={285.056}
+            fill="url(#l)"
+            fillOpacity={0.5}
           />
         </g>
         <g
-          filter="url(#m)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#m)"
         >
-          <ellipse cx={353} cy={253.199} fill="url(#n)" fillOpacity={0.5} rx={240} ry={140.1} />
+          <ellipse cx={353} cy={253.199} rx={240} ry={140.1} fill="url(#n)" fillOpacity={0.5} />
         </g>
         <g
-          filter="url(#o)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#o)"
         >
           <ellipse
             cx={353}
-            cy={184.457}
-            fill="url(#p)"
-            fillOpacity={0.5}
+            cy={184.456}
             rx={119.813}
             ry={71.357}
+            fill="url(#p)"
+            fillOpacity={0.5}
           />
         </g>
         <g
-          filter="url(#q)"
           style={{
             mixBlendMode: "lighten",
           }}
+          filter="url(#q)"
         >
           <ellipse
             cx={353}
             cy={189.873}
-            fill="url(#r)"
-            fillOpacity={0.5}
             rx={100.778}
             ry={59.963}
+            fill="url(#r)"
+            fillOpacity={0.5}
           />
         </g>
       </g>
@@ -410,8 +450,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="b"
           x1={24.471}
-          x2={24.471}
           y1={0}
+          x2={24.471}
           y2={438.347}
           gradientUnits="userSpaceOnUse"
         >
@@ -421,9 +461,9 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="d"
           x1={355.612}
-          x2={355.612}
           y1={113.099}
-          y2={551.331}
+          x2={355.612}
+          y2={551.33}
           gradientUnits="userSpaceOnUse"
         >
           <stop stopColor="#fff" />
@@ -432,8 +472,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="f"
           x1={16.707}
-          x2={16.707}
           y1={0}
+          x2={16.707}
           y2={569.753}
           gradientUnits="userSpaceOnUse"
         >
@@ -443,8 +483,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="h"
           x1={16.707}
-          x2={16.707}
           y1={0}
+          x2={16.707}
           y2={269.972}
           gradientUnits="userSpaceOnUse"
         >
@@ -454,8 +494,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="j"
           x1={353.187}
-          x2={353.187}
           y1={135.888}
+          x2={353.187}
           y2={706}
           gradientUnits="userSpaceOnUse"
         >
@@ -465,8 +505,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="l"
           x1={353.187}
-          x2={353.187}
           y1={135.888}
+          x2={353.187}
           y2={706}
           gradientUnits="userSpaceOnUse"
         >
@@ -476,8 +516,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="n"
           x1={353}
-          x2={353}
           y1={113.099}
+          x2={353}
           y2={393.298}
           gradientUnits="userSpaceOnUse"
         >
@@ -487,8 +527,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="p"
           x1={353}
-          x2={353}
           y1={113.099}
+          x2={353}
           y2={255.814}
           gradientUnits="userSpaceOnUse"
         >
@@ -498,8 +538,8 @@ function LightSvg({ className }: { className?: string }) {
         <linearGradient
           id="r"
           x1={353}
+          y1={129.91}
           x2={353}
-          y1={129.911}
           y2={249.836}
           gradientUnits="userSpaceOnUse"
         >
@@ -508,120 +548,120 @@ function LightSvg({ className }: { className?: string }) {
         </linearGradient>
         <filter
           id="a"
-          width={256.71}
-          height={557.025}
           x={128.273}
           y={69.424}
-          colorInterpolationFilters="sRGB"
+          width={256.71}
+          height={557.026}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+          <feGaussianBlur stdDeviation={33.375} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="c"
-          width={173.064}
-          height={571.732}
           x={269.08}
           y={46.349}
-          colorInterpolationFilters="sRGB"
+          width={173.065}
+          height={571.731}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+          <feGaussianBlur stdDeviation={33.375} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="e"
+          x={320.576}
+          y={43.543}
           width={284.36}
           height={683.943}
-          x={320.576}
-          y={43.544}
-          colorInterpolationFilters="sRGB"
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+          <feGaussianBlur stdDeviation={33.375} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="g"
-          width={210.431}
-          height={394.435}
           x={288.78}
           y={43.505}
-          colorInterpolationFilters="sRGB"
+          width={210.431}
+          height={394.435}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+          <feGaussianBlur stdDeviation={33.375} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="i"
-          width={166.719}
-          height={703.612}
           x={269.827}
           y={69.138}
-          colorInterpolationFilters="sRGB"
+          width={166.719}
+          height={703.612}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+          <feGaussianBlur stdDeviation={33.375} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="k"
-          width={166.719}
-          height={703.612}
           x={269.827}
           y={69.138}
-          colorInterpolationFilters="sRGB"
+          width={166.719}
+          height={703.612}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={33.375} />
+          <feGaussianBlur stdDeviation={33.375} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="m"
-          width={705}
-          height={505.199}
           x={0.5}
           y={0.599}
-          colorInterpolationFilters="sRGB"
+          width={705}
+          height={505.199}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={56.25} />
+          <feGaussianBlur stdDeviation={56.25} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="o"
-          width={464.627}
-          height={367.715}
           x={120.687}
           y={0.599}
-          colorInterpolationFilters="sRGB"
+          width={464.627}
+          height={367.715}
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={56.25} />
+          <feGaussianBlur stdDeviation={56.25} result="effect1_foregroundBlur_840_2403" />
         </filter>
         <filter
           id="q"
+          x={139.723}
+          y={17.41}
           width={426.555}
           height={344.925}
-          x={139.723}
-          y={17.411}
-          colorInterpolationFilters="sRGB"
           filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity={0} result="BackgroundImageFix" />
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur result="effect1_foregroundBlur_840_2403" stdDeviation={56.25} />
+          <feGaussianBlur stdDeviation={56.25} result="effect1_foregroundBlur_840_2403" />
         </filter>
       </defs>
     </svg>

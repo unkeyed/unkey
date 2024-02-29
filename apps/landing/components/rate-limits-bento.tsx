@@ -1,6 +1,6 @@
 export function RateLimitsBento() {
   return (
-    <div className="w-full mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full xl:mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden rate-limits-background-gradient">
       <RateLimits />
       <RateLimitsText />
     </div>
@@ -9,7 +9,7 @@ export function RateLimitsBento() {
 
 export function RateLimits() {
   return (
-    <div className="mx-[40px] flex w-full flex-col ">
+    <div className="mx-[40px] flex w-full flex-col">
       <div className="flex h-[200px] w-full ratelimits-editor-bg-gradient rounded-b-xl ">
         <div className="flex flex-col font-mono text-sm text-white px-[24px] space-y-3 mt-1 border-r-[.75px] border-[#ffffff]/20">
           <p>1</p>
@@ -19,13 +19,13 @@ export function RateLimits() {
           <p>5</p>
           <p>6</p>
         </div>
-        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8">
+        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8 rounded-br-xl">
           {JSON.stringify({ rateLimit: { limit: 10, interval: 1000 } }, null, 2)}
         </div>
       </div>
       <div className="mt-8 flex flex-col ratelimits-fade-gradient">
         <div className="flex items-center">
-          <div className="text-white font-mono text-sm">
+          <div className="text-white font-mono text-xs sm:font-sm whitespace-nowrap">
             <span className="text-[#ffffff]/40">Creating</span> keys
             <span className="tracking-[-5px]">...</span>
             <span className="inline-flex w-[4px] h-[12px] bg-white ratelimits-bar-shadow ml-3" />
@@ -229,8 +229,8 @@ export function RateLimitsText() {
         <h3 className="text-lg font-medium text-white ml-4">Rate Limits</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Implement granular control over access with per-key rate limiting, preventing abuse and
-        optimizing the performance of your services.
+        Implement granular control over access with custom rate limiting per key, preventing abuse
+        and optimizing the performance of your services.
       </p>
     </div>
   );

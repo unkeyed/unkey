@@ -2,7 +2,7 @@ import { IpWhitelisting } from "@/components/svg/ip-whitelisting";
 
 export function IpWhitelistingBento() {
   return (
-    <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       <IpWhitelisting className="h-[500px] w-full" />
       <IpWhitelistingText />
     </div>
@@ -32,7 +32,7 @@ export function IpWhitelistingText() {
       </div>
       <p className="mt-4 text-white/60 leading-6">
         Ensure secure access control by allowing only designated IP addresses to interact with your
-        system, adding an extra layer of protection.
+        system, adding an extra layer of protection.p
       </p>
     </div>
   );
