@@ -62,7 +62,7 @@ producers = [
 # canary is a special environment that is used to test new code by a small percentage of users before it is rolled out to the rest of the world.
 # all settings must be the same as production, except for the route pattern
 [env.canary]
-vars = {  ENVIRONMENT = "production"}
+vars = {  ENVIRONMENT = "canary"}
 route = { pattern = "canary.unkey.dev", custom_domain = true}
 
 
