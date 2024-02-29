@@ -93,7 +93,7 @@
   },
   "devDependencies": {
     "@builder.io/react-hydration-overlay": "^0.0.8",
-    "@clerk/types": "^3.62.0",
+    "@clerk/types": "^3.62.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/dagre": "^0.7.52",
     "@types/ms": "^0.7.34",
