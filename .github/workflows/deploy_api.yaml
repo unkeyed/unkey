@@ -105,6 +105,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
         run: pnpm test:e2e
@@ -148,6 +150,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
         run: pnpm test:e2e
