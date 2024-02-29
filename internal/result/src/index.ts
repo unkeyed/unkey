@@ -1,4 +1,8 @@
-export type Result<TValue, TError extends { message: string } = { message: string }> =
+type BaseError = {
+  message: string;
+};
+
+export type Result<TValue, TError extends BaseError = BaseError> =
   | {
       value: TValue;
       error?: never;
@@ -8,11 +12,18 @@ export type Result<TValue, TError extends { message: string } = { message: strin
       error: TError;
     };
 
-function success<TValue>(value: TValue): Result<TValue> {
+function success(): Result<void, any>;
+function success<TValue, TError extends BaseError = BaseError>(
+  value: TValue,
+): Result<TValue, TError>;
+function success<TValue, TError extends BaseError = BaseError>(
+  value?: TValue,
+): Result<TValue, TError> {
+  // @ts-expect-error
   return { value };
 }
 
-function fail<TError extends { message: string }>(error: TError): Result<any, TError> {
+function fail<TError extends BaseError>(error: TError): Result<any, TError> {
   return { error };
 }
 

@@ -141,7 +141,10 @@ export class KeyService {
         keyHash: await sha256(req.key),
         apiId: req.apiId,
       });
-      span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: `Error during key verification: ${err.message}`,
+      });
       span.recordException(err);
 
       throw e;
@@ -159,7 +162,7 @@ export class KeyService {
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
-    const data = await this.cache.withCache(c, "keyByHash", hash, async () => {
+    const { value: data, error } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
@@ -217,6 +220,10 @@ export class KeyService {
         roles: dbRes.roles.map((r) => r.role.name),
       };
     });
+
+    if (error) {
+      return result.fail(new Error(`unable to fetch required data: ${error.message}`));
+    }
 
     if (!data) {
       span.addEvent("not found");

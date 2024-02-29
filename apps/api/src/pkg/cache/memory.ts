@@ -1,5 +1,6 @@
+import { Result, result } from "@unkey/result";
 import type { Context } from "hono";
-import { Cache, Entry } from "./interface";
+import { Cache, CacheError, Entry } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 
@@ -17,24 +18,25 @@ export class MemoryCache<TNamespaces extends Record<string, unknown> = CacheName
     _c: Context,
     namespace: TName,
     key: string,
-  ): [TNamespaces[TName] | undefined, boolean] {
+  ): Result<[TNamespaces[TName] | undefined, boolean], CacheError> {
     const cached = this.state.get(`${String(namespace)}:${key}`) as
       | Entry<TNamespaces[TName]>
       | undefined;
+
     if (!cached) {
-      return [undefined, false];
+      return result.success([undefined, false]);
     }
     const now = Date.now();
 
     if (now >= cached.staleUntil) {
       this.state.delete(`${String(namespace)}:${key}`);
-      return [undefined, false];
+      return result.success([undefined, false]);
     }
     if (now >= cached.freshUntil) {
-      return [cached.value, true];
+      return result.success([cached.value, true]);
     }
 
-    return [cached.value, false];
+    return result.success([cached.value, false]);
   }
 
   public set<TName extends keyof TNamespaces>(
@@ -42,16 +44,18 @@ export class MemoryCache<TNamespaces extends Record<string, unknown> = CacheName
     namespace: TName,
     key: string,
     value: TNamespaces[TName],
-  ): void {
+  ): Result<void, CacheError> {
     const now = Date.now();
     this.state.set(`${String(namespace)}:${key}`, {
       value: value,
       freshUntil: now + CACHE_FRESHNESS_TIME_MS,
       staleUntil: now + CACHE_STALENESS_TIME_MS,
     });
+    return result.success();
   }
 
-  public remove(_c: Context, namespace: keyof TNamespaces, key: string): void {
+  public remove(_c: Context, namespace: keyof TNamespaces, key: string): Result<void, CacheError> {
     this.state.delete(`${String(namespace)}:${key}`);
+    return result.success();
   }
 }

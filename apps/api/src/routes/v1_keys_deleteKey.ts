@@ -85,16 +85,23 @@ export const registerV1KeysDeleteKey = (app: App) =>
       };
     });
 
-    if (!data) {
+    if (data.error) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `unable to load key: ${data.error.message}`,
+      });
+    }
+    if (!data.value) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
+    const { key, api } = data.value;
 
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "api.*.delete_key", `api.${data.api.id}.delete_key`)),
+      buildUnkeyQuery(({ or }) => or("*", "api.*.delete_key", `api.${api.id}.delete_key`)),
     );
 
-    if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
+    if (key.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "UNAUTHORIZED",
         message: "you are not allowed to do this",
@@ -109,7 +116,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       .set({
         deletedAt: new Date(),
       })
-      .where(eq(schema.keys.id, data.key.id));
+      .where(eq(schema.keys.id, key.id));
 
     await analytics.ingestAuditLogs({
       workspaceId: authorizedWorkspaceId,
@@ -118,21 +125,18 @@ export const registerV1KeysDeleteKey = (app: App) =>
         type: "key",
         id: rootKeyId,
       },
-      description: `Deleted ${data.key.id}`,
+      description: `Deleted ${key.id}`,
       resources: [
         {
           type: "key",
-          id: data.key.id,
+          id: key.id,
         },
       ],
 
       context: { location: c.get("location"), userAgent: c.get("userAgent") },
     });
 
-    await Promise.all([
-      cache.remove(c, "keyByHash", data.key.hash),
-      cache.remove(c, "keyById", data.key.id),
-    ]);
+    await Promise.all([cache.remove(c, "keyByHash", key.hash), cache.remove(c, "keyById", key.id)]);
 
     return c.json({});
   });

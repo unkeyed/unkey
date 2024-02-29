@@ -1,6 +1,7 @@
+import { Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import superjson from "superjson";
-import { Cache, Entry } from "./interface";
+import { Cache, CacheError, Entry } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 
@@ -37,11 +38,22 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
     c: Context,
     namespace: TName,
     key: string,
-  ): Promise<[TNamespaces[TName] | undefined, boolean]> {
-    // @ts-expect-error I don't know why this is not working
-    const res = await caches.default.match(new Request(this.createCacheKey(namespace, key)));
+  ): Promise<Result<[TNamespaces[TName] | undefined, boolean], CacheError>> {
+    let res: Response;
+    try {
+      // @ts-expect-error I don't know why this is not working
+      res = await caches.default.match(new Request(this.createCacheKey(namespace, key)));
+    } catch (err) {
+      return result.fail(
+        new CacheError({
+          namespace: namespace as keyof CacheNamespaces,
+          key,
+          message: (err as Error).message,
+        }),
+      );
+    }
     if (!res) {
-      return [undefined, false];
+      return result.success([undefined, false]);
     }
     const raw = await res.text();
     const entry = superjson.parse(raw) as Entry<TNamespaces[TName]>;
@@ -49,13 +61,13 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
 
     if (now >= entry.staleUntil) {
       await this.remove(c, namespace, key);
-      return [undefined, false];
+      return result.success([undefined, false]);
     }
     if (now >= entry.freshUntil) {
-      return [entry.value, true];
+      return result.success([entry.value, true]);
     }
 
-    return [entry.value, false];
+    return result.success([entry.value, false]);
   }
 
   public async set<TName extends keyof TNamespaces>(
@@ -63,7 +75,7 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
     namespace: TName,
     key: string,
     value: TNamespaces[TName] | null,
-  ): Promise<void> {
+  ): Promise<Result<void, CacheError>> {
     const now = Date.now();
     const entry: Entry<TNamespaces[TName] | null> = {
       value: value,
@@ -77,16 +89,27 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
         "Cache-Control": `public, max-age=${Math.floor(entry.staleUntil / 1000)}`,
       },
     });
-    // @ts-expect-error I don't know why this is not working
-    await caches.default.put(req, res);
+    try {
+      // @ts-expect-error I don't know why this is not workin
+      await caches.default.put(req, res);
+      return result.success();
+    } catch (err) {
+      return result.fail(
+        new CacheError({
+          namespace: namespace as keyof CacheNamespaces,
+          key,
+          message: (err as Error).message,
+        }),
+      );
+    }
   }
 
   public async remove<TName extends keyof TNamespaces>(
     _c: Context,
     namespace: TName,
     key: string,
-  ): Promise<void> {
-    await Promise.all([
+  ): Promise<Result<void, CacheError>> {
+    return await Promise.all([
       // @ts-expect-error I don't know why this is not working
       caches.default.delete(this.createCacheKey(namespace, key)),
       fetch(`https://api.cloudflare.com/client/v4zones/${this.config.zoneId}/purge_cache`, {
@@ -100,6 +123,16 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
       }).then(async (res) => {
         console.log("purged cache", res.status, await res.text());
       }),
-    ]);
+    ])
+      .then(() => result.success())
+      .catch((err) =>
+        result.fail(
+          new CacheError({
+            namespace: namespace as keyof CacheNamespaces,
+            key,
+            message: (err as Error).message,
+          }),
+        ),
+      );
   }
 }

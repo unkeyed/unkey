@@ -1,6 +1,7 @@
 import { Tracer, trace } from "@opentelemetry/api";
+import { Result } from "@unkey/result";
 import type { Context } from "hono";
-import { Cache } from "./interface";
+import { Cache, CacheError } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 
 export class CacheWithTracing<TNamespaces extends Record<string, unknown> = CacheNamespaces>
@@ -26,25 +27,22 @@ export class CacheWithTracing<TNamespaces extends Record<string, unknown> = Cach
     ctx: Context,
     namespace: TName,
     key: string,
-  ): Promise<[TNamespaces[TName] | undefined, boolean]> {
+  ): Promise<Result<[TNamespaces[TName] | undefined, boolean], CacheError>> {
     const span = this.tracer.startSpan(`cache.${this.cache.tier}.get`);
+    span.setAttribute("cache.namespace", namespace as string);
+    span.setAttribute("cache.key", key);
 
-    try {
-      span.setAttribute("cache.namespace", namespace as string);
-      span.setAttribute("cache.key", key);
-      const [value, stale] = await this.cache.get(ctx, namespace, key);
-      span.setAttribute("cache.hit", !!value);
-      span.setAttribute("cache.stale", stale);
-
-      return [value, stale];
-    } catch (e) {
-      const err = e as Error;
-      span.setStatus({ code: 2, message: err.message });
-      span.recordException(err);
-      throw err;
-    } finally {
-      span.end();
+    const res = await this.cache.get(ctx, namespace, key);
+    if (res.error) {
+      span.setStatus({ code: 2, message: res.error.message });
+      span.recordException(res.error);
+    } else {
+      span.setAttribute("cache.hit", !!res.value[0]);
+      span.setAttribute("cache.stale", res.value[1]);
     }
+
+    span.end();
+    return res;
   }
 
   public async set<TName extends keyof TNamespaces>(
@@ -52,37 +50,42 @@ export class CacheWithTracing<TNamespaces extends Record<string, unknown> = Cach
     namespace: TName,
     key: string,
     value: TNamespaces[TName],
-  ): Promise<void> {
+  ): Promise<Result<void, CacheError>> {
     const span = this.tracer.startSpan(`cache.${this.cache.tier}.set`);
 
     try {
       span.setAttribute("cache.namespace", namespace as string);
       span.setAttribute("cache.key", key);
 
-      await this.cache.set(ctx, namespace, key, value);
-    } catch (e) {
-      const err = e as Error;
-      span.setStatus({ code: 2, message: err.message });
-      span.recordException(err);
-      throw err;
+      const res = await this.cache.set(ctx, namespace, key, value);
+      if (res.error) {
+        span.setStatus({ code: 2, message: res.error.message });
+
+        span.recordException(res.error);
+      }
+      return res;
     } finally {
       span.end();
     }
   }
 
-  public async remove(ctx: Context, namespace: keyof TNamespaces, key: string): Promise<void> {
+  public async remove(
+    ctx: Context,
+    namespace: keyof TNamespaces,
+    key: string,
+  ): Promise<Result<void, CacheError>> {
     const span = this.tracer.startSpan(`cache.${this.cache.tier}.remove`);
 
     try {
       span.setAttribute("cache.namespace", namespace as string);
       span.setAttribute("cache.key", key);
 
-      await this.cache.remove(ctx, namespace, key);
-    } catch (e) {
-      const err = e as Error;
-      span.setStatus({ code: 2, message: err.message });
-      span.recordException(err);
-      throw err;
+      const res = await this.cache.remove(ctx, namespace, key);
+      if (res.error) {
+        span.setStatus({ code: 2, message: res.error.message });
+        span.recordException(res.error);
+      }
+      return res;
     } finally {
       span.end();
     }
