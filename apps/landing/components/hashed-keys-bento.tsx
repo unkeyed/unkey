@@ -2,7 +2,7 @@ import { HashedKeys } from "@/components/svg/hashed-keys";
 
 export function HashedKeysBento() {
   return (
-    <div className="w-full mt-10 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full mt-10 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       <HashedKeys />
       <HashedKeysText />
     </div>
@@ -33,8 +33,7 @@ export function HashedKeysText() {
         <h3 className="text-lg font-medium text-white ml-4">One-way hashed Keys</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Enhance authentication security with one-way hashed keys, ensuring irreversible encryption
-        for sensitive information protection.
+        Once API keys are created, Unkey will store a one-way hash of the key for maximum security.
       </p>
     </div>
   );

@@ -1,6 +1,5 @@
 "use client";
 import clsx from "clsx";
-import { delay } from "framer-motion";
 import { useEffect, useState } from "react";
 interface MeteorsProps {
   number?: number;

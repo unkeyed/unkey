@@ -1,7 +1,6 @@
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
-import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../trpc";
 
