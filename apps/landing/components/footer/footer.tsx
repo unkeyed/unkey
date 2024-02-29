@@ -114,7 +114,7 @@ function Navigation() {
             </div>
             <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal gap-4 flex flex-col md:gap-8 mt-4 md:mt-8 ">
               {section.links.map((link) => (
-                <li key={link.href} className="">
+                <li key={link.href}>
                   {link.href.startsWith("https://") ? (
                     <a
                       href={link.href}
@@ -158,11 +158,11 @@ function MobileNavigation() {
 export function Footer() {
   return (
     <>
-      <footer className="hidden xs:block relative pt-32 xl:pt-10 overflow-hidden border-t max-sm:pt-8 border-white/10">
-        <div className="absolute inset-x-0 w-full h-full -top-[50%] bg-gradient-radial from-white/10 to-transparent pointer-events-none" />
+      <footer className="hidden xs:block relative pt-32 xl:pt-10 overflow-hidden border-t max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
+        <div className="absolute inset-x-0 w-full h-full pointer-events-none" />
         <div className="flex flex-col mx-auto lg:w-fit max-sm:w-full ">
-          <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row lg:gap-20 xl:gap-48">
-            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 lg:pl-14 md:w-fit shrink-0 xl:pl-28">
+          <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row xl:gap-20 xxl:gap-48">
+            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
               <CompanyInfo />
             </div>
             <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 sm:pl-28 md:pl-18 lg:pl-6 max-sm:mb-8">
