@@ -107,10 +107,63 @@ export default function Templates() {
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full top-40" />
         </div>
-        <div className="w-full overflow-clip">
-          <MeteorLinesAngular number={2} xPos={0} />
-          <MeteorLinesAngular number={2} xPos={200} />
-          <MeteorLinesAngular number={2} xPos={400} />
+        <div className="w-full h-full overflow-clip -z-20">
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={5}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={0}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={7}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={2}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={7}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={2}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={5}
+            className="overflow-hidden xxs:hidden md:block"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={0}
+            className="overflow-hidden xxs:hidden md:block"
+          />
         </div>
       </div>
 
