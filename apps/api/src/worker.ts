@@ -1,6 +1,7 @@
 import { Env, zEnv } from "@/pkg/env";
 import { newApp } from "@/pkg/hono/app";
 
+import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -56,6 +57,7 @@ registerV1ApisDeleteApi(app);
 // legacy REST style routes
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
+registerLegacyApisListKeys(app);
 
 app.get("/routes", (c) => {
   return c.json(
