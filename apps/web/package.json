@@ -83,7 +83,7 @@
     "sonner": "^1.4.2",
     "stripe": "^14.18.0",
     "superjson": "^2.2.1",
-    "svix": "^1.18.0",
+    "svix": "^1.20.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
