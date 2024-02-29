@@ -195,6 +195,7 @@ export class KeyService {
         latency: performance.now() - dbStart,
       });
       if (!dbRes) {
+        span.addEvent("db returned nothing");
         return null;
       }
       if (!dbRes.keyAuth.api) {
