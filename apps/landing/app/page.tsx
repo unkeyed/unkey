@@ -1,6 +1,6 @@
 import { Hero } from "@/app/hero";
 import { SectionTitle } from "@/app/section-title";
-import { AnalyticsBento, LightSvg } from "@/components/analytics/analytics-bento";
+import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { FeatureGrid } from "@/components/feature/feature-grid";
