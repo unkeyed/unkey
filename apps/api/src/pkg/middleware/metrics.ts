@@ -56,8 +56,6 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       }
 
       await next();
-      // headers should be set after calling `next()`, otherwise they will be lowercased by the framework
-      c.res.headers.append("Unkey-Request-Id", m.requestId);
     } catch (e) {
       m.error = (e as Error).message;
       c.get("services").logger.error("request", {

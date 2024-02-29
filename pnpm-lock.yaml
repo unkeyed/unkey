@@ -104,9 +104,6 @@ importers:
       drizzle-orm:
         specifier: ^0.29.3
         version: 0.29.3(@cloudflare/workers-types@4.20240208.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)
-      flat:
-        specifier: ^6.0.1
-        version: 6.0.1
       hono:
         specifier: ^4.0.7
         version: 4.0.7
@@ -12554,12 +12551,6 @@ packages:
   /flat@5.0.2:
     resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
     hasBin: true
-
-  /flat@6.0.1:
-    resolution: {integrity: sha512-/3FfIa8mbrg3xE7+wAhWeV+bd7L2Mof+xtZb5dRDKZ+wDvYJK4WDYeIOuOhre5Yv5aQObZrlbRmk3RTSiuQBtw==}
-    engines: {node: '>=18'}
-    hasBin: true
-    dev: false
 
   /flatted@3.3.1:
     resolution: {integrity: sha512-X8cqMLLie7KsNUDSdzeN8FYK9rEt4Dt67OsG/DNGnYTSDBG4uFAJFBnUeiV+zCVAvwFy56IjM9sH51jVaEhNxw==}

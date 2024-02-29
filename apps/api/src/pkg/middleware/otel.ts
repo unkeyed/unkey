@@ -1,50 +1,22 @@
 import { trace } from "@opentelemetry/api";
-import { flatten } from "flat";
 
 import type { MiddlewareHandler } from "hono";
 import { HonoEnv } from "../hono/env";
 
-interface OtelConfiguration {
-  captureRequestBody?: boolean;
-  captureResponseBody?: boolean;
-}
-
-export function otel(config: OtelConfiguration = {}): MiddlewareHandler<HonoEnv> {
-  const tracer = trace.getTracer("@baselime/hono-js", "0.0.1");
+export function otel(): MiddlewareHandler<HonoEnv> {
+  const tracer = trace.getTracer("hono", "0.0.1");
 
   return async (c, next) => {
     return tracer.startActiveSpan("hono", async (span) => {
-      c.set("requestId", `req_${span.spanContext().traceId}`);
-      if (config.captureRequestBody) {
-        if (c.req.header("content-type") === "application/json") {
-          const body = await c.req.json();
-          span.setAttributes(flatten({ hono: { request: { body } } }));
-        }
-        if (
-          ["application/x-www-form-urlencoded", "multipart/form-data"].includes(
-            c.req.header("content-type") || "",
-          )
-        ) {
-          const body = await c.req.parseBody();
-          span.setAttributes(flatten({ hono: { request: { body } } }));
-        }
-        if (c.req.header("content-type") === "text/plain") {
-          const body = await c.req.text();
-          span.setAttributes(flatten({ hono: { request: { body } } }));
-        }
-      }
+      const requestId = `req_${span.spanContext().traceId}`;
+      c.set("requestId", requestId);
+      c.res.headers.append("Unkey-Request-Id", requestId);
 
-      span.setAttributes(
-        flatten({
-          hono: {
-            request: {
-              path: c.req.path,
-              method: c.req.method,
-              url: c.req.url,
-            },
-          },
-        }),
-      );
+      span.setAttributes({
+        "hono.request.path": c.req.path,
+        "hono.request.method": c.req.method,
+        "hono.request.url": c.req.url,
+      });
 
       await next();
 
@@ -57,20 +29,6 @@ export function otel(config: OtelConfiguration = {}): MiddlewareHandler<HonoEnv>
         "hono.response.status_code": c.res.status,
       });
 
-      if (config.captureResponseBody) {
-        if (c.res.headers.get("content-type") === "application/json") {
-          const body = await c.res.json();
-          span.setAttributes(flatten({ hono: { response: { body } } }));
-        }
-        if (c.res.headers.get("content-type") === "text/plain") {
-          const body = await c.res.text();
-          span.setAttributes(flatten({ hono: { response: { body } } }));
-        }
-        if (c.res.headers.get("content-type") === "text/html") {
-          const body = await c.res.text();
-          span.setAttributes(flatten({ hono: { response: { body } } }));
-        }
-      }
       span.end();
     });
   };
