@@ -15,27 +15,27 @@ export const BlogBackgroundLines = ({
     <path
       d="M319.5 -159.658L1 392"
       stroke="url(#paint1_angular_4046_6105)"
-      stroke-opacity="0.1"
+      strokeOpacity="0.1"
       stroke-width="0.75"
     />
     <path d="M518 -159.658L199.5 392" stroke="url(#paint2_linear_4046_6105)" stroke-width="0.75" />
     <path
       d="M518 -159.658L199.5 392"
       stroke="url(#paint3_angular_4046_6105)"
-      stroke-opacity="0.4"
+      strokeOpacity="0.4"
       stroke-width="0.75"
     />
     <path d="M716.5 -159.658L398 392" stroke="url(#paint4_linear_4046_6105)" stroke-width="0.75" />
     <path
       d="M716.5 -159.658L398 392"
       stroke="url(#paint5_angular_4046_6105)"
-      stroke-opacity="0.5"
+      strokeOpacity="0.5"
       stroke-width="0.75"
     />
     <path
       d="M716.5 -159.658L398 392"
       stroke="url(#paint5_linear_4046_6105)"
-      stroke-opacity="0.5"
+      strokeOpacity="0.5"
       stroke-width="0.75"
     />
     <defs>
@@ -47,8 +47,8 @@ export const BlogBackgroundLines = ({
         y2="391.999"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" stop-opacity="0.15" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" stopOpacity="0.15" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <radialGradient
         id="paint1_angular_4046_6105"
@@ -58,9 +58,9 @@ export const BlogBackgroundLines = ({
         gradientUnits="userSpaceOnUse"
         gradientTransform="translate(463.5 27) rotate(-158.499) scale(106.405 106.405)"
       >
-        <stop offset=".0" stop-color="white" stop-opacity="0" />
-        <stop offset="1.5" stop-color="white" stop-opacity="1" />
-        <stop offset="0" stop-color="white" stop-opacity="0" />
+        <stop offset=".0" stopColor="white" stopOpacity="0" />
+        <stop offset="1.5" stopColor="white" stopOpacity="1" />
+        <stop offset="0" stopColor="white" stopOpacity="0" />
       </radialGradient>
       <linearGradient
         id="paint2_linear_4046_6105"
@@ -70,8 +70,8 @@ export const BlogBackgroundLines = ({
         y2="391.999"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" stop-opacity="0.15" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" stopOpacity="0.15" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <radialGradient
         id="paint3_angular_4046_6105"
@@ -81,9 +81,9 @@ export const BlogBackgroundLines = ({
         gradientUnits="userSpaceOnUse"
         gradientTransform="translate(463.5 27) rotate(-158.499) scale(106.405 106.405)"
       >
-        <stop offset=".0" stop-color="white" stop-opacity="0" />
-        <stop offset=".5" stop-color="white" stop-opacity="1" />
-        <stop offset="0" stop-color="white" stop-opacity="0" />
+        <stop offset=".0" stopColor="white" stopOpacity="0" />
+        <stop offset=".5" stopColor="white" stopOpacity="1" />
+        <stop offset="0" stopColor="white" stopOpacity="0" />
       </radialGradient>
       <linearGradient
         id="paint4_linear_4046_6105"
@@ -93,8 +93,8 @@ export const BlogBackgroundLines = ({
         y2="391.999"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="white" stop-opacity="0.15" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop stopColor="white" stopOpacity="0.15" />
+        <stop offset="1" stopColor="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint5_linear_4046_6105"
@@ -104,9 +104,9 @@ export const BlogBackgroundLines = ({
         y2="391.999"
         gradientUnits="userSpaceOnUse"
       >
-        <stop offset=".17" stop-color="white" stop-opacity="0" />
-        <stop offset=".3" stop-color="white" stop-opacity="1" />
-        <stop offset="0" stop-color="white" stop-opacity="0" />
+        <stop offset=".17" stopColor="white" stopOpacity="0" />
+        <stop offset=".3" stopColor="white" stopOpacity="1" />
+        <stop offset="0" stopColor="white" stopOpacity="0" />
       </linearGradient>
     </defs>
   </svg>

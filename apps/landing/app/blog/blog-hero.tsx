@@ -12,8 +12,8 @@ export function QuestionCircle({ className }: { className?: string }) {
       <path
         d="M9.98389 9C10.17 8.62441 10.4574 8.30833 10.8136 8.08745C11.1698 7.86657 11.5807 7.74969 11.9999 7.75C12.4464 7.74998 12.8827 7.88278 13.2535 8.13152C13.6243 8.38025 13.9126 8.73367 14.082 9.14679C14.2513 9.55992 14.2938 10.0141 14.2042 10.4515C14.1147 10.8889 13.897 11.2897 13.5789 11.603C13.0789 12.096 12.4709 12.628 12.1769 13.253M11.9999 16.25V16.26"
         stroke="white"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         className={className}
       />
     </svg>
@@ -40,28 +40,29 @@ export function BlogHero({
   className,
 }: BlogHeroProps) {
   return (
-    <div className={cn("flex flex-col lg:flex-row w-full relative z-1 xl:px-28", className)}>
-      <Frame className="w-full my-auto shadow-sm sm:order-3 lg:order-1 " size="lg">
+    <div className={cn("flex flex-col xl:flex-row w-full relative z-1 xl:px-28", className)}>
+      {}
+      <Frame className="w-full my-auto shadow-sm order-2 xl:order-1 " size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
-      <div className="flex flex-col order-2 w-full sm:p-4 max-sm:p-4 md:pl-12">
-        <div className="flex flex-row gap-4 justify-center lg:justify-start">
+      <div className="flex flex-col xl:order-2 order-1 w-full md:pl-12">
+        <div className="flex flex-row gap-4 justify-center xl:justify-start">
           {tags?.map((tag) => (
             <p
               key={tag}
-              className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 "
+              className="text-white/70 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 "
             >
               {tag}
             </p>
           ))}
         </div>
-        <h2 className="flex font-medium text-3xl leading-10 blog-heading-gradient my-6 justify-center lg:justify-start">
+        <h2 className="flex font-medium text-3xl leading-10 blog-heading-gradient my-6 xxs:text-center justify-center xl:justify-start xl:text-left">
           {title}
         </h2>
-        <p className="flex text-base leading-7 font-normal text-white/60 lg:pr-16 justify-center lg:justify-start">
+        <p className="flex text-base leading-7 font-normal text-white/60 lg:pr-16 justify-center xl:justify-start">
           {subTitle}
         </p>
-        <div className="flex flex-row w-full mt-10 gap-24 justify-center lg:justify-start pb-8 lg:pt-0">
+        <div className="flex flex-row w-full mt-10 gap-24 justify-center xl:justify-start pb-8 lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
             <p className="text-white/30 text-sm ">Written by</p>
             <div className="flex flex-row">

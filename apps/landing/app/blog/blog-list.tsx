@@ -24,7 +24,7 @@ export function BlogListItem({ children, className }: BlogListProps) {
   return (
     <li
       className={cn(
-        "pl-6 leading-8 font-normal text-xl text-white/60",
+        "pl-6 leading-8 font-normal xxs:text-lg text-white/60",
 
         className,
       )}

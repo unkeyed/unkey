@@ -1,5 +1,5 @@
 "use client";
-import { Table } from "@/app/blog/blog-table";
+
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { BlogImage } from "../../app/blog/blog-image";
 import { Alert } from "../ui/alert/alert";

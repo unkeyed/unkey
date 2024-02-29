@@ -41,8 +41,8 @@ export default async function Templates(props: Props) {
   const readme = await fetch(template.readmeUrl).then((res) => res.text());
   return (
     <div className="flex flex-col xl:max-w-[1440px] mx-6 md:mx-20 xl:mx-auto lg:mx-auto lg:px-10">
-      <div>
-        <div className="relative -z-100 max-w-[1000px] mx-auto">
+      {/* <div> */}
+      {/* <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full top-40" />
         </div>
         <div className="w-full overflow-clip">
@@ -50,7 +50,7 @@ export default async function Templates(props: Props) {
           <MeteorLinesAngular number={2} xPos={200} />
           <MeteorLinesAngular number={2} xPos={400} />
         </div>
-      </div>
+      </div> */}
       <div className="flex flex-col xl:flex-row items-start mt-16 lg:mt-32 lg:space-y-0 mb-24 gap-12">
         <div className="self-start w-full mx-auto xl:sticky xl:w-1/4">
           <Link
@@ -60,10 +60,12 @@ export default async function Templates(props: Props) {
             <ArrowLeft className="w-4 h-4" /> Back to Templates
           </Link>
           <div className="mb-8 xxs:mt-16">
-            <h2 className="text-[40px] sm:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xl:w-full text-balance">
+            <h2 className="xxs:text-[40px] xs:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xl:w-full text-balance">
               {template.title}
             </h2>
-            <p className="xxs:mt-6 lg:mt-12 mt-2 text-white/60">{template.description}</p>
+            <p className="xxs:mt-6 lg:mt-12 mt-2 text-white/60 text-base leading-6">
+              {template.description}
+            </p>
           </div>
           <div className="flex items-center justify-between gap-6 sm:mt-20">
             {template.url ? (
@@ -84,10 +86,10 @@ export default async function Templates(props: Props) {
             </Link>
           </div>
 
-          <dl className="grid grid-rows-2 mt-12">
+          <dl className="grid grid-rows-2 mt-12 ">
             <div className="flex flex-row w-full h-fit">
-              <span className="text-sm text-white/30 w-1/2">Written by </span>
-              <span className="text-sm font-medium text-white text-end w-1/2">
+              <span className="text-[13px] text-white/30 w-1/2">Written by </span>
+              <span className="text-[15px] font-medium text-white text-end w-1/2">
                 {template.authors.join(", ")}
               </span>
             </div>
@@ -107,8 +109,8 @@ export default async function Templates(props: Props) {
           <Separator orientation="horizontal" />
         </div>
 
-        <div className="w-full xxs:mt-12 sm:mt-20 md:mt-0 lg:pt-24 xl:w-2/3">
-          <div className="">
+        <div className="w-full xxs:mt-12 sm:mt-20 md:mt-0 lg:pt-24 xl:w-2/3 ">
+          <div>
             {template.image ? (
               <Frame size={"lg"} className="xl:ml-10">
                 <img src={template.image} alt={template.description} />
@@ -116,7 +118,7 @@ export default async function Templates(props: Props) {
             ) : null}
           </div>
           <ReactMarkdown
-            className="max-w-5xl mx-auto xxs:mt-20 mt-16 prose lg:prose-md"
+            className="max-w-5xl mx-auto px-0 xxs:mt-20 mt-16 flex flex-col gap-10 xxs:mx-4"
             remarkPlugins={[remarkGfm]}
             //  @ts-ignore
             rehypePlugins={[rehypeRaw]}

@@ -14,8 +14,8 @@ export function UnkeyFooterLogo() {
         fill="url(#paint1_linear_830_5781)"
       />
       <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
+        fillRule="evenodd"
+        clipRule="evenodd"
         d="M980.059 307.619C906.376 307.619 858.007 266 858.007 190.905C858.007 120.786 905.924 73.738 979.155 73.738C1048.77 73.738 1096.23 112.19 1096.23 180.5C1096.23 188.643 1095.78 194.976 1094.43 201.762H903.664C905.472 245.19 926.718 268.262 978.703 268.262C1025.72 268.262 1045.15 252.881 1045.15 226.19V222.571H1093.97V226.643C1093.97 274.595 1046.96 307.619 980.059 307.619ZM978.251 112.19C928.526 112.19 906.828 134.357 904.116 174.619H1050.13V173.714C1050.13 132.095 1026.17 112.19 978.251 112.19Z"
         fill="url(#paint2_linear_830_5781)"
       />
@@ -36,8 +36,8 @@ export function UnkeyFooterLogo() {
           y2="402.501"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.4" />
-          <stop offset="0.693236" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.4" />
+          <stop offset="0.693236" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_830_5781"
@@ -47,8 +47,8 @@ export function UnkeyFooterLogo() {
           y2="402.501"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.4" />
-          <stop offset="0.693236" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.4" />
+          <stop offset="0.693236" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_830_5781"
@@ -58,8 +58,8 @@ export function UnkeyFooterLogo() {
           y2="402.501"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.4" />
-          <stop offset="0.693236" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.4" />
+          <stop offset="0.693236" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_830_5781"
@@ -69,8 +69,8 @@ export function UnkeyFooterLogo() {
           y2="402.501"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.4" />
-          <stop offset="0.693236" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.4" />
+          <stop offset="0.693236" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_830_5781"
@@ -80,8 +80,8 @@ export function UnkeyFooterLogo() {
           y2="402.501"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.4" />
-          <stop offset="0.693236" stop-color="white" stop-opacity="0.1" />
+          <stop stopColor="white" stopOpacity="0.4" />
+          <stop offset="0.693236" stopColor="white" stopOpacity="0.1" />
         </linearGradient>
       </defs>
     </svg>
@@ -111,8 +111,8 @@ export function UnkeyLogoSmall() {
           gradientUnits="userSpaceOnUse"
           gradientTransform="rotate(23.1063) scale(81.5414 80.9709)"
         >
-          <stop offset="0.26875" stop-color="white" />
-          <stop offset="0.904454" stop-color="white" stop-opacity="0.5" />
+          <stop offset="0.26875" stopColor="white" />
+          <stop offset="0.904454" stopColor="white" stopOpacity="0.5" />
         </radialGradient>
       </defs>
     </svg>
