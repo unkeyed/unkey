@@ -137,6 +137,7 @@ export class KeyService {
       const err = e as Error;
       this.logger.error("Unhandled error while verifying key", {
         error: err.message,
+        stack: JSON.stringify(err.stack),
         keyHash: await sha256(req.key),
         apiId: req.apiId,
       });
