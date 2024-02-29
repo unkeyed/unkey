@@ -72,7 +72,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
             rx="7.5"
             transform="rotate(90 112.5 0.5)"
             stroke="url(#paint1_linear_107_29)"
-            stroke-opacity="0.8"
+            strokeOpacity="0.8"
           />
           <g filter="url(#filter0_d_107_29)">
             <path
@@ -95,9 +95,9 @@ export default async function Image({ params }: { params: { slug: string } }) {
               width="57.5297"
               height="66.5898"
               filterUnits="userSpaceOnUse"
-              color-interpolation-filters="sRGB"
+              colorInterpolationFilters="sRGB"
             >
-              <feFlood flood-opacity="0" result="BackgroundImageFix" />
+              <feFlood floodOpacity="0" result="BackgroundImageFix" />
               <feColorMatrix
                 in="SourceAlpha"
                 type="matrix"
@@ -124,8 +124,8 @@ export default async function Image({ params }: { params: { slug: string } }) {
               y2="157.11"
               gradientUnits="userSpaceOnUse"
             >
-              <stop stop-color="white" />
-              <stop offset="1" stop-color="white" stop-opacity="0" />
+              <stop stopColor="white" />
+              <stop offset="1" stopColor="white" stopOpacity="0" />
             </linearGradient>
             <linearGradient
               id="paint1_linear_107_29"
@@ -135,8 +135,8 @@ export default async function Image({ params }: { params: { slug: string } }) {
               y2="80.518"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0.194498" stop-color="white" />
-              <stop offset="0.411458" stop-color="white" stop-opacity="0" />
+              <stop offset="0.194498" stopColor="white" />
+              <stop offset="0.411458" stopColor="white" stopOpacity="0" />
             </linearGradient>
             <linearGradient
               id="paint2_linear_107_29"
@@ -146,8 +146,8 @@ export default async function Image({ params }: { params: { slug: string } }) {
               y2="87.0855"
               gradientUnits="userSpaceOnUse"
             >
-              <stop stop-color="white" />
-              <stop offset="1" stop-color="white" stop-opacity="0" />
+              <stop stopColor="white" />
+              <stop offset="1" stopColor="white" stopOpacity="0" />
             </linearGradient>
             <linearGradient
               id="paint3_linear_107_29"
@@ -157,8 +157,8 @@ export default async function Image({ params }: { params: { slug: string } }) {
               y2="69.3306"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0.194498" stop-color="white" />
-              <stop offset="0.411458" stop-color="white" stop-opacity="0" />
+              <stop offset="0.194498" stopColor="white" />
+              <stop offset="0.411458" stopColor="white" stopOpacity="0" />
             </linearGradient>
           </defs>
         </svg>
