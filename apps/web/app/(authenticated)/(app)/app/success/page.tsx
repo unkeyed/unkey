@@ -12,7 +12,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
 import { AuditLogOptIn } from "./audit-log-opt-in";
+import { Permissions } from "./permissions";
 import { RbacOptIn } from "./rbac-opt-in";
+import { Roles } from "./roles";
 
 export const revalidate = 60;
 
@@ -111,6 +113,12 @@ export default async function SuccessPage() {
         </Suspense>
         <Suspense fallback={<Loading />}>
           <AuditLogOptIn />
+        </Suspense>
+        <Suspense fallback={<Loading />}>
+          <Roles />
+        </Suspense>
+        <Suspense fallback={<Loading />}>
+          <Permissions />
         </Suspense>
       </div>
     </div>
