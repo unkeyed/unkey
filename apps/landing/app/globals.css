@@ -53,14 +53,13 @@
 
 .analytics-background-gradient::before {
   background: radial-gradient(
-    80% 82.5% at 5.25% 85%,
+    520% 82.5% at 10.25% 85%,
     black,
     rgba(200, 200, 200, 0.08)
   );
   content: "";
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
-  border-top-left-radius: 24px;
   position: absolute;
   left: 0px;
   height: 100%;
@@ -264,11 +263,24 @@ li > p {
   inset-block-start: calc(var(--line-offset) * -1);
 }
 
+
 @media only screen and (min-width: 960px) {
   .analytics-background-gradient::before {
-    border-bottom-right-radius: 0px;
-    border-top-right-radius: 24px;
-    border-bottom-left-radius: 0px;
+    background: radial-gradient(
+    520% 82.5% at 10.25% 85%,
+    black,
+    rgba(200, 200, 200, 0.08)
+  );
+  content: "";
+  border-top-right-radius: 24px;
+  border-top-left-radius: 24px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  position: absolute;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
   }
 }
 
