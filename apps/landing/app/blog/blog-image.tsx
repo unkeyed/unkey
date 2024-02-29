@@ -13,7 +13,7 @@ export function BlogImage({
 }) {
   return (
     <Frame className={cn("shadow-sm", className)} size={size}>
-      <Image src={imageUrl!} width={1200} height={800} alt="Hero Image" />
+      <Image src={imageUrl!} width={1200} height={800} alt="" />
     </Frame>
   );
 }
