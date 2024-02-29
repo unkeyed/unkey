@@ -23,7 +23,6 @@ export const permissions = mysqlTable(
     description: varchar("description", { length: 512 }),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
-      .default(new Date())
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
@@ -63,7 +62,6 @@ export const keysPermissions = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
-      .default(new Date())
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
@@ -102,7 +100,6 @@ export const roles = mysqlTable(
     description: varchar("description", { length: 512 }),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
-      .default(new Date())
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
@@ -145,7 +142,6 @@ export const rolesPermissions = mysqlTable(
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
-      .default(new Date())
       .$defaultFn(() => new Date()),
   },
   (table) => {
@@ -189,7 +185,6 @@ export const keysRoles = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
-      .default(new Date())
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
   },
