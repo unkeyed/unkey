@@ -1,11 +1,13 @@
+import { instrumentDO } from "@microlabs/otel-cf-workers";
 import { z } from "zod";
+import { traceConfig } from "../tracing/config";
 
 type Memory = {
   current: number;
   alarmScheduled?: number;
 };
 
-export class DurableObjectRatelimiter {
+class DO {
   private state: DurableObjectState;
   private memory: Memory;
   private readonly storageKey = "rl";
@@ -57,3 +59,12 @@ export class DurableObjectRatelimiter {
     await this.state.storage.deleteAll();
   }
 }
+
+export const DurableObjectRatelimiter = instrumentDO(
+  DO,
+  traceConfig((env) => ({
+    name: `api.${env.ENVIRONMENT}`,
+    namespace: "DurableObjectRatelimiter",
+    version: env.VERSION,
+  })),
+);
