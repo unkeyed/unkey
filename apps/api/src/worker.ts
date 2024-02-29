@@ -89,10 +89,10 @@ const handler: ExportedHandler<Env> = {
 const config: ResolveConfigFn = (env: Env) => {
   return {
     exporter: {
-      url: "https://otel.baselime.io/v1",
-      headers: { "x-api-key": env.BASELIME_API_KEY! },
+      url: "https://api.axiom.co/v1/traces",
+      headers: { authorization: `Bearer ${env.AXIOM_TOKEN}`, "x-axiom-dataset": "tracing" },
     },
-    service: { name: "unkey-api", version: env.VERSION },
+    service: { name: `api.${env.ENVIRONMENT}`, version: env.VERSION },
   };
 };
 export default instrument(handler, config);
