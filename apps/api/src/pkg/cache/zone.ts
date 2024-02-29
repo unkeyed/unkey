@@ -38,29 +38,24 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
     namespace: TName,
     key: string,
   ): Promise<[TNamespaces[TName] | undefined, boolean]> {
-    try {
-      // @ts-expect-error I don't know why this is not working
-      const res = await caches.default.match(new Request(this.createCacheKey(namespace, key)));
-      if (!res) {
-        return [undefined, false];
-      }
-      const raw = await res.text();
-      const entry = superjson.parse(raw) as Entry<TNamespaces[TName]>;
-      const now = Date.now();
-
-      if (now >= entry.staleUntil) {
-        await this.remove(c, namespace, key);
-        return [undefined, false];
-      }
-      if (now >= entry.freshUntil) {
-        return [entry.value, true];
-      }
-
-      return [entry.value, false];
-    } catch (e) {
-      console.error("zone cache error:", e);
+    // @ts-expect-error I don't know why this is not working
+    const res = await caches.default.match(new Request(this.createCacheKey(namespace, key)));
+    if (!res) {
       return [undefined, false];
     }
+    const raw = await res.text();
+    const entry = superjson.parse(raw) as Entry<TNamespaces[TName]>;
+    const now = Date.now();
+
+    if (now >= entry.staleUntil) {
+      await this.remove(c, namespace, key);
+      return [undefined, false];
+    }
+    if (now >= entry.freshUntil) {
+      return [entry.value, true];
+    }
+
+    return [entry.value, false];
   }
 
   public async set<TName extends keyof TNamespaces>(

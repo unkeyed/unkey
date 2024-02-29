@@ -15,7 +15,7 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
-import { ResolveConfigFn, instrument } from "@microlabs/otel-cf-workers";
+import { instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
@@ -24,6 +24,7 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics, otel } from "@/pkg/middleware";
+import { traceConfig } from "./pkg/tracing/config";
 
 const app = newApp();
 
@@ -86,13 +87,10 @@ const handler: ExportedHandler<Env> = {
   },
 };
 
-const config: ResolveConfigFn = (env: Env) => {
-  return {
-    exporter: {
-      url: "https://api.axiom.co/v1/traces",
-      headers: { authorization: `Bearer ${env.AXIOM_TOKEN}`, "x-axiom-dataset": "tracing" },
-    },
-    service: { name: `api.${env.ENVIRONMENT}`, version: env.VERSION },
-  };
-};
-export default instrument(handler, config);
+export default instrument(
+  handler,
+  traceConfig((env) => ({
+    name: `api.${env.ENVIRONMENT}`,
+    version: env.VERSION,
+  })),
+);
