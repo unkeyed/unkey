@@ -16,7 +16,7 @@ export async function SuggestedBlogs({ className, currentPostSlug }: BlogListPro
     .sort((a, b) => {
       return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
     })
-    .filter((p, i) => p.slug !== currentPostSlug);
+    .filter((p, _i) => p.slug !== currentPostSlug);
 
   return (
     <div className={cn("flex flex-col w-full mt-8", className)}>
