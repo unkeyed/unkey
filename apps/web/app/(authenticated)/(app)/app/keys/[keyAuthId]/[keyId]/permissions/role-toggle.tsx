@@ -1,7 +1,6 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { Loader2 } from "lucide-react";
