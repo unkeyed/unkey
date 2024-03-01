@@ -12,7 +12,7 @@ export function HeroMainSection() {
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: "easeOut" }}
       whileInView="visible"
-      className="relative text-center xl:text-left flex flex-col items-center xl:items-start"
+      className="relative flex flex-col items-center text-center xl:text-left xl:items-start"
     >
       <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
         <svg
@@ -60,11 +60,11 @@ export function HeroMainSection() {
         </svg>
       </div>
 
-      <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[32px] leading-[48px] xs:text-[48px] xs:leading-[56px] sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
+      <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[32px] leading-[48px]  sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
         Build your API, not auth
       </h1>
 
-      <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-sm xs:text-[15px] sm:text-base leading-[28px]">
+      <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-sm sm:text-[15px] sm:text-base leading-[28px]">
         Unkey allows you to quickly add API keys, rate limiting, and usage analytics to your API, so
         that you can safely expose it to developers.
       </p>

@@ -19,7 +19,7 @@ export function PageIntro({
       <RainbowDarkButton
         label="Submit Your Template"
         IconRight={ArrowRight}
-        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0 xxs:mt-0 xs:mt-12 md:mt-20 lg:mt-40 bg-black"
+        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0 sm:mt-0 sm:mt-12 md:mt-20 lg:mt-40 bg-black"
       />
       <h1>
         <span className="block font-sans text-base font-semibold font-display text-white">
@@ -28,7 +28,7 @@ export function PageIntro({
         <span className="sr-only"> - </span>
         <span
           className={clsx(
-            "mt-6 block max-w-5xl font-display text-5xl font-medium tracking-tight blog-heading-gradient [text-wrap:balance] max-xs:text-4xl xs:mt-2 sm:text-6xl",
+            "mt-6 block max-w-5xl font-display text-5xl font-medium tracking-tight blog-heading-gradient [text-wrap:balance] max-sm:text-4xl sm:mt-2 sm:text-6xl",
             centered && "mx-auto",
           )}
         >

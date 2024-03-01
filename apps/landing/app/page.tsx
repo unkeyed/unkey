@@ -57,8 +57,10 @@ export default async function Landing() {
   return (
     <>
       <TopRightShiningLight />
+
       <TopLeftShiningLight />
-      <div className="container mx-auto relative">
+
+      <div className="container relative mx-auto">
         <HeroMainboardStuff className="absolute right-0 -top-[4%]" />
         <HeroMainboardStuffMobile className="absolute right-0 -top-[5%]" />
 
@@ -138,7 +140,7 @@ export default async function Landing() {
             </div>
           </SectionTitle>
         </div>
-        <FeatureGrid className="mt-20 relative z-50" />
+        <FeatureGrid className="relative z-50 mt-20" />
         <div className="relative -z-10">
           <FeatureGridChip className="absolute top-[-90px]" />
         </div>
