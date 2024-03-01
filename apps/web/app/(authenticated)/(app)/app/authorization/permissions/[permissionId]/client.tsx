@@ -33,7 +33,7 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export const Client: React.FC<Props> = ({ permission, className }) => {
+export const Client: React.FC<Props> = ({ permission }) => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({

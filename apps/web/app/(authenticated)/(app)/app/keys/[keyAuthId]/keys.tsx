@@ -2,23 +2,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-import { DropdownMenu } from "@radix-ui/react-dropdown-menu";
-import { TooltipContent, TooltipTrigger } from "@radix-ui/react-tooltip";
-import { Key } from "@unkey/db";
-import {
-  Check,
-  ChevronRight,
-  FileClock,
-  Minus,
-  MoreHorizontal,
-  MoreVertical,
-  Scan,
-  Trash,
-  User,
-  VenetianMask,
-  X,
-} from "lucide-react";
-import ms from "ms";
+import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
