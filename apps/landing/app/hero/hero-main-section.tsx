@@ -22,7 +22,7 @@ export function HeroMainSection() {
           viewBox="0 0 16 16"
           fill="none"
         >
-          <g clip-path="url(#clip0_840_5284)">
+          <g clipPath="url(#clip0_840_5284)">
             <path
               d="M13 0.75C13 1.89705 11.8971 3 10.75 3C11.8971 3 13 4.10295 13 5.25C13 4.10295 14.1029 3 15.25 3C14.1029 3 13 1.89705 13 0.75Z"
               stroke="white"

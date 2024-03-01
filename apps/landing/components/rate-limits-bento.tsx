@@ -68,7 +68,7 @@ export function RateLimits() {
                     rx="5.625"
                     stroke="white"
                     strokeOpacity="0.1"
-                    stroke-width="0.75"
+                    strokeWidth="0.75"
                     shape-rendering="crispEdges"
                   />
                   <path
@@ -154,7 +154,7 @@ export function RateLimits() {
                 rx="5.625"
                 stroke="white"
                 strokeOpacity="0.1"
-                stroke-width="0.75"
+                strokeWidth="0.75"
                 shape-rendering="crispEdges"
               />
               <path

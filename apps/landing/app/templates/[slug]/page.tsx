@@ -92,7 +92,7 @@ export default async function Templates(props: Props) {
         />
       </div>
       <div className="flex flex-wrap mt-32 text-white/60 mx-auto px-8 sm:px-4 xxl:px-12 xxl:max-w-[1440px]">
-        <div className="flex flex-col self-start w-full px-0 mx-0 mx-auto xxl:w-1/4 xxl:sticky">
+        <div className="flex flex-col self-start w-full px-0 mx-0 xxl:w-1/4 xxl:sticky">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"

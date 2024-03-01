@@ -1,38 +1,38 @@
 "use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-tabs";
 import { cn } from "@/lib/utils";
-import { Highlight } from "prism-react-renderer";
+import { Highlight, themes } from "prism-react-renderer";
 import { useState } from "react";
 import React from "react";
 import { CopyButton } from "../../components/copy-button";
 import { BlogCodeDownload } from "../../components/svg/blog-code-block";
 
-const theme = {
-  plain: {
-    color: "#F8F8F2",
-    backgroundColor: "#282A36",
-  },
-  styles: [
-    {
-      types: ["string"],
-      style: {
-        color: "#3CEEAE",
-      },
-    },
-    {
-      types: ["string-property"],
-      style: {
-        color: "#9D72FF",
-      },
-    },
-    {
-      types: ["number"],
-      style: {
-        color: "#FB3186",
-      },
-    },
-  ],
-};
+// const _theme = {
+//   plain: {
+//     color: "#F8F8F2",
+//     backgroundColor: "#282A36",
+//   },
+//   styles: [
+//     {
+//       types: ["string"],
+//       style: {
+//         color: "#3CEEAE",
+//       },
+//     },
+//     {
+//       types: ["string-property"],
+//       style: {
+//         color: "#9D72FF",
+//       },
+//     },
+//     {
+//       types: ["number"],
+//       style: {
+//         color: "#FB3186",
+//       },
+//     },
+//   ],
+// };
 export function BlogCodeBlock({ className, children }: any) {
   const blocks = React.Children.map(children, (child: any) => child.props.children.props);
 
@@ -88,14 +88,14 @@ export function BlogCodeBlock({ className, children }: any) {
         </div>
         {blocks.map((block: any, index: number) => {
           return (
-            <TabsContent value={buttonLabels[index]} key={buttonLabels[index]}>
+            <TabsContent value={buttonLabels[index]} key={buttonLabels[index]} className="pr-12">
               <Highlight
-                theme={theme}
+                theme={themes.dracula}
                 code={block.children}
                 language={block.className.replace(/language-/, "")}
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
-                  <pre className="leading-10 border-none rounded-none bg-transparent">
+                  <pre className="leading-10 border-none rounded-none bg-transparent overflow-x-auto ">
                     {tokens.map((line, i) => (
                       <div
                         // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
