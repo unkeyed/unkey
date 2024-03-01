@@ -22,7 +22,7 @@ export default async function Changelog(_props: Props) {
 
   return (
     <>
-      <div className="flex flex-col mt-32 text-white/60 mx-auto">
+      <div className="flex flex-col mt-32 text-white/60 w-full">
         <div>
           <div className="relative -z-100 max-w-[1000px] mx-auto">
             <ChangelogLight className="w-full" />
@@ -75,8 +75,8 @@ export default async function Changelog(_props: Props) {
           </div>
         </div>
         <div>
-          <div className="text-center flex flex-row mx-auto ">
-            <div className="flex-flex-col mx-auto px-4">
+          <div className="text-center flex flex-row px-4">
+            <div className="flex-flex-col mx-auto ">
               <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
                 <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
               </a>
@@ -91,12 +91,15 @@ export default async function Changelog(_props: Props) {
           </div>
 
           <div className="flex flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
-            <div className="relative w-80 mx-12 hidden xl:block">
-              <div className="top-12 left-0  sticky ">
-                <SideList logs={changelogs} className="mt-0 pt-0   changlog-gradient" />
+            <div className="relative w-80 hidden xl:block">
+              <div className="top-12 left-0 sticky ">
+                <SideList
+                  logs={changelogs}
+                  className="mt-0 pt-0 xl:ml-12 2xl:ml-8 changlog-gradient"
+                />
               </div>
             </div>
-            <div className="flex flex-col w-full sm:overflow-hidden">
+            <div className="flex flex-col w-full sm:overflow-hidden px-4 md:px-8 xl:pl-16 2xl:px-0">
               {changelogs.map((changelog) => (
                 <ChangelogGridItem key={changelog.slug} changelog={changelog} />
               ))}

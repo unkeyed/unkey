@@ -335,7 +335,7 @@ li > p {
   content: "";
   background: linear-gradient(to top,
      rgba(0,0,0, 1) 20%, 
-     rgba(255,255,255, 0) 80%
+     rgba(1,1,1, 0) 80%
   );
-  pointer-events: none; /* so the text is still selectable */
+  pointer-events: none; 
 }
