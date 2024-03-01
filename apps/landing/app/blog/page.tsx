@@ -113,14 +113,14 @@ export default async function Blog(props: Props) {
             xPos={400}
             speed={10}
             delay={5}
-            className="overflow-hidden xxs:hidden md:block"
+            className="overflow-hidden sm:hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={400}
             speed={10}
             delay={0}
-            className="overflow-hidden xxs:hidden md:block"
+            className="overflow-hidden sm:hidden md:block"
           />
         </div>
         <div>

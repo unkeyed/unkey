@@ -42,11 +42,11 @@ export function BlogHero({
   return (
     <div className={cn("flex flex-col xl:flex-row w-full relative z-1 xl:px-28", className)}>
       {}
-      <Frame className="w-full my-auto shadow-sm order-2 xl:order-1 " size="lg">
+      <Frame className="order-2 w-full my-auto shadow-sm xl:order-1 " size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
-      <div className="flex flex-col xl:order-2 order-1 w-full md:pl-12">
-        <div className="flex flex-row gap-4 justify-center xl:justify-start">
+      <div className="flex flex-col order-1 w-full xl:order-2 md:pl-12">
+        <div className="flex flex-row justify-center gap-4 xl:justify-start">
           {tags?.map((tag) => (
             <p
               key={tag}
@@ -56,15 +56,15 @@ export function BlogHero({
             </p>
           ))}
         </div>
-        <h2 className="flex font-medium text-3xl leading-10 blog-heading-gradient my-6 xxs:text-center justify-center xl:justify-start xl:text-left">
+        <h2 className="flex justify-center my-6 text-3xl font-medium leading-10 blog-heading-gradient sm:text-center xl:justify-start xl:text-left">
           {title}
         </h2>
-        <p className="flex text-base leading-7 font-normal text-white/60 lg:pr-16 justify-center xl:justify-start">
+        <p className="flex justify-center text-base font-normal leading-7 text-white/60 lg:pr-16 xl:justify-start">
           {subTitle}
         </p>
-        <div className="flex flex-row w-full mt-10 gap-24 justify-center xl:justify-start pb-8 lg:pt-0">
+        <div className="flex flex-row justify-center w-full gap-24 pb-8 mt-10 xl:justify-start lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
-            <p className="text-white/30 text-sm ">Written by</p>
+            <p className="text-sm text-white/30 ">Written by</p>
             <div className="flex flex-row">
               {/* Todo: Needs ability to add multiple authors at some point */}
               <Avatar>
@@ -90,9 +90,9 @@ export function BlogHero({
             </div>
           </div>
           <div className="flex flex-col gap-6">
-            <p className="text-white/30 text-sm">Published on</p>
+            <p className="text-sm text-white/30">Published on</p>
             <div>
-              <p className="text-white text-sm pt-3">
+              <p className="pt-3 text-sm text-white">
                 {format(new Date(publishDate!), "MMM dd, yyyy")}
               </p>
             </div>

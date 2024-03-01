@@ -41,7 +41,7 @@ export default async function Templates(props: Props) {
   const readme = await fetch(template.readmeUrl).then((res) => res.text());
   return (
     <>
-      <div className="relative -z-100 mx-auto">
+      <div className="relative mx-auto -z-100">
         <ChangelogLight className="w-full top-96 max-w-[1000px] mx-auto" />
       </div>
 
@@ -81,29 +81,29 @@ export default async function Templates(props: Props) {
           xPos={400}
           speed={10}
           delay={5}
-          className="overflow-hidden hidden md:block"
+          className="hidden overflow-hidden md:block"
         />
         <MeteorLinesAngular
           number={1}
           xPos={400}
           speed={10}
           delay={0}
-          className="overflow-hidden hidden md:block"
+          className="hidden overflow-hidden md:block"
         />
       </div>
-      <div className="flex flex-wrap mt-32 text-white/60 mx-auto px-8 xxs:px-4 xxl:px-12 xxl:max-w-[1440px]">
-        <div className="flex flex-col w-full xxl:w-1/4 self-start mx-auto xxl:sticky px-0 mx-0">
+      <div className="flex flex-wrap mt-32 text-white/60 mx-auto px-8 sm:px-4 xxl:px-12 xxl:max-w-[1440px]">
+        <div className="flex flex-col self-start w-full px-0 mx-0 mx-auto xxl:w-1/4 xxl:sticky">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Templates
           </Link>
-          <div className="mb-8 xxs:mt-16">
-            <h2 className="xxs:text-[40px] xs:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xxl:w-full text-balance">
+          <div className="mb-8 sm:mt-16">
+            <h2 className="sm:text-[40px] sm:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xxl:w-full text-balance">
               {template.title}
             </h2>
-            <p className="xxs:mt-6 lg:mt-12 mt-2 text-white/60 text-base leading-6">
+            <p className="mt-2 text-base leading-6 sm:mt-6 lg:mt-12 text-white/60">
               {template.description}
             </p>
           </div>
@@ -111,7 +111,7 @@ export default async function Templates(props: Props) {
             {template.url ? (
               <Link
                 target="_blank"
-                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black duration-150 border rounded-md bg-white max-w-1/2"
+                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black duration-150 bg-white border rounded-md max-w-1/2"
                 href={`${template.url}?ref=unkey.dev`}
               >
                 Website
@@ -119,7 +119,7 @@ export default async function Templates(props: Props) {
             ) : null}
             <Link
               target="_blank"
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-white/60 duration-150 border rounded-md border-white/10  max-w-1/2"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center duration-150 border rounded-md text-white/60 border-white/10 max-w-1/2"
               href={template.repository}
             >
               Repository
@@ -140,15 +140,15 @@ export default async function Templates(props: Props) {
                 <div key={key}>
                   <Separator orientation="horizontal" />
                   <div className="flex flex-row w-full my-4">
-                    <dd className="text-sm text-white/30 w-1/2">{key}</dd>
-                    <dt className="text-sm font-medium text-white text-end w-1/2">{value}</dt>
+                    <dd className="w-1/2 text-sm text-white/30">{key}</dd>
+                    <dt className="w-1/2 text-sm font-medium text-white text-end">{value}</dt>
                   </div>
                 </div>
               ))}
           </dl>
         </div>
         {/* <Separator orientation="horizontal" /> */}
-        <div className="flex flex-col w-full xxl:w-3/4 xxs:mt-12 sm:mt-20 md:mt-0 xl:pt-24 mb-24 xxl:pl-24">
+        <div className="flex flex-col w-full mb-24 xxl:w-3/4 sm:mt-20 md:mt-0 xl:pt-24 xxl:pl-24">
           <div>
             {template.image ? (
               <Frame size={"lg"} className="">
@@ -157,7 +157,7 @@ export default async function Templates(props: Props) {
             ) : null}
           </div>
           <ReactMarkdown
-            className="xxl:px-10 xxs:mt-20 mt-16 flex flex-col gap-10 xxs:mx-4"
+            className="flex flex-col gap-10 mt-16 xxl:px-10 sm:mt-20 sm:mx-4"
             remarkPlugins={[remarkGfm]}
             //  @ts-ignore
             rehypePlugins={[rehypeRaw]}

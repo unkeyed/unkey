@@ -16,7 +16,7 @@ const PaginationContent = React.forwardRef<HTMLUListElement, React.ComponentProp
   ({ className, ...props }, ref) => (
     <ul
       ref={ref}
-      className={cn("flex flex-row items-center gap-8 xxs:gap-2", className)}
+      className={cn("flex flex-row items-center gap-8 sm:gap-2", className)}
       {...props}
     />
   ),
@@ -43,7 +43,7 @@ const PaginationLink = ({
     aria-current={isActive ? "page" : undefined}
     className={cn(
       isActive ? "bg-white text-black " : "bg-white/10 text-white/50",
-      "rounded-lg p-2 px-4 xxs:mx-2",
+      "rounded-lg p-2 px-4 sm:mx-2",
       className,
     )}
     {...props}

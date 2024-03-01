@@ -47,7 +47,7 @@ const MdxComponents = {
   code: (props: any) => (
     <code
       {...props}
-      className="inline font-mono text-xs rounded-lg leading-6 xxs:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
+      className="inline font-mono text-xs rounded-lg leading-6 sm:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
     />
   ),
   pre: (props: any) => (

@@ -10,7 +10,7 @@ export function BlogContainer({
   children: React.ReactNode;
 }) {
   return (
-    <Component className={clsx("mx-auto max-w-full xxs:px-4 sm:px-6 lg:px-8", className)}>
+    <Component className={clsx("mx-auto max-w-full sm:px-6 lg:px-8", className)}>
       <div className="max-w-[1440px] mx-auto">{children}</div>
     </Component>
   );
