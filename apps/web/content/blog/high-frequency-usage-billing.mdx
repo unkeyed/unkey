@@ -11,7 +11,7 @@ Usage billing is nothing new anymore. A lot of developers don't want to spend a 
 of money each month regardless of what they actually use. Especially when building out new unproven projects, it's essential to meet the developer where they are at: **zero users**
 
 As long as your customer is too small to generate revenue, they don't want to pay for your service and that's okay. 
-Generous free tiers are a good solution to attract users, but even after they upgrade, you shouldn't send them an insane bill for resources they're not even using. Pricing that scales with usage is preferrable for many, but not all, products.
+Generous free tiers are a good solution to attract users, but even after they upgrade, you shouldn't send them an enormous bill for resources they're not even using. Pricing that scales with usage is preferrable for many, but not all, products.
 
 Some companies have different billing tiers, where you'd pay for example: $10 for 10k, $20 for 30k, $50 for 100k. The issue with that is paying the next higher tier just because you have exceeded the previous tier by a small margin, ie: paying $50 for 31k.
 This system is very easy to implement, but at Unkey we do prorated usaged based billing, which means you pay for your exact usage, not whatever billing tier your usage fits in.
@@ -39,7 +39,7 @@ These days there are even some SaaS, that focus on this problem specifically and
 ### Sending usage to our billing provider
 
 Initially we were using Stripe subscriptions and updating usage in Stripe every hour for every workspace.
-This worked pretty well and Stripe take care of a lot of things, such as proration when subscriptions change.
+This worked pretty well and Stripe takes care of a lot of things, such as proration when subscriptions change.
 However we also ran into a few issues because Stripe's `billing_anchor` would not line up perfectly with our own data aggregations, resulting in some missed usage records.
 
 This could be fixed in theory and Stripe subscriptions are great overall, but we decided to build a more agnostic system, in case we ever want to move off of stripe.
@@ -138,7 +138,7 @@ And we will get back the total number of successful verifications for workspace 
 
 
 Again we create an intermediate materialized view first. We could've reused the previous one, but it's nice to have them separated in case we want to change things later.
-This results in a materialized view, where there's t most one row per keyId and month, making it super cheap to query later.
+This results in a materialized view, where there's at most one row per keyId and month, making it super cheap to query later.
 
 ```sql title="aggregate_active_keys_monthly_by_workspace_id.pipe"
 SELECT
@@ -196,7 +196,6 @@ Afterwards we fetch the usage for both keys and verifications and finalize the i
 Doing invoicing ourselves made it easier to customize its behaviour. That being said, it definitely took longer to implement than sitting down and fixing subscription timing issues properly. 
 Especially prorations are pretty annoying to handle.
 
-We're still happy with the result, as it allows us to edit and tweak things as we go, whereas Stripe makes a ton of options non-editable. And we can also potentially switch providers cause we're not as locked into Stripe. 
+We're still happy with the result, as it allows us to edit and tweak things as we go, whereas Stripe makes a ton of options non-editable. We can also switch providers at any time as we own the entire billing flow.
 
-Time will tell if this was useful or not.
 
