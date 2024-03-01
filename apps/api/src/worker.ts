@@ -1,6 +1,7 @@
 import { Env, zEnv } from "@/pkg/env";
 import { newApp } from "@/pkg/hono/app";
 
+import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -14,7 +15,7 @@ import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining"
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 
-import { ResolveConfigFn, instrument } from "@microlabs/otel-cf-workers";
+import { instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
@@ -23,6 +24,7 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics, otel } from "@/pkg/middleware";
+import { traceConfig } from "./pkg/tracing/config";
 
 const app = newApp();
 
@@ -56,6 +58,7 @@ registerV1ApisDeleteApi(app);
 // legacy REST style routes
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
+registerLegacyApisListKeys(app);
 
 app.get("/routes", (c) => {
   return c.json(
@@ -84,13 +87,10 @@ const handler: ExportedHandler<Env> = {
   },
 };
 
-const config: ResolveConfigFn = (env: Env) => {
-  return {
-    exporter: {
-      url: "https://otel.baselime.io/v1",
-      headers: { "x-api-key": env.BASELIME_API_KEY! },
-    },
-    service: { name: "unkey-api", version: env.VERSION },
-  };
-};
-export default instrument(handler, config);
+export default instrument(
+  handler,
+  traceConfig((env) => ({
+    name: `api.${env.ENVIRONMENT}`,
+    version: env.VERSION,
+  })),
+);

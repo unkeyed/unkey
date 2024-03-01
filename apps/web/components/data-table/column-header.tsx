@@ -5,11 +5,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, ChevronsUpDown, EyeOff } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 
 interface DataTableColumnHeaderProps<TData, TValue> extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;

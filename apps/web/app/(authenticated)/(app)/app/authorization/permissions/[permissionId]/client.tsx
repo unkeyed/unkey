@@ -2,7 +2,7 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 import {
   Form,
@@ -33,7 +33,7 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export const Client: React.FC<Props> = ({ permission, className }) => {
+export const Client: React.FC<Props> = ({ permission }) => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({

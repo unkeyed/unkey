@@ -1,25 +1,10 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
-import { VisibleButton } from "@/components/dashboard/visible-button";
-import { Button } from "@/components/ui/button";
-import { Code } from "@/components/ui/code";
-
-import { MultiSelect } from "@/components/multi-select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -29,15 +14,12 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";

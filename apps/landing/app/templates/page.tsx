@@ -102,28 +102,81 @@ export default function Templates() {
   );
 
   return (
-    <div className="flex flex-col mt-32 text-white/60 mx-auto">
+    <div className="flex flex-col mx-auto mt-32 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full top-40" />
         </div>
-        <div className="w-full overflow-clip">
-          <MeteorLinesAngular number={2} xPos={0} />
-          <MeteorLinesAngular number={2} xPos={200} />
-          <MeteorLinesAngular number={2} xPos={400} />
+        <div className="w-full h-full overflow-clip -z-20">
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={5}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={0}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={7}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={2}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={7}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={2}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={5}
+            className="overflow-hidden sm:hidden md:block"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={0}
+            className="overflow-hidden sm:hidden md:block"
+          />
         </div>
       </div>
 
       <PageIntro title="Find your Template">
-        <p className="text-white/60 mt-10">
+        <p className="mt-10 text-white/60">
           Jumpstart your api development with our pre-built solutions.
         </p>
       </PageIntro>
       <Container className="mt-24 text-white">
-        <div className="flex flex-col lg:space-x-8 lg:flex-row mb-24">
+        <div className="flex flex-col mb-24 lg:space-x-8 lg:flex-row">
           <div className="w-full lg:w-[232px]">
             <Form {...form}>
-              <h2 className="mb-8 font-semibold blog-heading-gradient w-fit hidden">
+              <h2 className="hidden mb-8 font-semibold blog-heading-gradient w-fit">
                 Filter Templates
               </h2>
               <FormField
@@ -146,7 +199,7 @@ export default function Templates() {
               <Accordion type="multiple">
                 <AccordionItem value="fullCallapse">
                   <AccordionTrigger className="mb-6">
-                    <h2 className="font-semibold blog-heading-gradient w-full text-left">
+                    <h2 className="w-full font-semibold text-left blog-heading-gradient">
                       Filter Templates
                     </h2>
                   </AccordionTrigger>
@@ -159,11 +212,11 @@ export default function Templates() {
                           <Separator className="mb-4 " orientation="horizontal" />
                           <Accordion type="single" collapsible>
                             <AccordionItem value="langAccordion">
-                              <AccordionTrigger className="items-start text-left w-full">
+                              <AccordionTrigger className="items-start w-full text-left">
                                 <span className="w-6 h-6 rounded-md bg-white/10">
                                   <CodeIcon />
                                 </span>
-                                <span className="text-left justify-start w-full pl-4">
+                                <span className="justify-start w-full pl-4 text-left">
                                   Languages
                                 </span>
                               </AccordionTrigger>
@@ -198,7 +251,7 @@ export default function Templates() {
                                           </FormControl>
                                           <FormLabel className="flex items-center justify-between w-full">
                                             <span className="text-sm font-normal">{language}</span>
-                                            <span className="p-1 px-4 text-xs text-white/70 duration-150 bg-white/20 rounded-full group-hover:text-white/80">
+                                            <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
                                               {occurences}
                                             </span>
                                           </FormLabel>
@@ -223,11 +276,11 @@ export default function Templates() {
                         <FormItem className="mt-4 mb-4">
                           <Accordion type="single" collapsible>
                             <AccordionItem value="langAccordion">
-                              <AccordionTrigger className="items-start text-left w-full">
+                              <AccordionTrigger className="items-start w-full text-left">
                                 <span className="w-6 h-6 rounded-md bg-white/10">
                                   <FrameworkIcon />
                                 </span>
-                                <span className="text-left justify-start w-full pl-4">
+                                <span className="justify-start w-full pl-4 text-left">
                                   Framework
                                 </span>
                               </AccordionTrigger>
@@ -261,7 +314,7 @@ export default function Templates() {
                                           </FormControl>
                                           <FormLabel className="flex items-center justify-between w-full">
                                             <span className="text-sm font-normal">{framework}</span>
-                                            <span className="p-1 px-4 text-xs text-white/70 duration-150 bg-white/20 rounded-full group-hover:text-white/80">
+                                            <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
                                               {occurences}
                                             </span>
                                           </FormLabel>
@@ -296,16 +349,16 @@ export default function Templates() {
                     <VenetianMask className="w-16 h-16 text-white/60" />
                   )}
                 </div>
-                <div className="flex flex-col justify-start h-3/5 p-4 w-full">
+                <div className="flex flex-col justify-start w-full p-4 h-3/5">
                   <div>
-                    <div className="flex flex-row  w-full justify-start gap-3">
+                    <div className="flex flex-row justify-start w-full gap-3">
                       {template.framework !== undefined ? (
-                        <div className="py-1 px-2 rounded-md bg-white/10 text-white/60 text-xs">
+                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
                           {template.framework?.toString()}
                         </div>
                       ) : null}
                       {template.language !== undefined ? (
-                        <div className="py-1 px-3 rounded-md bg-white/10 text-white/60 text-sm">
+                        <div className="px-3 py-1 text-sm rounded-md bg-white/10 text-white/60">
                           {template.language?.toString()}
                         </div>
                       ) : null}
@@ -317,17 +370,17 @@ export default function Templates() {
                       {template.description}
                     </p>
                   </div>
-                  <div className="flex flex-col h-full w-full justify-end">
+                  <div className="flex flex-col justify-end w-full h-full">
                     {/* No images currently in author */}
                     {/* <Avatar className="w-8 h-8 rounded-full" >
                       <AvatarImage src={template.authors} />
                     </Avatar> */}
-                    <div className="relative pb-4 w-full">
-                      <p className="absolute left-0 text-sm leading-6 text-white ml-2 text-left">
+                    <div className="relative w-full pb-4">
+                      <p className="absolute left-0 ml-2 text-sm leading-6 text-left text-white">
                         by {template.authors.join(", ")}
                       </p>
                       <div className="absolute right-0">
-                        <TemplatesRightArrow className="flex w-6 h-6 text-white/60 mr-2 " />
+                        <TemplatesRightArrow className="flex w-6 h-6 mr-2 text-white/60 " />
                       </div>
                     </div>
                   </div>

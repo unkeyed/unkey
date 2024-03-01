@@ -1,10 +1,12 @@
 import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
+import { instrumentDO } from "@microlabs/otel-cf-workers";
 import { Env } from "../env";
 import { ConsoleLogger, Logger } from "../logging";
 import { AxiomLogger } from "../logging/axiom";
+import { traceConfig } from "../tracing/config";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
-export class DurableObjectUsagelimiter {
+class DO implements DurableObject {
   private readonly state: DurableObjectState;
   private readonly db: Database;
   private lastRevalidate = 0;
@@ -113,5 +115,15 @@ export class DurableObjectUsagelimiter {
         });
       }
     }
+    return new Response("invalid path", { status: 404 });
   }
 }
+
+export const DurableObjectUsagelimiter = instrumentDO(
+  DO,
+  traceConfig((env) => ({
+    name: `api.${env.ENVIRONMENT}`,
+    namespace: "DurableObjectUsagelimiter",
+    version: env.VERSION,
+  })),
+);

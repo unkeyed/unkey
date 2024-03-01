@@ -62,17 +62,74 @@ export default async function Blog(props: Props) {
   return (
     <>
       <BlogContainer className="max-w-full mt-32 scroll-smooth">
-        <TopLeftShiningLight />
-        <div className="w-full overflow-clip">
-          <MeteorLinesAngular number={2} xPos={0} />
-          <MeteorLinesAngular number={2} xPos={200} />
-          <MeteorLinesAngular number={2} xPos={400} />
+        <div>
+          <TopLeftShiningLight />
         </div>
-        <TopRightShiningLight />
+        <div className="w-full h-full overflow-clip -z-20">
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={5}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={0}
+            speed={10}
+            delay={0}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={7}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={100}
+            speed={10}
+            delay={2}
+            className="overflow-hidden sm:hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={7}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={200}
+            speed={10}
+            delay={2}
+            className="overflow-hidden"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={5}
+            className="overflow-hidden sm:hidden md:block"
+          />
+          <MeteorLinesAngular
+            number={1}
+            xPos={400}
+            speed={10}
+            delay={0}
+            className="overflow-hidden sm:hidden md:block"
+          />
+        </div>
+        <div>
+          <TopRightShiningLight />
+        </div>
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
           <BlogHero
             tags={postTags}
-            imageUrl={posts[0].frontmatter.image}
+            imageUrl={posts[0].frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
             title={posts[0].frontmatter.title}
             subTitle={posts[0].frontmatter.description}
             author={authors[posts[0].frontmatter.author]}

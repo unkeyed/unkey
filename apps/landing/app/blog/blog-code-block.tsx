@@ -1,7 +1,9 @@
+"use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-tabs";
 import { cn } from "@/lib/utils";
 import { Highlight } from "prism-react-renderer";
 import { useState } from "react";
+import React from "react";
 import { CopyButton } from "../../components/copy-button";
 import { BlogCodeDownload } from "../../components/svg/blog-code-block";
 
@@ -32,9 +34,9 @@ const theme = {
   ],
 };
 export function BlogCodeBlock({ className, children }: any) {
-  const blocks = children.map((child: any) => child.props.children.props);
+  const blocks = React.Children.map(children, (child: any) => child.props.children.props);
 
-  const buttonLabels = children.map((child: any) =>
+  const buttonLabels = React.Children.map(children, (child: any) =>
     child?.props?.children?.props?.className.replace(/language-/, "").split(" "),
   );
   const [copyData, setCopyData] = useState(blocks[0].children);
@@ -69,9 +71,9 @@ export function BlogCodeBlock({ className, children }: any) {
       >
         <div className="flex flex-row border-b-[.5px] border-white/10 p-2">
           <TabsList className="w-full flex flex-row gap-4 justify-start h-fit align-bottom">
-            {buttonLabels.map((label: string) => {
+            {React.Children.map(buttonLabels, (label: string) => {
               return (
-                <TabsTrigger value={label} className="capitalize">
+                <TabsTrigger key={label} value={label} className="capitalize text-white/30">
                   {label}
                 </TabsTrigger>
               );
@@ -84,9 +86,9 @@ export function BlogCodeBlock({ className, children }: any) {
             </button>
           </div>
         </div>
-        {blocks.map((block: any, index: string) => {
+        {blocks.map((block: any, index: number) => {
           return (
-            <TabsContent value={buttonLabels[index]}>
+            <TabsContent value={buttonLabels[index]} key={buttonLabels[index]}>
               <Highlight
                 theme={theme}
                 code={block.children}

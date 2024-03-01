@@ -59,14 +59,19 @@ export const registerV1ApisGetApi = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.read_api", `api.${apiId}.read_api`)),
     );
 
-    const api = await cache.withCache(c, "apiById", apiId, async () => {
+    const { value: api, error } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
     });
-
+    if (error) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `unable to get api: ${error.message}`,
+      });
+    }
     if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }

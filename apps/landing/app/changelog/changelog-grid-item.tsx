@@ -28,8 +28,8 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
 
   return (
     <div id={changelog.slug} className={cn("w-full", className)}>
-      <div className="xl:px-24 px-8">
-        <div className="flex flex-row pb-10 gap-4">
+      <div className="xl:px-12 md:mx-12 sm:mx-6">
+        <div className="flex flex-row pb-10 gap-4 ">
           {tagList.map((tag) => (
             <span
               key={tag}
@@ -46,22 +46,22 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
         <p className="my-8 ">{changelog.frontmatter.description}</p>
       </div>
       {changelog.frontmatter.image && (
-        <Frame className="shadow-sm my-14 mx-8" size="lg">
+        <Frame className="shadow-sm my-14 mx-8 sm:mx-2" size="md">
           <Image
             src={changelog.frontmatter.image.toString()}
             alt={changelog.frontmatter.title}
             width={1100}
-            height={660}
+            height={860}
           />
         </Frame>
       )}
-      <div className="w-full prose lg:prose-2xl xl:px-24 px-8 prose-thead:border-none">
+      <div className="w-full flex flex-col gap-12 md:px-12 sm:px-6 xxl:px-24 prose-thead:border-none">
         <MdxContentChangelog source={serialized} />
       </div>
       <div>
         <CopyButton
           value={`${baseUrl}/changelog#${changelog.slug}`}
-          className="mb-6 mt-12 xl:ml-24 lg:ml-8 ml-6"
+          className="mb-6 mt-12 xxl:ml-24 lg:ml-8 md:ml-10 ml-6"
         >
           <p className="">Copy Link</p>
         </CopyButton>

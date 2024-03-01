@@ -4,58 +4,56 @@ import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
+import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
 import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
 
-type VerifyKeyResult =
-  | {
-      valid: false;
-      code: "NOT_FOUND";
-      key?: never;
-      api?: never;
-      ratelimit?: never;
-      remaining?: never;
-    }
-  | {
-      valid: false;
-      publicMessage?: string;
-      code:
-        | "FORBIDDEN"
-        | "RATE_LIMITED"
-        | "USAGE_EXCEEDED"
-        | "DISABLED"
-        | "INSUFFICIENT_PERMISSIONS";
-      key: Key;
-      api: Api;
-      ratelimit?: {
-        remaining: number;
-        limit: number;
-        reset: number;
-      };
-      remaining?: number;
-      permissions?: string[];
-    }
-  | {
-      code?: never;
-      valid: true;
-      key: Key;
-      api: Api;
-      ratelimit?: {
-        remaining: number;
-        limit: number;
-        reset: number;
-      };
-      remaining?: number;
-      isRootKey?: boolean;
-      /**
-       * the workspace of the user, even if this is a root key
-       */
-      authorizedWorkspaceId: string;
-      permissions?: string[];
-    };
+type NotFoundResponse = {
+  valid: false;
+  code: "NOT_FOUND";
+  key?: never;
+  api?: never;
+  ratelimit?: never;
+  remaining?: never;
+};
+
+type InvalidResponse = {
+  valid: false;
+  publicMessage?: string;
+  code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED" | "INSUFFICIENT_PERMISSIONS";
+  key: Key;
+  api: Api;
+  ratelimit?: {
+    remaining: number;
+    limit: number;
+    reset: number;
+  };
+  remaining?: number;
+  permissions?: string[];
+};
+
+type ValidResponse = {
+  code?: never;
+  valid: true;
+  key: Key;
+  api: Api;
+  ratelimit?: {
+    remaining: number;
+    limit: number;
+    reset: number;
+  };
+  remaining?: number;
+  isRootKey?: boolean;
+  /**
+   * the workspace of the user, even if this is a root key
+   */
+  authorizedWorkspaceId: string;
+  permissions?: string[];
+};
+type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 export class KeyService {
   private readonly cache: TieredCache;
@@ -67,6 +65,7 @@ export class KeyService {
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
   private readonly rbac: RBAC;
+  private readonly tracer: Tracer;
 
   constructor(opts: {
     cache: TieredCache;
@@ -87,58 +86,71 @@ export class KeyService {
     this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
     this.rbac = new RBAC();
+    this.tracer = trace.getTracer("keyService");
   }
 
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult>> {
-    const res = await this._verifyKey(c, req).catch(async (e) => {
+    const span = this.tracer.startSpan("verifyKey");
+    try {
+      const res = await this._verifyKey(c, span, req);
+      if (res.error) {
+        this.metrics.emit({
+          metric: "metric.key.verification",
+          valid: false,
+          code: res.error.message,
+        });
+        return res;
+      }
+      // if we have identified the key, we can send the analytics event
+      // otherwise, they likely sent garbage to us and we can't associate it with anything
+      if (res.value.key) {
+        c.executionCtx.waitUntil(
+          this.analytics.ingestKeyVerification({
+            workspaceId: res.value.key.workspaceId,
+            apiId: res.value.api.id,
+            keyId: res.value.key.id,
+            time: Date.now(),
+            deniedReason: res.value.code,
+            ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
+            userAgent: c.req.header("User-Agent"),
+            requestedResource: "",
+            edgeRegion: "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            region: c.req.raw?.cf?.colo ?? "",
+          }),
+        );
+      }
+      this.metrics.emit({
+        metric: "metric.key.verification",
+        valid: res.value.valid,
+        code: res.value.code ?? "OK",
+        workspaceId: res.value.key?.workspaceId,
+        apiId: res.value.api?.id,
+        keyId: res.value.key?.id,
+      });
+
+      return res;
+    } catch (e) {
+      const err = e as Error;
       this.logger.error("Unhandled error while verifying key", {
-        error: (e as Error).message,
+        error: err.message,
+        stack: JSON.stringify(err.stack),
         keyHash: await sha256(req.key),
         apiId: req.apiId,
       });
-      throw e;
-    });
-    if (res.error) {
-      this.metrics.emit({
-        metric: "metric.key.verification",
-        valid: false,
-        code: res.error.message,
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: `Error during key verification: ${err.message}`,
       });
-      return res;
-    }
-    // if we have identified the key, we can send the analytics event
-    // otherwise, they likely sent garbage to us and we can't associate it with anything
-    if (res.value.key) {
-      c.executionCtx.waitUntil(
-        this.analytics.ingestKeyVerification({
-          workspaceId: res.value.key.workspaceId,
-          apiId: res.value.api.id,
-          keyId: res.value.key.id,
-          time: Date.now(),
-          deniedReason: res.value.code,
-          ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-          userAgent: c.req.header("User-Agent"),
-          requestedResource: "",
-          edgeRegion: "",
-          // @ts-expect-error - the cf object will be there on cloudflare
-          region: c.req.raw?.cf?.colo ?? "",
-        }),
-      );
-    }
+      span.recordException(err);
 
-    this.metrics.emit({
-      metric: "metric.key.verification",
-      valid: res.value.valid,
-      code: res.value.code ?? "OK",
-      workspaceId: res.value.key?.workspaceId,
-      apiId: res.value.api?.id,
-      keyId: res.value.key?.id,
-    });
-
-    return res;
+      throw e;
+    } finally {
+      span.end();
+    }
   }
 
   /**
@@ -146,10 +158,11 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
+    span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult>> {
     const hash = await sha256(req.key);
-    const data = await this.cache.withCache(c, "keyByHash", hash, async () => {
+    const { value: data, error } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
@@ -185,6 +198,7 @@ export class KeyService {
         latency: performance.now() - dbStart,
       });
       if (!dbRes) {
+        span.addEvent("db returned nothing");
         return null;
       }
       if (!dbRes.keyAuth.api) {
@@ -207,7 +221,12 @@ export class KeyService {
       };
     });
 
+    if (error) {
+      return result.fail(new Error(`unable to fetch required data: ${error.message}`));
+    }
+
     if (!data) {
+      span.addEvent("not found");
       return result.success({ valid: false, code: "NOT_FOUND" });
     }
     /**
@@ -270,6 +289,10 @@ export class KeyService {
     }
 
     if (req.permissionQuery) {
+      span.addEvent("checking permissionQuery", {
+        query: JSON.stringify(req.permissionQuery),
+        permissions: JSON.stringify(data.permissions),
+      });
       const q = this.rbac.validateQuery(req.permissionQuery);
       if (q.error) {
         return result.fail({
@@ -278,6 +301,7 @@ export class KeyService {
         });
       }
       const rbacResp = this.rbac.evaluatePermissions(q.value.query, data.permissions);
+
       if (rbacResp.error) {
         this.logger.error("evaluating permissions failed", {
           query: JSON.stringify(req.permissionQuery),
