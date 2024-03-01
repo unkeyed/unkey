@@ -44,7 +44,7 @@ const navigation = [
 
 function CompanyInfo() {
   return (
-    <div className="flex flex-col xxs:mx-auto">
+    <div className="flex flex-col sm:mx-auto">
       <UnkeyLogoSmall />
       <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.5)] mt-8">
         Seriously Fast API Authentication.
@@ -69,7 +69,7 @@ function CompanyInfoMobile() {
       <div className="mt-10">
         {navigation.map((section) => (
           <>
-            <h3 className="text-sm font-medium text-white py-4">{section.title}</h3>
+            <h3 className="py-4 text-sm font-medium text-white">{section.title}</h3>
             <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal">
               {section.links.map((link) => (
                 <li key={link.href} className="py-4">
@@ -105,8 +105,8 @@ function CompanyInfoMobile() {
 
 function Navigation() {
   return (
-    <nav className="xxs:w-full">
-      <ul className="flex flex-auto xxs:flex-col sm:flex-row gap-16 xxs:mx-auto xxs:text-center text-left justify-evenly">
+    <nav className="sm:w-full">
+      <ul className="flex flex-col flex-auto gap-16 text-left sm:flex-row sm:mx-auto sm:text-center justify-evenly">
         {navigation.map((section) => (
           <li key={section.title}>
             <div className="text-sm font-medium tracking-wider text-white font-display">
@@ -144,8 +144,8 @@ function Navigation() {
 
 function MobileNavigation() {
   return (
-    <nav className="flex xs:hidden flex-col">
-      <div className="flex items-center justify-center text-center w-full flex-col">
+    <nav className="flex flex-col sm:hidden">
+      <div className="flex flex-col items-center justify-center w-full text-center">
         <CompanyInfoMobile />
       </div>
       <div className="flex justify-center w-full lg:mt-24">
@@ -158,9 +158,8 @@ function MobileNavigation() {
 export function Footer() {
   return (
     <>
-      <footer className="hidden xs:block relative pt-32 xl:pt-10 overflow-hidden border-t max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
-        <div className="absolute inset-x-0 w-full h-full pointer-events-none" />
-        <div className="flex flex-col mx-auto lg:w-fit max-sm:w-full ">
+      <footer className="relative hidden pt-32 overflow-hidden border-t sm:block xl:pt-10 max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
+        <div className="flex flex-col mx-auto lg:max-w-4xl max-sm:w-full ">
           <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row xl:gap-20 xxl:gap-48">
             <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
               <CompanyInfo />

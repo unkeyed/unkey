@@ -96,7 +96,7 @@ export default async function Changelog(_props: Props) {
                 <SideList logs={changelogs} className="mt-0 pt-0   changlog-gradient" />
               </div>
             </div>
-            <div className="flex flex-col w-full xxs:overflow-hidden">
+            <div className="flex flex-col w-full sm:overflow-hidden">
               {changelogs.map((changelog) => (
                 <ChangelogGridItem key={changelog.slug} changelog={changelog} />
               ))}

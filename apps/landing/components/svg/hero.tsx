@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export const TopLeftShiningLight: React.FC = () => (
   <svg
-    className="absolute left-0 top-0 pointer-events-none"
+    className="absolute top-0 left-0 pointer-events-none"
     width="579"
     height="511"
     viewBox="0 0 579 511"
@@ -216,7 +216,7 @@ export const TopLeftShiningLight: React.FC = () => (
 export const TopRightShiningLight: React.FC = () => {
   return (
     <svg
-      className="absolute -top-[4%] -right-[2%] pointer-events-none"
+      className="absolute top-0 right-0 pointer-events-none"
       width="445"
       height="699"
       viewBox="0 0 445 699"
@@ -498,7 +498,7 @@ export const TopRightShiningLight: React.FC = () => {
 };
 export const HeroMainboardStuff: React.FC<{ className: string }> = ({ className }) => (
   <svg
-    className={cn("hidden xs:flex pointer-events-none", className)}
+    className={cn("hidden sm:flex pointer-events-none", className)}
     width="1368"
     height="476"
     viewBox="0 0 1368 476"
@@ -3302,7 +3302,7 @@ export const HeroMainboardStuff: React.FC<{ className: string }> = ({ className 
 
 export const HeroMainboardStuffMobile: React.FC<{ className: string }> = ({ className }) => (
   <svg
-    className={cn("flex xs:hidden pointer-events-none", className)}
+    className={cn("flex sm:hidden pointer-events-none", className)}
     width="1368"
     height="476"
     viewBox="0 0 668 476"
