@@ -85,14 +85,14 @@ export default async function Blog(props: Props) {
             xPos={100}
             speed={10}
             delay={7}
-            className="overflow-hidden sm:hidden"
+            className="overflow-hidden hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={100}
             speed={10}
             delay={2}
-            className="overflow-hidden sm:hidden"
+            className="overflow-hidden hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
@@ -113,14 +113,14 @@ export default async function Blog(props: Props) {
             xPos={400}
             speed={10}
             delay={5}
-            className="overflow-hidden sm:hidden md:block"
+            className="overflow-hidden hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={400}
             speed={10}
             delay={0}
-            className="overflow-hidden sm:hidden md:block"
+            className="overflow-hidden hidden md:block"
           />
         </div>
         <div>
@@ -134,6 +134,7 @@ export default async function Blog(props: Props) {
             subTitle={posts[0].frontmatter.description}
             author={authors[posts[0].frontmatter.author]}
             publishDate={posts[0].frontmatter.date}
+            className="px-4"
           />
         </Link>
         <BlogGrid posts={posts} searchParams={props.searchParams} />
