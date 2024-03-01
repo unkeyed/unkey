@@ -102,8 +102,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/zod-queue
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@cloudflare/workers-types@4.20240208.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)
+        specifier: ^0.29.4
+        version: 0.29.4(@cloudflare/workers-types@4.20240208.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)
       hono:
         specifier: ^4.0.7
         version: 4.0.7
@@ -216,8 +216,8 @@ importers:
         specifier: ^3.2.0
         version: 3.3.1
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
+        specifier: ^0.29.4
+        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
       framer-motion:
         specifier: 11.0.8
         version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
@@ -482,8 +482,8 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
+        specifier: ^0.29.4
+        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
       framer-motion:
         specifier: 11.0.8
         version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
@@ -645,8 +645,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/resend
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
+        specifier: ^0.29.4
+        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
       next:
         specifier: 14.1.0
         version: 14.1.0(react-dom@18.2.0)(react@18.2.0)
@@ -723,8 +723,8 @@ importers:
         specifier: ^0.20.14
         version: 0.20.14
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@planetscale/database@1.16.0)(mysql2@3.9.2)
+        specifier: ^0.29.4
+        version: 0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -1055,8 +1055,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@planetscale/database@1.16.0)(mysql2@3.9.2)
+        specifier: ^0.29.4
+        version: 0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)
       mysql2:
         specifier: ^3.9.2
         version: 3.9.2
@@ -1104,8 +1104,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: 0.29.3
-        version: 0.29.3(@planetscale/database@1.16.0)(mysql2@3.9.2)
+        specifier: ^0.29.4
+        version: 0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)
       mysql2:
         specifier: ^3.9.2
         version: 3.9.2
@@ -5528,6 +5528,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -8651,6 +8652,11 @@ packages:
     dependencies:
       undici-types: 5.26.5
 
+  /@types/node@20.11.24:
+    resolution: {integrity: sha512-Kza43ewS3xoLgCEpQrsT+xRo/EJej1y0kVYGiLFE1NEODXGzTfwiC6tXTLMQskn1X4/Rjlh0MQUvx9W+L9long==}
+    dependencies:
+      undici-types: 5.26.5
+
   /@types/normalize-package-data@2.4.4:
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
 
@@ -11343,8 +11349,8 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.29.3(@cloudflare/workers-types@4.20240208.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0):
-    resolution: {integrity: sha512-uSE027csliGSGYD0pqtM+SAQATMREb3eSM/U8s6r+Y0RFwTKwftnwwSkqx3oS65UBgqDOM0gMTl5UGNpt6lW0A==}
+  /drizzle-orm@0.29.4(@cloudflare/workers-types@4.20240208.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0):
+    resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -11419,8 +11425,8 @@ packages:
       '@planetscale/database': 1.16.0
     dev: false
 
-  /drizzle-orm@0.29.3(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0):
-    resolution: {integrity: sha512-uSE027csliGSGYD0pqtM+SAQATMREb3eSM/U8s6r+Y0RFwTKwftnwwSkqx3oS65UBgqDOM0gMTl5UGNpt6lW0A==}
+  /drizzle-orm@0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0):
+    resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -11495,8 +11501,8 @@ packages:
       react: 18.2.0
     dev: false
 
-  /drizzle-orm@0.29.3(@planetscale/database@1.16.0)(mysql2@3.9.2):
-    resolution: {integrity: sha512-uSE027csliGSGYD0pqtM+SAQATMREb3eSM/U8s6r+Y0RFwTKwftnwwSkqx3oS65UBgqDOM0gMTl5UGNpt6lW0A==}
+  /drizzle-orm@0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2):
+    resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -14325,7 +14331,7 @@ packages:
     resolution: {integrity: sha512-7vuh85V5cdDofPyxn58nrPjBktZo0u9x1g8WtjQol+jZDaE+fhN+cIvTj11GndBnMnyfrUOG1sZQxCdjKh+DKg==}
     engines: {node: '>= 10.13.0'}
     dependencies:
-      '@types/node': 20.11.19
+      '@types/node': 20.11.24
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -16049,6 +16055,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}

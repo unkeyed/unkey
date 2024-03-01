@@ -1,12 +1,12 @@
 import { drizzle } from "drizzle-orm/planetscale-serverless";
 
 import { env } from "@/lib/env";
-import { connect } from "@planetscale/database";
+import { Client } from "@planetscale/database";
 import { schema } from "@unkey/db";
 
 export const connectDatabase = () =>
   drizzle(
-    connect({
+    new Client({
       host: env().DATABASE_HOST,
       username: env().DATABASE_USERNAME,
       password: env().DATABASE_PASSWORD,
