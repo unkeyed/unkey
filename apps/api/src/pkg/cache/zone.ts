@@ -113,6 +113,7 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
       // @ts-expect-error I don't know why this is not working
       caches.default.delete(this.createCacheKey(namespace, key)),
       fetch(`https://api.cloudflare.com/client/v4zones/${this.config.zoneId}/purge_cache`, {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${this.config.cloudflareApiKey}`,
           "Content-Type": "application/json",
