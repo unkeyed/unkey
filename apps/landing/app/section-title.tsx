@@ -40,7 +40,7 @@ export function SectionTitle({
       </p>
       <h1
         className={cn(
-          "text-[28px] xs:text-[42px] xs-leading[48px] xs:pb-3 sm:text-[52px] sm:leading-[64px] text-white md:max-w-[463px] pt-4 font-medium section-title-heading-gradient text-center",
+          "text-[28px]  sm:pb-3 sm:text-[52px] sm:leading-[64px] text-white md:max-w-[463px] pt-4 font-medium section-title-heading-gradient text-center",
           { "xl:text-left": align === "left" },
         )}
         style={{ maxWidth: titleWidth ? `${titleWidth}px` : "none" }}

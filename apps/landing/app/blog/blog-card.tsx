@@ -41,8 +41,8 @@ export function BlogCard({
         : null
       </div>
 
-      <h2 className="font-medium xxs:text-xl text-3xl leading-10 blog-heading-gradient">{title}</h2>
-      <p className="text-base xxs:text-[15px] leading-6 font-normal text-white/60 line-clamp-2">
+      <h2 className="text-3xl font-medium leading-10 sm:text-xl blog-heading-gradient">{title}</h2>
+      <p className="text-base sm:text-[15px] leading-6 font-normal text-white/60 line-clamp-2">
         {subTitle}
       </p>
       <div className="flex flex-row">
@@ -51,8 +51,8 @@ export function BlogCard({
           <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
           <AvatarFallback />
         </Avatar>
-        <p className="text-white pt-3 text-sm font-medium ml-4">{author.name}</p>
-        <p className="text-white/40 text-sm pt-3 ml-6 font-normal">
+        <p className="pt-3 ml-4 text-sm font-medium text-white">{author.name}</p>
+        <p className="pt-3 ml-6 text-sm font-normal text-white/40">
           {format(new Date(publishDate!), "MMM dd, yyyy")}
         </p>
         <div />

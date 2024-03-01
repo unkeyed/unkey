@@ -117,29 +117,29 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             xPos={400}
             speed={10}
             delay={5}
-            className="overflow-hidden xxs:hidden md:block"
+            className="overflow-hidden sm:hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={400}
             speed={10}
             delay={0}
-            className="overflow-hidden xxs:hidden md:block"
+            className="overflow-hidden sm:hidden md:block"
           />
         </div>
         <div className="overflow-hidden -z-40">
           <TopRightShiningLight />
         </div>
         <div className="flex xl:flex-row flex-col ">
-          <div className="flex flex-col xs:pl-4 lg:pl-24 md:px-12 xl:w-full">
-            <h1 className="text-left xxs:pt-8 xl:mt-28 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
+          <div className="flex flex-col sm:pl-4 lg:pl-24 md:px-12 xl:w-full">
+            <h1 className="text-left sm:pt-8 xl:mt-28 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
             </h1>
             <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40">
               {frontmatter.description}
             </p>
           </div>
-          <div className="flex xl:flex-col flex-row  xl:w-80 w-fit pt-12 lg:pl-24 md:px-12 xs:pl-4 xl:pl-12 xl:pt-36">
+          <div className="flex xl:flex-col flex-row  xl:w-80 w-fit pt-12 lg:pl-24 md:px-12 sm:pl-4 xl:pl-12 xl:pt-36">
             <BlogAuthors author={author} className="xl:mb-16 mb-6 w-40" />
             <div className="flex flex-col">
               <p className="mb-6 text-sm text-white/30">Published on</p>
@@ -160,7 +160,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 />
               </Frame>
             </div>
-            <div className="lg:px-24 xs:px-4 md:px-12 flex flex-col gap-12">
+            <div className="lg:px-24 sm:px-4 md:px-12 flex flex-col gap-12">
               <MdxContent source={serialized} />
             </div>
           </div>

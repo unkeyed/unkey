@@ -15,7 +15,7 @@ export const TemplateComponents = {
 
   ol: (props: any) => <ol {...props} className="text-white list-decimal marker:text-white pl-4" />,
   ul: (props: any) => (
-    <ul {...props} className="text-white xxs:pt-4 list-disc marker:text-white pl-4 " />
+    <ul {...props} className="text-white sm:pt-4 list-disc marker:text-white pl-4 " />
   ),
   li: (props: any) => <li {...props} className="pl-6 text-white/60 mb-3 leading-8 mr-2" />,
   h1: (props: any) => (
@@ -40,7 +40,7 @@ export const TemplateComponents = {
   code: (props: any) => (
     <code
       {...props}
-      className="inline font-mono text-xs rounded-lg leading-6 xxs:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
+      className="inline font-mono text-xs rounded-lg leading-6 sm:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
     />
   ),
   pre: (props: any) => (
