@@ -3,9 +3,7 @@ import { cn } from "@/lib/utils";
 export function ChangelogLight({ className }: { className?: string }) {
   return (
     <svg
-      className={cn(className, "absolute -top-20 left-0 right-0 -z-10 overflow-x-hidden ")}
-      //   width="943"
-      //   height="622"
+      className={cn(className, "absolute -top-52 left-0 right-0 -z-10 overflow-x-hidden ")}
       viewBox="0 0 943 622"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

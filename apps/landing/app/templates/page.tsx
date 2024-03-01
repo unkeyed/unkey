@@ -105,7 +105,7 @@ export default function Templates() {
     <div className="flex flex-col mx-auto mt-32 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
-          <ChangelogLight className="w-full top-40" />
+          <ChangelogLight className="w-full" />
         </div>
         <div className="w-full h-full overflow-clip -z-20">
           <MeteorLinesAngular
