@@ -6,30 +6,32 @@ import { PrimaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="relative pb-40 overflow-hidden pt-14">
-      <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8" />
-      <SectionTitle
-        align="center"
-        title={
-          <>
-            Protect your API.
-            <br /> Start today.
-          </>
-        }
-      >
-        <div className="flex space-x-6 ">
-          <Link key="get-started" href="/app">
-            <PrimaryButton label="Start Now" IconRight={ChevronRight} />
-          </Link>
+    <div className="w-full h-full bg-[#010101]">
+      <div className="relative pb-40 overflow-hidden pt-14 ">
+        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 overflow-hidden w-full" />
+        <SectionTitle
+          align="center"
+          title={
+            <>
+              Protect your API.
+              <br /> Start today.
+            </>
+          }
+        >
+          <div className="flex space-x-6 ">
+            <Link key="get-started" href="/app">
+              <PrimaryButton label="Start Now" IconRight={ChevronRight} />
+            </Link>
+          </div>
+        </SectionTitle>
+        <div className="mt-10">
+          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
+            2500 verifications FREE per month.
+          </p>
+          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
+            No CC required.
+          </p>
         </div>
-      </SectionTitle>
-      <div className="mt-10">
-        <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-          2500 verifications FREE per month.
-        </p>
-        <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-          No CC required.
-        </p>
       </div>
     </div>
   );
