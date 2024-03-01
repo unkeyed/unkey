@@ -225,8 +225,8 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6(prop-types@15.8.1)(react-dom@18.2.0)(react@18.2.0)
       geist:
-        specifier: ^1.2.1
-        version: 1.2.1(next@14.1.0)
+        specifier: ^1.2.2
+        version: 1.2.2(next@14.1.0)
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0
@@ -12862,10 +12862,10 @@ packages:
     resolution: {integrity: sha512-VNx3UEGr+ILJTiMs1+xc5SX1cMgJCrXezKPa003APUWNqQqaF6n25W8VcR7nHN6yRWbvvUTwCpZCFJeWC2kXlw==}
     dev: true
 
-  /geist@1.2.1(next@14.1.0):
-    resolution: {integrity: sha512-xCl7zWfnWqc+TbCG5qqyeT5tnVlOO4pSJsT3Ei59DN1SR4N2VlauF8Fv0D1pPFXGUJgu6RMoeZX+wsR4T9bMhg==}
+  /geist@1.2.2(next@14.1.0):
+    resolution: {integrity: sha512-uRDrxhvdnPwWJmh+K5+/5LXSKwvJzaYCl9tDXgiBi4hj7hB4K7+n/WLcvJMFs5btvyn0r9OSwCd1s6CmqAsxEw==}
     peerDependencies:
-      next: ^13.2 || ^14
+      next: '>=13.2.0 <15'
     dependencies:
       next: 14.1.0(react-dom@18.2.0)(react@18.2.0)
     dev: false
