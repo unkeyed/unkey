@@ -24,11 +24,9 @@ const MdxComponents = {
 
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60 ellipsis" />,
 
-  ol: (props: any) => (
-    <ol {...props} className="text-white list-decimal marker:text-white sm:mx-4" />
-  ),
+  ol: (props: any) => <ol {...props} className="text-white list-decimal marker:text-white mx-4" />,
   ul: (props: any) => (
-    <ul {...props} className="text-white sm:pt-4 list-disc marker:text-white md:pt-0 sm:mx-4 " />
+    <ul {...props} className="text-white sm:pt-4 list-disc marker:text-white md:pt-0 mx-4 " />
   ),
   li: (props: any) => <li {...props} className="pl-6 text-white/60 sm:mb-4" />,
   h1: (_props: any) => null,
