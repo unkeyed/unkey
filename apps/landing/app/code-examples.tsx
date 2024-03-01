@@ -586,6 +586,7 @@ function FrameworkSwitcher({
       <div className="flex items-center sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2">
         {frameworks.map((framework) => (
           <button
+            key={framework.name}
             type="button"
             onClick={() => {
               setFramework(framework.name as FrameworkName);

@@ -91,8 +91,8 @@ export default async function Templates(props: Props) {
           className="hidden overflow-hidden md:block"
         />
       </div>
-      <div className="flex flex-wrap mt-32 text-white/60 mx-auto px-8 sm:px-4 xxl:px-12 xxl:max-w-[1440px]">
-        <div className="flex flex-col self-start w-full px-0 mx-0 xxl:w-1/4 xxl:sticky">
+      <div className="flex flex-wrap mt-32 text-white/60 mx-auto px-8 sm:px-4 xl:px-12 xl:max-w-[1440px]">
+        <div className="flex flex-col self-start w-full px-0 mx-0 xl:w-1/4 xl:sticky">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"
@@ -100,7 +100,7 @@ export default async function Templates(props: Props) {
             <ArrowLeft className="w-4 h-4" /> Back to Templates
           </Link>
           <div className="mb-8 sm:mt-16">
-            <h2 className="sm:text-[40px] sm:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xxl:w-full text-balance">
+            <h2 className="sm:text-[40px] sm:text-5xl font-medium tracking-tight blog-heading-gradient leading-[56px] md:w-2/3 xl:w-full text-balance">
               {template.title}
             </h2>
             <p className="mt-2 text-base leading-6 sm:mt-6 lg:mt-12 text-white/60">
@@ -148,7 +148,7 @@ export default async function Templates(props: Props) {
           </dl>
         </div>
         {/* <Separator orientation="horizontal" /> */}
-        <div className="flex flex-col w-full mb-24 xxl:w-3/4 sm:mt-20 md:mt-0 xl:pt-24 xxl:pl-24">
+        <div className="flex flex-col w-full mb-24 xl:w-3/4 sm:mt-20 md:mt-0 xl:pt-24 xl:pl-24">
           <div>
             {template.image ? (
               <Frame size={"lg"} className="">
@@ -157,7 +157,7 @@ export default async function Templates(props: Props) {
             ) : null}
           </div>
           <ReactMarkdown
-            className="flex flex-col gap-10 mt-16 xxl:px-10 sm:mt-20 sm:mx-4"
+            className="flex flex-col gap-10 mt-16 xl:px-10 sm:mt-20 sm:mx-4"
             remarkPlugins={[remarkGfm]}
             //  @ts-ignore
             rehypePlugins={[rehypeRaw]}

@@ -70,7 +70,7 @@ export function AnalyticsBento() {
             className="scale-90"
             fill="none"
           >
-            <rect width="34" height="34" rx="8" fill="black" fill-opacity="0.08" />
+            <rect width="34" height="34" rx="8" fill="black" fillOpacity="0.08" />
             <path
               fillRule="evenodd"
               clipRule="evenodd"
