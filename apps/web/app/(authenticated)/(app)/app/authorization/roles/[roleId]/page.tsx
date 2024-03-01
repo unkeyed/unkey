@@ -1,13 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { Permission, db } from "@/lib/db";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@radix-ui/react-tooltip";
-import { ChevronRight } from "lucide-react";
+import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { DeleteRole } from "./delete-role";
-import { PermissionToggle } from "./permission-toggle";
 import { type NestedPermissions, Tree } from "./tree";
 import { UpdateRole } from "./update-role";
 

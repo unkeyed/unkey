@@ -1,6 +1,6 @@
 export function RateLimitsBento() {
   return (
-    <div className="w-full mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/20 flex overflow-x-hidden">
+    <div className="w-full xl:mt-5 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden rate-limits-background-gradient">
       <RateLimits />
       <RateLimitsText />
     </div>
@@ -9,7 +9,7 @@ export function RateLimitsBento() {
 
 export function RateLimits() {
   return (
-    <div className="mx-[40px] flex w-full flex-col ">
+    <div className="mx-[40px] flex w-full flex-col">
       <div className="flex h-[200px] w-full ratelimits-editor-bg-gradient rounded-b-xl ">
         <div className="flex flex-col font-mono text-sm text-white px-[24px] space-y-3 mt-1 border-r-[.75px] border-[#ffffff]/20">
           <p>1</p>
@@ -19,13 +19,13 @@ export function RateLimits() {
           <p>5</p>
           <p>6</p>
         </div>
-        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8">
+        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8 rounded-br-xl">
           {JSON.stringify({ rateLimit: { limit: 10, interval: 1000 } }, null, 2)}
         </div>
       </div>
       <div className="mt-8 flex flex-col ratelimits-fade-gradient">
         <div className="flex items-center">
-          <div className="text-white font-mono text-sm">
+          <div className="text-white font-mono text-xs sm:font-sm whitespace-nowrap">
             <span className="text-[#ffffff]/40">Creating</span> keys
             <span className="tracking-[-5px]">...</span>
             <span className="inline-flex w-[4px] h-[12px] bg-white ratelimits-bar-shadow ml-3" />
@@ -57,7 +57,7 @@ export function RateLimits() {
                     height="24"
                     rx="6"
                     fill="black"
-                    fill-opacity="0.15"
+                    fillOpacity="0.15"
                     shape-rendering="crispEdges"
                   />
                   <rect
@@ -67,7 +67,7 @@ export function RateLimits() {
                     height="23.25"
                     rx="5.625"
                     stroke="white"
-                    stroke-opacity="0.1"
+                    strokeOpacity="0.1"
                     stroke-width="0.75"
                     shape-rendering="crispEdges"
                   />
@@ -84,9 +84,9 @@ export function RateLimits() {
                     width="84"
                     height="84"
                     filterUnits="userSpaceOnUse"
-                    color-interpolation-filters="sRGB"
+                    colorInterpolationFilters="sRGB"
                   >
-                    <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                    <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feColorMatrix
                       in="SourceAlpha"
                       type="matrix"
@@ -143,7 +143,7 @@ export function RateLimits() {
                 height="24"
                 rx="6"
                 fill="black"
-                fill-opacity="0.15"
+                fillOpacity="0.15"
                 shape-rendering="crispEdges"
               />
               <rect
@@ -153,7 +153,7 @@ export function RateLimits() {
                 height="23.25"
                 rx="5.625"
                 stroke="white"
-                stroke-opacity="0.1"
+                strokeOpacity="0.1"
                 stroke-width="0.75"
                 shape-rendering="crispEdges"
               />
@@ -170,9 +170,9 @@ export function RateLimits() {
                 width="84"
                 height="84"
                 filterUnits="userSpaceOnUse"
-                color-interpolation-filters="sRGB"
+                colorInterpolationFilters="sRGB"
               >
-                <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
                 <feColorMatrix
                   in="SourceAlpha"
                   type="matrix"
@@ -219,18 +219,18 @@ export function RateLimitsText() {
           fill="none"
         >
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M21 4H18V3H21.5H22V3.5V8.42105V20.5V21H21.5H18V20H21V16H18V15H21V12H18V11H21V8.42105V8H18V7H21V4ZM9.85355 5.14645L9.5 4.79289L9.14645 5.14645L5.64645 8.64645L5.29289 9L5.64645 9.35355L6.79289 10.5L2.14645 15.1464L2 15.2929V15.5V17.5V18H2.5H5.5H6V17.5V16H7.5H8V15.5V14.7071L9.5 13.2071L10.6464 14.3536L11 14.7071L11.3536 14.3536L14.8536 10.8536L15.2071 10.5L14.8536 10.1464L9.85355 5.14645ZM7.85355 10.1464L7.5 9.79289L6.70711 9L9.5 6.20711L13.7929 10.5L11 13.2929L10.2071 12.5L9.85355 12.1464L7.85355 10.1464ZM3 15.7071L7.5 11.2071L8.79289 12.5L7.14645 14.1464L7 14.2929V14.5V15H5.5H5V15.5V17H3V15.7071ZM9.14645 9.35355L10.6464 10.8536L11.3536 10.1464L9.85355 8.64645L9.14645 9.35355Z"
             fill="white"
-            fill-opacity="0.4"
+            fillOpacity="0.4"
           />
         </svg>
         <h3 className="text-lg font-medium text-white ml-4">Rate Limits</h3>
       </div>
       <p className="mt-4 text-white/60 leading-6">
-        Implement granular control over access with per-key rate limiting, preventing abuse and
-        optimizing the performance of your services.
+        Implement granular control over access with custom rate limiting per key, preventing abuse
+        and optimizing the performance of your services.
       </p>
     </div>
   );

@@ -14,7 +14,8 @@ const config = {
       padding: {
         DEFAULT: "16px",
         sm: "26px",
-        md: "72px",
+        md: "30px",
+        xl: "72px",
       },
     },
     screens: {
@@ -23,9 +24,15 @@ const config = {
       sm: "640px",
       md: "840px",
       lg: "960px",
-      xl: "1440px",
+      xl: "960px",
+      xxl: "1440px",
     },
     extend: {
+      fontSize: {
+        xxs: ["10px", "16px"],
+      },
+      borderWidth: { DEFAULT: "0.75px" },
+      opacity: { "02": "0.7 " },
       typography: {},
       borderRadius: {
         "4xl": "2rem",
@@ -38,24 +45,12 @@ const config = {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
       animation: {
-        meteorAngle: "meteorAngle 10s linear infinite",
-        meteor: "meteor 20s linear infinite",
+        "border-beam": "border-beam calc(var(--duration)*1s) infinite linear",
       },
       keyframes: {
-        meteorAngle: {
-          "0%": { tranform: "rotate(300deg) translateX(0)", opacity: "1" },
-          "70%": { opacity: "1" },
+        "border-beam": {
           "100%": {
-            transform: "rotate(300deg) translateX(-400px) ",
-            opacity: "0",
-          },
-        },
-        meteor: {
-          "0%": { transform: "rotate(270deg) translateX(0)", opacity: ".9" },
-          "50%": { opacity: ".4" },
-          "100%": {
-            transform: "rotate(270deg) translateX(-500px)",
-            opacity: "0",
+            "offset-distance": "100%",
           },
         },
       },

@@ -28,7 +28,7 @@ export function BlogCard({
   return (
     <div className={cn("flex flex-col p-0 m-0 gap-4", className)}>
       <div className="rounded-2xl bg-clip-border overflow-clip">
-        <Frame size="sm" className="max-sm:w-4/5">
+        <Frame size="sm" className="">
           <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
         </Frame>
       </div>
@@ -41,8 +41,10 @@ export function BlogCard({
         : null
       </div>
 
-      <h2 className="font-medium text-3xl leading-10 blog-heading-gradient">{title}</h2>
-      <p className="text-base leading-6 font-normal text-white/60 line-clamp-2">{subTitle}</p>
+      <h2 className="font-medium xxs:text-xl text-3xl leading-10 blog-heading-gradient">{title}</h2>
+      <p className="text-base xxs:text-[15px] leading-6 font-normal text-white/60 line-clamp-2">
+        {subTitle}
+      </p>
       <div className="flex flex-row">
         {/* Todo: Needs ability to add multiple authors at some point */}
         <Avatar className="w-8 h-8 mt-2">

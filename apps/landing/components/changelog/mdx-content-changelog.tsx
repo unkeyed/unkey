@@ -1,5 +1,5 @@
 "use client";
-import { Table } from "@/app/blog/blog-table";
+
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
 import { BlogImage } from "../../app/blog/blog-image";
 import { Alert } from "../ui/alert/alert";
@@ -16,17 +16,21 @@ const MdxComponents = {
   img: (props: any) => (
     <img {...props} className="object-cover object-center rounded-3xl p-0" alt="" />
   ),
-  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
+  th: (props: any) => (
+    <th {...props} className="text-white font-semibold text-base text-left pb-4" />
+  ),
   tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10" />,
-  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal" />,
+  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal py-4" />,
 
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60 ellipsis" />,
 
-  ol: (props: any) => <ol {...props} className="text-white list-decimal marker:text-white " />,
-  ul: (props: any) => (
-    <ul {...props} className="text-white xxs:pt-4 list-disc marker:text-white " />
+  ol: (props: any) => (
+    <ol {...props} className="text-white list-decimal marker:text-white xxs:mx-4" />
   ),
-  li: (props: any) => <li {...props} className="pl-6 text-white/60" />,
+  ul: (props: any) => (
+    <ul {...props} className="text-white xxs:pt-4 list-disc marker:text-white md:pt-0 xxs:mx-4 " />
+  ),
+  li: (props: any) => <li {...props} className="pl-6 text-white/60 xxs:mb-4" />,
   h1: (_props: any) => null,
   h2: (props: any) => <h2 {...props} className="text-[32px] font-medium leading-8 text-white " />,
   h3: (props: any) => (

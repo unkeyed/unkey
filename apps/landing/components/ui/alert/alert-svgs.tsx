@@ -1,7 +1,7 @@
 export function AlertInfoIcon(_props: any) {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16.5 16.5V19.5" stroke="#3DC5FA" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M16.5 16.5V19.5" stroke="#3DC5FA" strokeLinecap="round" strokeLinejoin="round" />
       <path
         d="M16.5 14.25C16.9142 14.25 17.25 13.9142 17.25 13.5C17.25 13.0858 16.9142 12.75 16.5 12.75C16.0858 12.75 15.75 13.0858 15.75 13.5C15.75 13.9142 16.0858 14.25 16.5 14.25Z"
         fill="#3DC5FA"
@@ -9,8 +9,8 @@ export function AlertInfoIcon(_props: any) {
       <path
         d="M16.5 24.5C20.9183 24.5 24.5 20.9183 24.5 16.5C24.5 12.0817 20.9183 8.5 16.5 8.5C12.0817 8.5 8.5 12.0817 8.5 16.5C8.5 20.9183 12.0817 24.5 16.5 24.5Z"
         stroke="#3DC5FA"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -21,14 +21,14 @@ export function AlertSuccessIcon(_props: any) {
       <path
         d="M13.5 16.5L15.5 18.5L19.5 14.5"
         stroke="#3CEEAE"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
         d="M16.5 24.5C20.9183 24.5 24.5 20.9183 24.5 16.5C24.5 12.0817 20.9183 8.5 16.5 8.5C12.0817 8.5 8.5 12.0817 8.5 16.5C8.5 20.9183 12.0817 24.5 16.5 24.5Z"
         stroke="#3CEEAE"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -36,7 +36,7 @@ export function AlertSuccessIcon(_props: any) {
 export function AlertAlertIcon(_props: any) {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16.5 13.5V16.5" stroke="#9D72FF" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M16.5 13.5V16.5" stroke="#9D72FF" strokeLinecap="round" strokeLinejoin="round" />
       <path
         d="M16.5 20.25C16.9142 20.25 17.25 19.9142 17.25 19.5C17.25 19.0858 16.9142 18.75 16.5 18.75C16.0858 18.75 15.75 19.0858 15.75 19.5C15.75 19.9142 16.0858 20.25 16.5 20.25Z"
         fill="#9D72FF"
@@ -44,8 +44,8 @@ export function AlertAlertIcon(_props: any) {
       <path
         d="M16.5 24.5C20.9183 24.5 24.5 20.9183 24.5 16.5C24.5 12.0817 20.9183 8.5 16.5 8.5C12.0817 8.5 8.5 12.0817 8.5 16.5C8.5 20.9183 12.0817 24.5 16.5 24.5Z"
         stroke="#9D72FF"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -53,7 +53,7 @@ export function AlertAlertIcon(_props: any) {
 export function AlertWarningIcon(_props: any) {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16.5 13.5V16.5" stroke="#FFD55D" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M16.5 13.5V16.5" stroke="#FFD55D" strokeLinecap="round" strokeLinejoin="round" />
       <path
         d="M16.5 20.25C16.9142 20.25 17.25 19.9142 17.25 19.5C17.25 19.0858 16.9142 18.75 16.5 18.75C16.0858 18.75 15.75 19.0858 15.75 19.5C15.75 19.9142 16.0858 20.25 16.5 20.25Z"
         fill="#FFD55D"
@@ -68,7 +68,7 @@ export function AlertWarningIcon(_props: any) {
 export function AlertErrorIcon(_props: any) {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16.5 12.5V15.5" stroke="#FB1048" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M16.5 12.5V15.5" stroke="#FB1048" strokeLinecap="round" strokeLinejoin="round" />
       <path
         d="M16.5 19.25C16.9142 19.25 17.25 18.9142 17.25 18.5C17.25 18.0858 16.9142 17.75 16.5 17.75C16.0858 17.75 15.75 18.0858 15.75 18.5C15.75 18.9142 16.0858 19.25 16.5 19.25Z"
         fill="#FB1048"
