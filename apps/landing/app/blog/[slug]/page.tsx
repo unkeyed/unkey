@@ -65,9 +65,9 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
 
   return (
     <>
-      <BlogContainer className="overflow-hidden mt-32 scroll-smooth">
+      <BlogContainer className="overflow-hidden mt-32 scroll-smooth ">
         <div>
-          <TopLeftShiningLight className="-z-40" />
+          <TopLeftShiningLight className="-z-40 h-full" />
         </div>
         <div className="w-full overflow-clip -z-40">
           <MeteorLinesAngular
@@ -149,7 +149,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         </div>
 
         <div className="flex xl:flex-row flex-col  mb-40">
-          <div className="flex flex-col gap-12 bg-black  w-full">
+          <div className="flex flex-col gap-12 w-full">
             <div className="flex ">
               <Frame className="shadow-sm mx-0 px-0 h-full xl:mx-12 w-full" size="lg">
                 <Image
@@ -168,7 +168,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             <p className="text-white/30 text-md">Contents</p>
 
             <div className="relative mt-6 overflow-hidden whitespace-nowrap">
-              <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-black/50 to-black" />
+              <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" />
               {headings.map((heading) => {
                 return (
                   <div key={`#${heading.slug}`} className="z-0 my-8 text-ellipsis">
@@ -195,61 +195,6 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             </div>
           </div>
         </div>
-        {/* <div className="flex flex-col items-start space-y-8 lg:mt-32 lg:flex-row lg:space-y-0 mb-24 w-full mx-4">
-          <div className="w-full mx-auto xl:pl-6">
-            <h1 className="text-left mt-40 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
-              {frontmatter.title}
-            </h1>
-            <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40 xl:pr-40">
-              {frontmatter.description}
-            </p>
-            <div className="flex flex-col gap-12 pt-16 bg-black w-full mx-4">
-              <MdxContent source={serialized} />
-            </div>
-          </div>
-
-          <div className="flex flex-col self-start justify-end w-full gap-8 px-4 top-32 h-max sm:px-6 lg:sticky lg:w-2/5 lg:pl-28">
-            <div>
-              <BlogAuthors author={author} className="w-full mb-16" />
-
-              <p className="mb-6 text-sm text-white/30">Published on</p>
-              <h3 className="text-white">
-                {format(new Date(frontmatter.date!), "MMM dd, yyyy")}
-              </h3>
-            </div>
-
-            <div className="flex mt-12 text-white w-52 overflow-clip max-sm:hidden md:hidden lg:block">
-              <p className="text-white/30 text-md">Contents</p>
-
-              <div className="relative mt-6 overflow-hidden whitespace-nowrap">
-                <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-black/50 to-black" />
-                {headings.map((heading) => {
-                  return (
-                    <div
-                      key={`#${heading.slug}`}
-                      className="z-0 my-8 text-ellipsis"
-                    >
-                      <a
-                        data-level={heading.level}
-                        className={
-                          heading.level === "two" || heading.level === "one"
-                            ? "text-md font-semibold"
-                            : "text-sm"
-                        }
-                        href={`#${heading.slug}`}
-                      >
-                        {heading.text}
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="">
-                
-              </div>
-            </div>
-          </div>
-        </div> */}
         <CTA />
       </BlogContainer>
     </>
