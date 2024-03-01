@@ -1,6 +1,24 @@
+import { Result } from "@unkey/result";
 import type { Context } from "hono";
 import { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
+
+export class CacheError extends Error {
+  readonly namespace: keyof CacheNamespaces;
+  readonly key: string;
+
+  constructor(opts: {
+    namespace: keyof CacheNamespaces;
+    key: string;
+    message: string;
+  }) {
+    super(opts.message);
+    this.name = "CacheError";
+    this.namespace = opts.namespace;
+    this.key = opts.key;
+  }
+}
+
 export type Entry<TValue> = {
   value: TValue;
 
@@ -24,7 +42,7 @@ export interface Cache<TNamespaces extends Record<string, unknown> = CacheNamesp
     c: Context,
     namespace: TName,
     key: string,
-  ) => MaybePromise<[TNamespaces[TName] | undefined, boolean]>;
+  ) => MaybePromise<Result<[TNamespaces[TName] | undefined, boolean], CacheError>>;
 
   /**
    * Sets the value for the given key.
@@ -34,10 +52,14 @@ export interface Cache<TNamespaces extends Record<string, unknown> = CacheNamesp
     namespace: keyof TNamespaces,
     key: string,
     value: TNamespaces[TName],
-  ) => MaybePromise<void>;
+  ) => MaybePromise<Result<void, CacheError>>;
 
   /**
    * Removes the key from the cache.
    */
-  remove: (c: Context, namespace: keyof TNamespaces, key: string) => MaybePromise<void>;
+  remove: (
+    c: Context,
+    namespace: keyof TNamespaces,
+    key: string,
+  ) => MaybePromise<Result<void, CacheError>>;
 }

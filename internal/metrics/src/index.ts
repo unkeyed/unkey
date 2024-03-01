@@ -5,6 +5,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     metric: z.literal("metric.cache.read"),
     key: z.string(),
     hit: z.boolean(),
+    stale: z.boolean(),
     latency: z.number(),
     tier: z.string(),
     namespace: z.string(),
