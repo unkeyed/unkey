@@ -9,36 +9,22 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
   Controls,
-  Background,
-  BackgroundVariant,
 } from "reactflow";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Permission, Role } from "@unkey/db";
 import dagre from "dagre";
-import { KeySquare, MoreVertical, Settings2 } from "lucide-react";
+import { MoreVertical, Settings2 } from "lucide-react";
 import Link from "next/link";
-import { PropsWithChildren, useCallback } from "react";
+import { PropsWithChildren } from "react";
 import "reactflow/dist/style.css";
 import { RoleToggle } from "./role-toggle";
 

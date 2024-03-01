@@ -1,7 +1,7 @@
 import { AreaChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { db, schema, sql } from "@/lib/db";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { notFound } from "next/navigation";
 

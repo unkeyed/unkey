@@ -57,12 +57,8 @@ export const createInvoiceJob = client.defineJob({
         customer: workspace.stripeCustomerId!,
         limit: 1,
       });
-      if (paymentMethods.data.length === 0) {
-        throw new Error(
-          `workspace${workspace.id} (${workspace.stripeCustomerId}) does not have a payment method`,
-        );
-      }
-      return paymentMethods.data[0].id;
+
+      return paymentMethods.data.at(0)?.id;
     });
 
     const invoiceId = await io.runTask(`create invoice for ${workspace.id}`, async () =>
