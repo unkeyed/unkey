@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { faker } from "@faker-js/faker";
 import { Check, ChevronDown, KeySquare, User, X } from "lucide-react";
 import { customAlphabet } from "nanoid";
-import React, { PropsWithChildren, useState } from "react";
+import React, { PropsWithChildren, useEffect, useState } from "react";
 import {
   Command,
   CommandEmpty,
@@ -47,41 +47,54 @@ const ids: { user: string[]; key: string[] } = {
   user: [],
   key: [],
 };
-const logs: {
-  auditLogId: string;
-  time: number;
-  event: string;
-  actor: {
-    type: string;
-    id: string;
-  };
-  ipAddress: string;
-}[] = new Array(100)
-  .fill(0)
-  .map(() => {
-    const actorType = Math.random() > 0.8 ? "user" : "key";
-    let actorId: string;
-    if (ids[actorType].length > 0 && Math.random() > 0.5) {
-      actorId = ids[actorType][Math.floor(Math.random() * ids[actorType].length)];
-    } else {
-      actorId = `${actorType}_${generateId()}`;
-      ids[actorType].push(actorId);
-    }
-
-    return {
-      auditLogId: `log_${generateId()}`,
-      time: Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000),
-      event: allEvents[Math.floor(Math.random() * allEvents.length)],
-      actor: {
-        type: actorType,
-        id: actorId,
-      },
-      ipAddress: Math.random() > 0.8 ? faker.internet.ipv6() : faker.internet.ipv4(),
-    };
-  })
-  .sort((a, b) => b.time - a.time);
 
 export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
+  const [logs, setLogs] = useState<
+    {
+      auditLogId: string;
+      time: number;
+      event: string;
+      actor: {
+        type: string;
+        id: string;
+      };
+      ipAddress: string;
+    }[]
+  >([]);
+
+  /**
+   * We generate this data in a useEffect, cause Nextjs is too smart and would try to do it on the server
+   * which then caused hydration mismatches, this is dumb but works
+   */
+  useEffect(() => {
+    setLogs(
+      new Array(100)
+        .fill(0)
+        .map(() => {
+          const actorType = Math.random() > 0.8 ? "user" : "key";
+          let actorId: string;
+          if (ids[actorType].length > 0 && Math.random() > 0.5) {
+            actorId = ids[actorType][Math.floor(Math.random() * ids[actorType].length)];
+          } else {
+            actorId = `${actorType}_${generateId()}`;
+            ids[actorType].push(actorId);
+          }
+
+          return {
+            auditLogId: `log_${generateId()}`,
+            time: Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000),
+            event: allEvents[Math.floor(Math.random() * allEvents.length)],
+            actor: {
+              type: actorType,
+              id: actorId,
+            },
+            ipAddress: Math.random() > 0.8 ? faker.internet.ipv6() : faker.internet.ipv4(),
+          };
+        })
+        .sort((a, b) => b.time - a.time),
+    );
+  }, []);
+
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [selectedActors, setSelectedActors] = useState<string[]>([]);
 
@@ -147,9 +160,9 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLogs.map((l) => {
+              {filteredLogs.map((l, i) => {
                 return (
-                  <TableRow key={l.auditLogId}>
+                  <TableRow key={`${l.auditLogId}_${i}`}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-white" suppressHydrationWarning>
