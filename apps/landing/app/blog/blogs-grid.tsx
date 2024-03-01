@@ -42,7 +42,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
 
   return (
     <div className="">
-      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full", className)}>
+      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full ", className)}>
         {allTags.map((tag) => (
           <Link
             key={tag}
@@ -60,7 +60,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
           </Link>
         ))}
       </div>
-      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 xxs-mx-auto", className)}>
+      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 px-4", className)}>
         {visiblePosts.map((post) => (
           <Link href={`/blog/${post.slug}`} key={post.slug}>
             <BlogCard
