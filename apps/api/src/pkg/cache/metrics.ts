@@ -1,6 +1,7 @@
 import { Metrics } from "@/pkg/metrics";
+import { Result } from "@unkey/result";
 import { Context } from "hono";
-import { Cache } from "./interface";
+import { Cache, CacheError } from "./interface";
 import { CacheNamespaces } from "./namespaces";
 export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = CacheNamespaces>
   implements Cache<TNamespaces>
@@ -29,35 +30,34 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = Cach
     c: Context,
     namespace: TName,
     key: string,
-  ): Promise<[TNamespaces[TName] | undefined, boolean]> {
+  ): Promise<Result<[TNamespaces[TName] | undefined, boolean], CacheError>> {
     const start = performance.now();
-    const [cached, stale] = await this.cache.get(c, namespace, key);
-    const latency = performance.now() - start;
-    c.res.headers.append(
-      "Unkey-Latency",
-      `cache-${String(namespace)}-${this.tier}=${
-        typeof cached !== "undefined" ? "hit" : "miss"
-      }@${latency}ms`,
-    );
+    const res = await this.cache.get(c, namespace, key);
+    if (res.error) {
+      return res;
+    }
+    const [cached, stale] = res.value;
+
     if (this.metrics) {
       this.metrics.emit({
         metric: "metric.cache.read",
         hit: typeof cached !== "undefined",
+        stale: stale,
         latency: performance.now() - start,
         tier: this.tier,
         namespace: String(namespace),
         key,
       });
     }
-    return [cached, stale];
+    return res;
   }
 
-  set<TName extends keyof TNamespaces>(
+  public async set<TName extends keyof TNamespaces>(
     c: Context,
     namespace: TName,
     key: string,
     value: TNamespaces[TName],
-  ): void {
+  ): Promise<Result<void, CacheError>> {
     if (this.metrics) {
       this.metrics.emit({
         metric: "metric.cache.write",
@@ -66,10 +66,14 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = Cach
         key,
       });
     }
-    this.cache.set(c, namespace, key, value);
+    return this.cache.set(c, namespace, key, value);
   }
 
-  remove<TName extends keyof TNamespaces>(c: Context, namespace: TName, key: string) {
+  public async remove<TName extends keyof TNamespaces>(
+    c: Context,
+    namespace: TName,
+    key: string,
+  ): Promise<Result<void, CacheError>> {
     if (this.metrics) {
       this.metrics.emit({
         metric: "metric.cache.purge",
@@ -78,6 +82,6 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = Cach
         key,
       });
     }
-    this.cache.remove(c, namespace, key);
+    return this.cache.remove(c, namespace, key);
   }
 }

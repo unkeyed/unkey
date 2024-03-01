@@ -71,7 +71,7 @@ export const registerLegacyApisListKeys = (app: App) =>
     const apiId = c.req.param("apiId");
     const { limit, offset, ownerId } = c.req.query();
 
-    const api = await cache.withCache(c, "apiById", apiId, async () => {
+    const { value: api, error } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
@@ -79,6 +79,12 @@ export const registerLegacyApisListKeys = (app: App) =>
       );
     });
 
+    if (error) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `unable to load api: ${error.message}`,
+      });
+    }
     if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",

@@ -217,7 +217,7 @@ importers:
         version: 3.3.1
       drizzle-orm:
         specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.56)(react@18.2.0)
+        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
       framer-motion:
         specifier: 11.0.8
         version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
@@ -483,7 +483,7 @@ importers:
         version: 3.3.1
       drizzle-orm:
         specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.56)(react@18.2.0)
+        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
       framer-motion:
         specifier: 11.0.8
         version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
@@ -646,7 +646,7 @@ importers:
         version: link:../../internal/resend
       drizzle-orm:
         specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.56)(react@18.2.0)
+        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
       next:
         specifier: 14.1.0
         version: 14.1.0(react-dom@18.2.0)(react@18.2.0)
@@ -11418,7 +11418,7 @@ packages:
       '@planetscale/database': 1.16.0
     dev: false
 
-  /drizzle-orm@0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.56)(react@18.2.0):
+  /drizzle-orm@0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0):
     resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'

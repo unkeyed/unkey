@@ -110,13 +110,20 @@ export const registerV1KeysGetVerifications = (app: App) =>
         };
       });
 
-      if (!data) {
+      if (data.error) {
+        throw new UnkeyApiError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Unable to load key by id: ${data.error.message}`,
+        });
+      }
+      if (!data.value) {
         throw new UnkeyApiError({
           code: "NOT_FOUND",
           message: `key ${keyId} not found`,
         });
       }
-      ids.push({ keyId, apiId: data.api.id, workspaceId: data.key.workspaceId });
+
+      ids.push({ keyId, apiId: data.value.api.id, workspaceId: data.value.key.workspaceId });
     } else {
       if (!ownerId) {
         throw new UnkeyApiError({
@@ -142,9 +149,15 @@ export const registerV1KeysGetVerifications = (app: App) =>
         }
         return dbRes.map((key) => ({ key, api: key.keyAuth.api }));
       });
+      if (keys.error) {
+        throw new UnkeyApiError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Unbable to lod keys by ownerId: ${keys.error.message}`,
+        });
+      }
 
       ids.push(
-        ...keys.map(({ key, api }) => ({
+        ...keys.value.map(({ key, api }) => ({
           keyId: key.id,
           apiId: api.id,
           workspaceId: key.workspaceId,
@@ -202,7 +215,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       [time: number]: { success: number; rateLimited: number; usageExceeded: number };
     } = {};
     for (const dataPoint of verificationsFromAllKeys) {
-      for (const d of dataPoint) {
+      for (const d of dataPoint.value!) {
         if (!verifications[d.time]) {
           verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
         }

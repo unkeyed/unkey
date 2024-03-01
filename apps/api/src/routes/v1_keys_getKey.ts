@@ -64,60 +64,67 @@ export const registerV1KeysGetKey = (app: App) =>
       };
     });
 
-    if (!data) {
+    if (data.error) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `unable to load key: ${data.error.message}`,
+      });
+    }
+    if (!data.value) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `key ${keyId} not found`,
       });
     }
+    const { api, key } = data.value;
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "api.*.read_key", `api.${data.api.id}.read_key`)),
+      buildUnkeyQuery(({ or }) => or("*", "api.*.read_key", `api.${api.id}.read_key`)),
     );
 
-    if (data.key.workspaceId !== auth.authorizedWorkspaceId) {
+    if (key.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `key ${keyId} not found`,
       });
     }
-    let meta = data.key.meta ? JSON.parse(data.key.meta) : undefined;
+    let meta = key.meta ? JSON.parse(key.meta) : undefined;
     if (!meta || Object.keys(meta).length === 0) {
       meta = undefined;
     }
     return c.json({
-      id: data.key.id,
-      start: data.key.start,
-      apiId: data.api.id,
-      workspaceId: data.key.workspaceId,
-      name: data.key.name ?? undefined,
-      ownerId: data.key.ownerId ?? undefined,
-      meta: data.key.meta ? JSON.parse(data.key.meta) : undefined,
-      createdAt: data.key.createdAt.getTime(),
-      expires: data.key.expires?.getTime() ?? undefined,
-      remaining: data.key.remaining ?? undefined,
+      id: key.id,
+      start: key.start,
+      apiId: api.id,
+      workspaceId: key.workspaceId,
+      name: key.name ?? undefined,
+      ownerId: key.ownerId ?? undefined,
+      meta: key.meta ? JSON.parse(key.meta) : undefined,
+      createdAt: key.createdAt.getTime(),
+      expires: key.expires?.getTime() ?? undefined,
+      remaining: key.remaining ?? undefined,
       refill:
-        data.key.refillInterval && data.key.refillAmount
+        key.refillInterval && key.refillAmount
           ? {
-              interval: data.key.refillInterval,
-              amount: data.key.refillAmount,
-              lastRefillAt: data.key.lastRefillAt?.getTime(),
+              interval: key.refillInterval,
+              amount: key.refillAmount,
+              lastRefillAt: key.lastRefillAt?.getTime(),
             }
           : undefined,
       ratelimit:
-        data.key.ratelimitType &&
-        data.key.ratelimitLimit &&
-        data.key.ratelimitRefillRate &&
-        data.key.ratelimitRefillInterval
+        key.ratelimitType &&
+        key.ratelimitLimit &&
+        key.ratelimitRefillRate &&
+        key.ratelimitRefillInterval
           ? {
-              type: data.key.ratelimitType,
-              limit: data.key.ratelimitLimit,
-              refillRate: data.key.ratelimitRefillRate,
-              refillInterval: data.key.ratelimitRefillInterval,
+              type: key.ratelimitType,
+              limit: key.ratelimitLimit,
+              refillRate: key.ratelimitRefillRate,
+              refillInterval: key.ratelimitRefillInterval,
             }
           : undefined,
-      roles: data.roles,
-      permissions: data.permissions,
-      enabled: data.key.enabled,
+      roles: data.value.roles,
+      permissions: data.value.permissions,
+      enabled: key.enabled,
     });
   });
