@@ -1,7 +1,7 @@
 import { schema } from "@unkey/db";
 
 import { Tinybird } from "@chronark/zod-bird";
-import { connect } from "@planetscale/database";
+import { Client } from "@planetscale/database";
 import { newId } from "@unkey/id";
 import { drizzle } from "drizzle-orm/planetscale-serverless";
 import { z } from "zod";
@@ -75,7 +75,7 @@ const ingestAuditLog = new Tinybird({ token: process.env.TINYBIRD_TOKEN! }).buil
 async function main() {
   console.log("RUNNING");
   const _db = drizzle(
-    connect({
+    new Client({
       host: process.env.DATABASE_HOST,
       username: process.env.DATABASE_USERNAME,
       password: process.env.DATABASE_PASSWORD,

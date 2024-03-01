@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { connect } from "@planetscale/database";
+import { Client } from "@planetscale/database";
 import { schema } from "@unkey/db";
 import { drizzle } from "drizzle-orm/planetscale-serverless";
 import { z } from "zod";
@@ -30,7 +30,7 @@ async function main() {
   const env = envSchema.parse(process.env);
 
   const db = drizzle(
-    connect({
+    new Client({
       host: env.DATABASE_HOST,
       username: env.DATABASE_USERNAME,
       password: env.DATABASE_PASSWORD,
