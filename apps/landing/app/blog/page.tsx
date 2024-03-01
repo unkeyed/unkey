@@ -65,7 +65,7 @@ export default async function Blog(props: Props) {
         <div>
           <TopLeftShiningLight />
         </div>
-        <div className="w-full overflow-clip ">
+        <div className="w-full h-full overflow-clip -z-20">
           <MeteorLinesAngular
             number={1}
             xPos={0}
@@ -123,7 +123,7 @@ export default async function Blog(props: Props) {
             className="overflow-hidden xxs:hidden md:block"
           />
         </div>
-        <div className="">
+        <div>
           <TopRightShiningLight />
         </div>
         <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
