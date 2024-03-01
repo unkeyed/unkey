@@ -42,7 +42,7 @@ export default async function Templates(props: Props) {
   return (
     <>
       <div className="relative mx-auto -z-100">
-        <ChangelogLight className="w-full top-96 max-w-[1000px] mx-auto" />
+        <ChangelogLight className="w-full max-w-[1000px] mx-auto" />
       </div>
 
       <div className="w-full h-full overflow-clip -z-20">
