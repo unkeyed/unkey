@@ -64,7 +64,7 @@ importers:
         version: 0.3.3
       '@hono/zod-openapi':
         specifier: ^0.9.6
-        version: 0.9.6(hono@4.0.7)(zod@3.22.4)
+        version: 0.9.6(hono@4.0.8)(zod@3.22.4)
       '@microlabs/otel-cf-workers':
         specifier: 1.0.0-rc.15
         version: 1.0.0-rc.15
@@ -105,8 +105,8 @@ importers:
         specifier: ^0.29.4
         version: 0.29.4(@cloudflare/workers-types@4.20240208.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)
       hono:
-        specifier: ^4.0.7
-        version: 4.0.7
+        specifier: ^4.0.8
+        version: 4.0.8
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -944,8 +944,8 @@ importers:
         specifier: ^20.11.19
         version: 20.11.19
       hono:
-        specifier: ^4.0.7
-        version: 4.0.7
+        specifier: ^4.0.8
+        version: 4.0.8
       msw:
         specifier: ^2.2.1
         version: 2.2.1(typescript@5.3.3)
@@ -3687,7 +3687,7 @@ packages:
       graphql: 16.8.1
     dev: false
 
-  /@hono/zod-openapi@0.9.6(hono@4.0.7)(zod@3.22.4):
+  /@hono/zod-openapi@0.9.6(hono@4.0.8)(zod@3.22.4):
     resolution: {integrity: sha512-MLF8xpd4fEwbEaylFqAt1qci4wOTXu3oq3BKb01trccapYfodP50VCO0YDNBQTyMT/Iapq6GMO4+RAIFBgG5WQ==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
@@ -3695,18 +3695,18 @@ packages:
       zod: 3.*
     dependencies:
       '@asteasolutions/zod-to-openapi': 5.5.0(zod@3.22.4)
-      '@hono/zod-validator': 0.1.11(hono@4.0.7)(zod@3.22.4)
-      hono: 4.0.7
+      '@hono/zod-validator': 0.1.11(hono@4.0.8)(zod@3.22.4)
+      hono: 4.0.8
       zod: 3.22.4
     dev: false
 
-  /@hono/zod-validator@0.1.11(hono@4.0.7)(zod@3.22.4):
+  /@hono/zod-validator@0.1.11(hono@4.0.8)(zod@3.22.4):
     resolution: {integrity: sha512-PQXeHUP0+36qpRt8yfeD7N2jbK3ETlGvSN6dMof/HwUC/APRokQRjpXZm4rrlG71Ft0aWE01+Bm4XejqPie5Uw==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
     dependencies:
-      hono: 4.0.7
+      hono: 4.0.8
       zod: 3.22.4
     dev: false
 
@@ -13595,8 +13595,8 @@ packages:
       parse-passwd: 1.0.0
     dev: true
 
-  /hono@4.0.7:
-    resolution: {integrity: sha512-1fhi9MUzMIXWqPWA7OGPTpzjQupT78rf+U6N+2vxwy7U76jUX0dmkUtp572gR+dbGR1YugLYvyg/JrgPOSoutw==}
+  /hono@4.0.8:
+    resolution: {integrity: sha512-zhTXu32vXeEXajsqZVjPfoyO0/fgAKLLmPBpSDzRBMr7zZ5N8yV1FmsfWl2MYtm+MD8hD7knLCovx8Oaqubd4w==}
     engines: {node: '>=16.0.0'}
 
   /hookable@5.5.3:
