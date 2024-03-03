@@ -237,11 +237,11 @@ async function createTieredInvoiceItem({
   usage: number;
 }): Promise<void> {
   const cost = calculateTieredPrices(sub.tiers, usage);
-  if (cost.error) {
-    throw new Error(cost.error.message);
+  if (cost.err) {
+    throw new Error(cost.err.message);
   }
 
-  for (const tier of cost.value.tiers) {
+  for (const tier of cost.val.tiers) {
     if (tier.quantity > 0 && tier.centsPerUnit) {
       const description = `${name} ${tier.firstUnit}${tier.lastUnit ? `-${tier.lastUnit}` : "+"}`;
       await io.runTask(description, async () => {

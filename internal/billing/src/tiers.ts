@@ -1,4 +1,4 @@
-import { Result, result } from "@unkey/result";
+import { Err, Ok, Result, SchemaError } from "@unkey/error";
 import { z } from "zod";
 
 export const billingTier = z.object({
@@ -33,13 +33,16 @@ type TieredPrice = {
  * calculateTieredPrice calculates the price for a given number of units, based on a tiered pricing model.
  *
  */
-export function calculateTieredPrices(rawTiers: BillingTier[], units: number): Result<TieredPrice> {
+export function calculateTieredPrices(
+  rawTiers: BillingTier[],
+  units: number,
+): Result<TieredPrice, SchemaError> {
   /**
    * Validation logic:
    */
   const parsedTiers = billingTier.array().min(1).safeParse(rawTiers);
   if (!parsedTiers.success) {
-    return result.fail({ message: parsedTiers.error.message });
+    return Err(SchemaError.fromZod(parsedTiers.error, rawTiers));
   }
   const tiers = parsedTiers.data;
 
@@ -48,13 +51,13 @@ export function calculateTieredPrices(rawTiers: BillingTier[], units: number): R
       const currentFirstUnit = tiers[i].firstUnit;
       const previousLastUnit = tiers[i - 1].lastUnit;
       if (previousLastUnit === null) {
-        return result.fail({ message: "Every tier except the last one must have a lastUnit" });
+        return Err(new SchemaError("Every tier except the last one must have a lastUnit"));
       }
       if (currentFirstUnit > previousLastUnit + 1) {
-        return result.fail({ message: "There is a gap between tiers" });
+        return Err(new SchemaError("There is a gap between tiers"));
       }
       if (currentFirstUnit < previousLastUnit + 1) {
-        return result.fail({ message: "There is an overlap between tiers" });
+        return Err(new SchemaError("There is an overlap between tiers"));
       }
     }
   }
@@ -78,5 +81,5 @@ export function calculateTieredPrices(rawTiers: BillingTier[], units: number): R
     }
   }
 
-  return result.success(res);
+  return Ok(res);
 }

@@ -1,5 +1,5 @@
 import { Metrics } from "@/pkg/metrics";
-import { Result } from "@unkey/result";
+import { Result } from "@unkey/error";
 import { Context } from "hono";
 import { Cache, CacheError } from "./interface";
 import { CacheNamespaces } from "./namespaces";
@@ -33,10 +33,10 @@ export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = Cach
   ): Promise<Result<[TNamespaces[TName] | undefined, boolean], CacheError>> {
     const start = performance.now();
     const res = await this.cache.get(c, namespace, key);
-    if (res.error) {
+    if (res.err) {
       return res;
     }
-    const [cached, stale] = res.value;
+    const [cached, stale] = res.val;
 
     if (this.metrics) {
       this.metrics.emit({

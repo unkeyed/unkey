@@ -229,21 +229,21 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   }
   if (workspace.subscriptions?.activeKeys) {
     const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
-    if (cost.error) {
-      return <div className="text-red-500">{cost.error.message}</div>;
+    if (cost.err) {
+      return <div className="text-red-500">{cost.err.message}</div>;
     }
-    currentPrice += cost.value.totalCentsEstimate;
+    currentPrice += cost.val.totalCentsEstimate;
   }
   if (workspace.subscriptions?.verifications) {
     const cost = calculateTieredPrices(
       workspace.subscriptions.verifications.tiers,
       usedVerifications,
     );
-    if (cost.error) {
-      return <div className="text-red-500">{cost.error.message}</div>;
+    if (cost.err) {
+      return <div className="text-red-500">{cost.err.message}</div>;
     }
-    currentPrice += cost.value.totalCentsEstimate;
-    estimatedTotalPrice += forecastUsage(cost.value.totalCentsEstimate);
+    currentPrice += cost.val.totalCentsEstimate;
+    estimatedTotalPrice += forecastUsage(cost.val.totalCentsEstimate);
   }
 
   return (
@@ -348,9 +348,9 @@ const MeteredLineItem: React.FC<{
   const firstTier = props.tiers.at(0);
   const included = firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
 
-  const price = calculateTieredPrices(props.tiers, props.used);
-  if (price.error) {
-    return <div className="text-red-500">{price.error.message}</div>;
+  const { val: price, err } = calculateTieredPrices(props.tiers, props.used);
+  if (err) {
+    return <div className="text-red-500">{err.message}</div>;
   }
 
   const forecast = forecastUsage(props.used);
@@ -430,11 +430,11 @@ const MeteredLineItem: React.FC<{
       {props.displayPrice ? (
         <span
           className={cn("tabular-nums text-sm", {
-            "text-content font-semibold ": price.value.totalCentsEstimate > 0,
-            "text-content-subtle": price.value.totalCentsEstimate === 0,
+            "text-content font-semibold ": price.totalCentsEstimate > 0,
+            "text-content-subtle": price.totalCentsEstimate === 0,
           })}
         >
-          {formatCentsToDollar(price.value.totalCentsEstimate)}
+          {formatCentsToDollar(price.totalCentsEstimate)}
         </span>
       ) : null}
     </div>

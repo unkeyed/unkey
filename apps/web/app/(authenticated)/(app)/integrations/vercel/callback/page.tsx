@@ -3,7 +3,7 @@ import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
-import { Result, result } from "@unkey/result";
+import { Result } from "@unkey/error";
 import { Vercel } from "@unkey/vercel";
 import { z } from "zod";
 import { Client } from "./client";
@@ -44,16 +44,16 @@ export default async function Page(props: Props) {
   });
 
   if (!integration) {
-    const req = await exchangeCode(props.searchParams.code);
-    if (req.error) {
-      return <div>error: {JSON.stringify(req.error, null, 2)}</div>;
+    const { val, err } = await exchangeCode(props.searchParams.code);
+    if (err) {
+      return <div>error: {JSON.stringify(err, null, 2)}</div>;
     }
 
     integration = {
-      id: req.value.installationId,
+      id: val.installationId,
       workspaceId: workspace.id,
-      vercelTeamId: req.value.teamId,
-      accessToken: req.value.accessToken,
+      vercelTeamId: val.teamId,
+      accessToken: val.accessToken,
       createdAt: new Date(),
       deletedAt: null,
     };
@@ -66,19 +66,19 @@ export default async function Page(props: Props) {
     teamId: integration.vercelTeamId ?? undefined,
     accessToken: integration.accessToken,
   }).listProjects();
-  if (projects.error) {
+  if (projects.err) {
     return (
       <EmptyPlaceholder className="m-8">
         <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
         </EmptyPlaceholder.Description>
-        <Code className="text-left">{JSON.stringify(projects.error, null, 2)}</Code>
+        <Code className="text-left">{JSON.stringify(projects.err, null, 2)}</Code>
       </EmptyPlaceholder>
     );
   }
 
-  if (projects.value.length === 0) {
+  if (projects.val.length === 0) {
     return (
       <EmptyPlaceholder className="m-8">
         <EmptyPlaceholder.Title>No Projects Found</EmptyPlaceholder.Title>
@@ -91,7 +91,7 @@ export default async function Page(props: Props) {
   }
   return (
     <Client
-      projects={projects.value}
+      projects={projects.val}
       apis={workspace.apis}
       returnUrl={props.searchParams.next!}
       integrationId={integration.id}
