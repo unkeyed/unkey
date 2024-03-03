@@ -44,7 +44,7 @@
     "@unkey/keys": "workspace:^",
     "@unkey/rbac": "workspace:^",
     "@unkey/resend": "workspace:^",
-    "@unkey/result": "workspace:^",
+    "@unkey/error": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/vercel": "workspace:^",
     "@vercel/og": "^0.6.2",

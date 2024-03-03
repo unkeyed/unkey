@@ -6,13 +6,14 @@
   "types": "src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "devDependencies": {
     "@types/node": "^20.11.19",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@unkey/result": "workspace:^",
+    "@unkey/error": "workspace:^",
     "zod": "^3.22.4"
   }
 }

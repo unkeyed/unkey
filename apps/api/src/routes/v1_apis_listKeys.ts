@@ -77,7 +77,7 @@ export const registerV1ApisListKeys = (app: App) =>
       ),
     );
 
-    const { value: api, error } = await cache.withCache(c, "apiById", apiId, async () => {
+    const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
@@ -85,10 +85,10 @@ export const registerV1ApisListKeys = (app: App) =>
       );
     });
 
-    if (error) {
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to lod api: ${error.message}`,
+        message: `unable to lod api: ${err.message}`,
       });
     }
 

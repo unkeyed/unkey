@@ -20,7 +20,8 @@
     "knip": "knip --include files,dependencies"
   },
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "devDependencies": {
     "@biomejs/biome": "^1.5.3",
     "@changesets/cli": "^2.27.1",

@@ -209,7 +209,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${req.apiId}.create_key`)),
     );
 
-    const { value: api, error } = await cache.withCache(c, "apiById", req.apiId, async () => {
+    const { val: api, err } = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
         (await db.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
@@ -217,10 +217,10 @@ export const registerV1KeysCreateKey = (app: App) =>
         })) ?? null
       );
     });
-    if (error) {
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${error.message}`,
+        message: `unable to load api: ${err.message}`,
       });
     }
 

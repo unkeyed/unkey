@@ -7,7 +7,8 @@
   },
   "description": "Nuxt integration for unkey",
   "repository": "unkeyed/unkey",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "type": "module",
   "exports": {
     ".": {
