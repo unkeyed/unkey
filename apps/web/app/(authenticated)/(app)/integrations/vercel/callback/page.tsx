@@ -3,11 +3,9 @@ import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
-import { Result } from "@unkey/error";
 import { Vercel } from "@unkey/vercel";
-import { z } from "zod";
 import { Client } from "./client";
-// import { Client } from "./client";
+import { exchangeCode } from "./exchange-code";
 
 type Props = {
   searchParams: {
@@ -99,59 +97,4 @@ export default async function Page(props: Props) {
       vercelTeamId={integration.vercelTeamId}
     />
   );
-}
-
-async function exchangeCode(code: string): Promise<
-  Result<
-    {
-      accessToken: string;
-      installationId: string;
-      userId: string;
-      teamId: string | null;
-    },
-    {
-      message: string;
-      status?: number;
-    }
-  >
-> {
-  try {
-    const res = await fetch("https://api.vercel.com/v2/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_ID,
-        client_secret: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_SECRET,
-        code,
-        redirect_uri: "http://localhost:3000/integrations/vercel/callback",
-      }),
-    });
-    if (!res.ok) {
-      return result.fail({
-        message: "failed to exchange code for access token",
-        status: res.status,
-      });
-    }
-
-    const data = z
-      .object({
-        token_type: z.literal("Bearer"),
-        access_token: z.string(),
-        installation_id: z.string(),
-        user_id: z.string(),
-        team_id: z.string().nullable(),
-      })
-      .parse(await res.json());
-
-    return result.success({
-      accessToken: data.access_token,
-      installationId: data.installation_id,
-      userId: data.user_id,
-      teamId: data.team_id,
-    });
-  } catch (e) {
-    return result.fail({ message: (e as Error).message });
-  }
 }

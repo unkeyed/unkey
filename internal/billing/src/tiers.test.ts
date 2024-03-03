@@ -61,9 +61,9 @@ describe("calculateTieredPrices", () => {
   for (const tc of testCases) {
     test(tc.name, () => {
       const result = calculateTieredPrices(tc.tiers, tc.units);
-      expect(result.error).toBeUndefined();
-      expect(result.value).toBeDefined();
-      expect(result.value!.totalCentsEstimate).toBeCloseTo(tc.expected, 9);
+      expect(result.err).toBeUndefined();
+      expect(result.val).toBeDefined();
+      expect(result.val!.totalCentsEstimate).toBeCloseTo(tc.expected, 9);
     });
   }
 });
@@ -72,7 +72,7 @@ describe("invalid tiers", () => {
   describe("empty array", () => {
     test("should fail", () => {
       const result = calculateTieredPrices([], 5);
-      expect(result.error).toBeDefined();
+      expect(result.err).toBeDefined();
       expect(result).toStrictEqual({
         error: {
           message:
@@ -91,7 +91,7 @@ describe("invalid tiers", () => {
         ],
         20,
       );
-      expect(result.error).toBeDefined();
+      expect(result.err).toBeDefined();
       expect(result).toStrictEqual({
         error: {
           message: "There is a gap between tiers",
@@ -108,7 +108,7 @@ describe("invalid tiers", () => {
         ],
         20,
       );
-      expect(result.error).toBeDefined();
+      expect(result.err).toBeDefined();
       expect(result).toStrictEqual({
         error: {
           message: "There is an overlap between tiers",
@@ -125,7 +125,7 @@ describe("invalid tiers", () => {
         ],
         20,
       );
-      expect(result.error).toBeDefined();
+      expect(result.err).toBeDefined();
       expect(result).toStrictEqual({
         error: {
           message: "There is a gap between tiers",
@@ -143,7 +143,7 @@ describe("invalid tiers", () => {
         ],
         20,
       );
-      expect(result.error).toBeDefined();
+      expect(result.err).toBeDefined();
       expect(result).toStrictEqual({
         error: {
           message: "Every tier except the last one must have a lastUnit",

@@ -1,4 +1,4 @@
-export type ErrorType = "FetchError" | "SchemaError" | "CacheError";
+export type ErrorType = "FetchError" | "SchemaError" | "CacheError" | "VercelCodeExchangeError";
 
 export type ErrorSource = "UPSTREAM" | "DOWNSTREAM" | "INTERNAL" | null;
 export type ErrorContext = Record<string, unknown>;

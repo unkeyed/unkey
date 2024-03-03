@@ -6,7 +6,6 @@ import { BaseError } from "./base";
 export class FetchError extends BaseError<{
   url: string;
   method: string;
-  status: number;
   [more: string]: unknown;
 }> {
   public readonly type = "FetchError";
@@ -21,7 +20,6 @@ export class FetchError extends BaseError<{
       context?: {
         url: string;
         method: string;
-        status: number;
         [more: string]: unknown;
       };
     },
