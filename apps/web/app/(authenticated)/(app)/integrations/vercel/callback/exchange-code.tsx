@@ -3,7 +3,6 @@ import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey
 import { z } from "zod";
 export class VercelCodeExchangeError extends BaseError<{ status: number }> {
   public readonly type = "VercelCodeExchangeError";
-  public readonly source = "UPSTREAM";
   public readonly retry = true;
 }
 

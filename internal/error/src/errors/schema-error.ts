@@ -7,7 +7,6 @@ import { BaseError } from "./base";
  */
 export class SchemaError extends BaseError<{ raw: unknown }> {
   public readonly type = "SchemaError";
-  public readonly source = "INTERNAL";
   public readonly retry = false;
 
   static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {
