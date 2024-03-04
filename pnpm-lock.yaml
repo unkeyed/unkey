@@ -145,7 +145,11 @@ importers:
         specifier: ^4.0.127
         version: 4.0.127(openapi-types@12.1.3)(react-dom@18.2.0)(react@18.2.0)
 
-  apps/engineering: {}
+  apps/engineering:
+    devDependencies:
+      mintlify:
+        specifier: ^4.0.127
+        version: 4.0.127(openapi-types@12.1.3)(react-dom@18.2.0)(react@18.2.0)
 
   apps/landing:
     dependencies:
@@ -19751,7 +19755,7 @@ packages:
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       didyoumean: 1.2.2
       dlv: 1.1.3
       fast-glob: 3.3.2
