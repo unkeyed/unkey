@@ -1,5 +1,11 @@
 # @unkey/nuxt
 
+## 1.1.5
+
+### Patch Changes
+
+- @unkey/api@0.19.3
+
 ## 1.1.4
 
 ### Patch Changes
