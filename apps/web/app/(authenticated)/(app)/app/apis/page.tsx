@@ -67,7 +67,7 @@ export default async function ApisOverviewPage() {
               using it.
             </p>
             <Link
-              href="/app/settings/billing/stripe"
+              href="/app/settings/billing"
               target="_blank"
               className="mr-3 rounded-lg bg-gray-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
             >
