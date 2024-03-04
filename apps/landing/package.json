@@ -61,7 +61,7 @@
     "@tailwindcss/typography": "^0.5.10",
     "@types/fslightbox-react": "^1.7.7",
     "@types/node": "^20.11.24",
-    "@types/react": "^18.2.61",
+    "@types/react": "^18.2.62",
     "@types/react-dom": "^18.2.18",
     "autoprefixer": "^10.0.1",
     "postcss": "^8",

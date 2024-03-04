@@ -98,7 +98,7 @@
     "@types/dagre": "^0.7.52",
     "@types/ms": "^0.7.34",
     "@types/node": "^20.11.24",
-    "@types/react": "18.2.61",
+    "@types/react": "18.2.62",
     "@types/react-dom": "18.2.19",
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.35",
