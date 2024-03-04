@@ -177,37 +177,37 @@ export const registerV1KeysVerifyKey = (app: App) =>
     const { apiId, key, authorization } = c.req.valid("json");
     const { keyService } = c.get("services");
 
-    const { value, error } = await keyService.verifyKey(c, {
+    const { val, err } = await keyService.verifyKey(c, {
       key,
       apiId,
       permissionQuery: authorization?.permissions,
     });
-    if (error) {
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: error.message,
+        message: err.message,
       });
     }
-    if (!value.valid) {
+    if (!val.valid) {
       return c.json({
         valid: false,
-        code: value.code,
-        rateLimit: value.ratelimit,
-        remaining: value.remaining,
+        code: val.code,
+        rateLimit: val.ratelimit,
+        remaining: val.remaining,
       });
     }
 
     return c.json({
-      keyId: value.key.id,
+      keyId: val.key.id,
       valid: true,
-      name: value.key.name ?? undefined,
-      ownerId: value.key.ownerId ?? undefined,
-      meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
-      expires: value.key.expires?.getTime(),
-      remaining: value.remaining ?? undefined,
-      ratelimit: value.ratelimit ?? undefined,
-      enabled: value.key.enabled,
-      permissions: value.permissions,
-      environment: value.key.environment ?? undefined,
+      name: val.key.name ?? undefined,
+      ownerId: val.key.ownerId ?? undefined,
+      meta: val.key.meta ? JSON.parse(val.key.meta) : undefined,
+      expires: val.key.expires?.getTime(),
+      remaining: val.remaining ?? undefined,
+      ratelimit: val.ratelimit ?? undefined,
+      enabled: val.key.enabled,
+      permissions: val.permissions,
+      environment: val.key.environment ?? undefined,
     });
   });

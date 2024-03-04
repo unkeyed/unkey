@@ -107,10 +107,10 @@ export const vercelRouter = t.router({
           key,
           true,
         );
-        if (setRootKeyRes.error) {
+        if (setRootKeyRes.err) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: setRootKeyRes.error.message,
+            message: setRootKeyRes.err.message,
           });
         }
         await db.transaction(async (tx) => {
@@ -121,7 +121,7 @@ export const vercelRouter = t.router({
             updatedAt: new Date(),
             resourceId: keyId,
             resourceType: "rootKey",
-            vercelEnvId: setRootKeyRes.value.created.id,
+            vercelEnvId: setRootKeyRes.val.created.id,
             lastEditedBy: ctx.user.id,
             environment: environment as VercelBinding["environment"],
             projectId: input.projectId,
@@ -158,10 +158,10 @@ export const vercelRouter = t.router({
           "UNKEY_API_ID",
           apiId,
         );
-        if (setApiIdRes.error) {
+        if (setApiIdRes.err) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: setApiIdRes.error.message,
+            message: setApiIdRes.err.message,
           });
         }
         await db.transaction(async (tx) => {
@@ -172,7 +172,7 @@ export const vercelRouter = t.router({
             updatedAt: new Date(Date.now()),
             resourceType: "apiId",
             resourceId: apiId,
-            vercelEnvId: setApiIdRes.value.created.id,
+            vercelEnvId: setApiIdRes.val.created.id,
             lastEditedBy: ctx.user.id,
             environment: environment as VercelBinding["environment"],
             projectId: input.projectId,
@@ -239,8 +239,8 @@ export const vercelRouter = t.router({
         "UNKEY_API_ID",
         input.apiId,
       );
-      if (res.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.error.message });
+      if (res.err) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.err.message });
       }
       const existingBinding = integration.vercelBindings.find(
         (b) =>
@@ -254,7 +254,7 @@ export const vercelRouter = t.router({
             .update(schema.vercelBindings)
             .set({
               resourceId: input.apiId,
-              vercelEnvId: res.value.created.id,
+              vercelEnvId: res.val.created.id,
               updatedAt: new Date(),
               lastEditedBy: ctx.user.id,
             })
@@ -269,7 +269,7 @@ export const vercelRouter = t.router({
                 type: "vercelBinding",
                 id: existingBinding.id,
                 meta: {
-                  vercelEnvironment: res.value.created.id,
+                  vercelEnvironment: res.val.created.id,
                 },
               },
               {
@@ -292,7 +292,7 @@ export const vercelRouter = t.router({
             updatedAt: new Date(),
             resourceType: "apiId",
             resourceId: input.apiId,
-            vercelEnvId: res.value.created.id,
+            vercelEnvId: res.val.created.id,
             lastEditedBy: ctx.user.id,
             environment: input.environment,
             projectId: input.projectId,
@@ -408,8 +408,8 @@ export const vercelRouter = t.router({
         key,
         true,
       );
-      if (res.error) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.error.message });
+      if (res.err) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.err.message });
       }
       const existingBinding = integration.vercelBindings.find(
         (b) =>
@@ -423,7 +423,7 @@ export const vercelRouter = t.router({
             .update(schema.vercelBindings)
             .set({
               resourceId: keyId,
-              vercelEnvId: res.value.created.id,
+              vercelEnvId: res.val.created.id,
               updatedAt: new Date(),
               lastEditedBy: ctx.user.id,
             })
@@ -438,7 +438,7 @@ export const vercelRouter = t.router({
                 type: "vercelBinding",
                 id: existingBinding.id,
                 meta: {
-                  vercelEnvironment: res.value.created.id,
+                  vercelEnvironment: res.val.created.id,
                 },
               },
               {
@@ -461,7 +461,7 @@ export const vercelRouter = t.router({
             updatedAt: new Date(),
             resourceType: "rootKey",
             resourceId: keyId,
-            vercelEnvId: res.value.created.id,
+            vercelEnvId: res.val.created.id,
             lastEditedBy: ctx.user.id,
             environment: input.environment,
             projectId: input.projectId,

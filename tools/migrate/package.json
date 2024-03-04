@@ -6,7 +6,8 @@
   },
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "dependencies": {
     "@chronark/zod-bird": "^0.3.3",
     "@planetscale/database": "^1.16.0",

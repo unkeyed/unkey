@@ -5,9 +5,9 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
+import { Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
-import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
 
@@ -96,24 +96,24 @@ export class KeyService {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
-      if (res.error) {
+      if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
           valid: false,
-          code: res.error.message,
+          code: res.err.message,
         });
         return res;
       }
       // if we have identified the key, we can send the analytics event
       // otherwise, they likely sent garbage to us and we can't associate it with anything
-      if (res.value.key) {
+      if (res.val.key) {
         c.executionCtx.waitUntil(
           this.analytics.ingestKeyVerification({
-            workspaceId: res.value.key.workspaceId,
-            apiId: res.value.api.id,
-            keyId: res.value.key.id,
+            workspaceId: res.val.key.workspaceId,
+            apiId: res.val.api.id,
+            keyId: res.val.key.id,
             time: Date.now(),
-            deniedReason: res.value.code,
+            deniedReason: res.val.code,
             ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
@@ -125,11 +125,11 @@ export class KeyService {
       }
       this.metrics.emit({
         metric: "metric.key.verification",
-        valid: res.value.valid,
-        code: res.value.code ?? "OK",
-        workspaceId: res.value.key?.workspaceId,
-        apiId: res.value.api?.id,
-        keyId: res.value.key?.id,
+        valid: res.val.valid,
+        code: res.val.code ?? "OK",
+        workspaceId: res.val.key?.workspaceId,
+        apiId: res.val.api?.id,
+        keyId: res.val.key?.id,
       });
 
       return res;
@@ -160,9 +160,9 @@ export class KeyService {
     c: Context,
     span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult>> {
+  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError>> {
     const hash = await sha256(req.key);
-    const { value: data, error } = await this.cache.withCache(c, "keyByHash", hash, async () => {
+    const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
@@ -221,20 +221,25 @@ export class KeyService {
       };
     });
 
-    if (error) {
-      return result.fail(new Error(`unable to fetch required data: ${error.message}`));
+    if (err) {
+      return Err(
+        new FetchError("unable to fetch required data", {
+          retry: true,
+          cause: err,
+        }),
+      );
     }
 
     if (!data) {
       span.addEvent("not found");
-      return result.success({ valid: false, code: "NOT_FOUND" });
+      return Ok({ valid: false, code: "NOT_FOUND" });
     }
     /**
      * Enabled
      */
     const enabled = data.key.enabled;
     if (!enabled) {
-      return result.success({
+      return Ok({
         key: data.key,
         api: data.api,
         valid: false,
@@ -244,7 +249,7 @@ export class KeyService {
     }
 
     if (req.apiId && data.api.id !== req.apiId) {
-      return result.success({
+      return Ok({
         key: data.key,
         api: data.api,
         valid: false,
@@ -261,14 +266,14 @@ export class KeyService {
     const expires = data.key.expires ? new Date(data.key.expires).getTime() : undefined;
     if (expires) {
       if (expires < Date.now()) {
-        return result.success({ valid: false, code: "NOT_FOUND" });
+        return Ok({ valid: false, code: "NOT_FOUND" });
       }
     }
 
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
       if (!ip) {
-        return result.success({
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -278,7 +283,7 @@ export class KeyService {
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
-        return result.success({
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -294,23 +299,28 @@ export class KeyService {
         permissions: JSON.stringify(data.permissions),
       });
       const q = this.rbac.validateQuery(req.permissionQuery);
-      if (q.error) {
-        return result.fail({
-          message: `The permission query is malformed: ${q.error.message}`,
-          code: "BAD_REQUEST",
-        });
+      if (q.err) {
+        return Err(
+          new SchemaError("permission query is invalid", {
+            cause: q.err,
+          }),
+        );
       }
-      const rbacResp = this.rbac.evaluatePermissions(q.value.query, data.permissions);
+      const rbacResp = this.rbac.evaluatePermissions(q.val.query, data.permissions);
 
-      if (rbacResp.error) {
+      if (rbacResp.err) {
         this.logger.error("evaluating permissions failed", {
           query: JSON.stringify(req.permissionQuery),
           permissions: JSON.stringify(data.permissions),
         });
-        return result.fail({ message: rbacResp.error.message, code: "INTERNAL_SERVER_ERROR" });
+        return Err(
+          new SchemaError("permission query is invalid", {
+            cause: q.err,
+          }),
+        );
       }
-      if (!rbacResp.value.valid) {
-        return result.success({
+      if (!rbacResp.val.valid) {
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -325,7 +335,7 @@ export class KeyService {
      */
     const [pass, ratelimit] = await this.ratelimit(c, data.key);
     if (!pass) {
-      return result.success({
+      return Ok({
         key: data.key,
         api: data.api,
         valid: false,
@@ -340,7 +350,7 @@ export class KeyService {
       const limited = await this.usageLimiter.limit({ keyId: data.key.id });
       remaining = limited.remaining;
       if (!limited.valid) {
-        return result.success({
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -358,7 +368,7 @@ export class KeyService {
       }
     }
 
-    return result.success({
+    return Ok({
       workspaceId: data.key.workspaceId,
       key: data.key,
       api: data.api,

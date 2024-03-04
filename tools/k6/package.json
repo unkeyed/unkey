@@ -5,7 +5,8 @@
   "main": "index.js",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "devDependencies": {
     "k6": "^0.0.0"
   }
