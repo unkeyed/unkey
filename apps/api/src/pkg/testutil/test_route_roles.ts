@@ -111,7 +111,7 @@ export function runSharedRoleTests<TReq>(config: {
           error: {
             code: "INSUFFICIENT_PERMISSIONS",
             docs: "https://unkey.dev/docs/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
-            message: "you're not allowed to do this",
+            message: "unauthorized",
           },
         });
       });
