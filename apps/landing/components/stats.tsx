@@ -45,28 +45,12 @@ export function Stats() {
     <div className="flex justify-center w-full xl:px-10">
       <div className="w-full rounded-4xl py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white max-w-[1096px]">
         <Container>
-          <FadeInStagger faster>
-            <StatList>
-              <StatListItem
-                value={Intl.NumberFormat("en", { notation: "compact" }).format(workspaces)}
-                label="Workspaces"
-                className="mb-8"
-              />
-              <StatListItem
-                value={Intl.NumberFormat("en", { notation: "compact" }).format(apis)}
-                label="APIs"
-                className="mb-8"
-              />
-              <StatListItem
-                value={Intl.NumberFormat("en", { notation: "compact" }).format(keys)}
-                label="Keys"
-              />
-              <StatListItem
-                value={Intl.NumberFormat("en", { notation: "compact" }).format(totalVerifications)}
-                label="Verifications"
-              />
-            </StatList>
-          </FadeInStagger>
+          <StatList>
+            <StatListItem value={workspaces} label="Workspaces" className="mb-8" />
+            <StatListItem value={apis} label="APIs" className="mb-8" />
+            <StatListItem value={keys} label="Keys" />
+            <StatListItem value={totalVerifications} label="Verifications" />
+          </StatList>
         </Container>
       </div>
     </div>
