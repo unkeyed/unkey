@@ -40,7 +40,7 @@ export const registerV1KeysGetKey = (app: App) =>
     const { keyId } = c.req.query();
     const { cache, db } = c.get("services");
 
-    const data = await cache.withCache(c, "keyById", keyId, async () => {
+    const { val: data, err } = await cache.withCache(c, "keyById", keyId, async () => {
       const dbRes = await db.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
@@ -64,19 +64,19 @@ export const registerV1KeysGetKey = (app: App) =>
       };
     });
 
-    if (data.error) {
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load key: ${data.error.message}`,
+        message: `unable to load key: ${err.message}`,
       });
     }
-    if (!data.value) {
+    if (!data) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `key ${keyId} not found`,
       });
     }
-    const { api, key } = data.value;
+    const { api, key } = data;
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "api.*.read_key", `api.${api.id}.read_key`)),
@@ -123,8 +123,8 @@ export const registerV1KeysGetKey = (app: App) =>
               refillInterval: key.ratelimitRefillInterval,
             }
           : undefined,
-      roles: data.value.roles,
-      permissions: data.value.permissions,
+      roles: data.roles,
+      permissions: data.permissions,
       enabled: key.enabled,
     });
   });

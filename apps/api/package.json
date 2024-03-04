@@ -32,7 +32,7 @@
     "@unkey/keys": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
-    "@unkey/result": "workspace:^",
+    "@unkey/error": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
     "drizzle-orm": "^0.29.4",

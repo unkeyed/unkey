@@ -146,8 +146,8 @@ describe("evaluating a query", () => {
   for (const tc of testCases) {
     test(tc.name, () => {
       const res = new RBAC().evaluatePermissions(tc.query, tc.permissions);
-      expect(res.error).toBeUndefined();
-      expect(res.value!.valid).toBe(tc.valid);
+      expect(res.err).toBeUndefined();
+      expect(res.val!.valid).toBe(tc.valid);
     });
   }
 });
@@ -162,7 +162,7 @@ describe("bad queries", () => {
         {},
       ],
     });
-    expect(res.error).toBeDefined();
-    expect(res.error!.message).toMatchInlineSnapshot(`"invalid_union: : Invalid input"`);
+    expect(res.err).toBeDefined();
+    expect(res.err!.message).toMatchInlineSnapshot(`"invalid_union: : Invalid input"`);
   });
 });

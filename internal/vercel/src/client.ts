@@ -1,4 +1,4 @@
-import { Result, result } from "@unkey/result";
+import { Err, FetchError, Result } from "@unkey/error";
 import { z } from "zod";
 
 type VercelErrorResponse = {
@@ -32,7 +32,7 @@ export class Vercel {
     parameters?: Record<string, unknown>;
     opts?: { cache?: RequestCache; revalidate?: number };
     body?: unknown;
-  }): Promise<Result<TResult, VercelErrorResponse>> {
+  }): Promise<Result<TResult, FetchError>> {
     try {
       const url = new URL(req.path.join("/"), this.baseUrl);
       if (req.parameters) {
@@ -62,30 +62,42 @@ export class Vercel {
       if (!res.ok) {
         const error = (await res.json()) as VercelErrorResponse;
         console.error(error);
-        return result.fail(error);
+        return Err(
+          new FetchError(error.message, {
+            retry: true,
+            context: {
+              url: url.toString(),
+              method: req.method,
+            },
+          }),
+        );
       }
       const body = await res.json();
       // @ts-ignore
       return result.success(body);
     } catch (e) {
-      return result.fail({ error: "unexpected catch", message: (e as Error).message });
+      return Err(
+        new FetchError((e as Error).message, {
+          retry: true,
+        }),
+      );
     }
   }
 
-  public async getProject(projectId: string): Promise<Result<Project, VercelErrorResponse>> {
+  public async getProject(projectId: string): Promise<Result<Project, FetchError>> {
     return this.fetch({
       method: "GET",
       path: ["v9", "projects", projectId],
     });
   }
 
-  public async listProjects(): Promise<Result<Project[], VercelErrorResponse>> {
+  public async listProjects(): Promise<Result<Project[], FetchError>> {
     const res = await this.fetch<{ projects: Project[] }>({
       method: "GET",
       path: ["v9", "projects"],
     });
-    if (res.error) {
-      return result.fail(res.error);
+    if (res.err) {
+      return res;
     }
     // @ts-ignore
     return result.success(res.value.projects);
@@ -97,7 +109,7 @@ export class Vercel {
     key: string,
     value: string,
     sensitive?: boolean,
-  ): Promise<Result<{ created: { id: string } }, VercelErrorResponse>> {
+  ): Promise<Result<{ created: { id: string } }, FetchError>> {
     return await this.fetch({
       method: "POST",
       path: ["v10", "projects", projectId, "env"],
@@ -114,7 +126,7 @@ export class Vercel {
   public async removeEnvironmentVariable(
     projectId: string,
     envId: string,
-  ): Promise<Result<void, VercelErrorResponse>> {
+  ): Promise<Result<void, FetchError>> {
     return await this.fetch({
       method: "DELETE",
       path: ["v10", "projects", projectId, "env", envId],
