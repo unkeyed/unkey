@@ -5,7 +5,6 @@ import type { CacheNamespaces } from "./namespaces";
 
 export class CacheError extends BaseError {
   public readonly type = "CacheError";
-  public readonly source = "UPSTREAM";
   public readonly retry = false;
 
   public readonly namespace: keyof CacheNamespaces;

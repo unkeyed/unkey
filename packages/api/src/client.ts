@@ -177,13 +177,14 @@ export class Unkey {
       }
       const backoff = this.retry.backoff(i);
       console.debug(
-        "attempt %d of %d to reach %s failed, retrying in %d ms: %s",
+        "attempt %d of %d to reach %s failed, retrying in %d ms: %s | %s",
         i + 1,
         this.retry.attempts + 1,
         url,
         backoff,
         // @ts-ignore I don't understand why `err` is `never`
-        err?.message,
+        err?.message ?? `status=${res?.status}`,
+        res?.headers.get("unkey-request-id"),
       );
       await new Promise((r) => setTimeout(r, backoff));
     }

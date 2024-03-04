@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { SchemaError } from "@unkey/error";
 import { BillingTier, calculateTieredPrices } from "./tiers";
 
 describe("calculateTieredPrices", () => {
@@ -73,12 +74,9 @@ describe("invalid tiers", () => {
     test("should fail", () => {
       const result = calculateTieredPrices([], 5);
       expect(result.err).toBeDefined();
-      expect(result).toStrictEqual({
-        error: {
-          message:
-            '[\n  {\n    "code": "too_small",\n    "minimum": 1,\n    "type": "array",\n    "inclusive": true,\n    "exact": false,\n    "message": "Array must contain at least 1 element(s)",\n    "path": []\n  }\n]',
-        },
-      });
+      expect(result.err).instanceOf(SchemaError);
+
+      expect(result.err?.message).toEqual("too_small: : Array must contain at least 1 element(s)");
     });
   });
 
@@ -92,11 +90,8 @@ describe("invalid tiers", () => {
         20,
       );
       expect(result.err).toBeDefined();
-      expect(result).toStrictEqual({
-        error: {
-          message: "There is a gap between tiers",
-        },
-      });
+      expect(result.err).instanceOf(SchemaError);
+      expect(result.err?.message).toEqual("There is a gap between tiers");
     });
   });
   describe("two tiers overlap", () => {
@@ -109,11 +104,9 @@ describe("invalid tiers", () => {
         20,
       );
       expect(result.err).toBeDefined();
-      expect(result).toStrictEqual({
-        error: {
-          message: "There is an overlap between tiers",
-        },
-      });
+      expect(result.err).instanceOf(SchemaError);
+
+      expect(result.err?.message).toEqual("There is an overlap between tiers");
     });
   });
   describe("two tiers have a gap between", () => {
@@ -126,29 +119,22 @@ describe("invalid tiers", () => {
         20,
       );
       expect(result.err).toBeDefined();
-      expect(result).toStrictEqual({
-        error: {
-          message: "There is a gap between tiers",
-        },
-      });
+      expect(result.err).instanceOf(SchemaError);
+      expect(result.err!.message).toEqual("There is a gap between tiers");
     });
   });
 
   describe("any tier but the last has no lastUnit set", () => {
     test("should fail", () => {
-      const result = calculateTieredPrices(
+      const { val, err } = calculateTieredPrices(
         [
           { firstUnit: 1, lastUnit: null, centsPerUnit: "100" },
           { firstUnit: 11, lastUnit: null, centsPerUnit: "50" },
         ],
         20,
       );
-      expect(result.err).toBeDefined();
-      expect(result).toStrictEqual({
-        error: {
-          message: "Every tier except the last one must have a lastUnit",
-        },
-      });
+      expect(val).toBeUndefined();
+      expect(err!.message).toEqual("Every tier except the last one must have a lastUnit");
     });
   });
 });
