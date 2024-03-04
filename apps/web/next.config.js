@@ -30,11 +30,11 @@ let nextConfig = {
     },
     {
       source: "/engineering",
-      destination: "https://engineering.mintlify.dev/engineering",
+      destination: "https://unkey-engineering.mintlify.dev/engineering",
     },
     {
       source: "/engineering/:match*",
-      destination: "https://engineering.mintlify.dev/engineering/:match*",
+      destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
   ],
 };
