@@ -46,19 +46,19 @@ const ExchangeIcon = () => (
 
 const OptionsIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M5 8.5H9" stroke="white" stroke-linejoin="round" />
-    <path d="M5 15.5H13" stroke="white" stroke-linejoin="round" />
-    <path d="M12 8.5H19" stroke="white" stroke-linejoin="round" />
-    <path d="M16 15.5H19" stroke="white" stroke-linejoin="round" />
+    <path d="M5 8.5H9" stroke="white" strokeLinejoin="round" />
+    <path d="M5 15.5H13" stroke="white" strokeLinejoin="round" />
+    <path d="M12 8.5H19" stroke="white" strokeLinejoin="round" />
+    <path d="M16 15.5H19" stroke="white" strokeLinejoin="round" />
     <path
       d="M10.5 10.5C11.6046 10.5 12.5 9.60457 12.5 8.5C12.5 7.39543 11.6046 6.5 10.5 6.5C9.39543 6.5 8.5 7.39543 8.5 8.5C8.5 9.60457 9.39543 10.5 10.5 10.5Z"
       stroke="white"
-      stroke-linejoin="round"
+      strokeLinejoin="round"
     />
     <path
       d="M14.5 17.5C15.6046 17.5 16.5 16.6046 16.5 15.5C16.5 14.3954 15.6046 13.5 14.5 13.5C13.3954 13.5 12.5 14.3954 12.5 15.5C12.5 16.6046 13.3954 17.5 14.5 17.5Z"
       stroke="white"
-      stroke-linejoin="round"
+      strokeLinejoin="round"
     />
   </svg>
 );
@@ -92,7 +92,7 @@ const PaymentsIcon = () => (
       d="M0.5 12V4C0.5 3.17157 1.17157 2.5 2 2.5H14C14.8284 2.5 15.5 3.17157 15.5 4V12C15.5 12.8284 14.8284 13.5 14 13.5H2C1.17157 13.5 0.5 12.8284 0.5 12Z"
       stroke="white"
     />
-    <circle cx="8" cy="8" r="2.25" fill="white" fill-opacity="0.99" />
+    <circle cx="8" cy="8" r="2.25" fill="white" fillOpacity="0.99" />
     <path d="M1 3H3.5C3.5 4.38071 2.38071 5.5 1 5.5V3Z" fill="white" />
     <path d="M1 10.5C2.38071 10.5 3.5 11.6193 3.5 13H1V10.5Z" fill="white" />
     <path d="M12.5 3H15V5.5C13.6193 5.5 12.5 4.38071 12.5 3Z" fill="white" />

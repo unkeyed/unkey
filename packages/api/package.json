@@ -1,6 +1,6 @@
 {
   "name": "@unkey/api",
-  "version": "0.19.2",
+  "version": "0.19.3",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -27,7 +27,7 @@
     "build": "pnpm generate && tsup"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.24",
     "@unkey/tsconfig": "workspace:^",
     "openapi-typescript": "^6.7.4",
     "tsup": "^8.0.2",

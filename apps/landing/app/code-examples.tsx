@@ -559,8 +559,8 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
                     y2="20.9494"
                     gradientUnits="userSpaceOnUse"
                   >
-                    <stop stop-color="white" stop-opacity="0.4" />
-                    <stop offset="1" stop-color="white" />
+                    <stop stopColor="white" stopOpacity="0.4" />
+                    <stop offset="1" stopColor="white" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -586,6 +586,7 @@ function FrameworkSwitcher({
       <div className="flex items-center sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2">
         {frameworks.map((framework) => (
           <button
+            key={framework.name}
             type="button"
             onClick={() => {
               setFramework(framework.name as FrameworkName);

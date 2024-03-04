@@ -11,32 +11,32 @@ export const BlogBackgroundLines = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <path d="M319.5 -159.658L1 392" stroke="url(#paint0_linear_4046_6105)" stroke-width="0.75" />
+    <path d="M319.5 -159.658L1 392" stroke="url(#paint0_linear_4046_6105)" strokeWidth="0.75" />
     <path
       d="M319.5 -159.658L1 392"
       stroke="url(#paint1_angular_4046_6105)"
       strokeOpacity="0.1"
-      stroke-width="0.75"
+      strokeWidth="0.75"
     />
-    <path d="M518 -159.658L199.5 392" stroke="url(#paint2_linear_4046_6105)" stroke-width="0.75" />
+    <path d="M518 -159.658L199.5 392" stroke="url(#paint2_linear_4046_6105)" strokeWidth="0.75" />
     <path
       d="M518 -159.658L199.5 392"
       stroke="url(#paint3_angular_4046_6105)"
       strokeOpacity="0.4"
-      stroke-width="0.75"
+      strokeWidth="0.75"
     />
-    <path d="M716.5 -159.658L398 392" stroke="url(#paint4_linear_4046_6105)" stroke-width="0.75" />
+    <path d="M716.5 -159.658L398 392" stroke="url(#paint4_linear_4046_6105)" strokeWidth="0.75" />
     <path
       d="M716.5 -159.658L398 392"
       stroke="url(#paint5_angular_4046_6105)"
       strokeOpacity="0.5"
-      stroke-width="0.75"
+      strokeWidth="0.75"
     />
     <path
       d="M716.5 -159.658L398 392"
       stroke="url(#paint5_linear_4046_6105)"
       strokeOpacity="0.5"
-      stroke-width="0.75"
+      strokeWidth="0.75"
     />
     <defs>
       <linearGradient

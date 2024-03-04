@@ -1,14 +1,13 @@
 {
   "name": "@unkey/nuxt",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": false,
   "publishConfig": {
     "access": "public"
   },
   "description": "Nuxt integration for unkey",
   "repository": "unkeyed/unkey",
-  "license": "AGPL-3.0"
-,
+  "license": "AGPL-3.0",
   "type": "module",
   "exports": {
     ".": {
@@ -47,7 +46,7 @@
     "@nuxt/module-builder": "^0.5.5",
     "@nuxt/schema": "^3.8.0",
     "@nuxt/test-utils": "^3.11.0",
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.24",
     "dotenv": "^16.4.4",
     "h3": "^1.11.1",
     "nuxt": "^3.10.3",

@@ -81,10 +81,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_841_12886"
@@ -94,10 +94,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_841_12886"
@@ -107,10 +107,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_841_12886"
@@ -120,10 +120,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_841_12886"
@@ -133,10 +133,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_841_12886"
@@ -146,10 +146,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_841_12886"
@@ -159,10 +159,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_841_12886"
@@ -172,10 +172,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint8_linear_841_12886"
@@ -185,10 +185,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint9_linear_841_12886"
@@ -198,10 +198,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint10_linear_841_12886"
@@ -211,10 +211,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint11_linear_841_12886"
@@ -224,10 +224,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint12_linear_841_12886"
@@ -237,10 +237,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint13_linear_841_12886"
@@ -250,10 +250,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint14_linear_841_12886"
@@ -263,10 +263,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint15_linear_841_12886"
@@ -276,10 +276,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint16_linear_841_12886"
@@ -289,10 +289,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint17_linear_841_12886"
@@ -302,10 +302,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint18_linear_841_12886"
@@ -315,10 +315,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint19_linear_841_12886"
@@ -328,10 +328,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint20_linear_841_12886"
@@ -341,10 +341,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint21_linear_841_12886"
@@ -354,10 +354,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint22_linear_841_12886"
@@ -367,10 +367,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint23_linear_841_12886"
@@ -380,10 +380,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint24_linear_841_12886"
@@ -393,10 +393,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint25_linear_841_12886"
@@ -406,10 +406,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint26_linear_841_12886"
@@ -419,10 +419,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint27_linear_841_12886"
@@ -432,10 +432,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint28_linear_841_12886"
@@ -445,10 +445,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint29_linear_841_12886"
@@ -458,10 +458,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint30_linear_841_12886"
@@ -471,10 +471,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint31_linear_841_12886"
@@ -484,10 +484,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint32_linear_841_12886"
@@ -497,10 +497,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint33_linear_841_12886"
@@ -510,10 +510,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint34_linear_841_12886"
@@ -523,10 +523,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint35_linear_841_12886"
@@ -536,10 +536,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint36_linear_841_12886"
@@ -549,10 +549,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint37_linear_841_12886"
@@ -562,10 +562,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint38_linear_841_12886"
@@ -575,10 +575,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint39_linear_841_12886"
@@ -588,10 +588,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint40_linear_841_12886"
@@ -601,10 +601,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint41_linear_841_12886"
@@ -614,10 +614,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint42_linear_841_12886"
@@ -627,10 +627,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint43_linear_841_12886"
@@ -640,10 +640,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint44_linear_841_12886"
@@ -653,10 +653,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint45_linear_841_12886"
@@ -666,10 +666,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint46_linear_841_12886"
@@ -679,10 +679,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint47_linear_841_12886"
@@ -692,10 +692,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint48_linear_841_12886"
@@ -705,10 +705,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint49_linear_841_12886"
@@ -718,10 +718,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint50_linear_841_12886"
@@ -731,10 +731,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint51_linear_841_12886"
@@ -744,10 +744,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint52_linear_841_12886"
@@ -757,10 +757,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint53_linear_841_12886"
@@ -770,10 +770,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint54_linear_841_12886"
@@ -783,10 +783,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint55_linear_841_12886"
@@ -796,10 +796,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint56_linear_841_12886"
@@ -809,10 +809,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint57_linear_841_12886"
@@ -822,10 +822,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint58_linear_841_12886"
@@ -835,10 +835,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint59_linear_841_12886"
@@ -848,10 +848,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint60_linear_841_12886"
@@ -861,10 +861,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint61_linear_841_12886"
@@ -874,10 +874,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint62_linear_841_12886"
@@ -887,10 +887,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient
           id="paint63_linear_841_12886"
@@ -900,10 +900,10 @@ export function UsageSparkles({ className }: { className: string }) {
           y2="548"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" stop-opacity="0.45" />
-          <stop offset="0.333333" stop-color="white" stop-opacity="0.3" />
-          <stop offset="0.666667" stop-color="white" stop-opacity="0" />
-          <stop offset="1" stop-color="white" stop-opacity="0" />
+          <stop stopColor="white" stopOpacity="0.45" />
+          <stop offset="0.333333" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.666667" stopColor="white" stopOpacity="0" />
+          <stop offset="1" stopColor="white" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>
