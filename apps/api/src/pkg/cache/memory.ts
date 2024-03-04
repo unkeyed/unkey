@@ -1,4 +1,4 @@
-import { Result, result } from "@unkey/result";
+import { Ok, Result } from "@unkey/error";
 import type { Context } from "hono";
 import { Cache, CacheError, Entry } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
@@ -24,19 +24,19 @@ export class MemoryCache<TNamespaces extends Record<string, unknown> = CacheName
       | undefined;
 
     if (!cached) {
-      return result.success([undefined, false]);
+      return Ok([undefined, false]);
     }
     const now = Date.now();
 
     if (now >= cached.staleUntil) {
       this.state.delete(`${String(namespace)}:${key}`);
-      return result.success([undefined, false]);
+      return Ok([undefined, false]);
     }
     if (now >= cached.freshUntil) {
-      return result.success([cached.value, true]);
+      return Ok([cached.value, true]);
     }
 
-    return result.success([cached.value, false]);
+    return Ok([cached.value, false]);
   }
 
   public set<TName extends keyof TNamespaces>(
@@ -51,11 +51,11 @@ export class MemoryCache<TNamespaces extends Record<string, unknown> = CacheName
       freshUntil: now + CACHE_FRESHNESS_TIME_MS,
       staleUntil: now + CACHE_STALENESS_TIME_MS,
     });
-    return result.success();
+    return Ok();
   }
 
   public remove(_c: Context, namespace: keyof TNamespaces, key: string): Result<void, CacheError> {
     this.state.delete(`${String(namespace)}:${key}`);
-    return result.success();
+    return Ok();
   }
 }

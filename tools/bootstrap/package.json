@@ -6,7 +6,8 @@
   },
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "dependencies": {
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",

@@ -16,7 +16,7 @@ export const options = {
   ],
 
   thresholds: {
-    http_req_duration: ["p(95)<100"], // 95% of requests should be below 100ms
+    http_req_duration: ["p(50)<25", "p(90)<100", "p(99)<300"],
   },
 };
 
@@ -24,7 +24,7 @@ export default function () {
   const res = http.post(
     "https://api.unkey.dev/v1/keys.verifyKey",
     JSON.stringify({
-      key: "rl_3ZQQJ33EAjjLU1GgJPz6H9iy",
+      key: "3ZfxveorjGyvr2Hjh6ZiN1HY",
     }),
     {
       headers: {

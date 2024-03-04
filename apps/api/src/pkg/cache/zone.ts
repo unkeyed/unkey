@@ -1,4 +1,4 @@
-import { Result, result } from "@unkey/result";
+import { Err, Ok, Result } from "@unkey/error";
 import type { Context } from "hono";
 import superjson from "superjson";
 import { Cache, CacheError, Entry } from "./interface";
@@ -44,7 +44,7 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
       // @ts-expect-error I don't know why this is not working
       res = await caches.default.match(new Request(this.createCacheKey(namespace, key)));
     } catch (err) {
-      return result.fail(
+      return Err(
         new CacheError({
           namespace: namespace as keyof CacheNamespaces,
           key,
@@ -53,7 +53,7 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
       );
     }
     if (!res) {
-      return result.success([undefined, false]);
+      return Ok([undefined, false]);
     }
     const raw = await res.text();
     const entry = superjson.parse(raw) as Entry<TNamespaces[TName]>;
@@ -61,13 +61,13 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
 
     if (now >= entry.staleUntil) {
       await this.remove(c, namespace, key);
-      return result.success([undefined, false]);
+      return Ok([undefined, false]);
     }
     if (now >= entry.freshUntil) {
-      return result.success([entry.value, true]);
+      return Ok([entry.value, true]);
     }
 
-    return result.success([entry.value, false]);
+    return Ok([entry.value, false]);
   }
 
   public async set<TName extends keyof TNamespaces>(
@@ -92,9 +92,9 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
     try {
       // @ts-expect-error I don't know why this is not workin
       await caches.default.put(req, res);
-      return result.success();
+      return Ok();
     } catch (err) {
-      return result.fail(
+      return Err(
         new CacheError({
           namespace: namespace as keyof CacheNamespaces,
           key,
@@ -125,9 +125,9 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
         console.log("purged cache", res.status, await res.text());
       }),
     ])
-      .then(() => result.success())
+      .then(() => Ok())
       .catch((err) =>
-        result.fail(
+        Err(
           new CacheError({
             namespace: namespace as keyof CacheNamespaces,
             key,

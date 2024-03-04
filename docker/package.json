@@ -12,7 +12,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "dependencies": {
     "@hono/node-server": "^1.7.0",
     "base-x": "^4.0.0",
