@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.19.2
+
+### Patch Changes
+
+- a2f3d7a: Include status and trace id in logs
+
 ## 0.19.1
 
 ### Patch Changes

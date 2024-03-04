@@ -169,9 +169,14 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
       { status: err.status },
     );
   }
-  // logger.error(err.message, {
-  //   name: err.name,
-  // });
+
+  logger.error("unhandled exception in hono", {
+    name: err.name,
+    message: err.message,
+    cause: err.cause,
+    stack: err.stack,
+    requestId: c.get("requestId"),
+  });
   return c.json<z.infer<typeof ErrorSchema>>(
     {
       error: {

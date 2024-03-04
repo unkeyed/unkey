@@ -158,7 +158,7 @@ export const registerLegacyKeysCreate = (app: App) =>
 
     const req = c.req.valid("json");
 
-    const { value: api, error } = await cache.withCache(c, "apiById", req.apiId, async () => {
+    const { val: api, err } = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
         (await db.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
@@ -167,10 +167,10 @@ export const registerLegacyKeysCreate = (app: App) =>
       );
     });
 
-    if (error) {
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${error.message}`,
+        message: `unable to load api: ${err.message}`,
       });
     }
     if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
