@@ -193,7 +193,7 @@ export const KeyIcon: React.FC<{ className?: string; color: Color }> = ({ classN
       <path
         d="M14.9998 7.99988L17.9998 10.9999M0.999756 24.9999H6.99976V20.9999H10.9998V18.9999L14.9998 14.9999L10.9998 10.9999L0.999756 20.9999V24.9999ZM7.99976 7.99988L17.9998 17.9999L24.9998 10.9999L14.9998 0.999878L7.99976 7.99988Z"
         stroke={`url(#paint1_linear_2076_26_${color})`}
-        stroke-width="0.75"
+        strokeWidth="0.75"
       />
       <defs>
         <linearGradient
