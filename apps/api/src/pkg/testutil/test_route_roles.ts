@@ -71,7 +71,7 @@ export function runSharedRoleTests<TReq>(config: {
         error: {
           code: "UNAUTHORIZED",
           docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
-          message: "you're not allowed to do this",
+          message: "unauthorized",
         },
       });
     });
