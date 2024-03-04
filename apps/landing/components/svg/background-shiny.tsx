@@ -5,7 +5,7 @@ export function TopLeftShiningLight({ className }: { className?: string }) {
     <svg
       className={cn(
         className,
-        "absolute top-0 left-0 right-0 -z-10 overflow-x-hidden max-w-[579px] max-h-[511px] pointer-events-none",
+        "absolute top-0 left-0 -z-20 overflow-x-hidden max-w-[579px] max-h-[511px] pointer-events-none",
       )}
       viewBox="0 0 579 511"
       fill="none"
@@ -219,7 +219,7 @@ export function TopLeftShiningLight({ className }: { className?: string }) {
 export const TopRightShiningLight: React.FC = () => {
   return (
     <svg
-      className="absolute top-0 right-0 pointer-events-none"
+      className="absolute top-0 right-0 overflow-x-hidden pointer-events-none"
       width="445"
       height="699"
       viewBox="0 0 445 699"

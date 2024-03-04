@@ -7,7 +7,7 @@ export const SparkleIcon = ({ className }: { className?: string }) => (
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <g clip-path="url(#clip0_4006_10078)">
+    <g clipPath="url(#clip0_4006_10078)">
       <path
         d="M13.5 0.75C13.5 1.89705 12.3971 3 11.25 3C12.3971 3 13.5 4.10295 13.5 5.25C13.5 4.10295 14.6029 3 15.75 3C14.6029 3 13.5 1.89705 13.5 0.75Z"
         stroke="white"

@@ -48,7 +48,7 @@ export function RateLimits() {
                     height="24"
                     rx="6"
                     fill="#3CEEAE"
-                    shape-rendering="crispEdges"
+                    shapeRendering="crispEdges"
                   />
                   <rect
                     x="8"
@@ -58,7 +58,7 @@ export function RateLimits() {
                     rx="6"
                     fill="black"
                     fillOpacity="0.15"
-                    shape-rendering="crispEdges"
+                    shapeRendering="crispEdges"
                   />
                   <rect
                     x="8.375"
@@ -68,8 +68,8 @@ export function RateLimits() {
                     rx="5.625"
                     stroke="white"
                     strokeOpacity="0.1"
-                    stroke-width="0.75"
-                    shape-rendering="crispEdges"
+                    strokeWidth="0.75"
+                    shapeRendering="crispEdges"
                   />
                   <path
                     d="M21.5 15L23 16.5M14.5 23.5H17.5V21.5H19.5V20.5L21.5 18.5L19.5 16.5L14.5 21.5V23.5ZM18 15L23 20L26.5 16.5L21.5 11.5L18 15Z"
@@ -134,7 +134,7 @@ export function RateLimits() {
                 height="24"
                 rx="6"
                 fill="#6E56CF"
-                shape-rendering="crispEdges"
+                shapeRendering="crispEdges"
               />
               <rect
                 x="8"
@@ -144,7 +144,7 @@ export function RateLimits() {
                 rx="6"
                 fill="black"
                 fillOpacity="0.15"
-                shape-rendering="crispEdges"
+                shapeRendering="crispEdges"
               />
               <rect
                 x="8.375"
@@ -154,8 +154,8 @@ export function RateLimits() {
                 rx="5.625"
                 stroke="white"
                 strokeOpacity="0.1"
-                stroke-width="0.75"
-                shape-rendering="crispEdges"
+                strokeWidth="0.75"
+                shapeRendering="crispEdges"
               />
               <path
                 d="M21.5 15L23 16.5M14.5 23.5H17.5V21.5H19.5V20.5L21.5 18.5L19.5 16.5L14.5 21.5V23.5ZM18 15L23 20L26.5 16.5L21.5 11.5L18 15Z"
