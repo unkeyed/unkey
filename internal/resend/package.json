@@ -12,7 +12,7 @@
     "dev": "email dev"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.24",
     "@types/react": "^18.2.61",
     "@unkey/tsconfig": "workspace:^",
     "typescript": "^5.3.3"
