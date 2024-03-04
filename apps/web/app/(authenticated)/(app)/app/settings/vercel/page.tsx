@@ -59,14 +59,14 @@ export default async function Page(props: Props) {
     teamId: integration.vercelTeamId ?? undefined,
   });
 
-  const rawProjects = await vercel.listProjects();
-  if (rawProjects.error) {
+  const { val: rawProjects, err } = await vercel.listProjects();
+  if (err) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
-          <Code className="text-left">{JSON.stringify(rawProjects.error, null, 2)}</Code>
+          <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
         </EmptyPlaceholder.Description>
       </EmptyPlaceholder>
     );
@@ -112,7 +112,7 @@ export default async function Page(props: Props) {
   );
 
   const projects = await Promise.all(
-    rawProjects.value.map(async (p) => ({
+    rawProjects.map(async (p) => ({
       id: p.id,
       name: p.name,
       bindings: integration.vercelBindings

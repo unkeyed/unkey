@@ -13,7 +13,7 @@ let nextConfig = {
     });
     return config;
   },
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
+  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/error", "@unkey/id"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
@@ -30,11 +30,11 @@ let nextConfig = {
     },
     {
       source: "/engineering",
-      destination: "https://engineering.mintlify.dev/engineering",
+      destination: "https://unkey-engineering.mintlify.dev/engineering",
     },
     {
       source: "/engineering/:match*",
-      destination: "https://engineering.mintlify.dev/engineering/:match*",
+      destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
   ],
 };

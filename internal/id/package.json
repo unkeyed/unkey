@@ -6,7 +6,8 @@
   "types": "src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "scripts": {
     "test": "vitest run -c ./vitest.config.ts"
   },
