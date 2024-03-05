@@ -1,11 +1,14 @@
-import { Result } from "@unkey/result";
+import { BaseError, Result } from "@unkey/error";
 import type { Context } from "hono";
 import { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 
-export class CacheError extends Error {
-  readonly namespace: keyof CacheNamespaces;
-  readonly key: string;
+export class CacheError extends BaseError {
+  public readonly type = "CacheError";
+  public readonly retry = false;
+
+  public readonly namespace: keyof CacheNamespaces;
+  public readonly key: string;
 
   constructor(opts: {
     namespace: keyof CacheNamespaces;

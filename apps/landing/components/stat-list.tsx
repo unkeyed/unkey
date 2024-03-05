@@ -1,35 +1,17 @@
 import { Border } from "@/components/border";
-import { FadeIn, FadeInStagger } from "@/components/fade-in";
+import { FadeIn } from "@/components/fade-in";
+import { NumberTicker } from "@/components/number-ticker";
 import { cn } from "@/lib/utils";
 import React from "react";
 
 export function StatList({
   children,
-  ...props
 }: {
   children: React.ReactNode;
-  props?: any;
 }) {
   return (
-    <FadeInStagger {...props}>
-      <dl className="grid grid-cols-2 md:grid-flow-col md:grid-cols-none items-center">
-        {children}
-      </dl>
-    </FadeInStagger>
+    <dl className="grid items-center grid-cols-2 md:grid-flow-col md:grid-cols-none">{children}</dl>
   );
-}
-
-type ParsedData = {
-  value: number;
-  unit?: string;
-};
-
-function parseData(input: string): ParsedData {
-  const match = input.match(/^(\d+(?:\.\d+)?)([kmb]?)$/i);
-  if (match) {
-    return { value: parseFloat(match[1]), unit: match[2] || undefined };
-  }
-  throw new Error("Invalid input format");
 }
 
 export function StatListItem({
@@ -38,10 +20,9 @@ export function StatListItem({
   className,
 }: {
   label: string;
-  value: string;
+  value: number;
   className?: string;
 }) {
-  const data = parseData(value);
   return (
     <Border
       as={FadeIn}
@@ -52,8 +33,8 @@ export function StatListItem({
       )}
     >
       <div>
-        <dd className="font-semibold font-display stats-number-gradient text-4xl">
-          {data.value} {data.unit}
+        <dd className="text-4xl font-semibold font-display stats-number-gradient">
+          <NumberTicker value={value} />
         </dd>
         <dt className="mt-2 text-white/50">{label}</dt>
       </div>

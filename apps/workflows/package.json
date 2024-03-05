@@ -17,7 +17,9 @@
     "@trigger.dev/slack": "^2.3.18",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
+    "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
+    "@unkey/schema": "workspace:^",
     "drizzle-orm": "^0.29.4",
     "next": "14.1.0",
     "react": "^18",
@@ -26,7 +28,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.24",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "typescript": "^5.3.3"

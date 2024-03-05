@@ -110,7 +110,7 @@ export const workspaceRouter = t.router({
       await ingestAuditLogs({
         workspaceId: workspace.id,
         actor: { type: "user", id: ctx.user.id },
-        event: "workspace.create",
+        event: "workspace.opt_in",
         description: `Opted ${workspace.id} into beta: ${input.feature}`,
         resources: [
           {

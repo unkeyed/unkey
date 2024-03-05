@@ -42,7 +42,7 @@ function SubHeroMainboardStuff({ className }: { className?: string }) {
           d="M1072 194.25H735.604C731.69 194.25 729.734 194.25 727.892 193.808C726.26 193.416 724.699 192.77 723.267 191.892C721.653 190.903 720.269 189.519 717.502 186.752L640 109.25"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="828" y="149" width="21" height="24" rx="3" fill="white" fillOpacity="0.16" />
         <rect x="831" y="163" width="15" height="6" rx="1.5" fill="white" fillOpacity="0.16" />
@@ -86,28 +86,28 @@ function SubHeroMainboardStuff({ className }: { className?: string }) {
         <rect x="763" y="155" width="2" height="1" fill="white" fillOpacity="0.14" />
         <rect x="767" y="155" width="2" height="4" fill="white" fillOpacity="0.18" />
         <rect x="767" y="155" width="2" height="1" fill="white" fillOpacity="0.14" />
-        <path d="M869 194.5V323" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M918 0.25H807.25V194" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+        <path d="M869 194.5V323" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M918 0.25H807.25V194" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
         <path
           d="M924.25 323.25H807.25V194.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M0 237.25H312.084C314.115 237.25 315.131 237.25 316.105 237.055C316.968 236.881 317.806 236.595 318.594 236.202C319.483 235.76 320.286 235.137 321.891 233.892L351.296 211.081C353.114 209.67 354.023 208.965 354.678 208.081C355.258 207.298 355.69 206.416 355.953 205.478C356.25 204.419 356.25 203.268 356.25 200.967V105"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
-        <path d="M356 157.25H177.25V237" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+        <path d="M356 157.25H177.25V237" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
         <rect x="321" y="142" width="2" height="6" fill="white" fillOpacity="0.18" />
         <rect x="326" y="142" width="2" height="6" fill="white" fillOpacity="0.18" />
         <rect x="331" y="142" width="2" height="6" fill="white" fillOpacity="0.18" />
         <rect x="336" y="142" width="2" height="6" fill="white" fillOpacity="0.18" />
         <rect x="341" y="142" width="2" height="6" fill="white" fillOpacity="0.18" />
         <rect x="346" y="142" width="2" height="6" fill="white" fillOpacity="0.18" />
-        <path d="M177.25 7.5V157" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+        <path d="M177.25 7.5V157" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
         <rect opacity="0.02" x="183" y="163" width="75" height="68" rx="0.5" fill="white" />
         <rect opacity="0.05" x="187" y="189" width="3" height="3" rx="0.5" fill="white" />
         <rect opacity="0.05" x="187" y="182" width="3" height="3" rx="0.5" fill="white" />
@@ -227,92 +227,92 @@ function SubHeroMainboardStuff({ className }: { className?: string }) {
           d="M286 7.25H158.67C154.111 7.25 151.831 7.25 149.729 7.83406C147.867 8.35146 146.114 9.20191 144.555 10.3442C142.796 11.6337 141.385 13.4244 138.563 17.0056L92.7424 75.1548C90.7062 77.7388 89.6881 79.0309 88.9644 80.4657C88.3222 81.7388 87.8532 83.092 87.5696 84.4893C87.25 86.0643 87.25 87.7092 87.25 90.9992V237"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
-        <g clip-path="url(#clip0_1_215)">
+        <g clipPath="url(#clip0_1_215)">
           <path
             d="M744 288C749.333 282.667 852.889 179.111 904 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M752 288C757.333 282.667 860.889 179.111 912 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M760 288C765.333 282.667 868.889 179.111 920 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M768 288C773.333 282.667 876.889 179.111 928 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M776 288C781.333 282.667 884.889 179.111 936 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M784 288C789.333 282.667 892.889 179.111 944 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M792 288C797.333 282.667 900.889 179.111 952 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M800 288C805.333 282.667 908.889 179.111 960 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M808 288C813.333 282.667 916.889 179.111 968 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M816 288C821.333 282.667 924.889 179.111 976 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M824 288C829.333 282.667 932.889 179.111 984 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M832 288C837.333 282.667 940.889 179.111 992 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M840 288C845.333 282.667 948.889 179.111 1000 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M848 288C853.333 282.667 956.889 179.111 1008 128"
             stroke="white"
             strokeOpacity="0.3"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
         </g>
         <rect x="818" y="298" width="2" height="6" fill="white" fillOpacity="0.18" />
@@ -322,34 +322,34 @@ function SubHeroMainboardStuff({ className }: { className?: string }) {
         <rect x="838" y="298" width="2" height="6" fill="white" fillOpacity="0.18" />
         <rect x="843" y="298" width="2" height="6" fill="white" fillOpacity="0.18" />
       </g>
-      <path d="M566.25 357V109" stroke="url(#paint1_linear_1_215)" stroke-width="0.5" />
-      <path d="M546.25 357V109" stroke="url(#paint2_linear_1_215)" stroke-width="0.5" />
-      <path d="M526.25 357V109" stroke="url(#paint3_linear_1_215)" stroke-width="0.5" />
+      <path d="M566.25 357V109" stroke="url(#paint1_linear_1_215)" strokeWidth="0.5" />
+      <path d="M546.25 357V109" stroke="url(#paint2_linear_1_215)" strokeWidth="0.5" />
+      <path d="M526.25 357V109" stroke="url(#paint3_linear_1_215)" strokeWidth="0.5" />
       <path
         d="M526.25 357V109"
         stroke="url(#paint4_angular_1_215)"
         strokeOpacity="0.5"
-        stroke-width="0.5"
+        strokeWidth="0.5"
       />
-      <path d="M506.25 357V109" stroke="url(#paint5_linear_1_215)" stroke-width="0.5" />
-      <path d="M486.25 357V109" stroke="url(#paint6_linear_1_215)" stroke-width="0.5" />
+      <path d="M506.25 357V109" stroke="url(#paint5_linear_1_215)" strokeWidth="0.5" />
+      <path d="M486.25 357V109" stroke="url(#paint6_linear_1_215)" strokeWidth="0.5" />
       <path
         d="M486.25 357V109"
         stroke="url(#paint7_angular_1_215)"
         strokeOpacity="0.5"
-        stroke-width="0.5"
+        strokeWidth="0.5"
       />
-      <path d="M496.25 357V109" stroke="url(#paint8_linear_1_215)" stroke-width="0.5" />
-      <path d="M516.25 357V109" stroke="url(#paint9_linear_1_215)" stroke-width="0.5" />
-      <path d="M536.25 357V109" stroke="url(#paint10_linear_1_215)" stroke-width="0.5" />
-      <path d="M556.25 357V109" stroke="url(#paint11_linear_1_215)" stroke-width="0.5" />
-      <path d="M576.25 357V109" stroke="url(#paint12_linear_1_215)" stroke-width="0.5" />
-      <path d="M585.25 357V109" stroke="url(#paint13_linear_1_215)" stroke-width="0.5" />
+      <path d="M496.25 357V109" stroke="url(#paint8_linear_1_215)" strokeWidth="0.5" />
+      <path d="M516.25 357V109" stroke="url(#paint9_linear_1_215)" strokeWidth="0.5" />
+      <path d="M536.25 357V109" stroke="url(#paint10_linear_1_215)" strokeWidth="0.5" />
+      <path d="M556.25 357V109" stroke="url(#paint11_linear_1_215)" strokeWidth="0.5" />
+      <path d="M576.25 357V109" stroke="url(#paint12_linear_1_215)" strokeWidth="0.5" />
+      <path d="M585.25 357V109" stroke="url(#paint13_linear_1_215)" strokeWidth="0.5" />
       <path
         d="M585.25 357V109"
         stroke="url(#paint14_angular_1_215)"
         strokeOpacity="0.5"
-        stroke-width="0.5"
+        strokeWidth="0.5"
       />
       <defs>
         <radialGradient

@@ -150,34 +150,34 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     const { apiId, key } = c.req.valid("json");
     const { keyService } = c.get("services");
 
-    const { value, error } = await keyService.verifyKey(c, { key, apiId });
-    if (error) {
+    const { val, err } = await keyService.verifyKey(c, { key, apiId });
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: error.message,
+        message: err.message,
       });
     }
 
-    if (!value.valid) {
-      if (value.code === "NOT_FOUND") {
+    if (!val.valid) {
+      if (val.code === "NOT_FOUND") {
         c.status(404);
       }
 
       return c.json({
         valid: false,
-        code: value.code,
-        rateLimit: value.ratelimit,
-        remaining: value.remaining,
+        code: val.code,
+        rateLimit: val.ratelimit,
+        remaining: val.remaining,
       });
     }
 
     return c.json({
-      keyId: value.key.id,
+      keyId: val.key.id,
       valid: true,
-      ownerId: value.key.ownerId ?? undefined,
-      meta: value.key.meta ? JSON.parse(value.key.meta) : undefined,
-      expires: value.key.expires?.getTime(),
-      remaining: value.remaining ?? undefined,
-      ratelimit: value.ratelimit ?? undefined,
+      ownerId: val.key.ownerId ?? undefined,
+      meta: val.key.meta ? JSON.parse(val.key.meta) : undefined,
+      expires: val.key.expires?.getTime(),
+      remaining: val.remaining ?? undefined,
+      ratelimit: val.ratelimit ?? undefined,
     });
   });

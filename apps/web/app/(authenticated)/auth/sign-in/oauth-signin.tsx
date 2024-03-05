@@ -1,11 +1,11 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Icons } from "@/components/ui/icons";
+import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
 import { useSignIn } from "@clerk/nextjs";
 import type { OAuthStrategy } from "@clerk/types";
 import * as React from "react";
+import { OAuthButton } from "../oauth-button";
 
 export function OAuthSignIn() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
@@ -31,28 +31,22 @@ export function OAuthSignIn() {
 
   return (
     <div className="flex flex-col gap-2">
-      <Button
-        className="bg-gray-50 text-black border-gray-300 hover:bg-black hover:text-white"
-        onClick={() => oauthSignIn("oauth_github")}
-      >
+      <OAuthButton onClick={() => oauthSignIn("oauth_github")}>
         {isLoading === "oauth_github" ? (
-          <Loading className="w-4 h-4 mr-2" />
+          <Loading className="w-6 h-6" />
         ) : (
-          <Icons.gitHub className="w-4 h-4 mr-2" />
+          <GitHub className="w-6 h-6" />
         )}
         GitHub
-      </Button>
-      <Button
-        className="bg-gray-50 text-black border-gray-300 hover:bg-black hover:text-white"
-        onClick={() => oauthSignIn("oauth_google")}
-      >
+      </OAuthButton>
+      <OAuthButton onClick={() => oauthSignIn("oauth_google")}>
         {isLoading === "oauth_google" ? (
-          <Loading className="w-4 h-4 mr-2" />
+          <Loading className="w-6 h-6" />
         ) : (
-          <Icons.google className="w-4 h-4 mr-2" />
+          <Google className="w-6 h-6" />
         )}
         Google
-      </Button>
+      </OAuthButton>
     </div>
   );
 }
