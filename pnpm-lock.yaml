@@ -229,8 +229,8 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6(prop-types@15.8.1)(react-dom@18.2.0)(react@18.2.0)
       geist:
-        specifier: ^1.2.1
-        version: 1.2.1(next@14.1.0)
+        specifier: ^1.2.2
+        version: 1.2.2(next@14.1.0)
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0
@@ -648,9 +648,15 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
+      '@unkey/id':
+        specifier: workspace:^
+        version: link:../../internal/id
       '@unkey/resend':
         specifier: workspace:^
         version: link:../../internal/resend
+      '@unkey/schema':
+        specifier: workspace:^
+        version: link:../../internal/schema
       drizzle-orm:
         specifier: ^0.29.4
         version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
@@ -5542,7 +5548,6 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
-      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -12887,10 +12892,10 @@ packages:
     resolution: {integrity: sha512-VNx3UEGr+ILJTiMs1+xc5SX1cMgJCrXezKPa003APUWNqQqaF6n25W8VcR7nHN6yRWbvvUTwCpZCFJeWC2kXlw==}
     dev: true
 
-  /geist@1.2.1(next@14.1.0):
-    resolution: {integrity: sha512-xCl7zWfnWqc+TbCG5qqyeT5tnVlOO4pSJsT3Ei59DN1SR4N2VlauF8Fv0D1pPFXGUJgu6RMoeZX+wsR4T9bMhg==}
+  /geist@1.2.2(next@14.1.0):
+    resolution: {integrity: sha512-uRDrxhvdnPwWJmh+K5+/5LXSKwvJzaYCl9tDXgiBi4hj7hB4K7+n/WLcvJMFs5btvyn0r9OSwCd1s6CmqAsxEw==}
     peerDependencies:
-      next: ^13.2 || ^14
+      next: '>=13.2.0 <15'
     dependencies:
       next: 14.1.0(react-dom@18.2.0)(react@18.2.0)
     dev: false
@@ -16090,10 +16095,6 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false
-
-  /napi-wasm@1.1.0:
-    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
-    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}

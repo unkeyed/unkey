@@ -21,12 +21,17 @@ const quotes: {
   };
 }[] = [
   {
-    text: (
-      <>
-        I've been using Unkey for a project we're launching out of our lab called Dashboard. <br />{" "}
-        The product is super well built, intuitive and powerful.
-      </>
-    ),
+    text: "Unkey's product helped launch our public API features in a matter of hours.  Easy setup, exactly the features we needed, great DX ergonomics, and low latency - fantastic experience.",
+    source: "slack dm",
+    author: {
+      name: "Rick Blalock",
+      title: "Cofounder/CTO onestudy.ai",
+      image: "https://pbs.twimg.com/profile_images/1520195134507425794/JOGd7q2__400x400.jpg",
+      href: "https://x.com/rblalock",
+    },
+  },
+  {
+    text: "The product is super well built, intuitive and powerful.",
     source: "slack",
     author: {
       name: "Dexter Storey",
