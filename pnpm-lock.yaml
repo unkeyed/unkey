@@ -648,9 +648,15 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
+      '@unkey/id':
+        specifier: workspace:^
+        version: link:../../internal/id
       '@unkey/resend':
         specifier: workspace:^
         version: link:../../internal/resend
+      '@unkey/schema':
+        specifier: workspace:^
+        version: link:../../internal/schema
       drizzle-orm:
         specifier: ^0.29.4
         version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.61)(react@18.2.0)
