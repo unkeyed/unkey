@@ -1,49 +1,51 @@
 "use client";
 
 import { useSignIn } from "@clerk/nextjs";
+import { OTPInput, SlotProps } from "input-otp";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
+import { Minus } from "lucide-react";
 
-export function EmailCode() {
+type Props = {
+  setError: (s: string) => void;
+};
+
+export const EmailCode: React.FC<Props> = ({ setError }) => {
   const router = useRouter();
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn();
-
   const [isLoading, setIsLoading] = React.useState(false);
-  const [timeLeft, setTimeLeft] = React.useState(0);
 
-  const verifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const emailCode = new FormData(e.currentTarget).get("code");
-    if (!signInLoaded || typeof emailCode !== "string") {
+  const verifyCode = async (otp: string) => {
+    console.log("verifying", otp);
+    if (!signInLoaded || typeof otp !== "string") {
       return null;
     }
     setIsLoading(true);
     await signIn
       .attemptFirstFactor({
         strategy: "email_code",
-        code: emailCode,
+        code: otp,
       })
       .then(async (result) => {
         if (result.status === "complete" && result.createdSessionId) {
+          toast.success("Signed in", {
+            description: "redirecting...",
+          });
           await setActive({ session: result.createdSessionId });
           router.push("/app");
         }
       })
       .catch((err) => {
-        setIsLoading(false);
-        if (err.errors[0].code === "form_code_incorrect") {
-          toast.error("Please check the 6 digit code, the one you entered is incorrect");
-        }
+        setError(err.errors.at(0)?.longMessage ?? "Unknown error, pleae contact support@unkey.dev");
       });
+    setIsLoading(false);
   };
 
-  const resendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resendCode = async () => {
     try {
       const firstFactor = signIn?.supportedFirstFactors.find((f) => f.strategy === "email_code") as
         | { emailAddressId: string }
@@ -51,50 +53,86 @@ export function EmailCode() {
       if (!firstFactor) {
         return null;
       }
-      await signIn?.prepareFirstFactor({
+      const p = signIn!.prepareFirstFactor({
         strategy: "email_code",
         emailAddressId: firstFactor.emailAddressId,
       });
-      setTimeLeft(30);
-      toast.success("A new code has been sent to your email");
-      const _interval = setInterval(() => {
-        setTimeLeft((time) => {
-          if (time === 0) {
-            clearInterval(_interval);
-            return 0;
-          }
-          return time - 1;
-        });
-      }, 1000);
+      toast.promise(p, {
+        loading: "Sending new code ...",
+        success: "A new code has been sent to your email",
+      });
+      await p;
     } catch (error) {
       setIsLoading(false);
+      setError((error as Error).message);
       console.error(error);
     }
   };
 
+  const [otp, setOtp] = React.useState("");
+
   return (
-    <>
-      <form className="grid gap-2" onSubmit={verifyCode}>
-        <div className="grid gap-1">
-          <Input
-            name="code"
-            placeholder="123456"
-            type="number"
-            autoCapitalize="none"
-            autoComplete="none"
-            maxLength={6}
-            autoCorrect="off"
-            className="bg-background"
-          />
-        </div>
-        <Button disabled={isLoading}>
-          {isLoading && <Loading className="w-4 h-4 mr-2 animate-spin" />}
-          Verify Code
-        </Button>
-        <Button disabled={isLoading || timeLeft > 0} variant="ghost" onClick={resendCode}>
-          Resend Code {timeLeft > 0 && `(${timeLeft})`}
-        </Button>
+    <div className="flex flex-col max-w-sm mx-auto text-left">
+      <h1 className="text-4xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30">
+        Security code sent!
+      </h1>
+      <p className="mt-4 text-sm text-white/40">
+        To continue, please enter the 6 digit verification code sent to the provided email.
+      </p>
+
+      <p className="mt-2 text-sm text-white/40">
+        Didn't receive the code?{" "}
+        <button type="button" className="text-white" onClick={resendCode}>
+          Resend
+        </button>
+      </p>
+      <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
+        <OTPInput
+          data-1p-ignore
+          value={otp}
+          onChange={setOtp}
+          onComplete={() => verifyCode(otp)}
+          maxLength={6}
+          render={({ slots }) => (
+            <div className="flex items-center justify-between">
+              {slots.slice(0, 3).map((slot, idx) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
+                <Slot key={idx} {...slot} />
+              ))}
+              <Minus className="w-6 h-6 text-white/15" />
+              {slots.slice(3).map((slot, idx) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: I have nothing better
+                <Slot key={idx} {...slot} />
+              ))}
+            </div>
+          )}
+        />
+
+        <button
+          type="submit"
+          className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          disabled={isLoading}
+          onClick={() => verifyCode(otp)}
+        >
+          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
+          Continue
+        </button>
       </form>
-    </>
+    </div>
   );
-}
+};
+
+const Slot: React.FC<SlotProps> = (props) => (
+  <div
+    className={cn(
+      "relative w-10 h-12 text-[2rem] border border-white/20 rounded-lg text-white font-light text-base",
+      "flex items-center justify-center",
+      "transition-all duration-300",
+      "group-hover:border-white/50 group-focus-within:border-white/50",
+      "outline outline-0 outline-white",
+      { "outline-1 ": props.isActive },
+    )}
+  >
+    {props.char !== null && <div>{props.char}</div>}
+  </div>
+);
