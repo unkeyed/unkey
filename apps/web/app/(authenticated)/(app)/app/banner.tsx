@@ -53,7 +53,7 @@ export const UsageBanner: React.FC = async () => {
             You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
             <strong>{fmt(usedActiveKeys)}</strong> /{" "}
             <strong>{fmt(QUOTA.free.maxActiveKeys)}</strong>.{" "}
-            <Link href="/app/settings/billing/stripe" className="underline">
+            <Link href="/app/settings/billing" className="underline">
               Upgrade your plan
             </Link>{" "}
             or{" "}
@@ -72,7 +72,7 @@ export const UsageBanner: React.FC = async () => {
             You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
             <strong>{fmt(usedVerifications)}</strong> /{" "}
             <strong>{fmt(QUOTA.free.maxVerifications)}</strong>.{" "}
-            <Link href="/app/settings/billing/stripe" className="underline">
+            <Link href="/app/settings/billing" className="underline">
               Upgrade your plan
             </Link>{" "}
             or{" "}
@@ -94,7 +94,7 @@ export const UsageBanner: React.FC = async () => {
             : `Your trial expires in ${ms(workspace.trialEnds.getTime() - Date.now(), {
                 long: true,
               })}.`}{" "}
-          <Link href="/app/settings/billing/stripe" className="underline">
+          <Link href="/app/settings/billing" className="underline">
             Add a payment method
           </Link>
         </p>

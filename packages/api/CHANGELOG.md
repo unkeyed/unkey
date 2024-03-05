@@ -1,5 +1,12 @@
 # @unkey/api
 
+## 0.19.3
+
+### Patch Changes
+
+- Updated dependencies [04b1785]
+  - @unkey/rbac@0.1.11
+
 ## 0.19.2
 
 ### Patch Changes
