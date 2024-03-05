@@ -1,4 +1,6 @@
 import { connectDatabase, eq, gt, lte, schema } from "@/lib/db";
+import { env } from "@/lib/env";
+import { Tinybird } from "@/lib/tinybird";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
 
@@ -12,6 +14,7 @@ client.defineJob({
 
   run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
+    const tb = new Tinybird(env().TINYBIRD_TOKEN);
     const t = new Date();
     t.setUTCMonth(t.getUTCMonth() - 1);
 
@@ -42,6 +45,30 @@ client.defineJob({
             lastRefillAt: new Date(),
           })
           .where(eq(schema.keys.id, key.id));
+      });
+      await io.runTask(`create audit log refilling ${key.id}`, async () => {
+        await tb.ingestAuditLogs({
+          workspaceId: key.workspaceId,
+          event: "key.update",
+          actor: {
+            type: "system",
+            id: "trigger",
+          },
+          description: `Refilled ${key.id} to ${key.refillAmount}`,
+          resources: [
+            {
+              type: "workspace",
+              id: key.workspaceId,
+            },
+            {
+              type: "key",
+              id: key.id,
+            },
+          ],
+          context: {
+            location: "trigger",
+          },
+        });
       });
     }
     return {
