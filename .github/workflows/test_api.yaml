@@ -30,10 +30,11 @@ jobs:
 
       - name: Set mysql max connections
         run: |
+          
           mysql \
             --user=root \
             --password=root \
-            --host=localhost \
+            --host=127.0.0.1 \
             --port=3306 \
             --execute="set global max_connections = '1000';"
 
