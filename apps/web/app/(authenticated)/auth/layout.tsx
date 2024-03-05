@@ -31,12 +31,7 @@ const quotes: {
     },
   },
   {
-    text: (
-      <>
-        I've been using Unkey for a project we're launching out of our lab called Dashboard. <br />{" "}
-        The product is super well built, intuitive and powerful.
-      </>
-    ),
+    text: "The product is super well built, intuitive and powerful.",
     source: "slack",
     author: {
       name: "Dexter Storey",
