@@ -22,8 +22,11 @@ import { LeveledUpApiAuthChip } from "@/components/svg/leveled-up-api-auth-chip"
 import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
 import { ChevronRight, LogIn } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
+import mainboardMobile from "../images/mainboard-mobile.svg";
+import mainboard from "../images/mainboard.svg";
 import { CodeExamples } from "./code-examples";
 
 export const metadata = {
@@ -59,11 +62,20 @@ export default async function Landing() {
       <TopRightShiningLight />
 
       <TopLeftShiningLight />
+      <Image
+        src={mainboardMobile}
+        alt="Animated SVG showing computer circuits lighting up"
+        className="flex md:hidden w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+      />
+      <Image
+        src={mainboard}
+        alt="Animated SVG showing computer circuits lighting up"
+        className="hidden md:flex w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+      />
 
       <div className="container relative mx-auto">
-        <HeroMainboardStuff className="absolute right-0 -top-[4%]" />
-        <HeroMainboardStuffMobile className="absolute right-0 -top-[5%]" />
-
+        {/* <HeroMainboardStuff className="absolute right-0 -top-[4%]" />
+        <HeroMainboardStuffMobile className="absolute right-0 -top-[5%]" /> */}
         <Hero />
 
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
