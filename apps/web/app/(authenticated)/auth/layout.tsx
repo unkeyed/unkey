@@ -11,19 +11,58 @@ import React from "react";
 export const dynamic = "force-dynamic";
 
 const quotes: {
-  text: string;
+  text: React.ReactNode;
+  source: string;
   author: {
     name: string;
-    title: string;
+    title?: string;
     image: string;
+    href: string;
   };
 }[] = [
   {
-    text: "Revolutionized my API auth. Fast search, sleek interface, and top-notch security. Highly recommend.",
+    text: (
+      <>
+        I've been using Unkey for a project we're launching out of our lab called Dashboard. <br />{" "}
+        The product is super well built, intuitive and powerful.
+      </>
+    ),
+    source: "slack",
     author: {
-      name: "Dax Raad",
-      title: "CEO at shitposting",
-      image: "https://pbs.twimg.com/profile_images/1602333093485891584/mmVqjFNI_400x400.jpg",
+      name: "Dexter Storey",
+      title: "Cofounder Rubric Labs",
+      image:
+        "https://media.licdn.com/dms/image/D4E03AQE3_DloJSEeBw/profile-displayphoto-shrink_800_800/0/1706486799593?e=1715212800&v=beta&t=TOBQZjsyk3fVZLfuYtdZSKQoM22Gaf9ggMgsGzsNq-4",
+      href: "https://www.linkedin.com/in/dexterstorey/",
+    },
+  },
+  {
+    text: "Just used Unkey, by far the easiest and cheapest ( its free ) solution I have used so far for saas to manage their api keys. Its amazing how easy it is use.",
+    source: "https://twitter.com/tkejr_/status/1731613302378164440",
+    author: {
+      name: "Tanmay",
+      image: "https://pbs.twimg.com/profile_images/1699993730655059969/q7Poeqtc_400x400.jpg",
+      href: "https://x.com/tkejr_",
+    },
+  },
+  {
+    text: "Diving into Unkey for a project, and I'm impressed! Love the straightforward setup for managing API keys.",
+    source: "https://twitter.com/ojabowalola/status/1724134790670999919",
+    author: {
+      name: "Lola",
+      image: "https://pbs.twimg.com/profile_images/1705845087350009856/UZaJhcLB_400x400.jpg",
+      href: "https://x.com/ojabowalola",
+      title: "Founder of lunchpaillabs.com",
+    },
+  },
+  {
+    text: "Unkey increases our velocity and helps us focus on what's relevant to the user, not the infrastructure behind it.",
+    source: "https://www.openstatus.dev/blog/secure-api-with-unkey",
+    author: {
+      name: "Maximilian Kaske",
+      image: "https://pbs.twimg.com/profile_images/1559935773151051778/0O_Bf4LY_400x400.jpg",
+      href: "https://x.com/mxkaske",
+      title: "Founder of openstatus.dev",
     },
   },
 ];
@@ -83,7 +122,7 @@ export default async function AuthenticatedLayout({
               <div className="absolute top-0 left-0 w-px bg-white/30 h-1/2" />
               <div className="absolute bottom-0 left-0 w-px bg-white h-1/2" />
 
-              <p className="text-3xl leading-10 text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/30">
+              <p className="text-3xl leading-10 text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/30 text-pretty">
                 {quote.text}
               </p>
 
@@ -92,7 +131,13 @@ export default async function AuthenticatedLayout({
                   <AvatarImage src={quote.author.image} />
                   <AvatarFallback>{quote.author.name}</AvatarFallback>
                 </Avatar>
-                <span className="ml-4 text-sm text-white">{quote.author.name}</span>{" "}
+                <Link
+                  href={quote.author.href}
+                  target="_blank"
+                  className="ml-4 text-sm text-white hover:underline"
+                >
+                  {quote.author.name}
+                </Link>{" "}
                 <span className="ml-2 text-sm text-white/50">{quote.author.title}</span>
               </div>
             </div>
