@@ -1,4 +1,4 @@
-import { Result, result } from "@unkey/result";
+import { Err, Ok, Result } from "@unkey/error";
 import { type Context } from "hono";
 import { type Cache, CacheError } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
@@ -32,23 +32,23 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
     key: string,
   ): Promise<Result<[TNamespaces[TName] | undefined, boolean], CacheError>> {
     if (this.tiers.length === 0) {
-      return result.success([undefined, false]);
+      return Ok([undefined, false]);
     }
 
     for (let i = 0; i < this.tiers.length; i++) {
       const res = await this.tiers[i].get<TName>(c, namespace, key);
-      if (res.error) {
-        return result.fail(res.error);
+      if (res.err) {
+        return res;
       }
-      const [cached, stale] = res.value;
+      const [cached, stale] = res.val;
       if (typeof cached !== "undefined") {
         for (let j = 0; j < i; j++) {
           await this.tiers[j].set(c, namespace, key, cached);
         }
-        return result.success([cached, stale]);
+        return Ok([cached, stale]);
       }
     }
-    return result.success([undefined, false]);
+    return Ok([undefined, false]);
   }
 
   /**
@@ -61,9 +61,9 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
     value: TNamespaces[TName],
   ): Promise<Result<void, CacheError>> {
     return Promise.all(this.tiers.map((t) => t.set<TName>(c, namespace, key, value)))
-      .then(() => result.success())
+      .then(() => Ok())
       .catch((err) =>
-        result.fail(
+        Err(
           new CacheError({
             namespace: namespace as keyof CacheNamespaces,
             key,
@@ -82,9 +82,9 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
     key: string,
   ): Promise<Result<void, CacheError>> {
     return Promise.all(this.tiers.map((t) => t.remove(c, namespace, key)))
-      .then(() => result.success())
+      .then(() => Ok())
       .catch((err) =>
-        result.fail(
+        Err(
           new CacheError({
             namespace: namespace as keyof CacheNamespaces,
             key,
@@ -101,10 +101,10 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
     loadFromOrigin: (key: string) => Promise<TNamespaces[TName]>,
   ): Promise<Result<TNamespaces[TName], CacheError>> {
     const res = await this.get<TName>(c, namespace, key);
-    if (res.error) {
-      return result.fail(res.error);
+    if (res.err) {
+      return Err(res.err);
     }
-    const [cached, stale] = res.value;
+    const [cached, stale] = res.val;
     if (typeof cached !== "undefined") {
       if (stale) {
         c.executionCtx.waitUntil(
@@ -115,15 +115,15 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
             }),
         );
       }
-      return result.success(cached);
+      return Ok(cached);
     }
 
     try {
       const value = await loadFromOrigin(key);
       await this.set(c, namespace, key, value);
-      return result.success(value);
+      return Ok(value);
     } catch (err) {
-      return result.fail(
+      return Err(
         new CacheError({
           namespace: namespace as keyof CacheNamespaces,
           key,

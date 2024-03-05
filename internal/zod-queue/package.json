@@ -6,10 +6,11 @@
   "types": "src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240208.0",
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.24",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.3.3"
   },

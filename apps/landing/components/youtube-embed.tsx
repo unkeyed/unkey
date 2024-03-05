@@ -2,6 +2,7 @@
 import { BorderBeam } from "@/components/border-beam";
 import { motion } from "framer-motion";
 import FsLightbox from "fslightbox-react";
+import Image from "next/image";
 import { useState } from "react";
 
 export function YoutubeEmbed() {
@@ -22,7 +23,7 @@ export function YoutubeEmbed() {
             onClick={() => setToggler(!toggler)}
           >
             <BorderBeam size={400} colorFrom="#72FFF9" />
-            <img src="/images/hero.png" alt="Youtube" />
+            <Image src="/images/hero.png" alt="Youtube" width={600} height={340} />
             <div className="absolute top-[calc(50%-80px/2)] left-[calc(50%-112px/2)] bg-[#ffffff/30] h-[80px] w-[112px] bg-yt-button-gradient hover:bg-[#111111] transition-all rounded-[20px] flex items-center justify-center">
               <BorderBeam />
               <svg

@@ -6,7 +6,8 @@
   },
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "dependencies": {
     "@chronark/zod-bird": "^0.3.3",
     "@planetscale/database": "^1.16.0",
@@ -18,7 +19,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "20.11.19",
+    "@types/node": "20.11.24",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.3.0",
     "tsx": "^4.7.1",

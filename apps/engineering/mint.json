@@ -41,6 +41,11 @@
     {
       "group": "Get Started",
       "pages": ["introduction"]
+    },
+    {
+      "group": "Errors",
+      "icon": "triangle-exclamation",
+      "pages": ["errors"]
     }
   ],
   "footerSocials": {

@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -32,11 +32,11 @@
     "@unkey/keys": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
-    "@unkey/result": "workspace:^",
+    "@unkey/error": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
     "drizzle-orm": "^0.29.4",
-    "hono": "^4.0.7",
+    "hono": "^4.0.9",
     "superjson": "^2.2.1",
     "zod": "^3.22.4",
     "zod-error": "^1.5.0"

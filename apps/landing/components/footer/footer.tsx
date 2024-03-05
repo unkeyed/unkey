@@ -68,11 +68,11 @@ function CompanyInfoMobile() {
       </div>
       <div className="mt-10">
         {navigation.map((section) => (
-          <>
+          <div key={section.title}>
             <h3 className="py-4 text-sm font-medium text-white">{section.title}</h3>
             <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal">
               {section.links.map((link) => (
-                <li key={link.href} className="py-4">
+                <li key={link.href.toString()} className="py-4">
                   {link.href.startsWith("https://") ? (
                     <a
                       href={link.href}
@@ -93,7 +93,7 @@ function CompanyInfoMobile() {
                 </li>
               ))}
             </ul>
-          </>
+          </div>
         ))}
       </div>
       <div className="flex justify-center w-full lg:mt-24">
@@ -108,13 +108,13 @@ function Navigation() {
     <nav className="sm:w-full">
       <ul className="flex flex-col flex-auto gap-16 text-left sm:flex-row sm:mx-auto sm:text-center justify-evenly">
         {navigation.map((section) => (
-          <li key={section.title}>
+          <li key={section.title.toString()}>
             <div className="text-sm font-medium tracking-wider text-white font-display">
               {section.title}
             </div>
             <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal gap-4 flex flex-col md:gap-8 mt-4 md:mt-8 ">
               {section.links.map((link) => (
-                <li key={link.href}>
+                <li key={link.href.toString()}>
                   {link.href.startsWith("https://") ? (
                     <a
                       href={link.href}
