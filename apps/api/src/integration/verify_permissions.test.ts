@@ -211,11 +211,7 @@ describe(
           key,
           authorization: {
             permissions: {
-              and: [
-                "p1",
-                // @ts-expect-error
-                {},
-              ],
+              and: ["p1", {}],
             },
           },
         },
