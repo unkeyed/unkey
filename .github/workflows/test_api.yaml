@@ -19,7 +19,7 @@ jobs:
           MYSQL_PASSWORD: password
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 --max-connections=1000
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
         run: |
           go install github.com/mattrobenolt/ps-http-sim@latest
           # start the proxy in the background
-          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 > pscale.logs &
+          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 -mysql-idle-timeout=1s > pscale.logs &
 
       - name: Install
         uses: ./.github/actions/install
