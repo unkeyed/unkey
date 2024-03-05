@@ -28,7 +28,7 @@ The key will be verified against the api's configuration. If the key does not be
               }),
               authorization: z
                 .object({
-                  permissions: permissionQuerySchema.openapi({
+                  permissions: z.any(permissionQuerySchema).openapi({
                     type: "object",
                     description: "A query for which permissions you require",
                     example: {
