@@ -34,7 +34,7 @@
     "drizzle-orm": "^0.29.4",
     "framer-motion": "11.0.8",
     "fslightbox-react": "^1.7.6",
-    "geist": "^1.2.1",
+    "geist": "^1.2.2",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.334.0",
     "nanoid": "^5.0.6",
