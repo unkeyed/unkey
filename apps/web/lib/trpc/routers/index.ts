@@ -1,19 +1,22 @@
 import { t } from "../trpc";
 import { apiRouter } from "./api";
+import { budgetRouter } from "./budgets";
 import { keyRouter } from "./key";
 import { keySettingsRouter } from "./keySettings";
 import { plainRouter } from "./plain";
 import { rbacRouter } from "./rbac";
 import { vercelRouter } from "./vercel";
 import { workspaceRouter } from "./workspace";
+
 export const router = t.router({
-  key: keyRouter,
   api: apiRouter,
-  workspace: workspaceRouter,
-  vercel: vercelRouter,
+  budget: budgetRouter,
+  key: keyRouter,
+  keySettings: keySettingsRouter,
   plain: plainRouter,
   rbac: rbacRouter,
-  keySettings: keySettingsRouter,
+  vercel: vercelRouter,
+  workspace: workspaceRouter,
 });
 
 // export type definition of API
