@@ -39,6 +39,7 @@ export const budgets = mysqlTable(
         webhookUrl?: string;
       }>()
       .notNull(),
+    lastReachedAt: datetime("last_reached_at", { mode: "date", fsp: 3 }),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
   },
   (table) => ({

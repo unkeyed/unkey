@@ -5,6 +5,7 @@ import React from "react";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SubscriptionEnded } from "../emails/subscription_ended";
 import { TrialEnded } from "../emails/trial_ended";
+import UsageBudgetExceeded from "../emails/usage-budget-exceeded";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   public readonly client: Client;
@@ -99,6 +100,44 @@ export class Resend {
       throw result.error;
     } catch (error) {
       console.error("Error occurred sending payment issue email ", JSON.stringify(error));
+    }
+  }
+
+  public async sendBatchBudgetExceeded(
+    batch: {
+      email: string;
+      workspaceName: string;
+      budgetedAmount: number;
+      currentPeriodBilling: number;
+    }[],
+  ): Promise<void> {
+    try {
+      if (batch.length > 100) {
+        throw new Error("Allowed up to 100 batch emails.");
+      }
+
+      const result = await this.client.batch.send(
+        batch.map((data) => ({
+          to: data.email,
+          from: "james@updates.unkey.dev",
+          reply_to: this.replyTo,
+          subject: "Budget Notification Usage Exceeded",
+          html: render(
+            <UsageBudgetExceeded
+              workspace={data.workspaceName}
+              budgetedAmount={data.budgetedAmount}
+              currentPeriodBilling={data.currentPeriodBilling}
+            />,
+          ),
+        })),
+      );
+
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred batch sending budget exceeded email ", JSON.stringify(error));
     }
   }
 }
