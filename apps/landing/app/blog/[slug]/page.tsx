@@ -67,7 +67,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
     <>
       <BlogContainer className="overflow-hidden mt-32 scroll-smooth ">
         <div>
-          <TopLeftShiningLight className="-z-40 h-full" />
+          <TopLeftShiningLight className="-z-40 h-full hidden sm:block" />
         </div>
         <div className="w-full overflow-clip -z-40">
           <MeteorLinesAngular
@@ -130,28 +130,31 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         <div className="overflow-hidden -z-40">
           <TopRightShiningLight />
         </div>
-        <div className="flex xl:flex-row flex-col ">
-          <div className="flex flex-col sm:pl-4 lg:pl-24 md:px-12 xl:w-full">
-            <h1 className="text-left sm:pt-8 xl:mt-28 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
+        <div className="flex xl:flex-row flex-col">
+          <div className="flex flex-col sm:pl-4 lg:pl-24 md:px-12 lg:w-10/12 xl:mt-12 mx-6">
+            <h1 className="text-left sm:pt-8 xl:mt-0 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
             </h1>
-            <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40">
+            <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40 ">
               {frontmatter.description}
             </p>
           </div>
-          <div className="flex xl:flex-col flex-row  xl:w-80 w-fit pt-12 lg:pl-24 md:px-12 sm:pl-4 xl:pl-12 xl:pt-36">
-            <BlogAuthors author={author} className="xl:mb-16 mb-6 w-40" />
-            <div className="flex flex-col">
-              <p className="mb-6 text-sm text-white/30">Published on</p>
-              <h3 className="text-white">{format(new Date(frontmatter.date!), "MMM dd, yyyy")}</h3>
+          <div className="flex flex-col lg:w-2/12 p-0 mt-6 pl-6 w-full justify-start">
+            <div className="flex xl:flex-col flex-row w-full mb-8 items-start gap-2 lg:gap-12 md:ml-12 lg:ml-24 xl:ml-0">
+              <BlogAuthors author={author} className="mt-0 mb-0 w-40 lg:w-full sm:ml-4" />
+              <div className="flex flex-col w-full mt-0">
+                <p className="mb-0 text-white/30 text-nowrap">Published on</p>
+                <p className="text-white text-nowrap xl:pt-0 mt-8 pt-1">
+                  {format(new Date(frontmatter.date!), "MMM dd, yyyy")}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="flex xl:flex-row flex-col  mb-40">
-          <div className="flex flex-col gap-12 w-full">
+        <div className="flex mb-40 ">
+          <div className="flex flex-col gap-12 xl:w-10/12 w-full ">
             <div className="flex ">
-              <Frame className="shadow-sm mx-0 px-0 h-full xl:mx-12 w-full" size="lg">
+              <Frame className="shadow-sm mx-0 px-0 h-full xl:mx-12 w-full mx-6" size="lg">
                 <Image
                   src={frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
                   width={1200}
@@ -160,17 +163,20 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 />
               </Frame>
             </div>
-            <div className="lg:px-24 sm:px-4 md:px-12 flex flex-col gap-12">
+            <div className="lg:px-24 sm:px-4 md:px-12 flex flex-col gap-12 mx-6">
               <MdxContent source={serialized} />
             </div>
           </div>
-          <div className="pt-12 pl-12 text-white overflow-clip hidden xl:flex xl:flex-col w-80">
+          <div className="pt-12 text-white hidden xl:flex xl:flex-col w-2/12 xl:ml-6">
             <p className="text-white/30 text-md">Contents</p>
-            <div className="relative mt-6 overflow-hidden whitespace-nowrap">
-              <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" />
+            <div className="relative mt-6 overflow-hidden ">
+              {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
               {headings.map((heading) => {
                 return (
-                  <div key={`#${heading.slug}`} className="z-0 my-8 text-ellipsis">
+                  <div
+                    key={`#${heading.slug}`}
+                    className="z-0 my-8 text-ellipsis blog-heading-gradient"
+                  >
                     <a
                       data-level={heading.level}
                       className={

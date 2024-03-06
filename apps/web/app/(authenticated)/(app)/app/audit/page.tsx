@@ -118,7 +118,6 @@ const AuditLogTable: React.FC<{
   const isFiltered =
     selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 || before;
 
-  console.log({ selectedEvents });
   const logs = await getAuditLogs({
     workspaceId: workspaceId,
     before,
