@@ -11,7 +11,7 @@
     "test:e2e": "vitest run -c vitest.e2e.ts"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240208.0",
+    "@cloudflare/workers-types": "^4.20240222.0",
     "@unkey/api": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "@vitest/ui": "^1.3.0",
