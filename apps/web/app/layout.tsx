@@ -1,5 +1,4 @@
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
-import { HydrationOverlay } from "@builder.io/react-hydration-overlay";
 
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
@@ -53,24 +52,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const components = (
-    <>
+  return (
+    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
       <Suspense>
         <PostHogPageview />
       </Suspense>
       <PHProvider>
         <body>{children}</body>
       </PHProvider>
-    </>
-  );
-
-  return (
-    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
-      {process.env.NODE_ENV !== "production" ? (
-        <HydrationOverlay>{components}</HydrationOverlay>
-      ) : (
-        components
-      )}
     </html>
   );
 }
