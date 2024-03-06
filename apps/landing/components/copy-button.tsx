@@ -36,7 +36,11 @@ export function CopyButton({ value, className, src, children, ...props }: CopyBu
       {...props}
     >
       <span className="sr-only">Copy</span>
-      {hasCopied ? <CopyCheck className="w-6 h-6" /> : <BlogCodeCopy className="w-6 h-6" />}
+      {hasCopied ? (
+        <CopyCheck className="w-6 h-6 text-white/30" />
+      ) : (
+        <BlogCodeCopy className="w-6 h-6" />
+      )}
       {children}
     </button>
   );
