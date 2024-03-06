@@ -1,5 +1,5 @@
-import { MdxContentChangelog } from "@/components/changelog/mdx-content-changelog";
 import { CopyButton } from "@/components/copy-button";
+import { MdxContent } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
 import { Frontmatter } from "@/lib/mdx-helper";
 import { getChangelog } from "@/lib/mdx-helper";
@@ -56,7 +56,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
         </Frame>
       )}
       <div className="w-full flex flex-col gap-12 2xl:pl-36 2xl:pr-12 prose-thead:border-none">
-        <MdxContentChangelog source={serialized} />
+        <MdxContent source={serialized} />
       </div>
       <div>
         <CopyButton
