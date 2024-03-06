@@ -12,8 +12,6 @@ import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import {
-  HeroMainboardStuff,
-  HeroMainboardStuffMobile,
   SubHeroMainboardStuff,
   TopLeftShiningLight,
   TopRightShiningLight,
@@ -66,16 +64,16 @@ export default async function Landing() {
         src={mainboardMobile}
         alt="Animated SVG showing computer circuits lighting up"
         className="flex md:hidden w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+        priority={true}
       />
       <Image
         src={mainboard}
         alt="Animated SVG showing computer circuits lighting up"
         className="hidden md:flex w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+        priority={true}
       />
 
       <div className="container relative mx-auto">
-        {/* <HeroMainboardStuff className="absolute right-0 -top-[4%]" />
-        <HeroMainboardStuffMobile className="absolute right-0 -top-[5%]" /> */}
         <Hero />
 
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
