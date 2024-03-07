@@ -38,7 +38,7 @@ To better understand the process, let's walk through a real-world example. We'll
 
 ```javascript title=index.js numberLines hl=1
 
-const nextJsCodeBlock = `import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
+import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
 export const POST = withUnkey(async (req) => {
 
   // Process the request here
@@ -51,7 +51,7 @@ export const POST = withUnkey(async (req) => {
 
 ```typescript title=index.ts numberLines hl=1
 
-const nuxtCodeBlock = `export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event) => {
   if (!event.context.unkey.valid) {
     throw createError({ statusCode: 403, message: "Invalid API key" })
   }
@@ -65,7 +65,7 @@ const nuxtCodeBlock = `export default defineEventHandler(async (event) => {
 
 ```python title=index.py numberLines hl=1
 
-const pythonCodeBlock = `import asyncio
+import asyncio
 import os
 import unkey
 
@@ -83,7 +83,7 @@ async def main() -> None:
 
 ```go title=index.go numberLines hl=1
 
-const goCodeBlock = `package main
+package main
 import (
 	"fmt"
 	unkey "github.com/WilfredAlmeida/unkey-go/features"
@@ -105,7 +105,7 @@ func main() {
 
 ```curl numberLines hl=1
 
-const curlCodeBlock = `curl --request POST \\
+curl --request POST \\
   --url https://api.unkey.dev/v1/keys.verifyKey \\
   --header 'Content-Type: application/json' \\
   --data \'{

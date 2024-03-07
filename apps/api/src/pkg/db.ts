@@ -1,7 +1,7 @@
 import { type PlanetScaleDatabase, drizzle } from "drizzle-orm/planetscale-serverless";
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { connect } from "@planetscale/database";
+import { Client } from "@planetscale/database";
 import { schema } from "@unkey/db";
 export type Database = PlanetScaleDatabase<typeof schema>;
 
@@ -13,7 +13,7 @@ type ConnectionOptions = {
 
 export function createConnection(opts: ConnectionOptions): Database {
   return drizzle(
-    connect({
+    new Client({
       host: opts.host,
       username: opts.username,
       password: opts.password,

@@ -20,8 +20,7 @@
     "knip": "knip --include files,dependencies"
   },
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0"
-,
+  "license": "AGPL-3.0",
   "devDependencies": {
     "@biomejs/biome": "^1.5.3",
     "@changesets/cli": "^2.27.1",
@@ -55,5 +54,8 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "biome check --apply"
   },
-  "packageManager": "pnpm@8.6.9"
+  "packageManager": "pnpm@8.6.9",
+  "dependencies": {
+    "@million/lint": "^0.0.66"
+  }
 }
