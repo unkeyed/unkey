@@ -1,8 +1,9 @@
-import { RateLimiter, RatelimitRequest, RatelimitResponse } from "./interface";
+import { Ok, Result } from "@unkey/error";
+import { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from "./interface";
 
 export class NoopRateLimiter implements RateLimiter {
-  public async limit(req: RatelimitRequest): Promise<RatelimitResponse> {
+  public async limit(req: RatelimitRequest): Promise<Result<RatelimitResponse, RatelimitError>> {
     console.log("noop limit", req);
-    return { current: 0, pass: true, reset: 0 };
+    return Ok({ current: 0, pass: true, reset: 0 });
   }
 }

@@ -1,0 +1,22 @@
+VERSION 1
+
+SCHEMA >
+    `workspaceId` String `json:$.workspaceId`,
+    `namespaceId` String `json:$.namespaceId`,
+    `identifier` String `json:$.identifier`,
+    `success` UInt8 `json:$.success`,
+    `region` String `json:$.region`,
+    `requestedResource` String `json:$.requestedResource`,
+    `time` Int64 `json:$.time`,
+    `limit` Int32 `json:$.config.limit`,
+    `duration` Int32 `json:$.config.duration`,
+    `remaining` Int32 `json:$.remaining`,
+    `async` Int8 `json:$.config.async`,
+    `sharding` Nullable(String) `json:$.config.sharding`,
+    `resources` Nullable(String) `json:$.resources`,
+    `userAgent` Nullable(String) `json:$.context.usageAgent`,
+    `ipAddress` String `json:$.context.ipAddress`,
+    `serviceLatency` Int32 `json:$.serviceLatency`
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "workspaceId, namespaceId, time"
