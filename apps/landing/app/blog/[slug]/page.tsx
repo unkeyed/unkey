@@ -169,7 +169,6 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           </div>
           <div className="pt-12 text-white hidden xl:flex xl:flex-col w-2/12 xl:ml-6">
             <p className="text-white/30 text-md">Contents</p>
-
             <div className="relative mt-6 overflow-hidden ">
               {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
               {headings.map((heading) => {
