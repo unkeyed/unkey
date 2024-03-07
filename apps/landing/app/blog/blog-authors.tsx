@@ -33,10 +33,10 @@ export function QuestionCircle({ className }: { className?: string }) {
 }
 export function BlogAuthors({ author, className }: BlogAuthorsProps) {
   return (
-    <div className={cn("flex flex-col p-0 m-0 xl:gap-8 lg:gap-4", className)}>
+    <div className={cn("flex flex-col p-0 m-0 xl:gap-8 lg:gap-4 ", className)}>
       <p className="text-white/40">Written by</p>
-      <div className="flex flex-row">
-        <Avatar className={cn("w-12 h-12 mt-2", "z-10")}>
+      <div className="flex flex-row xl:flex-col ">
+        <Avatar className={cn("w-12 h-12 xl:mt-4 mt-2", "z-10")}>
           <AvatarImage
             alt={author.name}
             src={author.image.src}
@@ -48,7 +48,7 @@ export function BlogAuthors({ author, className }: BlogAuthorsProps) {
         </Avatar>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger className="pt-1 pl-4">
+            <TooltipTrigger className="pt-1 pl-4 xl:hidden">
               <QuestionCircle />
             </TooltipTrigger>
             <TooltipContent side="bottom" align="center" sideOffset={5} className="text-white/60">
@@ -56,6 +56,7 @@ export function BlogAuthors({ author, className }: BlogAuthorsProps) {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <p className="text-white mt-7 ml-0 text-nowrap hidden xl:block">{author.name}</p>
       </div>
     </div>
   );

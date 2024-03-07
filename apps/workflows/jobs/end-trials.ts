@@ -1,5 +1,6 @@
 import { connectDatabase, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { Tinybird } from "@/lib/tinybird";
 import { client } from "@/trigger";
 import { clerkClient } from "@clerk/nextjs";
 import { cronTrigger } from "@trigger.dev/sdk";
@@ -23,6 +24,7 @@ client.defineJob({
   run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
     const resend = new Resend({ apiKey: env().RESEND_API_KEY });
+    const tb = new Tinybird(env().TINYBIRD_TOKEN);
 
     const workspaces = await io.runTask("list workspaces", () =>
       db.query.workspaces.findMany({
@@ -46,6 +48,26 @@ client.defineJob({
             subscriptions: null,
           })
           .where(eq(schema.workspaces.id, ws.id));
+      });
+      await io.runTask(`create audit log for trial ending ${ws.id}`, async () => {
+        await tb.ingestAuditLogs({
+          workspaceId: ws.id,
+          event: "workspace.update",
+          actor: {
+            type: "system",
+            id: "trigger",
+          },
+          description: `Ended trial for ${ws.id}`,
+          resources: [
+            {
+              type: "workspace",
+              id: ws.id,
+            },
+          ],
+          context: {
+            location: "trigger",
+          },
+        });
       });
 
       const users = await io.runTask(`get users for workspace ${ws.id}`, () =>
