@@ -23,7 +23,7 @@ type TestCase = {
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   h.useRoutes(registerV1KeysVerifyKey);
   await h.seed();
 });

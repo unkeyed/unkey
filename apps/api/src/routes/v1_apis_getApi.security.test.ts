@@ -8,7 +8,7 @@ import { type V1ApisGetApiResponse, registerV1ApisGetApi } from "./v1_apis_getAp
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   h.useRoutes(registerV1ApisGetApi);
   await h.seed();
 });

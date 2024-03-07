@@ -9,7 +9,7 @@ import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_l
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   h.useRoutes(registerV1ApisListKeys);
   await h.seed();
 });

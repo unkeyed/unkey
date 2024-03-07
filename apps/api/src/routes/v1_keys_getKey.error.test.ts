@@ -7,7 +7,7 @@ import { registerV1KeysGetKey } from "./v1_keys_getKey";
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   h.useRoutes(registerV1KeysGetKey);
   await h.seed();
 });

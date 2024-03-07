@@ -30,7 +30,7 @@ type StepRequestWithoutAuthorizationHeader<TReq> = Omit<StepRequest<TReq>, "head
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   await h.seed();
 });
 

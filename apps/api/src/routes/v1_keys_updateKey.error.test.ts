@@ -10,7 +10,7 @@ import {
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   h.useRoutes(registerV1KeysUpdate);
   await h.seed();
 });

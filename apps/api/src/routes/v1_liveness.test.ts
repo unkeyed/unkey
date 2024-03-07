@@ -4,7 +4,7 @@ import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
 
 let h: RouteHarness;
 beforeEach(async () => {
-  h = new RouteHarness();
+  h = await RouteHarness.init();
   h.useRoutes(registerV1Liveness);
   await h.seed();
 });
