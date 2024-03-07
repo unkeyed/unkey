@@ -339,3 +339,47 @@ li > p {
   );
   pointer-events: none; 
 }
+
+.checkmark {
+  width: 17px;
+  height: 17px;
+  position: relative;
+  left: -2px;
+  top: 3px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 2;
+  stroke: #636363;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0px 0px 0px #000;
+  animation: fill .3s ease-in-out .4s forwards;
+}
+
+.checkmark__circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke: #636363;
+  fill: none;
+  animation: stroke .3s cubic-bezier(0.650, 0.000, 0.450, 1.000) forwards;
+}
+
+.checkmark__check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) .3s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fill {
+  100% {
+    box-shadow: inset 0px 0px 0px 30px #000;
+  }
+}
