@@ -1287,7 +1287,7 @@ packages:
     dependencies:
       '@antv/color-util': 2.0.6
       '@antv/dom-util': 2.0.4
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/matrix-util': 3.1.0-beta.3
       '@antv/path-util': 2.0.15
       '@antv/scale': 0.3.18
@@ -1314,8 +1314,8 @@ packages:
     resolution: {integrity: sha512-4ddpsiHN9Pd4UIlWuKVK1C4IiZIdbwQvy9i7DUSI3xNJ89FPUFt8lxDYj8GzzfdllV0NkJTRxnG+FvLk0llidg==}
     dev: false
 
-  /@antv/g-base@0.5.15:
-    resolution: {integrity: sha512-QOtq50QpnKez9J75/Z8j2yZ7QDQdk8R8mVQJiHtaEO5eI7DM4ZbrsWff/Ew26JYmPWdq7nbRuARMAD4PX9uuLA==}
+  /@antv/g-base@0.5.16:
+    resolution: {integrity: sha512-jP06wggTubDPHXoKwFg3/f1lyxBX9ywwN3E/HG74Nd7DXqOXQis8tsIWW+O6dS/h9vyuXLd1/wDWkMMm3ZzXdg==}
     dependencies:
       '@antv/event-emitter': 0.1.3
       '@antv/g-math': 0.1.9
@@ -1333,7 +1333,7 @@ packages:
   /@antv/g-canvas@0.5.14:
     resolution: {integrity: sha512-IUGLEMIMAUYgaBMT8h3FTmYQYz7sjQkKWwh6Psqx+UPK86fySa+G8fMRrh1EqAL07jVB+GRnn6Ym+3FoFUgeFg==}
     dependencies:
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g-math': 0.1.9
       '@antv/matrix-util': 3.1.0-beta.3
       '@antv/path-util': 2.0.15
@@ -1352,7 +1352,7 @@ packages:
   /@antv/g-svg@0.5.7:
     resolution: {integrity: sha512-jUbWoPgr4YNsOat2Y/rGAouNQYGpw4R0cvlN0YafwOyacFFYy2zC8RslNd6KkPhhR3XHNSqJOuCYZj/YmLUwYw==}
     dependencies:
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g-math': 0.1.9
       '@antv/util': 2.0.17
       detect-browser: 5.3.0
@@ -1440,7 +1440,7 @@ packages:
       '@antv/coord': 0.3.1
       '@antv/dom-util': 2.0.4
       '@antv/event-emitter': 0.1.3
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g-canvas': 0.5.14
       '@antv/g-svg': 0.5.7
       '@antv/matrix-util': 3.1.0-beta.3
@@ -1455,7 +1455,7 @@ packages:
     dependencies:
       '@antv/color-util': 2.0.6
       '@antv/event-emitter': 0.1.3
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g2': 4.2.11
       '@antv/matrix-util': 3.1.0-beta.3
       '@antv/path-util': 3.0.1
@@ -1475,7 +1475,7 @@ packages:
       '@antv/algorithm': 0.1.26
       '@antv/dom-util': 2.0.4
       '@antv/event-emitter': 0.1.3
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g-math': 0.1.9
       '@antv/matrix-util': 3.1.0-beta.3
       '@antv/path-util': 2.0.15
@@ -1489,7 +1489,7 @@ packages:
     peerDependencies:
       '@antv/g6': 4.8.24
     dependencies:
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g6': 4.8.24
       '@antv/g6-core': 0.8.24
       '@antv/util': 2.0.17
@@ -1503,7 +1503,7 @@ packages:
       '@antv/algorithm': 0.1.26
       '@antv/dom-util': 2.0.4
       '@antv/event-emitter': 0.1.3
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g-canvas': 0.5.14
       '@antv/g-math': 0.1.9
       '@antv/g-svg': 0.5.7
@@ -1531,7 +1531,7 @@ packages:
       '@antv/g6': 4.8.24
     dependencies:
       '@antv/dom-util': 2.0.4
-      '@antv/g-base': 0.5.15
+      '@antv/g-base': 0.5.16
       '@antv/g-canvas': 0.5.14
       '@antv/g-svg': 0.5.7
       '@antv/g6': 4.8.24
@@ -5547,7 +5547,6 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
-      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -5614,7 +5613,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -5624,7 +5623,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.8
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.6.2
+      tslib: 2.4.1
       webcrypto-core: 1.7.8
     dev: false
 
@@ -5762,8 +5761,8 @@ packages:
       - domexception
     dev: true
 
-  /@polka/url@1.0.0-next.24:
-    resolution: {integrity: sha512-2LuNTFBIO0m7kKIQvvPHN6UE63VjpmL9rnEEaOOaiSPbZK+zUOYIzBAWcED+3XYzhYsd/0mD57VdxAEqqV52CQ==}
+  /@polka/url@1.0.0-next.25:
+    resolution: {integrity: sha512-j7P6Rgr3mmtdkeDGTe0E/aYyWEWVtc5yFXtHCRHs28/jptDEWfaVOc5T7cblqy1XKPPfCxJc/8DwQ5YgLOZOVQ==}
     dev: true
 
   /@probe.gl/env@3.6.0:
@@ -9835,7 +9834,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001596
-      electron-to-chromium: 1.4.695
+      electron-to-chromium: 1.4.698
       node-releases: 2.0.14
       update-browserslist-db: 1.0.13(browserslist@4.23.0)
 
@@ -11297,7 +11296,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /dot-prop@8.0.2:
@@ -11630,8 +11629,8 @@ packages:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
     dev: true
 
-  /electron-to-chromium@1.4.695:
-    resolution: {integrity: sha512-eMijZmeqPtm774pCZIOrfUHMs/7ls++W1sLhxwqgu8KQ8E2WmMtzwyqOMt0XXUJ3HTIPfuwlfwF+I5cwnfItBA==}
+  /electron-to-chromium@1.4.698:
+    resolution: {integrity: sha512-f9iZD1t3CLy1AS6vzM5EKGa6p9pRcOeEFXRFbaG2Ta+Oe7MkfRQ3fsvPYidzHe1h4i0JvIvpcY55C+B6BZNGtQ==}
 
   /emoji-regex@10.3.0:
     resolution: {integrity: sha512-QpLs9D9v9kArv4lfDEgg1X/gN5XLnf/A6l9cs8SPZLRZR3ZkY9+kwIQTxm+fsSej5UMYGE8fdoaZVIBlqG0XTw==}
@@ -14895,7 +14894,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -16108,10 +16107,6 @@ packages:
     hasBin: true
     dev: false
 
-  /napi-wasm@1.1.0:
-    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
-    dev: true
-
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -16352,7 +16347,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /node-addon-api@7.1.0:
@@ -19096,7 +19091,7 @@ packages:
     resolution: {integrity: sha512-94Bdh3cC2PKrbgSOUqTiGPWVZeSiXfKOVZNJniWoqrWrRkB1CJzBU3NEbiTsPcYy1lDsANA/THzS+9WBiy5nfQ==}
     engines: {node: '>= 10'}
     dependencies:
-      '@polka/url': 1.0.0-next.24
+      '@polka/url': 1.0.0-next.25
       mrmime: 2.0.0
       totalist: 3.0.1
     dev: true
@@ -19172,7 +19167,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.6.2
+      tslib: 2.4.1
     dev: false
 
   /snakecase-keys@3.2.1:
@@ -19837,7 +19832,7 @@ packages:
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
-      chokidar: 3.6.0
+      chokidar: 3.5.3
       didyoumean: 1.2.2
       dlv: 1.1.3
       fast-glob: 3.3.2
