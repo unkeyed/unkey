@@ -1,4 +1,5 @@
 import { type Api, type KeyAuth, type Workspace } from "../db";
+import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
 import { StepRequest, StepResponse, headersToRecord } from "./request";
 
@@ -21,18 +22,17 @@ export class RouteHarness extends Harness {
   }
 
   static async init(): Promise<RouteHarness> {
+    const env = routeTestEnv.parse(process.env);
     const worker = await unstable_dev("src/worker.ts", {
-      local: true,
+      local: env.WORKER_LOCATION === "local",
+      logLevel: "info",
     });
     return new RouteHarness(worker);
   }
 
-  public async teardown(): Promise<void> {
-    await super.teardown();
+  public async stop(): Promise<void> {
     await this.worker.stop();
   }
-
-  public useRoutes(_r: any): void {}
 
   public async do<TRequestBody = unknown, TResponseBody = unknown>(
     req: StepRequest<TRequestBody>,

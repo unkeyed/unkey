@@ -5,24 +5,23 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import {
-  type V1KeysGetVerificationsResponse,
-  registerV1KeysGetVerifications,
-} from "./v1_keys_getVerifications";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { type V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
 
 let h: RouteHarness;
-beforeEach(async () => {
+beforeAll(async () => {
   h = await RouteHarness.init();
-  h.useRoutes(registerV1KeysGetVerifications);
+});
+beforeEach(async () => {
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
 });
-
+afterAll(async () => {
+  await h.stop();
+});
 runSharedRoleTests({
-  registerHandler: registerV1KeysGetVerifications,
   prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -83,7 +82,6 @@ describe("correct roles", () => {
 
 test("cannot read keys from a different workspace", async () => {
   await h.seed();
-  h.useRoutes(registerV1KeysGetVerifications);
 
   const workspaceId = newId("workspace");
   await h.db.insert(schema.workspaces).values({

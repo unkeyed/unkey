@@ -1,24 +1,23 @@
 import { randomUUID } from "crypto";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import {
-  V1ApisCreateApiRequest,
-  V1ApisCreateApiResponse,
-  registerV1ApisCreateApi,
-} from "./v1_apis_createApi";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
 let h: RouteHarness;
-beforeEach(async () => {
+beforeAll(async () => {
   h = await RouteHarness.init();
-  h.useRoutes(registerV1ApisCreateApi);
+});
+beforeEach(async () => {
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
 });
+afterAll(async () => {
+  await h.stop();
+});
 runSharedRoleTests<V1ApisCreateApiRequest>({
-  registerHandler: registerV1ApisCreateApi,
   prepareRequest: () => ({
     method: "POST",
     url: "/v1/apis.createApi",

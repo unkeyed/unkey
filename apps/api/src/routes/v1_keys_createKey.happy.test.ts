@@ -1,24 +1,24 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import {
-  V1KeysCreateKeyRequest,
-  V1KeysCreateKeyResponse,
-  registerV1KeysCreateKey,
-} from "./v1_keys_createKey";
+import { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
 let h: RouteHarness;
-beforeEach(async () => {
+beforeAll(async () => {
   h = await RouteHarness.init();
-  h.useRoutes(registerV1KeysCreateKey);
+});
+beforeEach(async () => {
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
+});
+afterAll(async () => {
+  await h.stop();
 });
 test("creates key", async () => {
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);

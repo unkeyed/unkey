@@ -3,24 +3,23 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import {
-  V1ApisDeleteApiRequest,
-  V1ApisDeleteApiResponse,
-  registerV1ApisDeleteApi,
-} from "./v1_apis_deleteApi";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
 
 let h: RouteHarness;
-beforeEach(async () => {
+beforeAll(async () => {
   h = await RouteHarness.init();
-  h.useRoutes(registerV1ApisDeleteApi);
+});
+beforeEach(async () => {
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
 });
+afterAll(async () => {
+  await h.stop();
+});
 runSharedRoleTests<V1ApisDeleteApiRequest>({
-  registerHandler: registerV1ApisDeleteApi,
   prepareRequest: async (rh) => {
     const apiId = newId("api");
     await rh.db.insert(schema.apis).values({

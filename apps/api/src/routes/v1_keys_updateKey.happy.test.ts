@@ -1,24 +1,24 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import {
-  V1KeysUpdateKeyRequest,
-  V1KeysUpdateKeyResponse,
-  registerV1KeysUpdate,
-} from "./v1_keys_updateKey";
+import { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 
 let h: RouteHarness;
-beforeEach(async () => {
+beforeAll(async () => {
   h = await RouteHarness.init();
-  h.useRoutes(registerV1KeysUpdate);
+});
+beforeEach(async () => {
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
+});
+afterAll(async () => {
+  await h.stop();
 });
 test("returns 200", async () => {
   const key = {

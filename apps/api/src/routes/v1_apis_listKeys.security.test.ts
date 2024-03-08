@@ -3,21 +3,24 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { type V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
 let h: RouteHarness;
-beforeEach(async () => {
+beforeAll(async () => {
   h = await RouteHarness.init();
-  h.useRoutes(registerV1ApisListKeys);
+});
+beforeEach(async () => {
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
 });
+afterAll(async () => {
+  await h.stop();
+});
 
 runSharedRoleTests({
-  registerHandler: registerV1ApisListKeys,
   prepareRequest: async (rh) => {
     const apiId = newId("api");
     await rh.db.insert(schema.apis).values({
