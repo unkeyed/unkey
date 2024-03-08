@@ -35,7 +35,7 @@
     "@unkey/error": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
-    "drizzle-orm": "^0.29.4",
+    "drizzle-orm": "^0.30.1",
     "hono": "^4.0.9",
     "superjson": "^2.2.1",
     "zod": "^3.22.4",
