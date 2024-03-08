@@ -92,7 +92,7 @@ export class KeyService {
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult>> {
+  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
@@ -303,6 +303,9 @@ export class KeyService {
         return Err(
           new SchemaError("permission query is invalid", {
             cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
           }),
         );
       }
@@ -316,6 +319,9 @@ export class KeyService {
         return Err(
           new SchemaError("permission query is invalid", {
             cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
           }),
         );
       }
