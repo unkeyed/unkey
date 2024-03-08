@@ -60,14 +60,13 @@ jobs:
 
 
       - name: Test
-        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}
+        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}} v1_liveness
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
           DATABASE_NAME: unkey
-          WORKER_LOCATION: cloudflare # run tests against a preview worker deployed on cf
 
       - run: cat pscale.logs
         if: always()

@@ -61,6 +61,8 @@ jobs:
       - name: Test Routes
         run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/8
         working-directory: apps/api
+        env:
+          WORKER_LOCATION: cloudflare # run tests against a preview worker deployed on cf
 
       - name: Delete planetscale branch
         if: always()
