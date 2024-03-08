@@ -67,6 +67,7 @@ jobs:
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
           DATABASE_NAME: unkey
+          WORKER_LOCATION: cloudflare # run tests against a preview worker deployed on cf
 
       - run: cat pscale.logs
         if: always()
