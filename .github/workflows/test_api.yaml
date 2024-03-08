@@ -58,17 +58,8 @@ jobs:
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
-
-
-      # - name: Populate env
-      #   working-directory: apps/api
-      #   run: |
-      #     echo "DATABASE_HOST=localhost:8080" >> .dev.vars
-      #     echo "DATABASE_USERNAME=unkey" >> .dev.vars
-      #     echo "DATABASE_PASSWORD=password" >> .dev.vars
-      #     echo "DATABASE_NAME=unkey" >> .dev.vars
       - name: Test
-        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}} v1_liveness
+        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
