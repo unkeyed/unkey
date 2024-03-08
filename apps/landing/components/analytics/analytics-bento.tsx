@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Highlight, PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
 import { AnalyticsStars } from "../svg/analytics-stars";
-import { AnalyticsWebApp, AnalyticsWebAppMobile } from "../svg/analytics-web-app";
+import { WebAppLight } from "../svg/web-app-light";
 
 export const theme = {
   plain: {
@@ -97,7 +97,7 @@ export function AnalyticsBento() {
         </div>
         {showApi ? "Hide API Code" : "Show API code"}
       </button>
-      <div className="mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
+      <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
         <LightSvg className="absolute top-[-180px] left:0 lg:left-[220px] z-50 pointer-events-none" />
         <AnalyticsStars className="w-[120px] shrink-0 hidden md:flex" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
@@ -363,7 +363,8 @@ function AnalyticsWebAppView() {
       whileInView="visible"
       className="w-full overflow-x-hidden"
     >
-      <div className="w-full bg-[#000000] flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <div className="w-full bg-[#000000] relative flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+        <WebAppLight className="absolute top-[-100px] left-[40px]" />
         <div className="flex flex-col w-[216px] h-full text-white/20  text-[13px] pt-6 px-4 md:border-r md:border-white/5">
           <div className="flex justify-between items-center w-[160px]">
             <svg

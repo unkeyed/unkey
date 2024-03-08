@@ -11,8 +11,7 @@ import { OssLight } from "./svg/oss-light";
 export const OpenSource: React.FC = () => {
   return (
     <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
-      {/* TODO: add additional line SVGs from Figma – current export is broken */}
-      <div className="absolute top-[-460px] md:right-[120px] z-[-1]">
+      <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
         <OssLight />
       </div>
       <div className="container flex flex-col items-center xl:flex-row xl:w-full xl:justify-between">
@@ -45,8 +44,7 @@ export const OpenSource: React.FC = () => {
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1, ease: "easeOut" }} // Define the transition
           >
-            <GithubMobile className="flex mt-24 sm:hidden" />
-            <Github className="hidden sm:flex w-[380px] md:w-[640px] mt-24 xl:mt-0" />
+            <Github className="w-[380px] md:w-[640px] mt-24 xl:mt-0" />
             <div className="absolute w-[1000px] h-[400px] top-[400px] left-[150px]">
               <OssChip />
             </div>
