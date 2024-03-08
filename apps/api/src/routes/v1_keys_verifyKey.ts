@@ -183,6 +183,13 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissionQuery: authorization?.permissions,
     });
     if (err) {
+      switch (err.type) {
+        case "SchemaError":
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: err.message,
+          });
+      }
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
         message: err.message,
