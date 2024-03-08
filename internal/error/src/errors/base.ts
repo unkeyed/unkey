@@ -1,4 +1,9 @@
-export type ErrorType = "FetchError" | "SchemaError" | "CacheError" | "VercelCodeExchangeError";
+export type ErrorType =
+  | "FetchError"
+  | "SchemaError"
+  | "CacheError"
+  | "VercelCodeExchangeError"
+  | "RatelimitError";
 
 export type ErrorContext = Record<string, unknown>;
 

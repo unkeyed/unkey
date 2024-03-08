@@ -58,7 +58,6 @@ jobs:
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
-
       - name: Test
         run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}
         working-directory: apps/api
@@ -67,6 +66,7 @@ jobs:
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
           DATABASE_NAME: unkey
+          WORKER_LOCATION: local
 
       - run: cat pscale.logs
         if: always()

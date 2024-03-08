@@ -1,23 +1,23 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import {
-  LegacyKeysCreateKeyRequest,
-  LegacyKeysCreateKeyResponse,
-  registerLegacyKeysCreate,
-} from "./legacy_keys_createKey";
+import { LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse } from "./legacy_keys_createKey";
 
 let h: RouteHarness;
+beforeAll(async () => {
+  h = await RouteHarness.init();
+});
 beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerLegacyKeysCreate);
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
+});
+afterAll(async () => {
+  await h.stop();
 });
 describe("simple", () => {
   test("creates key", async () => {

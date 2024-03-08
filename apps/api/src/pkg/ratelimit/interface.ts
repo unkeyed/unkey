@@ -1,7 +1,13 @@
+import { BaseError, Result } from "@unkey/error";
 import { z } from "zod";
 
+export class RatelimitError extends BaseError {
+  public readonly type = "RatelimitError";
+  public readonly retry = false;
+}
+
 export const ratelimitRequestSchema = z.object({
-  keyId: z.string(),
+  identifier: z.string(),
   limit: z.number().int(),
   interval: z.number().int(),
 });
@@ -15,5 +21,5 @@ export const ratelimitResponseSchema = z.object({
 export type RatelimitResponse = z.infer<typeof ratelimitResponseSchema>;
 
 export interface RateLimiter {
-  limit: (req: RatelimitRequest) => Promise<RatelimitResponse>;
+  limit: (req: RatelimitRequest) => Promise<Result<RatelimitResponse, RatelimitError>>;
 }

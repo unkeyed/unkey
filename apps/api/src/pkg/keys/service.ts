@@ -412,7 +412,7 @@ export class KeyService {
       this.metrics.emit({
         metric: "metric.ratelimit",
         latency: performance.now() - t1,
-        keyId: key.id,
+        identifier: key.id,
         tier: "memory",
       });
 
@@ -437,16 +437,20 @@ export class KeyService {
       const t2 = performance.now();
       const p = this.rateLimiter
         .limit({
-          keyId: key.id,
+          identifier: key.id,
           limit: key.ratelimitRefillRate,
           interval: key.ratelimitRefillInterval,
         })
-        .then(({ current }) => {
+        .then((res) => {
+          if (res.err) {
+            return 0;
+          }
+          const { current } = res.val;
           this.rlCache.set(keyAndWindow, current);
           this.metrics.emit({
             metric: "metric.ratelimit",
             latency: performance.now() - t2,
-            keyId: key.id,
+            identifier: key.id,
             tier: "durable",
           });
           return current;
@@ -481,7 +485,7 @@ export class KeyService {
       this.metrics.emit({
         metric: "metric.ratelimit",
         latency: performance.now() - ratelimitStart,
-        keyId: key.id,
+        identifier: key.id,
         tier: "total",
       });
     }

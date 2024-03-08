@@ -13,6 +13,7 @@ const prefixes = {
   role: "role",
   test: "test", // for tests only
   auditLog: "log",
+  ratelimit: "rl",
   permission: "perm",
 } as const;
 

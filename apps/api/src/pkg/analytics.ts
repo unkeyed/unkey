@@ -1,6 +1,7 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
 import { z } from "zod";
 import { MaybeArray } from "./types/maybe";
 // const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
@@ -82,6 +83,16 @@ export class Analytics {
           resources: JSON.stringify(l.resources),
         })),
     })(logs);
+  }
+
+  public get ingestRatelimit() {
+    return this.client.buildIngestEndpoint({
+      datasource: "ratelimits__v1",
+      event: ratelimitSchemaV1.transform((l) => ({
+        ...l,
+        resources: JSON.stringify(l.resources),
+      })),
+    });
   }
 
   public get ingestKeyVerification() {
