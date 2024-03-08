@@ -216,6 +216,7 @@ describe(
           },
         },
       });
+      console.log(res);
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe("BAD_REQUEST");
