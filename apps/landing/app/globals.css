@@ -383,3 +383,8 @@ li > p {
     box-shadow: inset 0px 0px 0px 30px #000;
   }
 }
+
+.hashed-keys-gradient {
+  background: radial-gradient(47.56% 100% at 0% 50%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.00) 75.45%), rgba(0, 0, 0, 0.10);
+  backdrop-filter: blur(5px);
+}
