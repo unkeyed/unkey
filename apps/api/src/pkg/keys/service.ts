@@ -92,7 +92,7 @@ export class KeyService {
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult>> {
+  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
@@ -303,6 +303,9 @@ export class KeyService {
         return Err(
           new SchemaError("permission query is invalid", {
             cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
           }),
         );
       }
@@ -316,6 +319,9 @@ export class KeyService {
         return Err(
           new SchemaError("permission query is invalid", {
             cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
           }),
         );
       }
@@ -412,7 +418,7 @@ export class KeyService {
       this.metrics.emit({
         metric: "metric.ratelimit",
         latency: performance.now() - t1,
-        keyId: key.id,
+        identifier: key.id,
         tier: "memory",
       });
 
@@ -437,16 +443,20 @@ export class KeyService {
       const t2 = performance.now();
       const p = this.rateLimiter
         .limit({
-          keyId: key.id,
+          identifier: key.id,
           limit: key.ratelimitRefillRate,
           interval: key.ratelimitRefillInterval,
         })
-        .then(({ current }) => {
+        .then((res) => {
+          if (res.err) {
+            return 0;
+          }
+          const { current } = res.val;
           this.rlCache.set(keyAndWindow, current);
           this.metrics.emit({
             metric: "metric.ratelimit",
             latency: performance.now() - t2,
-            keyId: key.id,
+            identifier: key.id,
             tier: "durable",
           });
           return current;
@@ -481,7 +491,7 @@ export class KeyService {
       this.metrics.emit({
         metric: "metric.ratelimit",
         latency: performance.now() - ratelimitStart,
-        keyId: key.id,
+        identifier: key.id,
         tier: "total",
       });
     }

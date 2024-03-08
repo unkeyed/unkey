@@ -1,4 +1,4 @@
-import type { Api, Key } from "@unkey/db";
+import type { Api, Key, Ratelimit, RatelimitNamespace } from "@unkey/db";
 
 export type KeyHash = string;
 export type CacheNamespaces = {
@@ -25,4 +25,8 @@ export type CacheNamespaces = {
     rateLimited: number;
     usageExceeded: number;
   }[];
+  ratelimitByIdentifier: {
+    namespace: RatelimitNamespace;
+    ratelimit?: Ratelimit;
+  };
 };

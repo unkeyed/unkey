@@ -1,18 +1,21 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
-import { registerV1KeysGetVerifications } from "./v1_keys_getVerifications";
 
 let h: RouteHarness;
+beforeAll(async () => {
+  h = await RouteHarness.init();
+});
 beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysGetVerifications);
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
+});
+afterAll(async () => {
+  await h.stop();
 });
 test("when the key does not exist", async () => {
   const keyId = newId("api");
@@ -27,19 +30,13 @@ test("when the key does not exist", async () => {
   });
 
   expect(res.status).toEqual(404);
-  expect(res.body).toMatchObject({
-    error: {
-      code: "NOT_FOUND",
-      docs: "https://unkey.dev/docs/api-reference/errors/code/NOT_FOUND",
-      message: `key ${keyId} not found`,
-    },
-  });
+  expect(res.body.error.code).toEqual("NOT_FOUND");
+  expect(res.body.error.docs).toEqual("https://unkey.dev/docs/api-reference/errors/code/NOT_FOUND");
+  expect(res.body.error.message).toEqual(`key ${keyId} not found`);
+  expect(res.body.error.requestId).toMatch(/^req_[a-zA-Z0-9]+$/);
 });
 
 test("without keyId or ownerId", async () => {
-  await h.seed();
-  h.useRoutes(registerV1KeysGetVerifications);
-
   const { key } = await h.createRootKey(["*"]);
   const res = await h.get<ErrorResponse>({
     url: "/v1/keys.getVerifications",
@@ -49,13 +46,10 @@ test("without keyId or ownerId", async () => {
   });
 
   expect(res.status).toEqual(400);
-  expect(res.body).toEqual({
-    error: {
-      code: "BAD_REQUEST",
-      docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-      message: "keyId or ownerId must be provided",
-      // @ts-ignore
-      requestId: undefined,
-    },
-  });
+  expect(res.body.error.code).toEqual("BAD_REQUEST");
+  expect(res.body.error.docs).toEqual(
+    "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
+  );
+  expect(res.body.error.message).toEqual("keyId or ownerId must be provided");
+  expect(res.body.error.requestId).toMatch(/^req_[a-zA-Z0-9]+$/);
 });

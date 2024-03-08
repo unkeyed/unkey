@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 
@@ -7,20 +7,20 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import {
-  LegacyKeysVerifyKeyRequest,
-  LegacyKeysVerifyKeyResponse,
-  registerLegacyKeysVerifyKey,
-} from "./legacy_keys_verifyKey";
+import { LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse } from "./legacy_keys_verifyKey";
 
 let h: RouteHarness;
+beforeAll(async () => {
+  h = await RouteHarness.init();
+});
 beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerLegacyKeysVerifyKey);
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
+});
+afterAll(async () => {
+  await h.stop();
 });
 test("returns 200", async () => {
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

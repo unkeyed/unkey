@@ -62,7 +62,7 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
   };
 }
 
-function headersToRecord(headers: Headers): Record<string, string> {
+export function headersToRecord(headers: Headers): Record<string, string> {
   const rec: Record<string, string> = {};
   headers.forEach((v, k) => {
     rec[k] = v;

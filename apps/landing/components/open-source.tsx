@@ -2,9 +2,10 @@
 import { SectionTitle } from "@/app/section-title";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import GithubSvg from "../images/unkey-github.svg";
 import { PrimaryButton } from "./button";
-import { Github, GithubMobile } from "./svg/github";
 import { OssChip } from "./svg/oss-chip";
 import { OssLight } from "./svg/oss-light";
 
@@ -14,16 +15,16 @@ export const OpenSource: React.FC = () => {
       <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
         <OssLight />
       </div>
-      <div className="container flex flex-col items-center xl:flex-row xl:w-full xl:justify-between">
+      <div className="flex flex-col items-center xl:flex-row w-full justify-center xl:justify-between">
         <motion.div
-          initial={{ opacity: 0 }} // Start with the component invisible
-          whileInView={{ opacity: 1 }} // Animate to fully visible when in view
-          transition={{ duration: 1, ease: "easeOut" }} // Define the transition
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
           viewport={{ once: true, amount: 0.5 }}
         >
           <SectionTitle
             align="left"
-            title="Empowering the community"
+            title="Developer-first"
             text="Unkey allows open-source contributions through Github, enabing collaboration and
         knowledge sharing with all the developers in the world."
             titleWidth={463}
@@ -39,12 +40,13 @@ export const OpenSource: React.FC = () => {
         </motion.div>
         <div className="relative">
           <motion.div
-            initial={{ opacity: 0 }} // Start with the component invisible
-            whileInView={{ opacity: 1 }} // Animate to fully visible when in view
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 1, ease: "easeOut" }} // Define the transition
+            transition={{ duration: 1, ease: "easeOut" }}
           >
             <Github className="w-[380px] md:w-[640px] mt-24 xl:mt-0" />
+            <Image alt="Github logo" src={GithubSvg} className="mt-24" />
             <div className="absolute w-[1000px] h-[400px] top-[400px] left-[150px]">
               <OssChip />
             </div>

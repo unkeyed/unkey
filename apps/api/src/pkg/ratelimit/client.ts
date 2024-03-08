@@ -1,7 +1,8 @@
+import { Err, Ok, Result } from "@unkey/error";
 import { z } from "zod";
 import { Logger } from "../logging";
 import { Metrics } from "../metrics";
-import { RateLimiter, RatelimitRequest, RatelimitResponse } from "./interface";
+import { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from "./interface";
 
 export class DurableRateLimiter implements RateLimiter {
   private readonly namespace: DurableObjectNamespace;
@@ -21,13 +22,13 @@ export class DurableRateLimiter implements RateLimiter {
     this.metrics = opts.metrics;
   }
 
-  public async limit(req: RatelimitRequest): Promise<RatelimitResponse> {
+  public async limit(req: RatelimitRequest): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
     const now = Date.now();
     const window = Math.floor(now / req.interval);
     const reset = (window + 1) * req.interval;
 
-    const keyAndWindow = [req.keyId, window].join(":");
+    const keyAndWindow = [req.identifier, window].join(":");
 
     try {
       const obj = this.namespace.get(this.namespace.idFromName(keyAndWindow));
@@ -40,7 +41,7 @@ export class DurableRateLimiter implements RateLimiter {
         })
         .catch(async (e) => {
           this.logger.warn("calling the ratelimit DO failed, retrying ...", {
-            keyId: req.keyId,
+            identifier: req.identifier,
             error: (e as Error).message,
           });
           return await obj.fetch(url, {
@@ -53,23 +54,21 @@ export class DurableRateLimiter implements RateLimiter {
       const json = await res.json();
       const { current } = z.object({ current: z.number() }).parse(json);
 
-      return {
+      return Ok({
         current,
         reset,
         pass: current <= req.limit,
-      };
+      });
     } catch (e) {
-      this.logger.error("ratelimit failed", { keyId: req.keyId, error: (e as Error).message });
-      return {
-        current: 0,
-        reset,
-        pass: false,
-      };
+      const err = e as Error;
+      this.logger.error("ratelimit failed", { identifier: req.identifier, error: err.message });
+      return Err(new RatelimitError(err.message));
     } finally {
       this.metrics.emit({
-        metric: "metric.usagelimit",
+        metric: "metric.ratelimit",
         latency: performance.now() - start,
-        keyId: req.keyId,
+        identifier: req.identifier,
+        tier: "durable",
       });
     }
   }

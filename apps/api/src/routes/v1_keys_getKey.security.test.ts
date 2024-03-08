@@ -5,21 +5,23 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { type V1KeysGetKeyResponse, registerV1KeysGetKey } from "./v1_keys_getKey";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { type V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
 let h: RouteHarness;
+beforeAll(async () => {
+  h = await RouteHarness.init();
+});
 beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysGetKey);
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
 });
-
+afterAll(async () => {
+  await h.stop();
+});
 runSharedRoleTests({
-  registerHandler: registerV1KeysGetKey,
   prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

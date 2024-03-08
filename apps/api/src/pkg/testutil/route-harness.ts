@@ -1,9 +1,9 @@
 import { type Api, type KeyAuth, type Workspace } from "../db";
-import { App, newApp } from "../hono/app";
-import { init } from "../middleware";
+import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
-import { StepRequest, StepResponse, fetchRoute } from "./request";
+import { StepRequest, StepResponse, headersToRecord } from "./request";
 
+import { type UnstableDevWorker, unstable_dev } from "wrangler";
 export type Resources = {
   unkeyWorkspace: Workspace;
   unkeyApi: Api;
@@ -14,31 +14,47 @@ export type Resources = {
 };
 
 export class RouteHarness extends Harness {
-  public readonly app: App;
+  private worker: UnstableDevWorker;
 
-  constructor() {
+  private constructor(worker: UnstableDevWorker) {
     super();
-    this.app = newApp();
-    /**
-     * Hono doesn't get the environment variables autoamtically, so we inject them
-     */
-    this.app.use("*", async (c, next) => {
-      c.env = {
-        ...process.env,
-        ...c.env,
-      };
-      await next();
+    this.worker = worker;
+  }
+
+  static async init(): Promise<RouteHarness> {
+    const env = routeTestEnv.parse(process.env);
+    const worker = await unstable_dev("src/worker.ts", {
+      local: env.WORKER_LOCATION === "local",
+      logLevel: "info",
+      experimental: { disableExperimentalWarning: true },
+      vars: env,
     });
-    this.app.use("*", init());
+    return new RouteHarness(worker);
   }
 
-  public useRoutes(...registerFunctions: ((app: App) => any)[]): void {
-    registerFunctions.forEach((fn) => fn(this.app));
+  public async stop(): Promise<void> {
+    await this.worker.stop();
   }
 
-  async do<TReq, TRes>(req: StepRequest<TReq>): Promise<StepResponse<TRes>> {
-    return await fetchRoute<TReq, TRes>(this.app, req);
+  public async do<TRequestBody = unknown, TResponseBody = unknown>(
+    req: StepRequest<TRequestBody>,
+  ): Promise<StepResponse<TResponseBody>> {
+    const res = await this.worker.fetch(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(req.body),
+    });
+
+    return {
+      status: res.status,
+      headers: headersToRecord(res.headers),
+      body: (await res.json().catch((err) => {
+        console.error(`${req.url} didn't return json`, err);
+        return {};
+      })) as TResponseBody,
+    };
   }
+
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
     return await this.do<never, TRes>({ method: "GET", ...req });
   }
