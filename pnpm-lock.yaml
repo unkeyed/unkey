@@ -67,8 +67,8 @@ importers:
         specifier: 0.3.3
         version: 0.3.3
       '@hono/zod-openapi':
-        specifier: ^0.9.6
-        version: 0.9.6(hono@4.0.9)(zod@3.22.4)
+        specifier: ^0.9.8
+        version: 0.9.8(hono@4.0.9)(zod@3.22.4)
       '@microlabs/otel-cf-workers':
         specifier: 1.0.0-rc.15
         version: 1.0.0-rc.15
@@ -3644,8 +3644,8 @@ packages:
       graphql: 16.8.1
     dev: false
 
-  /@hono/zod-openapi@0.9.6(hono@4.0.9)(zod@3.22.4):
-    resolution: {integrity: sha512-MLF8xpd4fEwbEaylFqAt1qci4wOTXu3oq3BKb01trccapYfodP50VCO0YDNBQTyMT/Iapq6GMO4+RAIFBgG5WQ==}
+  /@hono/zod-openapi@0.9.8(hono@4.0.9)(zod@3.22.4):
+    resolution: {integrity: sha512-NS6lvQEGnsjyQkp+aQjMARREz3WGf19y0+RiiJMVrihWlmKbGaJkPuOWpfFQG6FU9q+FVUyUCryXK+3J07GPAw==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       hono: '>=3.11.3'
