@@ -74,7 +74,6 @@
     rgba(200, 200, 200, 0.08)
   );
   content: "";
-  border-top-right-radius: 24px;
   border-bottom-right-radius: 24px;
   border-top-left-radius: 24px;
   position: absolute;
@@ -292,7 +291,6 @@ li > p {
     rgba(200, 200, 200, 0.08)
   );
   content: "";
-  border-top-right-radius: 24px;
   border-top-left-radius: 24px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
@@ -338,4 +336,11 @@ li > p {
      rgba(1,1,1, 0) 80%
   );
   pointer-events: none; 
+}
+
+.bar-chart {
+  height: 200px; /* Adjust based on your requirements */
+  width: 100%;
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.10) 0.75px, transparent 1px);
+  background-size: 100% 30px; /* This controls the spacing of the lines */
 }
