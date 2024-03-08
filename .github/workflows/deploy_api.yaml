@@ -64,7 +64,7 @@ jobs:
         env:
           WORKER_LOCATION: cloudflare # run tests against a preview worker deployed on cf
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Delete planetscale branch
         if: always()
