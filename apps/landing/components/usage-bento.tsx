@@ -7,8 +7,8 @@ export function UsageBento() {
   return (
     <div className="w-full  overflow-hidden relative border-[.75px] h-[576px] w-[700px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10">
       <UsageSparkles className="absolute top-0" />
-      <div className="relative top-0 left-[15px] sm:left-[80px] md:left-[200px] lg:left-[80px] xl:left-[240px] top-[-40px]">
-        <AnimatedList>
+      <div className="relative top-[-42px]">
+        <AnimatedList className="w-full">
           <BillingItem icon={<PaymentsIcon />} text="Andreas collected payments" latency="2 s" />
           <BillingItem
             icon={<BillingIcon />}
