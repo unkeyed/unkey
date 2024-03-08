@@ -3,20 +3,21 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { afterEach, beforeEach, expect, test } from "vitest";
-import {
-  type V1KeysGetVerificationsResponse,
-  registerV1KeysGetVerifications,
-} from "./v1_keys_getVerifications";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import { type V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
 
 let h: RouteHarness;
+beforeAll(async () => {
+  h = await RouteHarness.init();
+});
 beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysGetVerifications);
   await h.seed();
 });
 afterEach(async () => {
   await h.teardown();
+});
+afterAll(async () => {
+  await h.stop();
 });
 test("returns an empty verifications array", async () => {
   const keyId = newId("key");
