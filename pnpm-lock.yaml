@@ -520,8 +520,8 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1(next@14.1.2)(react-dom@18.2.0)(react@18.2.0)
       nuqs:
-        specifier: ^1.17.0
-        version: 1.17.0(next@14.1.2)
+        specifier: ^1.17.1
+        version: 1.17.1(next@14.1.2)
       postcss:
         specifier: 8.4.35
         version: 8.4.35
@@ -5547,6 +5547,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -16107,6 +16108,10 @@ packages:
     hasBin: true
     dev: false
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -16550,8 +16555,8 @@ packages:
       boolbase: 1.0.0
     dev: true
 
-  /nuqs@1.17.0(next@14.1.2):
-    resolution: {integrity: sha512-Lp2qLETMb7AAYhDtRtx20oAZNkYYTPApZcaX7Q5nQz7bfy893TCIe92IYVIfl9ZUqQLTsl9855KGEsA57dylPQ==}
+  /nuqs@1.17.1(next@14.1.2):
+    resolution: {integrity: sha512-zJPisj8L+SzKzt57c5s3fJW0ikksPr+PyeLyNwvx0i5ggTr5XR5uFhCoX/T+Mkmb6X5UxHB/0nnuZyFiQsh0cA==}
     peerDependencies:
       next: '>=13.4 <14.0.2 || ^14.0.3'
     dependencies:
