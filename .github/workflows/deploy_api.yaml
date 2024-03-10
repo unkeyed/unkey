@@ -165,7 +165,8 @@ jobs:
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-  canary-benchmark:
+          
+  canary-benchmarks:
     environment: Canary
     needs: canary
     name: End to End Test Canary
@@ -195,6 +196,7 @@ jobs:
   production:
     needs:
       - canary-tests
+      - canary-benchmarks
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Production
