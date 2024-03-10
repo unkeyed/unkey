@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
@@ -10,20 +10,9 @@ import {
   V1KeysUpdateRemainingResponse,
 } from "./v1_keys_updateRemaining";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 test("increment", async () => {
+  const h = await RouteHarness.init();
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -55,6 +44,8 @@ test("increment", async () => {
 });
 
 test("decrement", async () => {
+  const h = await RouteHarness.init();
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -86,6 +77,8 @@ test("decrement", async () => {
 });
 
 test("set", async () => {
+  const h = await RouteHarness.init();
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -117,6 +110,8 @@ test("set", async () => {
 });
 
 test("invalid operation", async () => {
+  const h = await RouteHarness.init();
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,

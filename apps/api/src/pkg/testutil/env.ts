@@ -17,3 +17,11 @@ export const integrationTestEnv = databaseEnv.merge(
     UNKEY_BASE_URL: z.string().url().default("http://127.0.0.1:8787"),
   }),
 );
+
+export const benchmarkTestEnv = databaseEnv.merge(
+  z.object({
+    PLANETFALL_URL: z.string().url(),
+    PLANETFALL_API_KEY: z.string(),
+    UNKEY_BASE_URL: z.string().url(),
+  }),
+);

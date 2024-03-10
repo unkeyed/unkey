@@ -5,12 +5,16 @@ import { StepRequest, StepResponse, step } from "./request";
 export class IntegrationHarness extends Harness {
   public readonly baseUrl: string;
 
-  constructor() {
+  private constructor() {
     super();
-
     this.baseUrl = integrationTestEnv.parse(process.env).UNKEY_BASE_URL;
   }
 
+  static async init(): Promise<IntegrationHarness> {
+    const h = new IntegrationHarness();
+    await h.seed();
+    return h;
+  }
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
     return await step<never, TRes>({ method: "GET", ...req });
   }
