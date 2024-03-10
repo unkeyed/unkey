@@ -190,6 +190,7 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           PLANETFALL_URL: ${{ secrets.PLANETFALL_URL }}
           PLANETFALL_API_KEY: ${{ secrets.PLANETFALL_API_KEY }}
+          WORKER_LOCATION: local
 
   
 
