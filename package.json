@@ -33,6 +33,7 @@
     "lint-staged": "^15.2.2",
     "turbo": "^1.12.4",
     "typescript": "^5.3.3",
+    "@million/lint": "^0.0.66",
     "vitest": "^1.3.0"
   },
   "pnpm": {
@@ -54,8 +55,5 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "biome check --apply"
   },
-  "packageManager": "pnpm@8.6.9",
-  "dependencies": {
-    "@million/lint": "^0.0.66"
-  }
+  "packageManager": "pnpm@8.6.9"
 }

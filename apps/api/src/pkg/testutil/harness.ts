@@ -1,6 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { onTestFinished } from "vitest";
 import {
   type Api,
   type Database,
@@ -9,7 +10,7 @@ import {
   Role,
   type Workspace,
   createConnection,
-  eq,
+  inArray,
   schema,
 } from "../db";
 import { databaseEnv } from "./env";
@@ -37,16 +38,13 @@ export abstract class Harness {
     this.resources = this.createResources();
   }
 
-  public async teardown(): Promise<void> {
+  private async teardown(...workspaceIds: string[]): Promise<void> {
+    if (workspaceIds.length === 0) {
+      return;
+    }
     await this.db
       .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id))
-      .catch((err) => {
-        console.error(err);
-      });
-    await this.db
-      .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id))
+      .where(inArray(schema.workspaces.id, workspaceIds))
       .catch((err) => {
         console.error(err);
       });
@@ -290,8 +288,11 @@ export abstract class Harness {
     };
   }
 
-  public async seed(): Promise<void> {
+  protected async seed(): Promise<void> {
     this.resources = this.createResources();
+    onTestFinished(() =>
+      this.teardown(this.resources.unkeyWorkspace.id, this.resources.userWorkspace.id),
+    );
 
     await this.db.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
     await this.db.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);

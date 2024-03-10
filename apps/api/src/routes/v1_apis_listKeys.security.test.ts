@@ -3,22 +3,8 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { type V1ApisListKeysResponse } from "./v1_apis_listKeys";
-
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 
 runSharedRoleTests({
   prepareRequest: async (rh) => {
@@ -65,6 +51,7 @@ describe("correct roles", () => {
       ],
     },
   ])("$name", async ({ roles }) => {
+    const h = await RouteHarness.init();
     const keyAuthId = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthId,
