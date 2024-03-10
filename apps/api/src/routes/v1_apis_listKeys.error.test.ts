@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
@@ -6,20 +6,8 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 test("when the api does not exist", async () => {
+  const h = await RouteHarness.init();
   const apiId = newId("api");
 
   const { key: rootKey } = await h.createRootKey([
@@ -45,6 +33,7 @@ test("when the api does not exist", async () => {
 });
 
 test("when the api has no keyAuth", async () => {
+  const h = await RouteHarness.init();
   const apiId = newId("api");
   await h.db.insert(schema.apis).values({
     id: apiId,

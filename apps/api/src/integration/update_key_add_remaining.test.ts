@@ -7,20 +7,11 @@ import type {
   V1KeysUpdateRemainingResponse,
 } from "@/routes/v1_keys_updateRemaining";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-
-let h: IntegrationHarness;
-
-beforeEach(async () => {
-  h = new IntegrationHarness();
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
+import { describe, expect, test } from "vitest";
 
 describe("some", () => {
   test("update a key's remaining limit", async () => {
+    const h = await IntegrationHarness.init();
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

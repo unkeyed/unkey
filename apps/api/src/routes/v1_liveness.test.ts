@@ -1,21 +1,10 @@
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { V1LivenessResponse } from "./v1_liveness";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 test("confirms services", async () => {
+  const h = await RouteHarness.init();
+
   const res = await h.get<V1LivenessResponse>({
     url: "/v1/liveness",
   });

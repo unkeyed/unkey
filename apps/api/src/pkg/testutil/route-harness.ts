@@ -1,3 +1,4 @@
+import { onTestFinished } from "vitest";
 import { type Api, type KeyAuth, type Workspace } from "../db";
 import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
@@ -19,6 +20,7 @@ export class RouteHarness extends Harness {
   private constructor(worker: UnstableDevWorker) {
     super();
     this.worker = worker;
+    onTestFinished(this.worker.stop);
   }
 
   static async init(): Promise<RouteHarness> {
@@ -29,11 +31,10 @@ export class RouteHarness extends Harness {
       experimental: { disableExperimentalWarning: true },
       vars: env,
     });
-    return new RouteHarness(worker);
-  }
 
-  public async stop(): Promise<void> {
-    await this.worker.stop();
+    const h = new RouteHarness(worker);
+    await h.seed();
+    return h;
   }
 
   public async do<TRequestBody = unknown, TResponseBody = unknown>(

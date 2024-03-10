@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
 import { loadTest } from "@/pkg/testutil/load";
@@ -6,20 +6,6 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
-
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 
 describe("syncronous", () => {
   describe("counts down monotonically", () => {
@@ -32,6 +18,7 @@ describe("syncronous", () => {
     ])(
       "$limit per $duration ms @ $n runs",
       async ({ limit, duration, n }) => {
+        const h = await RouteHarness.init();
         const namespace = {
           id: newId("test"),
           workspaceId: h.resources.userWorkspace.id,
@@ -82,6 +69,7 @@ describe("syncronous", () => {
       expected: { min: number; max: number };
     }>([
       {
+        name: "1",
         limit: 100,
         duration: 2_000,
         rps: 20,
@@ -89,6 +77,7 @@ describe("syncronous", () => {
         expected: { min: 200, max: 200 },
       },
       {
+        name: "2",
         limit: 1,
         duration: 1_000,
         rps: 20,
@@ -96,6 +85,7 @@ describe("syncronous", () => {
         expected: { min: 9, max: 10 },
       },
       {
+        name: "3",
         limit: 100,
         duration: 10_000,
         rps: 20,
@@ -103,6 +93,7 @@ describe("syncronous", () => {
         expected: { min: 600, max: 700 },
       },
       {
+        name: "4",
         limit: 1000,
         duration: 10_000,
         rps: 100,
@@ -184,6 +175,7 @@ describe("syncronous", () => {
     ])(
       "$name",
       async ({ limit, duration, rps, seconds, expected }) => {
+        const h = await RouteHarness.init();
         const namespace = {
           id: newId("test"),
           workspaceId: h.resources.userWorkspace.id,

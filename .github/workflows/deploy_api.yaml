@@ -113,7 +113,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:e2e
+        run: pnpm test:integration
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -158,57 +158,39 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:e2e
+        run: pnpm test:integration
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+  canary-benchmark:
+    environment: Canary
+    needs: canary
+    name: End to End Test Canary
+    runs-on: ubuntu-latest
 
-  # canary-latency:
-  #   environment: Canary
-  #   needs: canary
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     max-parallel: 8
-  #     matrix:
-  #       region: [
-  #           ap-northeast-1,
-  #           ap-northeast-2,
-  #           ap-south-1,
-  #           ap-southeast-1,
-  #           ca-central-1,
-  #           eu-west-1,
-  #           eu-west-2,
-  #           eu-west-3,
-  #           sa-east-1,
-  #           us-west-2,
-  #           ap-southeast-2,
-  #           eu-central-1,
-  #           us-west-1,
-  #           us-east-2,
-  #           us-east-1,
-  #         ]
-  #   name: Artillery ${{matrix.region}}
-  #   steps:
-  #     - name: Checkout Repo
-  #       uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Inject key
-  #       run: sed -i 's/{{ $env.UNKEY_KEY }}/${{secrets.UNKEY_KEY}}/g' ./tools/artillery/keys.verifyKey.yaml
+      - name: Install
+        uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
 
-  #     - name: Test ${{matrix.region}}
-  #       uses: artilleryio/action-cli@v1
-  #       with:
-  #         command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record --target=https://canary.unkey.dev 
-  #       env:
-  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         ARTILLERY_CLOUD_API_KEY: ${{secrets.ARTILLERY_CLOUD_KEY}}
+      - name: Test
+        run: pnpm test:benchmark
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: https://canary.unkey.dev
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          PLANETFALL_URL: ${{ secrets.PLANETFALL_URL }}
+          PLANETFALL_API_KEY: ${{ secrets.PLANETFALL_API_KEY }}
 
-        
+  
 
   production:
     needs:

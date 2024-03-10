@@ -1,24 +1,12 @@
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { type V1ApisGetApiResponse } from "./v1_apis_getApi";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 test("return the api", async () => {
+  const h = await RouteHarness.init();
   const root = await h.createRootKey(["api.*.read_api"]);
 
   const res = await h.get<V1ApisGetApiResponse>({
@@ -37,6 +25,7 @@ test("return the api", async () => {
 });
 
 test("with ip whitelist", async () => {
+  const h = await RouteHarness.init();
   const api = {
     id: newId("api"),
     name: "with ip whitelist",

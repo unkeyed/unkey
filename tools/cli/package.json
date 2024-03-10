@@ -1,0 +1,28 @@
+{
+  "name": "cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx ts-node ./index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "async-listen": "^3.0.1",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "nanoid": "^5.0.4",
+    "ora": "^8.0.1",
+    "picocolors": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "type": "module"
+}
