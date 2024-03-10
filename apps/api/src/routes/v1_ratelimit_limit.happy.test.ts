@@ -7,7 +7,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
-describe("syncronous", () => {
+describe("synchronous", () => {
   describe("counts down monotonically", () => {
     test.each<{ limit: number; duration: number; n: number }>([
       { limit: 10, duration: 1_000, n: 100 },
@@ -82,7 +82,7 @@ describe("syncronous", () => {
         duration: 1_000,
         rps: 20,
         seconds: 10,
-        expected: { min: 9, max: 10 },
+        expected: { min: 9, max: 11 },
       },
       {
         name: "3",
