@@ -105,8 +105,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/zod-queue
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
       hono:
         specifier: ^4.0.9
         version: 4.0.9
@@ -223,8 +223,8 @@ importers:
         specifier: ^3.2.0
         version: 3.3.1
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0)
       framer-motion:
         specifier: 11.0.8
         version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
@@ -529,8 +529,8 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0)
       framer-motion:
         specifier: 11.0.8
         version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
@@ -698,8 +698,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/schema
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0)
       next:
         specifier: 14.1.2
         version: 14.1.2(@babel/core@7.24.0)(react-dom@18.2.0)(react@18.2.0)
@@ -776,8 +776,8 @@ importers:
         specifier: ^0.20.14
         version: 0.20.14
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -1130,8 +1130,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
       mysql2:
         specifier: ^3.9.2
         version: 3.9.2
@@ -1179,8 +1179,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: ^0.29.4
-        version: 0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
+        specifier: ^0.30.1
+        version: 0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
       mysql2:
         specifier: ^3.9.2
         version: 3.9.2
@@ -11493,13 +11493,14 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.29.4(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0):
-    resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
+  /drizzle-orm@0.30.1(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0):
+    resolution: {integrity: sha512-5P6CXl4XyWtDDiYOX/jYOJp1HTUmBlXRAwaq+muUOgaSykMEy5sJesCxceMT0oCGvxeWkKfSXo5owLnfKwCIdw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
       '@libsql/client': '*'
       '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1'
       '@types/better-sqlite3': '*'
@@ -11526,6 +11527,8 @@ packages:
       '@libsql/client':
         optional: true
       '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
         optional: true
       '@opentelemetry/api':
         optional: true
@@ -11570,13 +11573,14 @@ packages:
       react: 18.2.0
     dev: false
 
-  /drizzle-orm@0.29.4(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0):
-    resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
+  /drizzle-orm@0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.63)(react@18.2.0):
+    resolution: {integrity: sha512-5P6CXl4XyWtDDiYOX/jYOJp1HTUmBlXRAwaq+muUOgaSykMEy5sJesCxceMT0oCGvxeWkKfSXo5owLnfKwCIdw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
       '@libsql/client': '*'
       '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1'
       '@types/better-sqlite3': '*'
@@ -11603,6 +11607,8 @@ packages:
       '@libsql/client':
         optional: true
       '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
         optional: true
       '@opentelemetry/api':
         optional: true
@@ -11646,13 +11652,14 @@ packages:
       react: 18.2.0
     dev: false
 
-  /drizzle-orm@0.29.4(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0):
-    resolution: {integrity: sha512-ZnSM8TAxFhzH7p1s3+w3pRE/eKaOeNkH9SKitm717pubDVVcV2I0BCDBPGKV+pe02+wMfw37ntlTcCyo2rA3IA==}
+  /drizzle-orm@0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0):
+    resolution: {integrity: sha512-5P6CXl4XyWtDDiYOX/jYOJp1HTUmBlXRAwaq+muUOgaSykMEy5sJesCxceMT0oCGvxeWkKfSXo5owLnfKwCIdw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
       '@libsql/client': '*'
       '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1'
       '@types/better-sqlite3': '*'
@@ -11679,6 +11686,8 @@ packages:
       '@libsql/client':
         optional: true
       '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
         optional: true
       '@opentelemetry/api':
         optional: true
