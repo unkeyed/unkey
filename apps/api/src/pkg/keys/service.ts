@@ -185,6 +185,12 @@ export class KeyService {
               enabled: true,
             },
           },
+          forWorkspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
           roles: {
             with: {
               role: {
@@ -233,6 +239,7 @@ export class KeyService {
       ]);
       return {
         workspace: dbRes.workspace,
+        forWorkspace: dbRes.forWorkspace,
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
@@ -254,14 +261,14 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
-    if (!data.workspace.enabled) {
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
       return Err(new DisabledWorkspaceError(data.workspace.id));
     }
+
     /**
      * Enabled
      */
-    const enabled = data.key.enabled;
-    if (!enabled) {
+    if (!data.key.enabled) {
       return Ok({
         key: data.key,
         api: data.api,

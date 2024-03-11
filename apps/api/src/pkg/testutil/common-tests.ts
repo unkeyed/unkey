@@ -44,7 +44,7 @@ export function runCommonRouteTests<TReq>(config: {
       req.headers = {
         ...req.headers,
         // @ts-expect-error
-        Authorization: `Bearer ${await h.createRootKey(["*"])}`,
+        Authorization: `Bearer ${(await h.createRootKey(["*"])).key}`,
       };
       const res = await h.do<TReq, ErrorResponse>(req);
       expect(res.status).toEqual(403);
