@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -331,4 +331,43 @@ test("returns the environment of a key", async () => {
   expect(res.status).toEqual(200);
   expect(res.body.valid).toBe(true);
   expect(res.body.environment).toEqual(environment);
+});
+
+describe("disabled workspace", () => {
+  test("should reject the request", async () => {
+    const h = await RouteHarness.init();
+    await h.db
+      .update(schema.workspaces)
+      .set({ enabled: false })
+      .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+    });
+    const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    console.log(res);
+    expect(res.status).toEqual(403);
+    expect(res.body).toMatchObject({
+      error: {
+        code: "FORBIDDEN",
+        docs: "https://unkey.dev/docs/api-reference/errors/code/FORBIDDEN",
+        message: "workspace is disabled",
+      },
+    });
+  });
 });

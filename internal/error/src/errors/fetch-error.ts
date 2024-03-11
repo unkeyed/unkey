@@ -8,7 +8,7 @@ export class FetchError extends BaseError<{
   method: string;
   [more: string]: unknown;
 }> {
-  public readonly type = "FetchError";
+  public readonly name = "FetchError";
   public readonly retry: boolean;
 
   constructor(

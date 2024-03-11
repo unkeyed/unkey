@@ -2,7 +2,7 @@ import { BaseError, Result } from "@unkey/error";
 import { z } from "zod";
 
 export class RatelimitError extends BaseError {
-  public readonly type = "RatelimitError";
+  public readonly name = "RatelimitError";
   public readonly retry = false;
 }
 
