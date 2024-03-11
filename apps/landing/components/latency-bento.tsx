@@ -1,4 +1,3 @@
-import { LatencyMap } from "@/components/svg/latency-map";
 import Image from "next/image";
 import map from "../images/map.svg";
 
@@ -15,7 +14,7 @@ export function LatencyBento() {
 export function LatencyText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[330px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -31,9 +30,9 @@ export function LatencyText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">Global low latency</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">Global low latency</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
+      <p className="mt-4 leading-6 text-white/60">
         Unkey is fast globally, regardless of which cloud providers you’re using or where your users
         are located.
       </p>

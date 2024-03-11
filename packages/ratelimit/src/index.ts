@@ -7,7 +7,7 @@ type Limit = {
   duration: Duration | number;
 };
 
-type RatelimitConfig = Limit & {
+export type RatelimitConfig = Limit & {
   rootKey: string;
 
   /**

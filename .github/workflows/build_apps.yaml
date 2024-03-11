@@ -22,7 +22,10 @@ jobs:
         app:
           - "./apps/web"
           - "./apps/api"
-          - "./apps/workflows"
+          - "./apps/workflows" 
+          - "./apps/logdrain"
+          - "./apps/planetfall"
+          - "./apps/landing"
 
     name: Build ${{matrix.app}}
     runs-on: ubuntu-latest
