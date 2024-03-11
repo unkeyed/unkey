@@ -1932,17 +1932,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           fillOpacity="0.5"
         />
       </g>
-      <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_26)">
-        <ellipse
-          cx="1438.94"
-          cy="127.021"
-          rx="26.5"
-          ry="293.25"
-          transform="rotate(15 1438.94 127.021)"
-          fill="url(#paint3_linear_2076_26)"
-          fillOpacity="0.5"
-        />
-      </g>
+
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_26)">
         <ellipse
           cx="1520.29"
@@ -2018,17 +2008,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           fillOpacity="0.5"
         />
       </g>
-      <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter9_f_2076_26)">
-        <ellipse
-          cx="102.094"
-          cy="-76.5686"
-          rx="26.5"
-          ry="293.25"
-          transform="rotate(5 102.094 -76.5686)"
-          fill="url(#paint11_linear_2076_26)"
-          fillOpacity="0.5"
-        />
-      </g>
+
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter10_f_2076_26)">
         <ellipse
           cx="198.823"

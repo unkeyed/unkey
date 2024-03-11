@@ -1,10 +1,9 @@
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
 import { Frame } from "../../components/frame";
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 export function QuestionCircle({ className }: { className?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,13 +64,15 @@ export function BlogHero({
         <div className="flex flex-row justify-center w-full gap-24 pb-8 mt-10 xl:justify-start lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
             <p className="text-sm text-white/30 ">Written by</p>
-            <div className="flex flex-row">
+            <div className="flex items-center gap-2">
               {/* Todo: Needs ability to add multiple authors at some point */}
               <Avatar>
                 <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
                 <AvatarFallback />
               </Avatar>
-              <TooltipProvider>
+              <p className="text-sm text-white">{author.name}</p>
+
+              {/* <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger className="pt-1 pl-4">
                     <QuestionCircle />
@@ -85,7 +86,7 @@ export function BlogHero({
                     <p>{author.name}</p>
                   </TooltipContent>
                 </Tooltip>
-              </TooltipProvider>
+              </TooltipProvider> */}
               <div />
             </div>
           </div>
