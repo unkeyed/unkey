@@ -60,7 +60,7 @@ describe("synchronous", () => {
   });
 
   describe("within bounds", () => {
-    describe.concurrent.each<{
+    describe.each<{
       name: string;
       limit: number;
       duration: number;
