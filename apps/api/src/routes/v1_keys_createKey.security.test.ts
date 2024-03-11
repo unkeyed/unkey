@@ -1,12 +1,12 @@
 import { randomUUID } from "crypto";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { describe, expect, test } from "vitest";
 import { type V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
-runSharedRoleTests<V1KeysCreateKeyRequest>({
+runCommonRouteTests<V1KeysCreateKeyRequest>({
   prepareRequest: async (rh) => {
     const apiId = newId("api");
     await rh.db.insert(schema.apis).values({

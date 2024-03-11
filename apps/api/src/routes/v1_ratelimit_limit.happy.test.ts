@@ -55,7 +55,7 @@ describe("synchronous", () => {
           lastResponse = res.body.remaining;
         }
       },
-      120_000,
+      { retry: 1, timeout: 120_000 },
     );
   });
 

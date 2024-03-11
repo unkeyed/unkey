@@ -10,6 +10,7 @@ import { describe, expect, test } from "vitest";
 import { randomUUID } from "crypto";
 import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { StepRequest } from "./request";
 
@@ -27,9 +28,30 @@ type StepRequestWithoutAuthorizationHeader<TReq> = Omit<StepRequest<TReq>, "head
   };
 };
 
-export function runSharedRoleTests<TReq>(config: {
+export function runCommonRouteTests<TReq>(config: {
   prepareRequest: (h: RouteHarness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
 }) {
+  describe("disabled workspace", () => {
+    test("should reject the request", async () => {
+      const h = await RouteHarness.init();
+      await h.db
+        .update(schema.workspaces)
+        .set({ enabled: false })
+        .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));
+
+      const req = await config.prepareRequest(h);
+      const res = await h.do<TReq, ErrorResponse>(req);
+      expect(res.status).toEqual(403);
+      expect(res.body).toMatchObject({
+        error: {
+          code: "UNAUTHORIZED",
+          docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
+          message: "workspace disabled",
+        },
+      });
+    });
+  });
+
   describe("shared role tests", () => {
     test("without a key", async () => {
       const h = await RouteHarness.init();

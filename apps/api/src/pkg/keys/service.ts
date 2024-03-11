@@ -167,6 +167,11 @@ export class KeyService {
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          workspace: {
+            columns: {
+              enabled: true,
+            },
+          },
           roles: {
             with: {
               role: {
@@ -214,6 +219,7 @@ export class KeyService {
         ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
       ]);
       return {
+        workspace: dbRes.workspace,
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
@@ -233,6 +239,16 @@ export class KeyService {
     if (!data) {
       span.addEvent("not found");
       return Ok({ valid: false, code: "NOT_FOUND" });
+    }
+
+    if (!data.workspace.enabled) {
+      return Ok({
+        key: data.key,
+        api: data.api,
+        valid: false,
+        code: "FORBIDDEN",
+        permissions: data.permissions,
+      });
     }
     /**
      * Enabled

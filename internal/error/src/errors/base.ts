@@ -3,7 +3,8 @@ export type ErrorType =
   | "SchemaError"
   | "CacheError"
   | "VercelCodeExchangeError"
-  | "RatelimitError";
+  | "RatelimitError"
+  | "DisabledWorkspaceError";
 
 export type ErrorContext = Record<string, unknown>;
 
