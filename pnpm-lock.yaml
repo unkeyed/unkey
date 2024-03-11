@@ -473,13 +473,13 @@ importers:
         version: 2.19.0
       '@trpc/client':
         specifier: ^10.45.1
-        version: 10.45.1(@trpc/server@10.45.1)
+        version: 10.45.1(@trpc/server@10.45.2)
       '@trpc/react-query':
         specifier: ^10.45.1
-        version: 10.45.1(@tanstack/react-query@4.36.1)(@trpc/client@10.45.1)(@trpc/server@10.45.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 10.45.1(@tanstack/react-query@4.36.1)(@trpc/client@10.45.1)(@trpc/server@10.45.2)(react-dom@18.2.0)(react@18.2.0)
       '@trpc/server':
-        specifier: ^10.45.1
-        version: 10.45.1
+        specifier: ^10.45.2
+        version: 10.45.2
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -632,7 +632,7 @@ importers:
         version: 1.0.7(tailwindcss@3.4.1)
       trpc-tools:
         specifier: ^0.12.0
-        version: 0.12.0(@trpc/server@10.45.1)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.4)
+        version: 0.12.0(@trpc/server@10.45.2)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.4)
       typescript:
         specifier: 5.3.3
         version: 5.3.3
@@ -8333,15 +8333,15 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trpc/client@10.45.1(@trpc/server@10.45.1):
+  /@trpc/client@10.45.1(@trpc/server@10.45.2):
     resolution: {integrity: sha512-nVbAk1xpIiI64WgzXGgfxPOGgHoYvffn1IsjV1D/Ri7DL4BKuo2qtZ7UQ+OuHkzH2M8j4ikSVBDpk545fOdvpw==}
     peerDependencies:
       '@trpc/server': 10.45.1
     dependencies:
-      '@trpc/server': 10.45.1
+      '@trpc/server': 10.45.2
     dev: false
 
-  /@trpc/react-query@10.45.1(@tanstack/react-query@4.36.1)(@trpc/client@10.45.1)(@trpc/server@10.45.1)(react-dom@18.2.0)(react@18.2.0):
+  /@trpc/react-query@10.45.1(@tanstack/react-query@4.36.1)(@trpc/client@10.45.1)(@trpc/server@10.45.2)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-48OOMpwVjQFUQJqlp9/tW1lqESZg9YEqB5iVci7mYaDzZPEs/YUcV85XKvYzgeW+7K9oShX/JMVce8muON/6uQ==}
     peerDependencies:
       '@tanstack/react-query': ^4.18.0
@@ -8351,14 +8351,14 @@ packages:
       react-dom: '>=16.8.0'
     dependencies:
       '@tanstack/react-query': 4.36.1(react-dom@18.2.0)(react@18.2.0)
-      '@trpc/client': 10.45.1(@trpc/server@10.45.1)
-      '@trpc/server': 10.45.1
+      '@trpc/client': 10.45.1(@trpc/server@10.45.2)
+      '@trpc/server': 10.45.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /@trpc/server@10.45.1:
-    resolution: {integrity: sha512-KOzBEVaHW9IxEedUP9E50y0tYxAuvlzyjn80Bpemw4rcNbT4WtJnhkFPUY+qDJl7Crt3B/oY2qMgSxVWi9toLg==}
+  /@trpc/server@10.45.2:
+    resolution: {integrity: sha512-wOrSThNNE4HUnuhJG6PfDRp4L2009KDVxsd+2VYH8ro6o/7/jwYZ8Uu5j+VaW+mOmc8EHerHzGcdbGNQSAUPgg==}
     dev: false
 
   /@trysound/sax@0.2.0:
@@ -20295,7 +20295,7 @@ packages:
   /trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
-  /trpc-tools@0.12.0(@trpc/server@10.45.1)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.4):
+  /trpc-tools@0.12.0(@trpc/server@10.45.2)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.4):
     resolution: {integrity: sha512-Zn21JotBHNM64hgvljZ3yjPEsGfFMD86Oa+oGbYVaOLAW5NVVm80UM2H5w5cPh+z8VFSvY8DMflH7maBb/iexg==}
     hasBin: true
     peerDependencies:
@@ -20308,7 +20308,7 @@ packages:
       '@onetyped/core': 0.1.1
       '@onetyped/typescript': 1.0.1(@onetyped/core@0.1.1)(typescript@5.3.3)
       '@onetyped/zod': 1.0.1(@onetyped/core@0.1.1)(zod@3.22.4)
-      '@trpc/server': 10.45.1
+      '@trpc/server': 10.45.2
       bundle-require: 4.0.2(esbuild@0.18.20)
       chalk: 5.3.0
       cli-truncate: 3.1.0
