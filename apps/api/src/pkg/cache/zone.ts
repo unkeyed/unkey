@@ -27,7 +27,7 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
   private createCacheKey<TName extends keyof TNamespaces>(
     namespace: TName,
     key: string,
-    cacheBuster = "v1",
+    cacheBuster = "v2",
   ): URL {
     return new URL(
       `https://${this.config.domain}/cache/${cacheBuster}/${String(namespace)}/${key}`,

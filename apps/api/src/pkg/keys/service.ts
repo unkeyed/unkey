@@ -5,11 +5,23 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
-import { Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
+import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
+
+export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
+  public readonly name = "DisabledWorkspaceError";
+  public readonly retry = false;
+  constructor(workspaceId: string) {
+    super("workspace is disabled", {
+      context: {
+        workspaceId,
+      },
+    });
+  }
+}
 
 type NotFoundResponse = {
   valid: false;
@@ -92,7 +104,7 @@ export class KeyService {
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError>> {
+  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
@@ -160,13 +172,25 @@ export class KeyService {
     c: Context,
     span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError>> {
+  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
     const hash = await sha256(req.key);
     const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          workspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
+          forWorkspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
           roles: {
             with: {
               role: {
@@ -214,6 +238,8 @@ export class KeyService {
         ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
       ]);
       return {
+        workspace: dbRes.workspace,
+        forWorkspace: dbRes.forWorkspace,
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
@@ -234,11 +260,15 @@ export class KeyService {
       span.addEvent("not found");
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
+
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
+      return Err(new DisabledWorkspaceError(data.workspace.id));
+    }
+
     /**
      * Enabled
      */
-    const enabled = data.key.enabled;
-    if (!enabled) {
+    if (!data.key.enabled) {
       return Ok({
         key: data.key,
         api: data.api,

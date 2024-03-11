@@ -1,6 +1,7 @@
 import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   datetime,
   json,
   mysqlEnum,
@@ -80,6 +81,10 @@ export const workspaces = mysqlTable(
     planDowngradeRequest: mysqlEnum("plan_downgrade_request", ["free"]),
     planChanged: datetime("plan_changed", { fsp: 3 }),
     subscriptions: json("subscriptions").$type<Subscriptions>(),
+    /**
+     * if the workspace is disabled, all API requests will be rejected
+     */
+    enabled: boolean("enabled").notNull().default(true),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
