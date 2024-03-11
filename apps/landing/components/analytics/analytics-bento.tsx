@@ -55,7 +55,7 @@ export function AnalyticsBento() {
   const [showApi, toggleShowApi] = useState(true);
 
   return (
-    <div className="flex justify-center relative w-full">
+    <div className="relative flex justify-center w-full">
       <button
         type="button"
         onClick={() => toggleShowApi(!showApi)}
@@ -112,7 +112,7 @@ function AnalyticsApiView() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
       whileInView="visible"
       className="w-full "
     >
@@ -123,7 +123,7 @@ function AnalyticsApiView() {
             <div className="ml-3">cURL</div>
           </div>
         </div>
-        <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono">
+        <div className="flex w-full pt-4 pl-8 font-mono text-xs text-white sm:text-sm">
           <Editor theme={theme} codeBlock={codeBlock} language="tsx" />
         </div>
       </div>
@@ -137,7 +137,7 @@ function AnalyticsWebAppView() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
       whileInView="visible"
       className="w-full"
     >
@@ -157,7 +157,7 @@ export function Editor({
   return (
     <Highlight theme={theme} code={codeBlock} language={language}>
       {({ tokens, getLineProps, getTokenProps }) => (
-        <pre className="leading-10">
+        <pre className="leading-6">
           {tokens.map((line, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
@@ -170,7 +170,6 @@ export function Editor({
         </pre>
       )}
     </Highlight>
-    // </motion.div>
   );
 }
 
@@ -276,7 +275,7 @@ export function TerminalIcon({ className }: { className?: string }) {
 export function BentoText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[286px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -295,7 +294,7 @@ export function BentoText() {
         </svg>
         <h3 className="ml-4 text-lg font-medium text-white">Realtime Analytics</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
+      <p className="mt-4 leading-6 text-white/60">
         Access real-time insights into your API usage through our dashboard, or build your own on
         top of our APi.
       </p>

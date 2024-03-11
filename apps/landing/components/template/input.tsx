@@ -29,16 +29,16 @@ const SearchInput = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div
         className={cn(
-          "flex flex-row h-10 w-full rounded-md border border-border p-0 m-0 bg-transparent focus:border-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-white/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "focus-within:border-white flex items-center gap-2 h-10 w-full rounded-md border border-border p-0 m-0 bg-transparent focus:border-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-white/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 text-sm",
           className,
         )}
       >
-        <Search className="h-full py-2 mx-2 text-white" />
+        <Search className="w-6 h-6 mx-3 text-white " />
         <input
           type={type}
           ref={ref}
           {...props}
-          className="bg-transparent text-white/60 p-0 m-0 w-full border-none h-full"
+          className="w-full h-full bg-transparent border-none text-white/60 focus:outline-none"
         />
       </div>
     );
