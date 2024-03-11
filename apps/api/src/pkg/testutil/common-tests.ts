@@ -50,8 +50,8 @@ export function runCommonRouteTests<TReq>(config: {
       expect(res.status).toEqual(403);
       expect(res.body).toMatchObject({
         error: {
-          code: "UNAUTHORIZED",
-          docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
+          code: "FORBIDDEN",
+          docs: "https://unkey.dev/docs/api-reference/errors/code/FORBIDDEN",
           message: "workspace is disabled",
         },
       });
