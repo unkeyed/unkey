@@ -6,7 +6,7 @@ import { BaseError } from "./base";
  * Parsing a permission query failed
  */
 export class SchemaError extends BaseError<{ raw: unknown }> {
-  public readonly type = "SchemaError";
+  public readonly name = "SchemaError";
   public readonly retry = false;
 
   static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {

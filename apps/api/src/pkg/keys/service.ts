@@ -5,11 +5,23 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
-import { Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
+import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
+
+export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
+  public readonly name = "DisabledWorkspaceError";
+  public readonly retry = false;
+  constructor(workspaceId: string) {
+    super("workspace is disabled", {
+      context: {
+        workspaceId,
+      },
+    });
+  }
+}
 
 type NotFoundResponse = {
   valid: false;
@@ -92,7 +104,7 @@ export class KeyService {
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError>> {
+  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
@@ -160,7 +172,7 @@ export class KeyService {
     c: Context,
     span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError>> {
+  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
     const hash = await sha256(req.key);
     const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
@@ -169,6 +181,7 @@ export class KeyService {
         with: {
           workspace: {
             columns: {
+              id: true,
               enabled: true,
             },
           },
@@ -242,13 +255,7 @@ export class KeyService {
     }
 
     if (!data.workspace.enabled) {
-      return Ok({
-        key: data.key,
-        api: data.api,
-        valid: false,
-        code: "FORBIDDEN",
-        permissions: data.permissions,
-      });
+      return Err(new DisabledWorkspaceError(data.workspace.id));
     }
     /**
      * Enabled

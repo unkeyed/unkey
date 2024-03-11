@@ -40,13 +40,19 @@ export function runCommonRouteTests<TReq>(config: {
         .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));
 
       const req = await config.prepareRequest(h);
+
+      req.headers = {
+        ...req.headers,
+        // @ts-expect-error
+        Authorization: `Bearer ${await h.createRootKey(["*"])}`,
+      };
       const res = await h.do<TReq, ErrorResponse>(req);
       expect(res.status).toEqual(403);
       expect(res.body).toMatchObject({
         error: {
           code: "UNAUTHORIZED",
           docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
-          message: "workspace disabled",
+          message: "workspace is disabled",
         },
       });
     });

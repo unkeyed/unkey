@@ -17,8 +17,24 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
 
   const svc = c.get("services").keyService;
   const { val: rootKey, err } = await svc.verifyKey(c, { key: authorization, permissionQuery });
+
   if (err) {
-    throw new UnkeyApiError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+    switch (err.name) {
+      case "SchemaError":
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: err.message,
+        });
+      case "DisabledWorkspaceError":
+        throw new UnkeyApiError({
+          code: "FORBIDDEN",
+          message: "workspace is disabled",
+        });
+    }
+    throw new UnkeyApiError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: err.message,
+    });
   }
   if (!rootKey.valid) {
     throw new UnkeyApiError({

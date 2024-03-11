@@ -10,6 +10,7 @@ export type CacheNamespaces = {
   } | null;
   keyByHash: {
     workspace: {
+      id: string;
       enabled: boolean;
     };
     key: Key;
