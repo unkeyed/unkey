@@ -1,12 +1,12 @@
 import { randomUUID } from "crypto";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { describe, expect, test } from "vitest";
 import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
 
-runSharedRoleTests<V1ApisDeleteApiRequest>({
+runCommonRouteTests<V1ApisDeleteApiRequest>({
   prepareRequest: async (rh) => {
     const apiId = newId("api");
     await rh.db.insert(schema.apis).values({

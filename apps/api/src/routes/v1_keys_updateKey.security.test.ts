@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -8,7 +8,7 @@ import { KeyV1 } from "@unkey/keys";
 import { describe, expect, test } from "vitest";
 import { type V1KeysUpdateKeyRequest, type V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 
-runSharedRoleTests<V1KeysUpdateKeyRequest>({
+runCommonRouteTests<V1KeysUpdateKeyRequest>({
   prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

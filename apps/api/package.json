@@ -24,7 +24,7 @@
     "@axiomhq/js": "1.0.0-rc.2",
     "@chronark/zod-bird": "0.3.3",
     "@hono/zod-openapi": "^0.9.8",
-    "@microlabs/otel-cf-workers": "1.0.0-rc.15",
+    "@microlabs/otel-cf-workers": "1.0.0-rc.24",
     "@opentelemetry/api": "1.8.0",
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
@@ -37,7 +37,7 @@
     "@unkey/schema": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
     "drizzle-orm": "^0.30.1",
-    "hono": "^4.0.9",
+    "hono": "^4.0.10",
     "superjson": "^2.2.1",
     "zod": "^3.22.4",
     "zod-error": "^1.5.0"

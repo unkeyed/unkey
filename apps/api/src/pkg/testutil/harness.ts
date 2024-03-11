@@ -225,6 +225,7 @@ export abstract class Harness {
       createdAt: new Date(),
       deletedAt: null,
       planDowngradeRequest: null,
+      enabled: true,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
@@ -242,6 +243,7 @@ export abstract class Harness {
       createdAt: new Date(),
       deletedAt: null,
       planDowngradeRequest: null,
+      enabled: true,
     };
 
     const unkeyKeyAuth: KeyAuth = {

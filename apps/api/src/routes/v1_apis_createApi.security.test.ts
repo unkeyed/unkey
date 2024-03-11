@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { describe, expect, test } from "vitest";
 import { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
-runSharedRoleTests<V1ApisCreateApiRequest>({
+runCommonRouteTests<V1ApisCreateApiRequest>({
   prepareRequest: () => ({
     method: "POST",
     url: "/v1/apis.createApi",
