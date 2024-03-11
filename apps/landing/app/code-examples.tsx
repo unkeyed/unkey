@@ -5,7 +5,7 @@ import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { Check, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { PrismTheme } from "prism-react-renderer";
 import React from "react";
@@ -525,7 +525,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             currentFramework={framework}
             setFramework={setFramework}
           />
-          <div className="text-white pt-4 pl-8 flex text-xs sm:text-sm w-full font-mono relative">
+          <div className="relative flex w-full pt-4 pl-8 font-mono text-xs text-white sm:text-sm">
             <Editor
               language={getLanguage({ language, framework })}
               theme={editorTheme}
@@ -533,7 +533,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             />
             <button
               type="button"
-              className="absolute top-5 right-5 cursor-pointer hidden lg:flex"
+              className="absolute hidden cursor-pointer top-5 right-5 lg:flex"
               onClick={() => {
                 navigator.clipboard.writeText(getCodeBlock({ language, framework }));
                 setCopied(true);
@@ -554,7 +554,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
                   height="24"
                   viewBox="0 0 24 24"
                   fill="none"
-                  className=" "
+                  className=""
                 >
                   <path
                     opacity="0.3"
@@ -597,7 +597,7 @@ function FrameworkSwitcher({
 }) {
   return (
     <div className="flex flex-col justify-between sm:w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/10">
-      <div className="flex items-center sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2">
+      <div className="flex items-center space-x-2 sm:flex-col sm:space-x-0 sm:space-y-2">
         {frameworks.map((framework) => (
           <button
             key={framework.name}
@@ -616,7 +616,7 @@ function FrameworkSwitcher({
       </div>
       <div className="hidden sm:flex">
         <Link href="https://github.com/unkeyed/unkey">
-          <div className="flex items-center pl-2 py-4">
+          <div className="flex items-center py-4 pl-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -645,7 +645,7 @@ function FrameworkSwitcher({
                 </linearGradient>
               </defs>
             </svg>
-            <p className="text-sm text-white/20 ml-2 hover:text-white transition-all">
+            <p className="ml-2 text-sm transition-all text-white/20 hover:text-white">
               View on GitHub
             </p>
           </div>

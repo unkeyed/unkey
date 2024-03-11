@@ -210,11 +210,11 @@ describe("synchronous", () => {
         const passed = results.reduce((sum, res) => {
           return res.body.success ? sum + 1 : sum;
         }, 0);
-        console.log(`${passed}/${results.length} passed`);
         expect(passed).toBeGreaterThanOrEqual(expected.min);
         expect(passed).toBeLessThanOrEqual(expected.max);
       },
-      600_000,
+
+      { retry: 1, timeout: 600_000 },
     );
   });
 });

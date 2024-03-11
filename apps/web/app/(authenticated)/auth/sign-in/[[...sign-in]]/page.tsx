@@ -1,18 +1,9 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { FadeIn } from "@/components/landing/fade-in";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-} from "@/components/ui/alert-dialog";
 import { useAuth } from "@clerk/nextjs";
-import { ArrowRight, MoveRight, SearchX } from "lucide-react";
+import { MoveRight } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 import { ErrorBanner, WarnBanner } from "../../banners";
 import { EmailCode } from "../email-code";
@@ -25,7 +16,6 @@ export default function AuthenticationPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState("");
   const { isLoaded } = useAuth();
-  const _router = useRouter();
   if (!isLoaded) {
     return null;
   }

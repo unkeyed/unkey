@@ -1,4 +1,3 @@
-import { generateErrorMessage } from "zod-error";
 import { Err, Ok, type Result, SchemaError } from "../../../internal/error";
 import { type PermissionQuery, permissionQuerySchema } from "./queries";
 
