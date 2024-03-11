@@ -1,4 +1,4 @@
-import { onTestFinished } from "vitest";
+import { type TaskContext, onTestFinished } from "vitest";
 import { type Api, type KeyAuth, type Workspace } from "../db";
 import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
@@ -20,10 +20,9 @@ export class RouteHarness extends Harness {
   private constructor(worker: UnstableDevWorker) {
     super();
     this.worker = worker;
-    onTestFinished(this.worker.stop);
   }
 
-  static async init(): Promise<RouteHarness> {
+  static async init(t?: TaskContext): Promise<RouteHarness> {
     const env = routeTestEnv.parse(process.env);
     const worker = await unstable_dev("src/worker.ts", {
       local: env.WORKER_LOCATION === "local",
@@ -31,6 +30,11 @@ export class RouteHarness extends Harness {
       experimental: { disableExperimentalWarning: true },
       vars: env,
     });
+    if (t) {
+      t.onTestFinished(worker.stop);
+    } else {
+      onTestFinished(worker.stop);
+    }
 
     const h = new RouteHarness(worker);
     await h.seed();

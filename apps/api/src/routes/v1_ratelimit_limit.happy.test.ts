@@ -60,7 +60,7 @@ describe("synchronous", () => {
   });
 
   describe("within bounds", () => {
-    test.each<{
+    describe.concurrent.each<{
       name: string;
       limit: number;
       duration: number;
@@ -172,49 +172,51 @@ describe("synchronous", () => {
         seconds: 120,
         expected: { min: 120, max: 120 },
       },
-    ])(
-      "$name",
-      async ({ limit, duration, rps, seconds, expected }) => {
-        const h = await RouteHarness.init();
-        const namespace = {
-          id: newId("test"),
-          workspaceId: h.resources.userWorkspace.id,
-          createdAt: new Date(),
-          name: "namespace",
-        };
-        await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+    ])("$name", async ({ limit, duration, rps, seconds, expected }) => {
+      test(
+        `passed requests are within [${expected.min} - ${expected.max}]`,
+        async (t) => {
+          const h = await RouteHarness.init(t);
+          const namespace = {
+            id: newId("test"),
+            workspaceId: h.resources.userWorkspace.id,
+            createdAt: new Date(),
+            name: "namespace",
+          };
+          await h.db.insert(schema.ratelimitNamespaces).values(namespace);
 
-        const identifier = randomUUID();
+          const identifier = randomUUID();
 
-        const root = await h.createRootKey(["ratelimit.*.limit"]);
+          const root = await h.createRootKey(["ratelimit.*.limit"]);
 
-        const results = await loadTest({
-          rps,
-          seconds,
-          fn: () =>
-            h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-              url: "/v1/ratelimit.limit",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${root.key}`,
-              },
-              body: {
-                identifier,
-                namespace: namespace.name,
-                limit,
-                duration,
-              },
-            }),
-        });
-        expect(results.length).toBe(rps * seconds);
-        const passed = results.reduce((sum, res) => {
-          return res.body.success ? sum + 1 : sum;
-        }, 0);
-        expect(passed).toBeGreaterThanOrEqual(expected.min);
-        expect(passed).toBeLessThanOrEqual(expected.max);
-      },
+          const results = await loadTest({
+            rps,
+            seconds,
+            fn: () =>
+              h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
+                url: "/v1/ratelimit.limit",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${root.key}`,
+                },
+                body: {
+                  identifier,
+                  namespace: namespace.name,
+                  limit,
+                  duration,
+                },
+              }),
+          });
+          expect(results.length).toBe(rps * seconds);
+          const passed = results.reduce((sum, res) => {
+            return res.body.success ? sum + 1 : sum;
+          }, 0);
+          expect(passed).toBeGreaterThanOrEqual(expected.min);
+          expect(passed).toBeLessThanOrEqual(expected.max);
+        },
 
-      { retry: 1, timeout: 600_000 },
-    );
+        { retry: 1, timeout: 600_000 },
+      );
+    });
   });
 });
