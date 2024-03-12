@@ -384,7 +384,6 @@ li > p {
   }
 }
 
-.hashed-keys-gradient {
-  background: radial-gradient(47.56% 100% at 0% 50%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.00) 75.45%), rgba(0, 0, 0, 0.10);
-  backdrop-filter: blur(5px);
+.hk-radial {
+  background: radial-gradient(77.56% 100% at 0% 50%, #303030 0%, black 75.45%);
 }
