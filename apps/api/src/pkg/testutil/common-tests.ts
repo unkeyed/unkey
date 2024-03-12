@@ -5,12 +5,12 @@
  * files.
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
-import { afterEach } from "node:test";
 import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { StepRequest } from "./request";
 
@@ -28,25 +28,39 @@ type StepRequestWithoutAuthorizationHeader<TReq> = Omit<StepRequest<TReq>, "head
   };
 };
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-
-afterAll(async () => {
-  await h.stop();
-});
-export function runSharedRoleTests<TReq>(config: {
+export function runCommonRouteTests<TReq>(config: {
   prepareRequest: (h: RouteHarness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
 }) {
+  describe("disabled workspace", () => {
+    test("should reject the request", async () => {
+      const h = await RouteHarness.init();
+      await h.db
+        .update(schema.workspaces)
+        .set({ enabled: false })
+        .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));
+
+      const req = await config.prepareRequest(h);
+
+      req.headers = {
+        ...req.headers,
+        // @ts-expect-error
+        Authorization: `Bearer ${(await h.createRootKey(["*"])).key}`,
+      };
+      const res = await h.do<TReq, ErrorResponse>(req);
+      expect(res.status).toEqual(403);
+      expect(res.body).toMatchObject({
+        error: {
+          code: "FORBIDDEN",
+          docs: "https://unkey.dev/docs/api-reference/errors/code/FORBIDDEN",
+          message: "workspace is disabled",
+        },
+      });
+    });
+  });
+
   describe("shared role tests", () => {
     test("without a key", async () => {
+      const h = await RouteHarness.init();
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>(req);
       expect(res.status).toEqual(403);
@@ -60,6 +74,7 @@ export function runSharedRoleTests<TReq>(config: {
     });
 
     test("with wrong key", async () => {
+      const h = await RouteHarness.init();
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>({
         ...req,
@@ -96,6 +111,7 @@ export function runSharedRoleTests<TReq>(config: {
           ],
         },
       ])("$name", async ({ roles }) => {
+        const h = await RouteHarness.init();
         const { key: rootKey } = await h.createRootKey(roles);
 
         const req = await config.prepareRequest(h);

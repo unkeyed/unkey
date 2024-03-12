@@ -9,6 +9,14 @@ export type CacheNamespaces = {
     roles: string[];
   } | null;
   keyByHash: {
+    workspace: {
+      id: string;
+      enabled: boolean;
+    };
+    forWorkspace: {
+      id: string;
+      enabled: boolean;
+    } | null;
     key: Key;
     api: Api;
     permissions: string[];

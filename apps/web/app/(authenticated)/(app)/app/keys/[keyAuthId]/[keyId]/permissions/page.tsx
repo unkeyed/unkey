@@ -6,6 +6,8 @@ import { CreateNewPermission } from "../../../../authorization/permissions/creat
 import { CreateNewRole } from "../../../../authorization/roles/create-new-role";
 import { Chart } from "./chart";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: {
     keyId: string;
@@ -65,8 +67,8 @@ export default async function (props: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-8 mb-20 ">
-      <div className="flex items-center justify-between flex-1 w-full gap-2">
+    <div className="mb-20 flex flex-col gap-8 ">
+      <div className="flex w-full flex-1 items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="h-8">
             {Intl.NumberFormat().format(key.roles.length)} Roles{" "}

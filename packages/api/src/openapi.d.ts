@@ -1036,6 +1036,157 @@ export interface paths {
       };
     };
   };
+  "/v1/ratelimit.limit": {
+    post: {
+      requestBody: {
+        content: {
+          "application/json": {
+            /**
+             * @description Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.
+             * @example api
+             */
+            namespace: string;
+            /**
+             * @description Identifier of your user, this can be their userId, an email, an ip or anything else.
+             * @example user_123
+             */
+            identifier: string;
+            /**
+             * @description How many requests may pass in a given window.
+             * @example 10
+             */
+            limit: number;
+            /**
+             * @description The window duration in milliseconds
+             * @example 60000
+             */
+            duration: number;
+            /**
+             * @description Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window. If there are not enough tokens left, the request is denied.
+             * @default 1
+             * @example 2
+             */
+            cost?: number;
+            /**
+             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+             * @default false
+             */
+            async?: boolean;
+            /** @description Attach any metadata to this request */
+            meta?: {
+              [key: string]: unknown;
+            };
+            /**
+             * @description Not implemented yet
+             * @enum {string}
+             */
+            sharding?: "edge";
+            /**
+             * @description Resources that are about to be accessed by the user
+             * @example [
+             *   {
+             *     "type": "project",
+             *     "id": "p_123",
+             *     "name": "dub"
+             *   }
+             * ]
+             */
+            resources?: {
+              /**
+               * @description The type of resource
+               * @example organization
+               */
+              type: string;
+              /**
+               * @description The unique identifier for the resource
+               * @example org_123
+               */
+              id: string;
+              /**
+               * @description A human readable name for this resource
+               * @example unkey
+               */
+              name?: string;
+              /** @description Attach any metadata to this resources */
+              meta?: {
+                [key: string]: unknown;
+              };
+            }[];
+          };
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              /**
+               * @description Returns true if the request should be processed, false if it was rejected.
+               * @example true
+               */
+              success: boolean;
+              /**
+               * @description How many requests are allowed within a window.
+               * @example 10
+               */
+              limit: number;
+              /**
+               * @description How many requests can still be made in the current window.
+               * @example 9
+               */
+              remaining: number;
+              /**
+               * @description A unix millisecond timestamp when the limits reset.
+               * @example 1709804263654
+               */
+              reset: number;
+            };
+          };
+        };
+        /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+        400: {
+          content: {
+            "application/json": components["schemas"]["ErrBadRequest"];
+          };
+        };
+        /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+        401: {
+          content: {
+            "application/json": components["schemas"]["ErrUnauthorized"];
+          };
+        };
+        /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+        403: {
+          content: {
+            "application/json": components["schemas"]["ErrForbidden"];
+          };
+        };
+        /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+        404: {
+          content: {
+            "application/json": components["schemas"]["ErrNotFound"];
+          };
+        };
+        /** @description This response is sent when a request conflicts with the current state of the server. */
+        409: {
+          content: {
+            "application/json": components["schemas"]["ErrConflict"];
+          };
+        };
+        /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+        429: {
+          content: {
+            "application/json": components["schemas"]["ErrTooManyRequests"];
+          };
+        };
+        /** @description The server has encountered a situation it does not know how to handle. */
+        500: {
+          content: {
+            "application/json": components["schemas"]["ErrInternalServerError"];
+          };
+        };
+      };
+    };
+  };
   "/v1/keys": {
     post: {
       requestBody: {
@@ -1284,7 +1435,7 @@ export interface paths {
               remaining?: number;
               /**
                * @description If the key is invalid this field will be set to the reason why it is invalid.
-               * Possible vals are:
+               * Possible values are:
                * - NOT_FOUND: the key does not exist or has expired
                * - FORBIDDEN: the key is not allowed to access the api
                * - USAGE_EXCEEDED: the key has exceeded its request limit
@@ -1847,7 +1998,7 @@ export interface components {
          *   ]
          * }
          */
-        permissions: Record<string, never>;
+        permissions?: Record<string, never>;
       };
     };
   };

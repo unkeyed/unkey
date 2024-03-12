@@ -1,27 +1,16 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 test("returns 200", async () => {
+  const h = await RouteHarness.init();
+
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
     id: newId("key"),
@@ -49,6 +38,7 @@ test("returns 200", async () => {
 
 describe("bad request", () => {
   test("returns 400", async () => {
+    const h = await RouteHarness.init();
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.insert(schema.keys).values({
       id: newId("key"),
@@ -77,6 +67,7 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async () => {
+      const h = await RouteHarness.init();
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.insert(schema.keys).values({
         id: newId("key"),
@@ -122,6 +113,7 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async () => {
+      const h = await RouteHarness.init();
       const keyAuthId = newId("keyAuth");
       await h.db.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -169,6 +161,7 @@ describe("with ip whitelist", () => {
     test(
       "returns invalid",
       async () => {
+        const h = await RouteHarness.init();
         const keyAuthid = newId("keyAuth");
         await h.db.insert(schema.keyAuth).values({
           id: keyAuthid,
@@ -219,6 +212,7 @@ describe("with ip whitelist", () => {
 
 describe("with enabled key", () => {
   test("returns valid", async () => {
+    const h = await RouteHarness.init();
     const keyAuthId = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthId,
@@ -264,6 +258,7 @@ describe("with enabled key", () => {
 
 describe("with disabled key", () => {
   test("returns invalid", async () => {
+    const h = await RouteHarness.init();
     const keyAuthid = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthid,
@@ -309,6 +304,8 @@ describe("with disabled key", () => {
 });
 
 test("returns the environment of a key", async () => {
+  const h = await RouteHarness.init();
+
   const environment = "test";
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
@@ -334,4 +331,43 @@ test("returns the environment of a key", async () => {
   expect(res.status).toEqual(200);
   expect(res.body.valid).toBe(true);
   expect(res.body.environment).toEqual(environment);
+});
+
+describe("disabled workspace", () => {
+  test("should reject the request", async () => {
+    const h = await RouteHarness.init();
+    await h.db
+      .update(schema.workspaces)
+      .set({ enabled: false })
+      .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+    });
+    const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    console.log(res);
+    expect(res.status).toEqual(403);
+    expect(res.body).toMatchObject({
+      error: {
+        code: "FORBIDDEN",
+        docs: "https://unkey.dev/docs/api-reference/errors/code/FORBIDDEN",
+        message: "workspace is disabled",
+      },
+    });
+  });
 });

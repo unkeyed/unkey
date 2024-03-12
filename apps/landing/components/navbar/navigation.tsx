@@ -14,7 +14,7 @@ import { DesktopNavLink, MobileNavLink } from "./link";
 
 export function Navigation() {
   return (
-    <nav className="container mx-auto w-full flex items-center justify-between h-20">
+    <nav className="container flex items-center justify-between w-full h-20 mx-auto">
       <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
         <Link href="/">
           <Logo className="min-w-[50px]" />
@@ -62,7 +62,7 @@ const MobileLinks: React.FC<{ className: string }> = ({ className }) => (
             <MobileNavLink href="/pricing" label="Pricing" />
             <MobileNavLink href="/changelog" label="Changelog" />
             <MobileNavLink href="/templates" label="Templates" />
-            <MobileNavLink href="/docs" label="Docs" />
+            <MobileNavLink href="/docs" external label="Docs" />
           </ul>
         </div>
         <DrawerFooter>
@@ -97,7 +97,7 @@ const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
     <DesktopNavLink href="/pricing" label="Pricing" />
     <DesktopNavLink href="/changelog" label="Changelog" />
     <DesktopNavLink href="/templates" label="Templates" />
-    <DesktopNavLink href="/docs" label="Docs" />
+    <DesktopNavLink href="/docs" external label="Docs" />
   </ul>
 );
 

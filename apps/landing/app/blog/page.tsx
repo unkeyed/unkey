@@ -2,7 +2,7 @@ import { CTA } from "@/components/cta";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
-import { BLOG_PATH, Frontmatter, Tags, getAllMDXData } from "@/lib/mdx-helper";
+import { BLOG_PATH, Tags, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
 import { BlogContainer } from "./blog-container";
 import { BlogHero } from "./blog-hero";
@@ -33,19 +33,6 @@ export const metadata = {
   },
 };
 
-function getAllTags(posts: { frontmatter: Frontmatter; slug: string }[]) {
-  const tempTags = ["all"];
-  posts.forEach((post) => {
-    const newTags = post.frontmatter.tags?.toString().split(" ");
-    newTags?.forEach((tag: string) => {
-      if (!tempTags.includes(tag)) {
-        tempTags.push(tag);
-      }
-    });
-  });
-  return tempTags;
-}
-
 type Props = {
   searchParams?: {
     tag?: Tags;
@@ -57,7 +44,6 @@ export default async function Blog(props: Props) {
   const posts = (await getAllMDXData({ contentPath: BLOG_PATH })).sort((a, b) => {
     return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
   });
-  const _allTags = getAllTags(posts);
   const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
@@ -85,14 +71,14 @@ export default async function Blog(props: Props) {
             xPos={100}
             speed={10}
             delay={7}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={100}
             speed={10}
             delay={2}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
@@ -113,14 +99,14 @@ export default async function Blog(props: Props) {
             xPos={400}
             speed={10}
             delay={5}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={400}
             speed={10}
             delay={0}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
         </div>
         <div>

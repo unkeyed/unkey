@@ -14,5 +14,7 @@ export default defineConfig({
         singleThread: true,
       },
     },
+    // starting the worker takes a bit of time
+    testTimeout: 60_000,
   },
 });

@@ -15,11 +15,11 @@ export const OpenSource: React.FC = () => {
       <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
         <OssLight />
       </div>
-      <div className="flex flex-col items-center xl:flex-row w-full justify-center xl:justify-between">
+      <div className="flex flex-col items-center justify-center w-full xl:flex-row xl:justify-between">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={{ duration: 1, ease: "easeInOut" }}
           viewport={{ once: true, amount: 0.5 }}
         >
           <SectionTitle
@@ -43,7 +43,7 @@ export const OpenSource: React.FC = () => {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={{ duration: 1, ease: "easeInOut" }}
           >
             <Github className="w-[380px] md:w-[640px] mt-24 xl:mt-0" />
             <Image alt="Github logo" src={GithubSvg} className="mt-24" />

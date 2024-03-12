@@ -1,36 +1,23 @@
 import { randomUUID } from "crypto";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { type V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
-runSharedRoleTests({
-  prepareRequest: async (rh) => {
+runCommonRouteTests({
+  prepareRequest: async (h) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await rh.db.insert(schema.keys).values({
+    await h.db.insert(schema.keys).values({
       id: keyId,
-      keyAuthId: rh.resources.userKeyAuth.id,
+      keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
-      workspaceId: rh.resources.userWorkspace.id,
+      workspaceId: h.resources.userWorkspace.id,
       createdAt: new Date(),
     });
     return {
@@ -70,6 +57,7 @@ describe("correct roles", () => {
       ],
     },
   ])("$name", async ({ roles }) => {
+    const h = await RouteHarness.init();
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.insert(schema.keys).values({
