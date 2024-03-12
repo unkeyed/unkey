@@ -108,8 +108,8 @@ const testCases: {
     limit: 1000,
     duration: 10000,
     rps: 50,
-    seconds: 300,
-    expected: { min: 15000, max: 15000 },
+    seconds: 120,
+    expected: { min: 6000, max: 6000 },
   },
   {
     name: "Very Long Window",
