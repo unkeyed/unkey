@@ -10,6 +10,11 @@ export const ratelimitRequestSchema = z.object({
   identifier: z.string(),
   limit: z.number().int(),
   interval: z.number().int(),
+  /**
+   * Add an arbitrary string to the durable object name.
+   * We use this to do limiting at the edge for root keys by adding the cloudflare colo
+   */
+  shard: z.string().optional(),
 });
 export type RatelimitRequest = z.infer<typeof ratelimitRequestSchema>;
 

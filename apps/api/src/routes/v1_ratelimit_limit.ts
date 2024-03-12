@@ -196,16 +196,17 @@ export const registerV1RatelimitLimit = (app: App) =>
     const duration = ratelimit?.duration ?? req.duration;
     const async = ratelimit?.async ?? req.async;
     const sharding = ratelimit?.sharding ?? req.sharding;
-    const shardKey =
+    const shard =
       sharding === "edge"
         ? // @ts-ignore - this is a bug in the types
           c.req.raw?.cf?.colo
-        : "";
+        : undefined;
 
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit({
-      identifier: [namespace.id, req.identifier, limit, duration, async, shardKey].join("::"),
+      identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
       interval: duration,
       limit,
+      shard,
     });
     if (ratelimitError) {
       throw new UnkeyApiError({

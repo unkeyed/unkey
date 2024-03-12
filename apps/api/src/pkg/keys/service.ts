@@ -476,6 +476,8 @@ export class KeyService {
           identifier: key.id,
           limit: key.ratelimitRefillRate,
           interval: key.ratelimitRefillInterval,
+          // root keys are sharded per edge colo
+          shard: key.forWorkspaceId ? "edge" : undefined,
         })
         .then((res) => {
           if (res.err) {

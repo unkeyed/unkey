@@ -26,7 +26,7 @@ export class RouteHarness extends Harness {
     const env = routeTestEnv.parse(process.env);
     const worker = await unstable_dev("src/worker.ts", {
       local: env.WORKER_LOCATION === "local",
-      logLevel: "info",
+      logLevel: "warn",
       experimental: { disableExperimentalWarning: true },
       vars: env,
     });

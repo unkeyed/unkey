@@ -28,10 +28,10 @@ export class DurableRateLimiter implements RateLimiter {
     const window = Math.floor(now / req.interval);
     const reset = (window + 1) * req.interval;
 
-    const keyAndWindow = [req.identifier, window].join(":");
+    const objectName = [req.identifier, window, req.shard].join("::");
 
     try {
-      const obj = this.namespace.get(this.namespace.idFromName(keyAndWindow));
+      const obj = this.namespace.get(this.namespace.idFromName(objectName));
       const url = `https://${this.domain}/limit`;
       const res = await obj
         .fetch(url, {
