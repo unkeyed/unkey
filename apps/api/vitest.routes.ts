@@ -11,5 +11,6 @@ export default defineConfig({
 
     // starting the worker takes a bit of time
     testTimeout: 60_000,
+    teardownTimeout: 60_000,
   },
 });
