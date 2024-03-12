@@ -9,6 +9,7 @@ concurrency: "only one deploy at a time"
 jobs:
   test_routes:
     strategy:
+      fail-fast: false
       matrix:
         shard:
           [
@@ -74,7 +75,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/16
+        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/16
         working-directory: apps/api
         env:
           WORKER_LOCATION: local
@@ -180,7 +181,7 @@ jobs:
   canary-benchmarks:
     environment: Canary
     needs: canary
-    name: End to End Test Canary
+    name: Benchmark Canary
     runs-on: ubuntu-latest
 
     steps:
