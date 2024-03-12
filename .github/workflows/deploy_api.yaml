@@ -6,12 +6,29 @@ on:
 
 concurrency: "only one deploy at a time"
 
-
 jobs:
   test_routes:
     strategy:
       matrix:
-        shard: ["1", "2", "3", "4", "5", "6", "7", "8","9","10","11","12","13","14","15","16"]
+        shard:
+          [
+            "01",
+            "02",
+            "03",
+            "04",
+            "05",
+            "06",
+            "07",
+            "08",
+            "09",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+          ]
     name: Test API Routes ${{matrix.shard}}/16
     runs-on: ubuntu-latest
     env:
@@ -21,7 +38,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
 
       - name: Setup pscale
         uses: planetscale/setup-pscale-action@v1
@@ -51,10 +67,9 @@ jobs:
           echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
           echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
 
-
       - name: Install
         uses: ./.github/actions/install
-        
+
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
@@ -71,8 +86,6 @@ jobs:
         run: |
           pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
 
-
-
   preview:
     environment: Preview
     runs-on: ubuntu-latest
@@ -82,11 +95,10 @@ jobs:
 
       - uses: pnpm/action-setup@v3.0.0
         with:
-            version: latest
+          version: latest
 
       - name: Install
         uses: ./.github/actions/install
-
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
@@ -102,7 +114,6 @@ jobs:
     needs: preview
     name: End to End Test Preview
     runs-on: ubuntu-latest
-
 
     steps:
       - uses: actions/checkout@v4
@@ -122,26 +133,26 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
   canary:
-      needs:
-        - test_routes
-        - preview-tests
-      environment: Canary
-      runs-on: ubuntu-latest
-      name: Deploy Canary
-      steps:
-        - uses: actions/checkout@v4
+    needs:
+      - test_routes
+      - preview-tests
+    environment: Canary
+    runs-on: ubuntu-latest
+    name: Deploy Canary
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Install
-          uses: ./.github/actions/install
+      - name: Install
+        uses: ./.github/actions/install
 
-        - name: Build
-          run: pnpm turbo run build --filter='./apps/api'
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
 
-        - name: Deploy
-          run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
-          working-directory: apps/api
-          env:
-            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Deploy
+        run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   canary-tests:
     environment: Canary
@@ -165,7 +176,7 @@ jobs:
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-          
+
   canary-benchmarks:
     environment: Canary
     needs: canary
@@ -191,8 +202,6 @@ jobs:
           PLANETFALL_URL: ${{ secrets.PLANETFALL_URL }}
           PLANETFALL_API_KEY: ${{ secrets.PLANETFALL_API_KEY }}
           WORKER_LOCATION: local
-
-  
 
   production:
     needs:
