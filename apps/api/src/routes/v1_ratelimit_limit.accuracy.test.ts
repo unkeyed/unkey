@@ -122,7 +122,7 @@ const testCases: {
 ];
 
 for (const { name, limit, duration, rps, seconds, expected } of testCases) {
-  test.concurrent(
+  test(
     `${name}, [~${seconds}s], passed requests are within [${expected.min} - ${expected.max}]`,
     async (t) => {
       const h = await RouteHarness.init(t);
