@@ -18,15 +18,9 @@ export const generateRandomString = (length: number) => {
 export function HashedKeys() {
   const [hasReachedThreshold, setHasReachedThreshold] = useState(false);
   const randomStringRef = useRef(generateRandomString(1500));
-  const [isAnimating, setIsAnimating] = useState(false);
   const textContainerRef = useRef<HTMLParagraphElement>(null); // Ref for the text container
 
-  console.log(isAnimating);
-
   function generateRandomStrings(iterations = 50) {
-    if (iterations < 2) {
-      setIsAnimating(false);
-    }
     if (iterations === 0) {
       return;
     }
