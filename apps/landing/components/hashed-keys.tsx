@@ -1,8 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { nanoid } from "nanoid";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { StarsSvg } from "@/components/svg/stars";
 import { cn } from "@/lib/utils";
@@ -15,6 +14,93 @@ export const generateRandomString = (length: number) => {
   }
   return result;
 };
+
+export function HashedKeys() {
+  const [hasReachedThreshold, setHasReachedThreshold] = useState(false);
+  const randomStringRef = useRef(generateRandomString(1500));
+  const [isAnimating, setIsAnimating] = useState(false);
+  const textContainerRef = useRef<HTMLParagraphElement>(null); // Ref for the text container
+
+  console.log(isAnimating);
+
+  function generateRandomStrings(iterations = 50) {
+    if (iterations < 2) {
+      setIsAnimating(false);
+    }
+    if (iterations === 0) {
+      return;
+    }
+    setTimeout(() => {
+      randomStringRef.current = generateRandomString(1500);
+      updateTextContainer(); // Update the text container directly
+      generateRandomStrings(iterations - 1);
+    }, 20);
+  }
+
+  useEffect(() => {
+    updateTextContainer();
+  }, []);
+
+  useEffect(() => {
+    // If the threshold is reached, start the second animation
+    if (hasReachedThreshold) {
+      generateRandomStrings();
+    }
+  }, [hasReachedThreshold]);
+
+  const updateTextContainer = () => {
+    if (textContainerRef.current) {
+      textContainerRef.current.innerHTML = randomStringRef.current
+        .split("")
+        .map(
+          (char) =>
+            `<span style="color: ${
+              Math.random() < 0.12 && hasReachedThreshold ? "#3CEEAE" : "inherit"
+            };">${char}</span>`,
+        )
+        .join("");
+    }
+  };
+
+  return (
+    <div className="w-full relative flex items-center mb-[100px]">
+      <StarsSvg className="absolute" />
+      <AnimatePresence>
+        <motion.div
+          initial={{ x: -250 }}
+          exit={{ x: -250 }}
+          whileInView={{ x: 320 }}
+          transition={{
+            type: "spring",
+            damping: 80,
+            stiffness: 100,
+            mass: 12,
+            delay: 1.5,
+            repeat: Infinity,
+            duration: 1,
+          }}
+          onUpdate={(latest: { x: number }) => {
+            if (latest.x > 0) {
+              setHasReachedThreshold(true);
+            }
+            if (latest.x < -100) {
+              setHasReachedThreshold(false);
+            }
+          }}
+        >
+          <Key text="sk_TEwCE9AY9BFTq1XJdIO" className={cn("relative left-[-3px]")} />
+        </motion.div>
+      </AnimatePresence>
+      <div className="line h-[300px] w-[0.75px] bg-gradient-to-b from-black to-black via-white relative z-50" />
+      <div className="bg-[#080808] hk-radial rounded-lg w-[200px] h-[300px] overflow-hidden pt-8 pl-4 flex relative z-50 select-none">
+        <p
+          className="text-white/40 break-words whitespace-pre-wrap w-[160px] h-[240px] overflow-hidden font-mono text-sm"
+          ref={textContainerRef}
+        />
+      </div>
+    </div>
+  );
+}
 
 function Key({ className, text }: { className?: string; text: string }) {
   return (
@@ -105,95 +191,6 @@ function Key({ className, text }: { className?: string; text: string }) {
           </svg>
         </div>
         <p className="relative right-4 text-[13px]">{text}</p>
-      </div>
-    </div>
-  );
-}
-
-export function HashedKeys() {
-  const [animating, setAnimating] = useState(false);
-  const [randomString, setRandomString] = useState("");
-  const [fadeOut, setFadeOut] = useState(false);
-  const [animationKey, setAnimationKey] = useState(0); // Add a key state
-
-  useEffect(() => {
-    // Initial random string generation
-    setRandomString(generateRandomString(1500));
-  }, []);
-
-  const renderStringWithColor = (str: string) => {
-    return str.split("").map((char) => {
-      const id = nanoid();
-      return (
-        <span
-          key={id}
-          style={
-            animating
-              ? {
-                  color: Math.random() < 0.12 ? "#3CEEAE" : "white/40",
-                }
-              : fadeOut
-                ? { color: "#ffffff33" }
-                : { color: "white/40" }
-          }
-        >
-          {char}
-        </span>
-      );
-    });
-  };
-
-  const scrambleMultipleTimes = (times: number, initialInterval: number, increaseFactor = 1.2) => {
-    if (times <= 0) {
-      setFadeOut(true);
-      setAnimating(false);
-      setTimeout(() => {
-        console.log("end timeout");
-        setAnimationKey((prevKey) => prevKey + 1); // Increment key to trigger re-animation
-        console.log("increment");
-        setFadeOut(false); // Reset fadeOut for the next cycle
-        console.log("faded");
-      }, 1000); // Delay might need adjustment based on exit animation time
-      return;
-    }
-
-    setTimeout(() => {
-      setRandomString(generateRandomString(620));
-      const nextInterval = initialInterval * increaseFactor ** (50 - times);
-      scrambleMultipleTimes(times - 1, nextInterval, increaseFactor);
-    }, initialInterval);
-  };
-
-  return (
-    <div className="w-full relative flex items-center mb-[100px]">
-      <StarsSvg className="absolute" />
-      <AnimatePresence>
-        <motion.div
-          key={animationKey} // Use the key state here
-          initial={{ x: -250 }}
-          whileInView={{ x: 400 }}
-          transition={{
-            type: "spring",
-            damping: 200,
-            stiffness: 100,
-            mass: 12,
-            delay: 1.5,
-          }}
-          onViewportEnter={() => {
-            setTimeout(() => {
-              setAnimating(true);
-              scrambleMultipleTimes(120, 10, 0.1);
-            }, 2620);
-          }}
-        >
-          <Key text="sk_TEwCE9AY9BFTq1XJdIO" className={cn("relative left-[-3px]")} />
-        </motion.div>
-      </AnimatePresence>
-      <div className="line h-[300px] w-[0.75px] bg-gradient-to-b from-black to-black via-white relative z-50" />
-      <div className="bg-[#080808] hk-radial rounded-lg w-[200px] h-[300px] overflow-hidden pt-8 pl-4 flex relative z-50 select-none">
-        <p className="text-white/40 break-words whitespace-pre-wrap w-[160px] h-[240px] overflow-hidden font-mono text-sm">
-          {renderStringWithColor(randomString)}
-        </p>
       </div>
     </div>
   );
