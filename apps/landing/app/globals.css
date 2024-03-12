@@ -390,3 +390,12 @@ li > p {
     box-shadow: inset 0px 0px 0px 30px #000;
   }
 }
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
