@@ -1,11 +1,13 @@
 ---
 date: 2024-03-12
 title: Securing environments using Unkey
-description: Creating keys for a specific environment allows you to segment test and production data without the need for additional logic in your code.
+description: Creating keys for a specific environment allows you to segment test and production data without additional logic in your code.
 author: james
 ---
 
 In the market today, we see a lot of products offering different environments. This is done for several reasons, including segmenting testing from production data, offering different rate limits for APIs, and allowing users to match environments to their infrastructure.
+
+<Image src="/images/blog-images/secure-env/example-stripe.png" alt="Example of test keys with stripe" width="1920" height="1080"/>
 
 We provide a way to create keys to specific environments, and all of our features, like ratelimiting, allow you to develop your application with X.
 
@@ -38,7 +40,7 @@ curl -XPOST 'https://api.unkey.dev/v1/keys.createKey' \
 
 ## Verifying keys
 
-With the creation of an environment specific keys we need to ensure that you can verify which environment the key was created for. When you make a request to our verification endpoint we will return the environment as part of the response. For example:
+With the creation of environment-specific keys, we need to ensure that you can verify which environment the key was created for. When you request our verification endpoint, we will return the environment as part of the response. For example:
 
 ```bash
 curl --request POST \
@@ -62,6 +64,6 @@ Our response will look similar to the following:
 }
 ```
 
-With this response you can then drive audit logging, or even applications descsions around the environment being used.
+With this response, you can then drive audit logging or even application decisions about the environment being used.
 
 You can start using Unkey with our generous [free tier](https://unkey.dev/app) and learn more about all our features in our [documentation](https://unkey.dev/docs).
