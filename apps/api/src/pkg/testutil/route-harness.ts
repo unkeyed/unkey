@@ -50,14 +50,21 @@ export class RouteHarness extends Harness {
       body: JSON.stringify(req.body),
     });
 
-    return {
-      status: res.status,
-      headers: headersToRecord(res.headers),
-      body: (await res.json().catch((err) => {
-        console.error(`${req.url} didn't return json`, err);
-        return {};
-      })) as TResponseBody,
-    };
+    const text = await res.text();
+    try {
+      return {
+        status: res.status,
+        headers: headersToRecord(res.headers),
+        body: JSON.parse(text),
+      };
+    } catch (err) {
+      console.error(`${req.url} didn't return json`, text, err);
+      return {
+        status: res.status,
+        headers: headersToRecord(res.headers),
+        body: {} as TResponseBody,
+      };
+    }
   }
 
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
