@@ -24,9 +24,8 @@ export const OpenSource: React.FC = () => {
         >
           <SectionTitle
             align="left"
-            title="Developer-first"
-            text="Unkey allows open-source contributions through Github, enabing collaboration and
-        knowledge sharing with all the developers in the world."
+            title="Open-source"
+            text="We believe strongly in the value of open source: our codebase and development process is available to learn from and contribute to."
             titleWidth={463}
             contentWidth={461}
             label="oss/acc"
