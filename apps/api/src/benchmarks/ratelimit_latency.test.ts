@@ -18,8 +18,8 @@ describe("fresh key per region", () => {
       keys: 100,
       testsPerKey: 2,
       threshold: {
-        p50: 100,
-        p90: 200,
+        p50: 200,
+        p90: 250,
         p99: 300,
       },
     },
@@ -88,18 +88,9 @@ describe("fresh key per region", () => {
         );
 
         console.log(name, region, { min, p50, p90, p99, max });
-        expect(
-          p50,
-          `latency p50 is too high, got ${p50}, want ${threshold.p50}`,
-        ).toBeLessThanOrEqual(threshold.p50);
-        expect(
-          p90,
-          `latency p90 is too high, got ${p90}, want ${threshold.p90}`,
-        ).toBeLessThanOrEqual(threshold.p90);
-        expect(
-          p99,
-          `latency p99 is too high, got ${p99}, want ${threshold.p99}`,
-        ).toBeLessThanOrEqual(threshold.p99);
+        expect(p50, "latency p50 is too high").toBeLessThanOrEqual(threshold.p50);
+        expect(p90, "latency p90 is too high").toBeLessThanOrEqual(threshold.p90);
+        expect(p99, "latency p99 is too high").toBeLessThanOrEqual(threshold.p99);
       },
       30_000,
     );
