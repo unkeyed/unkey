@@ -11,8 +11,8 @@ jobs:
   test_routes:
     strategy:
       matrix:
-        shard: ["1", "2", "3", "4", "5", "6", "7", "8"]
-    name: Test API Routes ${{matrix.shard}}
+        shard: ["1", "2", "3", "4", "5", "6", "7", "8","9","10","11","12","13","14","15","16"]
+    name: Test API Routes ${{matrix.shard}}/16
     runs-on: ubuntu-latest
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
@@ -34,7 +34,7 @@ jobs:
       - name: Create a password
         id: database_password
         run: |
-          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --debug --org=unkey --format=json)
 
           # Extract secrets
           database_host=$(echo $res | jq -r '.access_host_url')
@@ -59,10 +59,10 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/8
+        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/16
         working-directory: apps/api
         env:
-          WORKER_LOCATION: cloudflare # run tests against a preview worker deployed on cf
+          WORKER_LOCATION: local
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 

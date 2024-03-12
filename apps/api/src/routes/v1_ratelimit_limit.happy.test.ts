@@ -94,11 +94,11 @@ describe("synchronous", () => {
       },
       {
         name: "4",
-        limit: 1000,
+        limit: 100,
         duration: 10_000,
-        rps: 100,
+        rps: 10,
         seconds: 20,
-        expected: { min: 1000, max: 2000 },
+        expected: { min: 200, max: 200 },
       },
       {
         name: "Basic Test",
