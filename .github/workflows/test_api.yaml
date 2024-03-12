@@ -5,6 +5,7 @@ on:
 jobs:
   test_routes:
     strategy:
+      fail-fast: false
       matrix:
         shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
     name: Test API Routes ${{matrix.shard}}
