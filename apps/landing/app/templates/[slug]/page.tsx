@@ -91,8 +91,8 @@ export default async function Templates(props: Props) {
           className="hidden overflow-hidden md:block"
         />
       </div>
-      <div className="flex flex-wrap mt-32 text-white/60 mx-auto px-8 sm:px-4 xl:px-12 xl:max-w-[1440px]">
-        <div className="flex flex-col self-start w-full px-0 mx-0 xl:w-1/4 xl:sticky">
+      <div className="container flex flex-wrap px-8 mx-auto mt-16 text-white/60">
+        <div className="flex flex-col self-start w-full px-0 mx-0 xl:w-1/3 xl:sticky top-20">
           <Link
             href="/templates"
             className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"
@@ -111,7 +111,7 @@ export default async function Templates(props: Props) {
             {template.url ? (
               <Link
                 target="_blank"
-                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black duration-150 bg-white border rounded-md max-w-1/2"
+                className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black transition-all duration-200 transform bg-white border border-white rounded-md hover:bg-black hover:text-white max-w-1/2"
                 href={`${template.url}?ref=unkey.dev`}
               >
                 Website
@@ -119,7 +119,7 @@ export default async function Templates(props: Props) {
             ) : null}
             <Link
               target="_blank"
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center duration-150 border rounded-md text-white/60 border-white/10 max-w-1/2"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center duration-200 border rounded-md text-white/60 border-white/10 hover:border-white hover:text-white max-w-1/2"
               href={template.repository}
             >
               Repository
@@ -127,7 +127,7 @@ export default async function Templates(props: Props) {
           </div>
 
           <dl className="grid grid-rows-2 mt-12 ">
-            <div className="flex flex-row w-full h-fit">
+            <div className="flex flex-row w-full my-4">
               <span className="text-[13px] text-white/30 w-1/2">Written by </span>
               <span className="text-[15px] font-medium text-white text-end w-1/2">
                 {template.authors.join(", ")}
@@ -147,8 +147,7 @@ export default async function Templates(props: Props) {
               ))}
           </dl>
         </div>
-        {/* <Separator orientation="horizontal" /> */}
-        <div className="flex flex-col w-full mb-24 xl:w-3/4 sm:mt-20 md:mt-0 xl:pt-24 xl:pl-24">
+        <div className="flex flex-col w-full mb-24 xl:w-2/3 sm:mt-20 md:mt-0 xl:pt-24 xl:pl-24">
           <div>
             {template.image ? (
               <Frame size={"lg"} className="">

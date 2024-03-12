@@ -1,5 +1,3 @@
-"use client";
-import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { PrimaryButton, SecondaryButton } from "@/components/button";
@@ -7,13 +5,7 @@ import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 
 export function HeroMainSection() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 1, ease: "easeOut" }}
-      whileInView="visible"
-      className="relative flex flex-col items-center text-center xl:text-left xl:items-start"
-    >
+    <div className="relative flex flex-col items-center text-center xl:text-left xl:items-start">
       <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -78,6 +70,6 @@ export function HeroMainSection() {
           <SecondaryButton IconLeft={BookOpen} label="Documentation" IconRight={ChevronRight} />
         </Link>
       </div>
-    </motion.div>
+    </div>
   );
 }
