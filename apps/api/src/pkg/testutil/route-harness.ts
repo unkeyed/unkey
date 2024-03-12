@@ -30,10 +30,15 @@ export class RouteHarness extends Harness {
       experimental: { disableExperimentalWarning: true },
       vars: env,
     });
+
+    const stop = () =>
+      worker.stop().catch((err) => {
+        console.error(err);
+      });
     if (t) {
-      t.onTestFinished(worker.stop);
+      t.onTestFinished(stop);
     } else {
-      onTestFinished(worker.stop);
+      onTestFinished(stop);
     }
 
     const h = new RouteHarness(worker);
