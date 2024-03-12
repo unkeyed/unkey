@@ -13,25 +13,18 @@ jobs:
       matrix:
         shard:
           [
-            "01",
-            "02",
-            "03",
-            "04",
-            "05",
-            "06",
-            "07",
-            "08",
-            "09",
-            "10",
-            "11",
-            "12",
-            "13",
-            "14",
-            "15",
-            "16",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
           ]
-    name: Test API Routes ${{matrix.shard}}/16
+    name: Test API Routes ${{matrix.shard}}/8
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
@@ -75,7 +68,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/16
+        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/8
         working-directory: apps/api
         env:
           WORKER_LOCATION: local
