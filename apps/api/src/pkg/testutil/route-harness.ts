@@ -1,3 +1,4 @@
+import { type TaskContext, onTestFinished } from "vitest";
 import { type Api, type KeyAuth, type Workspace } from "../db";
 import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
@@ -21,19 +22,23 @@ export class RouteHarness extends Harness {
     this.worker = worker;
   }
 
-  static async init(): Promise<RouteHarness> {
+  static async init(t?: TaskContext): Promise<RouteHarness> {
     const env = routeTestEnv.parse(process.env);
     const worker = await unstable_dev("src/worker.ts", {
       local: env.WORKER_LOCATION === "local",
-      logLevel: "info",
+      logLevel: "warn",
       experimental: { disableExperimentalWarning: true },
       vars: env,
     });
-    return new RouteHarness(worker);
-  }
+    if (t) {
+      t.onTestFinished(worker.stop);
+    } else {
+      onTestFinished(worker.stop);
+    }
 
-  public async stop(): Promise<void> {
-    await this.worker.stop();
+    const h = new RouteHarness(worker);
+    await h.seed();
+    return h;
   }
 
   public async do<TRequestBody = unknown, TResponseBody = unknown>(
@@ -45,14 +50,21 @@ export class RouteHarness extends Harness {
       body: JSON.stringify(req.body),
     });
 
-    return {
-      status: res.status,
-      headers: headersToRecord(res.headers),
-      body: (await res.json().catch((err) => {
-        console.error(`${req.url} didn't return json`, err);
-        return {};
-      })) as TResponseBody,
-    };
+    const text = await res.text();
+    try {
+      return {
+        status: res.status,
+        headers: headersToRecord(res.headers),
+        body: JSON.parse(text),
+      };
+    } catch (err) {
+      console.error(`${req.url} didn't return json`, text, err);
+      return {
+        status: res.status,
+        headers: headersToRecord(res.headers),
+        body: {} as TResponseBody,
+      };
+    }
   }
 
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {

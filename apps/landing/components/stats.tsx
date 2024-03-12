@@ -1,5 +1,4 @@
 import { Container } from "@/components/container";
-import { FadeInStagger } from "@/components/fade-in";
 import { StatList, StatListItem } from "@/components/stat-list";
 import { db, schema, sql } from "@/lib/db";
 import { getTotalVerifications } from "@/lib/tinybird";

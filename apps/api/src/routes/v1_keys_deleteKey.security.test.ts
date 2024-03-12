@@ -3,10 +3,10 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { V1KeysDeleteKeyRequest } from "./v1_keys_deleteKey";
 
-runSharedRoleTests<V1KeysDeleteKeyRequest>({
+runCommonRouteTests<V1KeysDeleteKeyRequest>({
   prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

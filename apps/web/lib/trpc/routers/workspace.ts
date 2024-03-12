@@ -47,6 +47,7 @@ export const workspaceRouter = t.router({
         createdAt: new Date(),
         deletedAt: null,
         planDowngradeRequest: null,
+        enabled: true,
       };
       await db.insert(schema.workspaces).values(workspace);
       await ingestAuditLogs({

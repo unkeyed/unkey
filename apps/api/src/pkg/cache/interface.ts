@@ -4,7 +4,7 @@ import { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 
 export class CacheError extends BaseError {
-  public readonly type = "CacheError";
+  public readonly name = "CacheError";
   public readonly retry = false;
 
   public readonly namespace: keyof CacheNamespaces;

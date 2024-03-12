@@ -1,5 +1,3 @@
-const MillionLint = require("@million/lint");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -41,4 +39,4 @@ const nextConfig = {
   ],
 };
 
-module.exports = MillionLint.next()(nextConfig);
+module.exports = nextConfig;

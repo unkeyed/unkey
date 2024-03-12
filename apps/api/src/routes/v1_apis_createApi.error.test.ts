@@ -1,25 +1,13 @@
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
-let h: RouteHarness;
-beforeAll(async () => {
-  h = await RouteHarness.init();
-});
-beforeEach(async () => {
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-afterAll(async () => {
-  await h.stop();
-});
 test.each([
   { name: "empty name", apiName: "" },
   { name: "short name", apiName: "ab" },
 ])("$name", async ({ apiName }) => {
+  const h = await RouteHarness.init();
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const res = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
