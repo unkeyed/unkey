@@ -12,8 +12,7 @@ import { OssLight } from "./svg/oss-light";
 export const OpenSource: React.FC = () => {
   return (
     <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
-      {/* TODO: add additional line SVGs from Figma – current export is broken */}
-      <div className="absolute top-[-460px] md:right-[120px] z-[-1]">
+      <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
         <OssLight />
       </div>
       <div className="flex flex-col items-center justify-center w-full xl:flex-row xl:justify-between">
