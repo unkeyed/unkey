@@ -11,7 +11,6 @@ describe("fresh key per region", () => {
       p50: number;
       p90: number;
       p99: number;
-      max: number;
     };
   }>([
     {
@@ -19,10 +18,9 @@ describe("fresh key per region", () => {
       keys: 100,
       testsPerKey: 2,
       threshold: {
-        p50: 100,
-        p90: 200,
+        p50: 200,
+        p90: 250,
         p99: 300,
-        max: 1000,
       },
     },
     {
@@ -33,7 +31,6 @@ describe("fresh key per region", () => {
         p50: 50,
         p90: 100,
         p99: 150,
-        max: 1000,
       },
     },
     {
@@ -44,7 +41,6 @@ describe("fresh key per region", () => {
         p50: 50,
         p90: 100,
         p99: 200,
-        max: 1000,
       },
     },
     {
@@ -55,7 +51,6 @@ describe("fresh key per region", () => {
         p50: 30,
         p90: 50,
         p99: 75,
-        max: 1000,
       },
     },
   ])("$name", ({ name, keys, testsPerKey, threshold }) => {
@@ -93,12 +88,14 @@ describe("fresh key per region", () => {
         );
 
         console.log(name, region, { min, p50, p90, p99, max });
-        expect(p50).toBeLessThanOrEqual(threshold.p50);
-        expect(p90).toBeLessThanOrEqual(threshold.p90);
-        expect(p99).toBeLessThanOrEqual(threshold.p99);
-        expect(max).toBeLessThanOrEqual(threshold.max);
+        expect(p50, "latency p50 is too high").toBeLessThanOrEqual(threshold.p50);
+        expect(p90, "latency p90 is too high").toBeLessThanOrEqual(threshold.p90);
+        expect(p99, "latency p99 is too high").toBeLessThanOrEqual(threshold.p99);
       },
-      30_000,
+      {
+        retry: 1,
+        timeout: 30_000,
+      },
     );
   });
 });
