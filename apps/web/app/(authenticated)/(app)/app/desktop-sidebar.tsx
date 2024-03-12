@@ -6,6 +6,7 @@ import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import {
   Activity,
+  BarChart4,
   BookOpen,
   Code,
   Crown,
@@ -82,6 +83,13 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       label: "Audit Log",
       active: segments.at(0) === "audit",
       tag: <Tag label="beta" />,
+    },
+    {
+      icon: BarChart4,
+      href: "/app/analytics",
+      label: "Analytics",
+      active: segments.at(0) === "analytics",
+      tag: <Tag label="alpha" />,
     },
   ];
   if (workspace.features.successPage) {

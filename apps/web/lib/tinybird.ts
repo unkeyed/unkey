@@ -18,6 +18,65 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
+/**
+ * New pipes for analytics
+ */
+export const getVerificationsMonthlyByOwnerId = tb.buildPipe({
+  pipe: "endpoint__verifications_by_ownerid_monthly__v1",
+  parameters: z.object({
+    ownerId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getVerificationsDailyByOwnerId = tb.buildPipe({
+  pipe: "endpoint__verifications_by_ownerid_daily__v1",
+  parameters: z.object({
+    ownerId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getVerificationsHourlyByOwnerId = tb.buildPipe({
+  pipe: "endpoint__verifications_by_ownerid_hourly__v1",
+  parameters: z.object({
+    ownerId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+/**
+ * Old pipes
+ */
+
 export const getDailyVerifications = tb.buildPipe({
   pipe: "endpoint__get_daily_verifications__v1",
   parameters: z.object({

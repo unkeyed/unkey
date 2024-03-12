@@ -25,4 +25,10 @@ export type CacheNamespaces = {
     rateLimited: number;
     usageExceeded: number;
   }[];
+  analyticsByOwnerId: {
+    key: Key;
+    api: Api;
+    permissions: string[];
+    roles: string[];
+  }[];
 };
