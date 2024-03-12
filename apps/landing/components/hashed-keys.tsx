@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";
 
 import { StarsSvg } from "@/components/svg/stars";
+import { cn } from "@/lib/utils";
 
 const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 export const generateRandomString = (length: number) => {
@@ -113,6 +114,7 @@ export function HashedKeys() {
   const [animating, setAnimating] = useState(false);
   const [randomString, setRandomString] = useState("");
   const [fadeOut, setFadeOut] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0); // Add a key state
 
   useEffect(() => {
     // Initial random string generation
@@ -145,6 +147,13 @@ export function HashedKeys() {
     if (times <= 0) {
       setFadeOut(true);
       setAnimating(false);
+      setTimeout(() => {
+        console.log("end timeout");
+        setAnimationKey((prevKey) => prevKey + 1); // Increment key to trigger re-animation
+        console.log("increment");
+        setFadeOut(false); // Reset fadeOut for the next cycle
+        console.log("faded");
+      }, 1000); // Delay might need adjustment based on exit animation time
       return;
     }
 
@@ -160,17 +169,24 @@ export function HashedKeys() {
       <StarsSvg className="absolute" />
       <AnimatePresence>
         <motion.div
-          initial={{ x: 0 }}
+          key={animationKey} // Use the key state here
+          initial={{ x: -250 }}
           whileInView={{ x: 400 }}
-          transition={{ duration: 6, delay: 1, type: "inertia", velocity: 290 }}
+          transition={{
+            type: "spring",
+            damping: 200,
+            stiffness: 100,
+            mass: 12,
+            delay: 1.5,
+          }}
           onViewportEnter={() => {
             setTimeout(() => {
               setAnimating(true);
-              scrambleMultipleTimes(100, 10, 0.1);
-            }, 1120);
+              scrambleMultipleTimes(120, 10, 0.1);
+            }, 2620);
           }}
         >
-          <Key text="sk_TEwCE9AY9BFTq1XJdIO" />
+          <Key text="sk_TEwCE9AY9BFTq1XJdIO" className={cn("relative left-[-3px]")} />
         </motion.div>
       </AnimatePresence>
       <div className="line h-[300px] w-[0.75px] bg-gradient-to-b from-black to-black via-white relative z-50" />
