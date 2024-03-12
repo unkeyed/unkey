@@ -36,7 +36,7 @@
     "@tanstack/react-table": "^8.13.2",
     "@team-plain/typescript-sdk": "^2.19.0",
     "@trpc/client": "^10.45.1",
-    "@trpc/react-query": "^10.45.1",
+    "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
