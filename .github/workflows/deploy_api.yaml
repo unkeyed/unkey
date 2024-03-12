@@ -9,6 +9,7 @@ concurrency: "only one deploy at a time"
 jobs:
   test_routes:
     strategy:
+      fail-fast: false
       matrix:
         shard:
           [
