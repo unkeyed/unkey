@@ -34,7 +34,7 @@
     "@tailwindcss/typography": "^0.5.10",
     "@tanstack/react-query": "^4.36.1",
     "@tanstack/react-table": "^8.13.2",
-    "@team-plain/typescript-sdk": "^2.19.0",
+    "@team-plain/typescript-sdk": "^3.8.0",
     "@trpc/client": "^10.45.1",
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
