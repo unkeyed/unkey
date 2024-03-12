@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { test } from "vitest";
 
 import { randomUUID } from "crypto";
 import { loadTest } from "@/pkg/testutil/load";
@@ -7,14 +7,14 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
-describe.each<{
+const testCases: {
   name: string;
   limit: number;
   duration: number;
   rps: number;
   seconds: number;
   expected: { min: number; max: number };
-}>([
+}[] = [
   {
     name: "1",
     limit: 100,
@@ -119,9 +119,11 @@ describe.each<{
     seconds: 120,
     expected: { min: 120, max: 120 },
   },
-])("$name", async ({ limit, duration, rps, seconds, expected }) => {
-  test(
-    `passed requests are within [${expected.min} - ${expected.max}]`,
+];
+
+for (const { name, limit, duration, rps, seconds, expected } of testCases) {
+  test.concurrent(
+    `${name}, [~${seconds}s], passed requests are within [${expected.min} - ${expected.max}]`,
     async (t) => {
       const h = await RouteHarness.init(t);
       const namespace = {
@@ -154,14 +156,14 @@ describe.each<{
             },
           }),
       });
-      expect(results.length).toBe(rps * seconds);
+      t.expect(results.length).toBe(rps * seconds);
       const passed = results.reduce((sum, res) => {
         return res.body.success ? sum + 1 : sum;
       }, 0);
-      expect(passed).toBeGreaterThanOrEqual(expected.min);
-      expect(passed).toBeLessThanOrEqual(expected.max);
+      t.expect(passed).toBeGreaterThanOrEqual(expected.min);
+      t.expect(passed).toBeLessThanOrEqual(expected.max);
     },
 
     { retry: 1, timeout: 600_000 },
   );
-});
+}
