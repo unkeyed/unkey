@@ -29,6 +29,7 @@ export class RouteHarness extends Harness {
       logLevel: "warn",
       experimental: { disableExperimentalWarning: true },
       vars: env,
+      updateCheck: false,
     });
 
     const stop = () =>
