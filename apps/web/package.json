@@ -70,7 +70,7 @@
     "posthog-js": "^1.110.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hook-form": "^7.50.1",
+    "react-hook-form": "^7.51.0",
     "react-markdown": "^8.0.7",
     "reactflow": "^11.10.4",
     "rehype-autolink-headings": "^7.1.0",
