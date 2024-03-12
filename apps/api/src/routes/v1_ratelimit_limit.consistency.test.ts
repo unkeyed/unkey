@@ -6,17 +6,17 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
-describe("counts down monotonically", () => {
-  test.each<{ limit: number; duration: number; n: number }>([
-    { limit: 10, duration: 1_000, n: 100 },
-    { limit: 10, duration: 2_000, n: 100 },
-    { limit: 500, duration: 1_000, n: 100 },
-    { limit: 500, duration: 60_000, n: 100 },
-    // { limit: 1000, duration: 1_000, n: 250 },
-  ])(
-    "$limit per $duration ms @ $n runs",
-    async ({ limit, duration, n }) => {
-      const h = await RouteHarness.init();
+describe.each<{ limit: number; duration: number; n: number }>([
+  { limit: 10, duration: 1_000, n: 100 },
+  { limit: 10, duration: 2_000, n: 100 },
+  { limit: 500, duration: 1_000, n: 100 },
+  { limit: 500, duration: 60_000, n: 100 },
+  // { limit: 1000, duration: 1_000, n: 250 },
+])("$limit per $duration ms @ $n runs", async ({ limit, duration, n }) => {
+  test(
+    "counts down monotonically",
+    async (t) => {
+      const h = await RouteHarness.init(t);
       const namespace = {
         id: newId("test"),
         workspaceId: h.resources.userWorkspace.id,
