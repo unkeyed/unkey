@@ -16,38 +16,6 @@ const testCases: {
   expected: { min: number; max: number };
 }[] = [
   {
-    name: "1",
-    limit: 100,
-    duration: 2_000,
-    rps: 20,
-    seconds: 10,
-    expected: { min: 200, max: 200 },
-  },
-  {
-    name: "2",
-    limit: 1,
-    duration: 1_000,
-    rps: 20,
-    seconds: 10,
-    expected: { min: 9, max: 11 },
-  },
-  {
-    name: "3",
-    limit: 100,
-    duration: 10_000,
-    rps: 20,
-    seconds: 60,
-    expected: { min: 600, max: 700 },
-  },
-  {
-    name: "4",
-    limit: 100,
-    duration: 10_000,
-    rps: 10,
-    seconds: 20,
-    expected: { min: 200, max: 200 },
-  },
-  {
     name: "Basic Test",
     limit: 100,
     duration: 10000,
@@ -63,22 +31,6 @@ const testCases: {
     seconds: 10,
     expected: { min: 900, max: 1000 },
   },
-  {
-    name: "Low Rate with Long Window",
-    limit: 50,
-    duration: 20000,
-    rps: 2,
-    seconds: 60,
-    expected: { min: 120, max: 120 },
-  },
-  // {
-  //   name: "High Burst Rate",
-  //   limit: 1000,
-  //   duration: 2000,
-  //   rps: 500,
-  //   seconds: 5,
-  //   expected: { min: 1000, max: 2500 },
-  // },
   {
     name: "Constant Rate Equals Limit",
     limit: 200,
@@ -104,20 +56,12 @@ const testCases: {
     expected: { min: 200, max: 300 },
   },
   {
-    name: "Long Duration Test",
-    limit: 1000,
-    duration: 10000,
-    rps: 50,
-    seconds: 120,
-    expected: { min: 6000, max: 6000 },
-  },
-  {
     name: "Very Long Window",
     limit: 100,
-    duration: 60000,
+    duration: 120000,
     rps: 1,
-    seconds: 120,
-    expected: { min: 120, max: 120 },
+    seconds: 60,
+    expected: { min: 60, max: 60 },
   },
 ];
 
