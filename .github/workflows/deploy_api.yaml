@@ -180,7 +180,7 @@ jobs:
   canary-benchmarks:
     environment: Canary
     needs: canary
-    name: End to End Test Canary
+    name: Benchmark Canary
     runs-on: ubuntu-latest
 
     steps:

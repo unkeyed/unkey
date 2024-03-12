@@ -42,12 +42,24 @@ export abstract class Harness {
     if (workspaceIds.length === 0) {
       return;
     }
-    await this.db
-      .delete(schema.workspaces)
-      .where(inArray(schema.workspaces.id, workspaceIds))
-      .catch((err) => {
-        console.error(err);
-      });
+    const deleteWorkspaces = async () =>
+      await this.db
+        .delete(schema.workspaces)
+        .where(inArray(schema.workspaces.id, workspaceIds))
+        .catch((err) => {
+          console.error(err);
+        });
+    for (let i = 1; i <= 5; i++) {
+      try {
+        await deleteWorkspaces();
+        return;
+      } catch (err) {
+        if (i === 5) {
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, i * 500));
+      }
+    }
   }
   /**
    * Create a new root key with optional roles
