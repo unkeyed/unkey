@@ -10,7 +10,7 @@ import {
   Role,
   type Workspace,
   createConnection,
-  inArray,
+  eq,
   schema,
 } from "../db";
 import { databaseEnv } from "./env";
@@ -42,13 +42,16 @@ export abstract class Harness {
     if (workspaceIds.length === 0) {
       return;
     }
-    const deleteWorkspaces = async () =>
-      await this.db
-        .delete(schema.workspaces)
-        .where(inArray(schema.workspaces.id, workspaceIds))
-        .catch((err) => {
-          console.error(err);
-        });
+    const deleteWorkspaces = async () => {
+      for (const workspaceId of workspaceIds) {
+        await this.db
+          .delete(schema.workspaces)
+          .where(eq(schema.workspaces.id, workspaceId))
+          .catch((err) => {
+            console.error(err);
+          });
+      }
+    };
     for (let i = 1; i <= 5; i++) {
       try {
         await deleteWorkspaces();
