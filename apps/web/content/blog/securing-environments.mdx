@@ -1,0 +1,67 @@
+---
+date: 2024-03-12
+title: Securing environments using Unkey
+description: Creating keys for a specific environment allows you to segment test and production data without the need for additional logic in your code.
+author: james
+---
+
+In the market today, we see a lot of products offering different environments. This is done for several reasons, including segmenting testing from production data, offering different rate limits for APIs, and allowing users to match environments to their infrastructure.
+
+We provide a way to create keys to specific environments, and all of our features, like ratelimiting, allow you to develop your application with X.
+
+## Creating environment-specific keys
+
+To make environment-specific keys, you can pass the `environment` value as part of your creation method. For example:
+
+```bash
+curl -XPOST 'https://api.unkey.dev/v1/keys.createKey' \
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "apiId": "<UNKEY_API_ID>",
+    "environment": "test"
+  }'
+```
+
+This will return a key specific to the test environment, however we would advise making sure you use our prefix feature to make it easier to identify for your users. The most popular prefix in the industry made popular by Stripe is `sk_test` and `sk_live` .
+
+```bash
+curl -XPOST 'https://api.unkey.dev/v1/keys.createKey' \
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "apiId": "<UNKEY_API_ID>",
+    "environment": "test",
+    "prefix": "sk_test"
+  }'
+```
+
+## Verifying keys
+
+With the creation of an environment specific keys we need to ensure that you can verify which environment the key was created for. When you make a request to our verification endpoint we will return the environment as part of the response. For example:
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "apiId": "<UNKEY_API_ID",
+    "key": "sk_test_1234"
+  }'
+```
+
+Our response will look similar to the following:
+
+```bash
+{
+  "keyId": "key_2P4KnnCa2zD4Z7vBpgWU6z5NerX9",
+  "valid": true,
+  "enabled": true,
+  "permissions": [],
+  "environment": "test"
+}
+```
+
+With this response you can then drive audit logging, or even applications descsions around the environment being used.
+
+You can start using Unkey with our generous [free tier](https://unkey.dev/app) and learn more about all our features in our [documentation](https://unkey.dev/docs).
