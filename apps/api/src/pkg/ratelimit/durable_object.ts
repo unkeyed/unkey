@@ -1,4 +1,6 @@
+import { zValidator } from "@hono/zod-validator";
 import { instrumentDO } from "@microlabs/otel-cf-workers";
+import { Hono } from "hono";
 import { z } from "zod";
 import { traceConfig } from "../tracing/config";
 
@@ -11,6 +13,7 @@ class DO {
   private state: DurableObjectState;
   private memory: Memory;
   private readonly storageKey = "rl";
+  private readonly hono = new Hono();
   constructor(state: DurableObjectState) {
     this.state = state;
     this.state.blockConcurrencyWhile(async () => {
@@ -22,34 +25,31 @@ class DO {
     this.memory ??= {
       current: 0,
     };
+
+    this.hono.post(
+      "/limit",
+      zValidator("json", z.object({ reset: z.number().int() })),
+      async (c) => {
+        const { reset } = c.req.valid("json");
+        this.memory.current += 1;
+
+        if (!this.memory.alarmScheduled) {
+          this.memory.alarmScheduled = reset;
+          await this.state.storage.setAlarm(this.memory.alarmScheduled);
+        }
+
+        await this.state.storage.put(this.storageKey, this.memory);
+
+        return c.json({
+          current: this.memory.current,
+        });
+      },
+    );
   }
 
   // Handle HTTP requests from clients.
   async fetch(request: Request) {
-    const req = z
-      .object({
-        reset: z.number().int(),
-      })
-      .safeParse(await request.json());
-    if (!req.success) {
-      console.error("invalid DO req", req.error.message);
-      return Response.json({
-        current: 0,
-      });
-    }
-
-    this.memory.current += 1;
-
-    if (!this.memory.alarmScheduled) {
-      this.memory.alarmScheduled = req.data.reset;
-      await this.state.storage.setAlarm(this.memory.alarmScheduled);
-    }
-
-    await this.state.storage.put(this.storageKey, this.memory);
-
-    return Response.json({
-      current: this.memory.current,
-    });
+    return this.hono.fetch(request);
   }
 
   /**
