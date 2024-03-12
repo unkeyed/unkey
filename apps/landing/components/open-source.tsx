@@ -45,7 +45,6 @@ export const OpenSource: React.FC = () => {
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1, ease: "easeInOut" }}
           >
-            <Github className="w-[380px] md:w-[640px] mt-24 xl:mt-0" />
             <Image alt="Github logo" src={GithubSvg} className="mt-24" />
             <div className="absolute w-[1000px] h-[400px] top-[400px] left-[150px]">
               <OssChip />
