@@ -7,7 +7,7 @@ import * as React from "react";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-export default async function AuthorizationLayout({
+export default async function RatelimitLayout({
   children,
 }: {
   children: React.ReactNode;

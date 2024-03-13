@@ -118,7 +118,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       })
       .where(eq(schema.keys.id, key.id));
 
-    await analytics.ingestAuditLogs({
+    await analytics.ingestUnkeyAuditLogs({
       workspaceId: authorizedWorkspaceId,
       event: "key.delete",
       actor: {

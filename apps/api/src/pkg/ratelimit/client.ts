@@ -29,6 +29,7 @@ export class DurableRateLimiter implements RateLimiter {
     const reset = (window + 1) * req.interval;
 
     const objectName = [req.identifier, window, req.shard].join("::");
+    console.log({ objectName });
 
     try {
       const obj = this.namespace.get(this.namespace.idFromName(objectName));

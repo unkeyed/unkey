@@ -135,7 +135,7 @@ export type V1RatelimitLimitResponse = z.infer<
 export const registerV1RatelimitLimit = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, rateLimiter } = c.get("services");
+    const { cache, db, rateLimiter, analytics } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -167,6 +167,7 @@ export const registerV1RatelimitLimit = (app: App) =>
             workspaceId: auth.authorizedWorkspaceId,
             createdAt: new Date(),
             updatedAt: null,
+            deletedAt: null,
           };
           await db.insert(schema.ratelimitNamespaces).values(namespace);
           return { namespace };
@@ -214,10 +215,72 @@ export const registerV1RatelimitLimit = (app: App) =>
         message: ratelimitError.message,
       });
     }
+    const remaining = Math.max(0, limit - ratelimitResponse.current);
+    c.executionCtx.waitUntil(
+      analytics.ingestRatelimit({
+        workspaceId: auth.authorizedWorkspaceId,
+
+        namespaceId: namespace.id,
+        requestId: c.get("requestId"),
+        identifier: req.identifier,
+
+        time: Date.now(),
+        serviceLatency: -1,
+        success: ratelimitResponse.pass,
+        remaining,
+        config: {
+          limit,
+          duration,
+          async: async ?? false,
+          sharding,
+        },
+        resources: [],
+        context: {
+          ipAddress: c.req.header("True-Client-IP") ?? "",
+          userAgent: c.req.header("User-Agent") ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          country: c.req.raw?.cf?.country ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          continent: c.req.raw?.cf?.continent ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          city: c.req.raw?.cf?.city ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          colo: c.req.raw?.cf?.colo ?? "",
+        },
+      }),
+    );
+
+    if (req.resources && req.resources.length > 0) {
+      c.executionCtx.waitUntil(
+        analytics.ingestGenericAuditLogs({
+          auditLogId: newId("auditLog"),
+          workspaceId: auth.authorizedWorkspaceId,
+          bucket: `ratelimit.${namespace.id}`,
+          actor: {
+            type: "key",
+            id: auth.key.id,
+          },
+          description: "ratelimit",
+          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          meta: {
+            requestId: c.get("requestId"),
+            namespacId: namespace.id,
+            identifier: req.identifier,
+            success: ratelimitResponse.pass,
+          },
+          time: Date.now(),
+          resources: req.resources,
+          context: {
+            location: c.req.header("True-Client-IP") ?? "",
+            userAgent: c.req.header("User-Agent") ?? "",
+          },
+        }),
+      );
+    }
 
     return c.json({
       limit,
-      remaining: Math.max(0, limit - ratelimitResponse.current),
+      remaining,
       reset: ratelimitResponse.reset,
       success: ratelimitResponse.pass,
     });

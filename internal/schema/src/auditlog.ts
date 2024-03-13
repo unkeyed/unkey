@@ -45,6 +45,7 @@ export const auditLogSchemaV1 = z.object({
   event: z.string(),
   description: z.string().optional(),
   time: z.number(),
+  meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   actor: z.object({
     type: z.string(),
     id: z.string(),

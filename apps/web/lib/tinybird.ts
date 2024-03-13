@@ -504,3 +504,154 @@ export function ingestAuditLogs(
       })),
   })(logs);
 }
+
+export const getRatelimitsHourly = tb.buildPipe({
+  pipe: "get_ratelimits_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitsMinutely = tb.buildPipe({
+  pipe: "get_ratelimits_minutely__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getRatelimitsDaily = tb.buildPipe({
+  pipe: "get_ratelimits_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitsMonthly = tb.buildPipe({
+  pipe: "get_ratelimits_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersMinutely = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_minutely__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersHourly = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersDaily = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersMonthly = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});

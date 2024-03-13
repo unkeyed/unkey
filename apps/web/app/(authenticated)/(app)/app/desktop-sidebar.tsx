@@ -9,6 +9,7 @@ import {
   BookOpen,
   Code,
   Crown,
+  GlobeLock,
   Loader2,
   LucideIcon,
   Settings,
@@ -41,8 +42,13 @@ type NavItem = {
   tag?: React.ReactNode;
 };
 
-const Tag: React.FC<{ label: string }> = ({ label }) => (
-  <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ">
+const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
+  <div
+    className={cn(
+      "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
+      className,
+    )}
+  >
     {label}
   </div>
 );
@@ -68,20 +74,23 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       external: true,
       label: "Docs",
     },
-
+    {
+      icon: GlobeLock,
+      href: "/app/ratelimits",
+      label: "Ratelimit",
+      active: segments.at(0) === "ratelimits",
+    },
     {
       icon: ShieldHalf,
       label: "Authorization",
       href: "/app/authorization/roles",
       active: segments.some((s) => s === "authorization"),
-      tag: <Tag label="alpha" />,
     },
     {
       icon: Activity,
       href: "/app/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
-      tag: <Tag label="beta" />,
     },
   ];
   if (workspace.features.successPage) {
@@ -90,11 +99,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/app/success",
       label: "Success",
       active: segments.at(0) === "success",
-      tag: (
-        <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5 font-mono">
-          internal
-        </div>
-      ),
+      tag: <Tag label="internal" />,
     });
   }
 

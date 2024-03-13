@@ -44,6 +44,28 @@ export const workspacePermissions = {
       permission: "api.*.delete_key",
     },
   },
+  Ratelimit: {
+    create_namespace: {
+      description: "Create new namespaces in this workspace.",
+      permission: "ratelimit.*.create_namespace",
+    },
+    read_key: {
+      description: "Read information about any existing or future namespace in this workspace.",
+      permission: "ratelimit.*.read_namespace",
+    },
+    limit: {
+      description: "Limit an identifier",
+      permission: "ratelimit.*.limit",
+    },
+    update_namespace: {
+      description: "Update any existing or future namespace in this workspace.",
+      permission: "ratelimit.*.update_namespace",
+    },
+    delete_namespace: {
+      description: "Delete namespaces in this workspace.",
+      permission: "ratelimit.*.delete_namespace",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {

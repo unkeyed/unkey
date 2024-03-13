@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const sharding = z.enum(["geo"]);
+export const sharding = z.enum(["edge", ""]);
 
 export const ratelimitSchemaV1 = z.object({
   /**
@@ -19,7 +19,7 @@ export const ratelimitSchemaV1 = z.object({
     limit: z.number().int(),
     duration: z.number().int(),
     async: z.boolean(),
-    sharding: sharding.optional(),
+    sharding: sharding.optional().default(""),
   }),
   resources: z.array(
     z.object({
@@ -31,10 +31,10 @@ export const ratelimitSchemaV1 = z.object({
   ),
   context: z.object({
     ipAddress: z.string(),
-    userAgent: z.string().optional(),
-    country: z.string().optional(),
-    continent: z.string().optional(),
-    city: z.string().optional(),
-    colo: z.string().optional(),
+    userAgent: z.string().optional().default(""),
+    country: z.string().optional().default(""),
+    continent: z.string().optional().default(""),
+    city: z.string().optional().default(""),
+    colo: z.string().optional().default(""),
   }),
 });

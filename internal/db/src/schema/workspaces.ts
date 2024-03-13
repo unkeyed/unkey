@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
+import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
@@ -53,6 +54,8 @@ export const workspaces = mysqlTable(
          * Can access /app/authorization pages
          */
         rbac?: boolean;
+
+        ratelimit?: boolean;
       }>()
       .notNull(),
     features: json("features")
@@ -104,4 +107,5 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   }),
   roles: many(roles),
   permissions: many(permissions),
+  ratelimitNamespaces: many(ratelimitNamespaces),
 }));

@@ -34,7 +34,7 @@ export class Analytics {
     });
   }
 
-  public ingestAuditLogs(
+  public ingestUnkeyAuditLogs(
     logs: MaybeArray<{
       workspaceId: string;
       event: z.infer<typeof unkeyAuditLogEvents>;
@@ -76,6 +76,7 @@ export class Analytics {
         )
         .transform((l) => ({
           ...l,
+          meta: l.meta ? JSON.stringify(l.meta) : undefined,
           actor: {
             ...l.actor,
             meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
@@ -85,9 +86,24 @@ export class Analytics {
     })(logs);
   }
 
+  public get ingestGenericAuditLogs() {
+    return this.client.buildIngestEndpoint({
+      datasource: "audit_logs__v2",
+      event: auditLogSchemaV1.transform((l) => ({
+        ...l,
+        meta: l.meta ? JSON.stringify(l.meta) : undefined,
+        actor: {
+          ...l.actor,
+          meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
+        },
+        resources: JSON.stringify(l.resources),
+      })),
+    });
+  }
+
   public get ingestRatelimit() {
     return this.client.buildIngestEndpoint({
-      datasource: "ratelimits__v1",
+      datasource: "ratelimits__v2",
       event: ratelimitSchemaV1.transform((l) => ({
         ...l,
         resources: JSON.stringify(l.resources),
