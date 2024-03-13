@@ -87,10 +87,10 @@ export default async function Landing() {
         <OpenSource />
         <SectionTitle
           className="mt-[300px]"
-          title="Efficient integration and process, always"
+          title="Everything you need for your API"
           titleWidth={743}
           contentWidth={641}
-          text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
+          text="Unkey makes it very simple for developers to build on top of your APIs. Realtime analytics, globally low latency, transparent billing."
           align="center"
           label="Platform"
         />
@@ -106,8 +106,8 @@ export default async function Landing() {
           className="mt-[300px]"
           titleWidth={743}
           contentWidth={581}
-          title="Secure from day one"
-          text="Don't waste time building boring-but-necessary features like audit logs. Unkey provides everything you need out of the box to build secure, infinitely scalable APIs."
+          title="Secure and scalable from day one"
+          text="We give you crucial security features out of the box, so that you can focus on rapidly iterating on your API."
           align="center"
           label="Security"
         >
@@ -133,7 +133,7 @@ export default async function Landing() {
           <LeveledUpApiAuthChip className="absolute top-[-450px] right-0" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
-            title="Leveled-up API Auth"
+            title="Leveled-up API management"
             titleWidth={719}
             contentWidth={557}
             text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
