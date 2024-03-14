@@ -23,7 +23,6 @@ import { ChevronRight, LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import mainboardMobile from "../images/mainboard-mobile.svg";
 import mainboard from "../images/mainboard.svg";
 import { CodeExamples } from "./code-examples";
 
@@ -58,24 +57,18 @@ export default async function Landing() {
   return (
     <>
       <TopRightShiningLight />
-
+      {/* TODO: horizontal scroll */}
       <TopLeftShiningLight />
-      <Image
-        src={mainboardMobile}
-        alt="Animated SVG showing computer circuits lighting up"
-        className="flex md:hidden w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
-        priority={true}
-      />
       <Image
         src={mainboard}
         alt="Animated SVG showing computer circuits lighting up"
-        className="hidden md:flex w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+        className="w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
         priority={true}
       />
 
       <div className="container relative mx-auto">
         <Hero />
-
+        {/* TODO: horizontal scroll */}
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
         <Suspense fallback={null}>
@@ -130,6 +123,7 @@ export default async function Landing() {
           <RateLimitsBento />
         </div>
         <div className="relative">
+          {/* TODO: horizontal scroll */}
           <LeveledUpApiAuthChip className="absolute top-[-450px] right-0" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
@@ -152,6 +146,7 @@ export default async function Landing() {
         </div>
         <FeatureGrid className="relative z-50 mt-20" />
         <div className="relative -z-10">
+          {/* TODO: horizontal scroll */}
           <FeatureGridChip className="absolute top-[-90px]" />
         </div>
         <SectionTitle

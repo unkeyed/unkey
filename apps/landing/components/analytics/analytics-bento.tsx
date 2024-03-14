@@ -98,7 +98,8 @@ export function AnalyticsBento() {
         {showApi ? "Hide API Code" : "Show API code"}
       </button>
       <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
-        <LightSvg className="absolute top-[-180px] left:0 lg:left-[220px] z-50 pointer-events-none" />
+        {/* TODO: horizontal scroll */}
+        <LightSvg className="absolute hidden md:flex top-[-180px] left:0 lg:left-[220px] z-50 pointer-events-none" />
         <AnalyticsStars className="w-[120px] shrink-0 hidden md:flex" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />

@@ -13,6 +13,7 @@ export const OpenSource: React.FC = () => {
   return (
     <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
       <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
+        {/* TODO: horizontal scroll */}
         <OssLight />
       </div>
       <div className="flex flex-col items-center justify-center w-full xl:flex-row xl:justify-between">
@@ -45,8 +46,8 @@ export const OpenSource: React.FC = () => {
             transition={{ duration: 1, ease: "easeInOut" }}
           >
             <Image alt="Github logo" src={GithubSvg} className="mt-24" />
-            <div className="absolute w-[1000px] h-[400px] top-[400px] left-[150px]">
-              <OssChip />
+            <div className="lg:absolute lg:w-[1000px] lg:h-[400px] lg:top-[400px] lg:left-[150px]">
+              <OssChip className="hidden md:flex" />
             </div>
           </motion.div>
         </div>
