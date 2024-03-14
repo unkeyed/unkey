@@ -36,5 +36,5 @@ export type CacheNamespaces = {
   ratelimitByIdentifier: {
     namespace: RatelimitNamespace;
     ratelimit?: Ratelimit;
-  };
+  } | null;
 };

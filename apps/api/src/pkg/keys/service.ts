@@ -87,6 +87,7 @@ export class KeyService {
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
+    rbac: RBAC;
     persistenceMap: Map<string, number>;
   }) {
     this.cache = opts.cache;
@@ -97,7 +98,7 @@ export class KeyService {
     this.usageLimiter = opts.usageLimiter;
     this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
-    this.rbac = new RBAC();
+    this.rbac = opts.rbac;
     this.tracer = trace.getTracer("keyService");
   }
 
@@ -476,6 +477,7 @@ export class KeyService {
           identifier: key.id,
           limit: key.ratelimitRefillRate,
           interval: key.ratelimitRefillInterval,
+          cost: 1,
           // root keys are sharded per edge colo
           shard: key.forWorkspaceId ? "edge" : undefined,
         })

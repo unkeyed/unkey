@@ -28,19 +28,32 @@ class DO {
 
     this.hono.post(
       "/limit",
-      zValidator("json", z.object({ reset: z.number().int() })),
+      zValidator(
+        "json",
+        z.object({
+          reset: z.number().int(),
+          cost: z.number().int().default(1),
+          limit: z.number().int(),
+        }),
+      ),
       async (c) => {
-        const { reset } = c.req.valid("json");
-        this.memory.current += 1;
-
+        const { reset, cost, limit } = c.req.valid("json");
         if (!this.memory.alarmScheduled) {
           this.memory.alarmScheduled = reset;
           await this.state.storage.setAlarm(this.memory.alarmScheduled);
         }
+        if (this.memory.current + cost > limit) {
+          return c.json({
+            success: false,
+            current: this.memory.current,
+          });
+        }
+        this.memory.current += cost;
 
         await this.state.storage.put(this.storageKey, this.memory);
 
         return c.json({
+          success: true,
           current: this.memory.current,
         });
       },

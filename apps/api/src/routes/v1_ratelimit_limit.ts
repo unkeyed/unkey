@@ -17,10 +17,10 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            namespace: z.string().openapi({
+            namespace: z.string().optional().default("default").openapi({
               description:
                 "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
-              example: "api",
+              example: "email.outbound",
             }),
             identifier: z.string().openapi({
               description:
@@ -135,41 +135,72 @@ export type V1RatelimitLimitResponse = z.infer<
 export const registerV1RatelimitLimit = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, rateLimiter } = c.get("services");
+    const { cache, db, rateLimiter, analytics, rbac } = c.get("services");
 
-    const auth = await rootKeyAuth(
-      c,
-      buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.limit", `ratelimit.${req.namespace}.limit`)),
-    );
+    const rootKey = await rootKeyAuth(c);
 
     const { val, err } = await cache.withCache(
       c,
       "ratelimitByIdentifier",
-      req.identifier,
+      [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
         const dbRes = await db.query.ratelimitNamespaces.findFirst({
           where: (table, { eq, and }) =>
-            and(eq(table.name, req.namespace), eq(table.workspaceId, auth.authorizedWorkspaceId)),
+            and(
+              eq(table.workspaceId, rootKey.authorizedWorkspaceId),
+              eq(table.name, req.namespace),
+            ),
           with: {
             ratelimits: {
-              where: (table, { and, eq }) =>
+              where: (table, { eq, and }) =>
                 and(
-                  eq(table.workspaceId, auth.authorizedWorkspaceId),
+                  eq(table.workspaceId, rootKey.authorizedWorkspaceId),
                   eq(table.identifier, req.identifier),
                 ),
             },
           },
         });
         if (!dbRes) {
+          const canCreateNamespace = rbac.evaluatePermissions(
+            buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.create_namespace")),
+            rootKey.permissions ?? [],
+          );
+          console.log("no db res");
+          if (canCreateNamespace.err || !canCreateNamespace.val.valid) {
+            return null;
+          }
           const namespace: RatelimitNamespace = {
             id: newId("ratelimit"),
-            name: req.namespace,
-            workspaceId: auth.authorizedWorkspaceId,
             createdAt: new Date(),
+            name: req.namespace,
+            deletedAt: null,
             updatedAt: null,
+            workspaceId: rootKey.authorizedWorkspaceId,
           };
           await db.insert(schema.ratelimitNamespaces).values(namespace);
-          return { namespace };
+          await analytics.ingestUnkeyAuditLogs({
+            workspaceId: rootKey.authorizedWorkspaceId,
+            actor: {
+              type: "key",
+              id: rootKey.key.id,
+            },
+            event: "ratelimitNamespace.create",
+            description: `Created ${namespace.id}`,
+            resources: [
+              {
+                type: "ratelimitNamespace",
+                id: namespace.id,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          });
+
+          return {
+            namespace,
+          };
         }
         return {
           namespace: dbRes,
@@ -177,19 +208,38 @@ export const registerV1RatelimitLimit = (app: App) =>
         };
       },
     );
-
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
         message: `unable to load api: ${err.message}`,
       });
     }
-    if (!val || val.namespace.workspaceId !== auth.authorizedWorkspaceId) {
+    if (!val || val.namespace.workspaceId !== rootKey.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `namespace ${req.namespace} not found`,
       });
     }
+
+    const authResult = rbac.evaluatePermissions(
+      buildUnkeyQuery(({ or }) =>
+        or("*", "ratelimit.*.limit", `ratelimit.${val.namespace.id}.limit`),
+      ),
+      rootKey.permissions ?? [],
+    );
+    if (authResult.err) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: authResult.err.message,
+      });
+    }
+    if (!authResult.val.valid) {
+      throw new UnkeyApiError({
+        code: "INSUFFICIENT_PERMISSIONS",
+        message: authResult.val.message,
+      });
+    }
+
     const { ratelimit, namespace } = val;
 
     const limit = ratelimit?.limit ?? req.limit;
@@ -207,6 +257,7 @@ export const registerV1RatelimitLimit = (app: App) =>
       interval: duration,
       limit,
       shard,
+      cost: req.cost,
     });
     if (ratelimitError) {
       throw new UnkeyApiError({
@@ -214,10 +265,71 @@ export const registerV1RatelimitLimit = (app: App) =>
         message: ratelimitError.message,
       });
     }
+    const remaining = Math.max(0, limit - ratelimitResponse.current);
+    c.executionCtx.waitUntil(
+      analytics.ingestRatelimit({
+        workspaceId: rootKey.authorizedWorkspaceId,
+
+        namespaceId: namespace.id,
+        requestId: c.get("requestId"),
+        identifier: req.identifier,
+
+        time: Date.now(),
+        serviceLatency: -1,
+        success: ratelimitResponse.pass,
+        remaining,
+        config: {
+          limit,
+          duration,
+          async: async ?? false,
+          sharding: sharding ?? "",
+        },
+        context: {
+          ipAddress: c.req.header("True-Client-IP") ?? "",
+          userAgent: c.req.header("User-Agent") ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          country: c.req.raw?.cf?.country ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          continent: c.req.raw?.cf?.continent ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          city: c.req.raw?.cf?.city ?? "",
+          // @ts-expect-error - the cf object will be there on cloudflare
+          colo: c.req.raw?.cf?.colo ?? "",
+        },
+      }),
+    );
+
+    if (req.resources && req.resources.length > 0) {
+      c.executionCtx.waitUntil(
+        analytics.ingestGenericAuditLogs({
+          auditLogId: newId("auditLog"),
+          workspaceId: rootKey.authorizedWorkspaceId,
+          bucket: `ratelimit.${namespace.id}`,
+          actor: {
+            type: "key",
+            id: rootKey.key.id,
+          },
+          description: "ratelimit",
+          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          meta: {
+            requestId: c.get("requestId"),
+            namespacId: namespace.id,
+            identifier: req.identifier,
+            success: ratelimitResponse.pass,
+          },
+          time: Date.now(),
+          resources: req.resources,
+          context: {
+            location: c.req.header("True-Client-IP") ?? "",
+            userAgent: c.req.header("User-Agent") ?? "",
+          },
+        }),
+      );
+    }
 
     return c.json({
       limit,
-      remaining: Math.max(0, limit - ratelimitResponse.current),
+      remaining,
       reset: ratelimitResponse.reset,
       success: ratelimitResponse.pass,
     });

@@ -41,7 +41,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
 
   return (
     <>
-      <Card className="relative border-[#b80f07]">
+      <Card className="relative border-alert">
         <CardHeader>
           <CardTitle>Delete</CardTitle>
           <CardDescription>This key will be deleted. This action cannot be undone.</CardDescription>
@@ -55,7 +55,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
       </Card>
 
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-        <DialogContent className="border-[#b80f07]">
+        <DialogContent className="border-alert">
           <DialogHeader>
             <DialogTitle>Delete Key</DialogTitle>
             <DialogDescription>
