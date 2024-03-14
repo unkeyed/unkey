@@ -93,7 +93,7 @@ export default async function PricingPage() {
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600">
                 {
-                  "We wanted pricing to be simple and affordable for anyone, so we've created a flexible plans that don't need an accounting degree to figure out."
+                  "We wanted pricing to be simple and affordable for anyone, so we've created flexible plans that don't need an accounting degree to figure out."
                 }
               </p>
             </div>

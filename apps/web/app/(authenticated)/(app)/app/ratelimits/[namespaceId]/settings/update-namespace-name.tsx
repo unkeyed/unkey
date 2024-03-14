@@ -19,32 +19,32 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
   name: z.string(),
-  apiId: z.string(),
+  namespaceId: z.string(),
   workspaceId: z.string(),
 });
 
 type Props = {
-  api: {
+  namespace: {
     id: string;
     workspaceId: string;
     name: string;
   };
 };
 
-export const UpdateApiName: React.FC<Props> = ({ api }) => {
+export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: api.name,
-      apiId: api.id,
-      workspaceId: api.workspaceId,
+      name: namespace.name,
+      namespaceId: namespace.id,
+      workspaceId: namespace.workspaceId,
     },
   });
 
-  const updateName = trpc.api.updateName.useMutation({
+  const updateName = trpc.ratelimit.updateNamespaceName.useMutation({
     onSuccess() {
-      toast.success("Your API name has been renamed!");
+      toast.success("Your namespace name has been renamed!");
       router.refresh();
     },
     onError(err) {
@@ -53,7 +53,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.name === api.name || !values.name) {
+    if (values.name === namespace.name || !values.name) {
       return toast.error("Please provide a valid name before saving.");
     }
     updateName.mutateAsync(values);
@@ -63,16 +63,15 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
-          <CardTitle>Api Name</CardTitle>
+          <CardTitle>Name</CardTitle>
           <CardDescription>
-            Api names are not customer facing. Choose a name that makes it easy to recognize for
-            you.
+            Namespace names are not customer facing. Choose a name that makes it easy to recognize
+            for you. Keep in mind this is used in your API calls, changing this might cause your
+            ratelimit requests to get rejected.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
-            <input type="hidden" name="workspaceId" value={api.workspaceId} />
-            <input type="hidden" name="apiId" value={api.id} />
             <label className="hidden sr-only">Name</label>
             <FormField
               control={form.control}

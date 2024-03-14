@@ -1,6 +1,8 @@
 import { StackedBarChart, StackedColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema, sql } from "@/lib/db";
@@ -63,14 +65,7 @@ export default async function RatelimitNamespacePage(props: {
     start,
     end,
   };
-  const [
-    customLimits,
-    ratelimitEvents,
-    identifiers,
-    // activeKeysTotal,
-    // _activeKeysInBillingCycle,
-    ratelimitsInBillingCycle,
-  ] = await Promise.all([
+  const [customLimits, ratelimitEvents, identifiers, ratelimitsInBillingCycle] = await Promise.all([
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.ratelimits)
@@ -79,14 +74,6 @@ export default async function RatelimitNamespacePage(props: {
       .then((res) => res.at(0)?.count ?? 0),
     getRatelimitsPerInterval(query),
     getIdentifiers(query),
-    // getActiveKeysPerInterval(query),
-    // getActiveKeys(query),
-    // getActiveKeys({
-    //   workspaceId: namespace.workspaceId,
-    //   apiId: namespace.id,
-    //   start: billingCycleStart,
-    //   end: billingCycleEnd,
-    // }).then((res) => res.data.at(0)),
     getRatelimitsPerInterval({
       workspaceId: namespace.workspaceId,
       namespaceId: namespace.id,
@@ -99,25 +86,45 @@ export default async function RatelimitNamespacePage(props: {
   const ratelimitedOverTime: { x: string; y: number }[] = [];
 
   for (const d of ratelimitEvents.data.sort((a, b) => a.time - b.time)) {
-    console.log({ d });
     const x = new Date(d.time).toISOString();
     successOverTime.push({ x, y: d.success });
     ratelimitedOverTime.push({ x, y: d.total - d.success });
   }
 
-  const dataOverTime = [
-    ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
-    ...successOverTime.map((d) => ({
-      ...d,
-      category: "Successful",
-    })),
-  ];
+  // const dataOverTime = [
+  //   ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
+  //   ...successOverTime.map((d) => ({
+  //     ...d,
+  //     category: "Successful",
+  //   })),
+  // ];
+  const dataOverTime = ratelimitEvents.data.flatMap((d) => [
+    {
+      x: new Date(d.time).toISOString(),
+      y: d.total - d.success,
+      category: "Ratelimited",
+    },
+    {
+      x: new Date(d.time).toISOString(),
+      y: d.success,
+      category: "Success",
+    },
+  ]);
 
   // const activeKeysOverTime = activeKeys.data.map(({ time, keys }) => ({
   //   x: new Date(time).toISOString(),
   //   y: keys,
   // }));
 
+  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimit.limit' \\
+  -h 'Content-Type: application/json' \\
+  -h 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
+  -d '{
+      "namespace": "${namespace.name}",
+      "identifier": "<USER_ID>",
+      "limit": 10,
+      "duration": 10000
+  }'`;
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -181,6 +188,7 @@ export default async function RatelimitNamespacePage(props: {
           </CardHeader>
           <CardContent>
             <StackedColumnChart
+              colors={["warn", "primary"]}
               data={dataOverTime}
               timeGranularity={
                 granularity >= 1000 * 60 * 60 * 24 * 30
@@ -201,7 +209,11 @@ export default async function RatelimitNamespacePage(props: {
           </EmptyPlaceholder.Icon>
           <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
-            Verify a key or change the range
+            Ratelimit something or change the range
+            <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+              {snippet}
+              <CopyButton value={snippet} />
+            </Code>
           </EmptyPlaceholder.Description>
         </EmptyPlaceholder>
       )}
@@ -209,20 +221,16 @@ export default async function RatelimitNamespacePage(props: {
       <Separator className="my-8" />
       <div className="flex items-center justify-between w-full">
         <h2 className="w-full text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
-          Active Keys
+          Top identifiers
         </h2>
 
         <Filters />
       </div>
       {identifiers.data.length > 0 ? (
         <Card>
-          <CardHeader>
-            <div className="grid grid-cols-4 divide-x">
-              <Metric label="Active Identifiers" value={formatNumber(identifiers.data.length)} />
-            </div>
-          </CardHeader>
           <CardContent>
             <StackedBarChart
+              colors={["primary", "warn"]}
               data={identifiers.data.flatMap(({ identifier, success, total }) => [
                 {
                   x: success,
@@ -232,7 +240,7 @@ export default async function RatelimitNamespacePage(props: {
                 {
                   x: total - success,
                   y: identifier,
-                  category: "Blocked",
+                  category: "Ratelimited",
                 },
               ])}
             />
@@ -245,7 +253,11 @@ export default async function RatelimitNamespacePage(props: {
           </EmptyPlaceholder.Icon>
           <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
-            Verify a key or change the range
+            Ratelimit something or change the range
+            <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+              {snippet}
+              <CopyButton value={snippet} />
+            </Code>
           </EmptyPlaceholder.Description>
         </EmptyPlaceholder>
       )}

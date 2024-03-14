@@ -75,6 +75,7 @@ export const ratelimits = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => {
     return {
@@ -85,7 +86,7 @@ export const ratelimits = mysqlTable(
     };
   },
 );
-export const ratelimitIdentifierPermissions = relations(ratelimits, ({ one }) => ({
+export const ratelimitIdentifierRelations = relations(ratelimits, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [ratelimits.workspaceId],
     references: [workspaces.id],

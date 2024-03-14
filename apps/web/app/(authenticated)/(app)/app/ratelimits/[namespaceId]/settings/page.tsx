@@ -2,17 +2,16 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
-import { DeleteApi } from "./delete-api";
-import { UpdateApiName } from "./update-api-name";
-import { UpdateIpWhitelist } from "./update-ip-whitelist";
+import { DeleteNamespace } from "./delete-namespace";
+import { UpdateNamespaceName } from "./update-namespace-name";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   params: {
-    apiId: string;
+    namespaceId: string;
   };
 };
 
@@ -23,38 +22,39 @@ export default async function SettingsPage(props: Props) {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      apis: {
-        where: eq(schema.apis.id, props.params.apiId),
+      ratelimitNamespaces: {
+        where: (table, { eq }) => eq(table.id, props.params.namespaceId),
       },
     },
   });
   if (!workspace || workspace.tenantId !== tenantId) {
     return redirect("/new");
   }
-  const api = workspace.apis.find((api) => api.id === props.params.apiId);
-  if (!api) {
+  const namespace = workspace.ratelimitNamespaces.find(
+    (namespace) => namespace.id === props.params.namespaceId,
+  );
+  if (!namespace) {
     return notFound();
   }
 
   return (
     <div className="flex flex-col gap-8 mb-20 ">
-      <UpdateApiName api={api} />
-      <UpdateIpWhitelist api={api} workspace={workspace} />
+      <UpdateNamespaceName namespace={namespace} />
       <Card>
         <CardHeader>
-          <CardTitle>Api ID</CardTitle>
-          <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
+          <CardTitle>Namespace ID</CardTitle>
+          <CardDescription>This is your namespace id. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
           <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">
-            <pre>{api.id}</pre>
+            <pre>{namespace.id}</pre>
             <div className="flex items-start justify-between gap-4">
-              <CopyButton value={api.id} />
+              <CopyButton value={namespace.id} />
             </div>
           </Code>
         </CardContent>
       </Card>
-      <DeleteApi api={api} />
+      <DeleteNamespace namespace={namespace} />
     </div>
   );
 }

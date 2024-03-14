@@ -49,7 +49,7 @@ export const workspacePermissions = {
       description: "Create new namespaces in this workspace.",
       permission: "ratelimit.*.create_namespace",
     },
-    read_key: {
+    read_namespace: {
       description: "Read information about any existing or future namespace in this workspace.",
       permission: "ratelimit.*.read_namespace",
     },

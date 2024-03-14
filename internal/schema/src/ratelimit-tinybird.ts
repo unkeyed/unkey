@@ -21,14 +21,6 @@ export const ratelimitSchemaV1 = z.object({
     async: z.boolean(),
     sharding: sharding.optional().default(""),
   }),
-  resources: z.array(
-    z.object({
-      type: z.string(),
-      id: z.string(),
-      name: z.string().optional(),
-      meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-    }),
-  ),
   context: z.object({
     ipAddress: z.string(),
     userAgent: z.string().optional().default(""),

@@ -47,7 +47,7 @@ export default async function RatelimitNamespacePageLayout(props: Props) {
     <div>
       <PageHeader
         title={namespace.name}
-        description="Manage your API"
+        description="Manage your ratelimit namespace"
         actions={[
           <Badge
             key="namespaceId"

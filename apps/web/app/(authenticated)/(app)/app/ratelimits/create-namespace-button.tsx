@@ -22,19 +22,21 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().regex(/^[a-zA-Z0-9_\-\.]{3,50}$/),
 });
 
-export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+export const CreateNamespaceButton = ({
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
-  const create = trpc.api.create.useMutation({
+  const create = trpc.ratelimit.createNamespace.useMutation({
     onSuccess(res) {
-      toast.success("Your API has been created");
+      toast.success("Your Namespace has been created");
       router.refresh();
-      router.push(`/app/apis/${res.id}`);
+      router.push(`/app/ratelimits/${res.id}`);
     },
     onError(err) {
       console.error(err);
@@ -52,7 +54,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
         <DialogTrigger asChild>
           <Button className="flex-row items-center gap-1 font-semibold " {...rest}>
             <Plus size={18} className="w-4 h-4 " />
-            Create New API
+            Create new namespace
           </Button>
         </DialogTrigger>
         <DialogContent className="w-11/12 max-sm: ">
@@ -66,13 +68,14 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                     <FormLabel>Name</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="my-api"
+                        data-1p-ignore
+                        placeholder="email.outbound"
                         {...field}
                         className=" dark:focus:border-gray-700"
                       />
                     </FormControl>
                     <FormDescription>
-                      This is just a human readable name for you and not visible to anyone else
+                      Alphanumeric, underscores, hyphens or periods are allowed.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

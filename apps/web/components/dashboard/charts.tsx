@@ -3,14 +3,30 @@
 import { Area, Bar, Column } from "@ant-design/plots";
 import { useTheme } from "next-themes";
 
-export const useColors = () => {
+type ColorName = "primary" | "warn" | "danger";
+
+export const useColors = (colorNames: Array<ColorName>) => {
   const { resolvedTheme } = useTheme();
+
+  const colors: { light: Record<ColorName, string>; dark: Record<ColorName, string> } = {
+    light: {
+      primary: "#1c1917",
+      warn: "#FFCD07",
+      danger: "#D12542",
+    },
+    dark: {
+      primary: "#f1efef",
+      warn: "#FFE41C",
+      danger: "#FF7568",
+    },
+  };
+
   return {
     color: resolvedTheme === "dark" ? "#f1efef" : "#1c1917",
     palette:
       resolvedTheme === "dark"
-        ? ["#f1efef", "#FFE41C", "#FF7568"]
-        : ["#1c1917", "#FFCD07", "#D12542"],
+        ? colorNames.map((c) => colors.dark[c])
+        : colorNames.map((c) => colors.light[c]),
     axisColor: resolvedTheme === "dark" ? "#1b1918" : "#e8e5e3",
   };
 };
@@ -22,10 +38,11 @@ export type Props = {
   }[];
   timeGranularity: "hour" | "day" | "month";
   tooltipLabel: string;
+  colors?: Array<ColorName>;
 };
 
 export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel }) => {
-  const { color, axisColor } = useColors();
+  const { color, axisColor } = useColors(["primary", "warn", "danger"]);
   return (
     <Area
       autoFit={true}
@@ -94,8 +111,8 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
   );
 };
 
-export const ColumnChart: React.FC<Props> = ({ data }) => {
-  const { color, axisColor } = useColors();
+export const ColumnChart: React.FC<Props> = ({ data, colors }) => {
+  const { color, axisColor } = useColors(colors ?? ["primary", "warn", "danger"]);
   return (
     <Column
       color={color}
@@ -152,8 +169,9 @@ export const StackedColumnChart: React.FC<{
     y: number;
   }[];
   timeGranularity?: "minute" | "hour" | "day" | "month";
-}> = ({ data, timeGranularity, padding }) => {
-  const { palette, axisColor } = useColors();
+  colors: Array<ColorName>;
+}> = ({ data, timeGranularity, padding, colors }) => {
+  const { palette, axisColor } = useColors(colors);
   return (
     <Column
       isStack={true}
@@ -243,8 +261,9 @@ export const StackedBarChart: React.FC<{
     x: number;
     y: string;
   }[];
-}> = ({ data }) => {
-  const { palette, axisColor } = useColors();
+  colors: Array<ColorName>;
+}> = ({ data, colors }) => {
+  const { palette, axisColor } = useColors(colors);
   return (
     <Bar
       isStack={true}
@@ -262,6 +281,7 @@ export const StackedBarChart: React.FC<{
         formatter: (d) =>
           d.x > 0 ? Intl.NumberFormat(undefined, { notation: "compact" }).format(d.x) : "",
       }}
+      maxBarWidth={16}
       yAxis={{
         label: {
           formatter: (v: string) => {
@@ -297,67 +317,6 @@ export const StackedBarChart: React.FC<{
         formatter: (datum) => ({
           name: datum.category,
           value: Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(datum.x)),
-        }),
-      }}
-    />
-  );
-};
-
-type ColorCode = "primary" | "warn" | "error";
-
-export const ColumnSpark: React.FC<{
-  data: {
-    x: string;
-    y: number;
-    category: string;
-    colorCode?: ColorCode;
-  }[];
-}> = ({ data }) => {
-  const { palette } = useColors();
-
-  return (
-    <Column
-      className="absolute inset-0"
-      isStack={true}
-      color={palette.slice(0, 2).reverse()}
-      seriesField="category"
-      autoFit={true}
-      data={data}
-      padding={[0, 0, 0, 0]}
-      xField="x"
-      yField="y"
-      xAxis={{
-        ticks: [],
-        line: {
-          style: {
-            opacity: 0,
-          },
-        },
-        grid: {
-          line: {
-            style: { opacity: 0 },
-          },
-        },
-      }}
-      yAxis={{
-        ticks: [],
-
-        line: {
-          style: {
-            opacity: 0,
-          },
-        },
-        grid: {
-          line: {
-            style: { opacity: 0 },
-          },
-        },
-      }}
-      legend={false}
-      tooltip={{
-        formatter: (datum) => ({
-          name: datum.category,
-          value: Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(datum.y)),
         }),
       }}
     />

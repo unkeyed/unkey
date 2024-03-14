@@ -1,5 +1,4 @@
-import { getRatelimitsDaily, getRatelimitsHourly, getRatelimitsMinutely } from "@/lib/tinybird";
-import { Clock, User } from "lucide-react";
+import { getRatelimitsMinutely } from "@/lib/tinybird";
 import { Sparkline } from "./sparkline";
 type Props = {
   workspace: {
@@ -13,17 +12,17 @@ type Props = {
 
 export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) => {
   const now = new Date();
-  const end = now.setUTCHours(now.getUTCHours() + 1, 0, 0, 0);
-  const intervalMs = 1000 * 60 * 60 * 24;
+  const end = now.setUTCMinutes(now.getUTCMinutes() + 1, 0, 0);
+  const intervalMs = 1000 * 60 * 60;
 
-  const history = await getRatelimitsHourly({
+  const history = await getRatelimitsMinutely({
     workspaceId: workspace.id,
     namespaceId: namespace.id,
     start: end - intervalMs,
     end,
   });
 
-  const totalRequests = history.data.reduce((sum, d) => (sum += d.total), 0);
+  const totalRequests = history.data.reduce((sum, d) => sum + d.total, 0);
   const totalSeconds = Math.floor(
     ((history.data.at(-1)?.time ?? 0) - (history.data.at(0)?.time ?? 0)) / 1000,
   );

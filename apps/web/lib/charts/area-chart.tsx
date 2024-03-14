@@ -2,14 +2,13 @@
 import { curveMonotoneX } from "@visx/curve";
 import { LinearGradient } from "@visx/gradient";
 import { Group } from "@visx/group";
-import { Area, AreaClosed, Circle } from "@visx/shape";
+import { Area, AreaClosed } from "@visx/shape";
 import { motion } from "framer-motion";
 import { Fragment, useMemo } from "react";
-import { useChartContext, useChartTooltipContext } from "./chart-context";
+import { useChartContext } from "./chart-context";
 
 export function AreaChart() {
   const { data, series, margin, xScale, yScale } = useChartContext();
-  const { tooltipData } = useChartTooltipContext();
 
   // Data with all values set to zero to animate from
   const zeroedData = useMemo(() => {
@@ -19,6 +18,11 @@ export function AreaChart() {
     })) as typeof data;
   }, [data]);
 
+  const hasData = useMemo(
+    () => data.some((d) => Object.values(d.values).some((v) => v > 0)),
+    [data],
+  );
+
   return (
     <Group left={margin.left} top={margin.top}>
       {series.map((s) => (
@@ -26,12 +30,12 @@ export function AreaChart() {
           {/* Area background gradient */}
           <LinearGradient
             className={s.color as string}
-            id={`${s.id}-background`}
+            id={`${s.id}-${hasData}-background`}
             fromOffset="20%"
             from="currentColor"
-            fromOpacity={0.01}
+            fromOpacity={hasData ? 0.01 : 0}
             to="currentColor"
-            toOpacity={0.2}
+            toOpacity={hasData ? 0.2 : 0}
             x1={0}
             x2={0}
             y1={1}
@@ -49,7 +53,7 @@ export function AreaChart() {
                 <motion.path
                   initial={{ d: path(zeroedData) || "" }}
                   animate={{ d: path(data) || "" }}
-                  fill={`url(#${s.id}-background)`}
+                  fill={`url(#${s.id}-${hasData}-background)`}
                 />
               );
             }}

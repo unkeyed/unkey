@@ -53,7 +53,9 @@ export class Analytics {
           | "permission"
           | "keyAuth"
           | "vercelBinding"
-          | "vercelIntegration";
+          | "vercelIntegration"
+          | "ratelimitIdentifier"
+          | "ratelimitNamespace";
         id: string;
         meta?: Record<string, string | number | boolean>;
       }>;
@@ -104,10 +106,7 @@ export class Analytics {
   public get ingestRatelimit() {
     return this.client.buildIngestEndpoint({
       datasource: "ratelimits__v2",
-      event: ratelimitSchemaV1.transform((l) => ({
-        ...l,
-        resources: JSON.stringify(l.resources),
-      })),
+      event: ratelimitSchemaV1,
     });
   }
 

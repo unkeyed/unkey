@@ -33,20 +33,20 @@ import { z } from "zod";
 import { revalidate } from "./actions";
 
 type Props = {
-  api: {
+  namespace: {
     id: string;
     workspaceId: string;
     name: string;
   };
 };
 
-const intent = "delete my api";
+const intent = "delete namespace";
 
-export const DeleteApi: React.FC<Props> = ({ api }) => {
+export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
+    name: z.string().refine((v) => v === namespace.name, "Please confirm the namespace name"),
     intent: z.string().refine((v) => v === intent, "Please confirm your intent"),
   });
 
@@ -55,15 +55,15 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
   });
   const router = useRouter();
 
-  const deleteApi = trpc.api.delete.useMutation({
+  const deleteNamespace = trpc.ratelimit.deleteNamespace.useMutation({
     async onSuccess() {
-      toast.message("API Deleted", {
-        description: "Your API and all its keys has been deleted.",
+      toast.message("Namespace Deleted", {
+        description: "Your namespace and all its overridden identifiers have been deleted.",
       });
 
       await revalidate();
 
-      router.push("/app/apis");
+      router.push("/app/ratelimits");
     },
     onError(err) {
       console.error(err);
@@ -71,35 +71,36 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
     },
   });
 
-  const isValid = form.watch("intent") === intent && form.watch("name") === api.name;
+  const isValid = form.watch("intent") === intent && form.watch("name") === namespace.name;
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
-    deleteApi.mutate({ apiId: api.id });
+    deleteNamespace.mutate({ namespaceId: namespace.id });
   }
 
   return (
     <>
-      <Card className="relative border-2 border-[#b80f07]">
+      <Card className="relative border-2 border-alert">
         <CardHeader>
           <CardTitle>Delete</CardTitle>
           <CardDescription>
-            This api will be deleted, along with all of its keys and data. This action cannot be
-            undone.
+            This namespace will be deleted, along with all of its identifiers and data. This action
+            cannot be undone.
           </CardDescription>
         </CardHeader>
 
         <CardFooter className="z-10 justify-end">
           <Button type="button" onClick={() => setOpen(!open)} variant="alert">
-            Delete API
+            Delete namespace
           </Button>
         </CardFooter>
       </Card>
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-        <DialogContent className="border-[#b80f07]">
+        <DialogContent className="border-alert">
           <DialogHeader>
-            <DialogTitle>Delete API</DialogTitle>
+            <DialogTitle>Delete namespace</DialogTitle>
             <DialogDescription>
-              This api will be deleted, along with all of its keys. This action cannot be undone.
+              This namespace will be deleted, along with all of its identifiers and data. This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -118,8 +119,9 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
                       {" "}
-                      Enter the API name{" "}
-                      <span className="font-medium text-content">{api.name}</span> to continue:
+                      Enter the namespcae name{" "}
+                      <span className="font-medium text-content">{namespace.name}</span> to
+                      continue:
                     </FormLabel>
                     <FormControl>
                       <Input {...field} autoComplete="off" />
@@ -135,8 +137,8 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
-                      To verify, type{" "}
-                      <span className="font-medium text-content">delete my api</span> below:
+                      To verify, type <span className="font-medium text-content">{intent}</span>{" "}
+                      below:
                     </FormLabel>
                     <FormControl>
                       <Input {...field} autoComplete="off" />
@@ -150,7 +152,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
               <DialogFooter className="justify-end gap-4">
                 <Button
                   type="button"
-                  disabled={deleteApi.isLoading}
+                  disabled={deleteNamespace.isLoading}
                   onClick={() => setOpen(!open)}
                   variant="secondary"
                 >
@@ -159,9 +161,9 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
                 <Button
                   type="submit"
                   variant={isValid ? "alert" : "disabled"}
-                  disabled={!isValid || deleteApi.isLoading}
+                  disabled={!isValid || deleteNamespace.isLoading}
                 >
-                  {deleteApi.isLoading ? <Loading /> : "Delete API"}
+                  {deleteNamespace.isLoading ? <Loading /> : "Delete namespace"}
                 </Button>
               </DialogFooter>
             </form>

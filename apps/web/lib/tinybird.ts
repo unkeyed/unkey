@@ -419,6 +419,8 @@ export const getAuditLogs = tb.buildPipe({
                 "keyAuth",
                 "vercelBinding",
                 "vercelIntegration",
+                "ratelimitNamespace",
+                "ratelimitIdentifier",
               ]),
               id: z.string(),
               meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
@@ -473,7 +475,9 @@ export function ingestAuditLogs(
         | "permission"
         | "keyAuth"
         | "vercelBinding"
-        | "vercelIntegration";
+        | "vercelIntegration"
+        | "ratelimitNamespace"
+        | "ratelimitIdentifier";
       id: string;
       meta?: Record<string, string | number | boolean | null>;
     }>;

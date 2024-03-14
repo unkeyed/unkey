@@ -12,6 +12,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { RatelimitCard } from "./card";
+import { CreateNamespaceButton } from "./create-namespace-button";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -48,7 +49,11 @@ export default async function RatelimitOverviewPage() {
 
   return (
     <div>
-      <PageHeader title="Ratelimits" description="Manage your ratelimit namespaces" />
+      <PageHeader
+        title="Ratelimits"
+        description="Manage your ratelimit namespaces"
+        actions={[<CreateNamespaceButton key="create-namespace" />]}
+      />
       <Separator className="my-6" />
 
       {workspace.ratelimitNamespaces.length > 0 ? (
