@@ -62,7 +62,7 @@
     "@types/fslightbox-react": "^1.7.7",
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.65",
-    "@types/react-dom": "^18.2.21",
+    "@types/react-dom": "^18.2.22",
     "autoprefixer": "^10.0.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
