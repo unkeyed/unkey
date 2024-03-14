@@ -9,7 +9,6 @@ import {
   Code,
   Crown,
   GlobeLock,
-  KeySquare,
   Loader2,
   LucideIcon,
   Settings,
@@ -88,12 +87,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/app/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
-    },
-    {
-      icon: KeySquare,
-      href: "/app/settings/root-keys",
-      label: "Root Keys",
-      active: segments.at(0) === "root-keys",
     },
     {
       icon: Settings,
