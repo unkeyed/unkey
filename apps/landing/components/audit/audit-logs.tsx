@@ -149,7 +149,7 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
         </div>
 
         <div>
-          <Table>
+          <Table className="no-scrollbar">
             <TableHeader>
               <TableRow>
                 <TableHead>Time</TableHead>

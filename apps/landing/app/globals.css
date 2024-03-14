@@ -390,3 +390,16 @@ li > p {
     box-shadow: inset 0px 0px 0px 30px #000;
   }
 }
+
+.hk-radial {
+  background: radial-gradient(77.56% 100% at 0% 50%, #303030 0%, black 75.45%);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
