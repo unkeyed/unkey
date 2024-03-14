@@ -88,7 +88,7 @@ export const registerV1ApisCreateApi = (app: App) =>
       createdAt: new Date(),
       deletedAt: null,
     });
-    await analytics.ingestAuditLogs({
+    await analytics.ingestUnkeyAuditLogs({
       workspaceId: authorizedWorkspaceId,
       event: "api.create",
       actor: {

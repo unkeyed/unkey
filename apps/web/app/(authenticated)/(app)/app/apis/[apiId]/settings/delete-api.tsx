@@ -79,7 +79,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
 
   return (
     <>
-      <Card className="relative border-2 border-[#b80f07]">
+      <Card className="relative border-2 border-alert">
         <CardHeader>
           <CardTitle>Delete</CardTitle>
           <CardDescription>
@@ -95,7 +95,7 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
         </CardFooter>
       </Card>
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-        <DialogContent className="border-[#b80f07]">
+        <DialogContent className="border-alert">
           <DialogHeader>
             <DialogTitle>Delete API</DialogTitle>
             <DialogDescription>

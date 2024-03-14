@@ -306,7 +306,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         environment: req.environment ?? null,
       });
 
-      await analytics.ingestAuditLogs({
+      await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.create",
         actor: {
@@ -335,7 +335,7 @@ export const registerV1KeysCreateKey = (app: App) =>
             workspaceId: authorizedWorkspaceId,
           })),
         );
-        await analytics.ingestAuditLogs(
+        await analytics.ingestUnkeyAuditLogs(
           roleIds.map((roleId) => ({
             workspaceId: authorizedWorkspaceId,
             actor: { type: "key", id: rootKeyId },

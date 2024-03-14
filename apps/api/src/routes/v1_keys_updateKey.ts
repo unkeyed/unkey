@@ -211,7 +211,7 @@ export const registerV1KeysUpdate = (app: App) =>
         })
         .where(eq(schema.keys.id, req.keyId));
 
-      await analytics.ingestAuditLogs({
+      await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.update",
         actor: {
