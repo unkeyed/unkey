@@ -223,8 +223,8 @@ importers:
         specifier: ^0.2.0
         version: 0.2.1(@types/react@18.2.65)(react-dom@18.2.0)(react@18.2.0)
       date-fns:
-        specifier: ^3.2.0
-        version: 3.3.1
+        specifier: ^3.5.0
+        version: 3.5.0
       drizzle-orm:
         specifier: ^0.30.1
         version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.65)(react@18.2.0)
@@ -562,8 +562,8 @@ importers:
         specifier: ^0.8.5
         version: 0.8.5
       date-fns:
-        specifier: ^3.3.1
-        version: 3.3.1
+        specifier: ^3.5.0
+        version: 3.5.0
       drizzle-orm:
         specifier: ^0.30.1
         version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.65)(react@18.2.0)
@@ -5760,6 +5760,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -11440,8 +11441,8 @@ packages:
     engines: {node: '>= 6'}
     dev: true
 
-  /date-fns@3.3.1:
-    resolution: {integrity: sha512-y8e109LYGgoQDveiEBD3DYXKba1jWf5BA8YU1FL5Tvm0BTdEfy54WLCwnuYWZNnzzvALy/QQ4Hov+Q9RVRv+Zw==}
+  /date-fns@3.5.0:
+    resolution: {integrity: sha512-a+DwyXn7NOfdJireCzAA0B9p7jIXEu/Q9JKCyMYvH6+0vPUNbQceA0neXrdfJ/xzl3mhOh5vibQQ3936Tssm6A==}
     dev: false
 
   /db0@0.1.4:
@@ -16623,6 +16624,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
