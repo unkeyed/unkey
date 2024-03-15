@@ -1,0 +1,15 @@
+TOKEN "get_ratelimits_last_used__v1_endpoint_read_4376" READ
+VERSION 1
+NODE endpoint
+SQL >
+
+    %
+    SELECT lastUsed
+    FROM mv__ratelimits_last_used__v1 
+    where workspaceId={{String(workspaceId, required=True)}} 
+    and namespaceId={{String(namespaceId, required=True)}} 
+    {% if defined(identifier) %}
+  and identifier in {{Array(String(identifier))}}
+{%end if %}
+
+

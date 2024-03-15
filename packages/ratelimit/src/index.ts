@@ -1,10 +1,34 @@
 import { Duration } from "./duration";
 
-type TODO = any;
-
 type Limit = {
-  tokens: number;
+  /**
+   * How many requests may pass in the given duration
+   */
+  limit: number;
+
+  /**
+   * Either a type string literal or milliseconds
+   */
   duration: Duration | number;
+};
+
+export type RatelimitResponse = {
+  /**
+   * Whether the request may pass(true) or exceeded the limit(false)
+   */
+  success: boolean;
+  /**
+   * Maximum number of requests allowed within a window.
+   */
+  limit: number;
+  /**
+   * How many requests the user has left within the current window.
+   */
+  remaining: number;
+  /**
+   * Unix timestamp in milliseconds when the limits are reset.
+   */
+  reset: number;
 };
 
 export type RatelimitConfig = Limit & {
@@ -28,20 +52,37 @@ export interface Ratelimiter {
     identifier: string,
     opts?: {
       /**
-       * Separate requests into buckets, buckets are combined with your identifier
+       * Separate requests into groups, groups are combined with your identifier and can be filtered
+       * and searched later.
        *
-       * @example `send.email` -> `send.email_${userId}`
+       * @example `group: "send.email"` -> `send.email_${userId}`
        */
-      bucket?: string;
+      group?: string;
 
       /**
-       * Expensive requests may use up more tokens. You can specify a cost to the request here and
+       * Expensive requests may use up more resources. You can specify a cost to the request and
        * we'll deduct this many tokens in the current window. If there are not enough tokens left,
        * the request is denied.
        *
+       * @example
+       *
+       * 1. You have a limit of 10 requests per second you already used 4 of them in the current
+       * window.
+       *
+       * 2. Now a new request comes in with a higher cost:
+       * ```ts
+       * const res = await rl.limit("identifier", { cost: 4 })
+       * ```
+       *
+       * 3. The request passes and the current limit is now at `8`
+       *
+       * 4. The same request happens again, but would not be rejected, because it would exceed the
+       * limit in the current window: `8 + 4 > 10`
+       *
+       *
        * @default 1
        */
-      tokens?: number;
+      cost?: number;
 
       /**
        * Override the default limit.
@@ -56,8 +97,17 @@ export interface Ratelimiter {
        */
       async?: boolean;
 
+      /**
+       * Record arbitrary data about this request. This does not affect the limit itself but can help
+       * you debug later.
+       */
       meta?: Record<string, string | number | boolean | null>;
 
+      /**
+       * Specify which resources this request would access and we'll create a papertrail for you.
+       *
+       * @see https://unkey.dev/app/audit
+       */
       resources?: {
         type: string;
         id: string;
@@ -65,8 +115,8 @@ export interface Ratelimiter {
         meta?: Record<string, string | number | boolean | null>;
       }[];
     },
-  ) => Promise<TODO>;
+  ) => Promise<RatelimitResponse>;
 
-  retrieveLimit: (identifier: string) => Promise<TODO>;
-  reset: (identifier: string) => Promise<void>;
+  // retrieveLimit: (identifier: string) => Promise<TODO>;
+  // reset: (identifier: string) => Promise<void>;
 }

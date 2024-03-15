@@ -41,6 +41,11 @@ export default async function RatelimitNamespacePageLayout(props: Props) {
       href: `/app/ratelimits/${namespace.id}/settings`,
       segment: "settings",
     },
+    {
+      label: "Logs",
+      href: `/app/ratelimits/${namespace.id}/logs`,
+      segment: "logs",
+    },
   ];
 
   return (
