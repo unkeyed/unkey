@@ -67,6 +67,12 @@ export const workspaces = mysqlTable(
         auditLogRetentionDays?: number;
 
         /**
+         * enable ratelimit retention by specifiying the number of days
+         * undefined, 0 or negative means it's disabled
+         */
+        ratelimitRetentionDays?: number;
+
+        /**
          * Can access /app/success
          */
         successPage?: boolean;

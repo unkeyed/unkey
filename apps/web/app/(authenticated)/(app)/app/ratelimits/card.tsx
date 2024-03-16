@@ -1,4 +1,5 @@
-import { getRatelimitsMinutely } from "@/lib/tinybird";
+import { getRatelimitLastUsed, getRatelimitsMinutely } from "@/lib/tinybird";
+import ms from "ms";
 import { Sparkline } from "./sparkline";
 type Props = {
   workspace: {
@@ -15,12 +16,17 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
   const end = now.setUTCMinutes(now.getUTCMinutes() + 1, 0, 0);
   const intervalMs = 1000 * 60 * 60;
 
-  const history = await getRatelimitsMinutely({
-    workspaceId: workspace.id,
-    namespaceId: namespace.id,
-    start: end - intervalMs,
-    end,
-  });
+  const [history, lastUsed] = await Promise.all([
+    getRatelimitsMinutely({
+      workspaceId: workspace.id,
+      namespaceId: namespace.id,
+      start: end - intervalMs,
+      end,
+    }),
+    getRatelimitLastUsed({ workspaceId: workspace.id, namespaceId: namespace.id }).then(
+      (res) => res.data.at(0)?.lastUsed,
+    ),
+  ]);
 
   const totalRequests = history.data.reduce((sum, d) => sum + d.total, 0);
   const totalSeconds = Math.floor(
@@ -49,10 +55,16 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
         </div>
 
         <div className="text-xs text-content-subtle">
-          Last request{" "}
-          <time dateTime="2024-03-11T19:38:06.192Z" title="20:38:06 CET">
-            2 minutes ago
-          </time>
+          {lastUsed ? (
+            <>
+              Last request{" "}
+              <time dateTime="2024-03-11T19:38:06.192Z" title="20:38:06 CET">
+                {ms(Date.now() - lastUsed)} ago
+              </time>
+            </>
+          ) : (
+            "Never used"
+          )}
         </div>
       </div>
     </div>

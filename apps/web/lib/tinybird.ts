@@ -514,7 +514,7 @@ export const getRatelimitsHourly = tb.buildPipe({
   parameters: z.object({
     workspaceId: z.string(),
     namespaceId: z.string(),
-    identifier: z.string().optional(),
+    identifier: z.array(z.string()).optional(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
@@ -533,7 +533,7 @@ export const getRatelimitsMinutely = tb.buildPipe({
   parameters: z.object({
     workspaceId: z.string(),
     namespaceId: z.string(),
-    identifier: z.string().optional(),
+    identifier: z.array(z.string()).optional(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
@@ -551,7 +551,7 @@ export const getRatelimitsDaily = tb.buildPipe({
   parameters: z.object({
     workspaceId: z.string(),
     namespaceId: z.string(),
-    identifier: z.string().optional(),
+    identifier: z.array(z.string()).optional(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
@@ -570,7 +570,7 @@ export const getRatelimitsMonthly = tb.buildPipe({
   parameters: z.object({
     workspaceId: z.string(),
     namespaceId: z.string(),
-    identifier: z.string().optional(),
+    identifier: z.array(z.string()).optional(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
@@ -654,6 +654,56 @@ export const getRatelimitIdentifiersMonthly = tb.buildPipe({
     identifier: z.string(),
     success: z.number(),
     total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitLastUsed = tb.buildPipe({
+  pipe: "get_ratelimits_last_used__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.array(z.string()).optional(),
+  }),
+  data: z.object({
+    lastUsed: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitEvents = tb.buildPipe({
+  pipe: "get_ratelimit_events__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    after: z.number().optional(),
+    before: z.number().optional(),
+    limit: z.number().optional(),
+    success: z
+      .boolean()
+      .optional()
+      .transform((b) => (typeof b === "boolean" ? (b ? 1 : 0) : undefined)),
+    ipAddress: z.array(z.string()).optional(),
+    country: z.array(z.string()).optional(),
+    identifier: z.array(z.string()).optional(),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    requestId: z.string(),
+    time: z.number(),
+    success: z
+      .number()
+      .transform((n) => n > 0)
+      .optional(),
+
+    remaining: z.number(),
+    limit: z.number(),
+    country: z.string(),
+    ipAddress: z.string(),
   }),
   opts: {
     cache: "no-store",

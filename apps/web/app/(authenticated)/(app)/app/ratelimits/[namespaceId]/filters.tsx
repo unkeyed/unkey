@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrayInput } from "@/components/array-input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,12 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
-import { usePathname } from "next/navigation";
-import { parseAsStringEnum, useQueryState } from "nuqs";
-import React, { useCallback, useTransition } from "react";
+import { parseAsArrayOf, parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
+import React, { useTransition } from "react";
 
-export const interval = {
+export const intervals = {
   "60m": "Last 60 minutes",
   "24h": "Last 24 hours",
   "7d": "Last 7 days",
@@ -24,76 +23,74 @@ export const interval = {
   "90d": "Last 3 months",
 } as const;
 
-export type Interval = keyof typeof interval;
+export type Interval = keyof typeof intervals;
 
-export const Filters: React.FC = () => {
+export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (props) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [selected, setSelected] = useQueryState(
+  const [interval, setInterval] = useQueryState(
     "interval",
     parseAsStringEnum(["60m", "24h", "7d", "30d", "90d"]).withDefault("7d").withOptions({
       history: "push",
       shallow: false, // otherwise server components won't notice the change
     }),
   );
+  const [identifier, setIdentifier] = useQueryState(
+    "identifier",
+    parseAsArrayOf(parseAsString).withDefault([]).withOptions({
+      history: "push",
+      shallow: false, // otherwise server components won't notice the change
+    }),
+  );
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-2">
+      {props.identifier ? (
+        <div>
+          <ArrayInput
+            title="Identifiers"
+            selected={identifier}
+            setSelected={(v) => {
+              setIdentifier(v);
+              startTransition(() => {});
+            }}
+          />
+        </div>
+      ) : null}{" "}
+      {props.interval ? (
+        <div>
+          <Select
+            value={interval}
+            onValueChange={(i: Interval) => {
+              setInterval(i);
+              startTransition(() => {});
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue defaultValue={interval} />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(intervals).map(([id, label]) => (
+                <SelectItem key={id} value={id}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
       <div>
-        <Select
-          value={selected}
-          onValueChange={(i: Interval) => {
-            setSelected(i);
-            startTransition(() => {});
+        <Button
+          size="icon"
+          variant="secondary"
+          onClick={() => {
+            startTransition(router.refresh);
           }}
         >
-          <SelectTrigger>
-            <SelectValue defaultValue={selected} />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(interval).map(([id, label]) => (
-              <SelectItem key={id} value={id}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <RefreshCw className={cn("w-4 h-4", { "animate-spin": isPending })} />
+        </Button>
       </div>
-
-      <Button
-        size="icon"
-        variant="secondary"
-        onClick={() => {
-          startTransition(router.refresh);
-        }}
-      >
-        <RefreshCw className={cn("w-4 h-4", { "animate-spin": isPending })} />
-      </Button>
     </div>
   );
 };
-
-/**
- * Utility hook to modify the search params of the current URL
- */
-export function useModifySearchParams() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams()!;
-
-  const hrefWithSearchparam = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set(name, value);
-      return `${pathname}?${params.toString()}`;
-    },
-    [pathname, searchParams],
-  );
-
-  return {
-    set: (key: string, value: string) => {
-      router.push(hrefWithSearchparam(key, value), { scroll: false });
-    },
-  };
-}

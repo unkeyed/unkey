@@ -51,6 +51,7 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
           });
         }
       }
+
       // This is not a default behaviour of the <input /> field
       if (e.key === "Escape") {
         input.blur();

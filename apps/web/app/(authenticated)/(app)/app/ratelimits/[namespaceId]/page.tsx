@@ -12,13 +12,15 @@ import {
   getRatelimitIdentifiersHourly,
   getRatelimitIdentifiersMinutely,
   getRatelimitIdentifiersMonthly,
+  getRatelimitLastUsed,
   getRatelimitsDaily,
   getRatelimitsHourly,
   getRatelimitsMinutely,
 } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
+import ms from "ms";
 import { notFound } from "next/navigation";
-import { parseAsStringEnum } from "nuqs";
+import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs";
 import { Filters, type Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,7 @@ export default async function RatelimitNamespacePage(props: {
   params: { namespaceId: string };
   searchParams: {
     interval?: Interval;
+    identifier?: string;
   };
 }) {
   const tenantId = getTenantId();
@@ -49,7 +52,10 @@ export default async function RatelimitNamespacePage(props: {
     return notFound();
   }
 
-  const interval = intervalParser.parseServerSide(props.searchParams.interval);
+  const interval = intervalParser.withDefault("7d").parseServerSide(props.searchParams.interval);
+  const selectedIdentifier = parseAsArrayOf(parseAsString)
+    .withDefault([])
+    .parseServerSide(props.searchParams.identifier);
 
   const t = new Date();
   t.setUTCDate(1);
@@ -64,23 +70,29 @@ export default async function RatelimitNamespacePage(props: {
     namespaceId: namespace.id,
     start,
     end,
+    identifier: selectedIdentifier.length > 0 ? selectedIdentifier : undefined,
   };
-  const [customLimits, ratelimitEvents, identifiers, ratelimitsInBillingCycle] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.ratelimits)
-      .where(eq(schema.ratelimits.namespaceId, namespace.id))
-      .execute()
-      .then((res) => res.at(0)?.count ?? 0),
-    getRatelimitsPerInterval(query),
-    getIdentifiers(query),
-    getRatelimitsPerInterval({
-      workspaceId: namespace.workspaceId,
-      namespaceId: namespace.id,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }),
-  ]);
+  console.log({ query });
+  const [customLimits, ratelimitEvents, identifiers, ratelimitsInBillingCycle, lastUsed] =
+    await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.ratelimits)
+        .where(eq(schema.ratelimits.namespaceId, namespace.id))
+        .execute()
+        .then((res) => res.at(0)?.count ?? 0),
+      getRatelimitsPerInterval(query),
+      getIdentifiers(query),
+      getRatelimitsPerInterval({
+        workspaceId: namespace.workspaceId,
+        namespaceId: namespace.id,
+        start: billingCycleStart,
+        end: billingCycleEnd,
+      }),
+      getRatelimitLastUsed({ workspaceId: namespace.workspaceId, namespaceId: namespace.id }).then(
+        (res) => res.data.at(0)?.lastUsed,
+      ),
+    ]);
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -129,7 +141,7 @@ export default async function RatelimitNamespacePage(props: {
     <div className="flex flex-col gap-4">
       <Card>
         <CardContent className="grid grid-cols-4 divide-x">
-          <Metric label="Total Custom limits" value={formatNumber(customLimits)} />
+          <Metric label="Overriden limits" value={formatNumber(customLimits)} />
           <Metric
             label={`Successful ratelimits in ${new Date().toLocaleString("en-US", {
               month: "long",
@@ -138,6 +150,11 @@ export default async function RatelimitNamespacePage(props: {
               ratelimitsInBillingCycle.data.reduce((sum, day) => sum + day.success, 0),
             )}
           />
+          <Metric
+            label="Last used"
+            value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "never"}
+          />
+
           {/* <Metric
             label={`Active Keys in ${new Date().toLocaleString("en-US", {
               month: "long",
@@ -149,11 +166,13 @@ export default async function RatelimitNamespacePage(props: {
       <Separator className="my-8" />
 
       <div className="flex items-center justify-between w-full">
-        <h2 className="w-full text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
-          Requests
-        </h2>
+        <div>
+          <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
+            Requests
+          </h2>
+        </div>
 
-        <Filters />
+        <Filters identifier interval />
       </div>
 
       {dataOverTime.some((d) => d.y > 0) ? (
@@ -220,11 +239,11 @@ export default async function RatelimitNamespacePage(props: {
 
       <Separator className="my-8" />
       <div className="flex items-center justify-between w-full">
-        <h2 className="w-full text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
+        <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
           Top identifiers
         </h2>
 
-        <Filters />
+        <Filters interval />
       </div>
       {identifiers.data.length > 0 ? (
         <Card>
