@@ -9,7 +9,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "post",
-  path: "/v1/ratelimit.limit",
+  path: "/v1/ratelimits.limit",
   security: [{ bearerAuth: [] }],
   request: {
     body: {

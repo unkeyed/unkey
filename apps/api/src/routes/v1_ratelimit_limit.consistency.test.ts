@@ -32,7 +32,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
       let lastResponse = 10;
       for (let i = 0; i < n; i++) {
         const res = await h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-          url: "/v1/ratelimit.limit",
+          url: "/v1/ratelimits.limit",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${root.key}`,
