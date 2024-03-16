@@ -12,9 +12,9 @@ SQL >
         where
             workspaceId = {{ String(workspaceId, required=True )}}
             and namespaceId ={{ String(namespaceId) }}
-            {% if defined(identifier) %}
-            and identifier ={{ String(identifier) }}
-            {%end if %}
+          {% if defined(identifier) %}
+  and identifier in {{Array(String(identifier))}}
+{%end if %}
              {% if defined(start)%}
               and time >= fromUnixTimestamp64Milli({{ Int64(start) }})
             {%end if %}
