@@ -649,8 +649,8 @@ importers:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@18.2.0)(react@18.2.0)
       stripe:
-        specifier: ^14.18.0
-        version: 14.18.0
+        specifier: ^14.21.0
+        version: 14.21.0
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -749,8 +749,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       stripe:
-        specifier: ^14.18.0
-        version: 14.18.0
+        specifier: ^14.21.0
+        version: 14.21.0
       zod:
         specifier: ^3.22.4
         version: 3.22.4
@@ -20245,8 +20245,8 @@ packages:
       js-tokens: 8.0.3
     dev: true
 
-  /stripe@14.18.0:
-    resolution: {integrity: sha512-yLqKPqYgGJbMxrQiE4+i2i00ZVA2NRIZbZ1rejzj5XR3F3Uc+1iy9QE133knZudhVGMw367b8vTpB8D9pYMETw==}
+  /stripe@14.21.0:
+    resolution: {integrity: sha512-PFmpl35Myn6UDdVLTHcuppdbkPVvlQfkMHOmgGZh5QOdSUxVmvz090Z4obLg8ta1MNs1PNpzr9i7E39iAIv07A==}
     engines: {node: '>=12.*'}
     dependencies:
       '@types/node': 20.11.24
