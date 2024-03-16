@@ -87,7 +87,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
         seconds,
         fn: () =>
           h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-            url: "/v1/ratelimit.limit",
+            url: "/v1/ratelimits.limit",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${root.key}`,
