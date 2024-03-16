@@ -1118,6 +1118,10 @@ importers:
         version: 3.4.21(typescript@5.3.3)
 
   packages/ratelimit:
+    dependencies:
+      '@unkey/api':
+        specifier: workspace:^
+        version: link:../api
     devDependencies:
       '@types/node':
         specifier: ^20.11.24

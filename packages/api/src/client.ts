@@ -354,4 +354,21 @@ export class Unkey {
       },
     };
   }
+  public get ratelimits() {
+    return {
+      limit: async (
+        req: paths["/v1/ratelimit.limit"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimit.limit"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimit.limit"],
+          method: "POST",
+          body: req,
+        });
+      },
+    };
+  }
 }
