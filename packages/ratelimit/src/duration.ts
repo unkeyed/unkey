@@ -5,7 +5,10 @@ export type Duration = `${number} ${Unit}` | `${number}${Unit}`;
 /**
  * Convert a human readable duration to milliseconds
  */
-export function ms(d: Duration): number {
+export function ms(d: Duration | number): number {
+  if (typeof d === "number") {
+    return d;
+  }
   const match = d.match(/^(\d+)\s?(ms|s|m|h|d)$/);
   if (!match) {
     throw new Error(`Unable to parse window size: ${d}`);

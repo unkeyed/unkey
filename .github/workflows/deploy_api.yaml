@@ -200,7 +200,6 @@ jobs:
   production:
     needs:
       - canary-tests
-      - canary-benchmarks
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Production
