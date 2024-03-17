@@ -364,7 +364,7 @@ export class Unkey {
         >
       > => {
         return await this.fetch({
-          path: ["v1", "ratelimit.limit"],
+          path: ["v1", "ratelimits.limit"],
           method: "POST",
           body: req,
         });
