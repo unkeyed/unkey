@@ -1,13 +1,13 @@
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { expect, test } from "vitest";
 import { type V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
 
-test("returns an empty verifications array", async () => {
-  const h = await RouteHarness.init();
+test("returns an empty verifications array", async (t) => {
+  const h = await RouteHarness.init(t);
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
@@ -32,8 +32,8 @@ test("returns an empty verifications array", async () => {
   });
 });
 
-test("ownerId works too", async () => {
-  const h = await RouteHarness.init();
+test("ownerId works too", async (t) => {
+  const h = await RouteHarness.init(t);
   const ownerId = crypto.randomUUID();
   const keyIds = [newId("key"), newId("key"), newId("key")];
   for (const keyId of keyIds) {

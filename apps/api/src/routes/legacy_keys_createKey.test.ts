@@ -7,8 +7,8 @@ import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse } from "./legacy_keys_createKey";
 
 describe("simple", () => {
-  test("creates key", async () => {
-    const h = await RouteHarness.init();
+  test("creates key", async (t) => {
+    const h = await RouteHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({
@@ -34,8 +34,8 @@ describe("simple", () => {
 });
 
 describe("wrong ratelimit type", () => {
-  test("reject the request", async () => {
-    const h = await RouteHarness.init();
+  test("reject the request", async (t) => {
+    const h = await RouteHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, ErrorResponse>({
@@ -60,8 +60,8 @@ describe("wrong ratelimit type", () => {
 });
 
 describe("with prefix", () => {
-  test("start includes prefix", async () => {
-    const h = await RouteHarness.init();
+  test("start includes prefix", async (t) => {
+    const h = await RouteHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({

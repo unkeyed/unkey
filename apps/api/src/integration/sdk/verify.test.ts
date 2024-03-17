@@ -3,8 +3,8 @@ import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { type Flatten, Unkey, and, or } from "@unkey/api/src/index"; // use unbundled raw esm typescript
 import { expect, test } from "vitest";
 
-test("with raw query", async () => {
-  const h = await IntegrationHarness.init();
+test("with raw query", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key } = await h.createKey();
 
   const sdk = new Unkey({
@@ -29,8 +29,8 @@ test("with raw query", async () => {
 });
 
 describe("with typesafe generated permissions", () => {
-  test("returns valid", async () => {
-    const h = await IntegrationHarness.init();
+  test("returns valid", async (t) => {
+    const h = await IntegrationHarness.init(t);
     const { key } = await h.createKey({
       roles: [
         {
@@ -67,8 +67,8 @@ describe("with typesafe generated permissions", () => {
     expect(result!.valid).toBe(true);
   });
 
-  test("with helper functions", async () => {
-    const h = await IntegrationHarness.init();
+  test("with helper functions", async (t) => {
+    const h = await IntegrationHarness.init(t);
     const { key } = await h.createKey();
 
     const sdk = new Unkey({

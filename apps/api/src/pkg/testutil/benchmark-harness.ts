@@ -1,3 +1,4 @@
+import { TaskContext } from "vitest";
 import { z } from "zod";
 import { benchmarkTestEnv } from "./env";
 import { Harness } from "./harness";
@@ -6,13 +7,13 @@ import { StepRequest, StepResponse, step } from "./request";
 export class BenchmarkHarness extends Harness {
   public readonly env: z.infer<typeof benchmarkTestEnv>;
 
-  private constructor() {
-    super();
+  private constructor(t: TaskContext) {
+    super(t);
     this.env = benchmarkTestEnv.parse(process.env);
   }
 
-  static async init(): Promise<BenchmarkHarness> {
-    const h = new BenchmarkHarness();
+  static async init(t: TaskContext): Promise<BenchmarkHarness> {
+    const h = new BenchmarkHarness(t);
     await h.seed();
     return h;
   }
