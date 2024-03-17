@@ -1,7 +1,7 @@
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import { PermissionQuery, buildQuery } from "@unkey/rbac";
-import { expect, test } from "vitest";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { describe, expect, test } from "vitest";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 type TestCase = {
@@ -17,7 +17,7 @@ type TestCase = {
   };
 };
 
-test.each<TestCase>([
+describe.each<TestCase>([
   {
     name: "No Roles and no query",
     roles: [],
@@ -246,34 +246,36 @@ test.each<TestCase>([
     roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
     expected: { status: 200, valid: false },
   },
-])(
-  "$name",
-  async ({ roles, query, expected }) => {
-    const h = await RouteHarness.init();
-    const { key } = await h.createKey({ roles });
+])("$name", async ({ roles, query, expected }) => {
+  test(
+    `returns valid=${expected.valid}`,
+    async (t) => {
+      const h = await RouteHarness.init(t);
+      const { key } = await h.createKey({ roles });
 
-    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-      url: "/v1/keys.verifyKey",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: {
-        key,
-        apiId: h.resources.userApi.id,
-        authorization: query
-          ? {
-              permissions: query,
-            }
-          : undefined,
-      },
-    });
-    expect(res.status).toEqual(expected.status);
-    expect(
-      res.body.valid,
-      `key is ${res.body.valid ? "valid" : "not valid"}, received body: ${JSON.stringify(
-        res.body,
-      )}`,
-    ).toBe(expected.valid);
-  },
-  { timeout: 60_000 },
-);
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: h.resources.userApi.id,
+          authorization: query
+            ? {
+                permissions: query,
+              }
+            : undefined,
+        },
+      });
+      expect(res.status).toEqual(expected.status);
+      expect(
+        res.body.valid,
+        `key is ${res.body.valid ? "valid" : "not valid"}, received body: ${JSON.stringify(
+          res.body,
+        )}`,
+      ).toBe(expected.valid);
+    },
+    { timeout: 60_000 },
+  );
+});

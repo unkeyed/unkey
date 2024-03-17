@@ -10,8 +10,8 @@ import {
   V1KeysUpdateRemainingResponse,
 } from "./v1_keys_updateRemaining";
 
-test("increment", async () => {
-  const h = await RouteHarness.init();
+test("increment", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -43,8 +43,8 @@ test("increment", async () => {
   expect(res.body.remaining).toEqual(110);
 });
 
-test("decrement", async () => {
-  const h = await RouteHarness.init();
+test("decrement", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -76,8 +76,8 @@ test("decrement", async () => {
   expect(res.body.remaining).toEqual(90);
 });
 
-test("set", async () => {
-  const h = await RouteHarness.init();
+test("set", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -109,8 +109,8 @@ test("set", async () => {
   expect(res.body.remaining).toEqual(10);
 });
 
-test("invalid operation", async () => {
-  const h = await RouteHarness.init();
+test("invalid operation", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const key = {
     id: newId("key"),

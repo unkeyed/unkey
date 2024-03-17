@@ -1036,7 +1036,7 @@ export interface paths {
       };
     };
   };
-  "/v1/ratelimit.limit": {
+  "/v1/ratelimits.limit": {
     post: {
       requestBody: {
         content: {

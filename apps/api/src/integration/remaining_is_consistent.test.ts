@@ -6,8 +6,8 @@ import { V1KeysGetKeyResponse } from "@/routes/v1_keys_getKey";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { expect, test } from "vitest";
 
-test("remaining consistently counts down", async () => {
-  const h = await IntegrationHarness.init();
+test("remaining consistently counts down", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

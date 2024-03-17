@@ -5,11 +5,11 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_deleteKey";
 
-test("soft deletes key", async () => {
-  const h = await RouteHarness.init();
+test("soft deletes key", async (t) => {
+  const h = await RouteHarness.init(t);
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({

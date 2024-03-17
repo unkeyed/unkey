@@ -4,8 +4,8 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { expect, test } from "vitest";
 
-test("create with roles and permissions", async () => {
-  const h = await IntegrationHarness.init();
+test("create with roles and permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
   type Resources = {
     domain: "create" | "delete" | "read";
     dns: {

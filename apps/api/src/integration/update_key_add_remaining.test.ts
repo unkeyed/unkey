@@ -10,8 +10,8 @@ import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v
 import { describe, expect, test } from "vitest";
 
 describe("some", () => {
-  test("update a key's remaining limit", async () => {
-    const h = await IntegrationHarness.init();
+  test("update a key's remaining limit", async (t) => {
+    const h = await IntegrationHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
