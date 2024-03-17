@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.19.4
+
+### Patch Changes
+
+- 7043c1c: Add ratelimit
+
 ## 0.19.3
 
 ### Patch Changes
