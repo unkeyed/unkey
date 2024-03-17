@@ -4,6 +4,8 @@ import { Ratelimit } from "@unkey/ratelimit";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
+export const runtime = "edge";
+
 const UNKEY_RATELIMIT_COOKIE = "UNKEY_RATELIMIT";
 
 export const POST = async (req: Request): Promise<Response> => {
