@@ -47,9 +47,6 @@ export abstract class Harness {
         await this.db
           .delete(schema.workspaces)
           .where(eq(schema.workspaces.id, workspaceId))
-          .catch((err) => {
-            console.error(err);
-          });
       }
     };
     for (let i = 1; i <= 5; i++) {
