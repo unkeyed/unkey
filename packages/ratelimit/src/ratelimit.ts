@@ -57,6 +57,15 @@ export type RatelimitConfig = Limit & {
         fallback: RatelimitResponse;
       }
     | false;
+
+  /**
+   *
+   * By default telemetry data is enabled, and sends:
+   * runtime (Node.js / Edge)
+   * platform (Node.js / Vercel / AWS)
+   * SDK version
+   */
+  disableTelemetry?: boolean;
 };
 
 export class Ratelimit implements Ratelimiter {
@@ -67,6 +76,7 @@ export class Ratelimit implements Ratelimiter {
     this.config = config;
     this.unkey = new Unkey({
       rootKey: config.rootKey,
+      disableTelemetry: config.disableTelemetry,
       wrapperSdkVersion: `@unkey/ratelimit@${version}`,
     });
   }
