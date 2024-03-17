@@ -357,10 +357,10 @@ export class Unkey {
   public get ratelimits() {
     return {
       limit: async (
-        req: paths["/v1/ratelimit.limit"]["post"]["requestBody"]["content"]["application/json"],
+        req: paths["/v1/ratelimits.limit"]["post"]["requestBody"]["content"]["application/json"],
       ): Promise<
         Result<
-          paths["/v1/ratelimit.limit"]["post"]["responses"]["200"]["content"]["application/json"]
+          paths["/v1/ratelimits.limit"]["post"]["responses"]["200"]["content"]["application/json"]
         >
       > => {
         return await this.fetch({
