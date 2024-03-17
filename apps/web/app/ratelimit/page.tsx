@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Minus } from "lucide-react";
 import ms from "ms";
@@ -105,8 +104,8 @@ export default function RatelimitPage() {
   }, [data]);
 
   return (
-    <div className="container relative py-16 mx-auto">
-      <div className="sticky top-0 pb-4 bg-background">
+    <div className="container relative pb-16 mx-auto">
+      <div className="sticky top-0 py-4 bg-background">
         <PageHeader
           title="Ratelimit demo"
           actions={[
@@ -178,7 +177,6 @@ export default function RatelimitPage() {
               </CardContent>
             </Card>
           ) : null}
-          <Separator className="my-8" />
 
           <Card>
             <CardHeader>
