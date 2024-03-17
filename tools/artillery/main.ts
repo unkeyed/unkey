@@ -45,7 +45,7 @@ if (!ARTILLERY_CLOUD_API_KEY || !UNKEY_KEY || !FLY_API_KEY) {
 }
 
 const FLY_APP_NAME = "artillery";
-const ARTILLERY_YAML_FILE = "./keys.verifyKey.yaml";
+const ARTILLERY_YAML_FILE = "./ratelimits.limit.yaml";
 
 async function runMachine(image: string, region: string): Promise<void> {
   await fetch(`https://api.machines.dev/v1/apps/${FLY_APP_NAME}/machines`, {
