@@ -1,6 +1,6 @@
 {
   "name": "@unkey/api",
-  "version": "0.19.3",
+  "version": "0.19.4",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
