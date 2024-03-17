@@ -266,4 +266,3 @@ const Metric: React.FC<{
   }
   return component;
 };
-// pnpm install  20.92s user 44.80s system 167% cpu 39.265 total

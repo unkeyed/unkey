@@ -45,6 +45,7 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
   const { color, axisColor } = useColors(["primary", "warn", "danger"]);
   return (
     <Area
+      animation={false}
       autoFit={true}
       data={data}
       smooth={true}
