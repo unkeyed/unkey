@@ -134,4 +134,76 @@ export class Analytics {
       }),
     });
   }
+  public get getVerificationsByOwnerIdHourly() {
+    return this.client.buildPipe({
+      pipe: "endpoint__verifications_with_ownerId_hourly__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdDaily() {
+    return this.client.buildPipe({
+      pipe: "endpoint__verifications_with_ownerId_daily__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdWeekly() {
+    return this.client.buildPipe({
+      pipe: "endpoint__verifications_with_ownerId_weekly__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdMonthly() {
+    return this.client.buildPipe({
+      pipe: "endpoint__verifications_with_ownerId_monthly__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
 }

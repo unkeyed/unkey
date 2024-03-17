@@ -31,4 +31,10 @@ export type CacheNamespaces = {
     permissions: string[];
     roles: string[];
   }[];
+  verificationsByOwnerId: {
+    time: number;
+    success: number;
+    rateLimited: number;
+    usageExceeded: number;
+  }[];
 };

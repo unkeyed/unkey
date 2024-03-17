@@ -1,7 +1,12 @@
 import { Env, zEnv } from "@/pkg/env";
 import { newApp } from "@/pkg/hono/app";
 
+import { instrument } from "@microlabs/otel-cf-workers";
 import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
+// Legacy Routes
+import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
+import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
+import { registerV1AnalyticsGetByOwnerId } from "./routes/v1_analytics_getByOwnerId";
 import { registerV1ApisCreateApi } from "./routes/v1_apis_createApi";
 import { registerV1ApisDeleteApi } from "./routes/v1_apis_deleteApi";
 import { registerV1ApisGetApi } from "./routes/v1_apis_getApi";
@@ -14,11 +19,6 @@ import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
-
-import { instrument } from "@microlabs/otel-cf-workers";
-// Legacy Routes
-import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
-import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
@@ -54,6 +54,9 @@ registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
+
+// analytics
+registerV1AnalyticsGetByOwnerId(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
