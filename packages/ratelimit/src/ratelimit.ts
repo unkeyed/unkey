@@ -112,7 +112,7 @@ export class Ratelimit implements Ratelimiter {
           .then((res) => {
             if (res.error) {
               throw new Error(
-                `Ratelimit failed: [${res.error.code}] [${res.error.requestId}]: ${res.error.message}`,
+                `Ratelimit failed: [${res.error.code} - ${res.error.requestId}]: ${res.error.message}`,
               );
             }
             return res.result;
