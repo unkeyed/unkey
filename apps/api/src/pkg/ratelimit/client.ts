@@ -54,17 +54,26 @@ export class DurableRateLimiter implements RateLimiter {
       return await p;
     }
 
+    let current = this.cache.get(id) ?? 0;
+
     c.executionCtx.waitUntil(
-      p.then((res) => {
+      p.then(async (res) => {
         if (res.err) {
           console.error(res.err.message);
           return;
         }
         this.cache.set(this.getId(req), res.val.current);
+
+        this.metrics.emit({
+          metric: "metric.ratelimit.accuracy",
+          limit: req.limit,
+          duration: req.interval,
+          responded: current + cost <= req.limit,
+          correct: res.val.current + cost <= req.limit,
+        });
+        await this.metrics.flush();
       }),
     );
-
-    let current = this.cache.get(id) ?? 0;
     if (current + cost > req.limit) {
       return Ok({
         current,
