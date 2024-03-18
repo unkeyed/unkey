@@ -119,7 +119,7 @@ function AnalyticsApiView() {
       className="w-full overflow-x-hidden"
     >
       <div className="w-full bg-[#000000] bg-opacity-02 analytics-background-gradient xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
-        <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
+        <div className="flex flex-col w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
           <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
             <TerminalIcon className="w-6 h-6" />
             <div className="ml-3">cURL</div>
