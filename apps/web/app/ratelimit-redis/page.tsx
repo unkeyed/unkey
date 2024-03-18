@@ -109,7 +109,7 @@ export default function RatelimitPage() {
     <div className="container relative pb-16 mx-auto">
       <div className="sticky top-0 py-4 bg-background">
         <PageHeader
-          title="Ratelimit demo with redis (db in Frankfurt, not global)"
+          title="Ratelimit demo with redis"
           actions={[
             <Link href="/app" key="app">
               <Button>Sign In</Button>
