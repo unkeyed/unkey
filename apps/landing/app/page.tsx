@@ -132,7 +132,7 @@ export default async function Landing() {
         </div>
         <div className="relative">
           {/* TODO: horizontal scroll */}
-          <LeveledUpApiAuthChip className="absolute top-[-450px] right-0" />
+          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-100px]" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
             title="Leveled-up API management"
