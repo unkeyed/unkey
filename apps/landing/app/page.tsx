@@ -83,7 +83,7 @@ export default async function Landing() {
           <Stats />
         </Suspense>
 
-        <CodeExamples className="mt-20" />
+        <CodeExamples className="mt-[144px] md:mt-[120px]" />
         <div className="mt-[220px]" />
         <OpenSource />
         <SectionTitle
