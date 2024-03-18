@@ -13,7 +13,6 @@ interface LayoutProps {
 
 export default async function Layout({ children }: LayoutProps) {
   const tenantId = getTenantId();
-
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

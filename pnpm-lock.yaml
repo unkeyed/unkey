@@ -513,6 +513,12 @@ importers:
       '@unkey/vercel':
         specifier: workspace:^
         version: link:../../internal/vercel
+      '@upstash/ratelimit':
+        specifier: ^1.0.1
+        version: 1.0.1
+      '@upstash/redis':
+        specifier: ^1.28.4
+        version: 1.28.4
       '@vercel/og':
         specifier: ^0.6.2
         version: 0.6.2
@@ -5732,6 +5738,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -9059,6 +9066,25 @@ packages:
       vue: 3.4.21(typescript@5.3.3)
     dev: true
 
+  /@upstash/core-analytics@0.0.7:
+    resolution: {integrity: sha512-lC2j5efqb1haX/fpTGaPUx1rue1WUkOZBVHDzCB7eMIVsRdFFp4xiHtyH/G9omiR1zj39fU5SCTWFiKJH3KOpw==}
+    engines: {node: '>=16.0.0'}
+    dependencies:
+      '@upstash/redis': 1.28.4
+    dev: false
+
+  /@upstash/ratelimit@1.0.1:
+    resolution: {integrity: sha512-G9LZ7idhlkuYknbUngCB3qzd7QnkK1xDkFG5jRtEJZuOUS5UKJ0UTKbhalCtp39eX2wu2Ubv8W7HCeaJQOWM0A==}
+    dependencies:
+      '@upstash/core-analytics': 0.0.7
+    dev: false
+
+  /@upstash/redis@1.28.4:
+    resolution: {integrity: sha512-UalkSAny/dz1m8giEhD3Y5ru1o+CPHI32wFyS3MyzDzj2TRvEN+lTw+mPwi20ojk0H2gs8TBW3qsrvwuLLy+pA==}
+    dependencies:
+      crypto-js: 4.2.0
+    dev: false
+
   /@vercel/nft@0.26.4:
     resolution: {integrity: sha512-j4jCOOXke2t8cHZCIxu1dzKLHLcFmYzC3yqAK6MfZznOL1QIJKd0xcFsXK3zcqzU7ScsE2zWkiMMNHGMHgp+FA==}
     engines: {node: '>=16'}
@@ -11029,6 +11055,10 @@ packages:
       uWebSockets.js:
         optional: true
     dev: true
+
+  /crypto-js@4.2.0:
+    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    dev: false
 
   /crypto-random-string@2.0.0:
     resolution: {integrity: sha512-v1plID3y9r/lPhviJ1wrXpLeyUIGAZ2SHNYTEapm7/8A9nLPoyvVp3RK/EPFqn5kEznyWgYZNsRtYYIWbuG8KA==}
@@ -16688,6 +16718,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
