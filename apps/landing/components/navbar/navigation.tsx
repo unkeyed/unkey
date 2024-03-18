@@ -14,7 +14,7 @@ import { DesktopNavLink, MobileNavLink } from "./link";
 
 export function Navigation() {
   return (
-    <nav className="container flex items-center justify-between w-full h-20 mx-auto px-[20px] pt-[20px]">
+    <nav className="container flex items-center justify-between w-full h-20 mx-auto px-[30px] pt-[20px]">
       <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
         <Link href="/">
           <Logo className="min-w-[50px]" />
