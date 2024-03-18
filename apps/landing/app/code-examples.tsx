@@ -530,7 +530,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         </div>
         <HighlightAbove className="absolute hidden sm:flex sm:bottom-[-70px] md:bottom-0 w-full h-full mx-auto pointer-events-none" />
       </SectionTitle>
-      <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black">
+      <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
         <Tabs
           defaultValue={language}
           className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
