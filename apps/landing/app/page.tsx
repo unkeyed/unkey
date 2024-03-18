@@ -58,7 +58,6 @@ export default async function Landing() {
   return (
     <>
       <TopRightShiningLight />
-      {/* TODO: horizontal scroll */}
       <TopLeftShiningLight />
       <Image
         src={mainboard}
@@ -74,9 +73,7 @@ export default async function Landing() {
         priority={true}
       />
       <div className="container relative mx-auto">
-        {/* <MainboardMobile className="flex absolute md:hidden top-0 left-[-660px] top-[-300px] h-[700px]" /> */}
         <Hero />
-        {/* TODO: horizontal scroll */}
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
         <Suspense fallback={null}>
@@ -154,7 +151,6 @@ export default async function Landing() {
         </div>
         <FeatureGrid className="relative z-50 mt-20" />
         <div className="relative -z-10">
-          {/* TODO: horizontal scroll */}
           <FeatureGridChip className="absolute top-[-90px]" />
         </div>
         <SectionTitle

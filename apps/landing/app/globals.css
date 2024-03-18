@@ -383,6 +383,15 @@ li > p {
   animation: stroke .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) .3s forwards;
 }
 
+@keyframes flickerAnimation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.flicker {
+  animation: flickerAnimation 1.75s infinite;
+}
+
 @keyframes stroke {
   100% {
     stroke-dashoffset: 0;
