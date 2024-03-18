@@ -102,6 +102,7 @@ export class Ratelimit implements Ratelimiter {
             cost: opts?.cost,
             meta: opts?.meta,
             resources: opts?.resources,
+            async: opts?.async,
           })
           .then((res) => {
             if (res.error) {

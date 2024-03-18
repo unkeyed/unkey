@@ -1,4 +1,5 @@
 import { BaseError, Result } from "@unkey/error";
+import { Context } from "hono";
 import { z } from "zod";
 
 export class RatelimitError extends BaseError {
@@ -16,6 +17,7 @@ export const ratelimitRequestSchema = z.object({
    * We use this to do limiting at the edge for root keys by adding the cloudflare colo
    */
   shard: z.string().optional(),
+  async: z.boolean().optional(),
 });
 export type RatelimitRequest = z.infer<typeof ratelimitRequestSchema>;
 
@@ -27,5 +29,5 @@ export const ratelimitResponseSchema = z.object({
 export type RatelimitResponse = z.infer<typeof ratelimitResponseSchema>;
 
 export interface RateLimiter {
-  limit: (req: RatelimitRequest) => Promise<Result<RatelimitResponse, RatelimitError>>;
+  limit: (c: Context, req: RatelimitRequest) => Promise<Result<RatelimitResponse, RatelimitError>>;
 }
