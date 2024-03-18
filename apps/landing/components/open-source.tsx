@@ -46,8 +46,8 @@ export const OpenSource: React.FC = () => {
             transition={{ duration: 1, ease: "easeInOut" }}
           >
             <Image alt="Github logo" src={GithubSvg} className="mt-24" />
-            <div className="lg:absolute lg:w-[1000px] lg:h-[400px] lg:top-[400px] lg:left-[150px]">
-              <OssChip className="hidden md:flex" />
+            <div className="absolute -z-50 top-[150px] left-[-50px] lg:w-[1000px] lg:h-[400px] lg:top-[400px] lg:left-[150px]">
+              <OssChip className="flex" />
             </div>
           </motion.div>
         </div>
