@@ -110,6 +110,7 @@ export default function RatelimitPage() {
     }));
   }, [data]);
 
+  const Chart = React.memo(AreaChart);
   return (
     <div className="container relative pb-16 mx-auto">
       <div className="sticky top-0 py-4 bg-background">
@@ -207,7 +208,7 @@ export default function RatelimitPage() {
             </CardHeader>
             <CardContent>
               {data.length > 0 ? (
-                <AreaChart data={chartData} timeGranularity="hour" tooltipLabel="Latency [ms]" />
+                <Chart data={chartData} timeGranularity="hour" tooltipLabel="Latency [ms]" />
               ) : (
                 <EmptyPlaceholder>
                   <EmptyPlaceholder.Title>No data</EmptyPlaceholder.Title>
