@@ -1,4 +1,5 @@
 import { Err, Ok, Result } from "@unkey/error";
+import { Context } from "hono";
 import { z } from "zod";
 import { Logger } from "../logging";
 import { Metrics } from "../metrics";
@@ -9,35 +10,96 @@ export class DurableRateLimiter implements RateLimiter {
   private readonly domain: string;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
+  private readonly cache: Map<string, number>;
   constructor(opts: {
     namespace: DurableObjectNamespace;
 
     domain?: string;
     logger: Logger;
     metrics: Metrics;
+    cache: Map<string, number>;
   }) {
     this.namespace = opts.namespace;
     this.domain = opts.domain ?? "unkey.dev";
     this.logger = opts.logger;
     this.metrics = opts.metrics;
+    this.cache = opts.cache;
   }
 
-  public async limit(req: RatelimitRequest): Promise<Result<RatelimitResponse, RatelimitError>> {
-    const start = performance.now();
+  private getId(req: RatelimitRequest): string {
     const now = Date.now();
     const window = Math.floor(now / req.interval);
-    const reset = (window + 1) * req.interval;
 
-    const objectName = [req.identifier, window, req.shard].join("::");
+    return [req.identifier, window, req.shard].join("::");
+  }
+  public async limit(
+    c: Context,
+    req: RatelimitRequest,
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
+    const window = Math.floor(Date.now() / req.interval);
+    const reset = (window + 1) * req.interval;
+    const cost = req.cost ?? 1;
+    const id = this.getId(req);
+
+    const p = this.callDurableObject({
+      identifier: req.identifier,
+      objectName: id,
+      window,
+      reset,
+      cost,
+      limit: req.limit,
+    });
+
+    if (!req.async) {
+      return await p;
+    }
+
+    c.executionCtx.waitUntil(
+      p.then((res) => {
+        if (res.err) {
+          console.error(res.err.message);
+          return;
+        }
+        this.cache.set(this.getId(req), res.val.current);
+      }),
+    );
+
+    let current = this.cache.get(id) ?? 0;
+    if (current + cost > req.limit) {
+      return Ok({
+        current,
+        pass: false,
+        reset,
+      });
+    }
+    current += cost;
+    this.cache.set(id, current);
+
+    return Ok({
+      pass: true,
+      current,
+      reset,
+    });
+  }
+
+  public async callDurableObject(req: {
+    identifier: string;
+    objectName: string;
+    window: number;
+    reset: number;
+    cost: number;
+    limit: number;
+  }): Promise<Result<RatelimitResponse, RatelimitError>> {
+    const start = performance.now();
 
     try {
-      const obj = this.namespace.get(this.namespace.idFromName(objectName));
+      const obj = this.namespace.get(this.namespace.idFromName(req.objectName));
       const url = `https://${this.domain}/limit`;
       const res = await obj
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reset, cost: req.cost, limit: req.limit }),
+          body: JSON.stringify({ reset: req.reset, cost: req.cost, limit: req.limit }),
         })
         .catch(async (e) => {
           this.logger.warn("calling the ratelimit DO failed, retrying ...", {
@@ -47,19 +109,18 @@ export class DurableRateLimiter implements RateLimiter {
           return await obj.fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reset }),
+            body: JSON.stringify({ reset: req.reset }),
           });
         });
 
       const json = await res.json();
-      console.log("raw", json);
       const { current, success } = z
         .object({ current: z.number(), success: z.boolean() })
         .parse(json);
 
       return Ok({
         current,
-        reset,
+        reset: req.reset,
         pass: success,
       });
     } catch (e) {

@@ -9,10 +9,11 @@ export const runtime = "edge";
 const UNKEY_RATELIMIT_COOKIE = "UNKEY_RATELIMIT";
 
 export const POST = async (req: Request): Promise<Response> => {
-  const { limit, duration } = z
+  const { limit, duration, async } = z
     .object({
       limit: z.number().int(),
       duration: z.enum(["1s", "10s", "60s", "5m"]),
+      async: z.boolean().optional(),
     })
     .parse(await req.json());
 
@@ -34,6 +35,8 @@ export const POST = async (req: Request): Promise<Response> => {
   }
 
   const t1 = performance.now();
-  const res = await rl.limit(id);
+  const res = await rl.limit(id, {
+    async,
+  });
   return Response.json({ ...res, time: Date.now(), latency: performance.now() - t1 });
 };
