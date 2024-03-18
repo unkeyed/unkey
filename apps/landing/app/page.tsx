@@ -63,14 +63,14 @@ export default async function Landing() {
       <Image
         src={mainboard}
         alt="Animated SVG showing computer circuits lighting up"
-        className="hidden md:flex w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+        className="hidden md:flex w-full absolute right-0 top-[-140px] -z-10"
         priority={true}
       />
 
       <Image
         src={mainboardMobile}
         alt="Animated SVG showing computer circuits lighting up"
-        className="flex md:hidden w-full absolute right-0 lg:-top-[15%] top-[7%] h-[300px] -z-10 "
+        className="flex md:hidden w-full absolute h-[300px] -z-10 "
         priority={true}
       />
       <div className="container relative mx-auto">
