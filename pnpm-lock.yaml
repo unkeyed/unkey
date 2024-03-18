@@ -67,10 +67,10 @@ importers:
         version: 0.3.3
       '@hono/zod-openapi':
         specifier: ^0.9.8
-        version: 0.9.8(hono@4.1.0)(zod@3.22.4)
+        version: 0.9.8(hono@4.1.1)(zod@3.22.4)
       '@hono/zod-validator':
         specifier: ^0.2.0
-        version: 0.2.0(hono@4.1.0)(zod@3.22.4)
+        version: 0.2.0(hono@4.1.1)(zod@3.22.4)
       '@microlabs/otel-cf-workers':
         specifier: 1.0.0-rc.24
         version: 1.0.0-rc.24
@@ -111,8 +111,8 @@ importers:
         specifier: ^0.30.1
         version: 0.30.1(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
       hono:
-        specifier: ^4.1.0
-        version: 4.1.0
+        specifier: ^4.1.1
+        version: 4.1.1
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -1049,8 +1049,8 @@ importers:
         specifier: ^20.11.24
         version: 20.11.24
       hono:
-        specifier: ^4.1.0
-        version: 4.1.0
+        specifier: ^4.1.1
+        version: 4.1.1
       msw:
         specifier: ^2.2.3
         version: 2.2.3(typescript@5.3.3)
@@ -3766,7 +3766,7 @@ packages:
       graphql: 16.8.1
     dev: false
 
-  /@hono/zod-openapi@0.9.8(hono@4.1.0)(zod@3.22.4):
+  /@hono/zod-openapi@0.9.8(hono@4.1.1)(zod@3.22.4):
     resolution: {integrity: sha512-NS6lvQEGnsjyQkp+aQjMARREz3WGf19y0+RiiJMVrihWlmKbGaJkPuOWpfFQG6FU9q+FVUyUCryXK+3J07GPAw==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
@@ -3774,28 +3774,28 @@ packages:
       zod: 3.*
     dependencies:
       '@asteasolutions/zod-to-openapi': 5.5.0(zod@3.22.4)
-      '@hono/zod-validator': 0.1.11(hono@4.1.0)(zod@3.22.4)
-      hono: 4.1.0
+      '@hono/zod-validator': 0.1.11(hono@4.1.1)(zod@3.22.4)
+      hono: 4.1.1
       zod: 3.22.4
     dev: false
 
-  /@hono/zod-validator@0.1.11(hono@4.1.0)(zod@3.22.4):
+  /@hono/zod-validator@0.1.11(hono@4.1.1)(zod@3.22.4):
     resolution: {integrity: sha512-PQXeHUP0+36qpRt8yfeD7N2jbK3ETlGvSN6dMof/HwUC/APRokQRjpXZm4rrlG71Ft0aWE01+Bm4XejqPie5Uw==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
     dependencies:
-      hono: 4.1.0
+      hono: 4.1.1
       zod: 3.22.4
     dev: false
 
-  /@hono/zod-validator@0.2.0(hono@4.1.0)(zod@3.22.4):
+  /@hono/zod-validator@0.2.0(hono@4.1.1)(zod@3.22.4):
     resolution: {integrity: sha512-PC7akbA/DCFY406BL3+ogjYb+7Fgfs/6XPvyURBYMczo0M7kYsTUMnF8hA9mez1RORNCWPqXuFGfKrkoUVPvrQ==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
     dependencies:
-      hono: 4.1.0
+      hono: 4.1.1
       zod: 3.22.4
     dev: false
 
@@ -5732,6 +5732,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -14186,8 +14187,8 @@ packages:
       parse-passwd: 1.0.0
     dev: true
 
-  /hono@4.1.0:
-    resolution: {integrity: sha512-9no6DCHb4ijB1tWdFXU6JnrnFgzwVZ1cnIcS1BjAFnMcjbtBTOMsQrDrPH3GXbkNEEEkj8kWqcYBy8Qc0bBkJQ==}
+  /hono@4.1.1:
+    resolution: {integrity: sha512-+ljwSwMby5vYaA1ZmP8iQSq/bF5wb8gGwFdybJk3A4yNwtn4X0zuyim49VNCYHBUi/jfY0bnzwntth4/eX6NHw==}
     engines: {node: '>=16.0.0'}
 
   /hookable@5.5.3:
@@ -16688,6 +16689,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
