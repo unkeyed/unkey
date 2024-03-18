@@ -3,6 +3,7 @@ import { apiRouter } from "./api";
 import { keyRouter } from "./key";
 import { keySettingsRouter } from "./keySettings";
 import { plainRouter } from "./plain";
+import { ratelimitRouter } from "./ratelimit";
 import { rbacRouter } from "./rbac";
 import { vercelRouter } from "./vercel";
 import { workspaceRouter } from "./workspace";
@@ -14,6 +15,7 @@ export const router = t.router({
   plain: plainRouter,
   rbac: rbacRouter,
   keySettings: keySettingsRouter,
+  ratelimit: ratelimitRouter,
 });
 
 // export type definition of API

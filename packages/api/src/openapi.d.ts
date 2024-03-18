@@ -1036,16 +1036,17 @@ export interface paths {
       };
     };
   };
-  "/v1/ratelimit.limit": {
+  "/v1/ratelimits.limit": {
     post: {
       requestBody: {
         content: {
           "application/json": {
             /**
              * @description Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.
-             * @example api
+             * @default default
+             * @example email.outbound
              */
-            namespace: string;
+            namespace?: string;
             /**
              * @description Identifier of your user, this can be their userId, an email, an ip or anything else.
              * @example user_123

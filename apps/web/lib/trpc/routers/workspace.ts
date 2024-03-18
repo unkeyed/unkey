@@ -76,7 +76,7 @@ export const workspaceRouter = t.router({
     .use(auth)
     .input(
       z.object({
-        feature: z.enum(["rbac", "auditLogRetentionDays"]),
+        feature: z.enum(["rbac", "auditLogRetentionDays", "ratelimit"]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -99,6 +99,10 @@ export const workspaceRouter = t.router({
         }
         case "auditLogRetentionDays": {
           workspace.betaFeatures.auditLogRetentionDays = 30;
+          break;
+        }
+        case "ratelimit": {
+          workspace.betaFeatures.ratelimit = true;
           break;
         }
       }

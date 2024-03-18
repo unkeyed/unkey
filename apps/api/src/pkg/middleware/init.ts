@@ -13,6 +13,7 @@ import { AxiomMetrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { trace } from "@opentelemetry/api";
+import { RBAC } from "@unkey/rbac";
 /**
  * This is special, all of these services will be available globally and are initialized
  * before any hono handlers run.
@@ -96,8 +97,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
         : undefined,
     );
 
+    const rbac = new RBAC();
     const keyService = new KeyService({
       persistenceMap: rlMap,
+      rbac,
       cache,
       logger,
       db,
@@ -108,6 +111,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
     });
 
     c.set("services", {
+      rbac,
       db,
       metrics,
       logger,

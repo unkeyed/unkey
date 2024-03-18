@@ -24,13 +24,13 @@
     "next": "14.1.2",
     "react": "^18",
     "react-dom": "^18",
-    "stripe": "^14.18.0",
+    "stripe": "^14.21.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.65",
-    "@types/react-dom": "^18.2.21",
+    "@types/react-dom": "^18.2.22",
     "typescript": "^5.3.3"
   },
   "trigger.dev": {

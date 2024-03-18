@@ -22,6 +22,7 @@ export const ratelimitNamespaces = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    deletedAt: datetime("deleted_at", { mode: "date" }),
   },
   (table) => {
     return {
@@ -68,12 +69,13 @@ export const ratelimits = mysqlTable(
      *
      * - edge: use the worker's edge location as part of the DO id, to run local objects
      */
-    sharding: mysqlEnum("sharding", ["geo"]),
+    sharding: mysqlEnum("sharding", ["edge"]),
 
     createdAt: datetime("created_at", { mode: "date", fsp: 3 })
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
+    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => {
     return {
@@ -84,7 +86,7 @@ export const ratelimits = mysqlTable(
     };
   },
 );
-export const ratelimitIdentifierPermissions = relations(ratelimits, ({ one }) => ({
+export const ratelimitIdentifierRelations = relations(ratelimits, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [ratelimits.workspaceId],
     references: [workspaces.id],

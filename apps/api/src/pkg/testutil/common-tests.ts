@@ -8,10 +8,10 @@
 import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "crypto";
-import type { ErrorResponse } from "@/pkg/errors";
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
+import type { ErrorResponse } from "../errors";
+import { RouteHarness } from "../testutil/route-harness";
 import { StepRequest } from "./request";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -32,8 +32,8 @@ export function runCommonRouteTests<TReq>(config: {
   prepareRequest: (h: RouteHarness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
 }) {
   describe("disabled workspace", () => {
-    test("should reject the request", async () => {
-      const h = await RouteHarness.init();
+    test("should reject the request", async (t) => {
+      const h = await RouteHarness.init(t);
       await h.db
         .update(schema.workspaces)
         .set({ enabled: false })
@@ -59,8 +59,8 @@ export function runCommonRouteTests<TReq>(config: {
   });
 
   describe("shared role tests", () => {
-    test("without a key", async () => {
-      const h = await RouteHarness.init();
+    test("without a key", async (t) => {
+      const h = await RouteHarness.init(t);
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>(req);
       expect(res.status).toEqual(403);
@@ -73,8 +73,8 @@ export function runCommonRouteTests<TReq>(config: {
       });
     });
 
-    test("with wrong key", async () => {
-      const h = await RouteHarness.init();
+    test("with wrong key", async (t) => {
+      const h = await RouteHarness.init(t);
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>({
         ...req,
@@ -95,7 +95,7 @@ export function runCommonRouteTests<TReq>(config: {
     });
 
     describe("without permission", () => {
-      test.each([
+      describe.each([
         { name: "no roles", roles: [] },
         { name: "wrong roles", roles: [randomUUID(), randomUUID()] },
         {
@@ -111,25 +111,27 @@ export function runCommonRouteTests<TReq>(config: {
           ],
         },
       ])("$name", async ({ roles }) => {
-        const h = await RouteHarness.init();
-        const { key: rootKey } = await h.createRootKey(roles);
+        test("should reject", async (t) => {
+          const h = await RouteHarness.init(t);
+          const { key: rootKey } = await h.createRootKey(roles);
 
-        const req = await config.prepareRequest(h);
-        const res = await h.do<TReq, ErrorResponse>({
-          ...req,
-          headers: {
-            ...req.headers,
-            Authorization: `Bearer ${rootKey}`,
-          },
-        });
+          const req = await config.prepareRequest(h);
+          const res = await h.do<TReq, ErrorResponse>({
+            ...req,
+            headers: {
+              ...req.headers,
+              Authorization: `Bearer ${rootKey}`,
+            },
+          });
 
-        expect(res.status).toEqual(403);
-        expect(res.body).toMatchObject({
-          error: {
-            code: "INSUFFICIENT_PERMISSIONS",
-            docs: "https://unkey.dev/docs/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
-            message: "unauthorized",
-          },
+          expect(res.status).toEqual(403);
+          expect(res.body).toMatchObject({
+            error: {
+              code: "INSUFFICIENT_PERMISSIONS",
+              docs: "https://unkey.dev/docs/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
+              message: "unauthorized",
+            },
+          });
         });
       });
     });

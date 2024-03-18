@@ -8,8 +8,8 @@ import { expect, test } from "vitest";
 
 test(
   "create and list keys",
-  async () => {
-    const h = await IntegrationHarness.init();
+  async (t) => {
+    const h = await IntegrationHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
@@ -75,8 +75,8 @@ test(
 
 test(
   "list keys does not return revoked keys",
-  async () => {
-    const h = await IntegrationHarness.init();
+  async (t) => {
+    const h = await IntegrationHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
     const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
       url: `${h.baseUrl}/v1/apis.createApi`,

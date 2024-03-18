@@ -165,6 +165,7 @@ export default async function ApiPage(props: {
           </CardHeader>
           <CardContent>
             <StackedColumnChart
+              colors={["primary", "warn", "danger"]}
               data={verificationsData}
               timeGranularity={
                 granularity >= 1000 * 60 * 60 * 24 * 30

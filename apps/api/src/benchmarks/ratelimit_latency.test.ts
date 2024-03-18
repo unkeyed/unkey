@@ -54,7 +54,7 @@ describe("fresh key per region", () => {
       },
     },
   ])("$name", ({ name, keys, testsPerKey, threshold }) => {
-    test.each([
+    describe.each([
       "arn",
       "bom",
       "cdg",
@@ -73,30 +73,32 @@ describe("fresh key per region", () => {
       "sfo",
       "sin",
       "syd",
-    ])(
-      "%s",
-      async (region) => {
-        const h = await BenchmarkHarness.init();
-        const checks = await createAndTestKeys(h, {
-          keys,
-          testsPerKey,
-          region,
-        });
-        expect(checks.every(({ status }) => status === 200)).toBe(true);
-        const { min, p50, p90, p99, max } = aggregateLatencies(
-          checks.map(({ latency }) => latency),
-        );
+    ])("%s", (region) => {
+      test(
+        "latencies should be below thresholds",
+        async (t) => {
+          const h = await BenchmarkHarness.init(t);
+          const checks = await createAndTestKeys(h, {
+            keys,
+            testsPerKey,
+            region,
+          });
+          expect(checks.every(({ status }) => status === 200)).toBe(true);
+          const { min, p50, p90, p99, max } = aggregateLatencies(
+            checks.map(({ latency }) => latency),
+          );
 
-        console.log(name, region, { min, p50, p90, p99, max });
-        expect(p50, "latency p50 is too high").toBeLessThanOrEqual(threshold.p50);
-        expect(p90, "latency p90 is too high").toBeLessThanOrEqual(threshold.p90);
-        expect(p99, "latency p99 is too high").toBeLessThanOrEqual(threshold.p99);
-      },
-      {
-        retry: 1,
-        timeout: 30_000,
-      },
-    );
+          console.log(name, region, { min, p50, p90, p99, max });
+          expect(p50, "latency p50 is too high").toBeLessThanOrEqual(threshold.p50);
+          expect(p90, "latency p90 is too high").toBeLessThanOrEqual(threshold.p90);
+          expect(p99, "latency p99 is too high").toBeLessThanOrEqual(threshold.p99);
+        },
+        {
+          retry: 1,
+          timeout: 30_000,
+        },
+      );
+    });
   });
 });
 

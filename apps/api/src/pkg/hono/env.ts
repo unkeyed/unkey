@@ -1,4 +1,5 @@
 import type { Env } from "@/pkg/env";
+import { RBAC } from "@unkey/rbac";
 import { Analytics } from "../analytics";
 import { TieredCache } from "../cache/tiered";
 import { Database } from "../db";
@@ -9,6 +10,7 @@ import { RateLimiter } from "../ratelimit";
 import { UsageLimiter } from "../usagelimit";
 
 export type ServiceContext = {
+  rbac: RBAC;
   cache: TieredCache;
   db: Database;
   metrics: Metrics;

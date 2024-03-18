@@ -37,7 +37,7 @@ export class DurableRateLimiter implements RateLimiter {
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reset }),
+          body: JSON.stringify({ reset, cost: req.cost, limit: req.limit }),
         })
         .catch(async (e) => {
           this.logger.warn("calling the ratelimit DO failed, retrying ...", {
@@ -52,12 +52,15 @@ export class DurableRateLimiter implements RateLimiter {
         });
 
       const json = await res.json();
-      const { current } = z.object({ current: z.number() }).parse(json);
+      console.log("raw", json);
+      const { current, success } = z
+        .object({ current: z.number(), success: z.boolean() })
+        .parse(json);
 
       return Ok({
         current,
         reset,
-        pass: current <= req.limit,
+        pass: success,
       });
     } catch (e) {
       const err = e as Error;

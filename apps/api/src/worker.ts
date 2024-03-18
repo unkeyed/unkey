@@ -73,7 +73,7 @@ app.get("/routes", (c) => {
   );
 });
 
-const handler: ExportedHandler<Env> = {
+const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
@@ -89,7 +89,7 @@ const handler: ExportedHandler<Env> = {
 
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
-};
+} satisfies ExportedHandler<Env>;
 
 export default instrument(
   handler,
