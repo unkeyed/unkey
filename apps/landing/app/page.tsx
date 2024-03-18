@@ -52,6 +52,7 @@ export const metadata = {
   },
 };
 
+export const dynamic = "error";
 export const revalidate = 300;
 
 export default async function Landing() {
