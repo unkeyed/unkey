@@ -73,6 +73,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const analytics = new Analytics(c.env.TINYBIRD_TOKEN);
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
+          cache: rlMap,
           namespace: c.env.DO_RATELIMIT,
           logger,
           metrics,
@@ -99,7 +100,6 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const rbac = new RBAC();
     const keyService = new KeyService({
-      persistenceMap: rlMap,
       rbac,
       cache,
       logger,

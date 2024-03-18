@@ -72,7 +72,6 @@ export class KeyService {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
-  private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
@@ -88,7 +87,6 @@ export class KeyService {
     usageLimiter: UsageLimiter;
     analytics: Analytics;
     rbac: RBAC;
-    persistenceMap: Map<string, number>;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -96,7 +94,6 @@ export class KeyService {
     this.metrics = opts.metrics;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
-    this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
     this.rbac = opts.rbac;
     this.tracer = trace.getTracer("keyService");
@@ -439,88 +436,37 @@ export class KeyService {
 
     const ratelimitStart = performance.now();
     try {
-      const now = Date.now();
-      const window = Math.floor(now / key.ratelimitRefillInterval);
-      const reset = (window + 1) * key.ratelimitRefillInterval;
-
-      const keyAndWindow = [key.id, window].join(":");
-      const t1 = performance.now();
-      const cached = this.rlCache.get(keyAndWindow) ?? 0;
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - t1,
+      const t2 = performance.now();
+      const res = await this.rateLimiter.limit(c, {
         identifier: key.id,
-        tier: "memory",
+        limit: key.ratelimitRefillRate,
+        interval: key.ratelimitRefillInterval,
+        cost: 1,
+        // root keys are sharded per edge colo
+        shard: key.forWorkspaceId ? "edge" : undefined,
+        async: key.ratelimitType === "fast",
       });
 
-      const remainingBeforeCall = key.ratelimitLimit - cached;
-      if (remainingBeforeCall <= 0) {
-        return [
-          false,
-          {
-            remaining: 0,
-            limit: key.ratelimitRefillRate,
-            reset,
-          },
-        ];
+      if (res.err) {
+        this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
+
+        return [false, undefined];
       }
+      this.metrics.emit({
+        metric: "metric.ratelimit",
+        latency: performance.now() - t2,
+        identifier: key.id,
+        tier: "durable",
+      });
 
-      const remaining = remainingBeforeCall - 1;
-
-      // TODO: at some point we should remove counters from older windows
-      // but I'm pretty sure it's not an issue cause they take up very little memory
-      // and are reset when the worker deallocates
-      this.rlCache.set(keyAndWindow, cached + 1);
-      const t2 = performance.now();
-      const p = this.rateLimiter
-        .limit({
-          identifier: key.id,
-          limit: key.ratelimitRefillRate,
-          interval: key.ratelimitRefillInterval,
-          cost: 1,
-          // root keys are sharded per edge colo
-          shard: key.forWorkspaceId ? "edge" : undefined,
-        })
-        .then((res) => {
-          if (res.err) {
-            return 0;
-          }
-          const { current } = res.val;
-          this.rlCache.set(keyAndWindow, current);
-          this.metrics.emit({
-            metric: "metric.ratelimit",
-            latency: performance.now() - t2,
-            identifier: key.id,
-            tier: "durable",
-          });
-          return current;
-        });
-
-      if (key.ratelimitType === "fast") {
-        c.executionCtx.waitUntil(p);
-        return [
-          true,
-          {
-            remaining,
-            limit: key.ratelimitRefillRate,
-            reset,
-          },
-        ];
-      }
-      const current = await p;
       return [
-        current <= key.ratelimitRefillRate,
+        res.val.pass,
         {
-          remaining: key.ratelimitRefillRate - current,
+          remaining: key.ratelimitRefillRate - res.val.current,
           limit: key.ratelimitRefillRate,
-          reset,
+          reset: res.val.reset,
         },
       ];
-    } catch (e: unknown) {
-      const err = e as Error;
-      this.logger.error("ratelimiting failed", { error: err.message, ...err });
-
-      return [false, undefined];
     } finally {
       this.metrics.emit({
         metric: "metric.ratelimit",

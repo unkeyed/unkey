@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
-import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
+import { parseAsBoolean, parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -61,6 +61,12 @@ export default function RatelimitPage() {
       history: "push",
     }),
   );
+  const [async, setAsync] = useQueryState(
+    "async",
+    parseAsBoolean.withDefault(true).withOptions({
+      history: "push",
+    }),
+  );
   const [duration, setDuration] = useQueryState(
     "duration",
     parseAsStringEnum(["10s", "60s", "5m"]).withDefault("10s").withOptions({
@@ -78,6 +84,7 @@ export default function RatelimitPage() {
       body: JSON.stringify({
         limit,
         duration,
+        async,
       }),
     })
       .then((r) => r.json())
@@ -142,6 +149,23 @@ export default function RatelimitPage() {
                 <SelectItem value="10s">10s</SelectItem>
                 <SelectItem value="60s">60s</SelectItem>
                 <SelectItem value="5m">5m</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div key="async" className="flex flex-col gap-1">
+            <Label>Async</Label>
+            <Select
+              value={async ? "async" : "sync"}
+              onValueChange={(d) => {
+                setAsync(d === "async");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue defaultValue={async.toString()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sync">Sync</SelectItem>
+                <SelectItem value="async">Async</SelectItem>
               </SelectContent>
             </Select>
           </div>

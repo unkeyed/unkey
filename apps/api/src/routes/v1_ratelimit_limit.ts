@@ -252,12 +252,13 @@ export const registerV1RatelimitLimit = (app: App) =>
           c.req.raw?.cf?.colo
         : undefined;
 
-    const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit({
+    const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
       identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
       interval: duration,
       limit,
       shard,
       cost: req.cost,
+      async: req.async,
     });
     if (ratelimitError) {
       throw new UnkeyApiError({

@@ -75,10 +75,9 @@ export type LimitOptions = {
   // limit?: Limit;
 
   /**
-   * TODO: This does nothing right now
-   *
+   * Do not wait for a response from the origin. Faster but less accurate.
    */
-  // async?: boolean;
+  async?: boolean;
 
   /**
    * Record arbitrary data about this request. This does not affect the limit itself but can help
