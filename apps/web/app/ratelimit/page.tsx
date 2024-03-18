@@ -145,7 +145,6 @@ export default function RatelimitPage() {
                 <SelectValue defaultValue={limit} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1s">1s</SelectItem>
                 <SelectItem value="10s">10s</SelectItem>
                 <SelectItem value="60s">60s</SelectItem>
                 <SelectItem value="5m">5m</SelectItem>
