@@ -5,7 +5,11 @@ export function LatencyBento() {
   return (
     <div className="w-full relative border-[.75px] h-[576px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       {/* <LatencyMap className="h-[500px] w-full" /> */}
-      <Image src={map} alt="Animated map showing Unkey latency globally" />
+      <Image
+        src={map}
+        alt="Animated map showing Unkey latency globally"
+        className="h-full sm:h-auto"
+      />
       <LatencyText />
     </div>
   );

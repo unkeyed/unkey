@@ -1,6 +1,6 @@
 {
   "name": "@unkey/ratelimit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -27,7 +27,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@types/node": "^20.11.24",
+    "@types/node": "^20.11.28",
     "@unkey/tsconfig": "workspace:^",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3"

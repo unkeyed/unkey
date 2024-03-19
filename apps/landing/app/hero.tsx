@@ -6,7 +6,7 @@ export const Hero: React.FC = () => {
     <div className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-[300px] sm:mt-[250px] xl:mt-[200px] ">
       <HeroMainSection />
       <YoutubeEmbed />
-      <SubHeroMainboardStuff className="absolute left-[400px] top-[250px]" />
+      <SubHeroMainboardStuff className="absolute hidden md:flex left-[400px] top-[250px]" />
     </div>
   );
 };
