@@ -8,7 +8,4 @@ const tb = token ? new Tinybird({ token }) : new NoopTinybird();
 export const getTotalVerifications = tb.buildPipe({
   pipe: "endpoint__all_verifications__v1",
   data: z.object({ verifications: z.number() }),
-  opts: {
-    cache: "no-store",
-  },
 });

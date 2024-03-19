@@ -318,7 +318,11 @@ li > p {
 
 .blog-footer-radial-gradient {
     background: radial-gradient(at top center, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 40%);
-  }
+}
+
+.mobile-blog-footer-radial {
+  background: radial-gradient(at top center, rgba(255,255,255,0.13) 0%, rgba(0,0,0,0) 70%);
+}
 
 
 .changelog-gradient {
@@ -377,6 +381,15 @@ li > p {
   stroke-dasharray: 48;
   stroke-dashoffset: 48;
   animation: stroke .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) .3s forwards;
+}
+
+@keyframes flickerAnimation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.flicker {
+  animation: flickerAnimation 1.75s infinite;
 }
 
 @keyframes stroke {
