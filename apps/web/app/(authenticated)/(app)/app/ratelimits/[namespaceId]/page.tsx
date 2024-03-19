@@ -77,8 +77,8 @@ export default async function RatelimitNamespacePage(props: {
     await Promise.all([
       db
         .select({ count: sql<number>`count(*)` })
-        .from(schema.ratelimits)
-        .where(eq(schema.ratelimits.namespaceId, namespace.id))
+        .from(schema.ratelimitOverrides)
+        .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
         .execute()
         .then((res) => res.at(0)?.count ?? 0),
       getRatelimitsPerInterval(query),

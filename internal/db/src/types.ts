@@ -9,5 +9,5 @@ export type VercelIntegration = InferSelectModel<typeof schema.vercelIntegration
 export type VercelBinding = InferSelectModel<typeof schema.vercelBindings>;
 export type Permission = InferSelectModel<typeof schema.permissions>;
 export type Role = InferSelectModel<typeof schema.roles>;
-export type Ratelimit = InferSelectModel<typeof schema.ratelimits>;
+export type RatelimitOverride = InferSelectModel<typeof schema.ratelimitOverrides>;
 export type RatelimitNamespace = InferSelectModel<typeof schema.ratelimitNamespaces>;

@@ -151,7 +151,7 @@ export const registerV1RatelimitLimit = (app: App) =>
               eq(table.name, req.namespace),
             ),
           with: {
-            ratelimits: {
+            overrides: {
               where: (table, { eq, and }) =>
                 and(
                   eq(table.workspaceId, rootKey.authorizedWorkspaceId),
@@ -165,12 +165,11 @@ export const registerV1RatelimitLimit = (app: App) =>
             buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.create_namespace")),
             rootKey.permissions ?? [],
           );
-          console.log("no db res");
           if (canCreateNamespace.err || !canCreateNamespace.val.valid) {
             return null;
           }
           const namespace: RatelimitNamespace = {
-            id: newId("ratelimit"),
+            id: newId("ratelimitNamespace"),
             createdAt: new Date(),
             name: req.namespace,
             deletedAt: null,
@@ -204,7 +203,7 @@ export const registerV1RatelimitLimit = (app: App) =>
         }
         return {
           namespace: dbRes,
-          ratelimit: dbRes.ratelimits.at(0),
+          override: dbRes.overrides.at(0),
         };
       },
     );
@@ -240,12 +239,12 @@ export const registerV1RatelimitLimit = (app: App) =>
       });
     }
 
-    const { ratelimit, namespace } = val;
+    const { override, namespace } = val;
 
-    const limit = ratelimit?.limit ?? req.limit;
-    const duration = ratelimit?.duration ?? req.duration;
-    const async = ratelimit?.async ?? req.async;
-    const sharding = ratelimit?.sharding ?? req.sharding;
+    const limit = override?.limit ?? req.limit;
+    const duration = override?.duration ?? req.duration;
+    const async = typeof override?.async !== "undefined" ? override.async : req.async;
+    const sharding = override?.sharding ?? req.sharding;
     const shard =
       sharding === "edge"
         ? // @ts-ignore - this is a bug in the types
