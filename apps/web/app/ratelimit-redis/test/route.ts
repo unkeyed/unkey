@@ -1,27 +1,24 @@
-import { env } from "@/lib/env";
 import { newId } from "@unkey/id";
-import { Ratelimit } from "@unkey/ratelimit";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
 export const runtime = "edge";
 
-const UNKEY_RATELIMIT_COOKIE = "UNKEY_RATELIMIT";
+const UNKEY_RATELIMIT_COOKIE = "UNKEY_RATELIMIT_REDIS";
 
 export const POST = async (req: Request): Promise<Response> => {
-  const { limit, duration, async } = z
+  const { limit, duration } = z
     .object({
       limit: z.number().int(),
       duration: z.enum(["1s", "10s", "60s", "5m"]),
-      async: z.boolean().optional(),
     })
     .parse(await req.json());
 
   const rl = new Ratelimit({
-    namespace: "ratelimit-demo",
-    rootKey: env().RATELIMIT_DEMO_ROOT_KEY!,
-    limit,
-    duration,
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.fixedWindow(limit, duration),
   });
 
   let id: string = newId("ratelimit");
@@ -35,8 +32,6 @@ export const POST = async (req: Request): Promise<Response> => {
   }
 
   const t1 = performance.now();
-  const res = await rl.limit(id, {
-    async,
-  });
+  const res = await rl.limit(id);
   return Response.json({ ...res, time: Date.now(), latency: performance.now() - t1 });
 };

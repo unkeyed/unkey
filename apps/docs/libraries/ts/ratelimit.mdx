@@ -59,7 +59,8 @@ const unkey = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY,
   namespace: "my-app",
   limit: 10,
-  duration: "30s"
+  duration: "30s",
+  async: true
 })
 ```
 
@@ -200,10 +201,11 @@ export type LimitOptions = {
   // limit?: Limit;
 
   /**
-   * TODO: This does nothing right now
-   * 
+   * Do not wait for a response from the origin. Faster but less accurate.
+   *
+   * We observe a 97%+ accuracy when using `async` mode with significantly lower latency.
    */
-  // async?: boolean;
+  async?: boolean;
 
   /**
    * Record arbitrary data about this request. This does not affect the limit itself but can help

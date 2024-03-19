@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
-import { parseAsBoolean, parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -37,7 +37,7 @@ export type Data = {
 export default function RatelimitPage() {
   const [isTesting, setTesting] = React.useState(false);
   const [isResetting, setResetting] = React.useState(false);
-  const [data, setData] = useLocalStorage<Data[]>("unkey-ratelimit-demo", []);
+  const [data, setData] = useLocalStorage<Data[]>("unkey-ratelimit-demo-redis", []);
   const [reset, setReset] = React.useState<number | null>(null);
   React.useEffect(() => {
     const last = data.at(-1);
@@ -61,12 +61,7 @@ export default function RatelimitPage() {
       history: "push",
     }),
   );
-  const [async, setAsync] = useQueryState(
-    "async",
-    parseAsBoolean.withDefault(true).withOptions({
-      history: "push",
-    }),
-  );
+
   const [duration, setDuration] = useQueryState(
     "duration",
     parseAsStringEnum(["10s", "60s", "5m"]).withDefault("10s").withOptions({
@@ -76,7 +71,7 @@ export default function RatelimitPage() {
 
   async function test(): Promise<void> {
     setTesting(true);
-    await fetch("/ratelimit/test", {
+    await fetch("/ratelimit-redis/test", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -84,7 +79,6 @@ export default function RatelimitPage() {
       body: JSON.stringify({
         limit,
         duration,
-        async,
       }),
     })
       .then((r) => r.json())
@@ -97,7 +91,7 @@ export default function RatelimitPage() {
   }
   async function resetLimit(): Promise<void> {
     setResetting(true);
-    await fetch("/ratelimit/reset", {
+    await fetch("/ratelimit-redis/reset", {
       method: "POST",
     }).finally(() => setResetting(false));
     setData([]);
@@ -115,7 +109,7 @@ export default function RatelimitPage() {
     <div className="container relative pb-16 mx-auto">
       <div className="sticky top-0 py-4 bg-background">
         <PageHeader
-          title="Ratelimit demo"
+          title="Ratelimit demo with redis"
           actions={[
             <Link href="/app" key="app">
               <Button>Sign In</Button>
@@ -152,23 +146,7 @@ export default function RatelimitPage() {
               </SelectContent>
             </Select>
           </div>
-          <div key="async" className="flex flex-col gap-1">
-            <Label>Async</Label>
-            <Select
-              value={async ? "async" : "sync"}
-              onValueChange={(d) => {
-                setAsync(d === "async");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue defaultValue={async.toString()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sync">Sync</SelectItem>
-                <SelectItem value="async">Async</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
           <Button type="button" key="test" onClick={() => test()} disabled={isTesting}>
             {isTesting ? <Loading /> : "Test"}
           </Button>

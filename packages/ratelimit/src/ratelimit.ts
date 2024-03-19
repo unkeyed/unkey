@@ -59,6 +59,11 @@ export type RatelimitConfig = Limit & {
     | false;
 
   /**
+   * Do not wait for a response from the origin. Faster but less accurate.
+   */
+  async?: boolean;
+
+  /**
    *
    * By default telemetry data is enabled, and sends:
    * runtime (Node.js / Edge)
@@ -102,11 +107,12 @@ export class Ratelimit implements Ratelimiter {
             cost: opts?.cost,
             meta: opts?.meta,
             resources: opts?.resources,
+            async: typeof opts?.async !== "undefined" ? opts.async : this.config.async,
           })
           .then((res) => {
             if (res.error) {
               throw new Error(
-                `Ratelimit failed: [${res.error.code}] [${res.error.requestId}]: ${res.error.message}`,
+                `Ratelimit failed: [${res.error.code} - ${res.error.requestId}]: ${res.error.message}`,
               );
             }
             return res.result;

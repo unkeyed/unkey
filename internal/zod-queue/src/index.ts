@@ -46,8 +46,11 @@ export class BufferQueue<TSchema extends z.ZodType<any>, TMessage = z.input<TSch
    * Blocks until all remaining messages are sent to the queue
    */
   async flush(): Promise<void> {
-    await this.queue.send(this.messages, this.queueSendOptions);
-    this.messages = [];
+    if (this.messages.length === 0) {
+      return;
+    }
+    const copy = this.messages.splice(0);
+    await this.queue.send(copy, this.queueSendOptions);
   }
 
   /**
