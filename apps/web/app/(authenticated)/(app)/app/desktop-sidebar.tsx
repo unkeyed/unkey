@@ -82,6 +82,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/app/authorization/roles",
       active: segments.some((s) => s === "authorization"),
     },
+
     {
       icon: Activity,
       href: "/app/audit",

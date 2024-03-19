@@ -1,4 +1,3 @@
-import { newId } from "@unkey/id";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { cookies } from "next/headers";
@@ -21,7 +20,7 @@ export const POST = async (req: Request): Promise<Response> => {
     limiter: Ratelimit.fixedWindow(limit, duration),
   });
 
-  let id: string = newId("ratelimit");
+  let id: string = crypto.randomUUID();
   const c = cookies().get(UNKEY_RATELIMIT_COOKIE);
   if (c) {
     id = c.value;

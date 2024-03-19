@@ -39,11 +39,11 @@ export const ratelimitNamespaceRelations = relations(ratelimitNamespaces, ({ one
     fields: [ratelimitNamespaces.workspaceId],
     references: [workspaces.id],
   }),
-  ratelimits: many(ratelimits),
+  overrides: many(ratelimitOverrides),
 }));
 
-export const ratelimits = mysqlTable(
-  "ratelimits",
+export const ratelimitOverrides = mysqlTable(
+  "ratelimit_overrides",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 })
@@ -86,13 +86,13 @@ export const ratelimits = mysqlTable(
     };
   },
 );
-export const ratelimitIdentifierRelations = relations(ratelimits, ({ one }) => ({
+export const ratelimitOverridesRelations = relations(ratelimitOverrides, ({ one }) => ({
   workspace: one(workspaces, {
-    fields: [ratelimits.workspaceId],
+    fields: [ratelimitOverrides.workspaceId],
     references: [workspaces.id],
   }),
   namespace: one(ratelimitNamespaces, {
-    fields: [ratelimits.namespaceId],
+    fields: [ratelimitOverrides.namespaceId],
     references: [ratelimitNamespaces.id],
   }),
 }));
