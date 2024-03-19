@@ -52,37 +52,36 @@ export const metadata = {
   },
 };
 
+export const dynamic = "error";
 export const revalidate = 300;
 
 export default async function Landing() {
   return (
     <>
       <TopRightShiningLight />
-
       <TopLeftShiningLight />
-      <Image
-        src={mainboardMobile}
-        alt="Animated SVG showing computer circuits lighting up"
-        className="flex md:hidden w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
-        priority={true}
-      />
       <Image
         src={mainboard}
         alt="Animated SVG showing computer circuits lighting up"
-        className="hidden md:flex w-full absolute right-0 -top-[-20%] lg:-top-[15%] -z-10"
+        className="hidden md:flex w-full absolute right-0 top-[-140px] -z-10"
         priority={true}
       />
 
+      <Image
+        src={mainboardMobile}
+        alt="Animated SVG showing computer circuits lighting up"
+        className="flex md:hidden w-full absolute h-[300px] -z-10 "
+        priority={true}
+      />
       <div className="container relative mx-auto">
         <Hero />
-
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
         <Suspense fallback={null}>
           <Stats />
         </Suspense>
 
-        <CodeExamples className="mt-20" />
+        <CodeExamples className="mt-[144px] md:mt-[120px]" />
         <div className="mt-[220px]" />
         <OpenSource />
         <SectionTitle
@@ -130,7 +129,8 @@ export default async function Landing() {
           <RateLimitsBento />
         </div>
         <div className="relative">
-          <LeveledUpApiAuthChip className="absolute top-[-450px] right-0" />
+          {/* TODO: horizontal scroll */}
+          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-100px]" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
             title="Leveled-up API management"

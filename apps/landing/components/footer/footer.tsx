@@ -144,7 +144,7 @@ function Navigation() {
 
 function MobileNavigation() {
   return (
-    <nav className="flex flex-col sm:hidden">
+    <nav className="flex flex-col sm:hidden pt-4 mobile-blog-footer-radial">
       <div className="flex flex-col items-center justify-center w-full text-center">
         <CompanyInfoMobile />
       </div>

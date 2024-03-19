@@ -28,7 +28,7 @@ export function RateLimits() {
           <div className="text-white font-mono text-xs sm:font-sm whitespace-nowrap">
             <span className="text-[#ffffff]/40">Creating</span> keys
             <span className="tracking-[-5px]">...</span>
-            <span className="inline-flex w-[4px] h-[12px] bg-white ratelimits-bar-shadow ml-3" />
+            <span className="inline-flex w-[4px] h-[12px] bg-white ratelimits-bar-shadow ml-3 relative top-[1px] flicker" />
           </div>
           <div className="inline-flex items-center overflow-hidden ml-4 h-[36px] text-white font-mono text-sm ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded-xl">
             <div className="w-[62px] h-[36px]">
