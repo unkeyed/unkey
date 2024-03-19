@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/toaster";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 
 import "@/styles/tailwind/tailwind.css";
@@ -58,7 +59,11 @@ export default function RootLayout({
         <PostHogPageview />
       </Suspense>
       <PHProvider>
-        <body>{children}</body>
+        <body>
+          <Toaster />
+
+          {children}
+        </body>
       </PHProvider>
     </html>
   );

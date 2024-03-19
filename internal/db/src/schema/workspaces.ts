@@ -73,6 +73,11 @@ export const workspaces = mysqlTable(
         ratelimitRetentionDays?: number;
 
         /**
+         * How many custom overrides a workspace may create.
+         */
+        ratelimitOverrides?: number;
+
+        /**
          * Can access /app/success
          */
         successPage?: boolean;

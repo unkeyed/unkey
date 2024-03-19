@@ -1,6 +1,8 @@
+import { Banner } from "@/components/banner";
 import { OptIn } from "@/components/opt-in";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import * as React from "react";
 
@@ -23,11 +25,24 @@ export default async function AuthorizationLayout({
     return (
       <OptIn
         title="Ratelimiting is in beta"
-        description="Do you want to enable this feature for your workspace?"
+        description="Do you want to enable ratelimiting for your workspace?"
         feature="ratelimit"
       />
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <Banner>
+        <p className="text-xs text-center">
+          The Ratelimiting UI is still in development. Please{" "}
+          <Link href="mailto:support@unkey.dev" className="underline">
+            reach out
+          </Link>{" "}
+          for feedback.
+        </p>
+      </Banner>
+      {children}
+    </>
+  );
 }
