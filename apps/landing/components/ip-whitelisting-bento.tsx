@@ -4,7 +4,7 @@ import ip from "../images/ip.svg";
 export function IpWhitelistingBento() {
   return (
     <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
-      <Image src={ip} alt="animated map" />
+      <Image src={ip} alt="animated map" className="w-full" />
       <IpWhitelistingText />
     </div>
   );
