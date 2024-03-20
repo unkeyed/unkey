@@ -57,7 +57,7 @@ export function HashedKeys() {
   };
 
   return (
-    <div className="w-full relative flex items-center mb-[100px]">
+    <div className="w-full relative flex items-center justify-end mb-[100px]">
       <StarsSvg className="absolute" />
       <AnimatePresence>
         <motion.div
