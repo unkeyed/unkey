@@ -1,7 +1,6 @@
 import { FadeIn } from "@/components/landing/fade-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Toaster } from "@/components/ui/toaster";
 import { auth } from "@clerk/nextjs";
 import { FileText } from "lucide-react";
 import Link from "next/link";
@@ -89,7 +88,6 @@ export default async function AuthenticatedLayout({
     <div className="bg-black">
       <TopLeftShine className="absolute top-0 left-0 pointer-events-none" />
       <TopRightShine className="absolute top-0 right-0 pointer-events-none" />
-      <Toaster />
       <nav className="container flex items-center justify-between h-16">
         <Link href="/">
           <Logo className="min-w-sm" />

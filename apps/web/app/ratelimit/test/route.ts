@@ -1,5 +1,4 @@
 import { env } from "@/lib/env";
-import { newId } from "@unkey/id";
 import { Ratelimit } from "@unkey/ratelimit";
 import { cookies } from "next/headers";
 import { z } from "zod";
@@ -24,7 +23,7 @@ export const POST = async (req: Request): Promise<Response> => {
     duration,
   });
 
-  let id: string = newId("ratelimit");
+  let id: string = crypto.randomUUID();
   const c = cookies().get(UNKEY_RATELIMIT_COOKIE);
   if (c) {
     id = c.value;
