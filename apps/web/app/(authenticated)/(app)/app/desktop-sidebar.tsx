@@ -74,7 +74,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/app/ratelimits",
       label: "Ratelimit",
       active: segments.at(0) === "ratelimits",
-      hidden: true,
     },
     {
       icon: ShieldHalf,
