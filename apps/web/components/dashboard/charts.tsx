@@ -1,6 +1,6 @@
 "use client";
 
-import { Area, Bar, Column } from "@ant-design/plots";
+import { Area, Bar, Column, Line } from "@ant-design/plots";
 import { useTheme } from "next-themes";
 
 type ColorName = "primary" | "warn" | "danger";
@@ -106,6 +106,36 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
         formatter: (datum) => ({
           name: tooltipLabel,
           value: Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(datum.y)),
+        }),
+      }}
+    />
+  );
+};
+
+export const LineChart: React.FC<{
+  padding?: [number, number, number, number];
+  data: {
+    category: string;
+    x: string;
+    y: number;
+  }[];
+}> = ({ data }) => {
+  return (
+    <Line
+      animation={false}
+      autoFit={true}
+      data={data}
+      smooth={true}
+      // padding={[20, 40, 50, 40]}
+      xField="x"
+      yField="y"
+      seriesField="category"
+      tooltip={{
+        formatter: (datum) => ({
+          name: datum.category,
+          value: `${Intl.NumberFormat(undefined, { notation: "compact" }).format(
+            Number(datum.y),
+          )} ms`,
         }),
       }}
     />
