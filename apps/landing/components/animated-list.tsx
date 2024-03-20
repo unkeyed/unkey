@@ -23,8 +23,9 @@ export const AnimatedList = React.memo(
         const interval = setInterval(() => {
           setIndex((prevIndex) => {
             if (prevIndex >= childrenArray.length - 1) {
-              clearInterval(interval); // Stop the interval when the last item is reached
-              return prevIndex;
+              setTimeout(() => {
+                setIndex(0);
+              }, 1000);
             }
             return prevIndex + 1;
           });

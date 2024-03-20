@@ -53,7 +53,7 @@ const codeBlock = `curl --request GET \\
 `;
 
 export function AnalyticsBento() {
-  const [showApi, toggleShowApi] = useState(true);
+  const [showApi, toggleShowApi] = useState(false);
 
   return (
     <div className="relative flex justify-center w-full">

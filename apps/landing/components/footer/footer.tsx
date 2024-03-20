@@ -161,10 +161,10 @@ export function Footer() {
       <footer className="relative hidden pt-32 overflow-hidden border-t sm:block xl:pt-10 max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
         <div className="container flex flex-col mx-auto">
           <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row xl:gap-20 xxl:gap-48">
-            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
+            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
               <CompanyInfo />
             </div>
-            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 sm:pl-28 md:pl-18 lg:pl-6 max-sm:mb-8">
+            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22  md:pl-18 lg:pl-6 max-sm:mb-8">
               <Navigation />
             </div>
           </div>
