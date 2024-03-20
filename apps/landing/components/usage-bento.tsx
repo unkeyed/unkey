@@ -111,7 +111,7 @@ export function BillingItem({
   rest = rest.join(" ");
   return (
     <div
-      className={`flex rounded-xl border-[.75px] w-[440px] usage-item-gradient border-white/20 mt-4 flex items-center py-[12px] px-[16px] ${className}`}
+      className={`flex rounded-xl border-[.75px] w-[440px] usage-item-gradient border-white/20 mt-4 md:ml-5 lg:ml-0 flex items-center py-[12px] px-[16px] ${className}`}
     >
       <div className="rounded-full bg-gray-500 flex items-center justify-center h-8 w-8 border-.75px border-white/20 bg-white/10">
         {icon}

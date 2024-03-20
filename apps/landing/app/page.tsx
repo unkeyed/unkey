@@ -94,7 +94,7 @@ export default async function Landing() {
           label="Platform"
         />
         <AnalyticsBento />
-        <div className="mt-6 grid xl:grid-cols-[1fr_2fr] gap-6 z-50">
+        <div className="mt-6 grid md:grid-cols-[1fr_1fr] lg:grid-cols-[1fr_2fr] gap-6 z-50">
           <LatencyBento />
           <UsageBento />
         </div>
@@ -124,7 +124,7 @@ export default async function Landing() {
           <HashedKeysBento />
           <AuditLogsBento />
         </div>
-        <div className="grid xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
+        <div className="grid md:grid-cols-[1fr_1fr] xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
           <IpWhitelistingBento />
           <RateLimitsBento />
         </div>
@@ -161,12 +161,8 @@ export default async function Landing() {
           titleWidth={507}
         >
           <div className="flex space-x-6 ">
-            <Link
-              key="get-started"
-              href="/app"
-              className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-            >
-              Start Now <ChevronRight className="w-4 h-4" />
+            <Link key="get-started" href="/app">
+              <PrimaryButton label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
         </SectionTitle>
