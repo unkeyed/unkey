@@ -36,7 +36,7 @@ export const CreateRatelimit: React.FC = async () => {
     permissions: ["ratelimit.*.create_namespace", "ratelimit.*.limit"],
   });
 
-  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimit.limit' \\
+  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
   -H 'Content-Type: application/json' \\
   -H 'Authorization: Bearer ${rootKey.key}' \\
   -d '{
