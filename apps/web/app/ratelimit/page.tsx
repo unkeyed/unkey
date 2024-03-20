@@ -58,14 +58,6 @@ export default function RatelimitPage() {
       setReset(null);
       return;
     }
-
-    // const id = setInterval(() => {
-    //   setReset(Math.max(0, last.reset - Date.now()));
-    // }, 100);
-
-    // return () => {
-    //   clearInterval(id);
-    // };
   }, [data]);
 
   const [limit, setLimit] = useQueryState(
@@ -136,6 +128,7 @@ export default function RatelimitPage() {
       <div className="sticky top-0 py-4 bg-background">
         <PageHeader
           title="Ratelimit demo"
+          description="Measuring latency between the Vercel Edge function, that is closest to you, and the ratelimit service"
           actions={[
             <Link href="/app" key="app">
               <Button>Sign In</Button>
