@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 
-import { AreaChart } from "@/components/dashboard/charts";
+import { LineChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -16,29 +16,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Minus } from "lucide-react";
-import ms from "ms";
 import Link from "next/link";
-import { parseAsBoolean, parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export type Data = {
-  latency: number;
-  success: boolean;
-  limit: number;
-  remaining: number;
-  reset: number;
   time: number;
+  upstash: {
+    latency: number;
+    success: boolean;
+    limit: number;
+    remaining: number;
+    reset: number;
+  };
+  unkeySync: {
+    latency: number;
+    success: boolean;
+    limit: number;
+    remaining: number;
+    reset: number;
+  };
+  unkeyAsync: {
+    latency: number;
+    success: boolean;
+    limit: number;
+    remaining: number;
+    reset: number;
+  };
 };
 
 export default function RatelimitPage() {
   const [isTesting, setTesting] = React.useState(false);
   const [isResetting, setResetting] = React.useState(false);
-  const [data, setData] = useLocalStorage<Data[]>("unkey-ratelimit-demo", []);
-  const [reset, setReset] = React.useState<number | null>(null);
+  const [data, setData] = useLocalStorage<Data[]>("unkey-ratelimit-demo-compare", []);
+  const [_reset, setReset] = React.useState<number | null>(null);
   React.useEffect(() => {
     const last = data.at(-1);
     if (!last) {
@@ -46,13 +59,13 @@ export default function RatelimitPage() {
       return;
     }
 
-    const id = setInterval(() => {
-      setReset(Math.max(0, last.reset - Date.now()));
-    }, 100);
+    // const id = setInterval(() => {
+    //   setReset(Math.max(0, last.reset - Date.now()));
+    // }, 100);
 
-    return () => {
-      clearInterval(id);
-    };
+    // return () => {
+    //   clearInterval(id);
+    // };
   }, [data]);
 
   const [limit, setLimit] = useQueryState(
@@ -61,12 +74,7 @@ export default function RatelimitPage() {
       history: "push",
     }),
   );
-  const [async, setAsync] = useQueryState(
-    "async",
-    parseAsBoolean.withDefault(true).withOptions({
-      history: "push",
-    }),
-  );
+
   const [duration, setDuration] = useQueryState(
     "duration",
     parseAsStringEnum(["10s", "60s", "5m"]).withDefault("10s").withOptions({
@@ -84,7 +92,6 @@ export default function RatelimitPage() {
       body: JSON.stringify({
         limit,
         duration,
-        async,
       }),
     })
       .then((r) => r.json())
@@ -102,15 +109,28 @@ export default function RatelimitPage() {
     }).finally(() => setResetting(false));
     setData([]);
   }
-
+  console.log(data);
   const chartData = React.useMemo(() => {
-    return data.filter(Boolean).map((d) => ({
-      x: new Date(d.time).toISOString(),
-      y: d.latency,
-    }));
+    return data.filter(Boolean).flatMap((d) => [
+      {
+        x: new Date(d.time).toISOString(),
+        y: d.unkeyAsync.latency,
+        category: "unkey-async",
+      },
+      {
+        x: new Date(d.time).toISOString(),
+        y: d.unkeySync.latency,
+        category: "unkey-sync",
+      },
+      {
+        x: new Date(d.time).toISOString(),
+        y: d.upstash.latency,
+        category: "redis",
+      },
+    ]);
   }, [data]);
 
-  const Chart = React.memo(AreaChart);
+  const Chart = React.memo(LineChart);
   return (
     <div className="container relative pb-16 mx-auto">
       <div className="sticky top-0 py-4 bg-background">
@@ -152,23 +172,6 @@ export default function RatelimitPage() {
               </SelectContent>
             </Select>
           </div>
-          <div key="async" className="flex flex-col gap-1">
-            <Label>Async</Label>
-            <Select
-              value={async ? "async" : "sync"}
-              onValueChange={(d) => {
-                setAsync(d === "async");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue defaultValue={async.toString()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sync">Sync</SelectItem>
-                <SelectItem value="async">Async</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <Button type="button" key="test" onClick={() => test()} disabled={isTesting}>
             {isTesting ? <Loading /> : "Test"}
           </Button>
@@ -176,48 +179,103 @@ export default function RatelimitPage() {
             {isResetting ? <Loading /> : "Reset"}
           </Button>
         </div>
-        <TooltipProvider>
+        <div>
           {data.length > 0 ? (
-            <Card>
-              <CardContent className="grid grid-cols-6 divide-x">
-                <Metric
-                  label="Result"
-                  value={
-                    data.at(-1)!.success ? "Pass" : <span className="text-alert">Ratelimited</span>
-                  }
-                />
-                <Metric label="Remaining" value={data.at(-1)!.remaining} />
+            <div className="flex gap-4">
+              <div className="flex flex-col w-1/2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Unkey Async</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-4 divide-x">
+                    <Metric
+                      label="Result"
+                      value={
+                        data.at(-1)!.unkeyAsync.success ? (
+                          "Pass"
+                        ) : (
+                          <span className="text-alert">Ratelimited</span>
+                        )
+                      }
+                    />
+                    <Metric label="Remaining" value={data.at(-1)!.unkeyAsync.remaining} />
 
-                <Metric label="Limit" value={data.at(-1)!.limit} />
-                <Metric
-                  label="Reset in"
-                  value={reset ? ms(reset) : <Minus className="w-4 h-4" />}
-                />
-                <Metric
-                  label="Latency"
-                  value={`${Math.round(data.at(-1)!.latency ?? 0)} ms`}
-                  tooltip="Latency is measured between the Next.js route and unkey, which is the real world scenario. The connection between your browser and the Next.js route may add additional overhead"
-                />
-              </CardContent>
-            </Card>
-          ) : null}
+                    <Metric label="Limit" value={data.at(-1)!.unkeyAsync.limit} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Ratelimit latency in milliseconds</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {data.length > 0 ? (
-                <Chart data={chartData} timeGranularity="hour" tooltipLabel="Latency [ms]" />
-              ) : (
-                <EmptyPlaceholder>
-                  <EmptyPlaceholder.Title>No data</EmptyPlaceholder.Title>
-                  <EmptyPlaceholder.Description>Run a test first</EmptyPlaceholder.Description>
-                </EmptyPlaceholder>
-              )}
-            </CardContent>
-          </Card>
-        </TooltipProvider>
+                    <Metric
+                      label="Latency"
+                      value={`${Math.round(data.at(-1)!.unkeyAsync.latency ?? 0)} ms`}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Unkey Sync</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-4 divide-x">
+                    <Metric
+                      label="Result"
+                      value={
+                        data.at(-1)!.unkeySync.success ? (
+                          "Pass"
+                        ) : (
+                          <span className="text-alert">Ratelimited</span>
+                        )
+                      }
+                    />
+                    <Metric label="Remaining" value={data.at(-1)!.unkeySync.remaining} />
+
+                    <Metric label="Limit" value={data.at(-1)!.unkeySync.limit} />
+
+                    <Metric
+                      label="Latency"
+                      value={`${Math.round(data.at(-1)!.unkeySync.latency ?? 0)} ms`}
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Redis</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-4 divide-x">
+                    <Metric
+                      label="Result"
+                      value={
+                        data.at(-1)!.upstash.success ? (
+                          "Pass"
+                        ) : (
+                          <span className="text-alert">Ratelimited</span>
+                        )
+                      }
+                    />
+                    <Metric label="Remaining" value={data.at(-1)!.upstash.remaining} />
+
+                    <Metric label="Limit" value={data.at(-1)!.upstash.limit} />
+
+                    <Metric
+                      label="Latency"
+                      value={`${Math.round(data.at(-1)!.upstash.latency ?? 0)} ms`}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              <Card className="w-1/2">
+                <CardHeader>
+                  <CardTitle>Ratelimit latency (lower is better)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Chart data={chartData} />
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <EmptyPlaceholder>
+              <EmptyPlaceholder.Title>No data</EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Description>Run a test first</EmptyPlaceholder.Description>
+            </EmptyPlaceholder>
+          )}
+        </div>
       </main>
     </div>
   );
@@ -226,24 +284,11 @@ export default function RatelimitPage() {
 const Metric: React.FC<{
   label: React.ReactNode;
   value: React.ReactNode;
-  tooltip?: React.ReactNode;
-}> = ({ label, value, tooltip }) => {
-  const component = (
+}> = ({ label, value }) => {
+  return (
     <div className="flex flex-col items-start justify-center px-4 py-2">
       <p className="text-sm text-content-subtle">{label}</p>
       <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>
   );
-
-  if (tooltip) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{component}</TooltipTrigger>
-        <TooltipContent>
-          <p className="text-sm text-content-subtle">{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  return component;
 };

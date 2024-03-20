@@ -121,12 +121,10 @@ const AuditLogTable: React.FC<{
 
     success: selected.success ?? undefined,
   };
-  console.log(query);
   const logs = await getRatelimitEvents(query).catch((err) => {
     console.error(err);
     throw err;
   });
-  console.log(logs);
 
   if (logs.data.length === 0) {
     return (
@@ -161,8 +159,8 @@ const AuditLogTable: React.FC<{
             <TableHead>Time</TableHead>
             <TableHead>Identifier</TableHead>
             <TableHead>Success</TableHead>
-            <TableHead>remaining</TableHead>
-            <TableHead>Location</TableHead>
+            <TableHead>Remaining</TableHead>
+            <TableHead>IP address</TableHead>
             <TableHead>Country</TableHead>
             <TableHead />
           </TableRow>

@@ -285,7 +285,7 @@ export const registerV1RatelimitLimit = (app: App) =>
           sharding: sharding ?? "",
         },
         context: {
-          ipAddress: c.req.header("True-Client-IP") ?? "",
+          ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
           userAgent: c.req.header("User-Agent") ?? "",
           // @ts-expect-error - the cf object will be there on cloudflare
           country: c.req.raw?.cf?.country ?? "",
