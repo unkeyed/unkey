@@ -7,7 +7,7 @@ export function otel(): MiddlewareHandler<HonoEnv> {
   const tracer = trace.getTracer("hono", "0.0.1");
 
   return async (c, next) => {
-    return tracer.startActiveSpan("hono", async (span) => {
+    return tracer.startActiveSpan(`hono: ${c.req.method} ${c.req.path}`, async (span) => {
       const requestId = `req_${span.spanContext().traceId}`;
       c.set("requestId", requestId);
       c.res.headers.append("Unkey-Request-Id", requestId);

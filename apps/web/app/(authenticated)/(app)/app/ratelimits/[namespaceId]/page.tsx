@@ -128,7 +128,7 @@ export default async function RatelimitNamespacePage(props: {
   //   y: keys,
   // }));
 
-  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimit.limit' \\
+  const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
   -h 'Content-Type: application/json' \\
   -h 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -d '{
