@@ -6,6 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import { StarsSvg } from "@/components/svg/stars";
 import { cn } from "@/lib/utils";
 
+const randomStrings = [
+  "9DQNgnuyEwoSUBvc8pgRQFurWW1Jp1YBcZtLZWvYsgBrB9X46HXgBiFqS9a8NUMj086OA2RiT5gbak0pyPmkAmrXS0XJ6xcSdkP3ZN5H0WR4ZX6h8g0fDBsDJggJXPHRHeMhBwcT2ZBZwC4R9MmBsbiWG1fnEDpbU5MF8aCm2exWE1LTi2aTF8iayph2zK4KbdsK4Ka4Y6kkZSrFqb5ZxS2pyGXu7fWRC3rMLtSgNkbphyr3Z0OLbz8ufG",
+  "bt2my9U5vErf1w8eKSVpoxg886C4et6VVErNVfWCMRr350zx21hoohVfSp6Lbfbacl6VSDykBWFfK1K6EQLSTqNkLD6T2M3Z5gk91TtvCxPRv9fkeuMLmcSwuPxCaFeJaxE6KmJllFenaZySOVMjqQx4COqx52TtcF3OjmemBivyduCHN8qPs3M3kMpOX1hTXDRehRjQvFITSuWgjXHGeaHUBfhjKMOhk9kPBgxyTCwdtTseSryZSFBrkj",
+  "yPQsISJGlMXzoQqIkg6cWMGbJYuAdK3Q0zTp7NZl4IxD6lkoigU8huCderWme7xfbzF8L5vmGj6l0XhZtm5JfyV9EWAoxtdtxwlkyb9Jdpg9gdxw9HD0NpwhJhWQgXmiZqsvsASurbvVN88XosArEvgrhQv9yxVu48ebVOtPZEIJUocLPLqaLGG3Fd4d31ZFmKaUCI5mQb57UcfsAdgfXhMH6a3rizjoAaU7szXznWkOsXqKDpCcCgVR3k",
+  "AfVutbmoSwHDFaBFV3EXUUyT1QifaI1NeA06kxq9uyQ8zQIS1IoUTg0JEYBO7wJViTNiMy5J1p2aTV15tTeZpFwCBzp6uv71NVLJcaclhegX87DHmJwiUIau8l9bgbP2BLTtm9fLgJPLDOhNBkoARsP04hLkTD2eGswJHbzqUVbKYWuQQfjLNcQignmXZGB8W3lnJqwGzRSDpVYWyhR98xsHzXFE3dsjWtJYsUvebAft13Wi5uAaFVES8v",
+  "s0V2MFqMgDGafXTsOKo2UDcgFIRSllbOGzHccH0Y7xKZxLAdfGya9WQeXVytdtbwLvpTZ5uN78mVmyAkGP3pIVQa0Yv5LgGdZZVFJDAY8Y0Jikj0PWh9IIZRE8P6Jlerqj0lgsj4rzkiz9RvqKNdvG1HqnNGbDUApGyG8sBOntJf7Xqkw08qnVRFnNBiIDFmsDlLTe8BDbXRyHdmojVxGrR8A8ms2DDMkTGd6Q7S82Bw2eqaY1tTuunqTg",
+];
 const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 export const generateRandomString = (length: number) => {
   let result = "";
@@ -14,18 +21,20 @@ export const generateRandomString = (length: number) => {
   }
   return result;
 };
+export const getRandomString = () => {
+  return randomStrings[Math.floor(Math.random() * 5)];
+};
 
 export function HashedKeys() {
   const [hasReachedThreshold, setHasReachedThreshold] = useState(false);
-  const randomStringRef = useRef(generateRandomString(1500));
+  const randomStringRef = useRef(getRandomString());
   const textContainerRef = useRef<HTMLParagraphElement>(null); // Ref for the text container
-
   function generateRandomStrings(iterations = 50) {
     if (iterations === 0) {
       return;
     }
     setTimeout(() => {
-      randomStringRef.current = generateRandomString(1500);
+      randomStringRef.current = getRandomString();
       updateTextContainer(); // Update the text container directly
       generateRandomStrings(iterations - 1);
     }, 20);
@@ -57,7 +66,7 @@ export function HashedKeys() {
   };
 
   return (
-    <div className="w-full relative flex items-center mb-[100px]">
+    <div className="w-full relative flex items-center justify-end mb-[100px]">
       <StarsSvg className="absolute" />
       <AnimatePresence>
         <motion.div
