@@ -2,37 +2,37 @@
 import { SectionTitle } from "@/app/section-title";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import GithubSvg from "../images/unkey-github.svg";
 import { PrimaryButton } from "./button";
-import { Github, GithubMobile } from "./svg/github";
 import { OssChip } from "./svg/oss-chip";
 import { OssLight } from "./svg/oss-light";
 
 export const OpenSource: React.FC = () => {
   return (
     <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
-      {/* TODO: add additional line SVGs from Figma – current export is broken */}
-      <div className="absolute top-[-460px] md:right-[120px] z-[-1]">
+      <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
+        {/* TODO: horizontal scroll */}
         <OssLight />
       </div>
-      <div className="container flex flex-col items-center xl:flex-row xl:w-full xl:justify-between">
+      <div className="flex flex-col items-center justify-center w-full xl:flex-row xl:justify-between">
         <motion.div
-          initial={{ opacity: 0 }} // Start with the component invisible
-          whileInView={{ opacity: 1 }} // Animate to fully visible when in view
-          transition={{ duration: 1, ease: "easeOut" }} // Define the transition
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
           viewport={{ once: true, amount: 0.5 }}
         >
           <SectionTitle
             align="left"
-            title="Empowering the community"
-            text="Unkey allows open-source contributions through Github, enabing collaboration and
-        knowledge sharing with all the developers in the world."
+            title="Open-source"
+            text="We believe strongly in the value of open source: our codebase and development process is available to learn from and contribute to."
             titleWidth={463}
             contentWidth={461}
             label="oss/acc"
           >
             <div className="flex mt-10 space-x-6">
-              <Link href="/app" className="group">
+              <Link href="https://github.com/unkeyed/unkey" className="group">
                 <PrimaryButton IconLeft={Star} label="Star us on GitHub" />
               </Link>
             </div>
@@ -40,15 +40,14 @@ export const OpenSource: React.FC = () => {
         </motion.div>
         <div className="relative">
           <motion.div
-            initial={{ opacity: 0 }} // Start with the component invisible
-            whileInView={{ opacity: 1 }} // Animate to fully visible when in view
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 1, ease: "easeOut" }} // Define the transition
+            transition={{ duration: 1, ease: "easeInOut" }}
           >
-            <GithubMobile className="flex mt-24 sm:hidden" />
-            <Github className="hidden sm:flex w-[380px] md:w-[640px] mt-24 xl:mt-0" />
-            <div className="absolute w-[1000px] h-[400px] top-[400px] left-[150px]">
-              <OssChip />
+            <Image alt="Github logo" src={GithubSvg} className="mt-24" />
+            <div className="absolute -z-50 top-[150px] left-[-50px] lg:w-[1000px] lg:h-[400px] lg:top-[400px] lg:left-[150px]">
+              <OssChip className="flex" />
             </div>
           </motion.div>
         </div>

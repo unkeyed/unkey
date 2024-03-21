@@ -1,26 +1,14 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
 import { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import {
-  LegacyKeysCreateKeyRequest,
-  LegacyKeysCreateKeyResponse,
-  registerLegacyKeysCreate,
-} from "./legacy_keys_createKey";
+import { LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse } from "./legacy_keys_createKey";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerLegacyKeysCreate);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
 describe("simple", () => {
-  test("creates key", async () => {
+  test("creates key", async (t) => {
+    const h = await RouteHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({
@@ -46,7 +34,8 @@ describe("simple", () => {
 });
 
 describe("wrong ratelimit type", () => {
-  test("reject the request", async () => {
+  test("reject the request", async (t) => {
+    const h = await RouteHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, ErrorResponse>({
@@ -71,7 +60,8 @@ describe("wrong ratelimit type", () => {
 });
 
 describe("with prefix", () => {
-  test("start includes prefix", async () => {
+  test("start includes prefix", async (t) => {
+    const h = await RouteHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse>({

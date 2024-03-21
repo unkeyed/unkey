@@ -23,6 +23,7 @@ export function buildIdSchema(prefix: string) {
   });
 }
 const apiId = buildIdSchema("api");
+const ratelimitNamespaceId = buildIdSchema("rl");
 
 export const apiActions = z.enum([
   "read_api",
@@ -35,8 +36,20 @@ export const apiActions = z.enum([
   "read_key",
 ]);
 
+export const ratelimitActions = z.enum([
+  "limit",
+  "create_namespace",
+  "read_namespace",
+  "update_namespace",
+  "delete_namespace",
+]);
+
 export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
+} & {
+  [resourceId in `ratelimit.${z.infer<typeof ratelimitNamespaceId>}`]: z.infer<
+    typeof ratelimitActions
+  >;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
@@ -60,6 +73,11 @@ export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) 
   switch (resource) {
     case "api": {
       return apiId.safeParse(id).success && apiActions.safeParse(action).success;
+    }
+    case "ratelimit": {
+      return (
+        ratelimitNamespaceId.safeParse(id).success && ratelimitActions.safeParse(action).success
+      );
     }
 
     default: {

@@ -35,27 +35,87 @@ The token is now securely stored on the user's machine, and each future CLI requ
 
 To better understand the process, let's walk through a real-world example. We'll use the `@unkey/cli-demo` package, a simple CLI demonstrating the authentication process. The package is available on npm, and you can use it by running the following command:
 <BlogCodeBlock>
-```javascript title=index.js numberLines hl=1
-const language = "JavaScript";
-const stuff = {
-    "name": "Bob",
-    "state": "NC",
-    "language": "EN",
-}
 
-console.log(language);
+```javascript title=index.js numberLines hl=1
+
+import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
+export const POST = withUnkey(async (req) => {
+
+  // Process the request here
+  // You have access to the verification response using \`req.unkey\`
+  console.log(req.unkey);
+  
+  return new Response('Your API key is valid!');
+});
+```
+
+```typescript title=index.ts numberLines hl=1
+
+export default defineEventHandler(async (event) => {
+  if (!event.context.unkey.valid) {
+    throw createError({ statusCode: 403, message: "Invalid API key" })
+  }
+
+  // return authorised information
+  return {
+    // ...
+  };
+});
 ```
 
 ```python title=index.py numberLines hl=1
-language = "Python"
-print(language)
+
+import asyncio
+import os
+import unkey
+
+async def main() -> None:
+  client = unkey.Client(api_key=os.environ["API_KEY"])
+  await client.start()
+
+  result = await client.keys.verify_key("prefix_abc123")
+
+  if result.is_ok:
+    print(data.valid)
+  else:
+    print(result.unwrap_err())
 ```
 
-```rust title=index.rs numberLines hl=1
-let language = "Rust";
+```go title=index.go numberLines hl=1
 
-println!("{}", language);
+package main
+import (
+	"fmt"
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+func main() {
+	apiKey := "key_3ZZ7faUrkfv1YAhffAcnKW74"
+	response, err := unkey.KeyVerify(apiKey)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	if response.Valid {
+		fmt.Println("Key is valid")
+	} else {
+		fmt.Println("Key is invalid")
+	}
+}
 ```
+
+```curl numberLines hl=1
+
+curl --request POST \\
+  --url https://api.unkey.dev/v1/keys.verifyKey \\
+  --header 'Content-Type: application/json' \\
+  --data \'{
+    "apiId": "api_1234",
+    "key": "sk_1234"
+  }\'
+
+```
+
+
 </BlogCodeBlock>
 
 ```bash

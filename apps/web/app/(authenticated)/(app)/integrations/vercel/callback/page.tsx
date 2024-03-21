@@ -3,11 +3,9 @@ import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
-import { Result, result } from "@unkey/result";
 import { Vercel } from "@unkey/vercel";
-import { z } from "zod";
 import { Client } from "./client";
-// import { Client } from "./client";
+import { exchangeCode } from "./exchange-code";
 
 type Props = {
   searchParams: {
@@ -44,16 +42,16 @@ export default async function Page(props: Props) {
   });
 
   if (!integration) {
-    const req = await exchangeCode(props.searchParams.code);
-    if (req.error) {
-      return <div>error: {JSON.stringify(req.error, null, 2)}</div>;
+    const { val, err } = await exchangeCode(props.searchParams.code);
+    if (err) {
+      return <div>error: {JSON.stringify(err, null, 2)}</div>;
     }
 
     integration = {
-      id: req.value.installationId,
+      id: val.installationId,
       workspaceId: workspace.id,
-      vercelTeamId: req.value.teamId,
-      accessToken: req.value.accessToken,
+      vercelTeamId: val.teamId,
+      accessToken: val.accessToken,
       createdAt: new Date(),
       deletedAt: null,
     };
@@ -66,19 +64,19 @@ export default async function Page(props: Props) {
     teamId: integration.vercelTeamId ?? undefined,
     accessToken: integration.accessToken,
   }).listProjects();
-  if (projects.error) {
+  if (projects.err) {
     return (
       <EmptyPlaceholder className="m-8">
         <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
         </EmptyPlaceholder.Description>
-        <Code className="text-left">{JSON.stringify(projects.error, null, 2)}</Code>
+        <Code className="text-left">{JSON.stringify(projects.err, null, 2)}</Code>
       </EmptyPlaceholder>
     );
   }
 
-  if (projects.value.length === 0) {
+  if (projects.val.length === 0) {
     return (
       <EmptyPlaceholder className="m-8">
         <EmptyPlaceholder.Title>No Projects Found</EmptyPlaceholder.Title>
@@ -91,7 +89,7 @@ export default async function Page(props: Props) {
   }
   return (
     <Client
-      projects={projects.value}
+      projects={projects.val}
       apis={workspace.apis}
       returnUrl={props.searchParams.next!}
       integrationId={integration.id}
@@ -99,59 +97,4 @@ export default async function Page(props: Props) {
       vercelTeamId={integration.vercelTeamId}
     />
   );
-}
-
-async function exchangeCode(code: string): Promise<
-  Result<
-    {
-      accessToken: string;
-      installationId: string;
-      userId: string;
-      teamId: string | null;
-    },
-    {
-      message: string;
-      status?: number;
-    }
-  >
-> {
-  try {
-    const res = await fetch("https://api.vercel.com/v2/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_ID,
-        client_secret: vercelIntegrationEnv()!.VERCEL_INTEGRATION_CLIENT_SECRET,
-        code,
-        redirect_uri: "http://localhost:3000/integrations/vercel/callback",
-      }),
-    });
-    if (!res.ok) {
-      return result.fail({
-        message: "failed to exchange code for access token",
-        status: res.status,
-      });
-    }
-
-    const data = z
-      .object({
-        token_type: z.literal("Bearer"),
-        access_token: z.string(),
-        installation_id: z.string(),
-        user_id: z.string(),
-        team_id: z.string().nullable(),
-      })
-      .parse(await res.json());
-
-    return result.success({
-      accessToken: data.access_token,
-      installationId: data.installation_id,
-      userId: data.user_id,
-      teamId: data.team_id,
-    });
-  } catch (e) {
-    return result.fail({ message: (e as Error).message });
-  }
 }

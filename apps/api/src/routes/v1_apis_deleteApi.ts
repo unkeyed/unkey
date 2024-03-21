@@ -58,7 +58,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.delete_api", `api.${apiId}.delete_api`)),
     );
 
-    const { value: api, error } = await cache.withCache(c, "apiById", apiId, async () => {
+    const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
         (await db.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
@@ -66,10 +66,10 @@ export const registerV1ApisDeleteApi = (app: App) =>
       );
     });
 
-    if (error) {
+    if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${error.message}`,
+        message: `unable to load api: ${err.message}`,
       });
     }
     if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
@@ -81,7 +81,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     await db.transaction(async (tx) => {
       await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
 
-      await analytics.ingestAuditLogs({
+      await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "api.delete",
         actor: {
@@ -111,7 +111,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
         .set({ deletedAt: new Date() })
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)));
 
-      await analytics.ingestAuditLogs(
+      await analytics.ingestUnkeyAuditLogs(
         keyIds.map((key) => ({
           workspaceId: authorizedWorkspaceId,
           event: "key.delete",

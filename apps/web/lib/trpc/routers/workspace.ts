@@ -47,6 +47,7 @@ export const workspaceRouter = t.router({
         createdAt: new Date(),
         deletedAt: null,
         planDowngradeRequest: null,
+        enabled: true,
       };
       await db.insert(schema.workspaces).values(workspace);
       await ingestAuditLogs({
@@ -75,7 +76,7 @@ export const workspaceRouter = t.router({
     .use(auth)
     .input(
       z.object({
-        feature: z.enum(["rbac", "auditLogRetentionDays"]),
+        feature: z.enum(["rbac", "auditLogRetentionDays", "ratelimit"]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -100,6 +101,10 @@ export const workspaceRouter = t.router({
           workspace.betaFeatures.auditLogRetentionDays = 30;
           break;
         }
+        case "ratelimit": {
+          workspace.betaFeatures.ratelimit = true;
+          break;
+        }
       }
       await db
         .update(schema.workspaces)
@@ -110,7 +115,7 @@ export const workspaceRouter = t.router({
       await ingestAuditLogs({
         workspaceId: workspace.id,
         actor: { type: "user", id: ctx.user.id },
-        event: "workspace.create",
+        event: "workspace.opt_in",
         description: `Opted ${workspace.id} into beta: ${input.feature}`,
         resources: [
           {

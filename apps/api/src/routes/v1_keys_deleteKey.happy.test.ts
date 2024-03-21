@@ -1,27 +1,15 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
-import {
-  V1KeysDeleteKeyRequest,
-  V1KeysDeleteKeyResponse,
-  registerV1KeysDeleteKey,
-} from "./v1_keys_deleteKey";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_deleteKey";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysDeleteKey);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("soft deletes key", async () => {
+test("soft deletes key", async (t) => {
+  const h = await RouteHarness.init(t);
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({

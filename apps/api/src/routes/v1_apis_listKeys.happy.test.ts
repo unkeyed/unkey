@@ -1,22 +1,14 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { type V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1ApisListKeys);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("get api", async () => {
+test("get api", async (t) => {
+  const h = await RouteHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -47,7 +39,8 @@ test("get api", async () => {
   expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
 });
 
-test("filter by ownerId", async () => {
+test("filter by ownerId", async (t) => {
+  const h = await RouteHarness.init(t);
   const ownerId = crypto.randomUUID();
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
@@ -80,7 +73,8 @@ test("filter by ownerId", async () => {
   expect(res.body.keys).toHaveLength(5);
 });
 
-test("with limit", async () => {
+test("with limit", async (t) => {
+  const h = await RouteHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -110,7 +104,8 @@ test("with limit", async () => {
   expect(res.body.keys).toHaveLength(2);
 }, 10_000);
 
-test("with cursor", async () => {
+test("with cursor", async (t) => {
+  const h = await RouteHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

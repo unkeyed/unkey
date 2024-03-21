@@ -6,9 +6,10 @@
   "types": "src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "devDependencies": {
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.28",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.3.3"
   },

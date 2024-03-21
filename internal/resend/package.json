@@ -6,13 +6,14 @@
   "types": "./src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0"
+,
   "scripts": {
     "dev": "email dev"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
-    "@types/react": "^18.2.61",
+    "@types/node": "^20.11.28",
+    "@types/react": "^18.2.67",
     "@unkey/tsconfig": "workspace:^",
     "typescript": "^5.3.3"
   },

@@ -14,8 +14,8 @@ export function Frame({
   return (
     <Component
       className={cn(
-        size === "lg" && "rounded-[30.5px]",
-        size === "md" && "rounded-[24px]",
+        size === "lg" && "rounded-[32px]",
+        size === "md" && "rounded-[25px]",
         size === "sm" && "rounded-[18px]",
         "max-w-7xl w-fit mx-auto bg-gradient-to-b from-white/0 to-white/10 p-[.75px] overflow-hidden relative z-2",
         className,
@@ -32,7 +32,7 @@ export function Frame({
         <div
           className={cn(
             size === "lg" && "rounded-[24px]",
-            size === "md" && "rounded-[24px]",
+            size === "md" && "rounded-[20px]",
             size === "sm" && "rounded-[17px]",
             "overflow-hidden bg-gradient-to-b from-white/20 to-white/10 ",
           )}

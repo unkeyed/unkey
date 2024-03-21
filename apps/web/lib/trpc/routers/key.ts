@@ -15,7 +15,7 @@ export const keyRouter = t.router({
     .input(
       z.object({
         prefix: z.string().optional(),
-        bytesLength: z.number().int().gte(1).default(16),
+        bytes: z.number().int().gte(1).default(16),
         keyAuthId: z.string(),
         ownerId: z.string().nullish(),
         meta: z.record(z.unknown()).optional(),
@@ -65,7 +65,7 @@ export const keyRouter = t.router({
       const keyId = newId("key");
       const { key, hash, start } = await newKey({
         prefix: input.prefix,
-        byteLength: input.bytesLength,
+        byteLength: input.bytes,
       });
 
       await db.insert(schema.keys).values({
@@ -180,10 +180,6 @@ export const keyRouter = t.router({
           forWorkspaceId: workspace.id,
           expires: null,
           createdAt: new Date(),
-          ratelimitLimit: 10,
-          ratelimitRefillRate: 10,
-          ratelimitRefillInterval: 1000,
-          ratelimitType: "fast",
           remaining: null,
           refillInterval: null,
           refillAmount: null,

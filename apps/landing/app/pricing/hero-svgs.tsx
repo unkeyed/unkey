@@ -121,7 +121,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="7.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="1405" y="291" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect
@@ -131,7 +131,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="15.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="1405" y="249" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect
@@ -141,7 +141,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="15.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="1401" y="245" width="8" height="8" fill="white" fillOpacity="0.04" />
         <rect
@@ -151,7 +151,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="7.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="1408" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
         <rect x="1413" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
@@ -163,117 +163,117 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           d="M1443.25 26.25H1248.25V-52"
           stroke="white"
           strokeOpacity="0.06"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
-        <g clip-path="url(#clip0_2076_26)">
+        <g clipPath="url(#clip0_2076_26)">
           <path
             d="M1255 314C1260.33 308.667 1363.89 205.111 1415 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1263 314C1268.33 308.667 1371.89 205.111 1423 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1271 314C1276.33 308.667 1379.89 205.111 1431 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1279 314C1284.33 308.667 1387.89 205.111 1439 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1287 314C1292.33 308.667 1395.89 205.111 1447 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1295 314C1300.33 308.667 1403.89 205.111 1455 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1303 314C1308.33 308.667 1411.89 205.111 1463 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1311 314C1316.33 308.667 1419.89 205.111 1471 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1319 314C1324.33 308.667 1427.89 205.111 1479 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1327 314C1332.33 308.667 1435.89 205.111 1487 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1335 314C1340.33 308.667 1443.89 205.111 1495 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1343 314C1348.33 308.667 1451.89 205.111 1503 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1351 314C1356.33 308.667 1459.89 205.111 1511 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M1359 314C1364.33 308.667 1467.89 205.111 1519 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
         </g>
         <path
           d="M1567 227.25H1000.6C996.69 227.25 994.734 227.25 992.892 226.808C991.26 226.416 989.699 225.77 988.267 224.892C986.653 223.903 985.269 222.519 982.502 219.752L737 -25.75"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M1448 127.25H1339.6C1335.69 127.25 1333.73 127.25 1331.89 127.692C1330.26 128.084 1328.7 128.73 1327.27 129.608C1325.65 130.597 1324.27 131.981 1321.5 134.748L1229 227.25"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M1567 312.25H1230.6C1226.69 312.25 1224.73 312.25 1222.89 311.808C1221.26 311.416 1219.7 310.77 1218.27 309.892C1216.65 308.903 1215.27 307.519 1212.5 304.752L1135 227.25"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M1018.25 227V173.25H1178.25V227"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="1156" y="188" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect x="1162" y="188" width="2" height="2" fill="white" fillOpacity="0.08" />
@@ -285,8 +285,8 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
         <rect x="1162" y="206" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect x="1156" y="212" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect x="1162" y="212" width="2" height="2" fill="white" fillOpacity="0.08" />
-        <path d="M1384 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M1426 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
+        <path d="M1384 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M1426 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
         <g opacity="0.5">
           <rect x="1287" y="204" width="2" height="8" fill="white" fillOpacity="0.08" />
           <rect x="1291" y="204" width="2" height="8" fill="white" fillOpacity="0.08" />
@@ -386,7 +386,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="7.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="1405" y="291" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect
@@ -396,7 +396,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="15.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="1405" y="249" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect
@@ -406,7 +406,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="15.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="1401" y="245" width="8" height="8" fill="white" fillOpacity="0.04" />
           <rect
@@ -416,7 +416,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="7.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="1408" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
           <rect x="1413" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
@@ -428,117 +428,117 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             d="M1443.25 26.25H1248.25V-52"
             stroke="white"
             strokeOpacity="0.06"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
-          <g clip-path="url(#clip1_2076_26)">
+          <g clipPath="url(#clip1_2076_26)">
             <path
               d="M1255 314C1260.33 308.667 1363.89 205.111 1415 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1263 314C1268.33 308.667 1371.89 205.111 1423 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1271 314C1276.33 308.667 1379.89 205.111 1431 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1279 314C1284.33 308.667 1387.89 205.111 1439 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1287 314C1292.33 308.667 1395.89 205.111 1447 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1295 314C1300.33 308.667 1403.89 205.111 1455 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1303 314C1308.33 308.667 1411.89 205.111 1463 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1311 314C1316.33 308.667 1419.89 205.111 1471 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1319 314C1324.33 308.667 1427.89 205.111 1479 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1327 314C1332.33 308.667 1435.89 205.111 1487 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1335 314C1340.33 308.667 1443.89 205.111 1495 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1343 314C1348.33 308.667 1451.89 205.111 1503 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1351 314C1356.33 308.667 1459.89 205.111 1511 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M1359 314C1364.33 308.667 1467.89 205.111 1519 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
           </g>
           <path
             d="M1567 227.25H1000.6C996.69 227.25 994.734 227.25 992.892 226.808C991.26 226.416 989.699 225.77 988.267 224.892C986.653 223.903 985.269 222.519 982.502 219.752L737 -25.75"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M1448 127.25H1339.6C1335.69 127.25 1333.73 127.25 1331.89 127.692C1330.26 128.084 1328.7 128.73 1327.27 129.608C1325.65 130.597 1324.27 131.981 1321.5 134.748L1229 227.25"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M1567 312.25H1230.6C1226.69 312.25 1224.73 312.25 1222.89 311.808C1221.26 311.416 1219.7 310.77 1218.27 309.892C1216.65 308.903 1215.27 307.519 1212.5 304.752L1135 227.25"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M1018.25 227V173.25H1178.25V227"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="1156" y="188" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect x="1162" y="188" width="2" height="2" fill="white" fillOpacity="0.08" />
@@ -550,8 +550,8 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           <rect x="1162" y="206" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect x="1156" y="212" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect x="1162" y="212" width="2" height="2" fill="white" fillOpacity="0.08" />
-          <path d="M1384 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-          <path d="M1426 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
+          <path d="M1384 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+          <path d="M1426 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
         </g>
       </g>
       <mask
@@ -715,7 +715,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="7.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="126" y="291" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect
@@ -725,7 +725,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="15.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="209" y="54" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect x="215" y="54" width="2" height="2" fill="white" fillOpacity="0.08" />
@@ -745,7 +745,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="15.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="122" y="245" width="8" height="8" fill="white" fillOpacity="0.04" />
         <rect
@@ -755,7 +755,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="7.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="492" y="299" width="2" height="2" fill="white" fillOpacity="0.08" />
         <rect
@@ -765,7 +765,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="15.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="488" y="295" width="8" height="8" fill="white" fillOpacity="0.04" />
         <rect
@@ -775,7 +775,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           height="7.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect x="129" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
         <rect x="134" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
@@ -807,201 +807,201 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
         <rect x="441" y="7" width="2" height="6" fill="white" fillOpacity="0.08" />
         <rect x="446" y="7" width="2" height="6" fill="white" fillOpacity="0.08" />
         <rect x="451" y="7" width="2" height="6" fill="white" fillOpacity="0.08" />
-        <path d="M164.25 26.25H-30.75V-52" stroke="white" strokeOpacity="0.06" stroke-width="0.5" />
-        <g clip-path="url(#clip2_2076_26)">
+        <path d="M164.25 26.25H-30.75V-52" stroke="white" strokeOpacity="0.06" strokeWidth="0.5" />
+        <g clipPath="url(#clip2_2076_26)">
           <path
             d="M-24 314C-18.6667 308.667 84.8889 205.111 136 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M-16 314C-10.6667 308.667 92.8889 205.111 144 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M-8 314C-2.66667 308.667 100.889 205.111 152 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M0 314C5.33333 308.667 108.889 205.111 160 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M8 314C13.3333 308.667 116.889 205.111 168 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M16 314C21.3333 308.667 124.889 205.111 176 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M24 314C29.3333 308.667 132.889 205.111 184 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M32 314C37.3333 308.667 140.889 205.111 192 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M40 314C45.3333 308.667 148.889 205.111 200 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M48 314C53.3333 308.667 156.889 205.111 208 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M56 314C61.3333 308.667 164.889 205.111 216 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M64 314C69.3333 308.667 172.889 205.111 224 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M72 314C77.3333 308.667 180.889 205.111 232 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M80 314C85.3333 308.667 188.889 205.111 240 154"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
         </g>
-        <g clip-path="url(#clip3_2076_26)">
+        <g clipPath="url(#clip3_2076_26)">
           <path
             d="M227 374C232.333 368.667 335.889 265.111 387 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M235 374C240.333 368.667 343.889 265.111 395 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M243 374C248.333 368.667 351.889 265.111 403 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M251 374C256.333 368.667 359.889 265.111 411 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M259 374C264.333 368.667 367.889 265.111 419 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M267 374C272.333 368.667 375.889 265.111 427 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M275 374C280.333 368.667 383.889 265.111 435 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M283 374C288.333 368.667 391.889 265.111 443 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M291 374C296.333 368.667 399.889 265.111 451 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M299 374C304.333 368.667 407.889 265.111 459 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M307 374C312.333 368.667 415.889 265.111 467 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M315 374C320.333 368.667 423.889 265.111 475 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M323 374C328.333 368.667 431.889 265.111 483 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
           <path
             d="M331 374C336.333 368.667 439.889 265.111 491 214"
             stroke="white"
             strokeOpacity="0.1"
-            stroke-width="0.3"
+            strokeWidth="0.3"
           />
         </g>
         <path
           d="M288 227.25H-278.396C-282.31 227.25 -284.266 227.25 -286.108 226.808C-287.74 226.416 -289.301 225.77 -290.733 224.892C-292.347 223.903 -293.731 222.519 -296.498 219.752L-542 -25.75"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M169 127.25H60.6039C56.6904 127.25 54.7337 127.25 52.8923 127.692C51.2597 128.084 49.699 128.73 48.2674 129.608C46.6528 130.597 45.2692 131.981 42.5019 134.748L-50 227.25"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M288 312.25H-48.3961C-52.3096 312.25 -54.2663 312.25 -56.1077 311.808C-57.7403 311.416 -59.301 310.77 -60.7326 309.892C-62.3472 308.903 -63.7308 307.519 -66.4981 304.752L-144 227.25"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
-        <path d="M260 93.25H169.25V227" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
-        <path d="M691 318.25H513.25V468" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
-        <path d="M823 415.25H645.25V468" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
-        <path d="M169.5 142.25H223" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+        <path d="M260 93.25H169.25V227" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
+        <path d="M691 318.25H513.25V468" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
+        <path d="M823 415.25H645.25V468" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
+        <path d="M169.5 142.25H223" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
         <rect opacity="0.02" x="172" y="145" width="49" height="79" rx="0.5" fill="white" />
         <rect opacity="0.05" x="174" y="147" width="3" height="3" rx="0.5" fill="white" />
         <rect opacity="0.05" x="174" y="153" width="3" height="3" rx="0.5" fill="white" />
@@ -1094,43 +1094,43 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
         <rect opacity="0.05" x="216" y="207" width="3" height="3" rx="0.5" fill="white" />
         <rect opacity="0.05" x="216" y="213" width="3" height="3" rx="0.5" fill="white" />
         <rect opacity="0.15" x="216" y="219" width="3" height="3" rx="0.5" fill="white" />
-        <path d="M223.25 93.5V227" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+        <path d="M223.25 93.5V227" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
         <path
           d="M416.25 190.25H288.25V141.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M513.25 318.25H416.25V189.5"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <path
           d="M288.25 191V344.25H416.25V318"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
-        <path d="M303 -2V93" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M195 -2V93" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M105 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M147 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M579 318.5V468" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-        <path d="M217 312.5V426" stroke="white" strokeOpacity="0.04" stroke-width="2" />
+        <path d="M303 -2V93" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M195 -2V93" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M105 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M147 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M579 318.5V468" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+        <path d="M217 312.5V426" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
         <path
           d="M260 93.25H384.378C386.348 93.25 387.333 93.25 388.28 93.0658C389.119 92.9023 389.935 92.6316 390.706 92.2605C391.575 91.8423 392.364 91.2533 393.944 90.0753L411.103 77.2766C412.99 75.8691 413.933 75.1654 414.614 74.2719C415.217 73.4805 415.667 72.5836 415.941 71.6273C416.25 70.5475 416.25 69.3705 416.25 67.0164V-2"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
-        <path d="M416 23.25H492.25V-72" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+        <path d="M416 23.25H492.25V-72" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
         <path
           d="M365.25 93.25V141.25H288.25V93.25"
           stroke="white"
           strokeOpacity="0.08"
-          stroke-width="0.5"
+          strokeWidth="0.5"
         />
         <rect opacity="0.02" x="292" y="96" width="70" height="42" rx="0.5" fill="white" />
         <rect opacity="0.05" x="293" y="98" width="3" height="3" rx="0.5" fill="white" />
@@ -1387,7 +1387,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="7.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="126" y="291" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect
@@ -1397,7 +1397,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="15.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="209" y="54" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect x="215" y="54" width="2" height="2" fill="white" fillOpacity="0.08" />
@@ -1417,7 +1417,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="15.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="122" y="245" width="8" height="8" fill="white" fillOpacity="0.04" />
           <rect
@@ -1427,7 +1427,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="7.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="492" y="299" width="2" height="2" fill="white" fillOpacity="0.08" />
           <rect
@@ -1437,7 +1437,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="15.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="488" y="295" width="8" height="8" fill="white" fillOpacity="0.04" />
           <rect
@@ -1447,7 +1447,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             height="7.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect x="129" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
           <rect x="134" y="141" width="2" height="6" fill="white" fillOpacity="0.08" />
@@ -1483,202 +1483,202 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
             d="M164.25 26.25H-30.75V-52"
             stroke="white"
             strokeOpacity="0.06"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
-          <g clip-path="url(#clip4_2076_26)">
+          <g clipPath="url(#clip4_2076_26)">
             <path
               d="M-24 314C-18.6667 308.667 84.8889 205.111 136 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M-16 314C-10.6667 308.667 92.8889 205.111 144 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M-8 314C-2.66667 308.667 100.889 205.111 152 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M0 314C5.33333 308.667 108.889 205.111 160 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M8 314C13.3333 308.667 116.889 205.111 168 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M16 314C21.3333 308.667 124.889 205.111 176 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M24 314C29.3333 308.667 132.889 205.111 184 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M32 314C37.3333 308.667 140.889 205.111 192 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M40 314C45.3333 308.667 148.889 205.111 200 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M48 314C53.3333 308.667 156.889 205.111 208 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M56 314C61.3333 308.667 164.889 205.111 216 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M64 314C69.3333 308.667 172.889 205.111 224 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M72 314C77.3333 308.667 180.889 205.111 232 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M80 314C85.3333 308.667 188.889 205.111 240 154"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
           </g>
-          <g clip-path="url(#clip5_2076_26)">
+          <g clipPath="url(#clip5_2076_26)">
             <path
               d="M227 374C232.333 368.667 335.889 265.111 387 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M235 374C240.333 368.667 343.889 265.111 395 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M243 374C248.333 368.667 351.889 265.111 403 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M251 374C256.333 368.667 359.889 265.111 411 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M259 374C264.333 368.667 367.889 265.111 419 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M267 374C272.333 368.667 375.889 265.111 427 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M275 374C280.333 368.667 383.889 265.111 435 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M283 374C288.333 368.667 391.889 265.111 443 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M291 374C296.333 368.667 399.889 265.111 451 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M299 374C304.333 368.667 407.889 265.111 459 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M307 374C312.333 368.667 415.889 265.111 467 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M315 374C320.333 368.667 423.889 265.111 475 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M323 374C328.333 368.667 431.889 265.111 483 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
             <path
               d="M331 374C336.333 368.667 439.889 265.111 491 214"
               stroke="white"
               strokeOpacity="0.1"
-              stroke-width="0.3"
+              strokeWidth="0.3"
             />
           </g>
           <path
             d="M288 227.25H-278.396C-282.31 227.25 -284.266 227.25 -286.108 226.808C-287.74 226.416 -289.301 225.77 -290.733 224.892C-292.347 223.903 -293.731 222.519 -296.498 219.752L-542 -25.75"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M169 127.25H60.6039C56.6904 127.25 54.7337 127.25 52.8923 127.692C51.2597 128.084 49.699 128.73 48.2674 129.608C46.6528 130.597 45.2692 131.981 42.5019 134.748L-50 227.25"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M288 312.25H-48.3961C-52.3096 312.25 -54.2663 312.25 -56.1077 311.808C-57.7403 311.416 -59.301 310.77 -60.7326 309.892C-62.3472 308.903 -63.7308 307.519 -66.4981 304.752L-144 227.25"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
-          <path d="M260 93.25H169.25V227" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
-          <path d="M691 318.25H513.25V468" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
-          <path d="M823 415.25H645.25V468" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
-          <path d="M169.5 142.25H223" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+          <path d="M260 93.25H169.25V227" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
+          <path d="M691 318.25H513.25V468" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
+          <path d="M823 415.25H645.25V468" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
+          <path d="M169.5 142.25H223" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
           <rect opacity="0.02" x="172" y="145" width="49" height="79" rx="0.5" fill="white" />
           <rect opacity="0.05" x="174" y="147" width="3" height="3" rx="0.5" fill="white" />
           <rect opacity="0.05" x="174" y="153" width="3" height="3" rx="0.5" fill="white" />
@@ -1771,43 +1771,43 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           <rect opacity="0.05" x="216" y="207" width="3" height="3" rx="0.5" fill="white" />
           <rect opacity="0.05" x="216" y="213" width="3" height="3" rx="0.5" fill="white" />
           <rect opacity="0.15" x="216" y="219" width="3" height="3" rx="0.5" fill="white" />
-          <path d="M223.25 93.5V227" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+          <path d="M223.25 93.5V227" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
           <path
             d="M416.25 190.25H288.25V141.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M513.25 318.25H416.25V189.5"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <path
             d="M288.25 191V344.25H416.25V318"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
-          <path d="M303 -2V93" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-          <path d="M195 -2V93" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-          <path d="M105 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-          <path d="M147 227.5V312" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-          <path d="M579 318.5V468" stroke="white" strokeOpacity="0.04" stroke-width="2" />
-          <path d="M217 312.5V426" stroke="white" strokeOpacity="0.04" stroke-width="2" />
+          <path d="M303 -2V93" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+          <path d="M195 -2V93" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+          <path d="M105 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+          <path d="M147 227.5V312" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+          <path d="M579 318.5V468" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
+          <path d="M217 312.5V426" stroke="white" strokeOpacity="0.04" strokeWidth="2" />
           <path
             d="M260 93.25H384.378C386.348 93.25 387.333 93.25 388.28 93.0658C389.119 92.9023 389.935 92.6316 390.706 92.2605C391.575 91.8423 392.364 91.2533 393.944 90.0753L411.103 77.2766C412.99 75.8691 413.933 75.1654 414.614 74.2719C415.217 73.4805 415.667 72.5836 415.941 71.6273C416.25 70.5475 416.25 69.3705 416.25 67.0164V-2"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
-          <path d="M416 23.25H492.25V-72" stroke="white" strokeOpacity="0.08" stroke-width="0.5" />
+          <path d="M416 23.25H492.25V-72" stroke="white" strokeOpacity="0.08" strokeWidth="0.5" />
           <path
             d="M365.25 93.25V141.25H288.25V93.25"
             stroke="white"
             strokeOpacity="0.08"
-            stroke-width="0.5"
+            strokeWidth="0.5"
           />
           <rect opacity="0.02" x="292" y="96" width="70" height="42" rx="0.5" fill="white" />
           <rect opacity="0.05" x="293" y="98" width="3" height="3" rx="0.5" fill="white" />
@@ -1932,17 +1932,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           fillOpacity="0.5"
         />
       </g>
-      <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter1_f_2076_26)">
-        <ellipse
-          cx="1438.94"
-          cy="127.021"
-          rx="26.5"
-          ry="293.25"
-          transform="rotate(15 1438.94 127.021)"
-          fill="url(#paint3_linear_2076_26)"
-          fillOpacity="0.5"
-        />
-      </g>
+
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter2_f_2076_26)">
         <ellipse
           cx="1520.29"
@@ -2018,17 +2008,7 @@ export const HeroSvg: React.FC<{ className?: string }> = ({ className }) => {
           fillOpacity="0.5"
         />
       </g>
-      <g style={{ mixBlendMode: "color-dodge" }} filter="url(#filter9_f_2076_26)">
-        <ellipse
-          cx="102.094"
-          cy="-76.5686"
-          rx="26.5"
-          ry="293.25"
-          transform="rotate(5 102.094 -76.5686)"
-          fill="url(#paint11_linear_2076_26)"
-          fillOpacity="0.5"
-        />
-      </g>
+
       <g style={{ mixBlendMode: "lighten" }} filter="url(#filter10_f_2076_26)">
         <ellipse
           cx="198.823"

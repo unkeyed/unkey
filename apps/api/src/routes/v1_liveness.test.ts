@@ -1,17 +1,10 @@
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { afterEach, beforeEach, expect, test } from "vitest";
-import { V1LivenessResponse, registerV1Liveness } from "./v1_liveness";
+import { expect, test } from "vitest";
+import { V1LivenessResponse } from "./v1_liveness";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1Liveness);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("returns 200", async () => {
+test("confirms services", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const res = await h.get<V1LivenessResponse>({
     url: "/v1/liveness",
   });
@@ -23,6 +16,9 @@ test("returns 200", async () => {
       services: {
         metrics: "NoopMetrics",
         logger: "ConsoleLogger",
+        ratelimit: "DurableRateLimiter",
+        usagelimit: "DurableUsageLimiter",
+        analytics: "NoopTinybird",
       },
     },
   });

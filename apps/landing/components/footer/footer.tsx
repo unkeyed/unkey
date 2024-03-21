@@ -68,11 +68,11 @@ function CompanyInfoMobile() {
       </div>
       <div className="mt-10">
         {navigation.map((section) => (
-          <>
+          <div key={section.title}>
             <h3 className="py-4 text-sm font-medium text-white">{section.title}</h3>
             <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal">
               {section.links.map((link) => (
-                <li key={link.href} className="py-4">
+                <li key={link.href.toString()} className="py-4">
                   {link.href.startsWith("https://") ? (
                     <a
                       href={link.href}
@@ -93,7 +93,7 @@ function CompanyInfoMobile() {
                 </li>
               ))}
             </ul>
-          </>
+          </div>
         ))}
       </div>
       <div className="flex justify-center w-full lg:mt-24">
@@ -105,16 +105,16 @@ function CompanyInfoMobile() {
 
 function Navigation() {
   return (
-    <nav className="sm:w-full">
+    <nav className=" sm:w-full">
       <ul className="flex flex-col flex-auto gap-16 text-left sm:flex-row sm:mx-auto sm:text-center justify-evenly">
         {navigation.map((section) => (
-          <li key={section.title}>
+          <li key={section.title.toString()}>
             <div className="text-sm font-medium tracking-wider text-white font-display">
               {section.title}
             </div>
             <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal gap-4 flex flex-col md:gap-8 mt-4 md:mt-8 ">
               {section.links.map((link) => (
-                <li key={link.href}>
+                <li key={link.href.toString()}>
                   {link.href.startsWith("https://") ? (
                     <a
                       href={link.href}
@@ -144,7 +144,7 @@ function Navigation() {
 
 function MobileNavigation() {
   return (
-    <nav className="flex flex-col sm:hidden">
+    <nav className="flex flex-col sm:hidden pt-4 mobile-blog-footer-radial">
       <div className="flex flex-col items-center justify-center w-full text-center">
         <CompanyInfoMobile />
       </div>
@@ -159,12 +159,12 @@ export function Footer() {
   return (
     <>
       <footer className="relative hidden pt-32 overflow-hidden border-t sm:block xl:pt-10 max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
-        <div className="flex flex-col mx-auto lg:max-w-4xl max-sm:w-full ">
+        <div className="container flex flex-col mx-auto">
           <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row xl:gap-20 xxl:gap-48">
-            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
+            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
               <CompanyInfo />
             </div>
-            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 sm:pl-28 md:pl-18 lg:pl-6 max-sm:mb-8">
+            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22  md:pl-18 lg:pl-6 max-sm:mb-8">
               <Navigation />
             </div>
           </div>

@@ -1,23 +1,15 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
 import {
   type V1KeysUpdateRemainingRequest,
   type V1KeysUpdateRemainingResponse,
-  registerV1KeysUpdateRemaining,
 } from "./v1_keys_updateRemaining";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysUpdateRemaining);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("when the key does not exist", async () => {
+test("when the key does not exist", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const keyId = newId("key");
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);

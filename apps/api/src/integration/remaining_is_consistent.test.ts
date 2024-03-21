@@ -4,18 +4,10 @@ import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysGetKeyResponse } from "@/routes/v1_keys_getKey";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-let h: IntegrationHarness;
-
-beforeEach(async () => {
-  h = new IntegrationHarness();
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("remaining consistently counts down", async () => {
+test("remaining consistently counts down", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

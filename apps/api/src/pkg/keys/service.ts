@@ -5,11 +5,23 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
+import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
-import { type Result, result } from "@unkey/result";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
+
+export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
+  public readonly name = "DisabledWorkspaceError";
+  public readonly retry = false;
+  constructor(workspaceId: string) {
+    super("workspace is disabled", {
+      context: {
+        workspaceId,
+      },
+    });
+  }
+}
 
 type NotFoundResponse = {
   valid: false;
@@ -60,7 +72,6 @@ export class KeyService {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
-  private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
@@ -75,7 +86,7 @@ export class KeyService {
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
-    persistenceMap: Map<string, number>;
+    rbac: RBAC;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -83,37 +94,36 @@ export class KeyService {
     this.metrics = opts.metrics;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
-    this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
-    this.rbac = new RBAC();
+    this.rbac = opts.rbac;
     this.tracer = trace.getTracer("keyService");
   }
 
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult>> {
+  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
-      if (res.error) {
+      if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
           valid: false,
-          code: res.error.message,
+          code: res.err.message,
         });
         return res;
       }
       // if we have identified the key, we can send the analytics event
       // otherwise, they likely sent garbage to us and we can't associate it with anything
-      if (res.value.key) {
+      if (res.val.key) {
         c.executionCtx.waitUntil(
           this.analytics.ingestKeyVerification({
-            workspaceId: res.value.key.workspaceId,
-            apiId: res.value.api.id,
-            keyId: res.value.key.id,
+            workspaceId: res.val.key.workspaceId,
+            apiId: res.val.api.id,
+            keyId: res.val.key.id,
             time: Date.now(),
-            deniedReason: res.value.code,
+            deniedReason: res.val.code,
             ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
@@ -125,11 +135,11 @@ export class KeyService {
       }
       this.metrics.emit({
         metric: "metric.key.verification",
-        valid: res.value.valid,
-        code: res.value.code ?? "OK",
-        workspaceId: res.value.key?.workspaceId,
-        apiId: res.value.api?.id,
-        keyId: res.value.key?.id,
+        valid: res.val.valid,
+        code: res.val.code ?? "OK",
+        workspaceId: res.val.key?.workspaceId,
+        apiId: res.val.api?.id,
+        keyId: res.val.key?.id,
       });
 
       return res;
@@ -160,13 +170,25 @@ export class KeyService {
     c: Context,
     span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult>> {
+  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
     const hash = await sha256(req.key);
-    const { value: data, error } = await this.cache.withCache(c, "keyByHash", hash, async () => {
+    const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          workspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
+          forWorkspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
           roles: {
             with: {
               role: {
@@ -214,6 +236,8 @@ export class KeyService {
         ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
       ]);
       return {
+        workspace: dbRes.workspace,
+        forWorkspace: dbRes.forWorkspace,
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
@@ -221,20 +245,29 @@ export class KeyService {
       };
     });
 
-    if (error) {
-      return result.fail(new Error(`unable to fetch required data: ${error.message}`));
+    if (err) {
+      return Err(
+        new FetchError("unable to fetch required data", {
+          retry: true,
+          cause: err,
+        }),
+      );
     }
 
     if (!data) {
       span.addEvent("not found");
-      return result.success({ valid: false, code: "NOT_FOUND" });
+      return Ok({ valid: false, code: "NOT_FOUND" });
     }
+
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
+      return Err(new DisabledWorkspaceError(data.workspace.id));
+    }
+
     /**
      * Enabled
      */
-    const enabled = data.key.enabled;
-    if (!enabled) {
-      return result.success({
+    if (!data.key.enabled) {
+      return Ok({
         key: data.key,
         api: data.api,
         valid: false,
@@ -244,7 +277,7 @@ export class KeyService {
     }
 
     if (req.apiId && data.api.id !== req.apiId) {
-      return result.success({
+      return Ok({
         key: data.key,
         api: data.api,
         valid: false,
@@ -261,14 +294,14 @@ export class KeyService {
     const expires = data.key.expires ? new Date(data.key.expires).getTime() : undefined;
     if (expires) {
       if (expires < Date.now()) {
-        return result.success({ valid: false, code: "NOT_FOUND" });
+        return Ok({ valid: false, code: "NOT_FOUND" });
       }
     }
 
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
       if (!ip) {
-        return result.success({
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -278,7 +311,7 @@ export class KeyService {
       }
       const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
       if (!ipWhitelist.includes(ip)) {
-        return result.success({
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -294,23 +327,34 @@ export class KeyService {
         permissions: JSON.stringify(data.permissions),
       });
       const q = this.rbac.validateQuery(req.permissionQuery);
-      if (q.error) {
-        return result.fail({
-          message: `The permission query is malformed: ${q.error.message}`,
-          code: "BAD_REQUEST",
-        });
+      if (q.err) {
+        return Err(
+          new SchemaError("permission query is invalid", {
+            cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
+          }),
+        );
       }
-      const rbacResp = this.rbac.evaluatePermissions(q.value.query, data.permissions);
+      const rbacResp = this.rbac.evaluatePermissions(q.val.query, data.permissions);
 
-      if (rbacResp.error) {
+      if (rbacResp.err) {
         this.logger.error("evaluating permissions failed", {
           query: JSON.stringify(req.permissionQuery),
           permissions: JSON.stringify(data.permissions),
         });
-        return result.fail({ message: rbacResp.error.message, code: "INTERNAL_SERVER_ERROR" });
+        return Err(
+          new SchemaError("permission query is invalid", {
+            cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
+          }),
+        );
       }
-      if (!rbacResp.value.valid) {
-        return result.success({
+      if (!rbacResp.val.valid) {
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -325,7 +369,7 @@ export class KeyService {
      */
     const [pass, ratelimit] = await this.ratelimit(c, data.key);
     if (!pass) {
-      return result.success({
+      return Ok({
         key: data.key,
         api: data.api,
         valid: false,
@@ -340,7 +384,7 @@ export class KeyService {
       const limited = await this.usageLimiter.limit({ keyId: data.key.id });
       remaining = limited.remaining;
       if (!limited.valid) {
-        return result.success({
+        return Ok({
           key: data.key,
           api: data.api,
           valid: false,
@@ -358,7 +402,7 @@ export class KeyService {
       }
     }
 
-    return result.success({
+    return Ok({
       workspaceId: data.key.workspaceId,
       key: data.key,
       api: data.api,
@@ -392,86 +436,42 @@ export class KeyService {
 
     const ratelimitStart = performance.now();
     try {
-      const now = Date.now();
-      const window = Math.floor(now / key.ratelimitRefillInterval);
-      const reset = (window + 1) * key.ratelimitRefillInterval;
-
-      const keyAndWindow = [key.id, window].join(":");
-      const t1 = performance.now();
-      const cached = this.rlCache.get(keyAndWindow) ?? 0;
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - t1,
-        keyId: key.id,
-        tier: "memory",
+      const t2 = performance.now();
+      const res = await this.rateLimiter.limit(c, {
+        identifier: key.id,
+        limit: key.ratelimitRefillRate,
+        interval: key.ratelimitRefillInterval,
+        cost: 1,
+        // root keys are sharded per edge colo
+        shard: key.forWorkspaceId ? "edge" : undefined,
+        async: key.ratelimitType === "fast",
       });
 
-      const remainingBeforeCall = key.ratelimitLimit - cached;
-      if (remainingBeforeCall <= 0) {
-        return [
-          false,
-          {
-            remaining: 0,
-            limit: key.ratelimitRefillRate,
-            reset,
-          },
-        ];
+      if (res.err) {
+        this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
+
+        return [false, undefined];
       }
+      this.metrics.emit({
+        metric: "metric.ratelimit",
+        latency: performance.now() - t2,
+        identifier: key.id,
+        tier: "durable",
+      });
 
-      const remaining = remainingBeforeCall - 1;
-
-      // TODO: at some point we should remove counters from older windows
-      // but I'm pretty sure it's not an issue cause they take up very little memory
-      // and are reset when the worker deallocates
-      this.rlCache.set(keyAndWindow, cached + 1);
-      const t2 = performance.now();
-      const p = this.rateLimiter
-        .limit({
-          keyId: key.id,
-          limit: key.ratelimitRefillRate,
-          interval: key.ratelimitRefillInterval,
-        })
-        .then(({ current }) => {
-          this.rlCache.set(keyAndWindow, current);
-          this.metrics.emit({
-            metric: "metric.ratelimit",
-            latency: performance.now() - t2,
-            keyId: key.id,
-            tier: "durable",
-          });
-          return current;
-        });
-
-      if (key.ratelimitType === "fast") {
-        c.executionCtx.waitUntil(p);
-        return [
-          true,
-          {
-            remaining,
-            limit: key.ratelimitRefillRate,
-            reset,
-          },
-        ];
-      }
-      const current = await p;
       return [
-        current <= key.ratelimitRefillRate,
+        res.val.pass,
         {
-          remaining: key.ratelimitRefillRate - current,
+          remaining: key.ratelimitRefillRate - res.val.current,
           limit: key.ratelimitRefillRate,
-          reset,
+          reset: res.val.reset,
         },
       ];
-    } catch (e: unknown) {
-      const err = e as Error;
-      this.logger.error("ratelimiting failed", { error: err.message, ...err });
-
-      return [false, undefined];
     } finally {
       this.metrics.emit({
         metric: "metric.ratelimit",
         latency: performance.now() - ratelimitStart,
-        keyId: key.id,
+        identifier: key.id,
         tier: "total",
       });
     }

@@ -6,14 +6,25 @@ on:
 
 concurrency: "only one deploy at a time"
 
-
 jobs:
   test_routes:
     strategy:
+      fail-fast: false
       matrix:
-        shard: ["1", "2", "3", "4", "5", "6", "7", "8"]
-    name: Test API Routes ${{matrix.shard}}
+        shard:
+          [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+          ]
+    name: Test API Routes ${{matrix.shard}}/8
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
@@ -21,7 +32,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
 
       - name: Setup pscale
         uses: planetscale/setup-pscale-action@v1
@@ -34,7 +44,7 @@ jobs:
       - name: Create a password
         id: database_password
         run: |
-          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --ttl=900 --debug --org=unkey --format=json)
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --debug --org=unkey --format=json)
 
           # Extract secrets
           database_host=$(echo $res | jq -r '.access_host_url')
@@ -51,23 +61,24 @@ jobs:
           echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
           echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
 
-
       - name: Install
         uses: ./.github/actions/install
-        
+
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread --bail=1 --shard=${{matrix.shard}}/8
+        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/8
         working-directory: apps/api
+        env:
+          WORKER_LOCATION: local
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Delete planetscale branch
         if: always()
         run: |
           pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
-
-
 
   preview:
     environment: Preview
@@ -78,11 +89,10 @@ jobs:
 
       - uses: pnpm/action-setup@v3.0.0
         with:
-            version: latest
+          version: latest
 
       - name: Install
         uses: ./.github/actions/install
-
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
@@ -99,7 +109,6 @@ jobs:
     name: End to End Test Preview
     runs-on: ubuntu-latest
 
-
     steps:
       - uses: actions/checkout@v4
 
@@ -109,7 +118,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:e2e
+        run: pnpm test:integration
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -118,26 +127,26 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
   canary:
-      needs:
-        - test_routes
-        - preview-tests
-      environment: Canary
-      runs-on: ubuntu-latest
-      name: Deploy Canary
-      steps:
-        - uses: actions/checkout@v4
+    needs:
+      - test_routes
+      - preview-tests
+    environment: Canary
+    runs-on: ubuntu-latest
+    name: Deploy Canary
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Install
-          uses: ./.github/actions/install
+      - name: Install
+        uses: ./.github/actions/install
 
-        - name: Build
-          run: pnpm turbo run build --filter='./apps/api'
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
 
-        - name: Deploy
-          run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
-          working-directory: apps/api
-          env:
-            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Deploy
+        run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   canary-tests:
     environment: Canary
@@ -154,7 +163,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:e2e
+        run: pnpm test:integration
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev
@@ -162,49 +171,31 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  # canary-latency:
-  #   environment: Canary
-  #   needs: canary
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     max-parallel: 8
-  #     matrix:
-  #       region: [
-  #           ap-northeast-1,
-  #           ap-northeast-2,
-  #           ap-south-1,
-  #           ap-southeast-1,
-  #           ca-central-1,
-  #           eu-west-1,
-  #           eu-west-2,
-  #           eu-west-3,
-  #           sa-east-1,
-  #           us-west-2,
-  #           ap-southeast-2,
-  #           eu-central-1,
-  #           us-west-1,
-  #           us-east-2,
-  #           us-east-1,
-  #         ]
-  #   name: Artillery ${{matrix.region}}
-  #   steps:
-  #     - name: Checkout Repo
-  #       uses: actions/checkout@v4
+  canary-benchmarks:
+    environment: Canary
+    needs: canary
+    name: Benchmark Canary
+    runs-on: ubuntu-latest
 
-  #     - name: Inject key
-  #       run: sed -i 's/{{ $env.UNKEY_KEY }}/${{secrets.UNKEY_KEY}}/g' ./tools/artillery/keys.verifyKey.yaml
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Test ${{matrix.region}}
-  #       uses: artilleryio/action-cli@v1
-  #       with:
-  #         command: run-fargate --region ${{matrix.region}} ./tools/artillery/keys.verifyKey.yaml --record --target=https://canary.unkey.dev 
-  #       env:
-  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         ARTILLERY_CLOUD_API_KEY: ${{secrets.ARTILLERY_CLOUD_KEY}}
+      - name: Install
+        uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
 
-        
+      - name: Test
+        run: pnpm test:benchmark
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: https://canary.unkey.dev
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          PLANETFALL_URL: ${{ secrets.PLANETFALL_URL }}
+          PLANETFALL_API_KEY: ${{ secrets.PLANETFALL_API_KEY }}
+          WORKER_LOCATION: local
 
   production:
     needs:

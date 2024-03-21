@@ -6,17 +6,17 @@
   "types": "./src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "ISC",
+  "license": "AGPL-3.0",
   "scripts": {
     "push": "dotenv -e .env drizzle-kit push:mysql",
     "studio": "dotenv -e .env drizzle-kit studio "
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
+    "@types/node": "^20.11.28",
     "@unkey/tsconfig": "workspace:^",
-    "dotenv-cli": "^7.3.0",
+    "dotenv-cli": "^7.4.1",
     "drizzle-kit": "^0.20.14",
-    "drizzle-orm": "^0.29.4",
+    "drizzle-orm": "^0.30.1",
     "typescript": "^5.3.3"
   },
   "dependencies": {

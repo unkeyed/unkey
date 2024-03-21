@@ -15,14 +15,14 @@ export function PageIntro({
   centered?: boolean;
 }) {
   return (
-    <Container className={clsx("pt-20", centered && "text-center")}>
+    <Container className={clsx(centered && "text-center")}>
       <RainbowDarkButton
         label="Submit Your Template"
         IconRight={ArrowRight}
-        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0 sm:mt-0 sm:mt-12 md:mt-20 lg:mt-40 bg-black"
+        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0  sm:mt-12 md:mt-20 lg:mt-32 bg-black"
       />
       <h1>
-        <span className="block font-sans text-base font-semibold font-display text-white">
+        <span className="block font-sans text-base font-semibold text-white font-display">
           {eyebrow}
         </span>
         <span className="sr-only"> - </span>

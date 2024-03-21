@@ -1,16 +1,15 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/toaster";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 export function EmailSignIn(props: {
+  setError: (err: string) => void;
   verification: (value: boolean) => void;
-  dialog: (value: boolean) => void;
+  setAccountNotFound: (value: boolean) => void;
   email: (value: string) => void;
   emailValue: string;
 }) {
@@ -76,11 +75,12 @@ export function EmailSignIn(props: {
       })
       .catch((err) => {
         setIsLoading(false);
+        console.log(err);
         if (err.errors[0].code === "form_identifier_not_found") {
-          props.dialog(true);
+          props.setAccountNotFound(true);
           props.email(email);
         } else {
-          toast.error("Sorry, We couldn't sign you in. Please try again later");
+          props.setError("Sorry, We couldn't sign you in. Please try again later");
         }
       });
   };
@@ -97,16 +97,16 @@ export function EmailSignIn(props: {
             autoComplete="email"
             autoCorrect="off"
             required
-            className="border-gray-300 bg-gray-50 "
+            className="h-10 text-white duration-500 bg-transparent focus:text-black border-white/20 focus:bg-white focus:border-white hover:bg-white/20 hover:border-white/40 placeholder:white/20 "
           />
         </div>
-        <Button
-          className="bg-black border-black text-white hover:bg-gray-100 hover:text-black"
+        <button
+          type="submit"
+          className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
         >
-          {isLoading && <Loading className="mr-2 h-4 w-4 animate-spin" />}
-          Sign In with Email
-        </Button>
+          {isLoading ? <Loading className="w-4 h-4 animate-spin" /> : "Sign In with Email"}
+        </button>
       </form>
     </>
   );

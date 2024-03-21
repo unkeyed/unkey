@@ -1,9 +1,10 @@
-import { IpWhitelisting } from "@/components/svg/ip-whitelisting";
+import Image from "next/image";
+import ip from "../images/ip.svg";
 
 export function IpWhitelistingBento() {
   return (
     <div className="w-full mt-5 ip-blur-gradient relative ip-whitelisting-bg-gradient border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
-      <IpWhitelisting className="h-[500px] w-full" />
+      <Image src={ip} alt="animated map" className="w-full" />
       <IpWhitelistingText />
     </div>
   );
@@ -12,7 +13,7 @@ export function IpWhitelistingBento() {
 export function IpWhitelistingText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[350px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -28,9 +29,9 @@ export function IpWhitelistingText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">IP Whitelisting</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">IP Whitelisting</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
+      <p className="mt-4 leading-6 text-white/60">
         Ensure secure access control by allowing only designated IP addresses to interact with your
         system, adding an extra layer of protection.p
       </p>

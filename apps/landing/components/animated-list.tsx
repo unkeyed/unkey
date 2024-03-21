@@ -23,8 +23,9 @@ export const AnimatedList = React.memo(
         const interval = setInterval(() => {
           setIndex((prevIndex) => {
             if (prevIndex >= childrenArray.length - 1) {
-              clearInterval(interval); // Stop the interval when the last item is reached
-              return prevIndex;
+              setTimeout(() => {
+                setIndex(0);
+              }, 1000);
             }
             return prevIndex + 1;
           });
@@ -63,7 +64,7 @@ export function AnimatedListItem({ children }: { children: React.ReactNode }) {
     transition: { type: "spring", stiffness: 350, damping: 40 },
   };
   return (
-    <motion.div {...animations} layout className="mx-auto w-full">
+    <motion.div {...animations} layout className="mx-auto">
       {children}
     </motion.div>
   );

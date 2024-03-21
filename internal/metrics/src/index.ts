@@ -53,7 +53,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.ratelimit"),
-    keyId: z.string(),
+    identifier: z.string(),
     latency: z.number(),
     tier: z.enum(["memory", "durable", "total"]),
   }),
@@ -61,6 +61,13 @@ export const metricSchema = z.discriminatedUnion("metric", [
     metric: z.literal("metric.usagelimit"),
     keyId: z.string(),
     latency: z.number(),
+  }),
+  z.object({
+    metric: z.literal("metric.ratelimit.accuracy"),
+    limit: z.number(),
+    duration: z.number(),
+    responded: z.boolean(),
+    correct: z.boolean(),
   }),
 ]);
 

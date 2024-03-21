@@ -1,5 +1,11 @@
 # @unkey/rbac
 
+## 0.1.11
+
+### Patch Changes
+
+- 04b1785: Export cjs properly
+
 ## 0.1.10
 
 ### Patch Changes

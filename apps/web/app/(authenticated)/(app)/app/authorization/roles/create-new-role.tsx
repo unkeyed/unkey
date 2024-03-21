@@ -86,7 +86,6 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log({ values });
     createRole.mutate({
       name: values.name,
       description: values.description,

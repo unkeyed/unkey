@@ -85,16 +85,16 @@ export const registerV1KeysDeleteKey = (app: App) =>
       };
     });
 
-    if (data.error) {
+    if (data.err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load key: ${data.error.message}`,
+        message: `unable to load key: ${data.err.message}`,
       });
     }
-    if (!data.value) {
+    if (!data.val) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
     }
-    const { key, api } = data.value;
+    const { key, api } = data.val;
 
     const auth = await rootKeyAuth(
       c,
@@ -118,7 +118,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       })
       .where(eq(schema.keys.id, key.id));
 
-    await analytics.ingestAuditLogs({
+    await analytics.ingestUnkeyAuditLogs({
       workspaceId: authorizedWorkspaceId,
       event: "key.delete",
       actor: {

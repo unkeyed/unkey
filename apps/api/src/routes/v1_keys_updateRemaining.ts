@@ -161,7 +161,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         message: "key not found after update, this should not happen",
       });
     }
-    await analytics.ingestAuditLogs({
+    await analytics.ingestUnkeyAuditLogs({
       actor: {
         type: "key",
         id: rootKeyId,

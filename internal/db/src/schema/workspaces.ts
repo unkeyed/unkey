@@ -1,6 +1,7 @@
 import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   datetime,
   json,
   mysqlEnum,
@@ -11,6 +12,7 @@ import {
 import { apis } from "./apis";
 import { budgets } from "./budgets";
 import { keys } from "./keys";
+import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
@@ -53,6 +55,8 @@ export const workspaces = mysqlTable(
          * Can access /app/authorization pages
          */
         rbac?: boolean;
+
+        ratelimit?: boolean;
       }>()
       .notNull(),
     features: json("features")
@@ -62,6 +66,17 @@ export const workspaces = mysqlTable(
          * undefined, 0 or negative means it's disabled
          */
         auditLogRetentionDays?: number;
+
+        /**
+         * enable ratelimit retention by specifiying the number of days
+         * undefined, 0 or negative means it's disabled
+         */
+        ratelimitRetentionDays?: number;
+
+        /**
+         * How many custom overrides a workspace may create.
+         */
+        ratelimitOverrides?: number;
 
         /**
          * Can access /app/success
@@ -81,6 +96,10 @@ export const workspaces = mysqlTable(
     planDowngradeRequest: mysqlEnum("plan_downgrade_request", ["free"]),
     planChanged: datetime("plan_changed", { fsp: 3 }),
     subscriptions: json("subscriptions").$type<Subscriptions>(),
+    /**
+     * if the workspace is disabled, all API requests will be rejected
+     */
+    enabled: boolean("enabled").notNull().default(true),
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),
@@ -101,4 +120,5 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   }),
   roles: many(roles),
   permissions: many(permissions),
+  ratelimitNamespaces: many(ratelimitNamespaces),
 }));

@@ -1,4 +1,4 @@
-import { HashedKeys } from "@/components/svg/hashed-keys";
+import { HashedKeys } from "@/components/hashed-keys";
 
 export function HashedKeysBento() {
   return (

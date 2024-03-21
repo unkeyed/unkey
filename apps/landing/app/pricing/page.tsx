@@ -28,7 +28,7 @@ import {
 export default function PricingPage() {
   return (
     <div className="px-4 mx-auto lg:px-0">
-      <HeroSvg className="absolute inset-x-0 top-0" />
+      <HeroSvg className="absolute inset-x-0 top-0 pointer-events-none" />
 
       <div className="flex flex-col items-center justify-center mt-32 min-h-72">
         <h1 className="section-title-heading-gradient font-medium text-[4rem] leading-[4rem] max-w-xl text-center ">

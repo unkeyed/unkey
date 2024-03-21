@@ -1,3 +1,4 @@
+import { TaskContext } from "vitest";
 import { integrationTestEnv } from "./env";
 import { Harness } from "./harness";
 import { StepRequest, StepResponse, step } from "./request";
@@ -5,12 +6,16 @@ import { StepRequest, StepResponse, step } from "./request";
 export class IntegrationHarness extends Harness {
   public readonly baseUrl: string;
 
-  constructor() {
-    super();
-
+  private constructor(t: TaskContext) {
+    super(t);
     this.baseUrl = integrationTestEnv.parse(process.env).UNKEY_BASE_URL;
   }
 
+  static async init(t: TaskContext): Promise<IntegrationHarness> {
+    const h = new IntegrationHarness(t);
+    await h.seed();
+    return h;
+  }
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
     return await step<never, TRes>({ method: "GET", ...req });
   }

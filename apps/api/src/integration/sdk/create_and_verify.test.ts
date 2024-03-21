@@ -2,18 +2,10 @@ import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { type Flatten, Unkey, or } from "@unkey/api/src/index"; // use unbundled raw esm typescript
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-let h: IntegrationHarness;
-
-beforeEach(async () => {
-  h = new IntegrationHarness();
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("create with roles and permissions", async () => {
+test("create with roles and permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
   type Resources = {
     domain: "create" | "delete" | "read";
     dns: {

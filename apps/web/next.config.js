@@ -1,9 +1,9 @@
-const { withHydrationOverlay } = require("@builder.io/react-hydration-overlay/next");
-
 /** @type {import('next').NextConfig} */
-let nextConfig = {
+const nextConfig = {
+  reactStrictMode: true,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
-  productionBrowserSourceMaps: true, // we're open-source anyways
+  productionBrowserSourceMaps: true,
+  // we're open-source anyways
   experimental: {
     esmExternals: "loose",
   },
@@ -13,7 +13,7 @@ let nextConfig = {
     });
     return config;
   },
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/result", "@unkey/id"],
+  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/error", "@unkey/id"],
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
@@ -30,16 +30,13 @@ let nextConfig = {
     },
     {
       source: "/engineering",
-      destination: "https://engineering.mintlify.dev/engineering",
+      destination: "https://unkey-engineering.mintlify.dev/engineering",
     },
     {
       source: "/engineering/:match*",
-      destination: "https://engineering.mintlify.dev/engineering/:match*",
+      destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
   ],
 };
 
-if (process.env.NODE_ENV !== "production") {
-  nextConfig = withHydrationOverlay({ appRootselector: "main" })(nextConfig);
-}
 module.exports = nextConfig;

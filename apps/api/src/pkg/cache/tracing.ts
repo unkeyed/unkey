@@ -1,5 +1,5 @@
 import { Tracer, trace } from "@opentelemetry/api";
-import { Result } from "@unkey/result";
+import { Result } from "@unkey/error";
 import type { Context } from "hono";
 import { Cache, CacheError } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
@@ -33,12 +33,12 @@ export class CacheWithTracing<TNamespaces extends Record<string, unknown> = Cach
     span.setAttribute("cache.key", key);
 
     const res = await this.cache.get(ctx, namespace, key);
-    if (res.error) {
-      span.setStatus({ code: 2, message: res.error.message });
-      span.recordException(res.error);
+    if (res.err) {
+      span.setStatus({ code: 2, message: res.err.message });
+      span.recordException(res.err);
     } else {
-      span.setAttribute("cache.hit", !!res.value[0]);
-      span.setAttribute("cache.stale", res.value[1]);
+      span.setAttribute("cache.hit", !!res.val[0]);
+      span.setAttribute("cache.stale", res.val[1]);
     }
 
     span.end();
@@ -58,10 +58,10 @@ export class CacheWithTracing<TNamespaces extends Record<string, unknown> = Cach
       span.setAttribute("cache.key", key);
 
       const res = await this.cache.set(ctx, namespace, key, value);
-      if (res.error) {
-        span.setStatus({ code: 2, message: res.error.message });
+      if (res.err) {
+        span.setStatus({ code: 2, message: res.err.message });
 
-        span.recordException(res.error);
+        span.recordException(res.err);
       }
       return res;
     } finally {
@@ -81,9 +81,9 @@ export class CacheWithTracing<TNamespaces extends Record<string, unknown> = Cach
       span.setAttribute("cache.key", key);
 
       const res = await this.cache.remove(ctx, namespace, key);
-      if (res.error) {
-        span.setStatus({ code: 2, message: res.error.message });
-        span.recordException(res.error);
+      if (res.err) {
+        span.setStatus({ code: 2, message: res.err.message });
+        span.recordException(res.err);
       }
       return res;
     } finally {
