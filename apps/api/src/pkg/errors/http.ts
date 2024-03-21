@@ -23,6 +23,8 @@ const ErrorCode = z.enum([
   "INSUFFICIENT_PERMISSIONS",
 ]);
 
+export type ErrorCodeType = z.infer<typeof ErrorCode>;
+
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
   return z.object({
     error: z.object({
