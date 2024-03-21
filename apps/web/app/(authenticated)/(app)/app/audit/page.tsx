@@ -17,6 +17,7 @@ import { parseAsArrayOf, parseAsString } from "nuqs";
 import { Suspense } from "react";
 import { Filter } from "./filter";
 import { Row } from "./row";
+import { FilterSingle } from "./select";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -26,6 +27,7 @@ type Props = {
     events?: string | string[];
     users?: string | string[];
     rootKeys?: string | string[];
+    bucket?: string;
   };
 };
 
@@ -39,11 +41,21 @@ export default async function AuditPage(props: Props) {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    with: {
+      ratelimitNamespaces: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+    },
   });
   if (!workspace?.betaFeatures.auditLogRetentionDays) {
     return notFound();
   }
-
+  const selectedBucket = parseAsString
+    .withDefault("unkey_mutations")
+    .parseServerSide(props.searchParams.bucket);
   const selectedEvents = filterParser.parseServerSide(props.searchParams.events);
   const selectedUsers = filterParser.parseServerSide(props.searchParams.users);
   const selectedRootKeys = filterParser.parseServerSide(props.searchParams.rootKeys);
@@ -57,20 +69,46 @@ export default async function AuditPage(props: Props) {
 
       <main className="mt-8 mb-20">
         <div className="flex items-center justify-start gap-2 my-4">
-          <Filter
-            param="events"
-            title="Events"
-            options={Object.values(unkeyAuditLogEvents.Values).map((value) => ({
-              value,
-              label: value,
-            }))}
+          <FilterSingle
+            param="bucket"
+            title="Bucket"
+            options={[
+              { value: "unkey_mutations", label: "System" },
+              ...workspace.ratelimitNamespaces.map((ns) => ({
+                value: `ratelimit.${ns.id}`,
+                label: ns.name,
+              })),
+            ]}
           />
-          <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
-            <UserFilter tenantId={workspace.tenantId} />
-          </Suspense>
-          <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
-            <RootKeyFilter workspaceId={workspace.id} />
-          </Suspense>
+          {selectedBucket === "unkey_mutations" ? (
+            <Filter
+              param="events"
+              title="Events"
+              options={Object.values(unkeyAuditLogEvents.Values).map((value) => ({
+                value,
+                label: value,
+              }))}
+            />
+          ) : (
+            <FilterSingle
+              param="event"
+              title="Event"
+              options={[
+                { value: "ratelimit.success", label: "Ratelimit success" },
+                { value: "ratelimit.denied", label: "Ratelimit denied" },
+              ]}
+            />
+          )}
+          {selectedBucket === "unkey_mutations" ? (
+            <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
+              <UserFilter tenantId={workspace.tenantId} />
+            </Suspense>
+          ) : null}
+          {selectedBucket === "unkey_mutations" ? (
+            <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
+              <RootKeyFilter workspaceId={workspace.id} />
+            </Suspense>
+          ) : null}
           {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
             <Link href="/app/audit">
               <Button
@@ -100,6 +138,7 @@ export default async function AuditPage(props: Props) {
             selectedEvents={selectedEvents}
             selectedUsers={selectedUsers}
             selectedRootKeys={selectedRootKeys}
+            selectedBucket={selectedBucket}
           />
         </Suspense>
       </main>
@@ -112,16 +151,25 @@ const AuditLogTable: React.FC<{
   selectedEvents: string[];
   selectedUsers: string[];
   selectedRootKeys: string[];
+  selectedBucket: string;
   before?: number;
   after: number;
-}> = async ({ workspaceId, selectedEvents, selectedRootKeys, selectedUsers, before, after }) => {
+}> = async ({
+  workspaceId,
+  selectedEvents,
+  selectedRootKeys,
+  selectedUsers,
+  selectedBucket,
+  before,
+  after,
+}) => {
   const isFiltered =
     selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 || before;
-
   const logs = await getAuditLogs({
     workspaceId: workspaceId,
     before,
     after,
+    bucket: selectedBucket,
     events: selectedEvents.length > 0 ? selectedEvents : undefined,
     actorIds:
       selectedUsers.length > 0 || selectedRootKeys.length > 0
