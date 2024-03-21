@@ -31,11 +31,12 @@ export function UsageBudgetExceeded({
             <Text>Hey,</Text>
             <Text>
               Hope you're doing awesome! Just a quick heads up from your friends at Unkey — looks
-              like your spending has just nudged past your set budget. Oops! 🙈
+              like your spending has just nudged past your set budget.
             </Text>
 
             <Text>
-              <b>Workspace: </b>${workspace}
+              <b>Workspace: </b>
+              {workspace}
             </Text>
             <Text>
               <b>Your Budget: </b>${budgetedAmount}
@@ -48,7 +49,7 @@ export function UsageBudgetExceeded({
             </Text>
 
             <Text>
-              {"You can find firther details by accessing your "}
+              {"You can find further details by accessing your "}
               <Link href="https://unkey.dev/app/settings/billing">Unkey Billing dashboard</Link>.
             </Text>
 
