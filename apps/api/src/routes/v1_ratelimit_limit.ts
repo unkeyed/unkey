@@ -301,29 +301,33 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     if (req.resources && req.resources.length > 0) {
       c.executionCtx.waitUntil(
-        analytics.ingestGenericAuditLogs({
-          auditLogId: newId("auditLog"),
-          workspaceId: rootKey.authorizedWorkspaceId,
-          bucket: `ratelimit.${namespace.id}`,
-          actor: {
-            type: "key",
-            id: rootKey.key.id,
-          },
-          description: "ratelimit",
-          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
-          meta: {
-            requestId: c.get("requestId"),
-            namespacId: namespace.id,
-            identifier: req.identifier,
-            success: ratelimitResponse.pass,
-          },
-          time: Date.now(),
-          resources: req.resources,
-          context: {
-            location: c.req.header("True-Client-IP") ?? "",
-            userAgent: c.req.header("User-Agent") ?? "",
-          },
-        }),
+        analytics
+          .ingestGenericAuditLogs({
+            auditLogId: newId("auditLog"),
+            workspaceId: rootKey.authorizedWorkspaceId,
+            bucket: namespace.id,
+            actor: {
+              type: "key",
+              id: rootKey.key.id,
+            },
+            description: "ratelimit",
+            event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+            meta: {
+              requestId: c.get("requestId"),
+              namespacId: namespace.id,
+              identifier: req.identifier,
+              success: ratelimitResponse.pass,
+            },
+            time: Date.now(),
+            resources: req.resources,
+            context: {
+              location: c.req.header("True-Client-IP") ?? "",
+              userAgent: c.req.header("User-Agent") ?? "",
+            },
+          })
+          .then((res) => {
+            console.log(JSON.stringify({ req, res }, null, 2));
+          }),
       );
     }
 
