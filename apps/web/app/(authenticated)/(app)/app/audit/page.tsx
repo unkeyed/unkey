@@ -80,35 +80,30 @@ export default async function AuditPage(props: Props) {
               })),
             ]}
           />
-          {selectedBucket === "unkey_mutations" ? (
-            <Filter
-              param="events"
-              title="Events"
-              options={Object.values(unkeyAuditLogEvents.Values).map((value) => ({
-                value,
-                label: value,
-              }))}
-            />
-          ) : (
-            <FilterSingle
-              param="event"
-              title="Event"
-              options={[
-                { value: "ratelimit.success", label: "Ratelimit success" },
-                { value: "ratelimit.denied", label: "Ratelimit denied" },
-              ]}
-            />
-          )}
+          <Filter
+            param="events"
+            title="Events"
+            options={
+              selectedBucket === "unkey_mutations"
+                ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
+                    value,
+                    label: value,
+                  }))
+                : [
+                    { value: "ratelimit.success", label: "Ratelimit success" },
+                    { value: "ratelimit.denied", label: "Ratelimit denied" },
+                  ]
+            }
+          />
+
           {selectedBucket === "unkey_mutations" ? (
             <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
               <UserFilter tenantId={workspace.tenantId} />
             </Suspense>
           ) : null}
-          {selectedBucket === "unkey_mutations" ? (
-            <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
-              <RootKeyFilter workspaceId={workspace.id} />
-            </Suspense>
-          ) : null}
+          <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
+            <RootKeyFilter workspaceId={workspace.id} />
+          </Suspense>
           {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
             <Link href="/app/audit">
               <Button
