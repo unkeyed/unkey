@@ -1,5 +1,11 @@
 # @unkey/ratelimit
 
+## 0.1.2
+
+### Patch Changes
+
+- 7d0a9e0: allow setting a baseurl
+
 ## 0.1.1
 
 ### Patch Changes
