@@ -6,6 +6,11 @@ import { Limit, LimitOptions, RatelimitResponse } from "./types";
 
 export type RatelimitConfig = Limit & {
   /**
+   * @default https://api.unkey.dev
+   */
+  baseUrl?: string;
+
+  /**
    * The unkey root key. You can create one at https://unkey.dev/app/settings/root-keys
    *
    * Make sure the root key has permissions to use ratelimiting.
@@ -80,6 +85,7 @@ export class Ratelimit implements Ratelimiter {
   constructor(config: RatelimitConfig) {
     this.config = config;
     this.unkey = new Unkey({
+      baseUrl: config.baseUrl,
       rootKey: config.rootKey,
       disableTelemetry: config.disableTelemetry,
       wrapperSdkVersion: `@unkey/ratelimit@${version}`,
