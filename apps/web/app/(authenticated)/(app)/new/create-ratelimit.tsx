@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { keyRouter } from "@/lib/trpc/routers/key";
+import { workspaceRouter } from "@/lib/trpc/routers/workspace";
 import { auth } from "@clerk/nextjs";
 import { createCallerFactory } from "@trpc/server";
 import { GlobeLock } from "lucide-react";
@@ -15,6 +16,21 @@ export const CreateRatelimit: React.FC = async () => {
   }
   const tenantId = getTenantId();
   console.log(sessionClaims);
+
+  const { optIntoBeta } = createCallerFactory()(workspaceRouter)({
+    req: {} as any,
+    user: {
+      id: userId,
+    },
+    tenant: {
+      id: tenantId,
+      role: "",
+    },
+    audit: {
+      location: "",
+      userAgent: "",
+    },
+  });
 
   const { createInternalRootKey } = createCallerFactory()(keyRouter)({
     req: {} as any,
@@ -29,6 +45,10 @@ export const CreateRatelimit: React.FC = async () => {
       location: "",
       userAgent: "",
     },
+  });
+
+  await optIntoBeta({
+    feature: "ratelimit",
   });
 
   const rootKey = await createInternalRootKey({
