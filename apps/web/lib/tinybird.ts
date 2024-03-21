@@ -404,24 +404,13 @@ export const getAuditLogs = tb.buildPipe({
       actorId: z.string(),
       actorName: z.string().nullable(),
       actorMeta: z.string().nullable(),
-      event: unkeyAuditLogEvents,
+      event: z.string(),
       description: z.string(),
       resources: z.string().transform((rs) =>
         z
           .array(
             z.object({
-              type: z.enum([
-                "key",
-                "api",
-                "workspace",
-                "role",
-                "permission",
-                "keyAuth",
-                "vercelBinding",
-                "vercelIntegration",
-                "ratelimitNamespace",
-                "ratelimitIdentifier",
-              ]),
+              type: z.string(),
               id: z.string(),
               meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
             }),
