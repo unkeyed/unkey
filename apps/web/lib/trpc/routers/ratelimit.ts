@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
 import { auth, t } from "../trpc";
 
@@ -120,13 +121,21 @@ export const ratelimitRouter = t.router({
       }
 
       const namespaceId = newId("ratelimitNamespace");
-      await db.insert(schema.ratelimitNamespaces).values({
-        id: namespaceId,
-        name: input.name,
-        workspaceId: ws.id,
+      try {
+        await db.insert(schema.ratelimitNamespaces).values({
+          id: namespaceId,
+          name: input.name,
+          workspaceId: ws.id,
 
-        createdAt: new Date(),
-      });
+          createdAt: new Date(),
+        });
+      } catch (e) {
+        if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Duplicate namespace name" });
+        }
+        throw e;
+      }
+
       await ingestAuditLogs({
         workspaceId: ws.id,
         actor: {
