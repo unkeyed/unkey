@@ -439,3 +439,15 @@ li > p {
 .parallelogram-4 {
   background-image: radial-gradient(circle 250px at 22% 60%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
 }
+
+.placeholder-parallelogram {
+  width: 220px;
+  height: 100%;
+  opacity: 0.98;
+  /* background: rgba(255, 255, 255, 12%); */
+  transform: skew(-30deg); 
+  background-image: url('../images/p.svg');
+  background-position: 52%;
+  background-size: 600px 600px;
+  background-repeat: no-repeat;
+}
