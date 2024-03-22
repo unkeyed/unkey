@@ -27,8 +27,6 @@ export const OpenSource: React.FC = () => {
             align="left"
             title="Open-source"
             text="We believe strongly in the value of open source: our codebase and development process is available to learn from and contribute to."
-            titleWidth={463}
-            contentWidth={461}
             label="oss/acc"
           >
             <div className="flex mt-10 space-x-6">
