@@ -1,0 +1,77 @@
+---
+title: Overview
+description: Protect your public APIs
+---
+
+
+Add authentication and authorization to your APIs in a few lines of code. 
+
+
+<CodeGroup>
+
+```ts Typescript
+import { verifyKey } from '@unkey/api';
+
+const { result, error } = await verifyKey({
+  apiId: "api_123",
+  key: "xyz_123"
+})
+
+if ( error ) {
+  // handle network error
+}
+
+if ( !result.valid ) {
+  // reject unauthorized request
+}
+```
+
+```py Python
+import asyncio
+import os
+import unkey
+
+async def main() -> None:
+  client = unkey.Client(api_key=os.environ["API_KEY"])
+  await client.start()
+
+  result = await client.keys.verify_key("prefix_abc123")
+
+  if result.is_ok:
+    print(data.valid)
+  else:
+    print(result.unwrap_err())
+
+```
+```go Golang
+package main
+import (
+	"fmt"
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+func main() {
+	apiKey := "key_3ZZ7faUrkfv1YAhffAcnKW74"
+	response, err := unkey.KeyVerify(apiKey)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	if response.Valid {
+		fmt.Println("Key is valid")
+	} else {
+		fmt.Println("Key is invalid")
+	}
+}
+```
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "apiId": "api_1234",
+    "key": "sk_1234"
+  }'
+```
+
+
+</CodeGroup>
