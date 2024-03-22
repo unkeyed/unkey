@@ -58,7 +58,7 @@ export const keyRouter = t.router({
           api: true,
         },
       });
-      if (!keyAuth) {
+      if (!keyAuth || keyAuth.workspaceId !== workspace.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "keyAuth not found" });
       }
 
