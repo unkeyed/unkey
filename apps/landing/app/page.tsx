@@ -87,9 +87,7 @@ export default async function Landing() {
         <SectionTitle
           className="mt-[300px]"
           title="Everything you need for your API"
-          titleWidth={743}
-          contentWidth={641}
-          text="Unkey makes it very simple for developers to build on top of your APIs. Realtime analytics, globally low latency, transparent billing."
+          text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
           align="center"
           label="Platform"
         />
@@ -103,8 +101,6 @@ export default async function Landing() {
         </div>
         <SectionTitle
           className="mt-[300px]"
-          titleWidth={743}
-          contentWidth={581}
           title="Secure and scalable from day one"
           text="We give you crucial security features out of the box, so that you can focus on rapidly iterating on your API."
           align="center"
@@ -134,9 +130,7 @@ export default async function Landing() {
           <SectionTitle
             className="mt-[400px] md:ml-10"
             title="Leveled-up API management"
-            titleWidth={719}
-            contentWidth={557}
-            text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+            text="With enhanced security, low latency, and better control, you can seamlessly integrate into your APIs and protect your data like never before."
             label="More"
           >
             <div className="flex mt-10 mb-10 space-x-6">
@@ -154,12 +148,7 @@ export default async function Landing() {
         <div className="relative -z-10">
           <FeatureGridChip className="absolute top-[-90px]" />
         </div>
-        <SectionTitle
-          align="center"
-          className="mt-[200px]"
-          title="Protect your API. Start today."
-          titleWidth={507}
-        >
+        <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
           <div className="flex space-x-6 ">
             <Link key="get-started" href="/app">
               <PrimaryButton label="Start Now" IconRight={ChevronRight} />
