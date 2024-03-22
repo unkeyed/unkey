@@ -22,7 +22,7 @@ Users of our app can have the following permissions:
 Create them in your [dashboard](https://unkey.dev/app/authorization/permissions).
 
 <Frame>
-  <img src="/features/authorization/domains-permissions.png" alt="Example permissions"/>
+  <img src="/apis/features/authorization/domains-permissions.png" alt="Example permissions"/>
   </Frame>
 </Step>
 
@@ -34,7 +34,7 @@ And we define the following roles:
 - `dns.manager`: Can create, read, update and delete dns records but not access the domain itself
 - `read-only`: Can read domain or dns record information.
 <Frame>
-  <img src="/features/authorization/domains-roles.png" alt="Example roles"/>
+  <img src="/apis/features/authorization/domains-roles.png" alt="Example roles"/>
   </Frame>
 Create them in your [dashboard](https://unkey.dev/app/authorization/roles) too.
 
@@ -48,20 +48,20 @@ Go to [/app/authorization/roles](https://unkey.dev/app/authorization/roles) and 
 <Tab title="admin">
 
 <Frame>
-  <img src="/features/authorization/domains-roles-admin.png" alt="Admin roles"/>
+  <img src="/apis/features/authorization/domains-roles-admin.png" alt="Admin roles"/>
   </Frame>
 </Tab>
 
 <Tab title="dns.manager">
 
 <Frame>
-  <img src="/features/authorization/domains-roles-dns.manager.png" alt="dns.manager roles"/>
+  <img src="/apis/features/authorization/domains-roles-dns.manager.png" alt="dns.manager roles"/>
   </Frame>
 </Tab>
 <Tab title="read-only">
 
 <Frame>
-  <img src="/features/authorization/domains-roles-read-only.png" alt="read-only roles"/>
+  <img src="/apis/features/authorization/domains-roles-read-only.png" alt="read-only roles"/>
   </Frame>
 </Tab>
 </Tabs>
@@ -83,7 +83,7 @@ Now that we have permissions and roles in place, we can connect them to keys.
 You should now be on `/app/keys/key_auth_???/key_???/permissions`
 
 <Frame>
-  <img src="/features/authorization/connections.png" alt="Unconnected roles and permissions"/>
+  <img src="/apis/features/authorization/connections.png" alt="Unconnected roles and permissions"/>
   </Frame>
 
 
@@ -93,7 +93,7 @@ You should now be on `/app/keys/key_auth_???/key_???/permissions`
 
 
 <Frame>
-  <img src="/features/authorization/connections-connected.png" alt="Connected roles and permissions"/>
+  <img src="/apis/features/authorization/connections-connected.png" alt="Connected roles and permissions"/>
   </Frame>
 
 As you can see, now the key is connected to the following permissions:
@@ -127,7 +127,7 @@ See [here](/api-reference/keys/create) for details.
 
 <Step title="Verifying Permissions">
 
-Now you can verify this key and perform permission checks. [Read more](/features/authorization/verifying)
+Now you can verify this key and perform permission checks. [Read more](/apis/features/authorization/verifying)
 
 </Step>
 
