@@ -52,7 +52,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^3.0.1",
     "shiki": "^0.14.7",
-    "tailwind-merge": "^2.2.1",
+    "tailwind-merge": "^2.2.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.0",
     "zod": "^3.22.4"
