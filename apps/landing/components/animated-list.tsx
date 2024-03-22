@@ -24,7 +24,7 @@ export const AnimatedList = React.memo(
           setIndex((prevIndex) => {
             if (prevIndex >= childrenArray.length - 1) {
               setTimeout(() => {
-                setIndex(0);
+                setIndex(-1);
               }, 1000);
             }
             return prevIndex + 1;
@@ -35,10 +35,17 @@ export const AnimatedList = React.memo(
       }
     }, [childrenArray.length, delay, inView]);
 
-    const itemsToShow = useMemo(
-      () => childrenArray.slice(0, index + 1).reverse(),
-      [index, childrenArray],
-    );
+    const itemsToShow = useMemo(() => {
+      if (index === -1) {
+        setTimeout(() => {
+          setIndex(0);
+        }, 1000);
+        return [];
+      }
+      return childrenArray.slice(0, index + 1).reverse();
+    }, [index, childrenArray]);
+
+    console.log(index, itemsToShow);
 
     return (
       <div className={`flex flex-col items-center gap-4 ${className}`} ref={ref}>

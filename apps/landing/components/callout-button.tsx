@@ -3,7 +3,7 @@ import Link from "next/link";
 export function CalloutButton({ className }: { className?: string }) {
   return (
     <div
-      className={`hero-hiring-gradient w-[155px] text-white text-sm flex space-x-2 py-1.5 px-2 items-center ${className}`}
+      className={`hero-hiring-gradient w-[155ppx] text-white text-sm flex space-x-2 py-1.5 px-2 items-center ${className}`}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
