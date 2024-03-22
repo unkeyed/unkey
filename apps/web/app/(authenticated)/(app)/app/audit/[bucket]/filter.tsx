@@ -1,4 +1,5 @@
 "use client";
+import { ArrayInput } from "@/components/array-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -129,5 +130,21 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
         </Command>
       </PopoverContent>
     </Popover>
+  );
+};
+
+export const CustomFilter: React.FC<{ param: string; title: string }> = ({ param, title }) => {
+  const [selected, setSelected] = useQueryState(
+    param,
+    parseAsArrayOf(parseAsString).withDefault([]).withOptions({
+      history: "push",
+      shallow: false, // otherwise server components won't notice the change
+      clearOnDefault: true,
+    }),
+  );
+  return (
+    <div>
+      <ArrayInput title={title} selected={selected} setSelected={setSelected} />
+    </div>
   );
 };
