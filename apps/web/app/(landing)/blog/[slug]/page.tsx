@@ -168,7 +168,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             </svg>
             <div className="mx-auto max-w-md text-center lg:mx-0 lg:flex-auto lg:py-32 lg:text-left">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Accelerate your API development
+                Build better APIs faster
               </h2>
 
               <div className="mt-10 flex items-center justify-center gap-x-6 lg:justify-start">
