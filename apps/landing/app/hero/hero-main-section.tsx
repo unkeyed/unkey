@@ -53,7 +53,8 @@ export function HeroMainSection() {
       </div>
 
       <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[32px] leading-[48px]  sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
-        Build your API, not auth
+        Build better APIs
+        <br /> faster
       </h1>
 
       <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-sm sm:text-[15px] sm:text-base leading-[28px]">

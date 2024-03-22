@@ -89,7 +89,7 @@ export default async function Landing() {
           title="Everything you need for your API"
           titleWidth={743}
           contentWidth={641}
-          text="Unkey makes it very simple for developers to build on top of your APIs. Realtime analytics, globally low latency, transparent billing."
+          text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
           align="center"
           label="Platform"
         />
@@ -136,7 +136,7 @@ export default async function Landing() {
             title="Leveled-up API management"
             titleWidth={719}
             contentWidth={557}
-            text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+            text="With enhanced security, low latency, and better control, you can seamlessly integrate into your APIs and protect your data like never before."
             label="More"
           >
             <div className="flex mt-10 mb-10 space-x-6">
