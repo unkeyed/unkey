@@ -3,6 +3,7 @@ import * as schema from "./schema";
 
 export type Key = InferSelectModel<typeof schema.keys>;
 export type Api = InferSelectModel<typeof schema.apis>;
+export type Budget = InferSelectModel<typeof schema.budgets>;
 export type Workspace = InferSelectModel<typeof schema.workspaces>;
 export type KeyAuth = InferSelectModel<typeof schema.keyAuth>;
 export type VercelIntegration = InferSelectModel<typeof schema.vercelIntegrations>;

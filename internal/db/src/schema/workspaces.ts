@@ -10,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { budgets } from "./budgets";
 import { keys } from "./keys";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
@@ -107,6 +108,7 @@ export const workspaces = mysqlTable(
 
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
   apis: many(apis),
+  budgets: many(budgets),
   keys: many(keys, {
     relationName: "workspace_key_relation",
   }),
