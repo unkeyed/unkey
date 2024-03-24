@@ -106,11 +106,12 @@ export class Resend {
   public async sendBatchBudgetExceeded(
     batch: {
       email: string;
+      ccEmails: string[];
       workspaceName: string;
       budgetedAmount: number;
       currentPeriodBilling: number;
     }[],
-  ): Promise<void> {
+  ): Promise<{ success: boolean }> {
     try {
       if (batch.length > 100) {
         throw new Error("Allowed up to 100 batch emails.");
@@ -119,6 +120,7 @@ export class Resend {
       const result = await this.client.batch.send(
         batch.map((data) => ({
           to: data.email,
+          cc: data.ccEmails,
           from: "james@updates.unkey.dev",
           reply_to: this.replyTo,
           subject: "Budget Notification Usage Exceeded",
@@ -133,11 +135,12 @@ export class Resend {
       );
 
       if (!result.error) {
-        return;
+        return { success: true };
       }
       throw result.error;
     } catch (error) {
       console.error("Error occurred batch sending budget exceeded email ", JSON.stringify(error));
+      return { success: false };
     }
   }
 }

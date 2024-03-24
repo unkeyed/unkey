@@ -1,6 +1,8 @@
-import { connectDatabase } from "@/lib/db";
+import { getClerkOrganizationsAdmins } from "@/lib/clerk";
+import { Budget, connectDatabase, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Tinybird } from "@/lib/tinybird";
+import { chunkArray } from "@/lib/utils";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
 import { calculateTieredPrices } from "@unkey/billing";
@@ -37,7 +39,7 @@ client.defineJob({
       (ws) =>
         ws.subscriptions &&
         Object.keys(ws.subscriptions).length > 0 &&
-        ws.budgets.filter((budget) => budget.enabled).length > 0,
+        ws.budgets.filter(isActiveBudget).length > 0,
     );
 
     io.logger.info(`found ${workspaces.length} workspaces`, workspaces);
@@ -105,8 +107,8 @@ client.defineJob({
           usedActiveKeys,
         );
         // TODO: What to do on error? Skip billing? Assume zero?
-        if (!cost.error) {
-          currentPrice += cost.value.totalCentsEstimate;
+        if (!cost.err) {
+          currentPrice += cost.val.totalCentsEstimate;
         }
       }
       if (workspace.subscriptions?.verifications) {
@@ -115,8 +117,8 @@ client.defineJob({
           usedVerifications,
         );
         // TODO: What to do on error? Skip billing? Assume zero?
-        if (!cost.error) {
-          currentPrice += cost.value.totalCentsEstimate;
+        if (!cost.err) {
+          currentPrice += cost.val.totalCentsEstimate;
         }
       }
 
@@ -128,7 +130,9 @@ client.defineJob({
 
     io.logger.info("list workspaces that exceeded their budgeted usage");
     const exceededBudgetedAmount: {
-      email: string;
+      budgetId: string;
+      emails: string[];
+      tenantId: string;
       workspaceId: string;
       workspaceName: string;
       budgetedAmount: number;
@@ -138,12 +142,14 @@ client.defineJob({
       const currentPrice = currentUsages.find(
         (usage) => usage.workspaceId === workspace.id,
       )?.currentPrice;
+
       if (!currentPrice) {
         return null;
       }
 
-      const budget = workspace.budgets.reduce<(typeof workspace.budgets)[number] | null>(
-        (acc, budget) => {
+      const budget = workspace.budgets
+        .filter(isActiveBudget)
+        .reduce<(typeof workspace.budgets)[number] | null>((acc, budget) => {
           // Check if current price exceeds the greatest budgeted amount
           if (
             currentPrice >= budget.fixedAmount &&
@@ -153,44 +159,111 @@ client.defineJob({
           }
 
           return acc;
-        },
-        null,
-      );
+        }, null);
 
       if (budget) {
-        // TODO: Extract the email of the workspace admin.
-        // ->
-
-        budget.data.additionalEmails?.forEach((email) => {
-          exceededBudgetedAmount.push({
-            email,
-            workspaceId: workspace.id,
-            workspaceName: workspace.name,
-            budgetedAmount: budget.fixedAmount,
-            currentPeriodBilling: currentPrice,
-          });
+        exceededBudgetedAmount.push({
+          budgetId: budget.id,
+          emails: budget.data.additionalEmails ?? [],
+          tenantId: workspace.tenantId,
+          workspaceId: workspace.id,
+          workspaceName: workspace.name,
+          budgetedAmount: budget.fixedAmount,
+          currentPeriodBilling: currentPrice,
         });
       }
     });
 
-    io.logger.info(`sending budget exceeded email to ${exceededBudgetedAmount.length} users`);
-    const batches = chunkArray(exceededBudgetedAmount, 100);
-    for await (const batch of batches) {
-      io.logger.info(`batch sending budget exceeded email to ${batch.length} users`);
+    // TODO: Assumming admin users will not change frequently their emails, we could store in in the budget entity to avoid this step.
+    await io.runTask(
+      "retrieve workpaces admin emails from Clerk for exceeded budgets",
+      async () => {
+        const uniqueTenantsIds = exceededBudgetedAmount.reduce<string[]>((acc, { tenantId }) => {
+          if (!acc.includes(tenantId)) {
+            acc.push(tenantId);
+          }
 
-      await resend.sendBatchBudgetExceeded(batch);
-    }
+          return acc;
+        }, []);
+
+        const admins = await getClerkOrganizationsAdmins(uniqueTenantsIds);
+
+        for (let i = 0; i < exceededBudgetedAmount.length; i++) {
+          const foundAdmin = admins.find(
+            (admin) => admin.tenantId === exceededBudgetedAmount[i].tenantId,
+          );
+          if (foundAdmin) {
+            exceededBudgetedAmount[i].emails.unshift(foundAdmin.email);
+          }
+        }
+      },
+    );
+
+    io.logger.info(`sending budget exceeded email to ${exceededBudgetedAmount.length} users`);
+
+    const notifiedBudgetIds = await io.runTask(
+      "sending budget exceeded email to involved workspaces",
+      async () => {
+        const _notifiedBudgetIds = [];
+
+        // Whenever we failed to find the Admin email and no additional emails were set.
+        const filteredExceededBudgetedAmount = exceededBudgetedAmount.filter(
+          (budget) => budget.emails.length > 0,
+        );
+        const batches = chunkArray(filteredExceededBudgetedAmount, 100);
+
+        for await (const batch of batches) {
+          io.logger.info(`batch sending budget exceeded email to ${batch.length} users`);
+
+          const { success } = await resend.sendBatchBudgetExceeded(
+            batch.map((budget) => ({
+              ...budget,
+              email: budget.emails[0], /// @dev `budget.emails` always have at least 1 element.
+              ccEmails: budget.emails.slice(1),
+            })),
+          );
+
+          if (success) {
+            _notifiedBudgetIds.push(...batch.map((budget) => budget.budgetId));
+          } else {
+            io.logger.error("failed to batch send budget exceeded email", {
+              budgetIds: batch.map((budget) => budget.budgetId),
+            });
+          }
+        }
+
+        return _notifiedBudgetIds;
+      },
+    );
+
+    await io.runTask(
+      `updating ${notifiedBudgetIds.length} notified budgets in database`,
+      async () => {
+        await db
+          .update(schema.budgets)
+          .set({ lastReachedAt: new Date() })
+          .where(inArray(schema.budgets.id, notifiedBudgetIds));
+      },
+    );
 
     return {};
   },
 });
 
-// TODO: This could be a centralized util function.
-function chunkArray<T>(array: T[], chunkSize: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < array.length; i += chunkSize) {
-    const chunk = array.slice(i, i + chunkSize);
-    result.push(chunk);
-  }
-  return result;
+/**
+ * Determines if a budget is currently enabled and has not reached its limit this month.
+ * This implies the budget has not been notified for the current month.
+ */
+function isActiveBudget(budget: Budget) {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getUTCMonth();
+  const currentYear = currentDate.getUTCFullYear();
+
+  const lastReachedDate = budget.lastReachedAt ? new Date(budget.lastReachedAt) : null;
+  const isSameMonthAndYear =
+    lastReachedDate &&
+    lastReachedDate.getUTCMonth() === currentMonth &&
+    lastReachedDate.getUTCFullYear() === currentYear;
+
+  return budget.enabled && !isSameMonthAndYear;
 }
