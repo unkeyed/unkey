@@ -51,9 +51,9 @@ const route = createRoute({
               .openapi({
                 description: "Attach any metadata to this request",
               }),
-            sharding: z.enum(["edge"]).optional().openapi({
-              description: "Not implemented yet",
-            }),
+            // sharding: z.enum(["edge"]).optional().openapi({
+            //   description: "Not implemented yet",
+            // }),
             resources: z
               .array(
                 z.object({
@@ -244,12 +244,12 @@ export const registerV1RatelimitLimit = (app: App) =>
     const limit = override?.limit ?? req.limit;
     const duration = override?.duration ?? req.duration;
     const async = typeof override?.async !== "undefined" ? override.async : req.async;
-    const sharding = override?.sharding ?? req.sharding;
+    const sharding = override?.sharding; //?? req.sharding;
     const shard =
       sharding === "edge"
         ? // @ts-ignore - this is a bug in the types
           c.req.raw?.cf?.colo
-        : undefined;
+        : "global";
 
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
       identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
@@ -282,7 +282,7 @@ export const registerV1RatelimitLimit = (app: App) =>
           limit,
           duration,
           async: async ?? false,
-          sharding: sharding ?? "",
+          sharding: shard,
         },
         context: {
           ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
@@ -301,29 +301,33 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     if (req.resources && req.resources.length > 0) {
       c.executionCtx.waitUntil(
-        analytics.ingestGenericAuditLogs({
-          auditLogId: newId("auditLog"),
-          workspaceId: rootKey.authorizedWorkspaceId,
-          bucket: `ratelimit.${namespace.id}`,
-          actor: {
-            type: "key",
-            id: rootKey.key.id,
-          },
-          description: "ratelimit",
-          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
-          meta: {
-            requestId: c.get("requestId"),
-            namespacId: namespace.id,
-            identifier: req.identifier,
-            success: ratelimitResponse.pass,
-          },
-          time: Date.now(),
-          resources: req.resources,
-          context: {
-            location: c.req.header("True-Client-IP") ?? "",
-            userAgent: c.req.header("User-Agent") ?? "",
-          },
-        }),
+        analytics
+          .ingestGenericAuditLogs({
+            auditLogId: newId("auditLog"),
+            workspaceId: rootKey.authorizedWorkspaceId,
+            bucket: namespace.id,
+            actor: {
+              type: "key",
+              id: rootKey.key.id,
+            },
+            description: "ratelimit",
+            event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+            meta: {
+              requestId: c.get("requestId"),
+              namespacId: namespace.id,
+              identifier: req.identifier,
+              success: ratelimitResponse.pass,
+            },
+            time: Date.now(),
+            resources: req.resources,
+            context: {
+              location: c.req.header("True-Client-IP") ?? "",
+              userAgent: c.req.header("User-Agent") ?? "",
+            },
+          })
+          .then((res) => {
+            console.log(JSON.stringify({ req, res }, null, 2));
+          }),
       );
     }
 

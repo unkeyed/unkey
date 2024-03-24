@@ -6,8 +6,6 @@ type SectionTitleProps = {
   text?: React.ReactNode;
   align?: "left" | "center";
   children?: React.ReactNode;
-  titleWidth?: number;
-  contentWidth?: number;
   className?: string;
 };
 
@@ -17,8 +15,6 @@ export function SectionTitle({
   text,
   align = "left",
   children,
-  titleWidth,
-  contentWidth,
   className,
 }: SectionTitleProps) {
   return (
@@ -31,27 +27,28 @@ export function SectionTitle({
         className,
       )}
     >
-      <p
+      <span
         className={cn("font-mono text-sm md:text-md text-white/50 text-center", {
           "xl:text-left": align === "left",
         })}
       >
         {label}
-      </p>
-      <h1
+      </span>
+      <h2
         className={cn(
-          "text-[28px]  sm:pb-3 sm:text-[52px] sm:leading-[64px] text-white md:max-w-[463px] pt-4 font-medium section-title-heading-gradient text-center",
+          "text-[28px] sm:pb-3 sm:text-[52px] sm:leading-[64px] text-white  max-w-sm md:max-w-md lg:max-w-2xl xl:max-w-4xl  pt-4 font-medium section-title-heading-gradient text-center",
           { "xl:text-left": align === "left" },
         )}
-        style={{ maxWidth: titleWidth ? `${titleWidth}px` : "none" }}
       >
         {title}
-      </h1>
+      </h2>
       <p
-        className={cn("text-sm md:text-base text-white leading-7 py-[26px] text-center", {
-          "xl:text-left": align === "left",
-        })}
-        style={{ maxWidth: contentWidth ? `${contentWidth}px` : "none" }}
+        className={cn(
+          "text-sm md:text-base text-white leading-7 py-6 text-center max-w-sm md:max-w-md lg:max-w-2xl xl:max-w-4xl ",
+          {
+            "xl:text-left xl:max-w-xl": align === "left",
+          },
+        )}
       >
         {text}
       </p>

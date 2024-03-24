@@ -63,6 +63,7 @@ export default function PricingPage() {
                 label="2.5k successful verifications / month"
                 color={Color.White}
               />
+              <Bullet Icon={Check} label="100k successful ratelimits / month" color={Color.White} />
               <Bullet Icon={Check} label="7-day analytics retention" color={Color.White} />
               <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
             </Bullets>
@@ -89,6 +90,7 @@ export default function PricingPage() {
                 label="150k successful verifications / month"
                 color={Color.Yellow}
               />
+              <Bullet Icon={Check} label="2.5M successful ratelimits / month" color={Color.White} />
               <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
               <Bullet Icon={Check} label="90-day audit log retention" color={Color.Yellow} />
               <Bullet Icon={Check} label="Unlimited APIs" color={Color.Yellow} />
@@ -105,6 +107,7 @@ export default function PricingPage() {
             <div className="flex flex-col gap-2">
               <Asterisk tag="$0.10" label="/ additional active key" />
               <Asterisk tag="$1" label="/ additional 10k successful verifications" />
+              <Asterisk tag="$1" label="/ additional 100k successful ratelimits" />
             </div>
           </PricingCardFooter>
         </PricingCard>
