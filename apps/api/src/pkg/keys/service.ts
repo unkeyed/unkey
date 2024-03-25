@@ -1,4 +1,4 @@
-import { TieredCache } from "@/pkg/cache/tiered";
+import { type SwrCacher } from "@/pkg/cache/interface";
 import type { Api, Database, Key } from "@/pkg/db";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
@@ -68,7 +68,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 export class KeyService {
-  private readonly cache: TieredCache;
+  private readonly cache: SwrCacher;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
@@ -79,7 +79,7 @@ export class KeyService {
   private readonly tracer: Tracer;
 
   constructor(opts: {
-    cache: TieredCache;
+    cache: SwrCacher;
     logger: Logger;
     metrics: Metrics;
     db: Database;
