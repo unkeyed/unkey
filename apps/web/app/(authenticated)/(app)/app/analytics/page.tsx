@@ -1,7 +1,7 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
@@ -13,7 +13,7 @@ import {
   getAnalyticsVerificationsDaily,
   getAnalyticsVerificationsHourly,
 } from "@/lib/tinybird";
-import { BarChart, ChevronRight, Scan, User, VenetianMask } from "lucide-react";
+import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";
 import { redirect } from "next/navigation";
 import {
   ApiId,
@@ -142,13 +142,6 @@ export default async function AnalyticsPage(props: {
 
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
-  const query = {
-    workspaceId: workspace.id,
-    ownerId,
-    apiId,
-    start,
-    end,
-  };
   const [
     keys,
     verifications,
@@ -316,6 +309,7 @@ export default async function AnalyticsPage(props: {
             </div>
             <CardContent>
               <StackedColumnChart
+                colors={["primary", "warn", "danger"]}
                 data={verificationsData}
                 timeGranularity={
                   granularity >= 1000 * 60 * 60 * 24 * 30
