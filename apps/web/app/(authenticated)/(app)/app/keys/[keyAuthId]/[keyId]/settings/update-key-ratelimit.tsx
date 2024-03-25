@@ -93,7 +93,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
         : undefined,
     },
   });
-  const updateRatelimit = trpc.keySettings.updateRatelimit.useMutation({
+  const updateRatelimit = trpc.key.update.ratelimit.useMutation({
     onSuccess() {
       toast.success("Your ratelimit has been updated!");
       router.refresh();

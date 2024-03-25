@@ -2,8 +2,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { keyRouter } from "@/lib/trpc/routers/key";
-import { workspaceRouter } from "@/lib/trpc/routers/workspace";
+import { router } from "@/lib/trpc/routers";
 import { auth } from "@clerk/nextjs";
 import { createCallerFactory } from "@trpc/server";
 import { GlobeLock } from "lucide-react";
@@ -17,7 +16,7 @@ export const CreateRatelimit: React.FC = async () => {
   const tenantId = getTenantId();
   console.log(sessionClaims);
 
-  const { optIntoBeta } = createCallerFactory()(workspaceRouter)({
+  const trpc = createCallerFactory()(router)({
     req: {} as any,
     user: {
       id: userId,
@@ -32,26 +31,11 @@ export const CreateRatelimit: React.FC = async () => {
     },
   });
 
-  const { createInternalRootKey } = createCallerFactory()(keyRouter)({
-    req: {} as any,
-    user: {
-      id: userId,
-    },
-    tenant: {
-      id: tenantId,
-      role: "",
-    },
-    audit: {
-      location: "",
-      userAgent: "",
-    },
-  });
-
-  await optIntoBeta({
+  await trpc.workspace.optIntoBeta({
     feature: "ratelimit",
   });
 
-  const rootKey = await createInternalRootKey({
+  const rootKey = await trpc.rootKey.create({
     name: "onboarding",
     permissions: ["ratelimit.*.create_namespace", "ratelimit.*.limit"],
   });
@@ -94,8 +78,8 @@ export const CreateRatelimit: React.FC = async () => {
 
         <div>
           <p className="text-sm">
-            Here you go, try this curl command and limit your first request, you can use a different
-            namespace or identifier if you want.
+            Try this curl command and limit your first request, you can use a different namespace or
+            identifier if you want.
           </p>
           <p className="text-sm">
             The following request will limit the user to 10 requests per 10 seconds.

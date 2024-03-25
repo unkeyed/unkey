@@ -32,7 +32,7 @@ export const CreateNamespaceButton = ({
     resolver: zodResolver(formSchema),
   });
 
-  const create = trpc.ratelimit.createNamespace.useMutation({
+  const create = trpc.ratelimit.namespace.create.useMutation({
     onSuccess(res) {
       toast.success("Your Namespace has been created");
       router.refresh();

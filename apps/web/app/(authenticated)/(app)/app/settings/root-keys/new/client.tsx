@@ -38,7 +38,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const [name, setName] = useState<string | undefined>(undefined);
   const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
 
-  const key = trpc.key.createInternalRootKey.useMutation({
+  const key = trpc.rootKey.create.useMutation({
     onError(err) {
       console.error(err);
       toast.error(err.message);
