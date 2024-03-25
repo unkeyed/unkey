@@ -217,7 +217,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
       start: start ? parseInt(start) : undefined,
       end: end ? parseInt(end) : undefined,
     });
-    console.log(verificationsFromAllKeys);
+    // console.log(verificationsFromAllKeys);
     const verifications: {
       [time: number]: {
         time: number;
@@ -228,6 +228,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
     } = {};
     for (const dataPoint of verificationsFromAllKeys.data) {
       if (!verifications[dataPoint.time]) {
+        console.log(dataPoint.time);
         verifications[dataPoint.time] = {
           time: dataPoint.time,
           success: 0,
@@ -266,7 +267,10 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
       })),
       verificationsByDate: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
-          time: new Date(parseInt(time)).toISOString().split("T")[0],
+          time:
+            granularity === "daily"
+              ? new Date(parseInt(time)).toISOString().split("T")[0]
+              : new Date(parseInt(time)).toUTCString(),
           success,
           rateLimited,
           usageExceeded,

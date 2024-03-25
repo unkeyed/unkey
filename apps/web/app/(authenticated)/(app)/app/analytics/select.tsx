@@ -18,42 +18,78 @@ export const interval = {
   "30d": "Last 30 Days",
   "90d": "Last 3 Months",
 } as const;
+const apiIdSelect: { x: string; y: string }[] = [];
+const ownerIdSelect: { x: string; y: string }[] = [];
 
 export type Interval = keyof typeof interval;
 export type OwnerId = string;
-export type OwnerIdList = [string];
-
-export type Props = {
-  defaultTimeSelected: Interval;
-  defaultOwnerIdSelected: OwnerId;
-  ownerIdList: OwnerIdList;
+export type ApiId = string;
+export type OwnerIdList = { id: string; name: string }[];
+export type ApiIdList = { id: string; name: string }[];
+export type ApiProps = {
+  defaultApiIdSelected: ApiId;
+  apiIdList: ApiIdList;
 };
-export const OwnerIdSelect: React.FC<Props> = ({ defaultOwnerIdSelected, ownerIdList }) => {
-  const [selected, setSelected] = useState<OwnerId>(defaultOwnerIdSelected);
+export const ApiIdSelect: React.FC<ApiProps> = ({ defaultApiIdSelected, apiIdList }) => {
+  const [selected, setSelected] = useState<OwnerId>(defaultApiIdSelected ?? "All");
   const searchParams = useModifySearchParams();
 
   return (
     <Select
       value={selected}
-      onValueChange={(i: Interval) => {
-        setSelected(i);
-        searchParams.set("ownerId", i);
+      onValueChange={(val) => {
+        setSelected(val);
+        searchParams.set("apiId", val);
       }}
     >
       <SelectTrigger>
         <SelectValue defaultValue={selected} />
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(ownerIdList).map(([id, label]) => (
-          <SelectItem key={id} value={id}>
-            {label}
+        {apiIdList.map((val) => (
+          <SelectItem key={val.id} value={val.id}>
+            {val.name}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
   );
 };
-export const IntervalSelect: React.FC<Props> = ({ defaultTimeSelected }) => {
+
+export type OwnerProps = {
+  defaultOwnerIdSelected: OwnerId;
+  ownerIdList: OwnerIdList;
+};
+export const OwnerIdSelect: React.FC<OwnerProps> = ({ defaultOwnerIdSelected, ownerIdList }) => {
+  const [selected, setSelected] = useState<OwnerId>(defaultOwnerIdSelected ?? "All");
+  const searchParams = useModifySearchParams();
+
+  return (
+    <Select
+      value={selected}
+      onValueChange={(val) => {
+        setSelected(val);
+        searchParams.set("ownerId", val);
+      }}
+    >
+      <SelectTrigger>
+        <SelectValue defaultValue={selected} />
+      </SelectTrigger>
+      <SelectContent>
+        {ownerIdList.map((val) => (
+          <SelectItem key={val.id} value={val.id}>
+            {val.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+export type IntervalProps = {
+  defaultTimeSelected: Interval;
+};
+export const IntervalSelect: React.FC<IntervalProps> = ({ defaultTimeSelected }) => {
   const [selected, setSelected] = useState<Interval>(defaultTimeSelected);
   const searchParams = useModifySearchParams();
 

@@ -1,3 +1,6 @@
+import { Navbar } from "@/components/dashboard/navbar";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -19,5 +22,10 @@ export default async function AnalyticsLayout({
     return redirect("/auth/sign-in");
   }
 
-  return <>{children}</>;
+  return (
+    <div>
+      <PageHeader title="Analytics" description="View your analytics data" actions={[]} />
+      <main className="relative mt-8 mb-20 ">{children}</main>
+    </div>
+  );
 }

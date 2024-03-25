@@ -17,7 +17,175 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  * So we split the string at the space and take the date part, and then parse that.
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
+/*
+ * Start Analytics
+ *
+ */
+export const getAnalyticsActiveAll = tb.buildPipe({
+  pipe: "endpoint__analytics_active_by_workspace_all__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsVerificationsHourly = tb.buildPipe({
+  pipe: "endpoint__verifications_analytics_by_workspaceId_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsActiveHourly = tb.buildPipe({
+  pipe: "endpoint__active_by_workspace_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsVerificationsWeekly = tb.buildPipe({
+  pipe: "endpoint__verifications_analytics_by_workspace_weekly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsActiveWeekly = tb.buildPipe({
+  pipe: "endpoint__active_by_workspace_weekly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsVerificationsDaily = tb.buildPipe({
+  pipe: "endpoint__verifications_analytics_by_workspaceId_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsActiveDaily = tb.buildPipe({
+  pipe: "endpoint__active_by_workspace_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsVerificationsMonthly = tb.buildPipe({
+  pipe: "endpoint__verifications_analytics_by_workspace_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    rateLimited: z.number(),
+    usageExceeded: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getAnalyticsActiveMonthly = tb.buildPipe({
+  pipe: "endpoint__active_by_workspace_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    ownerId: z.string().optional(),
+    apiId: z.string().optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    keys: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
 
+/*
+ * End Analytics
+ *
+ */
 export const getDailyVerifications = tb.buildPipe({
   pipe: "endpoint__get_daily_verifications__v1",
   parameters: z.object({
@@ -343,7 +511,7 @@ export const getActiveKeys = tb.buildPipe({
   pipe: "get_active_keys__v1",
   parameters: z.object({
     workspaceId: z.string(),
-    apiId: z.string(),
+    apiId: z.string().optional(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
