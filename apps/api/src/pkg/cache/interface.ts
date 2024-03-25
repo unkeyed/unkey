@@ -66,3 +66,13 @@ export interface Cache<TNamespaces extends Record<string, unknown> = CacheNamesp
     key: string,
   ) => MaybePromise<Result<void, CacheError>>;
 }
+
+export interface SwrCacher<TNamespaces extends Record<string, unknown> = CacheNamespaces>
+  extends Cache<TNamespaces> {
+  withCache<TName extends keyof TNamespaces>(
+    c: Context,
+    namespace: TName,
+    key: string,
+    loadFromOrigin: (key: string) => Promise<TNamespaces[TName]>,
+  ): Promise<Result<TNamespaces[TName], CacheError>>;
+}
