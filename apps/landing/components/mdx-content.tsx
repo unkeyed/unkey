@@ -13,6 +13,7 @@ type MdxContentProps = {
 /** Custom components here!*/
 const MdxComponents = {
   Image: (props: any) => <BlogImage size="sm" imageUrl={props} />,
+  img: (props: any) => <BlogImage size="sm" imageUrl={props} />,
   Callout: Alert,
   th: (props: any) => (
     <th {...props} className="text-white font-semibold text-base text-left pb-4" />

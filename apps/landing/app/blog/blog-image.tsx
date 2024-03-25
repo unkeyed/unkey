@@ -9,11 +9,14 @@ export function BlogImage({
 }: {
   size: "sm" | "md" | "lg";
   className?: string;
-  imageUrl: string;
+  imageUrl: {
+    src?: string;
+    alt?: string;
+  };
 }) {
   return (
     <Frame className={cn("shadow-sm", className)} size={size}>
-      <Image src={imageUrl!} width={1200} height={800} alt="" />
+      <Image src={imageUrl.src!} width={1920} height={1080} alt="" />
     </Frame>
   );
 }
