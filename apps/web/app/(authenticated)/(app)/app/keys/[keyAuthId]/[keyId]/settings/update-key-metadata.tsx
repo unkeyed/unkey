@@ -46,7 +46,7 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
 
   const rows = Math.max(3, form.getValues("metadata").split("\n").length);
 
-  const updateMetadata = trpc.keySettings.updateMetadata.useMutation({
+  const updateMetadata = trpc.key.update.metadata.useMutation({
     onSuccess() {
       toast.success("Your metadata has been updated!");
       router.refresh();

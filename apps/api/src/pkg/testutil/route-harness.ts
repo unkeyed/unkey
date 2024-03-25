@@ -1,9 +1,10 @@
+import { type TaskContext, onTestFinished } from "vitest";
 import { type Api, type KeyAuth, type Workspace } from "../db";
-import { App, newApp } from "../hono/app";
-import { init } from "../middleware";
+import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
-import { StepRequest, StepResponse, fetchRoute } from "./request";
+import { StepRequest, StepResponse, headersToRecord } from "./request";
 
+import { type UnstableDevWorker, unstable_dev } from "wrangler";
 export type Resources = {
   unkeyWorkspace: Workspace;
   unkeyApi: Api;
@@ -14,31 +15,64 @@ export type Resources = {
 };
 
 export class RouteHarness extends Harness {
-  public readonly app: App;
+  private worker: UnstableDevWorker;
 
-  constructor() {
-    super();
-    this.app = newApp();
-    /**
-     * Hono doesn't get the environment variables autoamtically, so we inject them
-     */
-    this.app.use("*", async (c, next) => {
-      c.env = {
-        ...process.env,
-        ...c.env,
-      };
-      await next();
+  private constructor(t: TaskContext, worker: UnstableDevWorker) {
+    super(t);
+    this.worker = worker;
+  }
+
+  static async init(t: TaskContext): Promise<RouteHarness> {
+    const env = routeTestEnv.parse(process.env);
+    const worker = await unstable_dev("src/worker.ts", {
+      local: env.WORKER_LOCATION === "local",
+      logLevel: "warn",
+      experimental: { disableExperimentalWarning: true },
+      vars: env,
+      updateCheck: false,
     });
-    this.app.use("*", init());
+
+    const stop = () =>
+      worker.stop().catch((err) => {
+        console.error(err);
+      });
+    if (t) {
+      t.onTestFinished(stop);
+    } else {
+      onTestFinished(stop);
+    }
+
+    const h = new RouteHarness(t, worker);
+    await h.seed();
+    return h;
   }
 
-  public useRoutes(...registerFunctions: ((app: App) => any)[]): void {
-    registerFunctions.forEach((fn) => fn(this.app));
+  public async do<TRequestBody = unknown, TResponseBody = unknown>(
+    req: StepRequest<TRequestBody>,
+  ): Promise<StepResponse<TResponseBody>> {
+    const res = await this.worker.fetch(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(req.body),
+    });
+
+    const text = await res.text();
+    try {
+      return {
+        status: res.status,
+        headers: headersToRecord(res.headers),
+        body: JSON.parse(text),
+      };
+    } catch (err) {
+      console.error(`${req.url} didn't return json`, text, err);
+      return {
+        status: res.status,
+        headers: headersToRecord(res.headers),
+        body: {} as TResponseBody,
+      };
+    }
   }
 
-  async do<TReq, TRes>(req: StepRequest<TReq>): Promise<StepResponse<TRes>> {
-    return await fetchRoute<TReq, TRes>(this.app, req);
-  }
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
     return await this.do<never, TRes>({ method: "GET", ...req });
   }

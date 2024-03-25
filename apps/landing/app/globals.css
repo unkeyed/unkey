@@ -74,7 +74,6 @@
     rgba(200, 200, 200, 0.08)
   );
   content: "";
-  border-top-right-radius: 24px;
   border-bottom-right-radius: 24px;
   border-top-left-radius: 24px;
   position: absolute;
@@ -292,7 +291,6 @@ li > p {
     rgba(200, 200, 200, 0.08)
   );
   content: "";
-  border-top-right-radius: 24px;
   border-top-left-radius: 24px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
@@ -320,7 +318,11 @@ li > p {
 
 .blog-footer-radial-gradient {
     background: radial-gradient(at top center, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 40%);
-  }
+}
+
+.mobile-blog-footer-radial {
+  background: radial-gradient(at top center, rgba(255,255,255,0.13) 0%, rgba(0,0,0,0) 70%);
+}
 
 
 .changelog-gradient {
@@ -334,8 +336,83 @@ li > p {
   width: 100%;
   content: "";
   background: linear-gradient(to top,
-     rgba(0,0,0, 1) 20%, 
+
+  rgba(0,0,0, 1) 20%, 
      rgba(1,1,1, 0) 80%
+
   );
   pointer-events: none; 
+}
+
+.bar-chart {
+  height: 200px; /* Adjust based on your requirements */
+  width: 100%;
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.10) 0.75px, transparent 1px);
+  background-size: 100% 30px; /* This controls the spacing of the lines */
+}
+
+.checkmark {
+  width: 17px;
+  height: 17px;
+  position: relative;
+  left: -2px;
+  top: 3px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 2;
+  stroke: #636363;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0px 0px 0px #000;
+  animation: fill .3s ease-in-out .4s forwards;
+}
+
+.checkmark__circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke: #636363;
+  fill: none;
+  animation: stroke .3s cubic-bezier(0.650, 0.000, 0.450, 1.000) forwards;
+}
+
+.checkmark__check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) .3s forwards;
+}
+
+@keyframes flickerAnimation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.flicker {
+  animation: flickerAnimation 1.75s infinite;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fill {
+  100% {
+    box-shadow: inset 0px 0px 0px 30px #000;
+  }
+}
+
+.hk-radial {
+  background: radial-gradient(77.56% 100% at 0% 50%, #303030 0%, black 75.45%);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

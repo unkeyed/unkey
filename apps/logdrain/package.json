@@ -8,9 +8,9 @@
     "start": "wrangler dev"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240208.0",
+    "@cloudflare/workers-types": "^4.20240222.0",
     "typescript": "^5.3.3",
-    "wrangler": "^3.29.0"
+    "wrangler": "^3.32.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",

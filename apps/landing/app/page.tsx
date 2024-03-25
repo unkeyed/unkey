@@ -12,8 +12,6 @@ import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import {
-  HeroMainboardStuff,
-  HeroMainboardStuffMobile,
   SubHeroMainboardStuff,
   TopLeftShiningLight,
   TopRightShiningLight,
@@ -22,16 +20,19 @@ import { LeveledUpApiAuthChip } from "@/components/svg/leveled-up-api-auth-chip"
 import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
 import { ChevronRight, LogIn } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
+import mainboardMobile from "../images/mainboard-mobile.svg";
+import mainboard from "../images/mainboard.svg";
 import { CodeExamples } from "./code-examples";
 
 export const metadata = {
   title: "Unkey",
-  description: "Accelerate your API Development",
+  description: "Build better APIs faster",
   openGraph: {
     title: "Unkey",
-    description: "Accelerate your API Development",
+    description: "Build better APIs faster",
     url: "https://unkey.dev/",
     siteName: "unkey.dev",
     images: [
@@ -51,41 +52,47 @@ export const metadata = {
   },
 };
 
+export const dynamic = "error";
 export const revalidate = 300;
 
 export default async function Landing() {
   return (
     <>
       <TopRightShiningLight />
-
       <TopLeftShiningLight />
+      <Image
+        src={mainboard}
+        alt="Animated SVG showing computer circuits lighting up"
+        className="hidden md:flex w-full absolute right-0 top-[-140px] -z-10"
+        priority={true}
+      />
 
+      <Image
+        src={mainboardMobile}
+        alt="Animated SVG showing computer circuits lighting up"
+        className="flex md:hidden w-full absolute h-[300px] -z-10 "
+        priority={true}
+      />
       <div className="container relative mx-auto">
-        <HeroMainboardStuff className="absolute right-0 -top-[4%]" />
-        <HeroMainboardStuffMobile className="absolute right-0 -top-[5%]" />
-
         <Hero />
-
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
         <Suspense fallback={null}>
           <Stats />
         </Suspense>
 
-        <CodeExamples className="mt-20" />
+        <CodeExamples className="mt-[144px] md:mt-[120px]" />
         <div className="mt-[220px]" />
         <OpenSource />
         <SectionTitle
           className="mt-[300px]"
-          title="Efficient integration and process, always"
-          titleWidth={743}
-          contentWidth={641}
-          text="Elevate operations effortlessly with our platform - seamless processes, reliable analytics, and billing ensure unparalleled efficiency and accuracy for all your integrated tasks and workflows"
+          title="Everything you need for your API"
+          text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
           align="center"
           label="Platform"
         />
         <AnalyticsBento />
-        <div className="mt-6 grid xl:grid-cols-[1fr_2fr] gap-6 z-50">
+        <div className="mt-6 grid md:grid-cols-[1fr_1fr] lg:grid-cols-[1fr_2fr] gap-6 z-50">
           <LatencyBento />
           <UsageBento />
         </div>
@@ -94,10 +101,8 @@ export default async function Landing() {
         </div>
         <SectionTitle
           className="mt-[300px]"
-          titleWidth={743}
-          contentWidth={581}
-          title="Secure from day one"
-          text="Don't waste time building boring-but-necessary features like audit logs. Unkey provides everything you need out of the box to build secure, infinitely scalable APIs."
+          title="Secure and scalable from day one"
+          text="We give you crucial security features out of the box, so that you can focus on rapidly iterating on your API."
           align="center"
           label="Security"
         >
@@ -115,18 +120,17 @@ export default async function Landing() {
           <HashedKeysBento />
           <AuditLogsBento />
         </div>
-        <div className="grid xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
+        <div className="grid md:grid-cols-[1fr_1fr] xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
           <IpWhitelistingBento />
           <RateLimitsBento />
         </div>
         <div className="relative">
-          <LeveledUpApiAuthChip className="absolute top-[-450px] right-0" />
+          {/* TODO: horizontal scroll */}
+          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-100px]" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
-            title="Leveled-up API Auth"
-            titleWidth={719}
-            contentWidth={557}
-            text="Elevate your API authentication with our leveled-up system. Experience heightened security, efficiency, and control for seamless integration and data protection."
+            title="Leveled-up API management"
+            text="With enhanced security, low latency, and better control, you can seamlessly integrate into your APIs and protect your data like never before."
             label="More"
           >
             <div className="flex mt-10 mb-10 space-x-6">
@@ -144,19 +148,10 @@ export default async function Landing() {
         <div className="relative -z-10">
           <FeatureGridChip className="absolute top-[-90px]" />
         </div>
-        <SectionTitle
-          align="center"
-          className="mt-[200px]"
-          title="Protect your API. Start today."
-          titleWidth={507}
-        >
+        <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
           <div className="flex space-x-6 ">
-            <Link
-              key="get-started"
-              href="/app"
-              className="flex items-center h-10 gap-2 px-4 font-medium text-black duration-150 bg-white border border-white rounded-lg shadow-md hover:text-white hover:bg-black"
-            >
-              Start Now <ChevronRight className="w-4 h-4" />
+            <Link key="get-started" href="/app">
+              <PrimaryButton label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
         </SectionTitle>

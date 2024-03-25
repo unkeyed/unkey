@@ -119,7 +119,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
           </Form>
         </div>
       </main>
-      <aside className="md:flex flex-col items-start justify-center w-1/4 space-y-16 max-md:hidden ">
+      <aside className="flex-col items-start justify-center w-1/4 space-y-16 md:flex max-md:hidden ">
         <AsideContent />
       </aside>
     </div>

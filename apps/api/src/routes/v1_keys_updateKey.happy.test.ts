@@ -1,26 +1,15 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import {
-  V1KeysUpdateKeyRequest,
-  V1KeysUpdateKeyResponse,
-  registerV1KeysUpdate,
-} from "./v1_keys_updateKey";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysUpdate);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("returns 200", async () => {
+test("returns 200", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -53,7 +42,9 @@ test("returns 200", async () => {
   expect(res.status).toEqual(200);
 });
 
-test("update all", async () => {
+test("update all", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -105,7 +96,9 @@ test("update all", async () => {
   expect(found?.remaining).toEqual(0);
 });
 
-test("update ratelimit", async () => {
+test("update ratelimit", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -152,7 +145,9 @@ test("update ratelimit", async () => {
   expect(found?.remaining).toBeNull();
 });
 
-test("delete expires", async () => {
+test("delete expires", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -191,7 +186,9 @@ test("delete expires", async () => {
   expect(found?.expires).toBeNull();
 });
 
-test("update should not affect undefined fields", async () => {
+test("update should not affect undefined fields", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -236,7 +233,9 @@ test("update should not affect undefined fields", async () => {
   expect(found?.remaining).toBeNull();
 });
 
-test("update enabled true", async () => {
+test("update enabled true", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -272,7 +271,9 @@ test("update enabled true", async () => {
   expect(found?.enabled).toEqual(true);
 });
 
-test("update enabled false", async () => {
+test("update enabled false", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
@@ -308,7 +309,9 @@ test("update enabled false", async () => {
   expect(found?.enabled).toEqual(false);
 });
 
-test("omit enabled update", async () => {
+test("omit enabled update", async (t) => {
+  const h = await RouteHarness.init(t);
+
   const key = {
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,

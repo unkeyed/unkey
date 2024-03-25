@@ -19,6 +19,7 @@ import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
+import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
 
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
@@ -58,6 +59,9 @@ registerV1ApisDeleteApi(app);
 // analytics
 registerV1AnalyticsGetByOwnerId(app);
 
+// ratelimit
+registerV1RatelimitLimit(app);
+
 // legacy REST style routes
 registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
@@ -72,7 +76,7 @@ app.get("/routes", (c) => {
   );
 });
 
-const handler: ExportedHandler<Env> = {
+const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
@@ -88,7 +92,7 @@ const handler: ExportedHandler<Env> = {
 
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
-};
+} satisfies ExportedHandler<Env>;
 
 export default instrument(
   handler,

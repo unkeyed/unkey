@@ -1,7 +1,6 @@
 import { FadeIn } from "@/components/landing/fade-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Toaster } from "@/components/ui/toaster";
 import { auth } from "@clerk/nextjs";
 import { FileText } from "lucide-react";
 import Link from "next/link";
@@ -21,12 +20,17 @@ const quotes: {
   };
 }[] = [
   {
-    text: (
-      <>
-        I've been using Unkey for a project we're launching out of our lab called Dashboard. <br />{" "}
-        The product is super well built, intuitive and powerful.
-      </>
-    ),
+    text: "Unkey's product helped launch our public API features in a matter of hours.  Easy setup, exactly the features we needed, great DX ergonomics, and low latency - fantastic experience.",
+    source: "slack dm",
+    author: {
+      name: "Rick Blalock",
+      title: "Cofounder/CTO onestudy.ai",
+      image: "https://pbs.twimg.com/profile_images/1520195134507425794/JOGd7q2__400x400.jpg",
+      href: "https://x.com/rblalock",
+    },
+  },
+  {
+    text: "The product is super well built, intuitive and powerful.",
     source: "slack",
     author: {
       name: "Dexter Storey",
@@ -84,7 +88,6 @@ export default async function AuthenticatedLayout({
     <div className="bg-black">
       <TopLeftShine className="absolute top-0 left-0 pointer-events-none" />
       <TopRightShine className="absolute top-0 right-0 pointer-events-none" />
-      <Toaster />
       <nav className="container flex items-center justify-between h-16">
         <Link href="/">
           <Logo className="min-w-sm" />

@@ -1,6 +1,5 @@
 import { CommandMenu } from "@/components/landing/command-menu";
 import { RootLayout } from "@/components/landing/root-layout";
-import { Toaster } from "@/components/ui/toaster";
 import "@/styles/tailwind/tailwind.css";
 export default function Layout({
   children,
@@ -12,7 +11,6 @@ export default function Layout({
       <body className="flex flex-col min-h-full">
         <RootLayout>{children}</RootLayout>
         <CommandMenu />
-        <Toaster />
       </body>
     </html>
   );

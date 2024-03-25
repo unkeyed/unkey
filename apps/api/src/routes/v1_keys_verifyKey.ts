@@ -183,6 +183,18 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissionQuery: authorization?.permissions,
     });
     if (err) {
+      switch (err.name) {
+        case "SchemaError":
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: err.message,
+          });
+        case "DisabledWorkspaceError":
+          throw new UnkeyApiError({
+            code: "FORBIDDEN",
+            message: "workspace is disabled",
+          });
+      }
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
         message: err.message,

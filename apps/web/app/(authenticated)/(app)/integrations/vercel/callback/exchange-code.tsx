@@ -2,7 +2,7 @@ import { vercelIntegrationEnv } from "@/lib/env";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { z } from "zod";
 export class VercelCodeExchangeError extends BaseError<{ status: number }> {
-  public readonly type = "VercelCodeExchangeError";
+  public readonly name = "VercelCodeExchangeError";
   public readonly retry = true;
 }
 

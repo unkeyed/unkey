@@ -1,9 +1,14 @@
-export type ErrorType = "FetchError" | "SchemaError" | "CacheError" | "VercelCodeExchangeError";
+export type ErrorType =
+  | "FetchError"
+  | "SchemaError"
+  | "CacheError"
+  | "VercelCodeExchangeError"
+  | "RatelimitError"
+  | "DisabledWorkspaceError";
 
 export type ErrorContext = Record<string, unknown>;
 
 export abstract class BaseError<TContext extends ErrorContext = ErrorContext> extends Error {
-  public abstract readonly type: ErrorType;
   public abstract readonly retry: boolean;
   public readonly cause: BaseError | undefined;
   public readonly context: TContext | undefined;
@@ -21,7 +26,7 @@ export abstract class BaseError<TContext extends ErrorContext = ErrorContext> ex
   }
 
   public toString(): string {
-    return `${this.type}: ${this.message} - ${JSON.stringify(
+    return `${this.name}: ${this.message} - ${JSON.stringify(
       this.context,
     )} - caused by ${this.cause?.toString()}`;
   }

@@ -5,11 +5,23 @@ import { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
-import { Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
+import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Context } from "hono";
 import { Analytics } from "../analytics";
+
+export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
+  public readonly name = "DisabledWorkspaceError";
+  public readonly retry = false;
+  constructor(workspaceId: string) {
+    super("workspace is disabled", {
+      context: {
+        workspaceId,
+      },
+    });
+  }
+}
 
 type NotFoundResponse = {
   valid: false;
@@ -60,7 +72,6 @@ export class KeyService {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
-  private readonly rlCache: Map<string, number>;
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
@@ -75,7 +86,7 @@ export class KeyService {
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
-    persistenceMap: Map<string, number>;
+    rbac: RBAC;
   }) {
     this.cache = opts.cache;
     this.logger = opts.logger;
@@ -83,16 +94,15 @@ export class KeyService {
     this.metrics = opts.metrics;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
-    this.rlCache = opts.persistenceMap;
     this.analytics = opts.analytics;
-    this.rbac = new RBAC();
+    this.rbac = opts.rbac;
     this.tracer = trace.getTracer("keyService");
   }
 
   public async verifyKey(
     c: Context,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult>> {
+  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
       const res = await this._verifyKey(c, span, req);
@@ -161,13 +171,25 @@ export class KeyService {
     c: Context,
     span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
-  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError>> {
+  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
     const hash = await sha256(req.key);
     const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
       const dbRes = await this.db.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          workspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
+          forWorkspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
           roles: {
             with: {
               role: {
@@ -215,6 +237,8 @@ export class KeyService {
         ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
       ]);
       return {
+        workspace: dbRes.workspace,
+        forWorkspace: dbRes.forWorkspace,
         key: dbRes,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
@@ -235,11 +259,15 @@ export class KeyService {
       span.addEvent("not found");
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
+
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
+      return Err(new DisabledWorkspaceError(data.workspace.id));
+    }
+
     /**
      * Enabled
      */
-    const enabled = data.key.enabled;
-    if (!enabled) {
+    if (!data.key.enabled) {
       return Ok({
         key: data.key,
         api: data.api,
@@ -304,6 +332,9 @@ export class KeyService {
         return Err(
           new SchemaError("permission query is invalid", {
             cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
           }),
         );
       }
@@ -317,6 +348,9 @@ export class KeyService {
         return Err(
           new SchemaError("permission query is invalid", {
             cause: q.err,
+            context: {
+              raw: req.permissionQuery,
+            },
           }),
         );
       }
@@ -403,86 +437,42 @@ export class KeyService {
 
     const ratelimitStart = performance.now();
     try {
-      const now = Date.now();
-      const window = Math.floor(now / key.ratelimitRefillInterval);
-      const reset = (window + 1) * key.ratelimitRefillInterval;
-
-      const keyAndWindow = [key.id, window].join(":");
-      const t1 = performance.now();
-      const cached = this.rlCache.get(keyAndWindow) ?? 0;
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - t1,
-        keyId: key.id,
-        tier: "memory",
+      const t2 = performance.now();
+      const res = await this.rateLimiter.limit(c, {
+        identifier: key.id,
+        limit: key.ratelimitRefillRate,
+        interval: key.ratelimitRefillInterval,
+        cost: 1,
+        // root keys are sharded per edge colo
+        shard: key.forWorkspaceId ? "edge" : undefined,
+        async: key.ratelimitType === "fast",
       });
 
-      const remainingBeforeCall = key.ratelimitLimit - cached;
-      if (remainingBeforeCall <= 0) {
-        return [
-          false,
-          {
-            remaining: 0,
-            limit: key.ratelimitRefillRate,
-            reset,
-          },
-        ];
+      if (res.err) {
+        this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
+
+        return [false, undefined];
       }
+      this.metrics.emit({
+        metric: "metric.ratelimit",
+        latency: performance.now() - t2,
+        identifier: key.id,
+        tier: "durable",
+      });
 
-      const remaining = remainingBeforeCall - 1;
-
-      // TODO: at some point we should remove counters from older windows
-      // but I'm pretty sure it's not an issue cause they take up very little memory
-      // and are reset when the worker deallocates
-      this.rlCache.set(keyAndWindow, cached + 1);
-      const t2 = performance.now();
-      const p = this.rateLimiter
-        .limit({
-          keyId: key.id,
-          limit: key.ratelimitRefillRate,
-          interval: key.ratelimitRefillInterval,
-        })
-        .then(({ current }) => {
-          this.rlCache.set(keyAndWindow, current);
-          this.metrics.emit({
-            metric: "metric.ratelimit",
-            latency: performance.now() - t2,
-            keyId: key.id,
-            tier: "durable",
-          });
-          return current;
-        });
-
-      if (key.ratelimitType === "fast") {
-        c.executionCtx.waitUntil(p);
-        return [
-          true,
-          {
-            remaining,
-            limit: key.ratelimitRefillRate,
-            reset,
-          },
-        ];
-      }
-      const current = await p;
       return [
-        current <= key.ratelimitRefillRate,
+        res.val.pass,
         {
-          remaining: key.ratelimitRefillRate - current,
+          remaining: key.ratelimitRefillRate - res.val.current,
           limit: key.ratelimitRefillRate,
-          reset,
+          reset: res.val.reset,
         },
       ];
-    } catch (e: unknown) {
-      const err = e as Error;
-      this.logger.error("ratelimiting failed", { error: err.message, ...err });
-
-      return [false, undefined];
     } finally {
       this.metrics.emit({
         metric: "metric.ratelimit",
         latency: performance.now() - ratelimitStart,
-        keyId: key.id,
+        identifier: key.id,
         tier: "total",
       });
     }

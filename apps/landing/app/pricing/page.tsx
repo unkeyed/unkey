@@ -28,7 +28,7 @@ import {
 export default function PricingPage() {
   return (
     <div className="px-4 mx-auto lg:px-0">
-      <HeroSvg className="absolute inset-x-0 top-0" />
+      <HeroSvg className="absolute inset-x-0 top-0 pointer-events-none" />
 
       <div className="flex flex-col items-center justify-center mt-32 min-h-72">
         <h1 className="section-title-heading-gradient font-medium text-[4rem] leading-[4rem] max-w-xl text-center ">
@@ -63,6 +63,7 @@ export default function PricingPage() {
                 label="2.5k successful verifications / month"
                 color={Color.White}
               />
+              <Bullet Icon={Check} label="100k successful ratelimits / month" color={Color.White} />
               <Bullet Icon={Check} label="7-day analytics retention" color={Color.White} />
               <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
             </Bullets>
@@ -89,6 +90,7 @@ export default function PricingPage() {
                 label="150k successful verifications / month"
                 color={Color.Yellow}
               />
+              <Bullet Icon={Check} label="2.5M successful ratelimits / month" color={Color.White} />
               <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
               <Bullet Icon={Check} label="90-day audit log retention" color={Color.Yellow} />
               <Bullet Icon={Check} label="Unlimited APIs" color={Color.Yellow} />
@@ -105,6 +107,7 @@ export default function PricingPage() {
             <div className="flex flex-col gap-2">
               <Asterisk tag="$0.10" label="/ additional active key" />
               <Asterisk tag="$1" label="/ additional 10k successful verifications" />
+              <Asterisk tag="$1" label="/ additional 100k successful ratelimits" />
             </div>
           </PricingCardFooter>
         </PricingCard>

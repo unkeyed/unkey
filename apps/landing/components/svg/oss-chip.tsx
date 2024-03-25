@@ -1,4 +1,4 @@
-export function OssChip() {
+export function OssChip({ className }: { className: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -6,6 +6,7 @@ export function OssChip() {
       height="541"
       viewBox="0 0 660 541"
       fill="none"
+      className={className}
     >
       <rect x="568" y="276" width="2" height="8" fill="white" fillOpacity="0.08" />
       <rect x="572" y="276" width="2" height="8" fill="white" fillOpacity="0.08" />

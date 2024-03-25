@@ -7,10 +7,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Unkey",
-  description: "Accelerate your API Development",
+  description: "Build better APIs faster",
   openGraph: {
     title: "Unkey",
-    description: "Accelerate your API Development",
+    description: "Build better APIs faster",
     url: "https://unkey.dev/",
     siteName: "unkey.dev",
     images: [
@@ -36,9 +36,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="min-h-screen overflow-x-hidden  antialiased bg-[#010101]">
-        <Navigation />
-        {children}
+      <body className="min-h-screen overflow-x-hidden antialiased bg-[#010101] text-pretty">
+        <div className="relative overflow-x-hidden">
+          <Navigation />
+          {children}
+        </div>
         <Footer />
       </body>
     </html>

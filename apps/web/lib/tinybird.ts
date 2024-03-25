@@ -572,22 +572,13 @@ export const getAuditLogs = tb.buildPipe({
       actorId: z.string(),
       actorName: z.string().nullable(),
       actorMeta: z.string().nullable(),
-      event: unkeyAuditLogEvents,
+      event: z.string(),
       description: z.string(),
       resources: z.string().transform((rs) =>
         z
           .array(
             z.object({
-              type: z.enum([
-                "key",
-                "api",
-                "workspace",
-                "role",
-                "permission",
-                "keyAuth",
-                "vercelBinding",
-                "vercelIntegration",
-              ]),
+              type: z.string(),
               id: z.string(),
               meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
             }),
@@ -641,7 +632,9 @@ export function ingestAuditLogs(
         | "permission"
         | "keyAuth"
         | "vercelBinding"
-        | "vercelIntegration";
+        | "vercelIntegration"
+        | "ratelimitNamespace"
+        | "ratelimitOverride";
       id: string;
       meta?: Record<string, string | number | boolean | null>;
     }>;
@@ -672,3 +665,204 @@ export function ingestAuditLogs(
       })),
   })(logs);
 }
+
+export const getRatelimitsHourly = tb.buildPipe({
+  pipe: "get_ratelimits_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.array(z.string()).optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitsMinutely = tb.buildPipe({
+  pipe: "get_ratelimits_minutely__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.array(z.string()).optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: datetimeToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+export const getRatelimitsDaily = tb.buildPipe({
+  pipe: "get_ratelimits_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.array(z.string()).optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitsMonthly = tb.buildPipe({
+  pipe: "get_ratelimits_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.array(z.string()).optional(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: dateToUnixMilli,
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersMinutely = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_minutely__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersHourly = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_hourly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersDaily = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_daily__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitIdentifiersMonthly = tb.buildPipe({
+  pipe: "get_ratelimit_identifiers_monthly__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    start: z.number(),
+    end: z.number(),
+    orderBy: z.enum(["success", "total"]).optional().default("total"),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    success: z.number(),
+    total: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitLastUsed = tb.buildPipe({
+  pipe: "get_ratelimits_last_used__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    identifier: z.array(z.string()).optional(),
+  }),
+  data: z.object({
+    lastUsed: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getRatelimitEvents = tb.buildPipe({
+  pipe: "get_ratelimit_events__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    namespaceId: z.string(),
+    after: z.number().optional(),
+    before: z.number().optional(),
+    limit: z.number().optional(),
+    success: z
+      .boolean()
+      .optional()
+      .transform((b) => (typeof b === "boolean" ? (b ? 1 : 0) : undefined)),
+    ipAddress: z.array(z.string()).optional(),
+    country: z.array(z.string()).optional(),
+    identifier: z.array(z.string()).optional(),
+  }),
+  data: z.object({
+    identifier: z.string(),
+    requestId: z.string(),
+    time: z.number(),
+    success: z
+      .number()
+      .transform((n) => n > 0)
+      .optional(),
+
+    remaining: z.number(),
+    limit: z.number(),
+    country: z.string(),
+    ipAddress: z.string(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});

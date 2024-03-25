@@ -1,4 +1,4 @@
-import type { Api, Key } from "@unkey/db";
+import type { Api, Key, RatelimitNamespace, RatelimitOverride } from "@unkey/db";
 
 export type KeyHash = string;
 export type CacheNamespaces = {
@@ -9,6 +9,14 @@ export type CacheNamespaces = {
     roles: string[];
   } | null;
   keyByHash: {
+    workspace: {
+      id: string;
+      enabled: boolean;
+    };
+    forWorkspace: {
+      id: string;
+      enabled: boolean;
+    } | null;
     key: Key;
     api: Api;
     permissions: string[];
@@ -25,6 +33,10 @@ export type CacheNamespaces = {
     rateLimited: number;
     usageExceeded: number;
   }[];
+  ratelimitByIdentifier: {
+    namespace: RatelimitNamespace;
+    override?: RatelimitOverride;
+  } | null;
   analyticsByOwnerId: {
     key: Key;
     api: Api;

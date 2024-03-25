@@ -2,7 +2,7 @@ import { AuditLogs } from "@/components/audit/audit-logs";
 
 export function AuditLogsBento() {
   return (
-    <div className="relative group w-full xl:mt-10  border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden bg-gradient-to-br from-white/10 to-black">
+    <div className="relative group no-scrollbar overflow-hidden w-full xl:mt-10  border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden bg-gradient-to-br from-white/10 to-black">
       <AuditLogs className=" sm:h-[400px] w-full sm:ml-[40px]" />
       <div className="absolute inset-0 w-full h-full duration-500 pointer-events-none bg-gradient-to-tr from-black via-black/40 to-black/0 group-hover:opacity-0 group-hover:backdrop-blur-0" />
       <div className="duration-500 group-hover:opacity-0 group-hover:pointer-events-none">
@@ -34,8 +34,8 @@ export function AuditLogsText() {
         <h3 className="ml-4 text-lg font-medium text-white">Audit Logs</h3>
       </div>
       <p className="mt-4 leading-6 text-white/60">
-        Unkey gives you audit logs out of the box. Focus on building your API rather than security
-        and compliance.
+        Audit logs out of the box. Focus on building your produvt and let us handle security and
+        compliance.
       </p>
     </div>
   );

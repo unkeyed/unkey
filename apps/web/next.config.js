@@ -1,9 +1,9 @@
-const { withHydrationOverlay } = require("@builder.io/react-hydration-overlay/next");
-
 /** @type {import('next').NextConfig} */
-let nextConfig = {
+const nextConfig = {
+  reactStrictMode: true,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
-  productionBrowserSourceMaps: true, // we're open-source anyways
+  productionBrowserSourceMaps: true,
+  // we're open-source anyways
   experimental: {
     esmExternals: "loose",
   },
@@ -39,7 +39,4 @@ let nextConfig = {
   ],
 };
 
-if (process.env.NODE_ENV !== "production") {
-  nextConfig = withHydrationOverlay({ appRootselector: "main" })(nextConfig);
-}
 module.exports = nextConfig;

@@ -1,5 +1,5 @@
+import { Toaster } from "@/components/ui/toaster";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
-import { HydrationOverlay } from "@builder.io/react-hydration-overlay";
 
 import "@/styles/tailwind/tailwind.css";
 import type { Metadata } from "next";
@@ -20,10 +20,10 @@ const pangea = localFont({
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),
   title: "Open Source API Authentication",
-  description: "Accelerate your API development",
+  description: "Build better APIs faster",
   openGraph: {
     title: "Open Source API Authentication",
-    description: "Accelerate your API development ",
+    description: "Build better APIs faster ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
     images: ["https://unkey.dev/images/landing/og.png"],
@@ -53,24 +53,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const components = (
-    <>
+  return (
+    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
       <Suspense>
         <PostHogPageview />
       </Suspense>
       <PHProvider>
-        <body>{children}</body>
-      </PHProvider>
-    </>
-  );
+        <body>
+          <Toaster />
 
-  return (
-    <html lang="en" className={[inter.variable, pangea.variable].join(" ")}>
-      {process.env.NODE_ENV !== "production" ? (
-        <HydrationOverlay>{components}</HydrationOverlay>
-      ) : (
-        components
-      )}
+          {children}
+        </body>
+      </PHProvider>
     </html>
   );
 }

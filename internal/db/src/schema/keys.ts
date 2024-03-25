@@ -101,6 +101,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.workspaceId],
     references: [workspaces.id],
   }),
+
   forWorkspace: one(workspaces, {
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],

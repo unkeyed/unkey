@@ -1,5 +1,3 @@
-"use client";
-import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { PrimaryButton, SecondaryButton } from "@/components/button";
@@ -7,13 +5,7 @@ import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 
 export function HeroMainSection() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 1, ease: "easeOut" }}
-      whileInView="visible"
-      className="relative flex flex-col items-center text-center xl:text-left xl:items-start"
-    >
+    <div className="relative flex flex-col items-center text-center xl:text-left xl:items-start">
       <div className="absolute top-[-50px] hero-hiring-gradient text-white text-sm flex space-x-2 py-1.5 px-2 items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -60,13 +52,13 @@ export function HeroMainSection() {
         </svg>
       </div>
 
-      <h1 className="bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-[546px] via-30% to-white/30 font-medium text-[32px] leading-[48px]  sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
-        Build your API, not auth
+      <h1 className="bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-sm sm:max-w-md via-30% to-white/30 font-medium text-[32px] leading-[48px]  sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
+        Build better APIs faster
       </h1>
 
-      <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-sm sm:text-[15px] sm:text-base leading-[28px]">
-        Unkey allows you to quickly add API keys, rate limiting, and usage analytics to your API, so
-        that you can safely expose it to developers.
+      <p className="mt-8 bg-gradient-to-br text-transparent text-pretty bg-gradient-stop bg-clip-text max-w-sm sm:max-w-md  from-white via-white via-40% to-white/30 md:max-w-lg text-sm sm:text-[15px] sm:text-base leading-[28px]">
+        Redefined API management for developers. Quickly add API keys, rate limiting, and usage
+        analytics to your API at any scale.
       </p>
 
       <div className="flex items-center gap-6 mt-16">
@@ -78,6 +70,6 @@ export function HeroMainSection() {
           <SecondaryButton IconLeft={BookOpen} label="Documentation" IconRight={ChevronRight} />
         </Link>
       </div>
-    </motion.div>
+    </div>
   );
 }

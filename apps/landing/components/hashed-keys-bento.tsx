@@ -1,4 +1,4 @@
-import { HashedKeys } from "@/components/svg/hashed-keys";
+import { HashedKeys } from "@/components/hashed-keys";
 
 export function HashedKeysBento() {
   return (
@@ -12,7 +12,7 @@ export function HashedKeysBento() {
 export function HashedKeysText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[350px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <div className="hashed-keys-bg-gradient">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -30,10 +30,10 @@ export function HashedKeysText() {
             />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-white ml-4">One-way hashed Keys</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">One-way hashed Keys</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
-        Once API keys are created, Unkey will store a one-way hash of the key for maximum security.
+      <p className="mt-4 leading-6 text-white/60">
+        We store a one-way hash of created keys for maximum security.
       </p>
     </div>
   );

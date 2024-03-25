@@ -1,22 +1,12 @@
-import { afterEach } from "node:test";
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
 import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "@/routes/v1_keys_deleteKey";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-let h: IntegrationHarness;
-
-beforeEach(async () => {
-  h = new IntegrationHarness();
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-
-test("create, verify and delete a key", async () => {
+test("create, verify and delete a key", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

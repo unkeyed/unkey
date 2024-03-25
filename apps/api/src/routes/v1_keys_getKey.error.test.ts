@@ -1,20 +1,11 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
-import { registerV1KeysGetKey } from "./v1_keys_getKey";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1KeysGetKey);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("when the key does not exist", async () => {
+test("when the key does not exist", async (t) => {
+  const h = await RouteHarness.init(t);
   const apiId = newId("api");
   const keyId = newId("api");
 

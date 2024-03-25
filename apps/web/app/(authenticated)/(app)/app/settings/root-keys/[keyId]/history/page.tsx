@@ -1,5 +1,6 @@
 import { getTenantId } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { getLatestVerifications } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./access-table";
@@ -12,14 +13,21 @@ export default async function HistoryPage(props: {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(schema.workspaces.tenantId, tenantId),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
   });
   if (!workspace) {
     return notFound();
   }
+  const { UNKEY_WORKSPACE_ID, UNKEY_API_ID } = env();
 
   const key = await db.query.keys.findFirst({
-    where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
+    where: (table, { and, eq, isNull }) =>
+      and(
+        eq(table.workspaceId, UNKEY_WORKSPACE_ID),
+        eq(table.forWorkspaceId, workspace.id),
+        eq(table.id, props.params.keyId),
+        isNull(table.deletedAt),
+      ),
     with: {
       keyAuth: {
         with: {
@@ -31,10 +39,9 @@ export default async function HistoryPage(props: {
   if (!key?.keyAuth?.api) {
     return notFound();
   }
-
   const history = await getLatestVerifications({
-    workspaceId: workspace.id,
-    apiId: key.keyAuth.api.id,
+    workspaceId: UNKEY_WORKSPACE_ID,
+    apiId: UNKEY_API_ID,
     keyId: key.id,
   });
 

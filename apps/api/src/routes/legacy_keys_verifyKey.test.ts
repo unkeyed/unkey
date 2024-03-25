@@ -1,28 +1,16 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import {
-  LegacyKeysVerifyKeyRequest,
-  LegacyKeysVerifyKeyResponse,
-  registerLegacyKeysVerifyKey,
-} from "./legacy_keys_verifyKey";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse } from "./legacy_keys_verifyKey";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerLegacyKeysVerifyKey);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("returns 200", async () => {
+test("returns 200", async (t) => {
+  const h = await RouteHarness.init(t);
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
     id: newId("key"),
@@ -49,7 +37,8 @@ test("returns 200", async () => {
 });
 
 describe("bad request", () => {
-  test("returns 400", async () => {
+  test("returns 400", async (t) => {
+    const h = await RouteHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.insert(schema.keys).values({
       id: newId("key"),
@@ -75,54 +64,52 @@ describe("bad request", () => {
 });
 
 describe("with temporary key", () => {
-  test(
-    "returns valid",
-    async () => {
-      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.db.insert(schema.keys).values({
-        id: newId("key"),
-        keyAuthId: h.resources.userKeyAuth.id,
-        hash: await sha256(key),
-        start: key.slice(0, 8),
-        workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
-        expires: new Date(Date.now() + 5000),
-      });
+  test("returns valid", async (t) => {
+    const h = await RouteHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.insert(schema.keys).values({
+      id: newId("key"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      expires: new Date(Date.now() + 5000),
+    });
 
-      const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
-        url: "/v1/keys/verify",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: {
-          key,
-          apiId: h.resources.userApi.id,
-        },
-      });
-      expect(res.status).toEqual(200);
-      expect(res.body.valid).toBe(true);
+    const res = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
+      url: "/v1/keys/verify",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(res.status).toEqual(200);
+    expect(res.body.valid).toBe(true);
 
-      await new Promise((resolve) => setTimeout(resolve, 6000));
-      const secondResponse = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
-        url: "/v1/keys/verify",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: {
-          key,
-          apiId: h.resources.userApi.id,
-        },
-      });
-      expect(secondResponse.status).toEqual(404);
-      expect(secondResponse.body.valid).toBe(false);
-    },
-    { timeout: 10_000 },
-  );
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    const secondResponse = await h.post<LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse>({
+      url: "/v1/keys/verify",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(secondResponse.status).toEqual(404);
+    expect(secondResponse.body.valid).toBe(false);
+  });
 });
 
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
-    test("returns valid", async () => {
+    test("returns valid", async (t) => {
+      const h = await RouteHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -169,7 +156,8 @@ describe("with ip whitelist", () => {
     });
   });
   describe("with invalid ip", () => {
-    test("returns invalid", async () => {
+    test("returns invalid", async (t) => {
+      const h = await RouteHarness.init(t);
       const keyAuthid = newId("keyAuth");
       await h.db.insert(schema.keyAuth).values({
         id: keyAuthid,

@@ -1,18 +1,10 @@
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { ErrorResponse } from "@unkey/api/src";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
-let h: IntegrationHarness;
-
-beforeEach(async () => {
-  h = new IntegrationHarness();
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("without permissions", async () => {
+test("without permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key } = await h.createKey();
 
   const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -36,7 +28,8 @@ test("without permissions", async () => {
   expect(res.body.code).toBe("INSUFFICIENT_PERMISSIONS");
 });
 
-test("with roles but not permissions", async () => {
+test("with roles but not permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key } = await h.createKey({
     roles: [
       {
@@ -66,7 +59,8 @@ test("with roles but not permissions", async () => {
   expect(res.body.code).toBe("INSUFFICIENT_PERMISSIONS");
 });
 
-test("with roles and insufficient permissions", async () => {
+test("with roles and insufficient permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key } = await h.createKey({
     roles: [
       {
@@ -95,7 +89,8 @@ test("with roles and insufficient permissions", async () => {
   expect(res.body.code).toBe("INSUFFICIENT_PERMISSIONS");
 });
 
-test("has all required permissions", async () => {
+test("has all required permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key } = await h.createKey({
     roles: [
       {
@@ -129,7 +124,8 @@ test("has all required permissions", async () => {
 describe(
   "many roles and permissions",
   () => {
-    test("returns valid=true", async () => {
+    test("returns valid=true", async (t) => {
+      const h = await IntegrationHarness.init(t);
       const { key } = await h.createKey({
         roles: [
           {
@@ -198,7 +194,8 @@ describe(
 describe(
   "invalid permission query",
   () => {
-    test("returns BAD_REQUEST", async () => {
+    test("returns BAD_REQUEST", async (t) => {
+      const h = await IntegrationHarness.init(t);
       const { key } = await h.createKey();
 
       const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({

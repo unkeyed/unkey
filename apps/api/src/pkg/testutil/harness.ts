@@ -1,6 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { TaskContext } from "vitest";
 import {
   type Api,
   type Database,
@@ -12,7 +13,7 @@ import {
   eq,
   schema,
 } from "../db";
-import { unitTestEnv } from "./env";
+import { databaseEnv } from "./env";
 
 export type Resources = {
   unkeyWorkspace: Workspace;
@@ -24,33 +25,41 @@ export type Resources = {
 };
 
 export abstract class Harness {
+  private readonly t: TaskContext;
   public readonly db: Database;
-  public readonly resources: Resources;
-  private seeded = false;
+  public resources: Resources;
 
-  constructor() {
-    const env = unitTestEnv.parse(process.env);
+  constructor(t: TaskContext) {
+    this.t = t;
+    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
     this.db = createConnection({
-      host: env.DATABASE_HOST,
-      username: env.DATABASE_USERNAME,
-      password: env.DATABASE_PASSWORD,
+      host: DATABASE_HOST,
+      username: DATABASE_USERNAME,
+      password: DATABASE_PASSWORD,
     });
     this.resources = this.createResources();
   }
 
-  public async teardown(): Promise<void> {
-    await this.db
-      .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.userWorkspace.id))
-      .catch((err) => {
-        console.error(err);
-      });
-    await this.db
-      .delete(schema.workspaces)
-      .where(eq(schema.workspaces.id, this.resources.unkeyWorkspace.id))
-      .catch((err) => {
-        console.error(err);
-      });
+  private async teardown(...workspaceIds: string[]): Promise<void> {
+    if (workspaceIds.length === 0) {
+      return;
+    }
+    const deleteWorkspaces = async () => {
+      for (const workspaceId of workspaceIds) {
+        await this.db.delete(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
+      }
+    };
+    for (let i = 1; i <= 5; i++) {
+      try {
+        await deleteWorkspaces();
+        return;
+      } catch (err) {
+        if (i === 5) {
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, i * 500));
+      }
+    }
   }
   /**
    * Create a new root key with optional roles
@@ -132,11 +141,20 @@ export abstract class Harness {
           this.resources.userWorkspace.id,
           permissionName,
         );
-        await this.db.insert(schema.rolesPermissions).values({
-          roleId,
-          permissionId: permission.id,
-          workspaceId: this.resources.userWorkspace.id,
-        });
+        await this.db
+          .insert(schema.rolesPermissions)
+          .values({
+            roleId,
+            permissionId: permission.id,
+            workspaceId: this.resources.userWorkspace.id,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              roleId,
+              permissionId: permission.id,
+              workspaceId: this.resources.userWorkspace.id,
+            },
+          });
       }
     }
 
@@ -219,6 +237,7 @@ export abstract class Harness {
       createdAt: new Date(),
       deletedAt: null,
       planDowngradeRequest: null,
+      enabled: true,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
@@ -236,6 +255,7 @@ export abstract class Harness {
       createdAt: new Date(),
       deletedAt: null,
       planDowngradeRequest: null,
+      enabled: true,
     };
 
     const unkeyKeyAuth: KeyAuth = {
@@ -282,10 +302,10 @@ export abstract class Harness {
     };
   }
 
-  public async seed(): Promise<void> {
-    if (this.seeded) {
-      return;
-    }
+  protected async seed(): Promise<void> {
+    this.t.onTestFinished(() =>
+      this.teardown(this.resources.userWorkspace.id, this.resources.unkeyWorkspace.id),
+    );
 
     await this.db.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
     await this.db.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
@@ -294,6 +314,5 @@ export abstract class Harness {
     await this.db.insert(schema.workspaces).values(this.resources.userWorkspace);
     await this.db.insert(schema.keyAuth).values(this.resources.userKeyAuth);
     await this.db.insert(schema.apis).values(this.resources.userApi);
-    this.seeded = true;
   }
 }

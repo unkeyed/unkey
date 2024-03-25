@@ -1,23 +1,11 @@
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { newId } from "@unkey/id";
-import {
-  V1ApisDeleteApiRequest,
-  V1ApisDeleteApiResponse,
-  registerV1ApisDeleteApi,
-} from "./v1_apis_deleteApi";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1ApisDeleteApi);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-test("api does not exist", async () => {
+test("api does not exist", async (t) => {
+  const h = await RouteHarness.init(t);
   const apiId = newId("api");
 
   const { key: rootKey } = await h.createRootKey(["*"]);

@@ -1,6 +1,7 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
 import { z } from "zod";
 import { MaybeArray } from "./types/maybe";
 // const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
@@ -33,7 +34,7 @@ export class Analytics {
     });
   }
 
-  public ingestAuditLogs(
+  public ingestUnkeyAuditLogs(
     logs: MaybeArray<{
       workspaceId: string;
       event: z.infer<typeof unkeyAuditLogEvents>;
@@ -52,7 +53,9 @@ export class Analytics {
           | "permission"
           | "keyAuth"
           | "vercelBinding"
-          | "vercelIntegration";
+          | "vercelIntegration"
+          | "ratelimitIdentifier"
+          | "ratelimitNamespace";
         id: string;
         meta?: Record<string, string | number | boolean>;
       }>;
@@ -75,6 +78,7 @@ export class Analytics {
         )
         .transform((l) => ({
           ...l,
+          meta: l.meta ? JSON.stringify(l.meta) : undefined,
           actor: {
             ...l.actor,
             meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
@@ -82,6 +86,28 @@ export class Analytics {
           resources: JSON.stringify(l.resources),
         })),
     })(logs);
+  }
+
+  public get ingestGenericAuditLogs() {
+    return this.client.buildIngestEndpoint({
+      datasource: "audit_logs__v2",
+      event: auditLogSchemaV1.transform((l) => ({
+        ...l,
+        meta: l.meta ? JSON.stringify(l.meta) : undefined,
+        actor: {
+          ...l.actor,
+          meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
+        },
+        resources: JSON.stringify(l.resources),
+      })),
+    });
+  }
+
+  public get ingestRatelimit() {
+    return this.client.buildIngestEndpoint({
+      datasource: "ratelimits__v2",
+      event: ratelimitSchemaV1,
+    });
   }
 
   public get ingestKeyVerification() {

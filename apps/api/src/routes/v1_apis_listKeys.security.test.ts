@@ -1,23 +1,12 @@
 import { randomUUID } from "crypto";
-import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { runSharedRoleTests } from "@/pkg/testutil/test_route_roles";
+import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { type V1ApisListKeysResponse, registerV1ApisListKeys } from "./v1_apis_listKeys";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { describe, expect, test } from "vitest";
+import { type V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
-let h: RouteHarness;
-beforeEach(async () => {
-  h = new RouteHarness();
-  h.useRoutes(registerV1ApisListKeys);
-  await h.seed();
-});
-afterEach(async () => {
-  await h.teardown();
-});
-
-runSharedRoleTests({
-  registerHandler: registerV1ApisListKeys,
+runCommonRouteTests({
   prepareRequest: async (rh) => {
     const apiId = newId("api");
     await rh.db.insert(schema.apis).values({
@@ -33,7 +22,7 @@ runSharedRoleTests({
 });
 
 describe("correct roles", () => {
-  test.each([
+  describe.each([
     { name: "legacy", roles: ["*"] },
     { name: "legacy and more", roles: ["*", randomUUID()] },
     { name: "wildcard api", roles: ["api.*.read_key", "api.*.read_api"] },
@@ -61,32 +50,35 @@ describe("correct roles", () => {
         randomUUID(),
       ],
     },
-  ])("$name", async ({ roles }) => {
-    const keyAuthId = newId("keyAuth");
-    await h.db.insert(schema.keyAuth).values({
-      id: keyAuthId,
-      workspaceId: h.resources.userWorkspace.id,
-    });
+  ])("$name", ({ roles }) => {
+    test("returns 200", async (t) => {
+      const h = await RouteHarness.init(t);
+      const keyAuthId = newId("keyAuth");
+      await h.db.insert(schema.keyAuth).values({
+        id: keyAuthId,
+        workspaceId: h.resources.userWorkspace.id,
+      });
 
-    const apiId = newId("api");
-    await h.db.insert(schema.apis).values({
-      id: apiId,
-      name: randomUUID(),
-      workspaceId: h.resources.userWorkspace.id,
-      authType: "key",
-      keyAuthId,
-    });
+      const apiId = newId("api");
+      await h.db.insert(schema.apis).values({
+        id: apiId,
+        name: randomUUID(),
+        workspaceId: h.resources.userWorkspace.id,
+        authType: "key",
+        keyAuthId,
+      });
 
-    const root = await h.createRootKey(
-      roles.map((role) => (typeof role === "string" ? role : role(apiId))),
-    );
+      const root = await h.createRootKey(
+        roles.map((role) => (typeof role === "string" ? role : role(apiId))),
+      );
 
-    const res = await h.get<V1ApisListKeysResponse>({
-      url: `/v1/apis.listKeys?apiId=${apiId}`,
-      headers: {
-        Authorization: `Bearer ${root.key}`,
-      },
+      const res = await h.get<V1ApisListKeysResponse>({
+        url: `/v1/apis.listKeys?apiId=${apiId}`,
+        headers: {
+          Authorization: `Bearer ${root.key}`,
+        },
+      });
+      expect(res.status).toEqual(200);
     });
-    expect(res.status).toEqual(200);
   });
 });
