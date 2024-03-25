@@ -49,7 +49,7 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
     },
   });
 
-  const updateName = trpc.keySettings.updateName.useMutation({
+  const updateName = trpc.key.update.name.useMutation({
     onSuccess() {
       toast.success("Your key name uses has been updated!");
       router.refresh();

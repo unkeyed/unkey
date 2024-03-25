@@ -44,7 +44,7 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
       enabled: apiKey.enabled,
     },
   });
-  const updateEnabled = trpc.keySettings.updateEnabled.useMutation({
+  const updateEnabled = trpc.key.update.enabled.useMutation({
     onSuccess() {
       toast.success("Your key has been updated!");
       router.refresh();

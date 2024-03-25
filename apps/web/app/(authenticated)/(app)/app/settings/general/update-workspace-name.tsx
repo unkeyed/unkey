@@ -39,7 +39,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       name: workspace.name,
     },
   });
-  const updateName = trpc.workspace.changeName.useMutation({
+  const updateName = trpc.workspace.updateName.useMutation({
     onSuccess() {
       toast.success("Workspace name updated");
       user?.reload();
@@ -64,7 +64,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col space-y-2">
-              <label className="sr-only hidden">Name</label>
+              <label className="hidden sr-only">Name</label>
               <FormField
                 control={form.control}
                 name="name"
@@ -78,7 +78,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
                 )}
               />
 
-              <p className="text-content-subtle text-xs">What should your workspace be called?</p>
+              <p className="text-xs text-content-subtle">What should your workspace be called?</p>
             </div>
           </CardContent>
           <CardFooter className="justify-end">

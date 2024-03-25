@@ -5,9 +5,8 @@ import { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from
 export class NoopRateLimiter implements RateLimiter {
   public async limit(
     _c: Context,
-    req: RatelimitRequest,
+    _req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
-    console.log("noop limit", req);
     return Ok({ current: 0, pass: true, reset: 0 });
   }
 }

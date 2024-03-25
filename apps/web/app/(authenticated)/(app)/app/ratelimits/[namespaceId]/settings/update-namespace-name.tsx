@@ -42,7 +42,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
     },
   });
 
-  const updateName = trpc.ratelimit.updateNamespaceName.useMutation({
+  const updateName = trpc.ratelimit.namespace.update.name.useMutation({
     onSuccess() {
       toast.success("Your namespace name has been renamed!");
       router.refresh();

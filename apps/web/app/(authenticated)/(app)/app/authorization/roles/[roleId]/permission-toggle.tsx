@@ -39,7 +39,7 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
       router.refresh();
     },
   });
-  const disconnect = trpc.rbac.disconnectPermissionToRole.useMutation({
+  const disconnect = trpc.rbac.disconnectPermissionFromRole.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
       toast.loading("Removing Permission");

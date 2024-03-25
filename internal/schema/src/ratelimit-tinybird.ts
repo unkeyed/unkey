@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const sharding = z.enum(["edge", ""]);
+export const sharding = z.enum(["edge", "global"]);
 
 export const ratelimitSchemaV1 = z.object({
   /**
@@ -19,7 +19,7 @@ export const ratelimitSchemaV1 = z.object({
     limit: z.number().int(),
     duration: z.number().int(),
     async: z.boolean(),
-    sharding: sharding.optional().default(""),
+    sharding: sharding.optional().default("global"),
   }),
   context: z.object({
     ipAddress: z.string(),

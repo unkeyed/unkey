@@ -44,7 +44,7 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     defaultValues,
   });
 
-  const create = trpc.ratelimit.updateOverride.useMutation({
+  const create = trpc.ratelimit.override.update.useMutation({
     onSuccess() {
       toast.success("Limits have been updated", {
         description: "Changes may take up to 60s to propagate globally",

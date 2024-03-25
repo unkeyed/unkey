@@ -49,7 +49,7 @@ type Props = {
 
 export const RootKeyTable: React.FC<Props> = ({ data }) => {
   const router = useRouter();
-  const deleteKey = trpc.key.deleteRootKey.useMutation({
+  const deleteKey = trpc.rootKey.delete.useMutation({
     onSuccess: () => {
       toast.success("Root Key was deleted");
       router.refresh();

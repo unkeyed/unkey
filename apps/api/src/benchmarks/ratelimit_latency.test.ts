@@ -53,7 +53,7 @@ describe("fresh key per region", () => {
         p99: 75,
       },
     },
-  ])("$name", ({ name, keys, testsPerKey, threshold }) => {
+  ])("$name", ({ keys, testsPerKey, threshold }) => {
     describe.each([
       "arn",
       "bom",
@@ -84,11 +84,8 @@ describe("fresh key per region", () => {
             region,
           });
           expect(checks.every(({ status }) => status === 200)).toBe(true);
-          const { min, p50, p90, p99, max } = aggregateLatencies(
-            checks.map(({ latency }) => latency),
-          );
+          const { p50, p90, p99 } = aggregateLatencies(checks.map(({ latency }) => latency));
 
-          console.log(name, region, { min, p50, p90, p99, max });
           expect(p50, "latency p50 is too high").toBeLessThanOrEqual(threshold.p50);
           expect(p90, "latency p90 is too high").toBeLessThanOrEqual(threshold.p90);
           expect(p99, "latency p99 is too high").toBeLessThanOrEqual(threshold.p99);

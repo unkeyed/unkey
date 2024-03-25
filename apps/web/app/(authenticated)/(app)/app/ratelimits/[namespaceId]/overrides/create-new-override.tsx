@@ -44,7 +44,7 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
     },
   });
 
-  const create = trpc.ratelimit.createOverride.useMutation({
+  const create = trpc.ratelimit.override.create.useMutation({
     onSuccess() {
       toast.success("New override has been created", {
         description: "Changes may take up to 60s to propagate globally",
