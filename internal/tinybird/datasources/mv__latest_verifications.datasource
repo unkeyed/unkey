@@ -1,0 +1,18 @@
+VERSION 1
+# Data Source created from Pipe 'copy_latest_verifications'
+
+SCHEMA >
+    `time` Int64,
+    `requestedResource` String,
+    `ratelimited` UInt8,
+    `region` String,
+    `ipAddress` String,
+    `usageExceeded` UInt8,
+    `userAgent` String,
+    `workspaceId` String,
+    `apiId` String,
+    `keyId` String
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"
+ENGINE_TTL "toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(30)"

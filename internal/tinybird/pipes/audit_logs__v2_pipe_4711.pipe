@@ -1,0 +1,6 @@
+NODE audit_logs_pipe_4711_0
+SQL >
+
+    SELECT * FROM audit_logs
+
+
