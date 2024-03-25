@@ -210,7 +210,7 @@ export const registerV1RatelimitLimit = (app: App) =>
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${err.message}`,
+        message: `unable to load ratelimit: ${err.message}`,
       });
     }
     if (!val || val.namespace.workspaceId !== rootKey.authorizedWorkspaceId) {
