@@ -67,7 +67,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
     },
   });
 
-  const changeExpiration = trpc.keySettings.updateExpiration.useMutation({
+  const changeExpiration = trpc.key.update.expiration.useMutation({
     onSuccess() {
       toast.success("Your key has been updated!");
       router.refresh();

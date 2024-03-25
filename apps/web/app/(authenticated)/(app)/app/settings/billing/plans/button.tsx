@@ -26,7 +26,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const changePlan = trpc.workspace.changePlan.useMutation({
+  const changePlan = trpc.workspace.updatePlan.useMutation({
     onSuccess: (data, variables, _context) => {
       toast.success(data.title, {
         description: data.message,
