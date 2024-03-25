@@ -30,6 +30,7 @@ import {
 } from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, VenetianMask } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -327,13 +328,21 @@ export default function Templates() {
               <Link
                 key={id}
                 href={`/templates/${id}`}
-                className="flex flex-col w-full items-start overflow-hidden duration-200 border border-white/10 shadow rounded-[28px] hover:shadow-md hover:scale-[1.01] aspect-[12/16] sm:aspect-[6/5] md:aspect-[11/16]"
+                className="flex flex-col items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
               >
-                <div className="flex items-center justify-center w-full h-1/2">
+                <div className="relative w-full">
                   {template.image ? (
-                    <img src={template.image} alt="" className="w-full h-full object-fit" />
+                    <Image
+                      src={template.image}
+                      alt=""
+                      width={800}
+                      height={400}
+                      className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
+                    />
                   ) : (
-                    <VenetianMask className="w-8 h-8 text-white/60" />
+                    <div className="flex items-center justify-center w-full h-full">
+                      <VenetianMask className="w-8 h-8 text-white/60" />
+                    </div>
                   )}
                 </div>
                 <div className="flex flex-col justify-start w-full p-4 h-3/5">

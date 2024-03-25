@@ -12,30 +12,24 @@ export function Frame({
   children: React.ReactNode;
 }) {
   return (
-    <Component
-      className={cn(
-        size === "lg" && "rounded-[32px]",
-        size === "md" && "rounded-[25px]",
-        size === "sm" && "rounded-[18px]",
-        "max-w-7xl w-fit mx-auto bg-gradient-to-b from-white/0 to-white/10 p-[.75px] overflow-hidden relative z-2",
-        className,
-      )}
-    >
+    <Component className={cn("bg-black relative", className)}>
       <div
         className={cn(
-          size === "lg" && "p-2 rounded-[30px]",
-          size === "md" && "p-1 rounded-[24px]",
-          size === "sm" && "p-[1px] rounded-[18px]",
-          "bg-gradient-to-r from-white/10 to-white/20 overflow-hidden",
+          "bg-gradient-to-r from-white/10 to-white/20 ",
+          {
+            "rounded-[36px] p-[8px]": size === "lg",
+            "rounded-[24px] p-[6px]": size === "md",
+            "rounded-[18px] p-[2px]": size === "sm",
+          },
+          className,
         )}
       >
         <div
-          className={cn(
-            size === "lg" && "rounded-[24px]",
-            size === "md" && "rounded-[20px]",
-            size === "sm" && "rounded-[17px]",
-            "overflow-hidden bg-gradient-to-b from-white/20 to-white/10 ",
-          )}
+          className={cn("overflow-hidden", {
+            "rounded-[28px]": size === "lg",
+            "rounded-[18px]": size === "md",
+            "rounded-[16px]": size === "sm",
+          })}
         >
           {children}
         </div>
