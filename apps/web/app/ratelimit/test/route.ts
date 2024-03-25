@@ -18,14 +18,14 @@ export const POST = async (req: Request): Promise<Response> => {
     .parse(await req.json());
 
   const unkeySync = new UnkeyRatelimit({
-    namespace: "ratelimit-demo",
+    namespace: "ratelimit-demo-sync",
     rootKey: env().RATELIMIT_DEMO_ROOT_KEY!,
     limit,
     duration,
     async: false,
   });
   const unkeyAsync = new UnkeyRatelimit({
-    namespace: "ratelimit-demo",
+    namespace: "ratelimit-demo-async",
     rootKey: env().RATELIMIT_DEMO_ROOT_KEY!,
     limit,
     duration,

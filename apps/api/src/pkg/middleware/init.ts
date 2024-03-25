@@ -23,7 +23,9 @@ import { RBAC } from "@unkey/rbac";
  * Use the hono context for that.
  */
 import type { MiddlewareHandler } from "hono";
+import { Cache } from "../cache/interface";
 import { CacheNamespaces } from "../cache/namespaces";
+import { SwrCache } from "../cache/swr";
 import { HonoEnv } from "../hono/env";
 
 /**
@@ -80,28 +82,33 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopRateLimiter();
 
-    const cache = new TieredCache<CacheNamespaces>(
-      CacheWithTracing.wrap(
-        CacheWithMetrics.wrap(new MemoryCache<CacheNamespaces>(cacheMap), metrics),
+    const cache: Cache<CacheNamespaces> = CacheWithMetrics.wrap(
+      new TieredCache<CacheNamespaces>(
+        CacheWithTracing.wrap(
+          CacheWithMetrics.wrap(new MemoryCache<CacheNamespaces>(cacheMap), metrics),
+        ),
+        c.env.CLOUDFLARE_ZONE_ID && c.env.CLOUDFLARE_API_KEY
+          ? CacheWithTracing.wrap(
+              CacheWithMetrics.wrap(
+                new ZoneCache({
+                  domain: "cache.unkey.dev",
+                  zoneId: c.env.CLOUDFLARE_ZONE_ID,
+                  cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
+                }),
+                metrics,
+              ),
+            )
+          : undefined,
       ),
-      c.env.CLOUDFLARE_ZONE_ID && c.env.CLOUDFLARE_API_KEY
-        ? CacheWithTracing.wrap(
-            CacheWithMetrics.wrap(
-              new ZoneCache({
-                domain: "cache.unkey.dev",
-                zoneId: c.env.CLOUDFLARE_ZONE_ID,
-                cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
-              }),
-              metrics,
-            ),
-          )
-        : undefined,
+      metrics,
     );
+
+    const swrCache = new SwrCache(cache);
 
     const rbac = new RBAC();
     const keyService = new KeyService({
       rbac,
-      cache,
+      cache: swrCache,
       logger,
       db,
       metrics,
@@ -118,7 +125,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       usageLimiter,
       rateLimiter,
       analytics,
-      cache,
+      cache: swrCache,
       keyService,
     });
 
