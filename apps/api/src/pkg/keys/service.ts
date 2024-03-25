@@ -128,6 +128,7 @@ export class KeyService {
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
             edgeRegion: "",
+            ownerId: res.val.key.ownerId ?? undefined,
             // @ts-expect-error - the cf object will be there on cloudflare
             region: c.req.raw?.cf?.colo ?? "",
           }),

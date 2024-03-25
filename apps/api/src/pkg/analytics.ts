@@ -137,6 +137,7 @@ export class Analytics {
         ratelimited: z.boolean().default(false),
         // deprecated, use deniedReason
         usageExceeded: z.boolean().default(false),
+        ownerId: z.string().optional(),
       }),
     });
   }
