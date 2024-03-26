@@ -1,9 +1,11 @@
-NODE aggregate
+VERSION 1
+NODE key_verifications_pipe_8204_0
 SQL >
 
     SELECT
         workspaceId,
         apiId,
+        ownerId,
         keyId,
         countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
         countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
@@ -13,12 +15,11 @@ SQL >
     GROUP BY
         workspaceId,
         apiId,
+        ownerId,
         keyId,
         time
 
 TYPE materialized
-DATASOURCE verifications_monthly_mv
-ENGINE "AggregatingMergeTree"
-ENGINE_PARTITION_KEY "toYYYYMM(time)"
-ENGINE_SORTING_KEY "workspaceId, apiId, keyId, time"
-ENGINE_TTL "time + toIntervalDay(365)"
+DATASOURCE mv__verifications_for_analytics_monthly__v1
+
+

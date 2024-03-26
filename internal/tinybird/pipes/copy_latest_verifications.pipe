@@ -1,0 +1,10 @@
+NODE copy
+SQL >
+
+    SELECT time, requestedResource, ratelimited, region, ipAddress, usageExceeded, userAgent, workspaceId, apiId, keyId
+    FROM key_verifications
+
+TYPE materialized
+DATASOURCE mv__latest_verifications
+
+
