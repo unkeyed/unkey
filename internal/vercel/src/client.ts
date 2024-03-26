@@ -1,4 +1,4 @@
-import { Err, FetchError, Result } from "@unkey/error";
+import { Err, FetchError, Ok, Result } from "@unkey/error";
 import { z } from "zod";
 
 type VercelErrorResponse = {
@@ -73,8 +73,7 @@ export class Vercel {
         );
       }
       const body = await res.json();
-      // @ts-ignore
-      return result.success(body);
+      return Ok(body);
     } catch (e) {
       return Err(
         new FetchError((e as Error).message, {
