@@ -97,7 +97,7 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1KeysGetVerificationsResponse = z.infer<
+export type V1AnalyticsGetVerificationsResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 export const registerV1AnalyticsGetByOwnerId = (app: App) =>
@@ -217,7 +217,6 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
       start: start ? parseInt(start) : undefined,
       end: end ? parseInt(end) : undefined,
     });
-    // console.log(verificationsFromAllKeys);
     const verifications: {
       [time: number]: {
         time: number;
@@ -226,9 +225,8 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
         usageExceeded: number;
       };
     } = {};
-    for (const dataPoint of verificationsFromAllKeys.data) {
+    for (const dataPoint of verificationsFromAllKeys.data.sort((a, b) => a.time - b.time)) {
       if (!verifications[dataPoint.time]) {
-        console.log(dataPoint.time);
         verifications[dataPoint.time] = {
           time: dataPoint.time,
           success: 0,
@@ -267,10 +265,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
       })),
       verificationsByDate: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
-          time:
-            granularity === "daily"
-              ? new Date(parseInt(time)).toISOString().split("T")[0]
-              : new Date(parseInt(time)).toUTCString(),
+          time: new Date(parseInt(time)).toISOString(),
           success,
           rateLimited,
           usageExceeded,

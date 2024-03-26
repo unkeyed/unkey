@@ -17,7 +17,8 @@
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
     "bump-versions": "pnpm changeset version && pnpm install",
-    "knip": "knip --include files,dependencies"
+    "knip": "knip --include files,dependencies",
+    "nuke": "rm -rf ./**/node_modules; rm -rf ./**/.next; rm -rf ./**/.turbo; rm -rf ./**/dist; rm -rf ./**/pnpm-lock.yaml; rm -rf ./**/yarn.lock; rm -rf ./**/.output; rm -rf ./**/.contentlayer; rm -rf ./**/.next; rm -rf ./**/.react-email; rm -rf ./**/.wrangler; rm -rf ./**/.vitest"
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",

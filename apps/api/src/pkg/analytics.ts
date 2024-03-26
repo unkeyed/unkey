@@ -162,7 +162,7 @@ export class Analytics {
   }
   public get getVerificationsByOwnerIdHourly() {
     return this.client.buildPipe({
-      pipe: "endpoint__verifications_with_ownerId_hourly__v1",
+      pipe: "endpoint__verifications_analytics_by_workspaceId_hourly__v1",
       parameters: z.object({
         workspaceId: z.string(),
         ownerId: z.string(),
@@ -180,7 +180,7 @@ export class Analytics {
   }
   public get getVerificationsByOwnerIdDaily() {
     return this.client.buildPipe({
-      pipe: "endpoint__verifications_with_ownerId_daily__v1",
+      pipe: "endpoint__verifications_analytics_by_workspaceId_daily__v1",
       parameters: z.object({
         workspaceId: z.string(),
         ownerId: z.string(),
@@ -198,7 +198,7 @@ export class Analytics {
   }
   public get getVerificationsByOwnerIdWeekly() {
     return this.client.buildPipe({
-      pipe: "endpoint__verifications_with_ownerId_weekly__v1",
+      pipe: "endpoint__verifications_analytics_by_workspace_weekly__v1",
       parameters: z.object({
         workspaceId: z.string(),
         ownerId: z.string(),
@@ -216,7 +216,7 @@ export class Analytics {
   }
   public get getVerificationsByOwnerIdMonthly() {
     return this.client.buildPipe({
-      pipe: "endpoint__verifications_with_ownerId_monthly__v1",
+      pipe: "endpoint__verifications_analytics_by_workspace_monthly__v1",
       parameters: z.object({
         workspaceId: z.string(),
         ownerId: z.string(),
