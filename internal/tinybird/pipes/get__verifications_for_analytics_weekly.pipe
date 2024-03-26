@@ -5,7 +5,7 @@ SQL >
     SELECT
         workspaceId,
         apiId,
-        ownerId,
+        ifNull(ownerId, '') as ownerId,
         keyId,
         countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
         countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,

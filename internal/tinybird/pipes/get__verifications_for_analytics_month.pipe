@@ -5,13 +5,13 @@ SQL >
     SELECT
         workspaceId,
         apiId,
-        ownerId,
+        ifNull(ownerId, '') as ownerId,
         keyId,
         countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
         countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
         countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded,
         toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time
-    FROM key_verifications
+    FROM key_verifications__v2
     GROUP BY
         workspaceId,
         apiId,
