@@ -21,6 +21,8 @@ To use our rate limit feature, you can use our API directly, an existing package
 Firstly, you will want to configure the ratelimiter. Unkey uses namespaces to allow you to separate different parts of your application and have isolated limits for them. If the namespace doesn't exist, we will create it with the first request. For example, each of your tRPC routes could be a namespace. In this example, we use our `ai.generate` route.
 
 ```tsx
+import { Ratelimit } from "@unkey/ratelimit"
+
 const unkey = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY,
   namespace: "ai.generate",
@@ -63,10 +65,7 @@ You can enable async requests, which will sacrifice minimal accuracy and improve
 
 ```tsx
 const unkey = new Ratelimit({
-  rootKey: process.env.UNKEY_ROOT_KEY,
-  namespace: "ai.generate",
-  limit: 10,
-  duration: "30s",
+  // ...
   async: true,
 });
 ```
