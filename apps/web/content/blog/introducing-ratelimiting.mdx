@@ -3,7 +3,10 @@ date: 2024-03-25
 title: Introducing standalone ratelimiting
 description:
 author: james
+image: "/images/blog-images/ratelimiting/ratelimit-cover.png"
 ---
+
+<Image src="/images/blog-images/ratelimiting/ratelimit-cover.png" alt="Unkey Funding 1.5 million" width="1920" height="1080"/>
 
 Today, we are introducing standalone ratelimiting. With this feature, you can rate limit anything while still leveraging the power of Unkey. Our ratelimiting feature works similarly to our keys, providing low global latency and detailed analytics. Moreover, you can configure overrides for specific identifiers, giving you more flexibility.
 
@@ -42,21 +45,21 @@ async function handler(request) {
 }
 ```
 
-### Advanced usage
+## Advanced usage
 
 Our ratelimiting offering offers additional options to provide more advanced configurations, including cost, async requests, and resource audit logging. We also provide configurable overrides in the dashboard so specific resources with an identifier can have limits without adding additional code.
 
-**Overrides**
+### Overrides
 
 Configurable overrides allow you to tell Unkey how to handle specific identifiers. For example, you may have a user or an IP that requires higher limits than your normal flows. Instead of having to write logic into your application, you can set the identifier in the dashboard, and we will handle it for you.
 
 <Image src="/images/blog-images/ratelimiting/overrides.png" alt="Overrides example" width="1920" height="1080"/>
 
-**async requests**
+### async requests
 
 You can enable async requests, which will sacrifice minimal accuracy and improve the latency even further. Our accuracy when using async requests is around 97%, but we can reduce the latency over a synchronous request by 30ms. You can enable this in the configuration or for specific usage of the rate limiter.
 
-Ratelimit configuriation
+**Ratelimit configuriation**
 
 ```tsx
 const unkey = new Ratelimit({
@@ -68,7 +71,7 @@ const unkey = new Ratelimit({
 });
 ```
 
-**usage of the ratelimit**
+**Using the ratelimiter**
 
 ```tsx
 async function handler(request: NextApiRequest) {
@@ -84,7 +87,7 @@ async function handler(request: NextApiRequest) {
 }
 ```
 
-**Cost configuration**
+### Cost configuration
 
 Sometimes, you may have an expensive resource. We allow you to set a cost for the request, and we will deduct that cost from the current window and reject a request if it exceeds the allowed amount. For example:
 
@@ -104,7 +107,7 @@ async function handler(request: NextApiRequest) {
 
 This request would now cost 4 tokens versus 1, allowing you to be flexible about handling the expensive resources in your application.
 
-Resource Audit logging
+### Resource Audit logging
 
 Unkey provides audit logging out of the box at no additional cost to you. In cases where you want to create a paper trail, you can do by providing the ratelimit request with resource details, for example:
 
@@ -154,4 +157,4 @@ Speaking of rich analytics, we provide rich analytical data that can filter arou
 
 <Image src="/images/blog-images/ratelimiting/top-analytics.png" alt="Top identifiers" width="1920" height="1080"/>
 
-If you are ready to start with our ratelimiter built for the modern web, check out our documentation. If you want to see how we implemented this, check out our GitHub repository!
+If you are ready to start with our ratelimiter built for the modern web, check out our [documentation](https://unkey.dev/docs/ratelimiting/introduction) or our [new template to get you started](https://unkey.dev/templates/ratelimit-nextjs). If you want to see how we implemented this, check out our [GitHub repository](https://github.com/unkeyed/unkey!
