@@ -33,8 +33,8 @@ export class Vercel {
     opts?: { cache?: RequestCache; revalidate?: number };
     body?: unknown;
   }): Promise<Result<TResult, FetchError>> {
+    const url = new URL(req.path.join("/"), this.baseUrl);
     try {
-      const url = new URL(req.path.join("/"), this.baseUrl);
       if (req.parameters) {
         for (const [key, value] of Object.entries(req.parameters)) {
           if (typeof value === "undefined" || value === null) {
@@ -79,6 +79,10 @@ export class Vercel {
       return Err(
         new FetchError((e as Error).message, {
           retry: true,
+          context: {
+            url: url.toString(),
+            method: req.method,
+          },
         }),
       );
     }
