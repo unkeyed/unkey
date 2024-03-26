@@ -18,8 +18,8 @@ export const interval = {
   "30d": "Last 30 Days",
   "90d": "Last 3 Months",
 } as const;
-const apiIdSelect: { x: string; y: string }[] = [];
-const ownerIdSelect: { x: string; y: string }[] = [];
+const _apiIdSelect: { x: string; y: string }[] = [];
+const _ownerIdSelect: { x: string; y: string }[] = [];
 
 export type Interval = keyof typeof interval;
 export type OwnerId = string;
