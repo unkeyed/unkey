@@ -102,8 +102,7 @@ export class Vercel {
     if (res.err) {
       return res;
     }
-    // @ts-ignore
-    return result.success(res.value.projects);
+    return Ok(res.val.projects);
   }
 
   public async upsertEnvironmentVariable(
