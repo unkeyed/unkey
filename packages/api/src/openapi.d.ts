@@ -1078,11 +1078,6 @@ export interface paths {
               [key: string]: unknown;
             };
             /**
-             * @description Not implemented yet
-             * @enum {string}
-             */
-            sharding?: "edge";
-            /**
              * @description Resources that are about to be accessed by the user
              * @example [
              *   {
