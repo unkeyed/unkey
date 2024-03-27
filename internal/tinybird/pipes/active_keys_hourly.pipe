@@ -5,10 +5,16 @@ SQL >
     SELECT
         workspaceId,
         apiId,
-        countState() AS count,
+        keyId,
         toStartOfHour(fromUnixTimestamp64Milli(time)) AS time
     FROM key_verifications
     GROUP BY
         workspaceId,
         apiId,
+        keyId,
         time
+
+TYPE materialized
+DATASOURCE active_keys_hourly_mv
+
+
