@@ -107,7 +107,7 @@ export default async function Page() {
               as a powerful tool, continuously evolving to meet the dynamic needs of a worldwide
               developer community
             </p>
-            <div className="absolute scale-[2] bottom-[-350px]">
+            <div className="absolute scale-[1.5] bottom-[-350px]">
               <AboutLight />
             </div>
           </div>
@@ -120,7 +120,7 @@ export default async function Page() {
           contentWidth={640}
           text="We grew in number, and we love that. Here are some of our precious moments. Although we collaborate as a fully remote team, occasionally we unite!"
         />
-        <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6 mt-[0px]">
+        <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
           <div className="image w-[200px] h-[400px] rounded-lg relative">
             <PhotoLabel
               className="absolute bottom-[40px] left-[calc(50%-40px)]"
@@ -212,8 +212,8 @@ export default async function Page() {
             align="center"
             text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
           />
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="text-white mt-[88px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
+          <div className="mx-auto px-6 lg:px-8">
+            <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
               {Array.from({ length: 6 }).map(() => {
                 return (
                   <div className="flex flex-col justify-center items-center p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
@@ -239,8 +239,8 @@ export default async function Page() {
             titleWidth={640}
             text="Take a peek into the minds behind Unkey. Here, our founders share their thoughts and stories, giving you a glimpse into what drives us forward."
           />
-          <div className="border-[0.75px] border-white/10 mt-[104px] leading-7 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[832px] flex flex-col justify-center items-center">
-            <p>
+          <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
+            <p className="about-founders-text-gradient">
               Nice to meet you! We're James and Andreas. We crossed paths while working together at
               a leading tech firm, where James led the design team, and Andreas was instrumental in
               developing cutting-edge design systems. It was there that the seeds were sown for what
