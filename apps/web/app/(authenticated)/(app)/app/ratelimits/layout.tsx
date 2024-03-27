@@ -33,7 +33,7 @@ export default async function AuthorizationLayout({
 
   return (
     <>
-      <Banner>
+      <Banner persistChoice="ratelimit_ui">
         <p className="text-xs text-center">
           The Ratelimiting UI is still in development. Please{" "}
           <Link href="mailto:support@unkey.dev" className="underline">
