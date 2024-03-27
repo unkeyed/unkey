@@ -49,7 +49,7 @@ export default async function AuthorizationLayout({
 
   return (
     <div>
-      <Banner>
+      <Banner persistChoice="rbac_alpha">
         <p className="text-xs text-center">
           RBAC is in alpha, feel free to play around, but this is not production ready yet. Please{" "}
           <Link href="mailto:support@unkey.dev" className="underline">
