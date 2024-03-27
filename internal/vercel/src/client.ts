@@ -1,4 +1,4 @@
-import { Err, FetchError, Result } from "@unkey/error";
+import { Err, FetchError, Ok, Result } from "@unkey/error";
 import { z } from "zod";
 
 type VercelErrorResponse = {
@@ -33,8 +33,8 @@ export class Vercel {
     opts?: { cache?: RequestCache; revalidate?: number };
     body?: unknown;
   }): Promise<Result<TResult, FetchError>> {
+    const url = new URL(req.path.join("/"), this.baseUrl);
     try {
-      const url = new URL(req.path.join("/"), this.baseUrl);
       if (req.parameters) {
         for (const [key, value] of Object.entries(req.parameters)) {
           if (typeof value === "undefined" || value === null) {
@@ -73,12 +73,15 @@ export class Vercel {
         );
       }
       const body = await res.json();
-      // @ts-ignore
-      return result.success(body);
+      return Ok(body);
     } catch (e) {
       return Err(
         new FetchError((e as Error).message, {
           retry: true,
+          context: {
+            url: url.toString(),
+            method: req.method,
+          },
         }),
       );
     }
@@ -99,8 +102,7 @@ export class Vercel {
     if (res.err) {
       return res;
     }
-    // @ts-ignore
-    return result.success(res.value.projects);
+    return Ok(res.val.projects);
   }
 
   public async upsertEnvironmentVariable(
