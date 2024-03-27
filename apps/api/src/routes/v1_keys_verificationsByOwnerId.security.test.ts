@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { type V1AnalyticsGetVerificationsResponse } from "./v1_analytics_getByOwnerId";
+import { type V1AnalyticsGetVerificationsResponse } from "./v1_keys_verificationsByOwnerId";
 
 runCommonRouteTests({
   prepareRequest: async (rh) => {
@@ -24,7 +24,7 @@ runCommonRouteTests({
     });
     return {
       method: "GET",
-      url: `/v1/analytics.getByOwnerId?ownerId=${ownerId}`,
+      url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}`,
     };
   },
 });
@@ -67,7 +67,7 @@ describe("correct roles", () => {
       );
 
       const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-        url: `/v1/analytics.getByOwnerId?ownerId=${ownerId}`,
+        url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}`,
         headers: {
           Authorization: `Bearer ${root.key}`,
         },
@@ -88,40 +88,20 @@ test("cannot read keys from a different workspace", async (t) => {
     features: {},
     betaFeatures: {},
   });
-  const workspaceId2 = newId("workspace");
-  await h.db.insert(schema.workspaces).values({
-    id: workspaceId2,
-    tenantId: randomUUID(),
-    name: randomUUID(),
-    features: {},
-    betaFeatures: {},
-  });
+
   const keyAuthId = newId("keyAuth");
   await h.db.insert(schema.keyAuth).values({
     id: keyAuthId,
-    workspaceId: workspaceId,
-  });
-  const keyAuthId2 = newId("keyAuth");
-  await h.db.insert(schema.keyAuth).values({
-    id: keyAuthId2,
-    workspaceId: workspaceId2,
+    workspaceId,
   });
 
   const apiId = newId("api");
   await h.db.insert(schema.apis).values({
     id: apiId,
     name: randomUUID(),
-    workspaceId: workspaceId,
+    workspaceId,
     authType: "key",
     keyAuthId,
-  });
-  const apiId2 = newId("api");
-  await h.db.insert(schema.apis).values({
-    id: apiId2,
-    name: randomUUID(),
-    workspaceId: workspaceId2,
-    authType: "key",
-    keyAuthId: keyAuthId2,
   });
   const ownerId = randomUUID();
   const keyId = newId("key");
@@ -131,27 +111,27 @@ test("cannot read keys from a different workspace", async (t) => {
     keyAuthId: keyAuthId,
     hash: await sha256(key),
     start: key.slice(0, 8),
-    workspaceId: workspaceId,
+    workspaceId,
     createdAt: new Date(),
     ownerId,
   });
 
-  // const keyId2 = newId("key");
-  // const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  // await h.db.insert(schema.keys).values({
-  //   id: keyId2,
-  //   keyAuthId: h.resources.userKeyAuth.id,
-  //   hash: await sha256(key2),
-  //   start: key2.slice(0, 8),
-  //   workspaceId: workspaceId2,
-  //   createdAt: new Date(),
-  //   ownerId,
-  // });
+  const keyId2 = newId("key");
+  const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+  await h.db.insert(schema.keys).values({
+    id: keyId2,
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key2),
+    start: key2.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAt: new Date(),
+    ownerId,
+  });
 
-  const root = await h.createRootKey([`api.${apiId2}.read_key`]);
+  const root = await h.createRootKey([`api.${apiId}.read_key`]);
 
   const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-    url: `/v1/keys.getByOwnerId?ownerId=${ownerId}`,
+    url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },

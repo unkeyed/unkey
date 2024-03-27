@@ -4,7 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { expect, test } from "vitest";
-import { type V1AnalyticsGetVerificationsResponse } from "./v1_analytics_getByOwnerId";
+import { type V1AnalyticsGetVerificationsResponse } from "./v1_keys_verificationsByOwnerId";
 
 test("returns an empty verifications with OwnerId", async (t) => {
   const h = await RouteHarness.init(t);
@@ -22,7 +22,7 @@ test("returns an empty verifications with OwnerId", async (t) => {
   });
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
   const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-    url: `/v1/analytics.getByOwnerId?ownerId=${ownerId}`,
+    url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
@@ -61,7 +61,7 @@ test("with apiId worked", async (t) => {
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
 
   const res = await h.get<V1AnalyticsGetVerificationsResponse>({
-    url: `/v1/analytics.getByOwnerId?ownerId=${ownerId}&apiId=${h.resources.userApi.id}`,
+    url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}&apiId=${h.resources.userApi.id}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },

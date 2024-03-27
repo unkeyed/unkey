@@ -9,7 +9,7 @@ import { buildUnkeyQuery, unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
-  path: "/v1/analytics.getByOwnerId",
+  path: "/v1/keys.verificationsByOwnerId",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
@@ -100,7 +100,7 @@ export type Route = typeof route;
 export type V1AnalyticsGetVerificationsResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
-export const registerV1AnalyticsGetByOwnerId = (app: App) =>
+export const registerV1keysVerificationsByOwnerId = (app: App) =>
   app.openapi(route, async (c) => {
     const { ownerId, apiId, start, end, granularity } = c.req.query();
     // const rootKey = await rootKeyAuth(c);
