@@ -12,6 +12,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +34,7 @@ const formSchema = z.object({
     .int()
     .min(1_000)
     .max(24 * 60 * 60 * 1000),
+  async: z.enum(["unset", "sync", "async"]),
 });
 
 type Props = {
@@ -34,6 +42,7 @@ type Props = {
   defaultValues: {
     limit: number;
     duration: number;
+    async?: boolean;
   };
 };
 
@@ -41,10 +50,19 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     reValidateMode: "onChange",
-    defaultValues,
+    defaultValues: {
+      limit: defaultValues.limit,
+      duration: defaultValues.duration,
+      async:
+        typeof defaultValues.async === "undefined"
+          ? "unset"
+          : defaultValues.async
+            ? "async"
+            : "sync",
+    },
   });
 
-  const create = trpc.ratelimit.override.update.useMutation({
+  const update = trpc.ratelimit.override.update.useMutation({
     onSuccess() {
       toast.success("Limits have been updated", {
         description: "Changes may take up to 60s to propagate globally",
@@ -57,7 +75,16 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    create.mutate({ ...values, id: overrideId });
+    update.mutate({
+      id: overrideId,
+      limit: values.limit,
+      duration: values.duration,
+      async: {
+        unset: null,
+        sync: false,
+        async: true,
+      }[values.async],
+    });
   }
   const router = useRouter();
 
@@ -69,12 +96,12 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-5 gap-4">
             <FormField
               control={form.control}
               name="limit"
               render={({ field }) => (
-                <FormItem className="col-span-1">
+                <FormItem className="col-span-2">
                   <FormLabel>Limit</FormLabel>
                   <FormControl>
                     <Input {...field} className=" dark:focus:border-gray-700" />
@@ -90,7 +117,7 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
               control={form.control}
               name="duration"
               render={({ field }) => (
-                <FormItem className="col-span-1">
+                <FormItem className="col-span-2">
                   <FormLabel>Duration</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} className="dark:focus:border-gray-700" />
@@ -100,10 +127,33 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="async"
+              render={({ field }) => (
+                <FormItem className="col-span-1">
+                  <FormLabel>Async</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unset">Don't override</SelectItem>
+                      <SelectItem value="async">Async</SelectItem>
+                      <SelectItem value="sync">Sync</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Override the mode, async is faster but slightly less accurate.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button disabled={create.isLoading || !form.formState.isValid} type="submit">
-              {create.isLoading ? <Loading /> : "Save"}
+            <Button disabled={update.isLoading || !form.formState.isValid} type="submit">
+              {update.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </form>
