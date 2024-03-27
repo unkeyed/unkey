@@ -9,7 +9,6 @@ export function UsageBento() {
       <UsageSparkles className="absolute top-0" />
       <div className="relative top-[-42px]">
         <AnimatedList className="w-full">
-          <BillingItem icon={<PaymentsIcon />} text="Andreas collected payments" latency="2 s" />
           <BillingItem
             icon={<BillingIcon />}
             text="Unkey sent invoice to customers"
@@ -30,6 +29,7 @@ export function UsageBento() {
             text="Unkey verified and logged API key"
             latency="1 s"
           />
+          <BillingItem icon={<PaymentsIcon />} text="Andreas collected payments" latency="2 s" />
         </AnimatedList>
       </div>
       <UsageText />
