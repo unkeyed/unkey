@@ -250,7 +250,7 @@ export default async function RatelimitNamespacePage(props: {
           <CardContent>
             <StackedBarChart
               colors={["primary", "warn"]}
-              data={identifiers.data.flatMap(({ identifier, success, total }) => [
+              data={identifiers.data.slice(0, 10).flatMap(({ identifier, success, total }) => [
                 {
                   x: success,
                   y: identifier,
