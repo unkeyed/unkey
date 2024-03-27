@@ -437,7 +437,6 @@ export class KeyService {
 
     const ratelimitStart = performance.now();
     try {
-      const t2 = performance.now();
       const res = await this.rateLimiter.limit(c, {
         identifier: key.id,
         limit: key.ratelimitRefillRate,
@@ -453,12 +452,6 @@ export class KeyService {
 
         return [false, undefined];
       }
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - t2,
-        identifier: key.id,
-        tier: "durable",
-      });
 
       return [
         res.val.pass,

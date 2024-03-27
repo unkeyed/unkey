@@ -34,7 +34,7 @@ export type CacheNamespaces = {
     usageExceeded: number;
   }[];
   ratelimitByIdentifier: {
-    namespace: RatelimitNamespace;
-    override?: RatelimitOverride;
+    namespace: Pick<RatelimitNamespace, "id" | "workspaceId">;
+    override?: Pick<RatelimitOverride, "async" | "duration" | "limit" | "sharding">;
   } | null;
 };
