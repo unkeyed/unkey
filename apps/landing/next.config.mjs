@@ -26,10 +26,6 @@ const nextConfig = {
       destination: "/:path*",
     },
     {
-      source: "/blog",
-      destination: `${APP_URL}/blog`,
-    },
-    {
       source: "/app/:path*",
       destination: `${APP_URL}/app/:path*`,
     },
