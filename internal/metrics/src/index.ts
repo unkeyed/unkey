@@ -53,6 +53,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.ratelimit"),
+    workspaceId: z.string(),
     namespaceId: z.string().optional(),
     identifier: z.string(),
     latency: z.number(),

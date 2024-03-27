@@ -436,6 +436,7 @@ export class KeyService {
     }
 
     const res = await this.rateLimiter.limit(c, {
+      workspaceId: key.workspaceId,
       identifier: key.id,
       limit: key.ratelimitRefillRate,
       interval: key.ratelimitRefillInterval,
