@@ -3,7 +3,7 @@ import { HeroMainSection } from "./hero/hero-main-section";
 
 export const Hero: React.FC = () => {
   return (
-    <div className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-[300px] sm:mt-[250px] xl:mt-[200px] ">
+    <div className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-[250px] sm:mt-[250px] xl:mt-[200px] ">
       <HeroMainSection />
       <YoutubeEmbed />
       <SubHeroMainboardStuff className="absolute hidden md:flex left-[400px] top-[250px]" />
