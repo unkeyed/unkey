@@ -68,8 +68,8 @@ export default async function Page() {
           </div>
         </div>
         <div className="mt-[120px]">
-          <Link href="/careers" target="">
-            <RainbowDarkButton label="We are hiring!" IconRight={ArrowRight} />
+          <Link href="https://unkey.dev/blog/introducing-ratelimiting" target="">
+            <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
           </Link>
           <SectionTitle
             title="API auth for fast and scalable software"
