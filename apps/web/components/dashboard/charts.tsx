@@ -49,7 +49,7 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
       autoFit={true}
       data={data}
       smooth={true}
-      // padding={[20, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       color={color}
@@ -210,7 +210,7 @@ export const StackedColumnChart: React.FC<{
       seriesField="category"
       autoFit={true}
       data={data}
-      padding={padding ?? [40, 40, 50, 40]}
+      padding={padding ?? "auto"}
       xField="x"
       yField="y"
       legend={{
@@ -222,6 +222,10 @@ export const StackedColumnChart: React.FC<{
           enable: false,
         },
       ]}
+      label={{
+        formatter: (d) =>
+          d.y > 0 ? Intl.NumberFormat(undefined, { notation: "compact" }).format(d.y) : "",
+      }}
       connectedArea={{
         style: (oldStyle, _element) => {
           return {
@@ -261,6 +265,9 @@ export const StackedColumnChart: React.FC<{
             stroke: axisColor,
           },
         },
+      }}
+      columnStyle={{
+        radius: 2,
       }}
       yAxis={{
         tickCount: 5,
@@ -302,7 +309,8 @@ export const StackedBarChart: React.FC<{
       seriesField="category"
       autoFit={true}
       data={data}
-      padding={[40, 50, 40, 120]}
+      padding="auto"
+      // padding={[40, 50, 40, 120]}
       xField="x"
       yField="y"
       legend={{
@@ -312,7 +320,10 @@ export const StackedBarChart: React.FC<{
         formatter: (d) =>
           d.x > 0 ? Intl.NumberFormat(undefined, { notation: "compact" }).format(d.x) : "",
       }}
-      maxBarWidth={16}
+      barStyle={{
+        radius: 2,
+      }}
+      maxBarWidth={20}
       yAxis={{
         label: {
           formatter: (v: string) => {
