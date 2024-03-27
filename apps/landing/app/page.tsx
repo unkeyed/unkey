@@ -146,7 +146,7 @@ export default async function Landing() {
         </div>
         <FeatureGrid className="relative z-50 mt-20" />
         <div className="relative -z-10">
-          <FeatureGridChip className="absolute top-[-90px] left-[400px]" />
+          <FeatureGridChip className="absolute top-[50px] left-[400px]" />
         </div>
         <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
           <div className="flex space-x-6 ">
