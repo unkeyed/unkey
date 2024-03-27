@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { match } from "@/pkg/util/wildcard";
 import { RatelimitNamespace, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -150,13 +151,19 @@ export const registerV1RatelimitLimit = (app: App) =>
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
               eq(table.name, req.namespace),
             ),
+          columns: {
+            id: true,
+            workspaceId: true,
+          },
           with: {
             overrides: {
-              where: (table, { eq, and }) =>
-                and(
-                  eq(table.workspaceId, rootKey.authorizedWorkspaceId),
-                  eq(table.identifier, req.identifier),
-                ),
+              columns: {
+                identifier: true,
+                async: true,
+                limit: true,
+                duration: true,
+                sharding: true,
+              },
             },
           },
         });
@@ -201,9 +208,30 @@ export const registerV1RatelimitLimit = (app: App) =>
             namespace,
           };
         }
+
+        const exactMatch = dbRes.overrides.find((o) => o.identifier === req.identifier);
+        if (exactMatch) {
+          return {
+            namespace: dbRes,
+            override: exactMatch,
+          };
+        }
+        const wildcardMatch = dbRes.overrides.find((o) => {
+          if (!o.identifier.includes("*")) {
+            return false;
+          }
+          return match(o.identifier, req.identifier);
+        });
+        if (wildcardMatch) {
+          return {
+            namespace: dbRes,
+            override: wildcardMatch,
+          };
+        }
+
         return {
           namespace: dbRes,
-          override: dbRes.overrides.at(0),
+          override: undefined,
         };
       },
     );
