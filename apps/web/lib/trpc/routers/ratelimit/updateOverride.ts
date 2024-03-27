@@ -12,6 +12,7 @@ export const updateOverride = t.procedure
       id: z.string(),
       limit: z.number(),
       duration: z.number(),
+      async: z.boolean().nullable(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -47,6 +48,7 @@ export const updateOverride = t.procedure
         limit: input.limit,
         duration: input.duration,
         updatedAt: new Date(),
+        async: input.async,
       })
       .where(eq(schema.ratelimitOverrides.id, override.id));
     await ingestAuditLogs({

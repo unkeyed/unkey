@@ -1,5 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { getRatelimitLastUsed } from "@/lib/tinybird";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
@@ -13,45 +21,63 @@ type Props = {
     identifier: string;
     limit: number;
     duration: number;
+    async: boolean | null;
   }[];
 };
 
-export const Table: React.FC<Props> = async ({ workspaceId, namespaceId, ratelimits }) => {
+export const Overrides: React.FC<Props> = async ({ workspaceId, namespaceId, ratelimits }) => {
   return (
-    <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
-      {ratelimits.map((rl) => (
-        <Link
-          href={`/app/ratelimits/${namespaceId}/overrides/${rl.id}`}
-          key={rl.id}
-          className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
-        >
-          <div className="flex flex-col items-start col-span-5 ">
-            <span className="text-sm text-content">{rl.identifier}</span>
-            <pre className="text-xs text-content-subtle">{rl.id}</pre>
-          </div>
+    <Table className="no-scrollbar">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Identifier</TableHead>
+          <TableHead>Limits</TableHead>
+          <TableHead>Async</TableHead>
+          <TableHead>Last used</TableHead>
+          <TableHead />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {ratelimits.map((rl) => (
+          <TableRow>
+            <TableCell key={rl.id}>
+              <div className="flex flex-col items-start ">
+                <span className="text-sm text-content">{rl.identifier}</span>
+                <pre className="text-xs text-content-subtle">{rl.id}</pre>
+              </div>
+            </TableCell>
 
-          <div className="flex items-center col-span-4 gap-2">
-            <Badge variant="secondary">{Intl.NumberFormat().format(rl.limit)} requests</Badge>
-            <span className="text-content-subtle">/</span>
-            <Badge variant="secondary">{ms(rl.duration)}</Badge>
-          </div>
-
-          <div className="flex items-center col-span-2 gap-2">
-            <LastUsed
-              workspaceId={workspaceId}
-              namespaceId={namespaceId}
-              identifier={rl.identifier}
-            />
-          </div>
-
-          <div className="flex items-center justify-end col-span-1">
-            <Button variant="ghost">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </Link>
-      ))}
-    </ul>
+            <TableCell className="flex items-center gap-2">
+              <Badge variant="secondary">{Intl.NumberFormat().format(rl.limit)} requests</Badge>
+              <span className="text-content-subtle">/</span>
+              <Badge variant="secondary">{ms(rl.duration)}</Badge>
+            </TableCell>
+            <TableCell>
+              {rl.async === null ? (
+                <Minus className="w-4 h-4 text-content-subtle" />
+              ) : (
+                <Badge variant="secondary">{rl.async ? "async" : "sync"}</Badge>
+              )}
+            </TableCell>
+            <TableCell>
+              <LastUsed
+                workspaceId={workspaceId}
+                namespaceId={namespaceId}
+                identifier={rl.identifier}
+              />
+            </TableCell>
+            <TableCell className="flex justify-end">
+              <Link href={`/app/ratelimits/${namespaceId}/overrides/${rl.id}`}>
+                <Button variant="ghost">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </TableCell>
+            {/* </Link> */}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 };
 
