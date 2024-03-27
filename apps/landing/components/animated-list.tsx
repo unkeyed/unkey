@@ -45,8 +45,6 @@ export const AnimatedList = React.memo(
       return childrenArray.slice(0, index + 1).reverse();
     }, [index, childrenArray]);
 
-    console.log(index, itemsToShow);
-
     return (
       <div className={`flex flex-col items-center gap-4 ${className}`} ref={ref}>
         <AnimatePresence>
