@@ -111,6 +111,7 @@ export class DurableRateLimiter implements RateLimiter {
         this.setCacheMax(id, res.val.current);
 
         this.metrics.emit({
+          workspaceId: req.workspaceId,
           metric: "metric.ratelimit.accuracy",
           identifier: req.identifier,
           namespaceId: req.namespaceId,
