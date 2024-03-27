@@ -5,11 +5,11 @@ import { RouteHarness } from "src/pkg/testutil/route-harness";
 
 test("when the ownerId does not exist", async (t) => {
   const h = await RouteHarness.init(t);
-  const ownerId = crypto.randomUUID();
+  const ownerId = "Test_Not_Found";
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
 
   const res = await h.get<ErrorResponse>({
-    url: `/v1/analytics.getByOwnerId?ownerId=${ownerId}`,
+    url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
@@ -26,7 +26,7 @@ test("without ownerId", async (t) => {
   const h = await RouteHarness.init(t);
   const { key } = await h.createRootKey(["*"]);
   const res = await h.get<ErrorResponse>({
-    url: "/v1/analytics.getByOwnerId",
+    url: "/v1/keys.verificationsByOwnerId",
     headers: {
       Authorization: `Bearer ${key}`,
     },

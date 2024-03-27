@@ -165,7 +165,12 @@ export const registerV1keysVerificationsByOwnerId = (app: App) =>
         };
       });
     });
-
+    if (keys.val?.length === 0) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `ownerId ${ownerId} not found`,
+      });
+    }
     if (keys.err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
