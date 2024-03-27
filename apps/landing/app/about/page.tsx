@@ -37,12 +37,14 @@ const investors = [
   { name: "Allison Pickets", firm: "The New Normal Fund", image: allison },
 ];
 
+const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
+
 export default async function Page() {
-  const posts = (await getAllMDXData({ contentPath: BLOG_PATH }))
+  const selectedPosts = (await getAllMDXData({ contentPath: BLOG_PATH }))
     .sort((a, b) => {
       return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
     })
-    .slice(0, 3);
+    .filter((post) => SELECTED_POSTS.includes(post.slug));
 
   return (
     <Container>
@@ -279,21 +281,27 @@ export default async function Page() {
                 collapsible
                 className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
               >
-                <AccordionItem value="item-1">
+                <AccordionItem
+                  value="item-1"
+                  className="border border-white/10 rounded-tr-[20px] rounded-tl-[20px]"
+                >
                   <AccordionTriggerAbout>What's your goal with Unkey?</AccordionTriggerAbout>
-                  <AccordionContent>TBC</AccordionContent>
+                  <AccordionContent className="pl-10">TBC</AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-2">
+                <AccordionItem value="item-2" className="border border-white/10">
                   <AccordionTriggerAbout>
                     What's something you're particularly happy about at Unkey?
                   </AccordionTriggerAbout>
-                  <AccordionContent>TBC</AccordionContent>
+                  <AccordionContent className="pl-10">TBC</AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-3">
+                <AccordionItem
+                  value="item-3"
+                  className="border border-white/10 rounded-br-[20px] rounded-bl-[20px]"
+                >
                   <AccordionTriggerAbout>
                     What's something you're less happy about?
                   </AccordionTriggerAbout>
-                  <AccordionContent>TBC</AccordionContent>
+                  <AccordionContent className="pl-10">TBC</AccordionContent>
                 </AccordionItem>
               </Accordion>
             </div>
@@ -335,7 +343,7 @@ export default async function Page() {
               text="Explore insights, tips, and updates directly from our team members"
             />
             <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
-              {posts.map((post) => {
+              {selectedPosts.map((post) => {
                 return (
                   <BlogCard
                     tags={post.frontmatter.tags?.toString()}
