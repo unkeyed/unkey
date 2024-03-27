@@ -97,7 +97,7 @@ export default async function Landing() {
           <UsageBento />
         </div>
         <div className="relative w-full -z-10">
-          <OssLight className="absolute left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[400px] top-[-200px]" />
+          <OssLight className="absolute scale-[2] left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-250px]" />
         </div>
         <SectionTitle
           className="mt-[300px]"
