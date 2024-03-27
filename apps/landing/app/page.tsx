@@ -126,7 +126,7 @@ export default async function Landing() {
         </div>
         <div className="relative">
           {/* TODO: horizontal scroll */}
-          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-100px]" />
+          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-150px] lg:right-[880px]" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
             title="Leveled-up API management"
@@ -146,7 +146,7 @@ export default async function Landing() {
         </div>
         <FeatureGrid className="relative z-50 mt-20" />
         <div className="relative -z-10">
-          <FeatureGridChip className="absolute top-[-90px]" />
+          <FeatureGridChip className="absolute top-[-90px] left-[400px]" />
         </div>
         <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
           <div className="flex space-x-6 ">
