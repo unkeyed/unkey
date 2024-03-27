@@ -68,7 +68,7 @@ const route = createRoute({
                 ),
               }),
             ),
-            verificationsByDate: z.array(
+            verifications: z.array(
               z.object({
                 time: z.string().openapi({
                   description: "The timestamp of the usage data",
@@ -103,6 +103,12 @@ export type V1AnalyticsGetVerificationsResponse = z.infer<
 export const registerV1AnalyticsGetByOwnerId = (app: App) =>
   app.openapi(route, async (c) => {
     const { ownerId, apiId, start, end, granularity } = c.req.query();
+    if (ownerId === undefined || ownerId === null || ownerId === "") {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "OwnerId must be provided",
+      });
+    }
     const { analytics, cache, db } = c.get("services");
     function getVerificationsByOwnerId(granularity: string, analytics: Analytics) {
       switch (granularity) {
@@ -127,6 +133,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
     }[] = [];
 
     //Get all keys by ownerId and optionally apiId
+
     const keys = await cache.withCache(c, "analyticsByOwnerId", ownerId, async () => {
       const dbRes = await db.query.keys.findMany({
         where: (table, { eq, and, isNull }) =>
@@ -144,6 +151,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
       if (!dbRes) {
         return [];
       }
+
       return dbRes.map((val) => {
         return {
           key: val,
@@ -159,13 +167,6 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
         message: `Unbable to load keys by ownerId: ${keys.err.message}`,
       });
     }
-    if (!keys.val) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: "No keys were found to match your query",
-      });
-    }
-
     keys.val.map((val) => {
       keysList.push({
         key: val.key,
@@ -174,13 +175,6 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
         roles: val.roles,
       });
     });
-
-    if (keysList.length === 0) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: "No keys were found to match your query",
-      });
-    }
 
     const apiIds = Array.from(new Set(keysList.map(({ api }) => api.id)));
 
@@ -203,7 +197,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const authorizedKeys = keysList.filter(({ api }) => api.workspaceId === authorizedWorkspaceId);
 
-    if (authorizedKeys.length === 0) {
+    if (!authorizedKeys) {
       throw new UnkeyApiError({
         code: "UNAUTHORIZED",
         message: "you are not allowed to access this workspace",
@@ -263,7 +257,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
         apiName,
         keys,
       })),
-      verificationsByDate: Object.entries(verifications).map(
+      verifications: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
           time: new Date(parseInt(time)).toISOString(),
           success,
