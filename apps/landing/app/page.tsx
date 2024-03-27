@@ -73,7 +73,7 @@ export default async function Landing() {
         className="flex md:hidden w-full absolute h-[300px] -z-10 "
         priority={true}
       />
-      <div className="container relative mx-auto">
+      <div className="max-w-full px-[80px] relative mx-auto">
         <Hero />
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
