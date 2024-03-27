@@ -20,6 +20,7 @@ import Link from "next/link";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs";
 import { Suspense } from "react";
 import { Filters } from "./filter";
+import { Menu } from "./menu";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -196,6 +197,9 @@ const AuditLogTable: React.FC<{
               </TableCell>
               <TableCell>
                 <pre className="text-xs text-content-subtle">{l.country} </pre>
+              </TableCell>
+              <TableCell>
+                <Menu namespace={{ id: namespaceId }} identifier={l.identifier} />
               </TableCell>
             </TableRow>
           ))}

@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CreateNewOverride } from "./create-new-override";
-import { Table } from "./table";
+import { Overrides } from "./table";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -31,6 +31,7 @@ export default async function OverridePage(props: Props) {
           identifier: true,
           limit: true,
           duration: true,
+          async: true,
         },
       },
 
@@ -58,6 +59,10 @@ export default async function OverridePage(props: Props) {
           </Badge>,
         ]}
       />
+      <CreateNewOverride namespaceId={namespace.id} />
+
+      <Separator className="my-8" />
+
       {namespace.overrides.length === 0 ? (
         <EmptyPlaceholder>
           <EmptyPlaceholder.Icon>
@@ -69,15 +74,12 @@ export default async function OverridePage(props: Props) {
           </EmptyPlaceholder.Description>
         </EmptyPlaceholder>
       ) : (
-        <Table
+        <Overrides
           workspaceId={namespace.workspace.id}
           namespaceId={namespace.id}
           ratelimits={namespace.overrides}
         />
       )}
-
-      <Separator className="my-8" />
-      <CreateNewOverride namespaceId={namespace.id} />
     </>
   );
 }
