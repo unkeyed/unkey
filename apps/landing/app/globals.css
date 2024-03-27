@@ -12,7 +12,7 @@
   background: linear-gradient(
     86deg,
     #fff 27.24%,
-    rgba(255, 255, 255, 0.3) 56.97%
+    rgba(255, 255, 255, 0.3) 66.97%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -440,14 +440,33 @@ li > p {
   background-image: radial-gradient(circle 250px at 22% 60%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
 }
 
-.placeholder-parallelogram {
-  width: 220px;
-  height: 100%;
-  opacity: 0.98;
-  /* background: rgba(255, 255, 255, 12%); */
-  transform: skew(-30deg); 
-  background-image: url('../images/p.svg');
-  background-position: 52%;
-  background-size: 600px 600px;
-  background-repeat: no-repeat;
+@media screen and (min-width: 768px) {
+
+  .about-image-grid .image:nth-child(3n) {
+    position: relative;
+    top: 200px;
+  }
+
+  .about-image-grid .image:nth-child(3n + 1) {
+    position: relative;
+    top: 200px;
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .about-image-grid .image:nth-child(3n),
+  .about-image-grid .image:nth-child(3n + 1) {
+    top: 0;
+  }
+
+  .about-image-grid .image:nth-child(2),
+  .about-image-grid .image:nth-child(4) {
+    height: 266px;
+  }
+
+  .about-image-grid .image:nth-child(7),
+  .about-image-grid .image:nth-child(9) {
+    position: relative;
+    top: -130px;
+  }
 }
