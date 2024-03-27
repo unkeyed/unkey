@@ -14,18 +14,18 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               <FeatureTitle>Multi-Cloud</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Seamlessly scale and distribute your services with multi-cloud support, allowing you
-              to use unkey with any cloud provider effortlessly.
+              Unkey works with any cloud provider, ensuring a fast global experience regardless of
+              your choice of infrastructure.
             </FeatureContent>
           </Feature>
           <Feature>
             <FeatureHeader>
               <FeatureIcon iconName="data" />
-              <FeatureTitle>Data Retention</FeatureTitle>
+              <FeatureTitle>Rate limiting</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Align data storage with compliance goals, customize retention for regulatory
-              requirements, and effortlessly maintain data integrity.
+              Protect your APIs with simple, configurable rate limiting. Unkey’s global rate
+              limiting requires zero setup and allows for custom configuration per customer.
             </FeatureContent>
           </Feature>
           <Feature>
@@ -34,28 +34,28 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               <FeatureTitle>API-first / UI-first</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Enjoy flexibility and control with both API and user-friendly UI access, ensuring a
-              smooth experience for developers and non-technical users alike.
+              Unkey is designed to be equally usable via its API and dashboard, ensuring a smooth
+              experience for developers and non-technical users alike.
             </FeatureContent>
           </Feature>
           <Feature>
             <FeatureHeader>
               <FeatureIcon iconName="role" />
-              <FeatureTitle>Role-Based Access Control</FeatureTitle>
+              <FeatureTitle>Role-based access control</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Fine-tune access privileges with role-based control per key, enabling precise
-              management and ensuring security at every level.
+              Granular access privileges with either role or permission-based control. Permission
+              changes are propagated globally in seconds.
             </FeatureContent>
           </Feature>
           <Feature>
             <FeatureHeader>
               <FeatureIcon iconName="detect" />
-              <FeatureTitle>Detect and Protect</FeatureTitle>
+              <FeatureTitle>Proactive protection</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
               Take immediate control over your system's security with the ability to instantly
-              revoke access keys, providing swift response to potential threats.
+              revoke access , providing swift response to potential threats.
             </FeatureContent>
           </Feature>
           <Feature>
@@ -64,8 +64,8 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               <FeatureTitle>SDKs</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Accelerate development with Software Development Kits (SDKs), providing tools for
-              seamless integration processes.
+              Hit the ground running and accelerate development with SDKs in the language of your
+              choice.
             </FeatureContent>
           </Feature>
           {/* <div className="p-5 max-sm:hidden">
@@ -77,8 +77,8 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               <FeatureTitle>Vercel Integration</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Effortlessly deploy applications with Vercel integration, streamlining the
-              development-to-deployment pipeline for optimal efficiency.
+              Deploy applications with our official Vercel integration, streamlining the
+              development-to-deployment pipeline.
             </FeatureContent>
           </Feature>
           <Feature>
@@ -97,15 +97,11 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
               <FeatureTitle>Usage Limits per Key</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
-              Collaborate effectively within your organization by organizing teams, streamlining
-              communication for group-based projects.
+              Create keys with a fixed amount of usage and the ability to refill periodically,
+              limiting the potential for abuse and allowing for usage-based billing with credits.
             </FeatureContent>
           </Feature>
         </div>
-        {/* <div className="p-5 max-sm:hidden">
-          {" "}
-          <Separator orientation="horizontal" className="ml-8 m-0" />
-        </div> */}
       </div>
     </div>
   ),

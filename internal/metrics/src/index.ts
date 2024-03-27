@@ -64,8 +64,8 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.ratelimit.accuracy"),
-    limit: z.number(),
-    duration: z.number(),
+    namespaceId: z.string().optional(),
+    identifier: z.string(),
     responded: z.boolean(),
     correct: z.boolean(),
   }),

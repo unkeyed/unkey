@@ -513,8 +513,6 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         title="Any language, any framework, always secure"
         text="Add authentication to your APIs in a few lines of code. We provide SDKs for a range of languages and frameworks, and an intuitive REST API with public OpenAPI spec."
         align="center"
-        titleWidth={653}
-        contentWidth={671}
         className="relative"
       >
         <div className="mt-10">
@@ -572,7 +570,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             currentFramework={framework}
             setFramework={setFramework}
           />
-          <div className="relative flex w-full pt-4 pl-8 pb-8 font-mono text-xs text-white sm:text-sm">
+          <div className="relative flex w-full pt-4 pb-8 pl-8 font-mono text-xs text-white sm:text-sm">
             <Editor
               language={getLanguage({ language, framework })}
               theme={editorTheme}

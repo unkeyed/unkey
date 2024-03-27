@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { match } from "@/pkg/util/wildcard";
 import { RatelimitNamespace, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -51,9 +52,9 @@ const route = createRoute({
               .openapi({
                 description: "Attach any metadata to this request",
               }),
-            sharding: z.enum(["edge"]).optional().openapi({
-              description: "Not implemented yet",
-            }),
+            // sharding: z.enum(["edge"]).optional().openapi({
+            //   description: "Not implemented yet",
+            // }),
             resources: z
               .array(
                 z.object({
@@ -150,13 +151,19 @@ export const registerV1RatelimitLimit = (app: App) =>
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
               eq(table.name, req.namespace),
             ),
+          columns: {
+            id: true,
+            workspaceId: true,
+          },
           with: {
             overrides: {
-              where: (table, { eq, and }) =>
-                and(
-                  eq(table.workspaceId, rootKey.authorizedWorkspaceId),
-                  eq(table.identifier, req.identifier),
-                ),
+              columns: {
+                identifier: true,
+                async: true,
+                limit: true,
+                duration: true,
+                sharding: true,
+              },
             },
           },
         });
@@ -201,16 +208,37 @@ export const registerV1RatelimitLimit = (app: App) =>
             namespace,
           };
         }
+
+        const exactMatch = dbRes.overrides.find((o) => o.identifier === req.identifier);
+        if (exactMatch) {
+          return {
+            namespace: dbRes,
+            override: exactMatch,
+          };
+        }
+        const wildcardMatch = dbRes.overrides.find((o) => {
+          if (!o.identifier.includes("*")) {
+            return false;
+          }
+          return match(o.identifier, req.identifier);
+        });
+        if (wildcardMatch) {
+          return {
+            namespace: dbRes,
+            override: wildcardMatch,
+          };
+        }
+
         return {
           namespace: dbRes,
-          override: dbRes.overrides.at(0),
+          override: undefined,
         };
       },
     );
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${err.message}`,
+        message: `unable to load ratelimit: ${err.message}`,
       });
     }
     if (!val || val.namespace.workspaceId !== rootKey.authorizedWorkspaceId) {
@@ -244,14 +272,24 @@ export const registerV1RatelimitLimit = (app: App) =>
     const limit = override?.limit ?? req.limit;
     const duration = override?.duration ?? req.duration;
     const async = typeof override?.async !== "undefined" ? override.async : req.async;
-    const sharding = override?.sharding ?? req.sharding;
+    const sharding = override?.sharding; //?? req.sharding;
     const shard =
       sharding === "edge"
         ? // @ts-ignore - this is a bug in the types
           c.req.raw?.cf?.colo
-        : undefined;
+        : "global";
 
+    console.log({
+      namespaceId: namespace.id,
+      identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
+      interval: duration,
+      limit,
+      shard,
+      cost: req.cost,
+      async: req.async,
+    });
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
+      namespaceId: namespace.id,
       identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
       interval: duration,
       limit,
@@ -282,7 +320,7 @@ export const registerV1RatelimitLimit = (app: App) =>
           limit,
           duration,
           async: async ?? false,
-          sharding: sharding ?? "",
+          sharding: shard,
         },
         context: {
           ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
@@ -304,7 +342,7 @@ export const registerV1RatelimitLimit = (app: App) =>
         analytics.ingestGenericAuditLogs({
           auditLogId: newId("auditLog"),
           workspaceId: rootKey.authorizedWorkspaceId,
-          bucket: `ratelimit.${namespace.id}`,
+          bucket: namespace.id,
           actor: {
             type: "key",
             id: rootKey.key.id,

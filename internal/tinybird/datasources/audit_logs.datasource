@@ -11,7 +11,7 @@ SCHEMA >
     `actorMeta` Nullable(String) `json:$.actor.meta`,
     `description` String `json:$.description`,
     `resources` String `json:$.resources`,
-    `userAgent` Nullable(String) `json:$.context.usageAgent`,
+    `userAgent` Nullable(String) `json:$.context.userAgent`,
     `location` Nullable(String) `json:$.context.location`
 
 ENGINE "MergeTree"

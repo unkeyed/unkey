@@ -1,0 +1,52 @@
+---
+title: Overview 
+description: Ratelimint your serverless functions.
+---
+
+
+Serverless functions offer a ton of benefits but unfortunately make some things much harder too.
+Ratelimiting is one of these things as it requires some persistent state to coordinate different limits.
+
+Unkey's ratelimit API provides a global low latency solution to limit your functions and protect 
+upstream services.
+
+
+## Get your API key
+
+<Steps>
+  <Step title="Go to the dashboard">
+    Visit [/app/settings-root-keys/new](https://unkey.dev/app/settings-root-keys/new)
+  </Step>
+  <Step title="Enter a name">
+    You can give your key a name to make it easier to find later, but that's optional.
+  </Step>
+  <Step title="Add permissions">
+    Your key needs at least these permissions:
+    - `create_namespace`
+    - `limit`
+
+    <Frame>
+    <img src="/ratelimiting/create-root-key-permissions.png"/>
+    </Frame>
+
+
+  After selecting both permissions, click `Create New Key` at the bottom of the page and copy the generated key to your `.env` file.
+  For security reasons, this key can not be shown again. In case you lose it, you need to create a new one.
+  <Frame>
+
+      <img src="/ratelimiting/copy-key.png"/>
+
+  </Frame>
+  </Step>
+
+</Steps>
+
+## Ratelimit your functions
+
+<Info>
+We're currently only offering a Typescript SDK but you can check out the [api reference](/api-reference/ratelimits/limit) and do the network call manually if you are using another language.
+Also please let us know what language you're using, so we can prioritize adding support for it.
+</Info>
+
+
+Please follow the [@unkey/ratelimit](/libraries/ts/ratelimit) documentation for setup and configuration options.

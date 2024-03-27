@@ -1,4 +1,4 @@
-import { TieredCache } from "@/pkg/cache/tiered";
+import { type SwrCacher } from "@/pkg/cache/interface";
 import type { Api, Database, Key } from "@/pkg/db";
 import { Logger } from "@/pkg/logging";
 import { Metrics } from "@/pkg/metrics";
@@ -68,7 +68,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 export class KeyService {
-  private readonly cache: TieredCache;
+  private readonly cache: SwrCacher;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
@@ -79,7 +79,7 @@ export class KeyService {
   private readonly tracer: Tracer;
 
   constructor(opts: {
-    cache: TieredCache;
+    cache: SwrCacher;
     logger: Logger;
     metrics: Metrics;
     db: Database;
@@ -128,6 +128,7 @@ export class KeyService {
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
             edgeRegion: "",
+            ownerId: res.val.key.ownerId ?? undefined,
             // @ts-expect-error - the cf object will be there on cloudflare
             region: c.req.raw?.cf?.colo ?? "",
           }),
@@ -436,7 +437,6 @@ export class KeyService {
 
     const ratelimitStart = performance.now();
     try {
-      const t2 = performance.now();
       const res = await this.rateLimiter.limit(c, {
         identifier: key.id,
         limit: key.ratelimitRefillRate,
@@ -452,12 +452,6 @@ export class KeyService {
 
         return [false, undefined];
       }
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - t2,
-        identifier: key.id,
-        tier: "durable",
-      });
 
       return [
         res.val.pass,

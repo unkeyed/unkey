@@ -62,10 +62,7 @@
       "pages": [
         "introduction",
         "onboarding",
-        {
-          "group": "Quickstart",
-          "pages": ["quickstart/nextjs", "quickstart/express", "quickstart/bun"]
-        },
+
         {
           "group": "Security",
           "pages": ["security/overview", "security/root-keys"]
@@ -73,30 +70,46 @@
       ]
     },
     {
-      "group": "Features",
+      "group": "APIs",
       "pages": [
-        "features/ratelimiting",
-        "features/temp-keys",
-        "features/remaining",
-        "features/refill",
-        "features/analytics",
+        "apis/introduction",
         {
-          "group": "Authorization",
-          "pages": [
-            "features/authorization/introduction",
-            "features/authorization/roles-and-permissions",
-            "features/authorization/verifying",
-            "features/authorization/example"
-          ]
+          "group": "Quickstart",
+          "pages": ["apis/quickstart/nextjs", "apis/quickstart/express", "apis/quickstart/bun"]
         },
-        "features/audit-log",
-        "features/environments",
-        "features/whitelist",
-        "features/revocation",
-        "features/enabled"
+        {
+          "group": "Features",
+          "pages": [
+            "apis/features/ratelimiting",
+            "apis/features/temp-keys",
+            "apis/features/remaining",
+            "apis/features/refill",
+            "apis/features/analytics",
+            {
+              "group": "Authorization",
+              "pages": [
+                "apis/features/authorization/introduction",
+                "apis/features/authorization/roles-and-permissions",
+                "apis/features/authorization/verifying",
+                "apis/features/authorization/example"
+              ]
+            },
+            "apis/features/environments",
+            "apis/features/whitelist",
+            "apis/features/revocation",
+            "apis/features/enabled"
+          ]
+        }
       ]
     },
-
+    {
+      "group": "Ratelimiting",
+      "pages": ["ratelimiting/introduction", "ratelimiting/overrides"]
+    },
+    {
+      "group": "Audit logs",
+      "pages": ["audit-log/introduction"]
+    },
     {
       "group": "Integrations",
       "icon": "bolt",

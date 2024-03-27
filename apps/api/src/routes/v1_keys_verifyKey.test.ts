@@ -360,7 +360,6 @@ describe("disabled workspace", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    console.log(res);
     expect(res.status).toEqual(403);
     expect(res.body).toMatchObject({
       error: {

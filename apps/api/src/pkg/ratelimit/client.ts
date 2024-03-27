@@ -32,6 +32,16 @@ export class DurableRateLimiter implements RateLimiter {
 
     return [req.identifier, window, req.shard].join("::");
   }
+
+  private setCacheMax(id: string, i: number): number {
+    const current = this.cache.get(id) ?? 0;
+    if (i > current) {
+      this.cache.set(id, i);
+      return i;
+    }
+    return current;
+  }
+
   public async limit(
     c: Context,
     req: RatelimitRequest,
@@ -40,6 +50,21 @@ export class DurableRateLimiter implements RateLimiter {
     const reset = (window + 1) * req.interval;
     const cost = req.cost ?? 1;
     const id = this.getId(req);
+
+    /**
+     * Catching identifiers that exceeded the limit already
+     *
+     * This might not happen too often, but in extreme cases the cache should hit and we can skip
+     * the request to the durable object entirely, which speeds everything up and is cheper for us
+     */
+    let current = this.cache.get(id) ?? 0;
+    if (current >= req.limit) {
+      return Ok({
+        pass: false,
+        current,
+        reset,
+      });
+    }
 
     const p = this.callDurableObject({
       identifier: req.identifier,
@@ -51,10 +76,12 @@ export class DurableRateLimiter implements RateLimiter {
     });
 
     if (!req.async) {
-      return await p;
+      const res = await p;
+      if (res.val) {
+        this.setCacheMax(id, res.val.current);
+      }
+      return res;
     }
-
-    let current = this.cache.get(id) ?? 0;
 
     c.executionCtx.waitUntil(
       p.then(async (res) => {
@@ -62,12 +89,12 @@ export class DurableRateLimiter implements RateLimiter {
           console.error(res.err.message);
           return;
         }
-        this.cache.set(this.getId(req), res.val.current);
+        this.setCacheMax(id, res.val.current);
 
         this.metrics.emit({
           metric: "metric.ratelimit.accuracy",
-          limit: req.limit,
-          duration: req.interval,
+          identifier: req.identifier,
+          namespaceId: req.namespaceId,
           responded: current + cost <= req.limit,
           correct: res.val.current + cost <= req.limit,
         });

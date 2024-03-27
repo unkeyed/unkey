@@ -18,7 +18,7 @@ SQL >
     {%end if %}
 
     {% if defined(identifier) %}
-      and identifier in {{Array(String(identifier))}}
+      and  multiSearchAny(ratelimits__v2.identifier, {{Array(String(identifier))}}) > 0 
     {%end if %}
     {% if defined(country) %}
       and country in {{Array(String(country))}}
