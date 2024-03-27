@@ -38,6 +38,20 @@ From now on, when the specified identifier gets ratelimited, it'll use the custo
 ## Wildcard Rules
 
 You can use wildcards (`*`) in your override to match multiple identifiers.
+Exact override matches take precedence over wildcard matches, but there's no guarantee of order between multiple wildcard matches yet.
+
+**Example:**
+Given a base limit of 10/60s and these overrides: 
+- `*@domain.com`: 20/60s
+- `hello@domain.com`: 100/s
+
+This would result in the following applied ratelimits:
+
+| requested identifier  | match     | used ratelimit  |
+|-----------------------|-----------|-----------------|
+| `abc@domain.com`      | wildcard  | 20/60s          |
+| `hello@domain.com`    | exact     | 100/s           |
+| `xyz`                 | -         | 10/60s          |
 
 Here's an example of setting higher limits for all emails from the `customer.com` domain.
 
