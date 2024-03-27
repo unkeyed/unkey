@@ -49,10 +49,13 @@ export class DurableRateLimiter implements RateLimiter {
     const start = performance.now();
     const res = await this._limit(c, req);
     this.metrics.emit({
+      namespaceId: req.namespaceId,
       metric: "metric.ratelimit",
       latency: performance.now() - start,
       identifier: req.identifier,
       mode: req.async ? "async" : "sync",
+      error: !!res.err,
+      success: res?.val?.pass,
     });
     return res;
   }
