@@ -435,39 +435,29 @@ export class KeyService {
       return [true, undefined];
     }
 
-    const ratelimitStart = performance.now();
-    try {
-      const res = await this.rateLimiter.limit(c, {
-        identifier: key.id,
-        limit: key.ratelimitRefillRate,
-        interval: key.ratelimitRefillInterval,
-        cost: 1,
-        // root keys are sharded per edge colo
-        shard: key.forWorkspaceId ? "edge" : undefined,
-        async: key.ratelimitType === "fast",
-      });
+    const res = await this.rateLimiter.limit(c, {
+      identifier: key.id,
+      limit: key.ratelimitRefillRate,
+      interval: key.ratelimitRefillInterval,
+      cost: 1,
+      // root keys are sharded per edge colo
+      shard: key.forWorkspaceId ? "edge" : undefined,
+      async: key.ratelimitType === "fast",
+    });
 
-      if (res.err) {
-        this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
+    if (res.err) {
+      this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
 
-        return [false, undefined];
-      }
-
-      return [
-        res.val.pass,
-        {
-          remaining: key.ratelimitRefillRate - res.val.current,
-          limit: key.ratelimitRefillRate,
-          reset: res.val.reset,
-        },
-      ];
-    } finally {
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - ratelimitStart,
-        identifier: key.id,
-        tier: "total",
-      });
+      return [false, undefined];
     }
+
+    return [
+      res.val.pass,
+      {
+        remaining: key.ratelimitRefillRate - res.val.current,
+        limit: key.ratelimitRefillRate,
+        reset: res.val.reset,
+      },
+    ];
   }
 }

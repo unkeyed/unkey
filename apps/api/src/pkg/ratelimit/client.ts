@@ -46,6 +46,21 @@ export class DurableRateLimiter implements RateLimiter {
     c: Context,
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
+    const start = performance.now();
+    const res = await this._limit(c, req);
+    this.metrics.emit({
+      metric: "metric.ratelimit",
+      latency: performance.now() - start,
+      identifier: req.identifier,
+      mode: req.async ? "async" : "sync",
+    });
+    return res;
+  }
+
+  private async _limit(
+    c: Context,
+    req: RatelimitRequest,
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const window = Math.floor(Date.now() / req.interval);
     const reset = (window + 1) * req.interval;
     const cost = req.cost ?? 1;
@@ -126,8 +141,6 @@ export class DurableRateLimiter implements RateLimiter {
     cost: number;
     limit: number;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
-    const start = performance.now();
-
     try {
       const obj = this.namespace.get(this.namespace.idFromName(req.objectName));
       const url = `https://${this.domain}/limit`;
@@ -163,13 +176,6 @@ export class DurableRateLimiter implements RateLimiter {
       const err = e as Error;
       this.logger.error("ratelimit failed", { identifier: req.identifier, error: err.message });
       return Err(new RatelimitError(err.message));
-    } finally {
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - start,
-        identifier: req.identifier,
-        tier: "durable",
-      });
     }
   }
 }
