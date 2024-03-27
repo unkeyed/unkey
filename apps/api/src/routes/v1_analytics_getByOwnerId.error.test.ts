@@ -34,7 +34,9 @@ test("without ownerId", async (t) => {
 
   expect(res.status).toEqual(400);
   expect(res.body.error.code).toEqual("BAD_REQUEST");
-  expect(res.body.error.message).toEqual("ownerId must be provided");
+  expect(res.body.error.message).toEqual(
+    `invalid_type: ownerId: Required, See "https://unkey.dev/docs/api-reference" for more details`,
+  );
   expect(res.body.error.docs).toEqual(
     "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
   );

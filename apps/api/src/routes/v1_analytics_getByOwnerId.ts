@@ -103,12 +103,16 @@ export type V1AnalyticsGetVerificationsResponse = z.infer<
 export const registerV1AnalyticsGetByOwnerId = (app: App) =>
   app.openapi(route, async (c) => {
     const { ownerId, apiId, start, end, granularity } = c.req.query();
+    // const rootKey = await rootKeyAuth(c);
+    // const { rbac } = c.get("services");
+
     if (ownerId === undefined || ownerId === null || ownerId === "") {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "OwnerId must be provided",
       });
     }
+
     const { analytics, cache, db } = c.get("services");
     function getVerificationsByOwnerId(granularity: string, analytics: Analytics) {
       switch (granularity) {
@@ -161,6 +165,7 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
         };
       });
     });
+
     if (keys.err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
@@ -199,8 +204,8 @@ export const registerV1AnalyticsGetByOwnerId = (app: App) =>
 
     if (!authorizedKeys) {
       throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
-        message: "you are not allowed to access this workspace",
+        code: "FORBIDDEN",
+        message: "cannot read keys from a different workspace",
       });
     }
 
