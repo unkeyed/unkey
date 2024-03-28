@@ -50,7 +50,7 @@ function CompanyInfo() {
         Seriously Fast API Authentication.
       </div>
       <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.3)]">
-        Unkeyed, Inc. 2023
+        Unkeyed, Inc. {new Date().getUTCFullYear()}
       </div>
     </div>
   );
