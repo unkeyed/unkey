@@ -9,6 +9,7 @@ import { Section } from "@react-email/section";
 import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
+import tailwindConfig from "../tailwind.config";
 export type Props = {
   username: string;
   date: string;
@@ -16,7 +17,7 @@ export type Props = {
 
 export function WelcomeEmail() {
   return (
-    <Tailwind>
+    <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
         <Head />
         <Section className="bg-white">
