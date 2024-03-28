@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export const generateStaticParams = async () => {
   const posts = await getFilePaths(BLOG_PATH);
   const paths = posts
-    .filter((post) => !post.includes("authors.ts"))
+    .filter((post) => post.includes(".mdx"))
     .map((post) => {
       return {
         slug: post.replace(".mdx", ""),
