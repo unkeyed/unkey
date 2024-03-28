@@ -31,6 +31,31 @@ import james from "@/images/team/james.jpg";
 import { BLOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 
+export const metadata = {
+  title: "About | Unkey",
+  description: "Learn more about Unkey and how we operate.",
+  openGraph: {
+    title: "About | Unkey",
+    description: "Learn more about Unkey and how we operate.",
+    url: "https://unkey.dev/templates",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/images/landing/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "About | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/images/landing/unkey.png",
+  },
+};
+
 const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
