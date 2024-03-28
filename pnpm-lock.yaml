@@ -63,8 +63,8 @@ importers:
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
       '@chronark/zod-bird':
-        specifier: 0.3.3
-        version: 0.3.3
+        specifier: 0.3.4
+        version: 0.3.4
       '@hono/zod-openapi':
         specifier: ^0.9.8
         version: 0.9.8(hono@4.1.1)(zod@3.22.4)
@@ -108,8 +108,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/zod-queue
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
       hono:
         specifier: ^4.1.1
         version: 4.1.1
@@ -160,8 +160,8 @@ importers:
   apps/landing:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.3
-        version: 0.3.3
+        specifier: ^0.3.4
+        version: 0.3.4
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -226,11 +226,11 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0)
       framer-motion:
-        specifier: 11.0.8
-        version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
+        specifier: 11.0.23
+        version: 11.0.23(react-dom@18.2.0)(react@18.2.0)
       fslightbox-react:
         specifier: ^1.7.6
         version: 1.7.6(prop-types@15.8.1)(react-dom@18.2.0)(react@18.2.0)
@@ -403,8 +403,8 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5(react-dom@18.2.0)(react@18.2.0)
       '@chronark/zod-bird':
-        specifier: 0.3.3
-        version: 0.3.3
+        specifier: 0.3.4
+        version: 0.3.4
       '@clerk/nextjs':
         specifier: ^4.29.9
         version: 4.29.9(next@14.1.3)(react-dom@18.2.0)(react@18.2.0)
@@ -475,11 +475,11 @@ importers:
         specifier: ^2.19.0
         version: 2.19.0
       '@trpc/client':
-        specifier: ^10.45.1
-        version: 10.45.1(@trpc/server@10.45.2)
+        specifier: ^10.45.2
+        version: 10.45.2(@trpc/server@10.45.2)
       '@trpc/react-query':
         specifier: ^10.45.2
-        version: 10.45.2(@tanstack/react-query@4.36.1)(@trpc/client@10.45.1)(@trpc/server@10.45.2)(react-dom@18.2.0)(react@18.2.0)
+        version: 10.45.2(@tanstack/react-query@4.36.1)(@trpc/client@10.45.2)(@trpc/server@10.45.2)(react-dom@18.2.0)(react@18.2.0)
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
@@ -574,11 +574,11 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0)
       framer-motion:
-        specifier: 11.0.8
-        version: 11.0.8(react-dom@18.2.0)(react@18.2.0)
+        specifier: 11.0.23
+        version: 11.0.23(react-dom@18.2.0)(react@18.2.0)
       free-email-domains:
         specifier: ^1.2.13
         version: 1.2.13
@@ -716,8 +716,8 @@ importers:
   apps/workflows:
     dependencies:
       '@chronark/zod-bird':
-        specifier: 0.3.3
-        version: 0.3.3
+        specifier: 0.3.4
+        version: 0.3.4
       '@clerk/nextjs':
         specifier: ^4.29.9
         version: 4.29.9(next@14.1.3)(react-dom@18.2.0)(react@18.2.0)
@@ -749,8 +749,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/schema
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0)
       next:
         specifier: 14.1.3
         version: 14.1.3(@babel/core@7.24.3)(react-dom@18.2.0)(react@18.2.0)
@@ -827,8 +827,8 @@ importers:
         specifier: ^0.20.14
         version: 0.20.14
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -1185,8 +1185,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
       mysql2:
         specifier: ^3.9.2
         version: 3.9.2
@@ -1219,8 +1219,8 @@ importers:
   tools/migrate:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.3
-        version: 0.3.3
+        specifier: ^0.3.4
+        version: 0.3.4
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.16.0
@@ -1234,8 +1234,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       drizzle-orm:
-        specifier: ^0.30.1
-        version: 0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
+        specifier: ^0.30.5
+        version: 0.30.5(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0)
       mysql2:
         specifier: ^3.9.2
         version: 3.9.2
@@ -2422,8 +2422,8 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@chronark/zod-bird@0.3.3:
-    resolution: {integrity: sha512-vCpB73FC0QlAvmaP8IHH+M5oRwTgcczEArsVvH9tmuJ/DgM4F7F4+Q6M/5zFmEhl6MW6EHXp2PaYZ9ZP3Off9Q==}
+  /@chronark/zod-bird@0.3.4:
+    resolution: {integrity: sha512-XmoBnx0i4vHjyHH2vWjVnHlkIe9jhDfZnT5byo1RYuDWjS85CqfCD6b1QuhBHpsuk5ainZuClKdpZkoteSrqQA==}
     dependencies:
       zod: 3.22.4
     dev: false
@@ -5823,6 +5823,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -5889,7 +5890,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -5899,7 +5900,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.8
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.4.1
+      tslib: 2.6.2
       webcrypto-core: 1.7.8
     dev: false
 
@@ -8475,15 +8476,15 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trpc/client@10.45.1(@trpc/server@10.45.2):
-    resolution: {integrity: sha512-nVbAk1xpIiI64WgzXGgfxPOGgHoYvffn1IsjV1D/Ri7DL4BKuo2qtZ7UQ+OuHkzH2M8j4ikSVBDpk545fOdvpw==}
+  /@trpc/client@10.45.2(@trpc/server@10.45.2):
+    resolution: {integrity: sha512-ykALM5kYWTLn1zYuUOZ2cPWlVfrXhc18HzBDyRhoPYN0jey4iQHEFSEowfnhg1RvYnrAVjNBgHNeSAXjrDbGwg==}
     peerDependencies:
-      '@trpc/server': 10.45.1
+      '@trpc/server': 10.45.2
     dependencies:
       '@trpc/server': 10.45.2
     dev: false
 
-  /@trpc/react-query@10.45.2(@tanstack/react-query@4.36.1)(@trpc/client@10.45.1)(@trpc/server@10.45.2)(react-dom@18.2.0)(react@18.2.0):
+  /@trpc/react-query@10.45.2(@tanstack/react-query@4.36.1)(@trpc/client@10.45.2)(@trpc/server@10.45.2)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-BAqb9bGZIscroradlNx+Cc9522R+idY3BOSf5z0jHUtkxdMbjeGKxSSMxxu7JzoLqSIEC+LVzL3VvF8sdDWaZQ==}
     peerDependencies:
       '@tanstack/react-query': ^4.18.0
@@ -8493,7 +8494,7 @@ packages:
       react-dom: '>=16.8.0'
     dependencies:
       '@tanstack/react-query': 4.36.1(react-dom@18.2.0)(react@18.2.0)
-      '@trpc/client': 10.45.1(@trpc/server@10.45.2)
+      '@trpc/client': 10.45.2(@trpc/server@10.45.2)
       '@trpc/server': 10.45.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -12308,7 +12309,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /dot-prop@8.0.2:
@@ -12383,8 +12384,8 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.30.1(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0):
-    resolution: {integrity: sha512-5P6CXl4XyWtDDiYOX/jYOJp1HTUmBlXRAwaq+muUOgaSykMEy5sJesCxceMT0oCGvxeWkKfSXo5owLnfKwCIdw==}
+  /drizzle-orm@0.30.5(@cloudflare/workers-types@4.20240222.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0):
+    resolution: {integrity: sha512-oImmwGpe1jTWvhPkpsnramZA8m/lE8krTj7Ws7KHSFCMshMXmcZWX2g2Ki793PQOBmwI50KYzWJ9yNKKhWYLyA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -12398,6 +12399,7 @@ packages:
       '@types/react': '>=18'
       '@types/sql.js': '*'
       '@vercel/postgres': '*'
+      '@xata.io/client': '*'
       better-sqlite3: '>=7'
       bun-types: '*'
       expo-sqlite: '>=13.2.0'
@@ -12433,6 +12435,8 @@ packages:
       '@types/sql.js':
         optional: true
       '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
         optional: true
       better-sqlite3:
         optional: true
@@ -12463,8 +12467,8 @@ packages:
       react: 18.2.0
     dev: false
 
-  /drizzle-orm@0.30.1(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0):
-    resolution: {integrity: sha512-5P6CXl4XyWtDDiYOX/jYOJp1HTUmBlXRAwaq+muUOgaSykMEy5sJesCxceMT0oCGvxeWkKfSXo5owLnfKwCIdw==}
+  /drizzle-orm@0.30.5(@planetscale/database@1.16.0)(@types/react@18.2.67)(react@18.2.0):
+    resolution: {integrity: sha512-oImmwGpe1jTWvhPkpsnramZA8m/lE8krTj7Ws7KHSFCMshMXmcZWX2g2Ki793PQOBmwI50KYzWJ9yNKKhWYLyA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -12478,6 +12482,7 @@ packages:
       '@types/react': '>=18'
       '@types/sql.js': '*'
       '@vercel/postgres': '*'
+      '@xata.io/client': '*'
       better-sqlite3: '>=7'
       bun-types: '*'
       expo-sqlite: '>=13.2.0'
@@ -12513,6 +12518,8 @@ packages:
       '@types/sql.js':
         optional: true
       '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
         optional: true
       better-sqlite3:
         optional: true
@@ -12542,8 +12549,8 @@ packages:
       react: 18.2.0
     dev: false
 
-  /drizzle-orm@0.30.1(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0):
-    resolution: {integrity: sha512-5P6CXl4XyWtDDiYOX/jYOJp1HTUmBlXRAwaq+muUOgaSykMEy5sJesCxceMT0oCGvxeWkKfSXo5owLnfKwCIdw==}
+  /drizzle-orm@0.30.5(@planetscale/database@1.16.0)(mysql2@3.9.2)(react@18.2.0):
+    resolution: {integrity: sha512-oImmwGpe1jTWvhPkpsnramZA8m/lE8krTj7Ws7KHSFCMshMXmcZWX2g2Ki793PQOBmwI50KYzWJ9yNKKhWYLyA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
@@ -12557,6 +12564,7 @@ packages:
       '@types/react': '>=18'
       '@types/sql.js': '*'
       '@vercel/postgres': '*'
+      '@xata.io/client': '*'
       better-sqlite3: '>=7'
       bun-types: '*'
       expo-sqlite: '>=13.2.0'
@@ -12592,6 +12600,8 @@ packages:
       '@types/sql.js':
         optional: true
       '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
         optional: true
       better-sqlite3:
         optional: true
@@ -13802,12 +13812,15 @@ packages:
       '@emotion/is-prop-valid': 0.8.8
     dev: false
 
-  /framer-motion@11.0.8(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-1KSGNuqe1qZkS/SWQlDnqK2VCVzRVEoval379j0FiUBJAZoqgwyvqFkfvJbgW2IPFo4wX16K+M0k5jO23lCIjA==}
+  /framer-motion@11.0.23(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-V2xdf9hYJKPml7412Ghmh3LZYjiCAEDIIxR9JOb/ni4GHLQFLE+51wG89/3NhheX1vfYBI1SnicXSyHtzfTPqg==}
     peerDependencies:
+      '@emotion/is-prop-valid': '*'
       react: ^18.0.0
       react-dom: ^18.0.0
     peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
       react:
         optional: true
       react-dom:
@@ -13816,8 +13829,6 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tslib: 2.6.2
-    optionalDependencies:
-      '@emotion/is-prop-valid': 0.8.8
     dev: false
 
   /free-email-domains@1.2.13:
@@ -15973,7 +15984,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -17193,6 +17204,10 @@ packages:
     hasBin: true
     dev: false
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -17432,7 +17447,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /node-addon-api@7.1.0:
@@ -20308,7 +20323,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /snakecase-keys@3.2.1:

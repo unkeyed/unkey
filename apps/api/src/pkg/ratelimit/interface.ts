@@ -8,6 +8,7 @@ export class RatelimitError extends BaseError {
 }
 
 export const ratelimitRequestSchema = z.object({
+  workspaceId: z.string(),
   namespaceId: z.string().optional(),
   identifier: z.string(),
   limit: z.number().int(),

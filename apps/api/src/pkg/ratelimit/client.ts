@@ -50,9 +50,13 @@ export class DurableRateLimiter implements RateLimiter {
     const res = await this._limit(c, req);
     this.metrics.emit({
       metric: "metric.ratelimit",
+      workspaceId: req.workspaceId,
+      namespaceId: req.namespaceId,
       latency: performance.now() - start,
       identifier: req.identifier,
       mode: req.async ? "async" : "sync",
+      error: !!res.err,
+      success: res?.val?.pass,
     });
     return res;
   }
@@ -107,6 +111,7 @@ export class DurableRateLimiter implements RateLimiter {
         this.setCacheMax(id, res.val.current);
 
         this.metrics.emit({
+          workspaceId: req.workspaceId,
           metric: "metric.ratelimit.accuracy",
           identifier: req.identifier,
           namespaceId: req.namespaceId,
