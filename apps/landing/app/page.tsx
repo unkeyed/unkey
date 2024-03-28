@@ -73,7 +73,7 @@ export default async function Landing() {
         className="flex md:hidden w-full absolute h-[300px] -z-10 "
         priority={true}
       />
-      <div className="container relative mx-auto">
+      <div className="max-w-full px-[80px] relative mx-auto">
         <Hero />
         <SubHeroMainboardStuff className="w-full absolute bottom-[-50px] left-[250px] pointer-events-none" />
         <div className="mt-[200px]" />
@@ -97,7 +97,7 @@ export default async function Landing() {
           <UsageBento />
         </div>
         <div className="relative w-full -z-10">
-          <OssLight className="absolute left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[400px] top-[-200px]" />
+          <OssLight className="absolute scale-[2] left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-250px]" />
         </div>
         <SectionTitle
           className="mt-[300px]"
@@ -126,7 +126,7 @@ export default async function Landing() {
         </div>
         <div className="relative">
           {/* TODO: horizontal scroll */}
-          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-100px]" />
+          <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-150px] lg:right-[880px]" />
           <SectionTitle
             className="mt-[400px] md:ml-10"
             title="Leveled-up API management"
@@ -146,7 +146,7 @@ export default async function Landing() {
         </div>
         <FeatureGrid className="relative z-50 mt-20" />
         <div className="relative -z-10">
-          <FeatureGridChip className="absolute top-[-90px]" />
+          <FeatureGridChip className="absolute top-[50px] left-[400px]" />
         </div>
         <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
           <div className="flex space-x-6 ">
