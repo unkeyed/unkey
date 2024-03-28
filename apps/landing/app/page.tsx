@@ -157,7 +157,7 @@ export default async function Landing() {
         </SectionTitle>
         <div className="mt-10 mb-[200px]">
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-            2500 verifications FREE per month.
+            2500 verifications and 100k successful rate-limited requests per month.
           </p>
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             No CC required.
