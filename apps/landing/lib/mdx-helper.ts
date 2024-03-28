@@ -1,4 +1,4 @@
-import { promises as fs } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import GithubSlugger from "github-slugger";
 import { type MDXRemoteSerializeResult } from "next-mdx-remote";
@@ -17,19 +17,19 @@ export const CHANGELOG_PATH = path.join(process.cwd(), "content", "changelog");
 export const POLICY_PATH = path.join(process.cwd(), "content", "policies");
 export const JOBS_PATH = path.join(process.cwd(), "content", "jobs");
 
-export const changelogFilePaths = fs.readdir(CHANGELOG_PATH);
+export const changelogFilePaths = readdirSync(CHANGELOG_PATH);
 
-export const getFilePaths = async (contentPath: string) => {
-  return await fs.readdir(contentPath);
+export const getFilePaths = (contentPath: string) => {
+  return readdirSync(contentPath);
 };
-export const raw = async ({
+export const raw = ({
   contentPath,
   filepath,
 }: {
   contentPath: string;
   filepath: string;
 }) => {
-  return await fs.readFile(`${contentPath}/${filepath}.mdx`, "utf-8");
+  return readFileSync(`${contentPath}/${filepath}.mdx`, "utf-8");
 };
 
 type Headings = {
@@ -116,7 +116,7 @@ export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
   });
 };
 
-const getHeadings = async ({ rawMdx }: { rawMdx: string }) => {
+const getHeadings = ({ rawMdx }: { rawMdx: string }) => {
   const slugger = new GithubSlugger();
   const regXHeader = /\n(?<flag>#{1,6})\s+(?<content>.+)/g;
   const headings = Array.from(rawMdx.matchAll(regXHeader)).map(({ groups }) => {
@@ -131,14 +131,14 @@ const getHeadings = async ({ rawMdx }: { rawMdx: string }) => {
   return headings;
 };
 
-const getMoreContent = async ({
+const getMoreContent = ({
   contentPath,
   filepath,
 }: {
   contentPath: string;
   filepath: string;
 }) => {
-  const moreContent = await fs.readdir(contentPath);
+  const moreContent = readdirSync(contentPath);
   const moreContentFiltered = moreContent
     .filter((path) => /\.mdx?$/.test(path))
     .filter((post) => post !== filepath)
@@ -151,11 +151,11 @@ export const getAllMDXData = async ({
 }: {
   contentPath: string;
 }) => {
-  const allPosts = await fs.readdir(contentPath);
+  const allPosts = readdirSync(contentPath);
   const allPostsFiltered = allPosts.filter((path) => /\.mdx?$/.test(path));
   const allPostsData = await Promise.all(
     allPostsFiltered.map(async (post) => {
-      const rawMdx = await raw({
+      const rawMdx = raw({
         contentPath,
         filepath: post.replace(/\.mdx?$/, ""),
       });
@@ -177,10 +177,10 @@ export const getContentData = async ({
   contentPath: string;
   filepath: string;
 }) => {
-  const moreContent = await getMoreContent({ contentPath, filepath });
+  const moreContent = getMoreContent({ contentPath, filepath });
   const moreContentData = await Promise.all(
     moreContent.map(async (content) => {
-      const rawMdx = await raw({
+      const rawMdx = raw({
         contentPath,
         filepath: content.replace(/\.mdx?$/, ""),
       });
@@ -195,12 +195,21 @@ export const getContentData = async ({
   return moreContentData;
 };
 
+export const getMeta = async (filepath: string) => {
+  const rawMdx = raw({ contentPath: BLOG_PATH, filepath });
+  const serialized = await mdxSerialized({ rawMdx });
+  const frontmatter = serialized.frontmatter as Frontmatter;
+  return {
+    frontmatter,
+  };
+};
+
 export const getPost = async (filepath: string): Promise<Post<Frontmatter>> => {
-  const rawMdx = await raw({ contentPath: BLOG_PATH, filepath: filepath });
+  const rawMdx = raw({ contentPath: BLOG_PATH, filepath: filepath });
   // Serialize the MDX content and parse the frontmatter
   const serialized = await mdxSerialized({ rawMdx });
   const frontmatter = serialized.frontmatter as Frontmatter;
-  const headings = await getHeadings({ rawMdx });
+  const headings = getHeadings({ rawMdx });
 
   return {
     frontmatter,
@@ -210,7 +219,7 @@ export const getPost = async (filepath: string): Promise<Post<Frontmatter>> => {
 };
 
 export const getChangelog = async (filepath: string): Promise<Changelog<ChangeLogFrontmatter>> => {
-  const rawMdx = await raw({ contentPath: CHANGELOG_PATH, filepath: filepath });
+  const rawMdx = raw({ contentPath: CHANGELOG_PATH, filepath: filepath });
   // Serialize the MDX content and parse the frontmatter
   const serialized = await mdxSerialized({ rawMdx });
   const frontmatter = serialized.frontmatter as ChangeLogFrontmatter;
@@ -222,7 +231,7 @@ export const getChangelog = async (filepath: string): Promise<Changelog<ChangeLo
 };
 
 export const getPolicy = async (filepath: string): Promise<Policy<PolicyFrontmatter>> => {
-  const rawMdx = await raw({ contentPath: POLICY_PATH, filepath: filepath });
+  const rawMdx = raw({ contentPath: POLICY_PATH, filepath: filepath });
   // Serialize the MDX content and parse the frontmatter
   const serialized = await mdxSerialized({ rawMdx });
   const frontmatter = serialized.frontmatter as PolicyFrontmatter;
@@ -234,7 +243,7 @@ export const getPolicy = async (filepath: string): Promise<Policy<PolicyFrontmat
 };
 
 export const getJob = async (filepath: string): Promise<Job<JobFrontmatter>> => {
-  const rawMdx = await raw({ contentPath: JOBS_PATH, filepath: filepath });
+  const rawMdx = raw({ contentPath: JOBS_PATH, filepath: filepath });
   // Serialize the MDX content and parse the frontmatter
   const serialized = await mdxSerialized({ rawMdx });
   const frontmatter = serialized.frontmatter as JobFrontmatter;
@@ -250,11 +259,11 @@ export const getAllJobsData = async ({
 }: {
   contentPath: string;
 }) => {
-  const allJobs = await fs.readdir(contentPath);
+  const allJobs = readdirSync(contentPath);
   const allJosFiltered = allJobs.filter((path) => /\.mdx?$/.test(path));
   const allPostsData = await Promise.all(
     allJosFiltered.map(async (post) => {
-      const rawMdx = await raw({
+      const rawMdx = raw({
         contentPath,
         filepath: post.replace(/\.mdx?$/, ""),
       });
