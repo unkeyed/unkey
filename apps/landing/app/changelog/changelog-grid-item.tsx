@@ -40,7 +40,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           ))}
         </div>
         <h3 className="font-display text-4xl font-medium blog-heading-gradient ">
-          <Link href={`/changelog/${changelog.slug}`}>{changelog.frontmatter.title}</Link>
+          <Link href={`/changelog#${changelog.slug}`}>{changelog.frontmatter.title}</Link>
         </h3>
         <p className="pt-12">{format(new Date(changelog.frontmatter.date), "MMMM dd, yyyy")}</p>
         <p className="my-8 ">{changelog.frontmatter.description}</p>
