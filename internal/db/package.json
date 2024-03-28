@@ -17,7 +17,7 @@
     "dotenv-cli": "^7.4.1",
     "drizzle-kit": "^0.20.14",
     "drizzle-orm": "^0.30.5",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.3"
   },
   "dependencies": {
     "@planetscale/database": "^1.16.0",
