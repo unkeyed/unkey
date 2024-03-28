@@ -16,8 +16,8 @@ export type Props = {
 export function SubscriptionEnded({ username = "username" }: Props) {
   return (
     <Tailwind>
-      <Head />
       <Html className="font-sans text-zinc-800">
+        <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
             <Heading className="font-sans text-2xl text-semibold">
