@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@chronark/zod-bird": "0.3.3",
+    "@chronark/zod-bird": "0.3.4",
     "@clerk/nextjs": "^4.29.9",
     "@planetscale/database": "^1.16.0",
     "@trigger.dev/nextjs": "^2.3.18",
