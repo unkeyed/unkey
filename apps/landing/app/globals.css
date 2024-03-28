@@ -440,8 +440,14 @@ li > p {
   background-image: radial-gradient(circle 250px at 22% 60%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
 }
 
-@media screen and (min-width: 768px) {
+.about-founders-text-gradient {
+  background: radial-gradient(359.61% 115.01% at 14.81% 10.55%, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.50) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
+@media screen and (min-width: 768px) {
   .about-image-grid .image:nth-child(3n) {
     position: relative;
     top: 200px;
