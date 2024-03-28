@@ -103,7 +103,7 @@ export default function Templates() {
   );
 
   return (
-    <div className="flex flex-col mx-auto text-white/60">
+    <div className="flex flex-col mx-auto py-10 lg:py-0 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full" />
