@@ -50,7 +50,7 @@ export default async function Page() {
     <Container>
       <div className="mt-[150px] flex flex-col items-center">
         <ChangelogLight />
-        <div className="flex absolute -z-50">
+        <div className="absolute flex -z-50">
           <div className="parallelogram">
             <BorderBeam size={300} delay={1} />
           </div>
@@ -68,7 +68,7 @@ export default async function Page() {
           </div>
         </div>
         <div className="mt-[120px]">
-          <Link href="https://unkey.dev/blog/introducing-ratelimiting" target="">
+          <Link href="/blog/introducing-ratelimiting" target="">
             <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
           </Link>
           <SectionTitle
@@ -131,63 +131,63 @@ export default async function Page() {
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
@@ -195,7 +195,7 @@ export default async function Page() {
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
         </div>
@@ -214,7 +214,7 @@ export default async function Page() {
             align="center"
             text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
           />
-          <div className="mx-auto px-6 lg:px-8">
+          <div className="px-6 mx-auto lg:px-8">
             <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
               {Array.from({ length: 6 }).map(() => {
                 return (
@@ -249,7 +249,7 @@ export default async function Page() {
               ultimately inspired us to launch Unkey. Below, we've compiled some questions we
               frequently encounter, as well as those we're eager to address.
             </p>
-            <div className="flex flex-col md:flex-row mt-8">
+            <div className="flex flex-col mt-8 md:flex-row">
               <div className="flex md:left-[5px]">
                 <div className="text-sm text-right">
                   <p className="font-bold">James Perkins</p>
@@ -275,7 +275,7 @@ export default async function Page() {
             </div>
           </div>
           <div className="relative w-full max-w-[680px] z-0">
-            <div className="relative z-50 bg-black w-full">
+            <div className="relative z-50 w-full bg-black">
               <Accordion
                 type="single"
                 collapsible
@@ -318,7 +318,7 @@ export default async function Page() {
               contentWidth={630}
               text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe."
             />
-            <div className="flex flex-col lg:flex-row lg:gap-x-16 mx-auto">
+            <div className="flex flex-col mx-auto lg:flex-row lg:gap-x-16">
               {investors.map(({ name, firm, image }) => {
                 return (
                   <div className="pt-[88px] px-[40px] pb-[80px]">
