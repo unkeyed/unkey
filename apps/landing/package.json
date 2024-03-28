@@ -31,7 +31,7 @@
     "clsx": "^2.1.0",
     "cmdk": "^0.2.0",
     "date-fns": "^3.6.0",
-    "drizzle-orm": "^0.30.1",
+    "drizzle-orm": "^0.30.5",
     "framer-motion": "11.0.8",
     "fslightbox-react": "^1.7.6",
     "geist": "^1.2.2",
