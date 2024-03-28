@@ -63,10 +63,9 @@ export const Discover: React.FC = () => {
         }
         text={
           <>
-            Find out exactly hwat your investment will be on Unkey, with our estimated cost
-            calculator.
+            Find out exactly what your cost will be with Unkey, with our estimated cost calculator.
             <br />
-            Explore the cost per active key and key verifications.
+            Explore the cost based on your expected usage.
           </>
         }
       />
