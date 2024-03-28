@@ -6,8 +6,12 @@ import { ArrowRight, BookOpen, ChevronRight, LogIn } from "lucide-react";
 export function HeroMainSection() {
   return (
     <div className="relative flex flex-col items-center text-center xl:text-left xl:items-start">
-      <Link href="/careers" target="">
-        <RainbowDarkButton className="mb-4" label="We are hiring!" IconRight={ArrowRight} />
+      <Link href="https://unkey.dev/blog/introducing-ratelimiting" target="">
+        <RainbowDarkButton
+          className="mb-4"
+          label="New: global rate limiting"
+          IconRight={ArrowRight}
+        />
       </Link>
 
       <h1 className="bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-sm sm:max-w-md via-30% to-white/30 font-medium text-[32px] leading-[48px]  sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">

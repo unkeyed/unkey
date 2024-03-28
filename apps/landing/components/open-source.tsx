@@ -12,9 +12,9 @@ import { OssLight } from "./svg/oss-light";
 export const OpenSource: React.FC = () => {
   return (
     <div className="pt-[00px] flex items-center flex-col md:flex-row relative">
-      <div className="absolute top-[-460px] md:right-[120px] -z-[10]">
+      <div className="absolute top-[-480px] md:right-[120px] -z-[10]">
         {/* TODO: horizontal scroll */}
-        <OssLight />
+        <OssLight className="scale-[2]" />
       </div>
       <div className="flex flex-col items-center justify-center w-full xl:flex-row xl:justify-between">
         <motion.div

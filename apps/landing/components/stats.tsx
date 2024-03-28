@@ -3,7 +3,15 @@ import { StatList, StatListItem } from "@/components/stat-list";
 import { db, schema, sql } from "@/lib/db";
 import { getTotalVerifications } from "@/lib/tinybird";
 
-const [apis, keys, totalVerifications] = await Promise.all([
+const [workspaces, apis, keys, totalVerifications] = await Promise.all([
+  db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.workspaces)
+    .then((res) => res.at(0)?.count ?? 0)
+    .catch((err) => {
+      console.error(err);
+      return 0;
+    }),
   db
     .select({ count: sql<number>`count(*)` })
     .from(schema.apis)
@@ -38,8 +46,9 @@ export function Stats() {
         <Container>
           <StatList>
             <StatListItem value={totalVerifications} label="Verifications" />
-            <StatListItem value={apis} label="APIs" className="mb-8" />
             <StatListItem value={keys} label="Keys" />
+            <StatListItem value={apis} label="APIs" className="mb-8" />
+            <StatListItem value={workspaces} label="Workspaces" className="mb-8" />
           </StatList>
         </Container>
       </div>

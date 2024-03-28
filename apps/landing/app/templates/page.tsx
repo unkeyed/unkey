@@ -168,9 +168,9 @@ export default function Templates() {
         </div>
       </div>
 
-      <PageIntro title="Find your Template ">
-        <p className="mt- text-white/60">
-          Jumpstart your api development with our pre-built solutions.
+      <PageIntro title="Find your template">
+        <p className="mt-[26px] text-base about-founders-text-gradient ">
+          Jumpstart your API development with our pre-built solutions.
         </p>
       </PageIntro>
       <Container className="mt-24 text-white">
