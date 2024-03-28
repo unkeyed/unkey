@@ -20,7 +20,10 @@ test("returns an empty verifications with OwnerId", async (t) => {
     createdAt: new Date(),
     ownerId,
   });
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_key`,
+    `api.${h.resources.unkeyApi}.read_api`,
+  ]);
   const res = await h.get<V1AnalyticsGetVerificationsResponse>({
     url: `/v1/keys.verificationsByOwnerId?ownerId=${ownerId}`,
     headers: {
@@ -69,14 +72,6 @@ test("with apiId worked", async (t) => {
   keyIds.sort();
   expect(res.status).toEqual(200);
   expect(res.body).toEqual({
-    ownerId,
-    apis: [
-      {
-        apiId: h.resources.userApi.id,
-        apiName: h.resources.userApi.name,
-        keys: res.body.apis[0].keys.sort(),
-      },
-    ],
     verifications: [],
   });
 });

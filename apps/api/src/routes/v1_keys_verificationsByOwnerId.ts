@@ -4,8 +4,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { Analytics } from "@/pkg/analytics";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { Api, Key } from "@unkey/db";
-import { buildUnkeyQuery, unkeyPermissionValidation } from "@unkey/rbac";
+import { Api } from "@unkey/db";
+import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -45,29 +45,6 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            ownerId: z.string().openapi({
-              description:
-                "The owner id used to fetch keys. This is the same as the `ownerId` provided",
-              example: "chronark",
-            }),
-            apis: z.array(
-              z.object({
-                apiId: z.string().openapi({
-                  description: "The id of the api",
-                  example: "api_1234",
-                }),
-                apiName: z.string().openapi({
-                  description: "The name of the api",
-                  example: "my-api",
-                }),
-                keys: z.array(
-                  z.string().openapi({
-                    description: "The keys of the api",
-                    example: "key_1234",
-                  }),
-                ),
-              }),
-            ),
             verifications: z.array(
               z.object({
                 time: z.string().openapi({
@@ -103,8 +80,6 @@ export type V1AnalyticsGetVerificationsResponse = z.infer<
 export const registerV1keysVerificationsByOwnerId = (app: App) =>
   app.openapi(route, async (c) => {
     const { ownerId, apiId, start, end, granularity } = c.req.query();
-    // const rootKey = await rootKeyAuth(c);
-    // const { rbac } = c.get("services");
 
     if (ownerId === undefined || ownerId === null || ownerId === "") {
       throw new UnkeyApiError({
@@ -113,7 +88,7 @@ export const registerV1keysVerificationsByOwnerId = (app: App) =>
       });
     }
 
-    const { analytics, cache, db } = c.get("services");
+    const { analytics, db } = c.get("services");
     function getVerificationsByOwnerId(granularity: string, analytics: Analytics) {
       switch (granularity) {
         case "hourly":
@@ -130,61 +105,69 @@ export const registerV1keysVerificationsByOwnerId = (app: App) =>
     }
     const getVerifications = getVerificationsByOwnerId(granularity, analytics);
     const keysList: {
-      key: Key;
+      key: {
+        ownerId: string | null;
+        name: string | null;
+        workspaceId: string;
+        enabled: boolean;
+        id: string;
+        createdAt: Date;
+        deletedAt: Date | null;
+        keyAuthId: string;
+        expires: Date | null;
+      };
       api: Api;
-      permissions: string[];
-      roles: string[];
     }[] = [];
 
     //Get all keys by ownerId and optionally apiId
 
-    const keys = await cache.withCache(c, "analyticsByOwnerId", ownerId, async () => {
-      const dbRes = await db.query.keys.findMany({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
-        with: {
-          permissions: { with: { permission: true } },
-          roles: { with: { role: true } },
-          keyAuth: {
-            with: {
-              api: true,
+    const keys = async () => {
+      const dbRes = await db.query.keys
+        .findMany({
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: {
+              with: {
+                api: true,
+              },
             },
           },
-        },
-      });
+        })
+        .catch((err) => {
+          throw new UnkeyApiError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Unbable to load keys by ownerId: ${err.message}`,
+          });
+        });
       if (!dbRes) {
         return [];
       }
 
-      return dbRes.map((val) => {
+      return dbRes.map((key) => {
         return {
-          key: val,
-          api: val.keyAuth.api,
-          permissions: val.permissions.map((val) => val.permission.name),
-          roles: val.roles.map((val) => val.role.name),
+          key: {
+            ownerId: key.ownerId,
+            name: key.name,
+            workspaceId: key.workspaceId,
+            enabled: key.enabled,
+            id: key.id,
+            createdAt: key.createdAt,
+            deletedAt: key.deletedAt,
+            keyAuthId: key.keyAuthId,
+            expires: key.expires,
+          },
+          api: key.keyAuth.api,
         };
       });
-    });
-    if (keys.val?.length === 0) {
+    };
+
+    if (keys.length === 0) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `ownerId ${ownerId} not found`,
       });
     }
-    if (keys.err) {
-      throw new UnkeyApiError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: `Unbable to load keys by ownerId: ${keys.err.message}`,
-      });
-    }
-    keys.val.map((val) => {
-      keysList.push({
-        key: val.key,
-        api: val.api,
-        permissions: val.permissions,
-        roles: val.roles,
-      });
-    });
 
     const apiIds = Array.from(new Set(keysList.map(({ api }) => api.id)));
 
@@ -194,12 +177,7 @@ export const registerV1keysVerificationsByOwnerId = (app: App) =>
         or(
           "*",
           "api.*.read_key",
-          and(
-            ...apiIds.map(
-              (apiId) =>
-                `api.${apiId}.read_key` satisfies z.infer<typeof unkeyPermissionValidation>,
-            ),
-          ),
+          and(...apiIds.map((apiId) => or(`api.${apiId}.read_key`, `api.${apiId}.read_api`))),
         ),
       ),
     );
@@ -259,14 +237,7 @@ export const registerV1keysVerificationsByOwnerId = (app: App) =>
       }
       apis[api.id].keys.push(key.id);
     });
-
     return c.json({
-      ownerId,
-      apis: Object.entries(apis).map(([apiId, { apiName, keys }]) => ({
-        apiId,
-        apiName,
-        keys,
-      })),
       verifications: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
           time: new Date(parseInt(time)).toISOString(),

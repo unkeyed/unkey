@@ -10,7 +10,7 @@ import { type V1AnalyticsGetVerificationsResponse } from "./v1_keys_verification
 
 runCommonRouteTests({
   prepareRequest: async (rh) => {
-    const keyId = newId("key");
+    const keyId = newId("test");
     const ownerId = randomUUID();
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await rh.db.insert(schema.keys).values({
@@ -51,7 +51,7 @@ describe("correct roles", () => {
     test("returns 200", async (t) => {
       const h = await RouteHarness.init(t);
       const ownerId = randomUUID();
-      const keyId = newId("key");
+      const keyId = newId("test");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.insert(schema.keys).values({
         id: keyId,
@@ -104,7 +104,7 @@ test("cannot read keys from a different workspace", async (t) => {
     keyAuthId,
   });
   const ownerId = randomUUID();
-  const keyId = newId("key");
+  const keyId = newId("test");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
     id: keyId,
@@ -116,7 +116,7 @@ test("cannot read keys from a different workspace", async (t) => {
     ownerId,
   });
 
-  const keyId2 = newId("key");
+  const keyId2 = newId("test");
   const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
     id: keyId2,
