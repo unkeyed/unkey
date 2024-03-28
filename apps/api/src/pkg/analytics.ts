@@ -4,7 +4,7 @@ import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlo
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
 import { z } from "zod";
 import { MaybeArray } from "./types/maybe";
-// const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
+const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
 /**
  * `t` has the format `2021-01-01 00:00:00`
@@ -171,7 +171,7 @@ export class Analytics {
         end: z.number().optional(),
       }),
       data: z.object({
-        time: dateToUnixMilli,
+        time: datetimeToUnixMilli,
         success: z.number(),
         rateLimited: z.number(),
         usageExceeded: z.number(),

@@ -49,15 +49,13 @@ registerV1KeysVerifyKey(app);
 registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 registerV1KeysGetVerifications(app);
+registerV1keysVerificationsByOwnerId(app);
 
 // apis
 registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
-
-// analytics
-registerV1keysVerificationsByOwnerId(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);

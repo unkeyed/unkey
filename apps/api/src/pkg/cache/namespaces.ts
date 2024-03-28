@@ -37,12 +37,7 @@ export type CacheNamespaces = {
     namespace: Pick<RatelimitNamespace, "id" | "workspaceId">;
     override?: Pick<RatelimitOverride, "async" | "duration" | "limit" | "sharding">;
   } | null;
-  analyticsByOwnerId: {
-    key: Key;
-    api: Api;
-    permissions: string[];
-    roles: string[];
-  }[];
+
   verificationsByOwnerId: {
     time: number;
     success: number;
