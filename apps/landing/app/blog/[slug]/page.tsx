@@ -9,9 +9,11 @@ import { format } from "date-fns";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { performance } from "perf_hooks";
 import { BlogAuthors } from "../blog-authors";
 import { BlogContainer } from "../blog-container";
 import { SuggestedBlogs } from "../suggested-blogs";
+
 type Props = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
@@ -19,7 +21,11 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // read route params
+  const start = performance.now();
   const { frontmatter } = await getPost(params.slug);
+  const end = performance.now();
+
+  console.log("metadata:", end - start);
 
   if (!frontmatter) {
     return notFound();
@@ -50,7 +56,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export const generateStaticParams = async () => {
   const posts = await getFilePaths(BLOG_PATH);
   // Remove file extensions for page paths
+  const start = performance.now();
   posts.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
+  const end = performance.now();
+  console.log("static params", end - start);
   return posts;
 };
 
@@ -58,10 +67,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const { serialized, frontmatter, headings } = await getPost(params.slug);
 
   const author = authors[frontmatter.author];
+  const start = performance.now();
   const _moreArticles = await getContentData({
     contentPath: BLOG_PATH,
     filepath: params.slug,
   });
+  const end = performance.now();
+
+  console.log("more articles", end - start);
 
   return (
     <>
