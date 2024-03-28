@@ -15,7 +15,7 @@ export type Props = {
   workspaceName: string;
 };
 
-export function TrialEnded({ workspaceName = "workspaceName", username = "" }: Props) {
+export function TrialEnded({ workspaceName, username }: Props) {
   return (
     <Tailwind>
       <Html className="font-sans text-zinc-800">
@@ -74,5 +74,10 @@ export function TrialEnded({ workspaceName = "workspaceName", username = "" }: P
     </Tailwind>
   );
 }
+
+TrialEnded.PreviewProps = {
+  username: "Spongebob Squarepants",
+  workspaceName: "Krusty crab",
+} satisfies Props;
 
 export default TrialEnded;

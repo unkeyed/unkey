@@ -15,7 +15,7 @@ export type Props = {
   date: string;
 };
 
-export function PaymentIssue({ username = "username", date = "date" }: Props) {
+export function PaymentIssue({ username, date }: Props) {
   return (
     <Tailwind>
       <Html className="font-sans text-zinc-800">
@@ -58,5 +58,10 @@ export function PaymentIssue({ username = "username", date = "date" }: Props) {
     </Tailwind>
   );
 }
+
+PaymentIssue.PreviewProps = {
+  username: "Mr. Pilkington",
+  date: "2024 03 08",
+} satisfies Props;
 
 export default PaymentIssue;

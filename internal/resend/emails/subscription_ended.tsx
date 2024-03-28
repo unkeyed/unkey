@@ -13,7 +13,7 @@ export type Props = {
   username: string;
 };
 
-export function SubscriptionEnded({ username = "username" }: Props) {
+export function SubscriptionEnded({ username }: Props) {
   return (
     <Tailwind>
       <Html className="font-sans text-zinc-800">
@@ -60,5 +60,9 @@ export function SubscriptionEnded({ username = "username" }: Props) {
     </Tailwind>
   );
 }
+
+SubscriptionEnded.PreviewProps = {
+  username: "Mike Wazowski",
+} satisfies Props;
 
 export default SubscriptionEnded;
