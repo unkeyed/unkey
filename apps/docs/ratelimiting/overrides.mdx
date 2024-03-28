@@ -1,0 +1,69 @@
+---
+title: Custom overrides 
+description: Override limits for identifiers without code changes.
+---
+
+The problem with code-defined ratelimits is that managing different limits per user is not really feasable.
+You'd need to keep a list of identifiers hardcoded in your code and redeploy your application whenever one of them changes.
+
+With unkey you can add custom overrides dynamically and we'll roll them out to every edge location quickly.
+
+
+## Overriding limits for an identifier
+
+
+<Steps>
+
+<Step title="Head over to your namespace page">
+
+Click "Ratelimit" in the sidebar > select your namespace > Overrides
+
+</Step>
+<Step title="Create a new override">
+
+<Frame>
+      <img src="/ratelimiting/new-override.png"/>
+</Frame>
+
+Enter the identifier to override, a custom limit and custom duration.
+</Step>
+<Step title="Save">
+Click **Create** to roll out the override globally. It may take up to 60s at most but is usually done in just a few seconds.
+
+From now on, when the specified identifier gets ratelimited, it'll use the custom limits, rather than what is defined in your code.
+</Step>
+</Steps>
+
+
+## Wildcard Rules
+
+You can use wildcards (`*`) in your override to match multiple identifiers.
+Exact override matches take precedence over wildcard matches, but there's no guarantee of order between multiple wildcard matches yet.
+
+**Example:**
+Given a base limit of 10/60s and these overrides: 
+- `*@domain.com`: 20/60s
+- `hello@domain.com`: 100/s
+
+This would result in the following applied ratelimits:
+
+| requested identifier  | match     | used ratelimit  |
+|-----------------------|-----------|-----------------|
+| `abc@domain.com`      | wildcard  | 20/60s          |
+| `hello@domain.com`    | exact     | 100/s           |
+| `xyz`                 | -         | 10/60s          |
+
+Here's an example of setting higher limits for all emails from the `customer.com` domain.
+
+
+<Frame>
+      <img src="/ratelimiting/wildcard-override.png"/>
+</Frame>
+
+### Examples
+
+| override        | matches                                 |
+|-----------------|-----------------------------------------|
+| `*@domain.com`  | `1@domain.com`, `hello@domain.com`      |
+| `invite:*`      | `invite:abc`, `invite:hello world`      |
+| `prefix*suffix` | `prefixhelloworldsuffix`                |

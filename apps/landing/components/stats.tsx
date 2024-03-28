@@ -45,10 +45,10 @@ export function Stats() {
       <div className="w-full rounded-4xl py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white max-w-[1096px]">
         <Container>
           <StatList>
-            <StatListItem value={workspaces} label="Workspaces" className="mb-8" />
-            <StatListItem value={apis} label="APIs" className="mb-8" />
-            <StatListItem value={keys} label="Keys" />
             <StatListItem value={totalVerifications} label="Verifications" />
+            <StatListItem value={keys} label="Keys" />
+            <StatListItem value={apis} label="APIs" className="mb-8" />
+            <StatListItem value={workspaces} label="Workspaces" className="mb-8" />
           </StatList>
         </Container>
       </div>

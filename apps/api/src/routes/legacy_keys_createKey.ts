@@ -221,7 +221,7 @@ export const registerLegacyKeysCreate = (app: App) =>
         deletedAt: null,
       });
 
-      await analytics.ingestAuditLogs({
+      await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         actor: { type: "key", id: rootKeyId },
         event: "key.create",

@@ -5,8 +5,8 @@ import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "@/routes/v1_key
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { expect, test } from "vitest";
 
-test("create, verify and delete a key", async () => {
-  const h = await IntegrationHarness.init();
+test("create, verify and delete a key", async (t) => {
+  const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
   const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

@@ -7,8 +7,8 @@ import {
   type V1KeysUpdateRemainingResponse,
 } from "./v1_keys_updateRemaining";
 
-test("when the key does not exist", async () => {
-  const h = await RouteHarness.init();
+test("when the key does not exist", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const keyId = newId("key");
 

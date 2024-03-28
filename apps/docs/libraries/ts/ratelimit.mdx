@@ -1,0 +1,282 @@
+---
+title: "@unkey/ratelimit"
+description: "Serverless ratelimiting"
+---
+
+> ( Globally consistent, fast ) - choose two
+
+`@unkey/ratelimit` is a library for fast global ratelimiting in serverless functions.
+
+We use Cloudflare workers and Durable Objects to orchestrate low latency ratelimiting at the edge, without sacrificing consistency.
+
+
+**TLDR:**
+```ts
+const { success } = await unkey.limit("my-user-id")
+if (!success){
+  // reject request
+}
+// handle request
+```
+
+
+<Card icon="github" title="github.com/unkeyed/unkey/tree/main/packages/ratelimit" href="https://github.com/unkeyed/unkey/tree/main/packages/ratelimit"/>
+
+
+## Install
+
+<Tabs>
+  <Tab title="npm">
+  ```bash
+  npm install @unkey/ratelimit
+  ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+  pnpm add @unkey/ratelimit
+   ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+  yarn add @unkey/ratelimit
+   ```
+  </Tab>
+  <Tab title="bun">
+  ```bash
+  bun install @unkey/ratelimit
+  ```
+  </Tab>
+</Tabs>
+
+
+
+## Configure your ratelimiter
+
+```ts
+import { Ratelimit } from "@unkey/ratelimit"
+
+const unkey = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "my-app",
+  limit: 10,
+  duration: "30s",
+  async: true
+})
+```
+
+## Use it
+
+```ts
+async function handler(request) {
+
+const identifier = request.getUserId() // or ip or anything else you want
+
+const ratelimit = await unkey.limit(identifier)
+if (!ratelimit.success){
+  return new Response("try again later", { status: 429 })
+}
+
+// handle the request here
+
+}
+```
+
+## Making it bullet proof
+
+
+Everything we do is built for scale and stability.
+We built on some of the world's most stable platforms ([Planetscale](https://planetscale.com/) and [Cloudflare](https://www.cloudflare.com)) and run an extensive test suite before and after every deployment.
+
+Even so, we would be fools if we wouldn't explain how you can put in safe guards along the way.
+
+
+In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey. 
+By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
+
+The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
+
+
+```ts
+import { Ratelimit } from "@unkey/ratelimit"
+
+// In this example we decide to let requests pass, in case something goes wrong.
+// But you can of course also reject them if you want.
+const fallback = { success: true, limit: 0, reset: 0, remaining: 0 }
+
+const unkey = new Ratelimit({
+  // ... standard stuff
+  timeout: {
+    ms: 3000, // only wait 3s at most before returning the fallback
+    fallback
+  },
+  onError: (err) => {
+    console.error(err.message)
+    return fallback
+  }
+})
+
+const { success } = await unkey.limit(identifier)
+```
+
+___
+
+## Options
+
+### `new Ratelimit(config: RatelimitConfig)`
+
+
+```ts 
+export type RatelimitConfig = {
+  /**
+   * How many requests may pass in the given duration
+   */
+  limit: number;
+
+  /**
+   * Either a type string literal or milliseconds
+   */
+  duration: Duration | number;
+
+  /**
+   * The unkey root key. You can create one at https://unkey.dev/app/settings/root-keys
+   *
+   * Make sure the root key has permissions to use ratelimiting.
+   */
+  rootKey: string;
+
+  /**
+   * Namespaces allow you to separate different areas of your app and have isolated limits.
+   *
+   * @example tRPC-routes
+   */
+  namespace: string;
+
+  /**
+   * Configure a timeout to prevent network issues from blocking your function for too long.
+   *
+   * Disable it by setting `timeout: false`
+   *
+   * @default
+   * ```ts
+   * {
+   *   // 5 seconds
+   *   ms: 5000,
+   *   fallback: { success: false, limit: 0, remaining: 0, reset: Date.now()}
+   * }
+   * ```
+   */
+  timeout?:
+    | {
+        /**
+         * Time in milliseconds until the response is returned
+         */
+        ms: number | Duration;
+
+        /**
+         * A custom response to return when the timeout is reached.
+         *
+         * The important bit is the `success` value, choose whether you want to let requests pass or not.
+         *
+         * @example
+         * ```ts
+         * {
+         *   // 5 seconds
+         *   ms: 5000
+         *   fallback: { success: true, limit: 0, remaining: 0, reset: 0}
+         * }
+         * ```
+         */
+        fallback: RatelimitResponse;
+      }
+    | false;
+
+   /**
+   * Configure what happens for unforeseen errors
+   *
+   * @example Letting requests pass
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   *
+   * @example Rejecting the request
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   */
+  onError?: (err: Error) => RatelimitResponse | Promise<RatelimitResponse>;
+
+};
+```
+
+### `.limit(identifier: string, opts: LimitOptions)`
+
+```ts LimitOptions
+export type LimitOptions = {
+  /**
+   * Separate requests into groups, groups are combined with your identifier and can be filtered
+   * and searched later.
+   *
+   * @example `group: "send.email"` -> `send.email_${userId}`
+   * 
+   */
+  // group?: string;
+
+  /**
+   * Expensive requests may use up more resources. You can specify a cost to the request and
+   * we'll deduct this many tokens in the current window. If there are not enough tokens left,
+   * the request is denied.
+   *
+   * @example
+   *
+   * 1. You have a limit of 10 requests per second you already used 4 of them in the current
+   * window.
+   *
+   * 2. Now a new request comes in with a higher cost:
+   * ```ts
+   * const res = await rl.limit("identifier", { cost: 4 })
+   * ```
+   *
+   * 3. The request passes and the current limit is now at `8`
+   *
+   * 4. The same request happens again, but would not be rejected, because it would exceed the
+   * limit in the current window: `8 + 4 > 10`
+   *
+   *
+   * @default 1
+   */
+  cost?: number;
+
+  /**
+   * Override the default limit.
+   *
+   * This takes precedence over the limit defined in the constructor as well as any limits defined
+   * for this identifier in Unkey.
+   */
+  // limit?: Limit;
+
+  /**
+   * Do not wait for a response from the origin. Faster but less accurate.
+   *
+   * We observe a 97%+ accuracy when using `async` mode with significantly lower latency.
+   */
+  async?: boolean;
+
+  /**
+   * Record arbitrary data about this request. This does not affect the limit itself but can help
+   * you debug later.
+   */
+  meta?: Record<string, string | number | boolean | null>;
+
+  /**
+   * Specify which resources this request would access and we'll create a papertrail for you.
+   *
+   * @see https://unkey.dev/app/audit
+   */
+  resources?: {
+    type: string;
+    id: string;
+    name?: string;
+    meta?: Record<string, string | number | boolean | null>;
+  }[];
+};
+```

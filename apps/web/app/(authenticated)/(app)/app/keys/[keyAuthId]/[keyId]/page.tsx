@@ -158,6 +158,7 @@ export default async function KeyPage(props: {
           </CardHeader>
           <CardContent>
             <StackedColumnChart
+              colors={["primary", "warn", "danger"]}
               data={verificationsData}
               timeGranularity={
                 granularity >= 1000 * 60 * 60 * 24 * 30
@@ -265,4 +266,3 @@ const Metric: React.FC<{
   }
   return component;
 };
-// pnpm install  20.92s user 44.80s system 167% cpu 39.265 total

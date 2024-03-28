@@ -25,6 +25,8 @@ export const env = () =>
       PLAIN_API_KEY: z.string().optional(),
 
       TRIGGER_API_KEY: z.string().optional(),
+
+      RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
     })
     .parse(process.env);
 

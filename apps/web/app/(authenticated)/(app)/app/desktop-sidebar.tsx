@@ -1,6 +1,5 @@
 "use client";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -9,6 +8,7 @@ import {
   BookOpen,
   Code,
   Crown,
+  GlobeLock,
   Loader2,
   LucideIcon,
   Settings,
@@ -39,10 +39,16 @@ type NavItem = {
   label: string;
   active?: boolean;
   tag?: React.ReactNode;
+  hidden?: boolean;
 };
 
-const Tag: React.FC<{ label: string }> = ({ label }) => (
-  <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ">
+const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
+  <div
+    className={cn(
+      "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
+      className,
+    )}
+  >
     {label}
   </div>
 );
@@ -56,6 +62,32 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       label: "APIs",
       active: segments.length === 1 && segments.at(0) === "apis",
     },
+
+    {
+      icon: BookOpen,
+      href: "https://unkey.dev/docs",
+      external: true,
+      label: "Docs",
+    },
+    {
+      icon: GlobeLock,
+      href: "/app/ratelimits",
+      label: "Ratelimit",
+      active: segments.at(0) === "ratelimits",
+    },
+    {
+      icon: ShieldHalf,
+      label: "Authorization",
+      href: "/app/authorization/roles",
+      active: segments.some((s) => s === "authorization"),
+    },
+
+    {
+      icon: Activity,
+      href: "/app/audit",
+      label: "Audit Log",
+      active: segments.at(0) === "audit",
+    },
     {
       icon: Settings,
       href: "/app/settings/general",
@@ -63,40 +95,14 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       active: segments.at(0) === "settings",
     },
     {
-      icon: BookOpen,
-      href: "https://unkey.dev/docs",
-      external: true,
-      label: "Docs",
-    },
-
-    {
-      icon: ShieldHalf,
-      label: "Authorization",
-      href: "/app/authorization/roles",
-      active: segments.some((s) => s === "authorization"),
-      tag: <Tag label="alpha" />,
-    },
-    {
-      icon: Activity,
-      href: "/app/audit",
-      label: "Audit Log",
-      active: segments.at(0) === "audit",
-      tag: <Tag label="beta" />,
-    },
-  ];
-  if (workspace.features.successPage) {
-    navigation.push({
       icon: Crown,
       href: "/app/success",
       label: "Success",
       active: segments.at(0) === "success",
-      tag: (
-        <div className="bg-background border text-content-subtle rounded text-xs px-1 py-0.5 font-mono">
-          internal
-        </div>
-      ),
-    });
-  }
+      tag: <Tag label="internal" />,
+      hidden: !workspace.features.successPage,
+    },
+  ].filter((n) => !n.hidden);
 
   const firstOfNextMonth = new Date();
   firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1);
@@ -131,27 +137,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
                 </li>
               ))}
             </ul>
-          </li>
-          <li>
-            <h2 className="text-xs font-semibold leading-6 text-content">Your APIs</h2>
-            {/* max-h-64 in combination with the h-8 on the <TooltipTrigger> will fit 8 apis nicely */}
-            <ScrollArea className="mt-2 -mx-2 space-y-1 overflow-auto max-h-64">
-              {workspace.apis.map((api) => (
-                <Tooltip key={api.id}>
-                  <TooltipTrigger className="w-full h-8 overflow-hidden text-ellipsis">
-                    <NavLink
-                      item={{
-                        icon: Code,
-                        href: `/app/apis/${api.id}`,
-                        label: api.name,
-                        active: segments.includes(api.id),
-                      }}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent>{api.name}</TooltipContent>
-                </Tooltip>
-              ))}
-            </ScrollArea>
           </li>
         </ul>
       </nav>

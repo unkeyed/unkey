@@ -1,15 +1,15 @@
 import { describe, expect, test } from "vitest";
 
 import { ErrorResponse } from "@/pkg/errors";
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
-test("returns 200", async () => {
-  const h = await RouteHarness.init();
+test("returns 200", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.insert(schema.keys).values({
@@ -37,8 +37,8 @@ test("returns 200", async () => {
 });
 
 describe("bad request", () => {
-  test("returns 400", async () => {
-    const h = await RouteHarness.init();
+  test("returns 400", async (t) => {
+    const h = await RouteHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.insert(schema.keys).values({
       id: newId("key"),
@@ -66,8 +66,8 @@ describe("bad request", () => {
 describe("with temporary key", () => {
   test(
     "returns valid",
-    async () => {
-      const h = await RouteHarness.init();
+    async (t) => {
+      const h = await RouteHarness.init(t);
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.insert(schema.keys).values({
         id: newId("key"),
@@ -112,8 +112,8 @@ describe("with temporary key", () => {
 
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
-    test("returns valid", async () => {
-      const h = await RouteHarness.init();
+    test("returns valid", async (t) => {
+      const h = await RouteHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -160,8 +160,8 @@ describe("with ip whitelist", () => {
   describe("with invalid ip", () => {
     test(
       "returns invalid",
-      async () => {
-        const h = await RouteHarness.init();
+      async (t) => {
+        const h = await RouteHarness.init(t);
         const keyAuthid = newId("keyAuth");
         await h.db.insert(schema.keyAuth).values({
           id: keyAuthid,
@@ -211,8 +211,8 @@ describe("with ip whitelist", () => {
 });
 
 describe("with enabled key", () => {
-  test("returns valid", async () => {
-    const h = await RouteHarness.init();
+  test("returns valid", async (t) => {
+    const h = await RouteHarness.init(t);
     const keyAuthId = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthId,
@@ -257,8 +257,8 @@ describe("with enabled key", () => {
 });
 
 describe("with disabled key", () => {
-  test("returns invalid", async () => {
-    const h = await RouteHarness.init();
+  test("returns invalid", async (t) => {
+    const h = await RouteHarness.init(t);
     const keyAuthid = newId("keyAuth");
     await h.db.insert(schema.keyAuth).values({
       id: keyAuthid,
@@ -303,8 +303,8 @@ describe("with disabled key", () => {
   });
 });
 
-test("returns the environment of a key", async () => {
-  const h = await RouteHarness.init();
+test("returns the environment of a key", async (t) => {
+  const h = await RouteHarness.init(t);
 
   const environment = "test";
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -334,8 +334,8 @@ test("returns the environment of a key", async () => {
 });
 
 describe("disabled workspace", () => {
-  test("should reject the request", async () => {
-    const h = await RouteHarness.init();
+  test("should reject the request", async (t) => {
+    const h = await RouteHarness.init(t);
     await h.db
       .update(schema.workspaces)
       .set({ enabled: false })
@@ -360,7 +360,6 @@ describe("disabled workspace", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    console.log(res);
     expect(res.status).toEqual(403);
     expect(res.body).toMatchObject({
       error: {

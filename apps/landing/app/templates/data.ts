@@ -28,7 +28,7 @@ export type Template = {
   /**
    * Url to the image
    */
-  image?: string;
+  image: string;
 
   /**
    * Url to the raw readme
@@ -40,12 +40,23 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "ratelimit-nextjs": {
+    title: "Ratelimit your Next.js routes",
+    description: "Using @unkey/ratelimit to protect your API routes from abuse",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/examples/tree/main/ratelimit",
+    image: "/images/templates/ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/ratelimit/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+    url: "https://github.com/unkeyed/examples/tree/main/ratelimit",
+  },
   "bun-koyeb": {
     title: "Global API authentication with Unkey and Koyeb",
     description: "Deploy and secure your API globally with Unkey and Koyeb.",
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/examples/tree/main/bun-koyeb",
-    image: "/templates/bun_koyeb.png",
+    image: "/images/templates/bun_koyeb.png",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/bun-koyeb/README.md",
     language: "Typescript",
     framework: "Bun",
@@ -55,6 +66,7 @@ export const templates: Record<string, Template> = {
     title: "Next.js Boilerplate",
     description: "A simple Next.js app using Unkey to generate and verify API keys.",
     authors: ["chronark"],
+    image: "/images/templates/nextjs.png",
     repository: "https://github.com/unkeyed/examples/tree/main/nextjs",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/nextjs/README.md",
     language: "Typescript",
@@ -66,6 +78,8 @@ export const templates: Record<string, Template> = {
       "A simple Next.js app using Unkey to generate and verify API keys that expire after 60 seconds.",
     authors: ["ethan-stone"],
     repository: "https://github.com/unkeyed/examples/tree/main/nextjs-expiration",
+    image: "/images/templates/expire-keys.png",
+
     readmeUrl:
       "https://raw.githubusercontent.com/unkeyed/examples/main/nextjs-expiration/README.md",
     language: "Typescript",
@@ -79,6 +93,7 @@ export const templates: Record<string, Template> = {
     readmeUrl:
       "https://raw.githubusercontent.com/unkeyed/examples/main/elixir_mix_supervision_example/README.md",
     language: "Elixir",
+    image: "/images/templates/elixir.png",
   },
   "ai-billing": {
     title: "Next.js AI application with Unkey for billing credits",
@@ -124,15 +139,6 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Next.js",
   },
-  "uselessdev-iojinha": {
-    title: "Iojinha",
-    description: "A template to build type-safe full-stack serverless applications!",
-    authors: ["uselessdev"],
-    repository: "https://github.com/uselessdev/Iojinha",
-    readmeUrl: "https://raw.githubusercontent.com/uselessdev/Iojinha/main/README.md",
-    language: "Typescript",
-    framework: "Next.js",
-  },
   "atridadl-sprintpadawan": {
     title: "sprintpadawan",
     description: "A scrum poker tool that helps agile teams plan their sprints in real-time.",
@@ -151,6 +157,7 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/perkinsjr/unkey-clerk",
     readmeUrl: "https://raw.githubusercontent.com/perkinsjr/unkey-clerk/main/README.md",
     url: "https://github.com/perkinsjr/unkey-clerk",
+    image: "/images/templates/clerk.png",
     language: "Typescript",
     framework: "Next.js",
   },
@@ -162,6 +169,8 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/WilfredAlmeida/unkey-ocr/main/README.md",
     language: "Typescript",
     url: "https://unkey.dev/blog/ocr-service",
+    image: "/images/templates/ocr.png",
+
     framework: "Express",
   },
   yoga: {

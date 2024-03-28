@@ -106,7 +106,7 @@ function CompanyInfoMobile() {
 function Navigation() {
   return (
     <nav className=" sm:w-full">
-      <ul className="flex flex-col flex-auto gap-16 text-left sm:flex-row sm:mx-auto sm:text-center justify-evenly">
+      <ul className="flex flex-col flex-auto gap-16 text-left sm:flex-row sm:mx-auto justify-evenly">
         {navigation.map((section) => (
           <li key={section.title.toString()}>
             <div className="text-sm font-medium tracking-wider text-white font-display">
@@ -144,7 +144,7 @@ function Navigation() {
 
 function MobileNavigation() {
   return (
-    <nav className="flex flex-col sm:hidden">
+    <nav className="flex flex-col pt-4 sm:hidden mobile-blog-footer-radial">
       <div className="flex flex-col items-center justify-center w-full text-center">
         <CompanyInfoMobile />
       </div>
@@ -161,10 +161,10 @@ export function Footer() {
       <footer className="relative hidden pt-32 overflow-hidden border-t sm:block xl:pt-10 max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
         <div className="container flex flex-col mx-auto">
           <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row xl:gap-20 xxl:gap-48">
-            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full sm:pl-28 xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
+            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
               <CompanyInfo />
             </div>
-            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 sm:pl-28 md:pl-18 lg:pl-6 max-sm:mb-8">
+            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 md:pl-18 lg:pl-6 max-sm:mb-8">
               <Navigation />
             </div>
           </div>

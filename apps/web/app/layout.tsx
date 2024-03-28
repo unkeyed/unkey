@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/toaster";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 
 import "@/styles/tailwind/tailwind.css";
@@ -19,10 +20,10 @@ const pangea = localFont({
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),
   title: "Open Source API Authentication",
-  description: "Accelerate your API development",
+  description: "Build better APIs faster",
   openGraph: {
     title: "Open Source API Authentication",
-    description: "Accelerate your API development ",
+    description: "Build better APIs faster ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
     images: ["https://unkey.dev/images/landing/og.png"],
@@ -58,7 +59,11 @@ export default function RootLayout({
         <PostHogPageview />
       </Suspense>
       <PHProvider>
-        <body>{children}</body>
+        <body>
+          <Toaster />
+
+          {children}
+        </body>
       </PHProvider>
     </html>
   );

@@ -1,0 +1,51 @@
+---
+title: Disabling Keys
+description: "Enable or disable a key. Disabled keys will not validate."
+---
+
+This feature is useful for disabling a key temporarily. While disabled the key will act as an invalid key. 
+
+Example:
+Suppose you have a customer that has not paid their bill. You may not want to delete the key and wait for the account balance to be current. The key can be disabled temporarily, preventing access until it is enabled.
+
+Unkey allows you to disable a key on an individual basis. 
+
+### Example
+
+Let's disable a key temperarily blocking access with that key. 
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateKey \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "enabled": false,
+  "keyId": "<keyId>"
+}'
+```
+
+Now, when you verify the updated key it will show as invalid.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+		"key": "<NEW_KEY>"
+	}'
+```
+
+
+```json
+{
+  "keyId": "<KEY_ID>",
+  "valid": false,
+  "meta": {},
+  "enabled": false
+}
+```
+
+<Note>
+  The returned `enabled` value can be changed with the updateKey endpoint to re-enable the key. 
+</Note>

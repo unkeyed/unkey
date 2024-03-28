@@ -31,7 +31,7 @@ export const BorderBeam = ({
           "--border-width": borderWidth,
           "--color-from": colorFrom,
           "--color-to": colorTo,
-          "--delay": `-${delay}s`,
+          "--delay": `${delay}s`,
         } as React.CSSProperties
       }
       className={cn(

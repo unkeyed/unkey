@@ -17,12 +17,12 @@ export type Resources = {
 export class RouteHarness extends Harness {
   private worker: UnstableDevWorker;
 
-  private constructor(worker: UnstableDevWorker) {
-    super();
+  private constructor(t: TaskContext, worker: UnstableDevWorker) {
+    super(t);
     this.worker = worker;
   }
 
-  static async init(t?: TaskContext): Promise<RouteHarness> {
+  static async init(t: TaskContext): Promise<RouteHarness> {
     const env = routeTestEnv.parse(process.env);
     const worker = await unstable_dev("src/worker.ts", {
       local: env.WORKER_LOCATION === "local",
@@ -42,7 +42,7 @@ export class RouteHarness extends Harness {
       onTestFinished(stop);
     }
 
-    const h = new RouteHarness(worker);
+    const h = new RouteHarness(t, worker);
     await h.seed();
     return h;
   }

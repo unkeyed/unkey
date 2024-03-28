@@ -11,7 +11,7 @@ export function BlogContainer({
 }) {
   return (
     <Component className={clsx("mx-auto max-w-full sm:px-6 lg:px-8", className)}>
-      <div className="max-w-[1440px] mx-auto">{children}</div>
+      <div className="max-w-] mx-auto">{children}</div>
     </Component>
   );
 }

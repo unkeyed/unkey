@@ -30,6 +30,7 @@ import {
 } from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, VenetianMask } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -167,9 +168,9 @@ export default function Templates() {
         </div>
       </div>
 
-      <PageIntro title="Find your Template ">
-        <p className="mt- text-white/60">
-          Jumpstart your api development with our pre-built solutions.
+      <PageIntro title="Find your template">
+        <p className="mt-[26px] text-base about-founders-text-gradient ">
+          Jumpstart your API development with our pre-built solutions.
         </p>
       </PageIntro>
       <Container className="mt-24 text-white">
@@ -224,25 +225,26 @@ export default function Templates() {
                                 return (
                                   <FormItem
                                     key={language}
-                                    className="flex flex-row items-center p-2 space-x-3 h-12 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex  flex-row items-center space-x-3 h-12 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
-                                    <FormControl>
-                                      <Checkbox
-                                        className="ml-2"
-                                        checked={field.value?.includes(language)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, language])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value: string) => value !== language,
-                                                ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
-                                      <span className="text-sm font-normal">{language}</span>
+                                    <FormLabel className="flex items-center justify-between w-full h-full gap-2 p-2">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(language)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, language])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) => value !== language,
+                                                  ),
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <span className="flex-grow text-sm font-normal">
+                                        {language}
+                                      </span>
                                       <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
@@ -286,24 +288,26 @@ export default function Templates() {
                                 return (
                                   <FormItem
                                     key={framework}
-                                    className="flex flex-row items-center h-12 p-2 space-x-3 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex  flex-row items-center space-x-3 h-12 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(framework)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, framework])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value: string) => value !== framework,
-                                                ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
-                                      <span className="text-sm font-normal">{framework}</span>
+                                    <FormLabel className="flex items-center justify-between w-full h-full gap-2 p-2">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(framework)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, framework])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) => value !== framework,
+                                                  ),
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <span className="flex-grow text-sm font-normal">
+                                        {framework}
+                                      </span>
                                       <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
@@ -327,13 +331,21 @@ export default function Templates() {
               <Link
                 key={id}
                 href={`/templates/${id}`}
-                className="flex flex-col w-full items-start overflow-hidden duration-200 border border-white/10 shadow rounded-[28px] hover:shadow-md hover:scale-[1.01] aspect-[12/16] sm:aspect-[6/5] md:aspect-[11/16]"
+                className="flex flex-col items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
               >
-                <div className="flex items-center justify-center w-full h-1/2">
+                <div className="relative w-full">
                   {template.image ? (
-                    <img src={template.image} alt="" className="w-full h-full object-fit" />
+                    <Image
+                      src={template.image}
+                      alt=""
+                      width={800}
+                      height={400}
+                      className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
+                    />
                   ) : (
-                    <VenetianMask className="w-8 h-8 text-white/60" />
+                    <div className="flex items-center justify-center w-full h-full">
+                      <VenetianMask className="w-8 h-8 text-white/60" />
+                    </div>
                   )}
                 </div>
                 <div className="flex flex-col justify-start w-full p-4 h-3/5">

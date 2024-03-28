@@ -1,4 +1,4 @@
-import type { Api, Key, Ratelimit, RatelimitNamespace } from "@unkey/db";
+import type { Api, Key, RatelimitNamespace, RatelimitOverride } from "@unkey/db";
 
 export type KeyHash = string;
 export type CacheNamespaces = {
@@ -34,7 +34,7 @@ export type CacheNamespaces = {
     usageExceeded: number;
   }[];
   ratelimitByIdentifier: {
-    namespace: RatelimitNamespace;
-    ratelimit?: Ratelimit;
-  };
+    namespace: Pick<RatelimitNamespace, "id" | "workspaceId">;
+    override?: Pick<RatelimitOverride, "async" | "duration" | "limit" | "sharding">;
+  } | null;
 };

@@ -50,7 +50,7 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
     },
   });
 
-  const updateOwnerId = trpc.keySettings.updateOwnerId.useMutation({
+  const updateOwnerId = trpc.key.update.ownerId.useMutation({
     onSuccess() {
       toast.success("Your owner ID has been updated!");
       router.refresh();

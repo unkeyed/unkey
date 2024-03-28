@@ -64,10 +64,10 @@ function Features() {
 
 export const metadata = {
   title: "Unkey",
-  description: "Accelerate your API Development",
+  description: "Build better APIs faster",
   openGraph: {
     title: "Unkey",
-    description: "Accelerate your API Development",
+    description: "Build better APIs faster",
     url: "https://unkey.dev/",
     siteName: "unkey.dev",
     images: [

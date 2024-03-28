@@ -5,7 +5,11 @@ export function LatencyBento() {
   return (
     <div className="w-full relative border-[.75px] h-[576px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       {/* <LatencyMap className="h-[500px] w-full" /> */}
-      <Image src={map} alt="Animated map showing Unkey latency globally" />
+      <Image
+        src={map}
+        alt="Animated map showing Unkey latency globally"
+        className="h-full sm:h-auto"
+      />
       <LatencyText />
     </div>
   );
@@ -33,7 +37,7 @@ export function LatencyText() {
         <h3 className="ml-4 text-lg font-medium text-white">Global low latency</h3>
       </div>
       <p className="mt-4 leading-6 text-white/60">
-        Unkey is fast globally, regardless of which cloud providers you’re using or where your users
+        Unkey is fast globally, regardless of which cloud providers you're using or where your users
         are located.
       </p>
     </div>

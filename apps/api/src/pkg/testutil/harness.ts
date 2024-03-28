@@ -1,7 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { onTestFinished } from "vitest";
+import { TaskContext } from "vitest";
 import {
   type Api,
   type Database,
@@ -25,15 +25,17 @@ export type Resources = {
 };
 
 export abstract class Harness {
+  private readonly t: TaskContext;
   public readonly db: Database;
   public resources: Resources;
 
-  constructor() {
-    const env = databaseEnv.parse(process.env);
+  constructor(t: TaskContext) {
+    this.t = t;
+    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
     this.db = createConnection({
-      host: env.DATABASE_HOST,
-      username: env.DATABASE_USERNAME,
-      password: env.DATABASE_PASSWORD,
+      host: DATABASE_HOST,
+      username: DATABASE_USERNAME,
+      password: DATABASE_PASSWORD,
     });
     this.resources = this.createResources();
   }
@@ -44,12 +46,7 @@ export abstract class Harness {
     }
     const deleteWorkspaces = async () => {
       for (const workspaceId of workspaceIds) {
-        await this.db
-          .delete(schema.workspaces)
-          .where(eq(schema.workspaces.id, workspaceId))
-          .catch((err) => {
-            console.error(err);
-          });
+        await this.db.delete(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
       }
     };
     for (let i = 1; i <= 5; i++) {
@@ -306,9 +303,8 @@ export abstract class Harness {
   }
 
   protected async seed(): Promise<void> {
-    this.resources = this.createResources();
-    onTestFinished(() =>
-      this.teardown(this.resources.unkeyWorkspace.id, this.resources.userWorkspace.id),
+    this.t.onTestFinished(() =>
+      this.teardown(this.resources.userWorkspace.id, this.resources.unkeyWorkspace.id),
     );
 
     await this.db.insert(schema.workspaces).values(this.resources.unkeyWorkspace);

@@ -81,7 +81,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     await db.transaction(async (tx) => {
       await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
 
-      await analytics.ingestAuditLogs({
+      await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "api.delete",
         actor: {
@@ -111,7 +111,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
         .set({ deletedAt: new Date() })
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)));
 
-      await analytics.ingestAuditLogs(
+      await analytics.ingestUnkeyAuditLogs(
         keyIds.map((key) => ({
           workspaceId: authorizedWorkspaceId,
           event: "key.delete",

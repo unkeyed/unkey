@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440" viewBox="150 350 460 140" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" style="background: #000000; white-space: pre;">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440" viewBox="300 450 360 50" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" style="background: #000000; white-space: pre;">
     <style>
 @keyframes a0_o { 0% { opacity: 1; } 13.3333% { opacity: 1; } 16.6667% { opacity: 0; } 30% { opacity: 0; } 96.6667% { opacity: 0; } 100% { opacity: 1; } }
 @keyframes a1_o { 0% { opacity: 0; } 44.4444% { opacity: 0; } 55.5556% { opacity: 1; } 88.8889% { opacity: 1; } 100% { opacity: 0; } }

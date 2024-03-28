@@ -19,16 +19,16 @@ export function RateLimits() {
           <p>5</p>
           <p>6</p>
         </div>
-        <div className="flex font-mono ratelimits-editor-bg-gradient-2 text-xs w-full text-white whitespace-pre leading-8 pl-8 rounded-br-xl">
+        <div className="flex w-full pl-8 font-mono text-xs leading-8 text-white whitespace-pre ratelimits-editor-bg-gradient-2 rounded-br-xl">
           {JSON.stringify({ rateLimit: { limit: 10, interval: 1000 } }, null, 2)}
         </div>
       </div>
-      <div className="mt-8 flex flex-col ratelimits-fade-gradient">
+      <div className="flex flex-col mt-8 ratelimits-fade-gradient">
         <div className="flex items-center">
-          <div className="text-white font-mono text-xs sm:font-sm whitespace-nowrap">
+          <div className="font-mono text-xs text-white sm:font-sm whitespace-nowrap">
             <span className="text-[#ffffff]/40">Creating</span> keys
             <span className="tracking-[-5px]">...</span>
-            <span className="inline-flex w-[4px] h-[12px] bg-white ratelimits-bar-shadow ml-3" />
+            <span className="inline-flex w-[4px] h-[12px] bg-white ratelimits-bar-shadow ml-3 relative top-[1px] flicker" />
           </div>
           <div className="inline-flex items-center overflow-hidden ml-4 h-[36px] text-white font-mono text-sm ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded-xl">
             <div className="w-[62px] h-[36px]">
@@ -210,7 +210,7 @@ export function RateLimits() {
 export function RateLimitsText() {
   return (
     <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[350px]">
-      <div className="flex w-full items-center">
+      <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -226,11 +226,11 @@ export function RateLimitsText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="text-lg font-medium text-white ml-4">Rate Limits</h3>
+        <h3 className="ml-4 text-lg font-medium text-white">Rate Limits</h3>
       </div>
-      <p className="mt-4 text-white/60 leading-6">
-        Implement granular control over access with custom rate limiting per key, preventing abuse
-        and optimizing the performance of your services.
+      <p className="mt-4 leading-6 text-white/60">
+        Per IP, per user, per API key, or any identifier that matters to you. Enforced on the edge,
+        as close to your users as possible, delivering fast and reliable rate limiting.
       </p>
     </div>
   );

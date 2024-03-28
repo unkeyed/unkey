@@ -53,7 +53,7 @@ const codeBlock = `curl --request GET \\
 `;
 
 export function AnalyticsBento() {
-  const [showApi, toggleShowApi] = useState(true);
+  const [showApi, toggleShowApi] = useState(false);
 
   return (
     <div className="relative flex justify-center w-full">
@@ -97,8 +97,9 @@ export function AnalyticsBento() {
         </div>
         {showApi ? "Hide API Code" : "Show API code"}
       </button>
-      <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border-[.5px] border-white/10 relative">
-        <LightSvg className="absolute top-[-180px] left:0 lg:left-[220px] z-50 pointer-events-none" />
+      <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border border-white/10 relative">
+        {/* TODO: horizontal scroll */}
+        <LightSvg className="absolute hidden md:flex top-[-180px] left:0 lg:left-[300px] z-50 pointer-events-none" />
         <AnalyticsStars className="w-[120px] shrink-0 hidden md:flex" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
@@ -117,8 +118,8 @@ function AnalyticsApiView() {
       whileInView="visible"
       className="w-full overflow-x-hidden"
     >
-      <div className="w-full bg-[#000000] bg-opacity-02 analytics-background-gradient xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
-        <div className="flex flex-col w-[216px] h-full text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
+      <div className="w-full bg-[#020202] bg-opacity-02 lg:w-[1180px] lg:rounded-3xl analytics-background-gradient xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+        <div className="flex flex-col w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
           <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
             <TerminalIcon className="w-6 h-6" />
             <div className="ml-3">cURL</div>
@@ -363,7 +364,7 @@ function AnalyticsWebAppView() {
       whileInView="visible"
       className="w-full overflow-x-hidden"
     >
-      <div className="w-full bg-[#000000] relative flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <div className="w-full bg-[#000000] lg:w-[1180px] lg:rounded-3xl relative flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
         <WebAppLight className="absolute top-[-100px] left-[40px]" />
         <div className="flex flex-col w-[216px] h-full text-white/20  text-[13px] pt-6 px-4 md:border-r md:border-white/5">
           <div className="flex justify-between items-center w-[160px]">
@@ -693,7 +694,7 @@ export function Editor({
   return (
     <Highlight theme={theme} code={codeBlock} language={language}>
       {({ tokens, getLineProps, getTokenProps }) => (
-        <pre className="leading-6">
+        <pre className="leading-8">
           {tokens.map((line, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <div key={`${line}-${i}`} {...getLineProps({ line })}>

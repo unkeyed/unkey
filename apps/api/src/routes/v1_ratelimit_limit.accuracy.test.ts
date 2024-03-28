@@ -2,9 +2,9 @@ import { test } from "vitest";
 
 import { randomUUID } from "crypto";
 import { loadTest } from "@/pkg/testutil/load";
-import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
+import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
 const testCases: {
@@ -87,7 +87,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
         seconds,
         fn: () =>
           h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-            url: "/v1/ratelimit.limit",
+            url: "/v1/ratelimits.limit",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${root.key}`,

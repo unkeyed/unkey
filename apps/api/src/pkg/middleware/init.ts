@@ -13,6 +13,7 @@ import { AxiomMetrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { trace } from "@opentelemetry/api";
+import { RBAC } from "@unkey/rbac";
 /**
  * This is special, all of these services will be available globally and are initialized
  * before any hono handlers run.
@@ -22,7 +23,9 @@ import { trace } from "@opentelemetry/api";
  * Use the hono context for that.
  */
 import type { MiddlewareHandler } from "hono";
+import { Cache } from "../cache/interface";
 import { CacheNamespaces } from "../cache/namespaces";
+import { SwrCache } from "../cache/swr";
 import { HonoEnv } from "../hono/env";
 
 /**
@@ -72,33 +75,40 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const analytics = new Analytics(c.env.TINYBIRD_TOKEN);
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
+          cache: rlMap,
           namespace: c.env.DO_RATELIMIT,
           logger,
           metrics,
         })
       : new NoopRateLimiter();
 
-    const cache = new TieredCache<CacheNamespaces>(
-      CacheWithTracing.wrap(
-        CacheWithMetrics.wrap(new MemoryCache<CacheNamespaces>(cacheMap), metrics),
+    const cache: Cache<CacheNamespaces> = CacheWithMetrics.wrap(
+      new TieredCache<CacheNamespaces>(
+        CacheWithTracing.wrap(
+          CacheWithMetrics.wrap(new MemoryCache<CacheNamespaces>(cacheMap), metrics),
+        ),
+        c.env.CLOUDFLARE_ZONE_ID && c.env.CLOUDFLARE_API_KEY
+          ? CacheWithTracing.wrap(
+              CacheWithMetrics.wrap(
+                new ZoneCache({
+                  domain: "cache.unkey.dev",
+                  zoneId: c.env.CLOUDFLARE_ZONE_ID,
+                  cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
+                }),
+                metrics,
+              ),
+            )
+          : undefined,
       ),
-      c.env.CLOUDFLARE_ZONE_ID && c.env.CLOUDFLARE_API_KEY
-        ? CacheWithTracing.wrap(
-            CacheWithMetrics.wrap(
-              new ZoneCache({
-                domain: "cache.unkey.dev",
-                zoneId: c.env.CLOUDFLARE_ZONE_ID,
-                cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
-              }),
-              metrics,
-            ),
-          )
-        : undefined,
+      metrics,
     );
 
+    const swrCache = new SwrCache(cache);
+
+    const rbac = new RBAC();
     const keyService = new KeyService({
-      persistenceMap: rlMap,
-      cache,
+      rbac,
+      cache: swrCache,
       logger,
       db,
       metrics,
@@ -108,13 +118,14 @@ export function init(): MiddlewareHandler<HonoEnv> {
     });
 
     c.set("services", {
+      rbac,
       db,
       metrics,
       logger,
       usageLimiter,
       rateLimiter,
       analytics,
-      cache,
+      cache: swrCache,
       keyService,
     });
 

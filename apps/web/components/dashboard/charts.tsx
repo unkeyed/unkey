@@ -1,37 +1,55 @@
 "use client";
 
-import { Area, Column } from "@ant-design/plots";
+import { Area, Bar, Column, Line } from "@ant-design/plots";
 import { useTheme } from "next-themes";
 
-const useColors = () => {
+type ColorName = "primary" | "warn" | "danger";
+
+export const useColors = (colorNames: Array<ColorName>) => {
   const { resolvedTheme } = useTheme();
+
+  const colors: { light: Record<ColorName, string>; dark: Record<ColorName, string> } = {
+    light: {
+      primary: "#1c1917",
+      warn: "#FFCD07",
+      danger: "#D12542",
+    },
+    dark: {
+      primary: "#f1efef",
+      warn: "#FFE41C",
+      danger: "#FF7568",
+    },
+  };
+
   return {
     color: resolvedTheme === "dark" ? "#f1efef" : "#1c1917",
     palette:
       resolvedTheme === "dark"
-        ? ["#f1efef", "#FFE41C", "#FF7568"]
-        : ["#1c1917", "#FFCD07", "#D12542"],
+        ? colorNames.map((c) => colors.dark[c])
+        : colorNames.map((c) => colors.light[c]),
     axisColor: resolvedTheme === "dark" ? "#1b1918" : "#e8e5e3",
   };
 };
 
-type Props = {
+export type Props = {
   data: {
     x: string;
     y: number;
   }[];
   timeGranularity: "hour" | "day" | "month";
   tooltipLabel: string;
+  colors?: Array<ColorName>;
 };
 
 export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel }) => {
-  const { color, axisColor } = useColors();
+  const { color, axisColor } = useColors(["primary", "warn", "danger"]);
   return (
     <Area
+      animation={false}
       autoFit={true}
       data={data}
       smooth={true}
-      padding={[20, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       color={color}
@@ -94,14 +112,43 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
   );
 };
 
-export const ColumnChart: React.FC<Props> = ({ data }) => {
-  const { color, axisColor } = useColors();
+export const LineChart: React.FC<{
+  data: {
+    category: string;
+    x: string;
+    y: number;
+  }[];
+}> = ({ data }) => {
+  return (
+    <Line
+      animation={false}
+      autoFit={true}
+      data={data}
+      smooth={true}
+      padding="auto"
+      xField="x"
+      yField="y"
+      seriesField="category"
+      tooltip={{
+        formatter: (datum) => ({
+          name: datum.category,
+          value: `${Intl.NumberFormat(undefined, { notation: "compact" }).format(
+            Number(datum.y),
+          )} ms`,
+        }),
+      }}
+    />
+  );
+};
+
+export const ColumnChart: React.FC<Props> = ({ data, colors }) => {
+  const { color, axisColor } = useColors(colors ?? ["primary", "warn", "danger"]);
   return (
     <Column
       color={color}
       autoFit={true}
       data={data}
-      padding={[20, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       xAxis={{
@@ -150,9 +197,10 @@ export const StackedColumnChart: React.FC<{
     x: string;
     y: number;
   }[];
-  timeGranularity: "hour" | "day" | "month";
-}> = ({ data, timeGranularity }) => {
-  const { palette, axisColor } = useColors();
+  timeGranularity?: "minute" | "hour" | "day" | "month";
+  colors: Array<ColorName>;
+}> = ({ data, timeGranularity, colors }) => {
+  const { palette, axisColor } = useColors(colors);
   return (
     <Column
       isStack={true}
@@ -160,7 +208,7 @@ export const StackedColumnChart: React.FC<{
       seriesField="category"
       autoFit={true}
       data={data}
-      padding={[40, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       legend={{
@@ -185,6 +233,8 @@ export const StackedColumnChart: React.FC<{
         label: {
           formatter: (v: string) => {
             switch (timeGranularity) {
+              case "minute":
+                return new Date(v).toLocaleTimeString();
               case "hour":
                 return new Date(v).toLocaleTimeString();
               case "day":
@@ -194,6 +244,8 @@ export const StackedColumnChart: React.FC<{
                   month: "long",
                   year: "numeric",
                 });
+              default:
+                return v;
             }
           },
         },
@@ -226,6 +278,74 @@ export const StackedColumnChart: React.FC<{
         formatter: (datum) => ({
           name: datum.category,
           value: Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(datum.y)),
+        }),
+      }}
+    />
+  );
+};
+
+export const StackedBarChart: React.FC<{
+  data: {
+    category: string;
+    x: number;
+    y: string;
+  }[];
+  colors: Array<ColorName>;
+}> = ({ data, colors }) => {
+  const { palette, axisColor } = useColors(colors);
+  return (
+    <Bar
+      isStack={true}
+      color={palette}
+      seriesField="category"
+      autoFit={true}
+      data={data}
+      padding="auto"
+      xField="x"
+      yField="y"
+      legend={{
+        position: "top-right",
+      }}
+      label={{
+        formatter: (d) =>
+          d.x > 0 ? Intl.NumberFormat(undefined, { notation: "compact" }).format(d.x) : "",
+      }}
+      maxBarWidth={16}
+      yAxis={{
+        label: {
+          formatter: (v: string) => {
+            return v.length <= 16 ? v : `${v.slice(0, 16)}...`;
+          },
+        },
+        tickLine: {
+          style: {
+            stroke: axisColor,
+          },
+        },
+        line: {
+          style: {
+            stroke: axisColor,
+          },
+        },
+      }}
+      xAxis={{
+        tickCount: 5,
+        label: {
+          formatter: (v: string) =>
+            Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(v)),
+        },
+        grid: {
+          line: {
+            style: {
+              stroke: axisColor,
+            },
+          },
+        },
+      }}
+      tooltip={{
+        formatter: (datum) => ({
+          name: datum.category,
+          value: Intl.NumberFormat(undefined, { notation: "compact" }).format(Number(datum.x)),
         }),
       }}
     />
