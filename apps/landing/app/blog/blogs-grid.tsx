@@ -52,7 +52,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
               tag === (selectedTag ?? "all")
                 ? "bg-white text-black"
                 : "sm:text-sm bg-white/10 text-white/60",
-              "py-1 px-3 rounded-lg",
+              "py-1 px-3 rounded-lg flex items-center",
               className,
             )}
           >
