@@ -189,7 +189,7 @@ export const getContentData = async ({
   return moreContentData;
 };
 
-export const getMeta = async (filepath: string): Promise<Post<Frontmatter>> => {
+export const getMeta = async (filepath: string) => {
   const rawMdx = await raw({ contentPath: BLOG_PATH, filepath: filepath });
   const serialized = await mdxSerialized({ rawMdx });
   const frontmatter = serialized.frontmatter as Frontmatter;
