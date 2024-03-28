@@ -38,7 +38,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.8.0",
+    "@nuxt/kit": "^3.11.1",
     "@unkey/api": "workspace:^",
     "defu": "^6.1.4"
   },
