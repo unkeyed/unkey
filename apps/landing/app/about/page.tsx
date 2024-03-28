@@ -51,20 +51,18 @@ export default async function Page() {
       <div className="mt-[150px] flex flex-col items-center">
         <ChangelogLight />
         <div className="absolute flex -z-50">
-          <div className="parallelogram">
-            <BorderBeam size={300} delay={1} />
-          </div>
+          <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
           <div className="parallelogram parallelogram-1">
-            <BorderBeam size={300} delay={0} />
+            <BorderBeam size={300} anchor={150} />
           </div>
           <div className="parallelogram parallelogram-2">
-            <BorderBeam size={300} delay={0.15} />
+            <BorderBeam size={300} anchor={100} />
           </div>
           <div className="parallelogram parallelogram-3">
-            <BorderBeam size={300} delay={0.3} />
+            <BorderBeam size={300} anchor={50} />
           </div>
           <div className="parallelogram parallelogram-4">
-            <BorderBeam size={300} delay={5} />
+            <BorderBeam size={300} anchor={0} />
           </div>
         </div>
         <div className="mt-[120px]">
