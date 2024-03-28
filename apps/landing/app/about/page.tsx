@@ -327,7 +327,7 @@ export default async function Page() {
                         className="h-[48px] w-[48px] rounded-[100%]"
                       />
                       <p className="text-sm font-bold text-white pt-[32px]">{name}</p>
-                      <p className="text-sm text-white/20">{firm}</p>
+                      <p className="text-sm text-white/40">{firm}</p>
                     </div>
                   </div>
                 );
