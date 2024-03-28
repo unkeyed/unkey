@@ -4,7 +4,7 @@ import { MdxContent } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
-import { BLOG_PATH, getFilePaths, getMeta, getPost } from "@/lib/mdx-helper";
+import { BLOG_PATH, getContentData, getFilePaths, getMeta, getPost } from "@/lib/mdx-helper";
 import { format } from "date-fns";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export const generateStaticParams = async () => {
-  const posts = getFilePaths(BLOG_PATH);
+  const posts = await getFilePaths(BLOG_PATH);
   const paths = posts
     .filter((post) => !post.includes("authors.ts"))
     .map((post) => {
@@ -63,6 +63,10 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const { serialized, frontmatter, headings } = await getPost(params.slug);
 
   const author = authors[frontmatter.author];
+  const _moreArticles = await getContentData({
+    contentPath: BLOG_PATH,
+    filepath: params.slug,
+  });
 
   return (
     <>
