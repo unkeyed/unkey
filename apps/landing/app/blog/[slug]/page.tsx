@@ -49,9 +49,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export const generateStaticParams = async () => {
   const posts = getFilePaths(BLOG_PATH);
-  // Remove file extensions for page paths
-  posts.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
-  return posts;
+  const paths = posts
+    .filter((post) => !post.includes("authors.ts"))
+    .map((post) => {
+      return {
+        slug: post.replace(".mdx", ""),
+      };
+    });
+  return paths;
 };
 
 const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
