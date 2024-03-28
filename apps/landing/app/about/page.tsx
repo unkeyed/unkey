@@ -59,7 +59,7 @@ export const metadata = {
 const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
-  { name: "Allison Pickets", firm: "The New Normal Fund", image: allison },
+  { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
