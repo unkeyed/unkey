@@ -145,7 +145,18 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         </div>
         <div className="flex flex-col xl:flex-row">
           <div className="flex flex-col mx-6 sm:pl-4 lg:pl-24 md:px-12 lg:w-10/12 xl:mt-12">
-            <h1 className="text-left sm:pt-8 xl:mt-0 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
+            <div className="text-white text-[20px] flex">
+              {frontmatter.tags && (
+                <>
+                  <p className="blog-breadcrumb-gradient">Blog</p>
+                  <span className="mx-4 text-white/30">/</span>
+                  <p className="capitalize blog-breadcrumb-gradient">
+                    {frontmatter?.tags?.split(" ")[0]}
+                  </p>
+                </>
+              )}
+            </div>
+            <h1 className="text-left pt-4 sm:pt-8 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
             </h1>
             <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40 ">
