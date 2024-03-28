@@ -12,7 +12,7 @@
     "@cloudflare/workers-types": "^4.20240222.0",
     "@types/node": "^20.11.28",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.3"
   },
   "dependencies": {
     "zod": "^3.22.4"

@@ -10,7 +10,7 @@
 ,
   "devDependencies": {
     "@types/node": "^20.11.28",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.3"
   },
   "dependencies": {
     "@unkey/error": "workspace:^",
