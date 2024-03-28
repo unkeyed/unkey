@@ -20,7 +20,7 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
           </Feature>
           <Feature>
             <FeatureHeader>
-              <FeatureIcon iconName="data" />
+              <FeatureIcon iconName="usage" />
               <FeatureTitle>Rate limiting</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
@@ -93,7 +93,7 @@ const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
           </Feature>
           <Feature>
             <FeatureHeader>
-              <FeatureIcon iconName="usage" />
+              <FeatureIcon iconName="data" />
               <FeatureTitle>Usage Limits per Key</FeatureTitle>
             </FeatureHeader>
             <FeatureContent>
