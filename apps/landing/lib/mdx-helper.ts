@@ -78,7 +78,7 @@ export type Frontmatter = {
   salary: string | undefined;
   level: string | undefined;
   image: string | undefined;
-  tags: Tags[] | undefined;
+  tags: string | undefined;
 };
 
 export type Tags = "product" | "engineering" | "company" | "industry" | "security";

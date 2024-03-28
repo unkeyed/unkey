@@ -9,16 +9,17 @@ import { format } from "date-fns";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { performance } from "perf_hooks";
 import { BlogAuthors } from "../blog-authors";
 import { BlogContainer } from "../blog-container";
 import { SuggestedBlogs } from "../suggested-blogs";
+
 type Props = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  // read route params
   const { frontmatter } = await getMeta(params.slug);
 
   if (!frontmatter) {
@@ -63,10 +64,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const { serialized, frontmatter, headings } = await getPost(params.slug);
 
   const author = authors[frontmatter.author];
+  const start = performance.now();
   const _moreArticles = await getContentData({
     contentPath: BLOG_PATH,
     filepath: params.slug,
   });
+  const end = performance.now();
+
+  console.log("more articles", end - start);
 
   return (
     <>
@@ -136,8 +141,19 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <TopRightShiningLight />
         </div>
         <div className="flex flex-col xl:flex-row">
-          <div className="mx-6 flex flex-col sm:pl-4 md:px-12 lg:w-10/12 lg:pl-24 xl:mt-12">
-            <h1 className="blog-heading-gradient xl:pr-30 pr-0 text-left text-6xl text-[40px] font-medium leading-[56px] tracking-tight sm:pt-8 sm:text-[56px] sm:leading-[72px] xl:mt-0 xl:w-3/4">
+          <div className="flex flex-col mx-6 sm:pl-4 lg:pl-24 md:px-12 lg:w-10/12 xl:mt-12">
+            <div className="text-white text-[20px] flex">
+              {frontmatter.tags && (
+                <>
+                  <p className="blog-breadcrumb-gradient">Blog</p>
+                  <span className="mx-4 text-white/30">/</span>
+                  <p className="capitalize blog-breadcrumb-gradient">
+                    {frontmatter?.tags?.split(" ")[0]}
+                  </p>
+                </>
+              )}
+            </div>
+            <h1 className="text-left pt-4 sm:pt-8 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
             </h1>
             <p className="mt-10 text-left text-lg font-normal leading-8 text-white/40 ">

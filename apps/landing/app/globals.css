@@ -103,6 +103,13 @@
   margin-right: 40px;
 }
 
+.blog-breadcrumb-gradient {
+  background: linear-gradient(100deg, #FFF 0%, #FFF 54.36%, rgba(255, 255, 255, 0.30) 108.72%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .blog-heading-gradient {
   background: linear-gradient(
     100.35deg,
