@@ -80,6 +80,44 @@ if (!ratelimit.success){
 
 }
 ```
+
+## Making it bullet proof
+
+
+Everything we do is built for scale and stability.
+We built on some of the world's most stable platforms ([Planetscale](https://planetscale.com/) and [Cloudflare](https://www.cloudflare.com)) and run an extensive test suite before and after every deployment.
+
+Even so, we would be fools if we wouldn't explain how you can put in safe guards along the way.
+
+
+In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey. 
+By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
+
+The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
+
+
+```ts
+import { Ratelimit } from "@unkey/ratelimit"
+
+// In this example we decide to let requests pass, in case something goes wrong.
+// But you can of course also reject them if you want.
+const fallback = { success: true, limit: 0, reset: 0, remaining: 0 }
+
+const unkey = new Ratelimit({
+  // ... standard stuff
+  timeout: {
+    ms: 3000, // only wait 3s at most before returning the fallback
+    fallback
+  },
+  onError: (err) => {
+    console.error(err.message)
+    return fallback
+  }
+})
+
+const { success } = await unkey.limit(identifier)
+```
+
 ___
 
 ## Options
@@ -151,6 +189,22 @@ export type RatelimitConfig = {
         fallback: RatelimitResponse;
       }
     | false;
+
+   /**
+   * Configure what happens for unforeseen errors
+   *
+   * @example Letting requests pass
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   *
+   * @example Rejecting the request
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   */
+  onError?: (err: Error) => RatelimitResponse | Promise<RatelimitResponse>;
+
 };
 ```
 

@@ -64,6 +64,21 @@ export type RatelimitConfig = Limit & {
     | false;
 
   /**
+   * Configure what happens for unforeseen errors
+   *
+   * @example Letting requests pass
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   *
+   * @example Rejecting the request
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   */
+  onError?: (err: Error) => RatelimitResponse | Promise<RatelimitResponse>;
+
+  /**
    * Do not wait for a response from the origin. Faster but less accurate.
    */
   async?: boolean;
@@ -92,7 +107,34 @@ export class Ratelimit implements Ratelimiter {
     });
   }
 
+  /**
+   * Limit a specific identifier, you can override a lot of things about this specific request using
+   * the 2nd argument.
+   *
+   * @example
+   * ```ts
+   * const identifier = getIpAddress() // or userId or anything else
+   * const res = await unkey.limit(identifier)
+   *
+   * if (!res.success){
+   *   // reject request
+   * }
+   * // handle request
+   * ```
+   */
   public async limit(identifier: string, opts?: LimitOptions): Promise<RatelimitResponse> {
+    try {
+      return this._limit(identifier, opts);
+    } catch (e) {
+      if (!this.config.onError) {
+        throw e;
+      }
+      const err = e instanceof Error ? e : new Error(String(e));
+
+      return await this.config.onError(err);
+    }
+  }
+  private async _limit(identifier: string, opts?: LimitOptions): Promise<RatelimitResponse> {
     const timeout =
       this.config.timeout === false
         ? null
