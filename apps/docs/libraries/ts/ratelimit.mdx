@@ -93,7 +93,7 @@ Even so, we would be fools if we wouldn't explain how you can put in safe guards
 In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey. 
 By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
 
-The SDK captures most errors and handles them, but we also encourage you to add a `.catch` handler configure what happens in case something goes wrong.
+The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
 
 
 ```ts
@@ -108,14 +108,14 @@ const unkey = new Ratelimit({
   timeout: {
     ms: 3000, // only wait 3s at most before returning the fallback
     fallback
+  },
+  onError: (err) => {
+    console.error(err.message)
+    return fallback
   }
-
 })
 
-const { success } = await unkey.limit(identifier).catch(err => {
-  console.error(err.message)
-  return fallback
-})
+const { success } = await unkey.limit(identifier)
 ```
 
 ___
@@ -189,6 +189,22 @@ export type RatelimitConfig = {
         fallback: RatelimitResponse;
       }
     | false;
+
+   /**
+   * Configure what happens for unforeseen errors
+   *
+   * @example Letting requests pass
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   *
+   * @example Rejecting the request
+   * ```ts
+   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   * ```
+   */
+  onError?: (err: Error) => RatelimitResponse | Promise<RatelimitResponse>;
+
 };
 ```
 
