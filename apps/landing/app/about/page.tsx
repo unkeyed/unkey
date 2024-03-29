@@ -121,7 +121,7 @@ export default async function Page() {
           text="We grew in number, and we love that. Here are some of our precious moments. Although we collaborate as a fully remote team, occasionally we unite!"
         />
         <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
-          <div className="image w-[200px] h-[400px] rounded-lg relative">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
             <PhotoLabel
               className="absolute bottom-[40px] left-[calc(50%-40px)]"
               text="Label text"
@@ -132,64 +132,64 @@ export default async function Page() {
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
