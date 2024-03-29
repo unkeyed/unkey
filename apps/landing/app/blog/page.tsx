@@ -47,7 +47,7 @@ export default async function Blog(props: Props) {
   const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
-      <BlogContainer className="max-w-full mt-32 scroll-smooth">
+      <BlogContainer className="max-w-[1440px] mt-32 scroll-smooth">
         <div>
           <TopLeftShiningLight />
         </div>
