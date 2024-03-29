@@ -123,7 +123,11 @@ export const registerV1KeysGetVerifications = (app: App) =>
         });
       }
 
-      ids.push({ keyId, apiId: data.val.api.id, workspaceId: data.val.key.workspaceId });
+      ids.push({
+        keyId,
+        apiId: data.val.api.id,
+        workspaceId: data.val.key.workspaceId,
+      });
     } else {
       if (!ownerId) {
         throw new UnkeyApiError({
@@ -196,28 +200,41 @@ export const registerV1KeysGetVerifications = (app: App) =>
       });
     }
 
-    const verificationsFromAllKeys = await analytics.getVerificationsByOwnerIdDaily({
-      workspaceId: authorizedWorkspaceId,
-      ownerId: ownerId,
-      start: start ? parseInt(start) : undefined,
-      end: end ? parseInt(end) : undefined,
-    });
+    const verificationsFromAllKeys = await Promise.all(
+      ids.map(({ keyId, apiId }) => {
+        return cache.withCache(c, "verificationsByKeyId", `${keyId}:${start}-${end}`, async () => {
+          const res = await analytics.getVerificationsDaily({
+            workspaceId: authorizedWorkspaceId,
+            apiId: apiId,
+            keyId: keyId,
+            start: start ? parseInt(start) : undefined,
+            end: end ? parseInt(end) : undefined,
+          });
+          return res.data;
+        });
+      }),
+    );
 
     const verifications: {
-      [time: number]: { success: number; rateLimited: number; usageExceeded: number };
+      [time: number]: {
+        success: number;
+        rateLimited: number;
+        usageExceeded: number;
+      };
     } = {};
-    for (const dataPoint of verificationsFromAllKeys.data.sort((a, b) => a.time - b.time)) {
-      if (!verifications[dataPoint.time]) {
-        verifications[dataPoint.time] = {
-          success: 0,
-          rateLimited: 0,
-          usageExceeded: 0,
-        };
+    for (const dataPoint of verificationsFromAllKeys) {
+      for (const d of dataPoint.val!) {
+        if (!verifications[d.time]) {
+          verifications[d.time] = {
+            success: 0,
+            rateLimited: 0,
+            usageExceeded: 0,
+          };
+        }
+        verifications[d.time].success += d.success;
+        verifications[d.time].rateLimited += d.rateLimited;
+        verifications[d.time].usageExceeded += d.usageExceeded;
       }
-
-      verifications[dataPoint.time].success += dataPoint.success;
-      verifications[dataPoint.time].rateLimited += dataPoint.rateLimited;
-      verifications[dataPoint.time].usageExceeded += dataPoint.usageExceeded;
     }
 
     return c.json({
