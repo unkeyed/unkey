@@ -45,7 +45,6 @@ export default async function Page() {
       return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
     })
     .filter((post) => SELECTED_POSTS.includes(post.slug));
-
   return (
     <Container>
       <div className="mt-[150px] flex flex-col items-center">
@@ -81,14 +80,14 @@ export default async function Page() {
         </div>
         <div className="relative mt-[200px] xl:mt-[400px]">
           <div className="absolute left-[-250px]">
-            <MeteorLines className="ml-2" delay={0.2} />
-            <MeteorLines className="ml-10" />
-            <MeteorLines className="ml-16" delay={0.4} />
+            <MeteorLines className="ml-2 fade-in-0" delay={0.2} number={1} />
+            <MeteorLines className="ml-10 fade-in-40" number={1} />
+            <MeteorLines className="ml-16 fade-in-100" delay={0.4} number={1} />
           </div>
           <div className="absolute right-[20px]">
-            <MeteorLines className="ml-2" delay={0.2} />
-            <MeteorLines className="ml-10" />
-            <MeteorLines className="ml-16" delay={0.4} />
+            <MeteorLines className="ml-2" delay={0.2} number={1} />
+            <MeteorLines className="ml-10" number={1} />
+            <MeteorLines className="ml-16" delay={0.4} number={1} />
 
             {/* <div className="absolute right-[640px] top-[700px]">
               <MeteorLines className="ml-2" delay={0.2} />
