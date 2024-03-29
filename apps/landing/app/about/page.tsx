@@ -45,7 +45,6 @@ export default async function Page() {
       return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
     })
     .filter((post) => SELECTED_POSTS.includes(post.slug));
-
   return (
     <Container>
       <div className="mt-[150px] flex flex-col items-center">
