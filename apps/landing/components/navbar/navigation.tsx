@@ -1,3 +1,4 @@
+"use client";
 import {
   Drawer,
   DrawerClose,
@@ -9,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { PrimaryButton, SecondaryButton } from "../button";
 import { DesktopNavLink, MobileNavLink } from "./link";
 
@@ -38,57 +40,61 @@ export function Navigation() {
   );
 }
 
-const MobileLinks: React.FC<{ className: string }> = ({ className }) => (
-  <div className={className}>
-    <Drawer>
-      <DrawerTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center justify-center h-8 gap-2 px-3 py-2 mr-3 text-sm duration-150 text-white/60 hover:text-white"
-        >
-          Menu
-          <ChevronDown className="w-4 h-4 relative top-[1px]" />
-        </button>
-      </DrawerTrigger>
-      <DrawerContent className="bg-black/90">
-        <DrawerHeader className="flex justify-center">
-          <Logo />
-        </DrawerHeader>
-        <div className="relative w-full mx-auto antialiased">
-          <ul className="flex flex-col px-8 divide-y divide-white/25">
-            <MobileNavLink href="/" label="Home" />
-            <MobileNavLink href="/about" label="About" />
-            <MobileNavLink href="/blog" label="Blog" />
-            <MobileNavLink href="/pricing" label="Pricing" />
-            <MobileNavLink href="/changelog" label="Changelog" />
-            <MobileNavLink href="/templates" label="Templates" />
-            <MobileNavLink href="/docs" external label="Docs" />
-          </ul>
-        </div>
-        <DrawerFooter>
-          <Link href="/app">
-            <PrimaryButton
-              label="Sign In"
-              IconRight={ChevronRight}
-              className="flex justify-center w-full text-center"
-            />
-          </Link>
-          <DrawerClose asChild>
-            <button
-              type="button"
-              className={cn(
-                "px-4 duration-500 text-white/75 hover:text-white h-10 border rounded-lg text-center bg-black",
-                className,
-              )}
-            >
-              Close
-            </button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  </div>
-);
+function MobileLinks({ className }: { className?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className={className}>
+      <Drawer open={isOpen}>
+        <DrawerTrigger asChild>
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="flex items-center justify-center h-8 gap-2 px-3 py-2 mr-3 text-sm duration-150 text-white/60 hover:text-white"
+          >
+            Menu
+            <ChevronDown className="w-4 h-4 relative top-[1px]" />
+          </button>
+        </DrawerTrigger>
+        <DrawerContent className="bg-black/90">
+          <DrawerHeader className="flex justify-center">
+            <Logo />
+          </DrawerHeader>
+          <div className="relative w-full mx-auto antialiased">
+            <ul className="flex flex-col px-8 divide-y divide-white/25">
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/" label="Home" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/about" label="About" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/blog" label="Blog" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/pricing" label="Pricing" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/changelog" label="Changelog" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/templates" label="Templates" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/docs" label="Docs" />
+            </ul>
+          </div>
+          <DrawerFooter>
+            <Link href="/app">
+              <PrimaryButton
+                label="Sign In"
+                IconRight={ChevronRight}
+                className="flex justify-center w-full text-center"
+              />
+            </Link>
+            <DrawerClose asChild>
+              <button
+                type="button"
+                className={cn(
+                  "px-4 duration-500 text-white/75 hover:text-white h-10 border rounded-lg text-center bg-black",
+                  className,
+                )}
+              >
+                Close
+              </button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </div>
+  );
+}
 
 const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
   <ul className={cn("items-center hidden gap-8 lg:flex xl:gap-12", className)}>
@@ -97,7 +103,7 @@ const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
     <DesktopNavLink href="/pricing" label="Pricing" />
     <DesktopNavLink href="/changelog" label="Changelog" />
     <DesktopNavLink href="/templates" label="Templates" />
-    <DesktopNavLink href="/docs" external label="Docs" />
+    <DesktopNavLink href="/docs" label="Docs" />
   </ul>
 );
 
