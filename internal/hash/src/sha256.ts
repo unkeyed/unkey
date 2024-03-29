@@ -106,7 +106,7 @@ const base64abc = [
  * Encodes a given Uint8Array, ArrayBuffer or string into RFC4648 base64 representation
  * @param data
  */
-function b64(data: ArrayBuffer | string): string {
+export function b64(data: ArrayBuffer | string): string {
   const uint8 =
     typeof data === "string"
       ? new TextEncoder().encode(data)
@@ -142,7 +142,7 @@ function b64(data: ArrayBuffer | string): string {
  * Decodes a given RFC4648 base64 encoded string
  * @param b64
  */
-export function decode(b64: string): Uint8Array {
+export function decodeBase64(b64: string): Uint8Array {
   const binString = atob(b64);
   const size = binString.length;
   const bytes = new Uint8Array(size);
