@@ -326,66 +326,70 @@ export default function Templates() {
               </Accordion>
             </Form>
           </div>
-          <div className="grid w-full grid-cols-1 gap-8 xl:w-3/4 auto-rows-fr xl:grid-cols-3 md:grid-cols-2 grid-col-1">
-            {Object.entries(filteredTemplates).map(([id, template]) => (
-              <Link
-                key={id}
-                href={`/templates/${id}`}
-                className="flex flex-col items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
-              >
-                <div className="relative w-full">
-                  {template.image ? (
-                    <Image
-                      src={template.image}
-                      alt=""
-                      width={800}
-                      height={400}
-                      className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center w-full h-full">
-                      <VenetianMask className="w-8 h-8 text-white/60" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col justify-start w-full p-4 h-3/5">
-                  <div>
-                    <div className="flex flex-row justify-start w-full gap-3">
-                      {template.framework !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
-                          {template.framework?.toString()}
+          <div className="grid w-full grid-cols-1 gap-8 auto-rows-fr xl:grid-cols-3 md:grid-cols-2 grid-col-1">
+            {Object.entries(filteredTemplates).length ? (
+              <>
+                {Object.entries(filteredTemplates).map(([id, template]) => (
+                  <Link
+                    key={id}
+                    href={`/templates/${id}`}
+                    className="flex flex-col items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
+                  >
+                    <div className="relative w-full">
+                      {template.image ? (
+                        <Image
+                          src={template.image}
+                          alt=""
+                          width={800}
+                          height={400}
+                          className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full">
+                          <VenetianMask className="w-8 h-8 text-white/60" />
                         </div>
-                      ) : null}
-                      {template.language !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
-                          {template.language?.toString()}
-                        </div>
-                      ) : null}
+                      )}
                     </div>
-                    <h3 className="mt-6 text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
-                      {template.title}
-                    </h3>
-                    <p className="mt-5 text-sm leading-6 text-white/60 line-clamp-2 ">
-                      {template.description}
-                    </p>
-                  </div>
-                  <div className="flex flex-col justify-end w-full h-full">
-                    {/* No images currently in author */}
-                    {/* <Avatar className="w-8 h-8 rounded-full" >
-                      <AvatarImage src={template.authors} />
-                    </Avatar> */}
-                    <div className="relative w-full pb-4">
-                      <p className="absolute left-0 text-xs leading-6 text-left text-white">
-                        {template.authors.join(", ")}
-                      </p>
-                      <div className="absolute right-0">
-                        <ArrowRight className="flex w-4 h-4 mr-2 text-white/40 " />
+                    <div className="flex flex-col justify-start w-full p-4 h-3/5">
+                      <div>
+                        <div className="flex flex-row justify-start w-full gap-3">
+                          {template.framework !== undefined ? (
+                            <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
+                              {template.framework?.toString()}
+                            </div>
+                          ) : null}
+                          {template.language !== undefined ? (
+                            <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
+                              {template.language?.toString()}
+                            </div>
+                          ) : null}
+                        </div>
+                        <h3 className="mt-6 text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
+                          {template.title}
+                        </h3>
+                        <p className="mt-5 text-sm leading-6 text-white/60 line-clamp-2 ">
+                          {template.description}
+                        </p>
+                      </div>
+                      <div className="flex flex-col justify-end w-full h-full">
+                        <div className="relative w-full pb-4">
+                          <p className="absolute left-0 text-xs leading-6 text-left text-white">
+                            {template.authors.join(", ")}
+                          </p>
+                          <div className="absolute right-0">
+                            <ArrowRight className="flex w-4 h-4 mr-2 text-white/40 " />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                ))}
+              </>
+            ) : (
+              <div className="w-full lg:w-[1000px] h-[330px] flex items-center border-dashed rounded-md  text-white/60 border-white/20 border justify-center">
+                <p className="px-8">No templates found. Try adjusting your filters.</p>
+              </div>
+            )}
           </div>
         </div>
       </Container>
