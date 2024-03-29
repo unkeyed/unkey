@@ -2,7 +2,7 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import { HelpCircle, KeySquare, ListChecks } from "lucide-react";
+import { Gauge, HelpCircle, KeySquare, ListChecks } from "lucide-react";
 import React, { useState } from "react";
 
 import { SectionTitle } from "../section-title";
@@ -32,6 +32,17 @@ const verificationsSteps = [
   null,
 ];
 
+const rateLimitsSteps = [
+  2_500_000,
+  5_000_000,
+  10_000_000,
+  20_000_000,
+  50_000_000,
+  100_000_000,
+  500_000_000,
+  null,
+];
+
 export const Discover: React.FC = () => {
   const [activeKeysIndex, setActiveKeysIndex] = useState(0);
   const activeKeys = activeKeysSteps[activeKeysIndex];
@@ -47,10 +58,17 @@ export const Discover: React.FC = () => {
   const verificationsQuantityDisplay = fmtNumber(verifications ?? Number.POSITIVE_INFINITY);
   const verificationsCostDisplay = verifications === null ? "Custom" : fmtDollar(verificationsCost);
 
+  const [rateLimitsIndex, setRateLimitsIndex] = useState(0);
+  const rateLimits = rateLimitsSteps[rateLimitsIndex];
+  const billableRateLimits = Math.max(0, (rateLimits ?? 0) - 2_500_000);
+  const rateLimitsCost = billableRateLimits / 100_000;
+  const rateLimitsQuantityDisplay = fmtNumber(rateLimits ?? Number.POSITIVE_INFINITY);
+  const rateLimitsCostDisplay = rateLimits === null ? "Custom" : fmtDollar(rateLimitsCost);
+
   const totalCostDisplay =
     verifications === null || activeKeys === null
       ? "Custom"
-      : fmtDollar(25 + activeKeysCost + verificationsCost);
+      : fmtDollar(25 + activeKeysCost + verificationsCost + rateLimitsCost);
 
   return (
     <div>
@@ -144,11 +162,30 @@ export const Discover: React.FC = () => {
                 }
                 cost={<PriceTag dollar={verificationsCostDisplay} />}
               />
+              <Row
+                label={<Bullet Icon={Gauge} label="Rate limits" color={Color.Purple} />}
+                slider={
+                  <Slider
+                    min={0}
+                    max={rateLimitsSteps.length - 1}
+                    value={[rateLimitsIndex]}
+                    className=""
+                    onValueChange={([v]) => setRateLimitsIndex(v)}
+                  />
+                }
+                quantity={
+                  <div className="flex items-center gap-2">
+                    <span className="text-white">{rateLimitsQuantityDisplay}</span>
+                    <span className="text-sm text-white/40">Successful ratelimits</span>
+                  </div>
+                }
+                cost={<PriceTag dollar={rateLimitsCostDisplay} />}
+              />
             </div>
           </PricingCardContent>
           <PricingCardFooter />
         </TooltipProvider>
-      </PricingCard>{" "}
+      </PricingCard>
       <SubDiscoverySvg className="container max-w-4xl mx-auto" />
     </div>
   );
