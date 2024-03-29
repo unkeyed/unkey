@@ -1,9 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CopyCheck } from "lucide-react";
+import { Copy, CopyCheck } from "lucide-react";
 import * as React from "react";
-import { BlogCodeCopy } from "./svg/blog-code-block";
 
 interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   value: string;
@@ -26,7 +25,10 @@ export function CopyButton({ value, className, src, children, ...props }: CopyBu
   return (
     <button
       type="button"
-      className={cn("relative p-1 text-primary focus:outline-none inline-flex", className)}
+      className={cn(
+        "relative p-1 text-primary focus:outline-none flex items-center gap-2",
+        className,
+      )}
       onClick={() => {
         copyToClipboardWithMeta(value, {
           component: src,
@@ -37,9 +39,9 @@ export function CopyButton({ value, className, src, children, ...props }: CopyBu
     >
       <span className="sr-only">Copy</span>
       {hasCopied ? (
-        <CopyCheck className="w-6 h-6 text-white/30" />
+        <CopyCheck className="w-4 h-4 text-white/40" />
       ) : (
-        <BlogCodeCopy className="w-6 h-6" />
+        <Copy className="w-4 h-4 text-white/40" />
       )}
       {children}
     </button>
