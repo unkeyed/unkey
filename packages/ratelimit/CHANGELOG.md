@@ -1,5 +1,11 @@
 # @unkey/ratelimit
 
+## 0.1.3
+
+### Patch Changes
+
+- 03fdfbb: Add onError callback
+
 ## 0.1.2
 
 ### Patch Changes

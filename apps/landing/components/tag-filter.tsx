@@ -11,7 +11,6 @@ export const TagFilter: React.FC<Props> = ({ className, tags }) => {
   const [activeTag, setActiveTag] = useState("all");
   function filterPosts(tag: string) {
     setActiveTag(tag);
-    console.log(tag);
   }
   return (
     <div className={cn("flex flex-row py-24 w-full justify-center gap-6", className)}>
