@@ -70,7 +70,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
 
   return (
     <>
-      <BlogContainer className="mt-32 overflow-hidden scroll-smooth ">
+      <BlogContainer className="max-w-[1440px] mt-32 overflow-hidden scroll-smooth ">
         <div>
           <TopLeftShiningLight className="-z-40 hidden h-full sm:block" />
         </div>
@@ -136,7 +136,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <TopRightShiningLight />
         </div>
         <div className="flex flex-col xl:flex-row">
-          <div className="mx-6 flex flex-col sm:pl-4 md:px-12 lg:w-10/12 lg:pl-24 xl:mt-12">
+          <div className="mr-6 flex flex-col sm:pl-4 md:px-12 lg:w-10/12 lg:pl-24 xl:pl-32 xl:mt-12">
             <h1 className="blog-heading-gradient xl:pr-30 pr-0 text-left text-6xl text-[40px] font-medium leading-[56px] tracking-tight sm:pt-8 sm:text-[56px] sm:leading-[72px] xl:mt-0 xl:w-3/4">
               {frontmatter.title}
             </h1>
@@ -144,11 +144,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               {frontmatter.description}
             </p>
           </div>
-          <div className="mt-6 flex w-full flex-col justify-start p-0 pl-6 lg:w-2/12">
-            <div className="mb-8 flex w-full flex-row items-start gap-2 md:ml-12 lg:ml-24 lg:gap-12 xl:ml-0 xl:flex-col">
-              <BlogAuthors author={author} className="mb-0 mt-0 w-40 sm:ml-4 lg:w-full" />
+          <div className="mt-6 flex w-full flex-col justify-start p-0 pl-0 ml-0 lg:w-2/12">
+            <div className="mb-8 flex w-full flex-row items-start gap-2 md:ml-12 lg:ml-24 lg:gap-12 xl:ml-0 xl:pl-0 xxl:ml-0 xxl:pl-0 xl:flex-col">
+              <BlogAuthors
+                author={author}
+                className="mb-0 mt-0 w-40 sm:ml-4 lg:ml-0 lg:w-full xl:ml-0 xl:pl-0"
+              />
               <div className="mt-0 flex w-full flex-col">
-                <p className="mb-0 text-nowrap text-white/30">Published on</p>
+                <p className="mb-0 ml-0 pl-0 text-nowrap text-white/30">Published on</p>
                 <p className="mt-8 text-nowrap pt-1 text-white xl:pt-0">
                   {format(new Date(frontmatter.date!), "MMM dd, yyyy")}
                 </p>
@@ -158,12 +161,12 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         </div>
         <div className="mb-40 flex ">
           <div className="flex w-full flex-col gap-12 xl:w-10/12 ">
-            <div className="flex ">
-              <Frame className="mx-6 h-full w-full px-0 shadow-sm xl:mx-12" size="lg">
+            <div className="flex px-12">
+              <Frame className="overflow-clip h-full w-full px-0" size="lg">
                 <Image
                   src={frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
-                  width={1200}
-                  height={860}
+                  width={1920}
+                  height={1080}
                   alt=""
                 />
               </Frame>
