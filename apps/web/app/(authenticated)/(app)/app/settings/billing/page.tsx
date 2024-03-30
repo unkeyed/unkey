@@ -250,6 +250,13 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     currentPrice += cost.val.totalCentsEstimate;
     estimatedTotalPrice += forecastUsage(cost.val.totalCentsEstimate);
   }
+  if (workspace.subscriptions?.ratelimits) {
+    const cost = calculateTieredPrices(workspace.subscriptions.ratelimits.tiers, usedRatelimits);
+    if (cost.err) {
+      return <div className="text-red-500">{cost.err.message}</div>;
+    }
+    currentPrice += cost.val.totalCentsEstimate;
+  }
 
   return (
     <Card>
