@@ -10,9 +10,11 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { gateways } from "./gateway";
 import { keys } from "./keys";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
+import { secrets } from "./secrets";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable(
@@ -119,4 +121,6 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   roles: many(roles),
   permissions: many(permissions),
   ratelimitNamespaces: many(ratelimitNamespaces),
+  secrets: many(secrets),
+  gateways: many(gateways),
 }));

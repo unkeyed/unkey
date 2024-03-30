@@ -16,6 +16,9 @@ const prefixes = {
   ratelimitNamespace: "rlns",
   ratelimitOverride: "rlor",
   permission: "perm",
+  secret: "sec",
+  headerRewrite: "hrw",
+  gateway: "gw",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

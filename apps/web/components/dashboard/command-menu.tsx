@@ -137,7 +137,7 @@ const Feedback: React.FC = () => {
   const create = trpc.plain.createIssue.useMutation({
     onSuccess: () => {
       setOpen(false);
-      toast("Your issue has been created, we'll get back to you as soon as possible");
+      toast.success("Your issue has been created, we'll get back to you as soon as possible");
     },
     onError: (err) => {
       toast.error("Issue creation failed", {
