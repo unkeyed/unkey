@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { z } from "zod";
-import { UnkeyContext, unkey } from "./index";
+import { type UnkeyContext, unkey } from "./index";
 
 const key = "test_key";
 const apiId = "api_test";

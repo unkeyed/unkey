@@ -1,9 +1,9 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { buildUnkeyQuery, unkeyPermissionValidation } from "@unkey/rbac";
+import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -203,8 +203,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
             workspaceId: authorizedWorkspaceId,
             apiId: apiId,
             keyId: keyId,
-            start: start ? parseInt(start) : undefined,
-            end: end ? parseInt(end) : undefined,
+            start: start ? Number.parseInt(start) : undefined,
+            end: end ? Number.parseInt(end) : undefined,
           });
           return res.data;
         });
@@ -228,7 +228,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     return c.json({
       verifications: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
-          time: parseInt(time),
+          time: Number.parseInt(time),
           success,
           rateLimited,
           usageExceeded,

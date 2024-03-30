@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { type V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
+import type { V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
 
 runCommonRouteTests({
   prepareRequest: async (rh) => {

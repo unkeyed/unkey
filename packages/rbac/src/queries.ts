@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { unkeyPermissionValidation } from "./permissions";
+import type { unkeyPermissionValidation } from "./permissions";
 
 type Rule = "and" | "or";
 

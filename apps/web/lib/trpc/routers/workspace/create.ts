@@ -1,4 +1,4 @@
-import { Workspace, db, schema } from "@/lib/db";
+import { type Workspace, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";

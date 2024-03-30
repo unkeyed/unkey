@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import React from "react";
+import type React from "react";
 
 export const dynamic = "force-dynamic";
 

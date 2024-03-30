@@ -1,6 +1,6 @@
 import { Axiom } from "@axiomhq/js";
 import type { MessageBatch, Queue } from "@cloudflare/workers-types";
-import { Metric, metricSchema } from "@unkey/metrics";
+import { type Metric, metricSchema } from "@unkey/metrics";
 import { BufferQueue } from "@unkey/zod-queue";
 import { z } from "zod";
 export interface Env {

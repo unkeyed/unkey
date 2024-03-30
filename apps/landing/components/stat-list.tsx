@@ -2,7 +2,7 @@ import { Border } from "@/components/border";
 import { FadeIn } from "@/components/fade-in";
 import { NumberTicker } from "@/components/number-ticker";
 import { cn } from "@/lib/utils";
-import React from "react";
+import type React from "react";
 
 export function StatList({
   children,

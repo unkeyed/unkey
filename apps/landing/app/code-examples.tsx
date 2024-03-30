@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { PrismTheme } from "prism-react-renderer";
+import type { PrismTheme } from "prism-react-renderer";
 import React from "react";
 import { useState } from "react";
 const Tabs = TabsPrimitive.Root;

@@ -2,7 +2,8 @@
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useTransition } from "react";
+import type React from "react";
+import { useTransition } from "react";
 
 type Props = {
   href: string;

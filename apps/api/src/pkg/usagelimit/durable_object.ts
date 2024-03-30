@@ -1,7 +1,7 @@
 import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
 import { instrumentDO } from "@microlabs/otel-cf-workers";
-import { Env } from "../env";
-import { ConsoleLogger, Logger } from "../logging";
+import type { Env } from "../env";
+import { ConsoleLogger, type Logger } from "../logging";
 import { AxiomLogger } from "../logging/axiom";
 import { traceConfig } from "../tracing/config";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";

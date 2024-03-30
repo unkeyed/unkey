@@ -1,8 +1,8 @@
-import { ScaleTypeToD3Scale } from "@visx/scale";
-import { TooltipWithBounds } from "@visx/tooltip";
-import { UseTooltipParams } from "@visx/tooltip/lib/hooks/useTooltip";
-import { TooltipInPortalProps } from "@visx/tooltip/lib/hooks/useTooltipInPortal";
-import { Dispatch, FC, ReactElement, SetStateAction } from "react";
+import type { ScaleTypeToD3Scale } from "@visx/scale";
+import type { TooltipWithBounds } from "@visx/tooltip";
+import type { UseTooltipParams } from "@visx/tooltip/lib/hooks/useTooltip";
+import type { TooltipInPortalProps } from "@visx/tooltip/lib/hooks/useTooltipInPortal";
+import type { Dispatch, FC, ReactElement, SetStateAction } from "react";
 
 export type Datum = Record<string, any>;
 

@@ -14,10 +14,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import { ClerkError } from "@/lib/clerk";
+import type { ClerkError } from "@/lib/clerk";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React from "react";
+import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 

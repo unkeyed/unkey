@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
+import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
 describe.each([
   { name: "empty name", apiName: "" },

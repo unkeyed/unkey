@@ -2,9 +2,12 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
-import { ErrorResponse } from "@/pkg/errors";
+import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse } from "./legacy_keys_createKey";
+import type {
+  LegacyKeysCreateKeyRequest,
+  LegacyKeysCreateKeyResponse,
+} from "./legacy_keys_createKey";
 
 describe("simple", () => {
   test("creates key", async (t) => {

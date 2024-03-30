@@ -1,5 +1,6 @@
 "use client";
-import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
+import type React from "react";
+import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";

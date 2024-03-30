@@ -1,8 +1,8 @@
-import { Queue } from "@cloudflare/workers-types";
+import type { Queue } from "@cloudflare/workers-types";
 import { BufferQueue } from "@unkey/zod-queue";
 import { z } from "zod";
 import { ConsoleLogger } from "./console";
-import { Fields, Logger } from "./interface";
+import type { Fields, Logger } from "./interface";
 
 const schema = z
   .object({
