@@ -86,8 +86,12 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="bg-black">
-      <TopLeftShine className="absolute top-0 left-0 pointer-events-none" />
-      <TopRightShine className="absolute top-0 right-0 pointer-events-none" />
+      <div className="absolute top-0 left-0 flex justify-start w-screen overflow-hidden pointer-events-none">
+        <TopLeftShine />
+      </div>
+      <div className="absolute top-0 right-0 flex justify-end w-screen overflow-hidden pointer-events-none">
+        <TopRightShine />
+      </div>
       <nav className="container flex items-center justify-between h-16">
         <Link href="/">
           <Logo className="min-w-sm" />
