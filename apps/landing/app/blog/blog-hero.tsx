@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Author } from "@/content/blog/authors";
+import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -49,7 +49,7 @@ export function BlogHero({
           {tags?.map((tag) => (
             <p
               key={tag}
-              className="text-white/70 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 "
+              className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 flex items-center capitalize py-1"
             >
               {tag}
             </p>

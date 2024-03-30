@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { ErrorResponse } from "@/pkg/errors";
+import type { ErrorResponse } from "@/pkg/errors";
 import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 test("returns 200", async (t) => {
   const h = await RouteHarness.init(t);
@@ -360,7 +360,6 @@ describe("disabled workspace", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    console.log(res);
     expect(res.status).toEqual(403);
     expect(res.body).toMatchObject({
       error: {

@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,7 +56,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
   });
   const router = useRouter();
 
-  const deleteNamespace = trpc.ratelimit.deleteNamespace.useMutation({
+  const deleteNamespace = trpc.ratelimit.namespace.delete.useMutation({
     async onSuccess() {
       toast.message("Namespace Deleted", {
         description: "Your namespace and all its overridden identifiers have been deleted.",

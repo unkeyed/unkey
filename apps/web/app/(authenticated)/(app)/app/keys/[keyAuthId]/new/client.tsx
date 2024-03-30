@@ -175,7 +175,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
 
   const key = trpc.key.create.useMutation({
     onSuccess() {
-      toast("Key Created", {
+      toast.success("Key Created", {
         description: "Your Key has been created",
       });
     },

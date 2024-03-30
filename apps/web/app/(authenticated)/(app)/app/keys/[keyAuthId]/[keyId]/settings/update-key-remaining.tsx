@@ -88,7 +88,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     form.resetField("refill.interval", { defaultValue: "none" });
     form.resetField("refill", undefined);
   };
-  const updateRemaining = trpc.keySettings.updateRemaining.useMutation({
+  const updateRemaining = trpc.key.update.remaining.useMutation({
     onSuccess() {
       toast.success("Remaining uses has updated!");
       router.refresh();

@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { UnkeyPermission } from "@unkey/rbac";
+import type { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
@@ -38,7 +38,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const [name, setName] = useState<string | undefined>(undefined);
   const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
 
-  const key = trpc.key.createInternalRootKey.useMutation({
+  const key = trpc.rootKey.create.useMutation({
     onError(err) {
       console.error(err);
       toast.error(err.message);

@@ -9,7 +9,7 @@ import {
 import { ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
-import React from "react";
+import type React from "react";
 
 type Props = {
   keyId: string;

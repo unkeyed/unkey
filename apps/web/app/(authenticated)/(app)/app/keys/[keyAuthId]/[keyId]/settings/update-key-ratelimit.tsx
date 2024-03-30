@@ -24,7 +24,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Key } from "@unkey/db";
+import type { Key } from "@unkey/db";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -93,7 +93,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
         : undefined,
     },
   });
-  const updateRatelimit = trpc.keySettings.updateRatelimit.useMutation({
+  const updateRatelimit = trpc.key.update.ratelimit.useMutation({
     onSuccess() {
       toast.success("Your ratelimit has been updated!");
       router.refresh();

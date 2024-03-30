@@ -15,7 +15,7 @@ import {
   Github,
   LayoutTemplate,
   LogIn,
-  LucideIcon,
+  type LucideIcon,
   Mail,
   ScrollText,
   Store,

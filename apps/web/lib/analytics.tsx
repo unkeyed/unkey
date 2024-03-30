@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { z } from "zod";
 
 const token = env().TINYBIRD_TOKEN;

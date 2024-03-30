@@ -12,7 +12,7 @@ SCHEMA >
     `usageExceeded` UInt8 `json:$.usageExceeded`,
     `userAgent` String `json:$.userAgent`,
     `workspaceId` String `json:$.workspaceId`,
-    `deniedReason` Nullable(String) `json:$.deniedReason`
-
+    `deniedReason` Nullable(String) `json:$.deniedReason`,
+    `ownerId` Nullable(String) `json:$.ownerId`
 ENGINE "MergeTree"
 ENGINE_SORTING_KEY "apiId, usageExceeded, userAgent, workspaceId"

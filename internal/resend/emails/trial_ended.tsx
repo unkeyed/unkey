@@ -10,16 +10,17 @@ import { Section } from "@react-email/section";
 import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
+import tailwindConfig from "../tailwind.config";
 export type Props = {
   username: string;
   workspaceName: string;
 };
 
-export function TrialEnded({ workspaceName = "workspaceName", username = "" }: Props) {
+export function TrialEnded({ workspaceName, username }: Props) {
   return (
-    <Tailwind>
-      <Head />
+    <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
+        <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
             <Heading className="font-sans text-2xl text-semibold">
@@ -74,5 +75,10 @@ export function TrialEnded({ workspaceName = "workspaceName", username = "" }: P
     </Tailwind>
   );
 }
+
+TrialEnded.PreviewProps = {
+  username: "Spongebob Squarepants",
+  workspaceName: "Krusty crab",
+} satisfies Props;
 
 export default TrialEnded;

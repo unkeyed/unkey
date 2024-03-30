@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
@@ -108,9 +108,9 @@ export const registerLegacyApisListKeys = (app: App) =>
 
     const keys = await db.query.keys.findMany({
       where: and(...keysWhere),
-      limit: parseInt(limit),
+      limit: Number.parseInt(limit),
       orderBy: schema.keys.id,
-      offset: offset ? parseInt(offset) : undefined,
+      offset: offset ? Number.parseInt(offset) : undefined,
     });
 
     const total = await db
@@ -142,7 +142,7 @@ export const registerLegacyApisListKeys = (app: App) =>
         remaining: k.remaining ?? undefined,
       })),
       // @ts-ignore, mysql sucks
-      total: parseInt(total.at(0)?.count ?? "0"),
+      total: Number.parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });

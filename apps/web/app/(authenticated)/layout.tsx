@@ -1,5 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import React from "react";
+import type React from "react";
 
 export const dynamic = "force-dynamic";
 

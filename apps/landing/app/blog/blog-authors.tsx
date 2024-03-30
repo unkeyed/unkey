@@ -1,6 +1,6 @@
 "use client";
 
-import { Author } from "@/content/blog/authors";
+import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { AvatarImage } from "@radix-ui/react-avatar";
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";

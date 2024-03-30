@@ -101,7 +101,6 @@ export default function RatelimitPage() {
     }).finally(() => setResetting(false));
     setData([]);
   }
-  console.log(data);
   const chartData = React.useMemo(() => {
     return data.filter(Boolean).flatMap((d) => [
       {
@@ -144,7 +143,7 @@ export default function RatelimitPage() {
             <Input
               type="number"
               value={limit}
-              onChange={(e) => setLimit(parseInt(e.currentTarget.value))}
+              onChange={(e) => setLimit(Number.parseInt(e.currentTarget.value))}
             />
           </div>
           <div key="duration" className="flex flex-col gap-1">
@@ -174,8 +173,8 @@ export default function RatelimitPage() {
         </div>
         <div>
           {data.length > 0 ? (
-            <div className="flex gap-4">
-              <div className="flex flex-col w-1/2 gap-4">
+            <div className="flex flex-col-reverse gap-4 sm:flex-row">
+              <div className="flex flex-col gap-4 sm:w-1/2">
                 <Card>
                   <CardHeader>
                     <CardTitle>Unkey Async</CardTitle>
@@ -253,7 +252,7 @@ export default function RatelimitPage() {
                   </CardContent>
                 </Card>
               </div>
-              <Card className="w-1/2">
+              <Card className="w-full sm:w-1/2">
                 <CardHeader>
                   <CardTitle>Ratelimit latency (lower is better)</CardTitle>
                 </CardHeader>

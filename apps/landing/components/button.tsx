@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SparkleIcon } from "./svg/template-page";
 
 type Props = {
@@ -12,11 +12,11 @@ type Props = {
 export const PrimaryButton: React.FC<Props> = ({ className, IconLeft, label, IconRight }) => {
   return (
     <div className="relative group/button">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0239FC] to-[#7002FC] rounded-lg blur-md hover:opacity-75 group-hover/button:opacity-100 transition duration-1000 hover:rotate-20  opacity-0 group-hover/button:duration-200" />
+      <div className="absolute -inset-0.5 bg-white rounded-lg blur-2xl group-hover/button:opacity-30 transition duration-300  opacity-0 " />
       <button
         type="button"
         className={cn(
-          "relative flex items-center px-4 gap-2 text-sm font-semibold text-black bg-white rounded-lg h-10",
+          "relative flex items-center px-4 gap-2 text-sm font-semibold text-black  bg-white group-hover:bg-white/90 duration-1000 rounded-lg h-10",
           className,
         )}
       >

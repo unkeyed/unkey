@@ -1,9 +1,11 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { RatelimitNamespace, schema } from "@unkey/db";
+import { match } from "@/pkg/util/wildcard";
+import { DatabaseError } from "@planetscale/database";
+import { type RatelimitNamespace, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -150,13 +152,19 @@ export const registerV1RatelimitLimit = (app: App) =>
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
               eq(table.name, req.namespace),
             ),
+          columns: {
+            id: true,
+            workspaceId: true,
+          },
           with: {
             overrides: {
-              where: (table, { eq, and }) =>
-                and(
-                  eq(table.workspaceId, rootKey.authorizedWorkspaceId),
-                  eq(table.identifier, req.identifier),
-                ),
+              columns: {
+                identifier: true,
+                async: true,
+                limit: true,
+                duration: true,
+                sharding: true,
+              },
             },
           },
         });
@@ -168,7 +176,7 @@ export const registerV1RatelimitLimit = (app: App) =>
           if (canCreateNamespace.err || !canCreateNamespace.val.valid) {
             return null;
           }
-          const namespace: RatelimitNamespace = {
+          let namespace: RatelimitNamespace = {
             id: newId("ratelimitNamespace"),
             createdAt: new Date(),
             name: req.namespace,
@@ -176,41 +184,79 @@ export const registerV1RatelimitLimit = (app: App) =>
             updatedAt: null,
             workspaceId: rootKey.authorizedWorkspaceId,
           };
-          await db.insert(schema.ratelimitNamespaces).values(namespace);
-          await analytics.ingestUnkeyAuditLogs({
-            workspaceId: rootKey.authorizedWorkspaceId,
-            actor: {
-              type: "key",
-              id: rootKey.key.id,
-            },
-            event: "ratelimitNamespace.create",
-            description: `Created ${namespace.id}`,
-            resources: [
-              {
-                type: "ratelimitNamespace",
-                id: namespace.id,
+          try {
+            await db.insert(schema.ratelimitNamespaces).values(namespace);
+            await analytics.ingestUnkeyAuditLogs({
+              workspaceId: rootKey.authorizedWorkspaceId,
+              actor: {
+                type: "key",
+                id: rootKey.key.id,
               },
-            ],
-            context: {
-              location: c.get("location"),
-              userAgent: c.get("userAgent"),
-            },
-          });
+              event: "ratelimitNamespace.create",
+              description: `Created ${namespace.id}`,
+              resources: [
+                {
+                  type: "ratelimitNamespace",
+                  id: namespace.id,
+                },
+              ],
+              context: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent"),
+              },
+            });
+          } catch (e) {
+            if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
+              /**
+               * Looks like it exists already, so let's load it
+               */
+              namespace = (await db.query.ratelimitNamespaces.findFirst({
+                where: (table, { eq, and }) =>
+                  and(
+                    eq(table.name, req.namespace),
+                    eq(table.workspaceId, rootKey.authorizedWorkspaceId),
+                  ),
+              }))!;
+            } else {
+              throw e;
+            }
+          }
 
           return {
             namespace,
           };
         }
+
+        const exactMatch = dbRes.overrides.find((o) => o.identifier === req.identifier);
+        if (exactMatch) {
+          return {
+            namespace: dbRes,
+            override: exactMatch,
+          };
+        }
+        const wildcardMatch = dbRes.overrides.find((o) => {
+          if (!o.identifier.includes("*")) {
+            return false;
+          }
+          return match(o.identifier, req.identifier);
+        });
+        if (wildcardMatch) {
+          return {
+            namespace: dbRes,
+            override: wildcardMatch,
+          };
+        }
+
         return {
           namespace: dbRes,
-          override: dbRes.overrides.at(0),
+          override: undefined,
         };
       },
     );
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${err.message}`,
+        message: `unable to load ratelimit: ${err.message}`,
       });
     }
     if (!val || val.namespace.workspaceId !== rootKey.authorizedWorkspaceId) {
@@ -251,7 +297,18 @@ export const registerV1RatelimitLimit = (app: App) =>
           c.req.raw?.cf?.colo
         : "global";
 
+    console.log({
+      namespaceId: namespace.id,
+      identifier: [namespace.id, req.identifier, limit, duration].join("::"),
+      interval: duration,
+      limit,
+      shard,
+      cost: req.cost,
+      async: req.async,
+    });
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
+      workspaceId: rootKey.authorizedWorkspaceId,
+      namespaceId: namespace.id,
       identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
       interval: duration,
       limit,
@@ -301,33 +358,29 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     if (req.resources && req.resources.length > 0) {
       c.executionCtx.waitUntil(
-        analytics
-          .ingestGenericAuditLogs({
-            auditLogId: newId("auditLog"),
-            workspaceId: rootKey.authorizedWorkspaceId,
-            bucket: namespace.id,
-            actor: {
-              type: "key",
-              id: rootKey.key.id,
-            },
-            description: "ratelimit",
-            event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
-            meta: {
-              requestId: c.get("requestId"),
-              namespacId: namespace.id,
-              identifier: req.identifier,
-              success: ratelimitResponse.pass,
-            },
-            time: Date.now(),
-            resources: req.resources,
-            context: {
-              location: c.req.header("True-Client-IP") ?? "",
-              userAgent: c.req.header("User-Agent") ?? "",
-            },
-          })
-          .then((res) => {
-            console.log(JSON.stringify({ req, res }, null, 2));
-          }),
+        analytics.ingestGenericAuditLogs({
+          auditLogId: newId("auditLog"),
+          workspaceId: rootKey.authorizedWorkspaceId,
+          bucket: namespace.id,
+          actor: {
+            type: "key",
+            id: rootKey.key.id,
+          },
+          description: "ratelimit",
+          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          meta: {
+            requestId: c.get("requestId"),
+            namespacId: namespace.id,
+            identifier: req.identifier,
+            success: ratelimitResponse.pass,
+          },
+          time: Date.now(),
+          resources: req.resources,
+          context: {
+            location: c.req.header("True-Client-IP") ?? "",
+            userAgent: c.req.header("User-Agent") ?? "",
+          },
+        }),
       );
     }
 

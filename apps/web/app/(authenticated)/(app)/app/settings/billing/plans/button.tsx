@@ -13,9 +13,10 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
-import { type Workspace } from "@unkey/db";
+import type { Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 type Props = {
   newPlan: "free" | "pro";
   workspace: Workspace;
@@ -26,7 +27,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const changePlan = trpc.workspace.changePlan.useMutation({
+  const changePlan = trpc.workspace.updatePlan.useMutation({
     onSuccess: (data, variables, _context) => {
       toast.success(data.title, {
         description: data.message,

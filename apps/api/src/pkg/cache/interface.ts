@@ -1,6 +1,6 @@
-import { BaseError, Result } from "@unkey/error";
+import { BaseError, type Result } from "@unkey/error";
 import type { Context } from "hono";
-import { MaybePromise } from "../types/maybe";
+import type { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 
 export class CacheError extends BaseError {
@@ -65,4 +65,14 @@ export interface Cache<TNamespaces extends Record<string, unknown> = CacheNamesp
     namespace: keyof TNamespaces,
     key: string,
   ) => MaybePromise<Result<void, CacheError>>;
+}
+
+export interface SwrCacher<TNamespaces extends Record<string, unknown> = CacheNamespaces>
+  extends Cache<TNamespaces> {
+  withCache<TName extends keyof TNamespaces>(
+    c: Context,
+    namespace: TName,
+    key: string,
+    loadFromOrigin: (key: string) => Promise<TNamespaces[TName]>,
+  ): Promise<Result<TNamespaces[TName], CacheError>>;
 }

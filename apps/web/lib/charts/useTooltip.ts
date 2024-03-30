@@ -3,7 +3,7 @@ import { localPoint } from "@visx/event";
 import { TooltipWithBounds, useTooltip as useVisxTooltip, useTooltipInPortal } from "@visx/tooltip";
 import { bisector } from "d3-array";
 import { useCallback } from "react";
-import { ChartContext, ChartTooltipContext, Datum, Series, TimeSeriesDatum } from "./types";
+import type { ChartContext, ChartTooltipContext, Datum, Series, TimeSeriesDatum } from "./types";
 
 const bisectDate = bisector<Datum, Date>((d) => new Date(d.date)).left;
 

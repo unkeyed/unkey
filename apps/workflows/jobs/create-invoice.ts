@@ -161,6 +161,31 @@ export const createInvoiceJob = client.defineJob({
     }
 
     /**
+     * Ratelimits
+     */
+    if (workspace.subscriptions?.ratelimits) {
+      const ratelimits = await io.runTask(`get ratelimits for ${workspace.id}`, async () =>
+        tinybird
+          .ratelimits({
+            workspaceId: workspace.id,
+            year,
+            month,
+          })
+          .then((res) => res.data.at(0)?.success ?? 0),
+      );
+
+      await createTieredInvoiceItem({
+        stripe,
+        invoiceId,
+        stripeCustomerId: workspace.stripeCustomerId!,
+        io,
+        name: "Ratelimits",
+        sub: workspace.subscriptions.ratelimits,
+        usage: ratelimits,
+      });
+    }
+
+    /**
      * Support
      */
     if (workspace.subscriptions?.support) {
@@ -211,7 +236,9 @@ async function createFixedCostInvoiceItem({
         currency: "usd",
         product: sub.productId,
         unit_amount_decimal:
-          typeof prorate === "number" ? (parseInt(sub.cents) * prorate).toFixed(2) : sub.cents,
+          typeof prorate === "number"
+            ? (Number.parseInt(sub.cents) * prorate).toFixed(2)
+            : sub.cents,
       },
       currency: "usd",
       description: typeof prorate === "number" ? `${name} (Prorated)` : name,

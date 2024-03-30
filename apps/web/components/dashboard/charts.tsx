@@ -49,7 +49,7 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
       autoFit={true}
       data={data}
       smooth={true}
-      // padding={[20, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       color={color}
@@ -113,7 +113,6 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
 };
 
 export const LineChart: React.FC<{
-  padding?: [number, number, number, number];
   data: {
     category: string;
     x: string;
@@ -126,7 +125,7 @@ export const LineChart: React.FC<{
       autoFit={true}
       data={data}
       smooth={true}
-      // padding={[20, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       seriesField="category"
@@ -149,7 +148,7 @@ export const ColumnChart: React.FC<Props> = ({ data, colors }) => {
       color={color}
       autoFit={true}
       data={data}
-      padding={[20, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       xAxis={{
@@ -193,7 +192,6 @@ export const ColumnChart: React.FC<Props> = ({ data, colors }) => {
 };
 
 export const StackedColumnChart: React.FC<{
-  padding?: [number, number, number, number];
   data: {
     category: string;
     x: string;
@@ -201,7 +199,7 @@ export const StackedColumnChart: React.FC<{
   }[];
   timeGranularity?: "minute" | "hour" | "day" | "month";
   colors: Array<ColorName>;
-}> = ({ data, timeGranularity, padding, colors }) => {
+}> = ({ data, timeGranularity, colors }) => {
   const { palette, axisColor } = useColors(colors);
   return (
     <Column
@@ -210,7 +208,7 @@ export const StackedColumnChart: React.FC<{
       seriesField="category"
       autoFit={true}
       data={data}
-      padding={padding ?? [40, 40, 50, 40]}
+      padding="auto"
       xField="x"
       yField="y"
       legend={{
@@ -302,7 +300,7 @@ export const StackedBarChart: React.FC<{
       seriesField="category"
       autoFit={true}
       data={data}
-      padding={[40, 50, 40, 120]}
+      padding="auto"
       xField="x"
       yField="y"
       legend={{

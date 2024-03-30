@@ -12,7 +12,7 @@
   background: linear-gradient(
     86deg,
     #fff 27.24%,
-    rgba(255, 255, 255, 0.3) 56.97%
+    rgba(255, 255, 255, 0.3) 66.97%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -101,6 +101,13 @@
 .line-number {
   color: rgba(255, 255, 255, 0.3);
   margin-right: 40px;
+}
+
+.blog-breadcrumb-gradient {
+  background: linear-gradient(100deg, #FFF 0%, #FFF 54.36%, rgba(255, 255, 255, 0.30) 108.72%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .blog-heading-gradient {
@@ -415,4 +422,64 @@ li > p {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.parallelogram {
+  width: 550px;
+  height: 557px;
+  transform: skew(-20deg); 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: .75px solid rgba(255, 255, 255, 10%);
+}
+
+.parallelogram-1 {
+  background-image: radial-gradient(circle 250px at 22% 60%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
+}
+.parallelogram-2 {
+  background-image: radial-gradient(circle 250px at 12% 90%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
+}
+.parallelogram-3 {
+  background-image: radial-gradient(circle 250px at 22% 90%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
+}
+.parallelogram-4 {
+  background-image: radial-gradient(circle 250px at 22% 60%, rgba(255, 255, 255, 10%) 0, rgba(255, 255, 255, 0%) 100%);
+}
+
+.about-founders-text-gradient {
+  background: radial-gradient(359.61% 115.01% at 14.81% 10.55%, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.50) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media screen and (min-width: 768px) {
+  .about-image-grid .image:nth-child(3n) {
+    position: relative;
+    top: 200px;
+  }
+
+  .about-image-grid .image:nth-child(3n + 1) {
+    position: relative;
+    top: 200px;
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .about-image-grid .image:nth-child(3n),
+  .about-image-grid .image:nth-child(3n + 1) {
+    top: 0;
+  }
+
+  .about-image-grid .image:nth-child(2),
+  .about-image-grid .image:nth-child(4) {
+    height: 266px;
+  }
+
+  .about-image-grid .image:nth-child(7),
+  .about-image-grid .image:nth-child(9) {
+    position: relative;
+    top: -130px;
+  }
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -55,7 +55,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const router = useRouter();
-  const deleteKey = trpc.key.deleteRootKey.useMutation({
+  const deleteKey = trpc.rootKey.delete.useMutation({
     onSuccess: (_data, variables) => {
       setRowSelection({});
       toast.success(

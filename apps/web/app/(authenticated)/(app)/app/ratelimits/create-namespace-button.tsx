@@ -17,7 +17,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -32,7 +32,7 @@ export const CreateNamespaceButton = ({
     resolver: zodResolver(formSchema),
   });
 
-  const create = trpc.ratelimit.createNamespace.useMutation({
+  const create = trpc.ratelimit.namespace.create.useMutation({
     onSuccess(res) {
       toast.success("Your Namespace has been created");
       router.refresh();

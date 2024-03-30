@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseAsString, useQueryState } from "nuqs";
-import React from "react";
+import type React from "react";
 type Props = {
   options: { value: string; label: string }[];
   title: string;

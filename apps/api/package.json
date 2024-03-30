@@ -5,8 +5,8 @@
   "scripts": {
     "build": "tsc",
     "deploy": "pnpm build && wrangler deploy",
-    "dev": "pnpm build && wrangler dev",
-    "test:unit": "vitest run -c vitest.unit.ts",
+    "dev": "wrangler dev",
+    "test": "vitest run -c vitest.unit.ts",
     "test:routes": "vitest run -c vitest.routes.ts --bail=1",
     "test:integration": "vitest run -c vitest.integration.ts",
     "test:benchmark": "vitest run -c vitest.benchmark.ts"
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
-    "@chronark/zod-bird": "0.3.3",
+    "@chronark/zod-bird": "0.3.4",
     "@hono/zod-openapi": "^0.9.8",
     "@hono/zod-validator": "^0.2.0",
     "@microlabs/otel-cf-workers": "1.0.0-rc.24",
@@ -37,7 +37,7 @@
     "@unkey/rbac": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/zod-queue": "workspace:^",
-    "drizzle-orm": "^0.30.1",
+    "drizzle-orm": "^0.30.5",
     "hono": "^4.1.1",
     "superjson": "^2.2.1",
     "zod": "^3.22.4",

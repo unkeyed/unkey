@@ -4,7 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
-import { V1KeysDeleteKeyRequest } from "./v1_keys_deleteKey";
+import type { V1KeysDeleteKeyRequest } from "./v1_keys_deleteKey";
 
 runCommonRouteTests<V1KeysDeleteKeyRequest>({
   prepareRequest: async (rh) => {

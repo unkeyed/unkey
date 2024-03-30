@@ -1,16 +1,34 @@
 "use client";
 
-import React, { PropsWithChildren, useState } from "react";
+import type React from "react";
+import { type PropsWithChildren, useState } from "react";
+import { useLocalStorage } from "usehooks-ts";
 
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
 type Props = {
   variant?: "alert";
+  /**
+   * Annoying banners will come back after refreshing the page
+   *
+   * set the key in localstorage to use
+   *
+   * @example:
+   * ```ts
+   * <Banner persistChoice="billing-notification">...</Banner>
+   */
+  persistChoice?: string;
 };
 
-export const Banner: React.FC<PropsWithChildren<Props>> = ({ children, variant }) => {
-  const [visible, setVisible] = useState(true);
+export const Banner: React.FC<PropsWithChildren<Props>> = ({
+  children,
+  variant,
+  persistChoice,
+}) => {
+  const [visible, setVisible] = persistChoice
+    ? useState(true)
+    : useLocalStorage(`unkey_banner_${persistChoice}`, true);
   if (!visible) {
     return null;
   }

@@ -1,6 +1,6 @@
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
-import { ErrorResponse } from "@unkey/api/src";
+import type { ErrorResponse } from "@unkey/api/src";
 import { describe, expect, test } from "vitest";
 
 test("without permissions", async (t) => {
@@ -213,7 +213,6 @@ describe(
           },
         },
       });
-      console.log(res);
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe("BAD_REQUEST");

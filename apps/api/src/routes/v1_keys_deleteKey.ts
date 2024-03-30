@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 

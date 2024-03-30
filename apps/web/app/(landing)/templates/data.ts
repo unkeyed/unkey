@@ -175,4 +175,15 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     url: "https://graphql.wtf/episodes/91-protect-graphql-apis-with-unkey",
   },
+  "ratelimit-nextjs": {
+    title: "Ratelimit your Next.js routes",
+    description: "Using @unkey/ratelimit to protect your API routes from abuse",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/examples/tree/main/ratelimit",
+    image: "/images/templates/ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/ratelimit/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+    url: "https://github.com/unkeyed/examples/tree/main/ratelimit",
+  },
 };

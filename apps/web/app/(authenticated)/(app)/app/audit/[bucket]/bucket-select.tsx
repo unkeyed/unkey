@@ -8,7 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import React, { useTransition } from "react";
+import type React from "react";
+import { useTransition } from "react";
 type Props = {
   selected: string;
   ratelimitNamespaces: { id: string; name: string }[];

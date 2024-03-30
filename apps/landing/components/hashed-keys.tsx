@@ -79,7 +79,7 @@ export function HashedKeys() {
             stiffness: 100,
             mass: 12,
             delay: 1.5,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             duration: 1,
           }}
           onUpdate={(latest: { x: number }) => {

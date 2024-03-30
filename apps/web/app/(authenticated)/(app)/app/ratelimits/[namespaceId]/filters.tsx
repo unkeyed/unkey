@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
-import React, { useTransition } from "react";
+import type React from "react";
+import { useTransition } from "react";
 
 export const intervals = {
   "60m": "Last 60 minutes",

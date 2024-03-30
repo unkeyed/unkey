@@ -32,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
-import { ClerkError } from "@/lib/clerk";
+import type { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";

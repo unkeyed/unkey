@@ -1,8 +1,8 @@
 import { newId } from "@unkey/id";
-import { PermissionQuery, buildQuery } from "@unkey/rbac";
+import { type PermissionQuery, buildQuery } from "@unkey/rbac";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 type TestCase = {
   name: string;

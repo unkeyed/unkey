@@ -1,8 +1,8 @@
 "use client";
 import { createContext, useContext } from "react";
-import {
-  type ChartContext as ChartContextType,
-  type ChartTooltipContext as ChartTooltipContextType,
+import type {
+  ChartContext as ChartContextType,
+  ChartTooltipContext as ChartTooltipContextType,
   Datum,
 } from "./types";
 

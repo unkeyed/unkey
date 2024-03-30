@@ -12,11 +12,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -28,6 +35,7 @@ const formSchema = z.object({
     .int()
     .min(1_000)
     .max(24 * 60 * 60 * 1000),
+  async: z.enum(["unset", "sync", "async"]),
 });
 
 type Props = {
@@ -35,16 +43,20 @@ type Props = {
 };
 
 export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
+  const searchParams = useSearchParams();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     reValidateMode: "onChange",
     defaultValues: {
       limit: 10,
       duration: 60_000,
+      async: "unset",
+      identifier: searchParams?.get("identifier") ?? undefined,
     },
   });
 
-  const create = trpc.ratelimit.createOverride.useMutation({
+  const create = trpc.ratelimit.override.create.useMutation({
     onSuccess() {
       toast.success("New override has been created", {
         description: "Changes may take up to 60s to propagate globally",
@@ -57,7 +69,17 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    create.mutate({ ...values, namespaceId });
+    create.mutate({
+      namespaceId,
+      identifier: values.identifier,
+      limit: values.limit,
+      duration: values.duration,
+      async: {
+        unset: undefined,
+        sync: false,
+        async: true,
+      }[values.async],
+    });
   }
   const router = useRouter();
 
@@ -74,7 +96,7 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="grid grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-4 gap-4">
             <FormField
               control={form.control}
               name="identifier"
@@ -119,6 +141,29 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
                     <Input type="number" {...field} className="dark:focus:border-gray-700" />
                   </FormControl>
                   <FormDescription>Duration of each window in milliseconds.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="async"
+              render={({ field }) => (
+                <FormItem className="col-span-1">
+                  <FormLabel>Async</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue="unset" value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unset">Don't override</SelectItem>
+                      <SelectItem value="async">Async</SelectItem>
+                      <SelectItem value="sync">Sync</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Override the mode, async is faster but slightly less accurate.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

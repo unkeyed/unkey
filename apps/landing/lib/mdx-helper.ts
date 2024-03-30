@@ -1,23 +1,17 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import GithubSlugger from "github-slugger";
-import { type MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
-// import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
-// import { Highlight, themes } from "prism-react-renderer";
-// import { BUNDLED_LANGUAGES, type HighlighterOptions, getHighlighter } from "shiki";
-// import darkplus from "shiki/themes/dark-plus.json";
 
 export const BLOG_PATH = path.join(process.cwd(), "content", "blog");
 export const CHANGELOG_PATH = path.join(process.cwd(), "content", "changelog");
 export const POLICY_PATH = path.join(process.cwd(), "content", "policies");
 export const JOBS_PATH = path.join(process.cwd(), "content", "jobs");
-
-export const changelogFilePaths = fs.readdir(CHANGELOG_PATH);
 
 export const getFilePaths = async (contentPath: string) => {
   return await fs.readdir(contentPath);
@@ -84,7 +78,7 @@ export type Frontmatter = {
   salary: string | undefined;
   level: string | undefined;
   image: string | undefined;
-  tags: Tags[] | undefined;
+  tags: string | undefined;
 };
 
 export type Tags = "product" | "engineering" | "company" | "industry" | "security";
@@ -193,6 +187,15 @@ export const getContentData = async ({
     }),
   );
   return moreContentData;
+};
+
+export const getMeta = async (filepath: string) => {
+  const rawMdx = await raw({ contentPath: BLOG_PATH, filepath: filepath });
+  const serialized = await mdxSerialized({ rawMdx });
+  const frontmatter = serialized.frontmatter as Frontmatter;
+  return {
+    frontmatter,
+  };
 };
 
 export const getPost = async (filepath: string): Promise<Post<Frontmatter>> => {

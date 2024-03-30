@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Api, VercelBinding } from "@unkey/db";
+import type { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -102,7 +102,7 @@ export const Client: React.FC<Props> = ({
         {projectId ? (
           <div>
             <p className="text-sm text-content-subtle">
-              Connect your existign Unkey APIs to your project's environments. We suggest using
+              Connect your existing Unkey APIs to your project's environments. We suggest using
               different APIs per environment for better isolation.
             </p>
             <div className="flex flex-col gap-4 mt-4">

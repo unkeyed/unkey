@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  TemplatesFormValues,
+  type TemplatesFormValues,
   getDefaulTemplatesFormValues,
   schema,
   updateUrl,
@@ -23,7 +23,7 @@ import { ExternalLink, VenetianMask } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { Framework, Language, templates } from "./data";
+import { type Framework, type Language, templates } from "./data";
 
 export default function Templates() {
   const form = useForm<TemplatesFormValues>({

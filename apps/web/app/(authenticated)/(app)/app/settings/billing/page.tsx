@@ -11,14 +11,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getTenantId } from "@/lib/auth";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { activeKeys, verifications } from "@/lib/tinybird";
+import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
-import { BudgetsSection } from "./budgets";
 
 export const revalidate = 0;
 
@@ -203,10 +202,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  const [budgets, usedActiveKeys, usedVerifications] = await Promise.all([
-    db.query.budgets.findMany({
-      where: (table, { eq }) => eq(table.workspaceId, workspace.id),
-    }),
+  const [usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -217,17 +213,22 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       year,
       month,
     }).then((res) => res.data.at(0)?.success ?? 0),
+    ratelimits({
+      workspaceId: workspace.id,
+      year,
+      month,
+    }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
   let currentPrice = 0;
   let estimatedTotalPrice = 0;
   if (workspace.subscriptions?.plan) {
-    const cost = parseFloat(workspace.subscriptions.plan.cents);
+    const cost = Number.parseFloat(workspace.subscriptions.plan.cents);
     currentPrice += cost;
     estimatedTotalPrice += cost; // does not scale
   }
   if (workspace.subscriptions?.support) {
-    const cost = parseFloat(workspace.subscriptions.support.cents);
+    const cost = Number.parseFloat(workspace.subscriptions.support.cents);
     currentPrice += cost;
     estimatedTotalPrice += cost; // does not scale
   }
@@ -293,6 +294,16 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
                 forecast
               />
             ) : null}
+            {workspace.subscriptions?.ratelimits ? (
+              <MeteredLineItem
+                displayPrice
+                title="Ratelimits"
+                tiers={workspace.subscriptions.ratelimits.tiers}
+                used={usedRatelimits}
+                max={workspace.plan === "free" ? QUOTA.free.maxRatelimits : undefined}
+                forecast
+              />
+            ) : null}
           </ol>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
@@ -310,8 +321,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
           </div>
         </CardFooter>
       </Card>
-
-      <BudgetsSection currentBilling={currentPrice / 100} budgets={budgets} />
     </div>
   );
 };
@@ -329,7 +338,7 @@ const LineItem: React.FC<{
       <div className="text-sm text-secondary">{props.subtitle}</div>
     </div>
     <span className="text-sm font-semibold tabular-nums text-content">
-      {formatCentsToDollar(parseFloat(props.cents))}
+      {formatCentsToDollar(Number.parseFloat(props.cents))}
     </span>
   </div>
 );
@@ -410,7 +419,7 @@ const MeteredLineItem: React.FC<{
                       <dt className="text-sm font-medium leading-6 text-content-subtle">
                         {" "}
                         {tier.centsPerUnit
-                          ? formatCentsToDollar(parseFloat(tier.centsPerUnit), 4)
+                          ? formatCentsToDollar(Number.parseFloat(tier.centsPerUnit), 4)
                           : "free"}{" "}
                         per unit
                       </dt>

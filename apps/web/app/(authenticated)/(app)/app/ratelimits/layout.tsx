@@ -4,7 +4,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import * as React from "react";
+import type * as React from "react";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -33,7 +33,7 @@ export default async function AuthorizationLayout({
 
   return (
     <>
-      <Banner>
+      <Banner persistChoice="ratelimit_ui">
         <p className="text-xs text-center">
           The Ratelimiting UI is still in development. Please{" "}
           <Link href="mailto:support@unkey.dev" className="underline">

@@ -1,5 +1,5 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { type Context } from "hono";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { type Cache, CacheError } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 
@@ -92,44 +92,5 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
           }),
         ),
       );
-  }
-
-  public async withCache<TName extends keyof TNamespaces>(
-    c: Context,
-    namespace: TName,
-    key: string,
-    loadFromOrigin: (key: string) => Promise<TNamespaces[TName]>,
-  ): Promise<Result<TNamespaces[TName], CacheError>> {
-    const res = await this.get<TName>(c, namespace, key);
-    if (res.err) {
-      return Err(res.err);
-    }
-    const [cached, stale] = res.val;
-    if (typeof cached !== "undefined") {
-      if (stale) {
-        c.executionCtx.waitUntil(
-          loadFromOrigin(key)
-            .then((value) => this.set(c, namespace, key, value))
-            .catch((err) => {
-              console.error(err);
-            }),
-        );
-      }
-      return Ok(cached);
-    }
-
-    try {
-      const value = await loadFromOrigin(key);
-      await this.set(c, namespace, key, value);
-      return Ok(value);
-    } catch (err) {
-      return Err(
-        new CacheError({
-          namespace: namespace as keyof CacheNamespaces,
-          key,
-          message: (err as Error).message,
-        }),
-      );
-    }
   }
 }

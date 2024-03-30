@@ -46,7 +46,7 @@ type Props = {
 
 export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   const [step, setStep] = useState<Steps>({ step: "CREATE_ROOT_KEY" });
-  const rootKey = trpc.key.createInternalRootKey.useMutation({
+  const rootKey = trpc.rootKey.create.useMutation({
     onSuccess(res) {
       setStep({ step: "CREATE_KEY", rootKey: res.key });
     },

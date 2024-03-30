@@ -1,15 +1,15 @@
-import { TieredCache } from "@/pkg/cache/tiered";
+import type { SwrCacher } from "@/pkg/cache/interface";
 import type { Api, Database, Key } from "@/pkg/db";
-import { Logger } from "@/pkg/logging";
-import { Metrics } from "@/pkg/metrics";
+import type { Logger } from "@/pkg/logging";
+import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, type Tracer, trace } from "@opentelemetry/api";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
-import { PermissionQuery, RBAC } from "@unkey/rbac";
+import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Context } from "hono";
-import { Analytics } from "../analytics";
+import type { Analytics } from "../analytics";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
   public readonly name = "DisabledWorkspaceError";
@@ -68,7 +68,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 export class KeyService {
-  private readonly cache: TieredCache;
+  private readonly cache: SwrCacher;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: Database;
@@ -79,7 +79,7 @@ export class KeyService {
   private readonly tracer: Tracer;
 
   constructor(opts: {
-    cache: TieredCache;
+    cache: SwrCacher;
     logger: Logger;
     metrics: Metrics;
     db: Database;
@@ -128,6 +128,7 @@ export class KeyService {
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
             edgeRegion: "",
+            ownerId: res.val.key.ownerId ?? undefined,
             // @ts-expect-error - the cf object will be there on cloudflare
             region: c.req.raw?.cf?.colo ?? "",
           }),
@@ -434,46 +435,30 @@ export class KeyService {
       return [true, undefined];
     }
 
-    const ratelimitStart = performance.now();
-    try {
-      const t2 = performance.now();
-      const res = await this.rateLimiter.limit(c, {
-        identifier: key.id,
-        limit: key.ratelimitRefillRate,
-        interval: key.ratelimitRefillInterval,
-        cost: 1,
-        // root keys are sharded per edge colo
-        shard: key.forWorkspaceId ? "edge" : undefined,
-        async: key.ratelimitType === "fast",
-      });
+    const res = await this.rateLimiter.limit(c, {
+      workspaceId: key.workspaceId,
+      identifier: key.id,
+      limit: key.ratelimitRefillRate,
+      interval: key.ratelimitRefillInterval,
+      cost: 1,
+      // root keys are sharded per edge colo
+      shard: key.forWorkspaceId ? "edge" : undefined,
+      async: key.ratelimitType === "fast",
+    });
 
-      if (res.err) {
-        this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
+    if (res.err) {
+      this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
 
-        return [false, undefined];
-      }
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - t2,
-        identifier: key.id,
-        tier: "durable",
-      });
-
-      return [
-        res.val.pass,
-        {
-          remaining: key.ratelimitRefillRate - res.val.current,
-          limit: key.ratelimitRefillRate,
-          reset: res.val.reset,
-        },
-      ];
-    } finally {
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - ratelimitStart,
-        identifier: key.id,
-        tier: "total",
-      });
+      return [false, undefined];
     }
+
+    return [
+      res.val.pass,
+      {
+        remaining: key.ratelimitRefillRate - res.val.current,
+        limit: key.ratelimitRefillRate,
+        reset: res.val.reset,
+      },
+    ];
   }
 }

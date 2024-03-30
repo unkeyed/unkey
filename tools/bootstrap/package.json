@@ -6,13 +6,12 @@
   },
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0"
-,
+  "license": "AGPL-3.0",
   "dependencies": {
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.30.1",
+    "drizzle-orm": "^0.30.5",
     "mysql2": "^3.9.2",
     "zod": "^3.22.4"
   },
