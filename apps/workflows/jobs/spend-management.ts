@@ -1,11 +1,11 @@
 import { getClerkOrganizationsAdmins } from "@/lib/clerk";
-import { Budget, connectDatabase, inArray, schema } from "@/lib/db";
+import { type Budget, connectDatabase, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Tinybird } from "@/lib/tinybird";
 import { chunkArray } from "@/lib/utils";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
-import { calculateTieredPrices } from "@unkey/billing";
+import { getCurrentUsageBill } from "@unkey/billing";
 import { Resend } from "@unkey/resend";
 
 client.defineJob({
@@ -84,6 +84,23 @@ client.defineJob({
         ),
       ),
     );
+    // TODO: Find a way to pipe Tinybird for a given set of workspaceIds.
+    const ratelimits = await io.runTask("list involved workspaces ratelimits", async () =>
+      Promise.all(
+        workspaces.map(async (workspace) =>
+          tinybird
+            .ratelimits({
+              workspaceId: workspace.id,
+              year,
+              month,
+            })
+            .then((res) => ({
+              ratelimits: res.data.at(0)?.success ?? 0,
+              workspaceId: workspace.id,
+            })),
+        ),
+      ),
+    );
 
     io.logger.info("estimate workspaces current billing");
     const currentUsages = workspaces.map((workspace) => {
@@ -91,35 +108,21 @@ client.defineJob({
         activeKeys.find((usage) => usage.workspaceId === workspace.id)?.activeKeys || 0;
       const usedVerifications =
         verifications.find((usage) => usage.workspaceId === workspace.id)?.verifications || 0;
+      const usedRatelimits =
+        ratelimits.find((usage) => usage.workspaceId === workspace.id)?.ratelimits || 0;
 
-      let currentPrice = 0;
-      if (workspace.subscriptions?.plan) {
-        const cost = parseFloat(workspace.subscriptions.plan.cents);
-        currentPrice += cost;
-      }
-      if (workspace.subscriptions?.support) {
-        const cost = parseFloat(workspace.subscriptions.support.cents);
-        currentPrice += cost;
-      }
-      if (workspace.subscriptions?.activeKeys) {
-        const cost = calculateTieredPrices(
-          workspace.subscriptions.activeKeys.tiers,
-          usedActiveKeys,
-        );
-        // TODO: What to do on error? Skip billing? Assume zero?
-        if (!cost.err) {
-          currentPrice += cost.val.totalCentsEstimate;
-        }
-      }
-      if (workspace.subscriptions?.verifications) {
-        const cost = calculateTieredPrices(
-          workspace.subscriptions.verifications.tiers,
-          usedVerifications,
-        );
-        // TODO: What to do on error? Skip billing? Assume zero?
-        if (!cost.err) {
-          currentPrice += cost.val.totalCentsEstimate;
-        }
+      const { currentPrice, error } = getCurrentUsageBill(
+        {
+          activeKeys: usedActiveKeys,
+          verifications: usedVerifications,
+          ratelimits: usedRatelimits,
+        },
+        workspace.subscriptions,
+      );
+
+      if (error) {
+        io.logger.error(error, { workspaceId: workspace.id });
+        throw new Error("getCurrentUsageBill failed");
       }
 
       return {

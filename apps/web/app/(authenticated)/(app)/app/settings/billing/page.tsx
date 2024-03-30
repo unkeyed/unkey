@@ -13,7 +13,13 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import {
+  type BillingTier,
+  QUOTA,
+  calculateTieredPrices,
+  forecastUsage,
+  getCurrentUsageBill,
+} from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -224,35 +230,17 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
-  let currentPrice = 0;
-  let estimatedTotalPrice = 0;
-  if (workspace.subscriptions?.plan) {
-    const cost = Number.parseFloat(workspace.subscriptions.plan.cents);
-    currentPrice += cost;
-    estimatedTotalPrice += cost; // does not scale
-  }
-  if (workspace.subscriptions?.support) {
-    const cost = Number.parseFloat(workspace.subscriptions.support.cents);
-    currentPrice += cost;
-    estimatedTotalPrice += cost; // does not scale
-  }
-  if (workspace.subscriptions?.activeKeys) {
-    const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
-    if (cost.err) {
-      return <div className="text-red-500">{cost.err.message}</div>;
-    }
-    currentPrice += cost.val.totalCentsEstimate;
-  }
-  if (workspace.subscriptions?.verifications) {
-    const cost = calculateTieredPrices(
-      workspace.subscriptions.verifications.tiers,
-      usedVerifications,
-    );
-    if (cost.err) {
-      return <div className="text-red-500">{cost.err.message}</div>;
-    }
-    currentPrice += cost.val.totalCentsEstimate;
-    estimatedTotalPrice += forecastUsage(cost.val.totalCentsEstimate);
+  const { currentPrice, estimatedTotalPrice, error } = getCurrentUsageBill(
+    {
+      activeKeys: usedActiveKeys,
+      verifications: usedVerifications,
+      ratelimits: usedRatelimits,
+    },
+    workspace.subscriptions,
+  );
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
   }
 
   return (
@@ -348,20 +336,6 @@ const LineItem: React.FC<{
     </span>
   </div>
 );
-
-function forecastUsage(currentUsage: number): number {
-  const t = new Date();
-  t.setUTCDate(1);
-  t.setUTCHours(0, 0, 0, 0);
-
-  const start = t.getTime();
-  t.setUTCMonth(t.getUTCMonth() + 1);
-  const end = t.getTime() - 1;
-
-  const passed = (Date.now() - start) / (end - start);
-
-  return currentUsage * (1 + 1 / passed);
-}
 
 const MeteredLineItem: React.FC<{
   displayPrice?: boolean;
