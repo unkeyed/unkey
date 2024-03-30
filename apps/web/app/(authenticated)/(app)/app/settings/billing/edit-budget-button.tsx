@@ -56,7 +56,7 @@ export const EditBudgetButton: React.FC<Props> = ({ budget }) => {
     },
   });
 
-  const editBudget = trpc.budget.edit.useMutation({
+  const editBudget = trpc.budget.update.useMutation({
     onSuccess() {
       toast.success("Your Budget has been updated");
 
