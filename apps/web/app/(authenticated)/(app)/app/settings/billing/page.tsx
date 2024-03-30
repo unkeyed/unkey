@@ -13,7 +13,7 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -218,12 +218,12 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   let currentPrice = 0;
   let estimatedTotalPrice = 0;
   if (workspace.subscriptions?.plan) {
-    const cost = parseFloat(workspace.subscriptions.plan.cents);
+    const cost = Number.parseFloat(workspace.subscriptions.plan.cents);
     currentPrice += cost;
     estimatedTotalPrice += cost; // does not scale
   }
   if (workspace.subscriptions?.support) {
-    const cost = parseFloat(workspace.subscriptions.support.cents);
+    const cost = Number.parseFloat(workspace.subscriptions.support.cents);
     currentPrice += cost;
     estimatedTotalPrice += cost; // does not scale
   }
@@ -318,7 +318,7 @@ const LineItem: React.FC<{
       <div className="text-sm text-secondary">{props.subtitle}</div>
     </div>
     <span className="text-sm font-semibold tabular-nums text-content">
-      {formatCentsToDollar(parseFloat(props.cents))}
+      {formatCentsToDollar(Number.parseFloat(props.cents))}
     </span>
   </div>
 );
@@ -399,7 +399,7 @@ const MeteredLineItem: React.FC<{
                       <dt className="text-sm font-medium leading-6 text-content-subtle">
                         {" "}
                         {tier.centsPerUnit
-                          ? formatCentsToDollar(parseFloat(tier.centsPerUnit), 4)
+                          ? formatCentsToDollar(Number.parseFloat(tier.centsPerUnit), 4)
                           : "free"}{" "}
                         per unit
                       </dt>

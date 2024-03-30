@@ -1,11 +1,11 @@
 "use client";
 import ReactFlow, {
   ConnectionLineType,
-  Edge,
+  type Edge,
   Handle,
-  Node,
+  type Node,
   Position,
-  NodeProps,
+  type NodeProps,
   useEdgesState,
   useNodesState,
   Controls,
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import dagre from "dagre";
 import { MoreVertical, Settings2 } from "lucide-react";
 import Link from "next/link";
-import { PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import "reactflow/dist/style.css";
 import { RoleToggle } from "./role-toggle";
 

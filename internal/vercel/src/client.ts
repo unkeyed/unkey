@@ -1,4 +1,4 @@
-import { Err, FetchError, Ok, Result } from "@unkey/error";
+import { Err, FetchError, Ok, type Result } from "@unkey/error";
 import { z } from "zod";
 
 type VercelErrorResponse = {

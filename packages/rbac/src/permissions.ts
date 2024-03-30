@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { Flatten } from "./types";
+import type { Flatten } from "./types";
 
 export function buildIdSchema(prefix: string) {
   return z.string().refine((s) => {

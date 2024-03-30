@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { Context } from "../context";
+import type { Context } from "../context";
 import { auth, t } from "../trpc";
 
 const nameSchema = z

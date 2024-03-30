@@ -1,7 +1,7 @@
 import { SectionTitle } from "@/app/section-title";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import type React from "react";
 import { PrimaryButton } from "./button";
 
 export const CTA: React.FC = () => {

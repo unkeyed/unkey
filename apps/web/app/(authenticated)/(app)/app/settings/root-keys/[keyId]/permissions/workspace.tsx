@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Permission } from "@unkey/db";
+import type { Permission } from "@unkey/db";
 import { PermissionToggle } from "./permission_toggle";
 import { workspacePermissions } from "./permissions";
 

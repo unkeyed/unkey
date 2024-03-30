@@ -1,6 +1,6 @@
-import { Ok, Result } from "@unkey/error";
+import { Ok, type Result } from "@unkey/error";
 import type { Context } from "hono";
-import { Cache, CacheError, Entry } from "./interface";
+import type { Cache, CacheError, Entry } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 

@@ -1,5 +1,5 @@
 import { authors } from "@/content/blog/authors";
-import { Frontmatter, Tags } from "@/lib/mdx-helper";
+import type { Frontmatter, Tags } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { BlogCard } from "./blog-card";

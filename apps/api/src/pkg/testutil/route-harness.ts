@@ -1,8 +1,8 @@
 import { type TaskContext, onTestFinished } from "vitest";
-import { type Api, type KeyAuth, type Workspace } from "../db";
+import type { Api, KeyAuth, Workspace } from "../db";
 import { routeTestEnv } from "../testutil/env";
 import { Harness } from "./harness";
-import { StepRequest, StepResponse, headersToRecord } from "./request";
+import { type StepRequest, type StepResponse, headersToRecord } from "./request";
 
 import { type UnstableDevWorker, unstable_dev } from "wrangler";
 export type Resources = {

@@ -1,8 +1,8 @@
-import { Metrics } from "@/pkg/metrics";
-import { Result } from "@unkey/error";
-import { Context } from "hono";
-import { Cache, CacheError } from "./interface";
-import { CacheNamespaces } from "./namespaces";
+import type { Metrics } from "@/pkg/metrics";
+import type { Result } from "@unkey/error";
+import type { Context } from "hono";
+import type { Cache, CacheError } from "./interface";
+import type { CacheNamespaces } from "./namespaces";
 export class CacheWithMetrics<TNamespaces extends Record<string, unknown> = CacheNamespaces>
   implements Cache<TNamespaces>
 {

@@ -1,4 +1,4 @@
-import { VercelBinding, and, db, eq, schema } from "@/lib/db";
+import { type VercelBinding, and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";

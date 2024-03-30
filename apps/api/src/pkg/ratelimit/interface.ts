@@ -1,5 +1,5 @@
-import { BaseError, Result } from "@unkey/error";
-import { Context } from "hono";
+import { BaseError, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { z } from "zod";
 
 export class RatelimitError extends BaseError {

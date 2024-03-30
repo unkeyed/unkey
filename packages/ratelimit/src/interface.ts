@@ -1,4 +1,4 @@
-import { LimitOptions, RatelimitResponse } from "./types";
+import type { LimitOptions, RatelimitResponse } from "./types";
 
 export interface Ratelimiter {
   limit: (identifier: string, opts?: LimitOptions) => Promise<RatelimitResponse>;

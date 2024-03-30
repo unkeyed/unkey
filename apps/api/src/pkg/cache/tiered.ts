@@ -1,5 +1,5 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { type Context } from "hono";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { type Cache, CacheError } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 

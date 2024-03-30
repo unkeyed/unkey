@@ -1,4 +1,4 @@
-import { randomInt } from "crypto";
+import { randomInt } from "node:crypto";
 import { afterEach, beforeEach, describe } from "node:test";
 import { expect, test, vi } from "vitest";
 import { newId } from "./generate";

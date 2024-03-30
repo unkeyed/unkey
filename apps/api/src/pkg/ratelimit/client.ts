@@ -1,9 +1,14 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { Context } from "hono";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { z } from "zod";
-import { Logger } from "../logging";
-import { Metrics } from "../metrics";
-import { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from "./interface";
+import type { Logger } from "../logging";
+import type { Metrics } from "../metrics";
+import {
+  type RateLimiter,
+  RatelimitError,
+  type RatelimitRequest,
+  type RatelimitResponse,
+} from "./interface";
 
 export class DurableRateLimiter implements RateLimiter {
   private readonly namespace: DurableObjectNamespace;

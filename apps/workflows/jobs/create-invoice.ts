@@ -211,7 +211,9 @@ async function createFixedCostInvoiceItem({
         currency: "usd",
         product: sub.productId,
         unit_amount_decimal:
-          typeof prorate === "number" ? (parseInt(sub.cents) * prorate).toFixed(2) : sub.cents,
+          typeof prorate === "number"
+            ? (Number.parseInt(sub.cents) * prorate).toFixed(2)
+            : sub.cents,
       },
       currency: "usd",
       description: typeof prorate === "number" ? `${name} (Prorated)` : name,

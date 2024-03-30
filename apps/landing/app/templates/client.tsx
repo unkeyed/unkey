@@ -23,7 +23,7 @@ import {
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
 import {
-  TemplatesFormValues,
+  type TemplatesFormValues,
   getDefaulTemplatesFormValues,
   schema,
   updateUrl,
@@ -34,7 +34,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { Framework, Language, templates } from "./data";
+import { type Framework, type Language, templates } from "./data";
 
 export function TemplatesClient() {
   const form = useForm<TemplatesFormValues>({

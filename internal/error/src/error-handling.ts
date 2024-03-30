@@ -1,4 +1,4 @@
-import { BaseError } from "./errors/base";
+import type { BaseError } from "./errors/base";
 
 type OkResult<V> = {
   val: V;

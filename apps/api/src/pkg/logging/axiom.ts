@@ -1,7 +1,7 @@
 import { Axiom } from "@axiomhq/js";
-import { Fields, Logger } from "./interface";
+import type { Fields, Logger } from "./interface";
 
-import { Env } from "../env";
+import type { Env } from "../env";
 import { ConsoleLogger } from "./console";
 
 export class AxiomLogger implements Logger {

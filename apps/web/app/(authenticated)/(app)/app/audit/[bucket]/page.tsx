@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
-import { User } from "@clerk/nextjs/server";
+import type { User } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";

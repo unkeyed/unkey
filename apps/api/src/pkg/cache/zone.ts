@@ -1,7 +1,7 @@
-import { Err, Ok, Result } from "@unkey/error";
+import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "hono";
 import superjson from "superjson";
-import { Cache, CacheError, Entry } from "./interface";
+import { type Cache, CacheError, type Entry } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 

@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Check, ChevronDown } from "lucide-react";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
-import React from "react";
+import type React from "react";
 type Props = {
   options: { value: string; label: string }[];
   title: string;

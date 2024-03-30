@@ -1,6 +1,6 @@
-import { ResolveConfigFn, ServiceConfig } from "@microlabs/otel-cf-workers";
-import { Context, Span } from "@opentelemetry/api";
-import { Env } from "../env";
+import type { ResolveConfigFn, ServiceConfig } from "@microlabs/otel-cf-workers";
+import type { Context, Span } from "@opentelemetry/api";
+import type { Env } from "../env";
 
 export function traceConfig(service: (env: Env) => ServiceConfig): ResolveConfigFn {
   return (env: Env) => {
