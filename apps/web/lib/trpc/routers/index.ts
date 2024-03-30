@@ -3,6 +3,7 @@ import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
+import { createGateway } from "./gateway/create";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -33,6 +34,9 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { createSecret } from "./secrets/create";
+import { decryptSecret } from "./secrets/decrypt";
+import { updateSecret } from "./secrets/update";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { changeWorkspacePlan } from "./workspace/changePlan";
@@ -52,6 +56,14 @@ export const router = t.router({
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
     }),
+  }),
+  gateway: t.router({
+    create: createGateway,
+  }),
+  secrets: t.router({
+    create: createSecret,
+    decrypt: decryptSecret,
+    update: updateSecret,
   }),
 
   rootKey: t.router({

@@ -11,3 +11,4 @@ export type Permission = InferSelectModel<typeof schema.permissions>;
 export type Role = InferSelectModel<typeof schema.roles>;
 export type RatelimitOverride = InferSelectModel<typeof schema.ratelimitOverrides>;
 export type RatelimitNamespace = InferSelectModel<typeof schema.ratelimitNamespaces>;
+export type Secret = InferSelectModel<typeof schema.secrets>;
