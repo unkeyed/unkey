@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getTenantId } from "@/lib/auth";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { activeKeys, verifications } from "@/lib/tinybird";
+import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
@@ -202,13 +202,18 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications] = await Promise.all([
+  const [usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
       month,
     }).then((res) => res.data.at(0)?.keys ?? 0),
     verifications({
+      workspaceId: workspace.id,
+      year,
+      month,
+    }).then((res) => res.data.at(0)?.success ?? 0),
+    ratelimits({
       workspaceId: workspace.id,
       year,
       month,
@@ -282,6 +287,16 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               tiers={workspace.subscriptions.verifications.tiers}
               used={usedVerifications}
               max={workspace.plan === "free" ? QUOTA.free.maxVerifications : undefined}
+              forecast
+            />
+          ) : null}
+          {workspace.subscriptions?.ratelimits ? (
+            <MeteredLineItem
+              displayPrice
+              title="Ratelimits"
+              tiers={workspace.subscriptions.ratelimits.tiers}
+              used={usedRatelimits}
+              max={workspace.plan === "free" ? QUOTA.free.maxRatelimits : undefined}
               forecast
             />
           ) : null}
