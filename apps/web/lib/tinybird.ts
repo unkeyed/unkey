@@ -466,7 +466,10 @@ export function ingestAuditLogs(
         | "vercelBinding"
         | "vercelIntegration"
         | "ratelimitNamespace"
-        | "ratelimitOverride";
+        | "ratelimitOverride"
+        | "gateway"
+        | "secret";
+
       id: string;
       meta?: Record<string, string | number | boolean | null>;
     }>;
