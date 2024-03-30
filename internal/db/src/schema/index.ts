@@ -5,3 +5,5 @@ export * from "./keys";
 export * from "./vercel_integration";
 export * from "./ratelimit";
 export * from "./workspaces";
+export * from "./secrets";
+export * from "./gateway";

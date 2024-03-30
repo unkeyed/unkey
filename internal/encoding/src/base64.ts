@@ -1,39 +1,3 @@
-export async function sha256(source: string | Uint8Array): Promise<string> {
-  const buf = typeof source === "string" ? new TextEncoder().encode(source) : source;
-
-  const hash = await crypto.subtle.digest("sha-256", buf);
-  return b64(hash);
-}
-
-// Copyright 2018-2023 the Deno authors. All rights reserved. MIT license.
-// This module is browser compatible.
-
-/**
- * {@linkcode encode} and {@linkcode decode} for
- * [base64](https://en.wikipedia.org/wiki/Base64) encoding.
- *
- * This module is browser compatible.
- *
- * @example
- * ```ts
- * import {
- *   decode,
- *   encode,
- * } from "https://deno.land/std@$STD_VERSION/encoding/base64.ts";
- *
- * const b64Repr = "Zm9vYg==";
- *
- * const binaryData = decode(b64Repr);
- * console.log(binaryData);
- * // => Uint8Array [ 102, 111, 111, 98 ]
- *
- * console.log(encode(binaryData));
- * // => Zm9vYg==
- * ```
- *
- * @module
- */
-
 const base64abc = [
   "A",
   "B",
@@ -106,7 +70,7 @@ const base64abc = [
  * Encodes a given Uint8Array, ArrayBuffer or string into RFC4648 base64 representation
  * @param data
  */
-export function b64(data: ArrayBuffer | string): string {
+function encode(data: ArrayBuffer | string): string {
   const uint8 =
     typeof data === "string"
       ? new TextEncoder().encode(data)
@@ -142,7 +106,7 @@ export function b64(data: ArrayBuffer | string): string {
  * Decodes a given RFC4648 base64 encoded string
  * @param b64
  */
-export function decode(b64: string): Uint8Array {
+function decode(b64: string): Uint8Array {
   const binString = atob(b64);
   const size = binString.length;
   const bytes = new Uint8Array(size);
@@ -151,3 +115,8 @@ export function decode(b64: string): Uint8Array {
   }
   return bytes;
 }
+
+export const base64 = {
+  encode,
+  decode,
+};
