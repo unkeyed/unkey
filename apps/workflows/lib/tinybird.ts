@@ -47,6 +47,24 @@ export class Tinybird {
       },
     });
   }
+  public get ratelimits() {
+    return this.tb.buildPipe({
+      pipe: "endpoint__ratelimits_by_workspace__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        year: z.number().int(),
+        month: z.number().int().min(1).max(12),
+      }),
+
+      data: z.object({
+        success: z.number().int().nullable().default(0),
+        total: z.number().int().nullable().default(0),
+      }),
+      opts: {
+        cache: "no-store",
+      },
+    });
+  }
 
   public ingestAuditLogs(
     logs: MaybeArray<{
