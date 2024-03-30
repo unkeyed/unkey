@@ -5,6 +5,7 @@ export const unkeyAuditLogEvents = z.enum([
   "workspace.update",
   "workspace.delete",
   "workspace.opt_in",
+  "gateway.create",
   "api.create",
   "api.update",
   "api.delete",
@@ -35,6 +36,9 @@ export const unkeyAuditLogEvents = z.enum([
   "authorization.disconnect_role_and_key",
   "authorization.connect_permission_and_key",
   "authorization.disconnect_permission_and_key",
+  "secret.create",
+  "secret.decrypt",
+  "secret.update",
 ]);
 
 export const auditLogSchemaV1 = z.object({
