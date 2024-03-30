@@ -299,7 +299,7 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     console.log({
       namespaceId: namespace.id,
-      identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),
+      identifier: [namespace.id, req.identifier, limit, duration].join("::"),
       interval: duration,
       limit,
       shard,
