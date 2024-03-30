@@ -1,7 +1,7 @@
 import { CopyButton } from "@/components/copy-button";
 import { MdxContent } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
-import { Frontmatter } from "@/lib/mdx-helper";
+import type { Frontmatter } from "@/lib/mdx-helper";
 import { getChangelog } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";

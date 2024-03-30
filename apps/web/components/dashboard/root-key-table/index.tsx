@@ -22,7 +22,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";

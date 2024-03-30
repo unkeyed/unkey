@@ -1,8 +1,8 @@
 import { Particles } from "@/components/particles";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { type PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 
 export enum Color {
   White = "#FFFFFF",

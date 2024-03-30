@@ -1,6 +1,6 @@
-import { checkRequestSchema, checkResponseSchema } from "@/app/lib/schema";
+import { checkRequestSchema, type checkResponseSchema } from "@/app/lib/schema";
 import { verifyKey } from "@unkey/api";
-import { z } from "zod";
+import type { z } from "zod";
 export async function POST(request: Request) {
   const key = request.headers.get("Authorization")?.replace("Bearer ", "");
   if (!key) {

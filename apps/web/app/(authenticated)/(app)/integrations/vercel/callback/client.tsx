@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Api, VercelBinding } from "@unkey/db";
+import type { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

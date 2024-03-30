@@ -10,7 +10,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { usePathname } from "next/navigation";
-import React, { useCallback, useState } from "react";
+import type React from "react";
+import { useCallback, useState } from "react";
 
 export const interval = {
   "24h": "Last 24 Hours",

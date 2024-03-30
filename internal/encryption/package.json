@@ -5,9 +5,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "author": "Andreas Thomas",
-  "scripts": {
-   
-  },
+  "scripts": {},
   "devDependencies": {
     "typescript": "^5.3.3",
     "vitest": "^1.3.0"

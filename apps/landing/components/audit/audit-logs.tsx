@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { faker } from "@faker-js/faker";
 import { Check, ChevronDown, KeySquare, User, X } from "lucide-react";
 import { customAlphabet } from "nanoid";
-import React, { PropsWithChildren, useEffect, useState } from "react";
+import type React from "react";
+import { type PropsWithChildren, useEffect, useState } from "react";
 import {
   Command,
   CommandEmpty,

@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { Permission, db, eq, schema } from "@/lib/db";
+import { type Permission, db, eq, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Api } from "./api";
 import { Legacy } from "./legacy";

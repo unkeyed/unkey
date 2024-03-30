@@ -42,7 +42,7 @@ export async function Roles() {
       {} as Record<string, number>,
     ),
   ).map(([t, y]) => ({
-    x: new Date(parseInt(t)).toLocaleDateString(),
+    x: new Date(Number.parseInt(t)).toLocaleDateString(),
     y,
   }));
 

@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { type V1KeysUpdateKeyRequest, type V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
+import type { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 
 test("when the key does not exist", async (t) => {
   const h = await RouteHarness.init(t);

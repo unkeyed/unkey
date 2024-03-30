@@ -1,6 +1,6 @@
-import { Metric } from "@unkey/metrics";
-import { MiddlewareHandler } from "hono";
-import { HonoEnv } from "../hono/env";
+import type { Metric } from "@unkey/metrics";
+import type { MiddlewareHandler } from "hono";
+import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 

@@ -1,9 +1,9 @@
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
-import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
+import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import type { V1ApisListKeysResponse } from "@/routes/v1_apis_listKeys";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
-import { V1KeysDeleteKeyRequest } from "@/routes/v1_keys_deleteKey";
+import type { V1KeysDeleteKeyRequest } from "@/routes/v1_keys_deleteKey";
 import { expect, test } from "vitest";
 
 test(

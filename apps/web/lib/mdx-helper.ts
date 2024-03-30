@@ -1,7 +1,7 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import GithubSlugger from "github-slugger";
-import { type MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import { notFound } from "next/navigation";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";

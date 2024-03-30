@@ -1,7 +1,7 @@
-import { PermissionQuery } from "@unkey/rbac";
-import { Context } from "hono";
+import type { PermissionQuery } from "@unkey/rbac";
+import type { Context } from "hono";
 import { UnkeyApiError } from "../errors";
-import { HonoEnv } from "../hono/env";
+import type { HonoEnv } from "../hono/env";
 
 /**
  * rootKeyAuth takes the bearer token from the request and verifies the key

@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

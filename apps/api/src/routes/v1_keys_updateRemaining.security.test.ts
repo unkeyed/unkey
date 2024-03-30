@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -6,9 +6,9 @@ import { KeyV1 } from "@unkey/keys";
 import { describe, expect, test } from "vitest";
 import { runCommonRouteTests } from "../pkg/testutil/common-tests";
 import { RouteHarness } from "../pkg/testutil/route-harness";
-import {
-  type V1KeysUpdateRemainingRequest,
-  type V1KeysUpdateRemainingResponse,
+import type {
+  V1KeysUpdateRemainingRequest,
+  V1KeysUpdateRemainingResponse,
 } from "./v1_keys_updateRemaining";
 
 runCommonRouteTests<V1KeysUpdateRemainingRequest>({

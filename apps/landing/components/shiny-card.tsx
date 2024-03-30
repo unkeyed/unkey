@@ -1,7 +1,8 @@
 "use client";
 
 import { useMousePosition } from "@/lib/mouse";
-import React, { PropsWithChildren, useEffect, useRef, useState } from "react";
+import type React from "react";
+import { type PropsWithChildren, useEffect, useRef, useState } from "react";
 
 type ShinyCardGroupProps = {
   children: React.ReactNode;

@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
@@ -115,7 +115,7 @@ export const registerV1ApisListKeys = (app: App) =>
           ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
         ].filter(Boolean),
       ),
-      limit: parseInt(limit),
+      limit: Number.parseInt(limit),
       orderBy: schema.keys.id,
     });
 
@@ -156,7 +156,7 @@ export const registerV1ApisListKeys = (app: App) =>
         environment: k.environment ?? undefined,
       })),
       // @ts-ignore, mysql sucks
-      total: parseInt(total.at(0)?.count ?? "0"),
+      total: Number.parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });

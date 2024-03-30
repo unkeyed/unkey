@@ -1,4 +1,4 @@
-import { Err, Ok, Result, SchemaError } from "@unkey/error";
+import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import { z } from "zod";
 
 export const billingTier = z.object({
@@ -77,7 +77,7 @@ export function calculateTieredPrices(
     remaining -= quantity;
     res.tiers.push({ quantity, ...tier });
     if (tier.centsPerUnit) {
-      res.totalCentsEstimate += quantity * parseFloat(tier.centsPerUnit);
+      res.totalCentsEstimate += quantity * Number.parseFloat(tier.centsPerUnit);
     }
   }
 

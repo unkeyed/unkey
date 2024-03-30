@@ -4,7 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Activity, CalendarPlus, KeySquare, LucideIcon, Minus, SquareStack } from "lucide-react";
+import {
+  Activity,
+  CalendarPlus,
+  KeySquare,
+  type LucideIcon,
+  Minus,
+  SquareStack,
+} from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Client } from "./client";
 import { DeletePermission } from "./delete-permission";

@@ -1,6 +1,6 @@
-import path from "path";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 import { renderAsync } from "@react-email/render";
-import { readdir } from "fs/promises";
 import React from "react";
 import { test } from "vitest";
 

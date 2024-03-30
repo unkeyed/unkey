@@ -1,6 +1,6 @@
-import { Ok, Result } from "@unkey/error";
-import { Context } from "hono";
-import { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from "./interface";
+import { Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
+import type { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from "./interface";
 
 export class NoopRateLimiter implements RateLimiter {
   public async limit(

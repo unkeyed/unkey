@@ -3,7 +3,7 @@ import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
-import { MaybeArray } from "./types";
+import type { MaybeArray } from "./types";
 
 const token = env().TINYBIRD_TOKEN;
 const tb = token ? new Tinybird({ token }) : new NoopTinybird();
