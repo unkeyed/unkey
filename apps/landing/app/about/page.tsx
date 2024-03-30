@@ -31,10 +31,35 @@ import james from "@/images/team/james.jpg";
 import { BLOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 
+export const metadata = {
+  title: "About | Unkey",
+  description: "Learn more about Unkey and how we operate.",
+  openGraph: {
+    title: "About | Unkey",
+    description: "Learn more about Unkey and how we operate.",
+    url: "https://unkey.dev/templates",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/images/landing/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "About | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/images/landing/unkey.png",
+  },
+};
+
 const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
-  { name: "Allison Pickets", firm: "The New Normal Fund", image: allison },
+  { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -213,7 +238,7 @@ export default async function Page() {
             align="center"
             text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
           />
-          <div className="px-6 mx-auto lg:px-8">
+          <div className="mx-auto px-6 lg:px-8">
             <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
               {Array.from({ length: 6 }).map(() => {
                 return (
