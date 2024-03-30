@@ -18,6 +18,7 @@ import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+import { BudgetsSection } from "./budgets";
 
 export const revalidate = 0;
 
@@ -202,7 +203,10 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
+  const [budgets, usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
+    db.query.budgets.findMany({
+      where: (table, { eq }) => eq(table.workspaceId, workspace.id),
+    }),
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -321,6 +325,8 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
           </div>
         </CardFooter>
       </Card>
+
+      <BudgetsSection currentBilling={currentPrice / 100} budgets={budgets} />
     </div>
   );
 };
