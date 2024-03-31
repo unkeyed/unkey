@@ -42,7 +42,7 @@ client.defineJob({
         ws.budgets.filter(isActiveBudget).length > 0,
     );
 
-    io.logger.info(`found ${workspaces.length} workspaces`, workspaces);
+    await io.logger.info(`found ${workspaces.length} workspaces`, workspaces);
 
     const t = new Date();
     t.setUTCMonth(t.getUTCMonth() - 1);
@@ -66,7 +66,6 @@ client.defineJob({
         ),
       ),
     );
-
     // TODO: Find a way to pipe Tinybird for a given set of workspaceIds.
     const verifications = await io.runTask("list involved workspaces key verifications", async () =>
       Promise.all(
@@ -102,7 +101,7 @@ client.defineJob({
       ),
     );
 
-    io.logger.info("estimate workspaces current billing");
+    await io.logger.info("estimate workspaces current billing");
     const currentUsages = workspaces.map((workspace) => {
       const usedActiveKeys =
         activeKeys.find((usage) => usage.workspaceId === workspace.id)?.activeKeys || 0;
@@ -131,7 +130,7 @@ client.defineJob({
       };
     });
 
-    io.logger.info("list workspaces that exceeded their budgeted usage");
+    await io.logger.info("list workspaces that exceeded their budgeted usage");
     const exceededBudgetedAmount: {
       budgetId: string;
       emails: string[];
@@ -150,22 +149,12 @@ client.defineJob({
         return null;
       }
 
-      const budget = workspace.budgets
-        .filter(isActiveBudget)
-        .reduce<(typeof workspace.budgets)[number] | null>((acc, budget) => {
-          // Check if current price exceeds the greatest budgeted amount
-          if (
-            currentPrice >= budget.fixedAmount &&
-            (!acc || budget.fixedAmount > acc.fixedAmount)
-          ) {
-            return budget;
-          }
-
-          return acc;
-        }, null);
-
-      if (budget) {
-        exceededBudgetedAmount.push({
+      const workspaceExceededBudgets = workspace.budgets
+        .filter(
+          // Checks if current price exceeds the greatest budgeted amount
+          (budget) => isActiveBudget(budget) && currentPrice > budget.fixedAmount,
+        )
+        .map((budget) => ({
           budgetId: budget.id,
           emails: budget.data.additionalEmails ?? [],
           tenantId: workspace.tenantId,
@@ -173,9 +162,16 @@ client.defineJob({
           workspaceName: workspace.name,
           budgetedAmount: budget.fixedAmount,
           currentPeriodBilling: currentPrice,
-        });
-      }
+        }));
+
+      exceededBudgetedAmount.push(...workspaceExceededBudgets);
     });
+
+    if (exceededBudgetedAmount.length === 0) {
+      await io.logger.info("no budgets found with exceeded usage.");
+
+      return;
+    }
 
     // TODO: Assumming admin users will not change frequently their emails, we could store in in the budget entity to avoid this step.
     await io.runTask(
@@ -197,12 +193,20 @@ client.defineJob({
           );
           if (foundAdmin) {
             exceededBudgetedAmount[i].emails.unshift(foundAdmin.email);
+          } else {
+            io.logger.warn("Admin email not found", {
+              tenantId: exceededBudgetedAmount[i].tenantId,
+              workspaceId: exceededBudgetedAmount[i].workspaceId,
+            });
           }
         }
       },
     );
 
-    io.logger.info(`sending budget exceeded email to ${exceededBudgetedAmount.length} users`);
+    await io.logger.info(
+      `sending budget exceeded email to ${exceededBudgetedAmount.length} workspaces`,
+      { exceededBudgetedAmount },
+    );
 
     const notifiedBudgetIds = await io.runTask(
       "sending budget exceeded email to involved workspaces",
@@ -216,9 +220,9 @@ client.defineJob({
         const batches = chunkArray(filteredExceededBudgetedAmount, 100);
 
         for await (const batch of batches) {
-          io.logger.info(`batch sending budget exceeded email to ${batch.length} users`);
+          io.logger.info(`batch sending budget exceeded email to ${batch.length} workspaces`);
 
-          const { success } = await resend.sendBatchBudgetExceeded(
+          const { success, error } = await resend.sendBatchBudgetExceeded(
             batch.map((budget) => ({
               ...budget,
               email: budget.emails[0], /// @dev `budget.emails` always have at least 1 element.
@@ -231,6 +235,7 @@ client.defineJob({
           } else {
             io.logger.error("failed to batch send budget exceeded email", {
               budgetIds: batch.map((budget) => budget.budgetId),
+              error,
             });
           }
         }
@@ -239,17 +244,21 @@ client.defineJob({
       },
     );
 
-    await io.runTask(
-      `updating ${notifiedBudgetIds.length} notified budgets in database`,
-      async () => {
-        await db
-          .update(schema.budgets)
-          .set({ lastReachedAt: new Date() })
-          .where(inArray(schema.budgets.id, notifiedBudgetIds));
-      },
-    );
+    if (notifiedBudgetIds.length > 0) {
+      await io.runTask(
+        `updating ${notifiedBudgetIds.length} notified budgets in database`,
+        async () => {
+          await db
+            .update(schema.budgets)
+            .set({ lastReachedAt: new Date() })
+            .where(inArray(schema.budgets.id, notifiedBudgetIds));
+        },
+      );
+    }
 
-    return {};
+    return {
+      notifiedBudgetIds,
+    };
   },
 });
 
