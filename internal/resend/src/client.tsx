@@ -7,6 +7,7 @@ import { SubscriptionEnded } from "../emails/subscription_ended";
 import { TrialEnded } from "../emails/trial_ended";
 import UsageBudgetExceeded from "../emails/usage-budget-exceeded";
 import { WelcomeEmail } from "../emails/welcome_email";
+
 export class Resend {
   public readonly client: Client;
   private readonly replyTo = "support@unkey.dev";
@@ -111,36 +112,48 @@ export class Resend {
       budgetedAmount: number;
       currentPeriodBilling: number;
     }[],
-  ): Promise<{ success: boolean }> {
+  ): Promise<{ success: true; error?: null } | { success: false; error: string }> {
     try {
       if (batch.length > 100) {
         throw new Error("Allowed up to 100 batch emails.");
       }
 
       const result = await this.client.batch.send(
-        batch.map((data) => ({
-          to: data.email,
-          cc: data.ccEmails,
-          from: "james@updates.unkey.dev",
-          reply_to: this.replyTo,
-          subject: "Budget Notification Usage Exceeded",
-          html: render(
+        batch.map((data) => {
+          const html = render(
             <UsageBudgetExceeded
               workspace={data.workspaceName}
               budgetedAmount={data.budgetedAmount}
               currentPeriodBilling={data.currentPeriodBilling}
             />,
-          ),
-        })),
+          );
+
+          return {
+            to: data.email,
+            cc: data.ccEmails,
+            from: "james@updates.appdoc.io",
+            reply_to: this.replyTo,
+            subject: "Budget Notification Usage Exceeded",
+            html,
+          };
+        }),
       );
 
       if (!result.error) {
         return { success: true };
       }
-      throw result.error;
+
+      console.error(
+        "Error occurred batch sending budget exceeded email ",
+        JSON.stringify(result.error),
+      );
+      return { success: false, error: result.error.message };
     } catch (error) {
-      console.error("Error occurred batch sending budget exceeded email ", JSON.stringify(error));
-      return { success: false };
+      console.error(
+        "Error occurred batch sending budget exceeded email ",
+        (error as Error).message,
+      );
+      return { success: false, error: (error as Error).message };
     }
   }
 }

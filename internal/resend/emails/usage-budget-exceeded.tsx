@@ -1,4 +1,3 @@
-"use client";
 import { Container } from "@react-email/container";
 import { Head } from "@react-email/head";
 import { Heading } from "@react-email/heading";
@@ -9,6 +8,7 @@ import { Section } from "@react-email/section";
 import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
+import tailwindConfig from "../tailwind.config";
 
 export type Props = {
   workspace: string;
@@ -16,15 +16,11 @@ export type Props = {
   currentPeriodBilling: number;
 };
 
-export function UsageBudgetExceeded({
-  workspace = "Ubinatus",
-  budgetedAmount = 100,
-  currentPeriodBilling = 120,
-}: Props) {
+function UsageBudgetExceeded({ workspace, budgetedAmount, currentPeriodBilling }: Props) {
   return (
-    <Tailwind>
-      <Head />
+    <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
+        <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
             <Heading className="font-sans text-2xl text-semibold">Budget Notification</Heading>
@@ -34,17 +30,17 @@ export function UsageBudgetExceeded({
               like your spending has just nudged past your set budget.
             </Text>
 
-            <Text>
+            <Text className="mb-1">
               <b>Workspace: </b>
               {workspace}
             </Text>
-            <Text>
+            <Text className="my-1">
               <b>Your Budget: </b>${budgetedAmount}
             </Text>
-            <Text style={{ marginTop: -5 }}>
+            <Text className="my-1">
               <b>Current Spend: </b>${currentPeriodBilling}
             </Text>
-            <Text style={{ marginTop: -5 }}>
+            <Text className="mt-1">
               <b>Over by: </b>${currentPeriodBilling - budgetedAmount}
             </Text>
 
@@ -69,5 +65,11 @@ export function UsageBudgetExceeded({
     </Tailwind>
   );
 }
+
+UsageBudgetExceeded.PreviewProps = {
+  workspace: "Mugiwara Crew",
+  budgetedAmount: 100,
+  currentPeriodBilling: 115,
+} satisfies Props;
 
 export default UsageBudgetExceeded;
