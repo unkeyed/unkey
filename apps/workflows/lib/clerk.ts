@@ -83,7 +83,8 @@ async function fetchAdminUserIdsFromOrganizations(
           organizationId: orgId,
         });
         /// @dev This only takes the first admin of the organization.
-        const adminUserId = members.find((m) => m.role === "admin")?.publicUserData?.userId;
+        const adminUserId = members.find((m) => m.role === "admin" || m.role === "org:admin")
+          ?.publicUserData?.userId;
 
         if (!adminUserId) {
           return null;
