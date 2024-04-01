@@ -12,6 +12,12 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Post, allPosts } from ".contentlayer/generated";
 
+interface Heading {
+  level: "one" | "two";
+  text: string;
+  slug: string;
+}
+
 export const generateStaticParams = async () =>
   allPosts.map((post) => ({ slug: post._raw.flattenedPath.replace("blog/", "") }));
 
@@ -168,7 +174,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             <p className="text-md text-white/30">Contents</p>
             <div className="relative mt-6 overflow-hidden ">
               {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
-              {post.tableOfContents.map((heading) => {
+              {post.tableOfContents.map((heading: Heading) => {
                 return (
                   <div
                     key={`#${heading.slug}`}
