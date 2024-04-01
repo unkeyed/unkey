@@ -103,7 +103,9 @@ export const createInvoiceJob = client.defineJob({
     ) {
       const start = new Date(year, month - 1, 1);
       const end = new Date(year, month, 1);
-      prorate = (end.getTime() - workspace.createdAt.getTime()) / (end.getTime() - start.getTime());
+      prorate =
+        (end.getTime() - new Date(workspace.createdAt).getTime()) /
+        (end.getTime() - start.getTime());
       io.logger.info("prorating", { start, end, prorate });
     }
 
