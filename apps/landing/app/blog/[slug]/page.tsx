@@ -70,7 +70,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
 
   return (
     <>
-      <BlogContainer className="max-w-[1440px] mt-32 overflow-hidden scroll-smooth ">
+      <BlogContainer className="w-[1440px] mt-32 overflow-hidden scroll-smooth ">
         <div>
           <TopLeftShiningLight className="-z-40 hidden h-full sm:block" />
         </div>
@@ -136,7 +136,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <TopRightShiningLight />
         </div>
         <div className="flex flex-col xl:flex-row">
-          <div className="flex flex-col mx-6 sm:pl-4 lg:pl-24 md:px-12 lg:w-10/12 xl:mt-12">
+          <div className="flex flex-col mx-6 sm:pl-4 lg:pl-24 md:px-12 lg:w-9/12 xl:mt-12">
             <div className="text-white text-[20px] flex">
               {frontmatter.tags && (
                 <>
@@ -151,19 +151,19 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             <h1 className="text-left pt-4 sm:pt-8 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] pr-0 xl:pr-30 xl:w-3/4">
               {frontmatter.title}
             </h1>
-            <p className="mt-10 text-left text-lg font-normal leading-8 text-white/40 ">
+            <p className="mt-10 text-left text-lg font-normal leading-8 text-white/40 lg:mb-12">
               {frontmatter.description}
             </p>
           </div>
-          <div className="mt-6 flex w-full flex-col justify-start p-0 pl-0 ml-0 lg:w-2/12">
-            <div className="mb-8 flex w-full flex-row items-start gap-2 md:ml-12 lg:ml-24 lg:gap-12 xl:ml-0 xl:pl-0 xxl:ml-0 xxl:pl-0 xl:flex-col">
+          <div className="mt-6 flex w-full flex-col justify-start p-0 pl-0 ml-0 lg:w-3/12 xl:mt-24">
+            <div className="mb-8 flex w-full flex-row items-start gap-2 md:ml-14 lg:ml-[120px] lg:gap-12 xl:ml-0 xl:pl-0 xxl:ml-0 xxl:pl-0 xl:flex-col">
               <BlogAuthors
                 author={author}
-                className="mb-0 mt-0 w-40 sm:ml-4 lg:ml-0 lg:w-full xl:ml-0 xl:pl-0"
+                className="mb-0 mt-0 w-40 ml-6 sm:ml-10 md:ml-4 lg:ml-0 lg:w-full xl:ml-0 xl:pl-0"
               />
               <div className="mt-0 flex w-full flex-col">
                 <p className="mb-0 ml-0 pl-0 text-nowrap text-white/30">Published on</p>
-                <p className="mt-8 text-nowrap pt-1 text-white xl:pt-0">
+                <p className="mt-4 text-nowrap pt-0 text-white xl:pt-0">
                   {format(new Date(frontmatter.date!), "MMM dd, yyyy")}
                 </p>
               </div>
@@ -171,7 +171,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           </div>
         </div>
         <div className="mb-40 flex ">
-          <div className="flex w-full flex-col gap-12 xl:w-10/12 ">
+          <div className="flex w-full flex-col gap-12 xl:w-9/12 ">
             <div className="flex px-12">
               <Frame className="overflow-clip h-full w-full px-0" size="lg">
                 <Image
@@ -186,7 +186,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <MdxContent source={serialized} />
             </div>
           </div>
-          <div className="hidden w-2/12 pt-12 text-white xl:ml-6 xl:flex xl:flex-col">
+          <div className="hidden w-3/12 pt-12 text-white xl:ml-6 xl:flex xl:flex-col">
             <p className="text-md text-white/30">Contents</p>
             <div className="relative mt-6 overflow-hidden ">
               {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
@@ -211,7 +211,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 );
               })}
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col mr-12">
               <p className="text-md pt-10 text-white/30">Suggested</p>
               <div>
                 <SuggestedBlogs currentPostSlug={params.slug} />
