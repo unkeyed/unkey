@@ -8,7 +8,7 @@
     "start": "wrangler dev"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.1.0",
+    "@cloudflare/vitest-pool-workers": "^0.1.10",
     "@cloudflare/workers-types": "^4.20240222.0",
     "typescript": "^5.0.4",
     "vitest": "1.3.0",
