@@ -136,7 +136,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <TopRightShiningLight />
         </div>
         <div className="flex flex-col xl:flex-row">
-          <div className="flex flex-col mx-6 sm:pl-4 lg:pl-24 md:px-12 lg:w-9/12 xl:mt-12">
+          <div className="flex flex-col ml-6 sm:pl-4 lg:pl-24 md:px-12 lg:w-9/12 xl:mt-12">
             <div className="text-white text-[20px] flex">
               {frontmatter.tags && (
                 <>
@@ -159,11 +159,11 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             <div className="mb-8 flex w-full flex-row items-start gap-2 md:ml-14 lg:ml-[120px] lg:gap-12 xl:ml-0 xl:pl-0 xxl:ml-0 xxl:pl-0 xl:flex-col">
               <BlogAuthors
                 author={author}
-                className="mb-0 mt-0 w-40 ml-6 sm:ml-10 md:ml-4 lg:ml-0 lg:w-full xl:ml-0 xl:pl-0"
+                className="mb-0 mt-0 w-40 ml-6 sm:ml-10 md:ml-4 lg:ml-0 lg:w-full xl:ml-0 xl:pl-0 "
               />
-              <div className="mt-0 flex w-full flex-col">
+              <div className="mt-0 flex w-full flex-col ml-8 xl:ml-0">
                 <p className="mb-0 ml-0 pl-0 text-nowrap text-white/30">Published on</p>
-                <p className="mt-4 text-nowrap pt-0 text-white xl:pt-0">
+                <p className="mt-4 text-nowrap pt-16 text-white xl:pt-0 lg:pt-[74px]">
                   {format(new Date(frontmatter.date!), "MMM dd, yyyy")}
                 </p>
               </div>
