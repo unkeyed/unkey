@@ -96,6 +96,15 @@ export const createInvoiceJob = client.defineJob({
         (end.getTime() - new Date(workspace.planChanged).getTime()) /
         (end.getTime() - start.getTime());
       io.logger.info("prorating", { start, end, prorate });
+    } else if (
+      workspace.createdAt &&
+      workspace.createdAt.getUTCFullYear() === year &&
+      workspace.createdAt.getUTCMonth() + 1 === month
+    ) {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 1);
+      prorate = (end.getTime() - workspace.createdAt.getTime()) / (end.getTime() - start.getTime());
+      io.logger.info("prorating", { start, end, prorate });
     }
 
     if (workspace.subscriptions?.plan) {
