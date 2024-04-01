@@ -3,8 +3,19 @@ import type { Context } from "hono";
 import { z } from "zod";
 
 export class RatelimitError extends BaseError {
-  public readonly name = "RatelimitError";
   public readonly retry = false;
+
+  constructor(
+    message: string,
+    opts?: {
+      cause?: BaseError;
+    },
+  ) {
+    super(message, {
+      ...opts,
+      id: RatelimitError.name,
+    });
+  }
 }
 
 export const ratelimitRequestSchema = z.object({

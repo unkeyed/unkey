@@ -12,10 +12,10 @@ import type { Context } from "hono";
 import type { Analytics } from "../analytics";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
-  public readonly name = "DisabledWorkspaceError";
   public readonly retry = false;
   constructor(workspaceId: string) {
     super("workspace is disabled", {
+      id: DisabledWorkspaceError.name,
       context: {
         workspaceId,
       },

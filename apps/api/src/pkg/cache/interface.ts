@@ -4,7 +4,6 @@ import type { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 
 export class CacheError extends BaseError {
-  public readonly name = "CacheError";
   public readonly retry = false;
 
   public readonly namespace: keyof CacheNamespaces;
@@ -15,8 +14,9 @@ export class CacheError extends BaseError {
     key: string;
     message: string;
   }) {
-    super(opts.message);
-    this.name = "CacheError";
+    super(opts.message, {
+      id: CacheError.name,
+    });
     this.namespace = opts.namespace;
     this.key = opts.key;
   }

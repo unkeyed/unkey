@@ -2,8 +2,19 @@ import { vercelIntegrationEnv } from "@/lib/env";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { z } from "zod";
 export class VercelCodeExchangeError extends BaseError<{ status: number }> {
-  public readonly name = "VercelCodeExchangeError";
   public readonly retry = true;
+
+  constructor(
+    message: string,
+    opts?: {
+      context: { status: number };
+    },
+  ) {
+    super(message, {
+      id: VercelCodeExchangeError.name,
+      ...opts,
+    });
+  }
 }
 
 export async function exchangeCode(code: string): Promise<

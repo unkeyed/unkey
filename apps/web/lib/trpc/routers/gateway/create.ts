@@ -37,9 +37,12 @@ export const createGateway = t.procedure
       });
     }
 
-    const { key, version } = getEncryptionKeyFromEnv(env());
+    const encryptionKey = getEncryptionKeyFromEnv(env());
+    if (encryptionKey.err) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "encryption key missing" });
+    }
 
-    const aes = await AesGCM.withBase64Key(key);
+    const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
 
     const gatewayId = newId("gateway");
     await db.insert(schema.gateways).values({
@@ -70,7 +73,7 @@ export const createGateway = t.procedure
           iv: secret.iv,
           name: `${input.subdomain}_${name}`,
           workspaceId: ws.id,
-          encryptionKeyVersion: version,
+          encryptionKeyVersion: encryptionKey.val.version,
           createdAt: new Date(),
         })),
       );
