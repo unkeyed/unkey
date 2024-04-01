@@ -13,17 +13,19 @@ export function SideList({ logs, className }: SideListProps) {
   return (
     <div className={cn("", className)}>
       <ScrollArea className="h-96 changelog-gradient">
-        {logs?.map((log, _index) => {
-          const slug = log._raw.flattenedPath.replace("changelog/", "");
+        {logs?.map((changelog, _index) => {
           return (
-            <Link key={log.date} href={`#${slug}`} scroll={false} replace={true}>
+            <Link
+              key={changelog.tableOfContents.slug}
+              href={`#${changelog.tableOfContents.slug}`}
+              scroll={false}
+            >
               <p className="text-sm text-white text-left mb-6 ">
-                {format(log.date, "MMMM dd, yyyy")}
+                {format(changelog.date, "MMMM dd, yyyy")}
               </p>
             </Link>
           );
         })}
-
         <ScrollBar orientation="vertical" forceMount={true} />
       </ScrollArea>
     </div>

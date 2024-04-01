@@ -17,9 +17,8 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
-  const slugable = changelog._raw.flattenedPath.replace("changelog/", "");
   return (
-    <div id={`#${slugable}`} className={cn("w-full", className)}>
+    <div id={changelog.tableOfContents.slug} className={cn("w-full", className)}>
       <div className="2xl:pl-36">
         <div className="flex flex-row pb-10 gap-4 ">
           {changelog.tags?.map((tag) => (
@@ -32,7 +31,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           ))}
         </div>
         <h3 className="font-display text-4xl font-medium blog-heading-gradient ">
-          <Link href={`#${slugable}`} scroll={false} replace={true}>
+          <Link href={`#${changelog.tableOfContents.slug}`} scroll={false} replace={true}>
             {changelog.title}
           </Link>
         </h3>
@@ -48,7 +47,10 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
         <MDX code={changelog.body.code} />
       </div>
       <div>
-        <CopyButton value={`${baseUrl}/changelog#${slugable}`} className="mb-6 mt-12 2xl:pl-36 ">
+        <CopyButton
+          value={`${baseUrl}/changelog#${changelog.tableOfContents.slug}`}
+          className="mb-6 mt-12 2xl:pl-36 "
+        >
           <p className="">Copy Link</p>
         </CopyButton>
         <Separator orientation="horizontal" className="mb-12" />

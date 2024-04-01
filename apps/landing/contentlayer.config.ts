@@ -56,6 +56,21 @@ export const Changelog = defineDocumentType(() => ({
     },
     image: { type: "string" },
   },
+  computedFields: {
+    tableOfContents: {
+      type: "list",
+      resolve: (doc) => {
+        const slugger = new GithubSlugger();
+        const content = doc._raw.flattenedPath.replace("changelog/", "");
+        const headings = {
+          text: content,
+          slug: content ? slugger.slug(content) : undefined,
+        };
+        console.log(headings);
+        return headings;
+      },
+    },
+  },
 }));
 
 export const Policy = defineDocumentType(() => ({
