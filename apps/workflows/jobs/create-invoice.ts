@@ -98,8 +98,8 @@ export const createInvoiceJob = client.defineJob({
       io.logger.info("prorating", { start, end, prorate });
     } else if (
       workspace.createdAt &&
-      workspace.createdAt.getUTCFullYear() === year &&
-      workspace.createdAt.getUTCMonth() + 1 === month
+      new Date(workspace.createdAt).getUTCFullYear() === year &&
+      new Date(workspace.createdAt).getUTCMonth() + 1 === month
     ) {
       const start = new Date(year, month - 1, 1);
       const end = new Date(year, month, 1);
