@@ -33,7 +33,7 @@ export function QuestionCircle({ className }: { className?: string }) {
 }
 export function BlogAuthors({ author, className }: BlogAuthorsProps) {
   return (
-    <div className={cn("flex flex-col p-0 m-0 xl:gap-8 lg:gap-4 ", className)}>
+    <div className={cn("flex flex-col p-0 m-0 xl:gap-2 lg:gap-2 ", className)}>
       <p className="text-white/40">Written by</p>
       <div className="flex flex-row xl:flex-col ">
         <Avatar className={cn("w-12 h-12 xl:mt-4 mt-2", "z-10")}>
