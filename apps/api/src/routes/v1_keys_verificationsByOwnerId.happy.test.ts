@@ -4,7 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { expect, test } from "vitest";
-import { type V1AnalyticsGetVerificationsResponse } from "./v1_keys_verificationsByOwnerId";
+import type { V1AnalyticsGetVerificationsResponse } from "./v1_keys_verificationsByOwnerId";
 
 test("returns an empty verifications with OwnerId", async (t) => {
   const h = await RouteHarness.init(t);

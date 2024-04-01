@@ -16,11 +16,11 @@ import {
 import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";
 import { redirect } from "next/navigation";
 import {
-  ApiId,
+  type ApiId,
   ApiIdSelect,
   type Interval,
   IntervalSelect,
-  OwnerId,
+  type OwnerId,
   OwnerIdSelect,
 } from "./select";
 

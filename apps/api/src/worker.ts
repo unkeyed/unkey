@@ -16,7 +16,6 @@ import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
 import { registerV1KeysGetVerifications } from "./routes/v1_keys_getVerifications";
 import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
-import { registerV1keysVerificationsByOwnerId } from "./routes/v1_keys_verificationsByOwnerId";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
@@ -49,7 +48,6 @@ registerV1KeysVerifyKey(app);
 registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 registerV1KeysGetVerifications(app);
-registerV1keysVerificationsByOwnerId(app);
 
 // apis
 registerV1ApisGetApi(app);

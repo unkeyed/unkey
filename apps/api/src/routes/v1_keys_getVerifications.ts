@@ -1,8 +1,7 @@
-import type { App } from "@/pkg/hono/app";
-import { createRoute, z } from "@hono/zod-openapi";
-
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import type { App } from "@/pkg/hono/app";
+import { createRoute, z } from "@hono/zod-openapi";
 import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
@@ -109,7 +108,6 @@ export const registerV1KeysGetVerifications = (app: App) =>
           roles: dbRes.roles.map((p) => p.role.name),
         };
       });
-
       if (data.err) {
         throw new UnkeyApiError({
           code: "INTERNAL_SERVER_ERROR",
@@ -128,14 +126,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
         apiId: data.val.api.id,
         workspaceId: data.val.key.workspaceId,
       });
-    } else {
-      if (!ownerId) {
-        throw new UnkeyApiError({
-          code: "BAD_REQUEST",
-          message: "keyId or ownerId must be provided",
-        });
-      }
-
+    }
+    if (ownerId && !keyId) {
       const keys = await cache.withCache(c, "keysByOwnerId", ownerId, async () => {
         const dbRes = await db.query.keys.findMany({
           where: (table, { eq, and, isNull }) =>
@@ -153,6 +145,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         }
         return dbRes.map((key) => ({ key, api: key.keyAuth.api }));
       });
+
       if (keys.err) {
         throw new UnkeyApiError({
           code: "INTERNAL_SERVER_ERROR",
@@ -168,7 +161,6 @@ export const registerV1KeysGetVerifications = (app: App) =>
         })),
       );
     }
-
     if (ids.length === 0) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
@@ -177,6 +169,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     }
 
     const apiIds = Array.from(new Set(ids.map(({ apiId }) => apiId)));
+
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or, and }) =>
@@ -192,6 +185,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         ),
       ),
     );
+
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     if (ids.some(({ workspaceId }) => workspaceId !== authorizedWorkspaceId)) {
       throw new UnkeyApiError({
@@ -200,13 +194,30 @@ export const registerV1KeysGetVerifications = (app: App) =>
       });
     }
 
-    const verificationsFromAllKeys = await analytics.getVerificationsByOwnerIdDaily({
-      workspaceId: authorizedWorkspaceId,
-      ownerId: ownerId,
-      apiId: undefined,
-      start: start ? Number.parseInt(start) : undefined,
-      end: end ? Number.parseInt(end) : undefined,
-    });
+    const verificationsFromAllKeys = await (() => {
+      if (ownerId) {
+        return analytics.getVerificationsByOwnerIdDaily({
+          workspaceId: authorizedWorkspaceId,
+          ownerId: ownerId,
+          apiId: undefined,
+          start: start ? Number.parseInt(start) : undefined,
+          end: end ? Number.parseInt(end) : undefined,
+        });
+      }
+      if (keyId) {
+        return analytics.getVerificationsDaily({
+          workspaceId: authorizedWorkspaceId,
+          keyId: keyId,
+          apiId: apiIds[0],
+          start: start ? Number.parseInt(start) : undefined,
+          end: end ? Number.parseInt(end) : undefined,
+        });
+      }
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Either keyId or ownerId must be provided",
+      });
+    })();
 
     const verifications: {
       [time: number]: {
@@ -215,6 +226,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         usageExceeded: number;
       };
     } = {};
+
     for (const dataPoint of verificationsFromAllKeys.data.sort((a, b) => a.time - b.time)) {
       if (!verifications[dataPoint.time]) {
         verifications[dataPoint.time] = {
