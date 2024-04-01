@@ -1,4 +1,5 @@
 import { defineDocumentType, makeSource } from "contentlayer/source-files";
+import GithubSlugger from "github-slugger";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
 export const Post = defineDocumentType(() => ({
@@ -20,6 +21,23 @@ export const Post = defineDocumentType(() => ({
     url: {
       type: "string",
       resolve: (post) => `/blog/${post._raw.flattenedPath}`,
+    },
+    tableOfContents: {
+      type: "list",
+      resolve: (doc) => {
+        const slugger = new GithubSlugger();
+        const regXHeader = /\n(?<flag>#{1,2})\s+(?<content>.+)/g;
+        const headings = Array.from(doc.body.raw.matchAll(regXHeader)).map(({ groups }) => {
+          const flag = groups?.flag;
+          const content = groups?.content;
+          return {
+            level: flag?.length === 1 ? "one" : flag?.length === 2 ? "two" : "three",
+            text: content,
+            slug: content ? slugger.slug(content) : undefined,
+          };
+        });
+        return headings;
+      },
     },
   },
 }));

@@ -166,7 +166,29 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           </div>
           <div className="hidden w-2/12 pt-12 text-white xl:ml-6 xl:flex xl:flex-col">
             <p className="text-md text-white/30">Contents</p>
-
+            <div className="relative mt-6 overflow-hidden ">
+              {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
+              {post.tableOfContents.map((heading) => {
+                return (
+                  <div
+                    key={`#${heading.slug}`}
+                    className="blog-heading-gradient z-0 my-8 text-ellipsis"
+                  >
+                    <a
+                      data-level={heading.level}
+                      className={
+                        heading.level === "two" || heading.level === "one"
+                          ? "text-md font-semibold"
+                          : "text-sm"
+                      }
+                      href={`#${heading.slug}`}
+                    >
+                      {heading.text}
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
             <div className="flex flex-col">
               <p className="text-md pt-10 text-white/30">Suggested</p>
               <div>
