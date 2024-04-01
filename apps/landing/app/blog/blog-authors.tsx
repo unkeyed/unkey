@@ -35,8 +35,8 @@ export function BlogAuthors({ author, className }: BlogAuthorsProps) {
   return (
     <div className={cn("flex flex-col p-0 m-0 xl:gap-2 lg:gap-2 ", className)}>
       <p className="text-white/40">Written by</p>
-      <div className="flex flex-row xl:flex-col ">
-        <Avatar className={cn("w-12 h-12 xl:mt-4 mt-2", "z-10")}>
+      <div className="flex flex-col ">
+        <Avatar className={cn("w-12 h-12 xl:mt-4 mt-4 ml-0", "z-10")}>
           <AvatarImage
             alt={author.name}
             src={author.image.src}
@@ -46,17 +46,23 @@ export function BlogAuthors({ author, className }: BlogAuthorsProps) {
           />
           <AvatarFallback />
         </Avatar>
-        <TooltipProvider>
+        <p className="text-white mt-4 ml-0 text-nowrap xl:block">{author.name}</p>
+
+        {/* <TooltipProvider>
           <Tooltip>
             <TooltipTrigger className="pt-1 pl-4 xl:hidden">
               <QuestionCircle />
             </TooltipTrigger>
-            <TooltipContent side="bottom" align="center" sideOffset={5} className="text-white/60">
+            <TooltipContent
+              side="bottom"
+              align="center"
+              sideOffset={5}
+              className="text-white/60"
+            >
               <p>{author.name}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <p className="text-white mt-7 ml-0 text-nowrap hidden xl:block">{author.name}</p>
+        </TooltipProvider> */}
       </div>
     </div>
   );
