@@ -2,7 +2,7 @@ import { RainbowDarkButton } from "@/components/button";
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { MeteorLines } from "@/components/ui/meteorLines";
-import { Tags } from "@/lib/mdx-helper";
+import type { Tags } from "@/lib/mdx-helper";
 import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { ArrowRight } from "lucide-react";
 import { ChangelogGridItem } from "./changelog-grid-item";

@@ -14,7 +14,7 @@ import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
+import type React from "react";
 export const UserButton: React.FC = () => {
   const { user } = useUser();
   const router = useRouter();

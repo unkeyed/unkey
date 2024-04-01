@@ -1,7 +1,7 @@
 import { type Permission, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
-import { Context } from "../../context";
+import type { Context } from "../../context";
 
 export async function upsertPermission(
   ctx: Context,

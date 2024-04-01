@@ -1,5 +1,12 @@
 # @unkey/web
 
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [03fdfbb]
+  - @unkey/ratelimit@0.1.3
+
 ## 0.1.16
 
 ### Patch Changes

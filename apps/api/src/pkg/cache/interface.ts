@@ -1,6 +1,6 @@
-import { BaseError, Result } from "@unkey/error";
+import { BaseError, type Result } from "@unkey/error";
 import type { Context } from "hono";
-import { MaybePromise } from "../types/maybe";
+import type { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 
 export class CacheError extends BaseError {

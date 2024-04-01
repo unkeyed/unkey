@@ -1,7 +1,7 @@
 "use client";
 
 import { useSignIn } from "@clerk/nextjs";
-import { OTPInput, SlotProps } from "input-otp";
+import { OTPInput, type SlotProps } from "input-otp";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 

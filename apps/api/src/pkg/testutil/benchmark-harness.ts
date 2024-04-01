@@ -1,8 +1,8 @@
-import { TaskContext } from "vitest";
-import { z } from "zod";
+import type { TaskContext } from "vitest";
+import type { z } from "zod";
 import { benchmarkTestEnv } from "./env";
 import { Harness } from "./harness";
-import { StepRequest, StepResponse, step } from "./request";
+import { type StepRequest, type StepResponse, step } from "./request";
 
 export class BenchmarkHarness extends Harness {
   public readonly env: z.infer<typeof benchmarkTestEnv>;

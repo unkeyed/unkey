@@ -31,24 +31,50 @@ import james from "@/images/team/james.jpg";
 import { BLOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 
+export const metadata = {
+  title: "About | Unkey",
+  description: "Learn more about Unkey and how we operate.",
+  openGraph: {
+    title: "About | Unkey",
+    description: "Learn more about Unkey and how we operate.",
+    url: "https://unkey.dev/templates",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/images/landing/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "About | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/images/landing/unkey.png",
+  },
+};
+
 const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
-  { name: "Allison Pickets", firm: "The New Normal Fund", image: allison },
+  { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
 ];
 
+const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
+
 export default async function Page() {
-  const posts = (await getAllMDXData({ contentPath: BLOG_PATH }))
+  const selectedPosts = (await getAllMDXData({ contentPath: BLOG_PATH }))
     .sort((a, b) => {
       return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
     })
-    .slice(0, 3);
-
+    .filter((post) => SELECTED_POSTS.includes(post.slug));
   return (
     <Container>
       <div className="mt-[150px] flex flex-col items-center">
         <ChangelogLight />
-        <div className="flex absolute -z-50">
+        <div className="absolute flex -z-50">
           <div className="parallelogram">
             <BorderBeam size={300} delay={1} />
           </div>
@@ -66,8 +92,8 @@ export default async function Page() {
           </div>
         </div>
         <div className="mt-[120px]">
-          <Link href="/careers" target="">
-            <RainbowDarkButton label="We are hiring!" IconRight={ArrowRight} />
+          <Link href="/blog/introducing-ratelimiting" target="">
+            <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
           </Link>
           <SectionTitle
             title="API auth for fast and scalable software"
@@ -79,14 +105,14 @@ export default async function Page() {
         </div>
         <div className="relative mt-[200px] xl:mt-[400px]">
           <div className="absolute left-[-250px]">
-            <MeteorLines className="ml-2" delay={0.2} />
-            <MeteorLines className="ml-10" />
-            <MeteorLines className="ml-16" delay={0.4} />
+            <MeteorLines className="ml-2 fade-in-0" delay={0.2} number={1} />
+            <MeteorLines className="ml-10 fade-in-40" number={1} />
+            <MeteorLines className="ml-16 fade-in-100" delay={0.4} number={1} />
           </div>
           <div className="absolute right-[20px]">
-            <MeteorLines className="ml-2" delay={0.2} />
-            <MeteorLines className="ml-10" />
-            <MeteorLines className="ml-16" delay={0.4} />
+            <MeteorLines className="ml-2" delay={0.2} number={1} />
+            <MeteorLines className="ml-10" number={1} />
+            <MeteorLines className="ml-16" delay={0.4} number={1} />
 
             {/* <div className="absolute right-[640px] top-[700px]">
               <MeteorLines className="ml-2" delay={0.2} />
@@ -107,7 +133,7 @@ export default async function Page() {
               as a powerful tool, continuously evolving to meet the dynamic needs of a worldwide
               developer community
             </p>
-            <div className="absolute scale-[2] bottom-[-350px]">
+            <div className="absolute scale-[1.5] bottom-[-350px]">
               <AboutLight />
             </div>
           </div>
@@ -120,7 +146,7 @@ export default async function Page() {
           contentWidth={640}
           text="We grew in number, and we love that. Here are some of our precious moments. Although we collaborate as a fully remote team, occasionally we unite!"
         />
-        <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6 mt-[0px]">
+        <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
           <div className="image w-[200px] h-[400px] rounded-lg relative">
             <PhotoLabel
               className="absolute bottom-[40px] left-[calc(50%-40px)]"
@@ -129,63 +155,63 @@ export default async function Page() {
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
           <div className="image w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
@@ -193,7 +219,7 @@ export default async function Page() {
             <Image
               src={placeholder}
               alt="photo of a car"
-              className="h-full w-full object-cover rounded-lg"
+              className="object-cover w-full h-full rounded-lg"
             />
           </div>
         </div>
@@ -212,8 +238,8 @@ export default async function Page() {
             align="center"
             text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
           />
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="text-white mt-[88px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
+          <div className="mx-auto px-6 lg:px-8">
+            <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
               {Array.from({ length: 6 }).map(() => {
                 return (
                   <div className="flex flex-col justify-center items-center p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
@@ -239,15 +265,15 @@ export default async function Page() {
             titleWidth={640}
             text="Take a peek into the minds behind Unkey. Here, our founders share their thoughts and stories, giving you a glimpse into what drives us forward."
           />
-          <div className="border-[0.75px] border-white/10 mt-[104px] leading-7 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[832px] flex flex-col justify-center items-center">
-            <p>
+          <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
+            <p className="about-founders-text-gradient">
               Nice to meet you! We're James and Andreas. We crossed paths while working together at
               a leading tech firm, where James led the design team, and Andreas was instrumental in
               developing cutting-edge design systems. It was there that the seeds were sown for what
               ultimately inspired us to launch Unkey. Below, we've compiled some questions we
               frequently encounter, as well as those we're eager to address.
             </p>
-            <div className="flex flex-col md:flex-row mt-8">
+            <div className="flex flex-col mt-8 md:flex-row">
               <div className="flex md:left-[5px]">
                 <div className="text-sm text-right">
                   <p className="font-bold">James Perkins</p>
@@ -273,27 +299,33 @@ export default async function Page() {
             </div>
           </div>
           <div className="relative w-full max-w-[680px] z-0">
-            <div className="relative z-50 bg-black w-full">
+            <div className="relative z-50 w-full bg-black">
               <Accordion
                 type="single"
                 collapsible
                 className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
               >
-                <AccordionItem value="item-1">
+                <AccordionItem
+                  value="item-1"
+                  className="border border-white/10 rounded-tr-[20px] rounded-tl-[20px]"
+                >
                   <AccordionTriggerAbout>What's your goal with Unkey?</AccordionTriggerAbout>
-                  <AccordionContent>TBC</AccordionContent>
+                  <AccordionContent className="pl-10">TBC</AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-2">
+                <AccordionItem value="item-2" className="border border-white/10">
                   <AccordionTriggerAbout>
                     What's something you're particularly happy about at Unkey?
                   </AccordionTriggerAbout>
-                  <AccordionContent>TBC</AccordionContent>
+                  <AccordionContent className="pl-10">TBC</AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-3">
+                <AccordionItem
+                  value="item-3"
+                  className="border border-white/10 rounded-br-[20px] rounded-bl-[20px]"
+                >
                   <AccordionTriggerAbout>
                     What's something you're less happy about?
                   </AccordionTriggerAbout>
-                  <AccordionContent>TBC</AccordionContent>
+                  <AccordionContent className="pl-10">TBC</AccordionContent>
                 </AccordionItem>
               </Accordion>
             </div>
@@ -310,7 +342,7 @@ export default async function Page() {
               contentWidth={630}
               text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe."
             />
-            <div className="flex flex-col lg:flex-row lg:gap-x-16 mx-auto">
+            <div className="flex flex-col mx-auto lg:flex-row lg:gap-x-16">
               {investors.map(({ name, firm, image }) => {
                 return (
                   <div className="pt-[88px] px-[40px] pb-[80px]">
@@ -335,7 +367,7 @@ export default async function Page() {
               text="Explore insights, tips, and updates directly from our team members"
             />
             <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
-              {posts.map((post) => {
+              {selectedPosts.map((post) => {
                 return (
                   <BlogCard
                     tags={post.frontmatter.tags?.toString()}

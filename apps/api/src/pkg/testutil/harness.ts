@@ -1,13 +1,13 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { TaskContext } from "vitest";
+import type { TaskContext } from "vitest";
 import {
   type Api,
   type Database,
   type KeyAuth,
-  Permission,
-  Role,
+  type Permission,
+  type Role,
   type Workspace,
   createConnection,
   eq,

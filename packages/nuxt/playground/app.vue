@@ -7,6 +7,6 @@
 </template>
 
 <script setup>
-const verifiedState = useState(() => ({ unkey: useRequestEvent()?.context?.unkey }))
-const header = useState(() => useRequestEvent()?.headers?.authorization)
+const _verifiedState = useState(() => ({ unkey: useRequestEvent()?.context?.unkey }));
+const _header = useState(() => useRequestEvent()?.headers?.authorization);
 </script>

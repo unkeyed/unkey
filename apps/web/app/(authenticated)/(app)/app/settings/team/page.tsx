@@ -2,7 +2,8 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { InviteButton } from "./invite";
 
 import Confirm from "@/components/dashboard/confirm";
@@ -28,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { MembershipRole } from "@clerk/types";
+import type { MembershipRole } from "@clerk/types";
 import Link from "next/link";
 
 type Member = {

@@ -1,7 +1,7 @@
 import { trace } from "@opentelemetry/api";
 
 import type { MiddlewareHandler } from "hono";
-import { HonoEnv } from "../hono/env";
+import type { HonoEnv } from "../hono/env";
 
 export function otel(): MiddlewareHandler<HonoEnv> {
   const tracer = trace.getTracer("hono", "0.0.1");

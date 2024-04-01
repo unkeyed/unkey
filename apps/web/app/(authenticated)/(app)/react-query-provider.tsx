@@ -3,7 +3,8 @@
 import { trpc } from "@/lib/trpc/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import React, { PropsWithChildren, useState } from "react";
+import type React from "react";
+import { type PropsWithChildren, useState } from "react";
 import SuperJSON from "superjson";
 
 export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) => {

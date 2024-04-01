@@ -6,7 +6,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_deleteKey";
+import type { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_deleteKey";
 
 test("soft deletes key", async (t) => {
   const h = await RouteHarness.init(t);

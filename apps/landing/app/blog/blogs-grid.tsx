@@ -1,5 +1,5 @@
 import { authors } from "@/content/blog/authors";
-import { Frontmatter, Tags } from "@/lib/mdx-helper";
+import type { Frontmatter, Tags } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { BlogCard } from "./blog-card";
@@ -42,7 +42,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
 
   return (
     <div className="">
-      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full ", className)}>
+      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full px-12 ", className)}>
         {allTags.map((tag) => (
           <Link
             key={tag}
@@ -51,8 +51,8 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
             className={cn(
               tag === (selectedTag ?? "all")
                 ? "bg-white text-black"
-                : "sm:text-sm bg-white/10 text-white/60",
-              "py-1 px-3 rounded-lg",
+                : "sm:text-sm bg-white/10 text-white/50",
+              "py-1 px-3 rounded-lg flex items-center",
               className,
             )}
           >

@@ -6,10 +6,10 @@
   "types": "./src/index.ts",
   "keywords": [],
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0"
-,
+  "license": "AGPL-3.0",
   "scripts": {
-    "dev": "email dev"
+    "dev": "email dev",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.11.28",
@@ -27,10 +27,10 @@
     "@react-email/link": "^0.0.7",
     "@react-email/render": "^0.0.12",
     "@react-email/section": "^0.0.11",
-    "@react-email/tailwind": "0.0.12",
+    "@react-email/tailwind": "0.0.15",
     "@react-email/text": "^0.0.7",
     "react": "^18.2.0",
-    "react-email": "2.0.0",
+    "react-email": "2.1.1",
     "resend": "3.2.0"
   }
 }
