@@ -3,7 +3,7 @@
   date: 2024-01-05
   description: We are introducing changes to our pricing
   image: "/images/changelog/tempimage.png"
-  tags: pricing operations
+  tags: [pricing, operations]
 ---
 
 
@@ -57,7 +57,7 @@ We have introduced refillable keys to make this process easier. You can now set 
 
 Here is an example of creating a key with a daily refill of 100 daily uses.
 
-```
+```bash
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \

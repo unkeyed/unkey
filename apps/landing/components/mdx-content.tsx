@@ -1,29 +1,24 @@
-"use client";
-import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
-import { BlogCodeBlock, BlogCodeBlockSingle } from "../app/blog/blog-code-block";
-import { BlogImage } from "../app/blog/blog-image";
-import { BlogList, BlogListItem, BlogListNumbered } from "../app/blog/blog-list";
-import { BlogQuote } from "../app/blog/blog-quote";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import { BlogCodeBlock } from "./blog/blog-code-block";
+import { BlogImage } from "./blog/blog-image";
+import { BlogList, BlogListItem, BlogListNumbered } from "./blog/blog-list";
+import { BlogQuote } from "./blog/blog-quote";
+import { BlogCodeBlockSingle } from "./blog/code-block";
 import { Alert } from "./ui/alert/alert";
-
-type MdxContentProps = {
-  source: MDXRemoteSerializeResult;
-};
-
 /** Custom components here!*/
-const MdxComponents = {
+export const MdxComponents = {
   Image: (props: any) => <BlogImage size="sm" imageUrl={props} />,
   img: (props: any) => <BlogImage size="sm" imageUrl={props} />,
   Callout: Alert,
   th: (props: any) => (
-    <th {...props} className="text-white font-semibold text-base text-left pb-4" />
+    <th {...props} className="pb-4 text-left text-base font-semibold text-white" />
   ),
   tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
   td: (props: any) => (
-    <td {...props} className="text-white/70 text-base font-normal py-4 text-left" />
+    <td {...props} className="py-4 text-left text-base font-normal text-white/70" />
   ),
   a: (props: any) => (
-    <a {...props} className="text-white underline hover:text-white/60 text-left" />
+    <a {...props} className="text-left text-white underline hover:text-white/60" />
   ),
   blockquote: (props: any) => BlogQuote(props),
   BlogQuote: (props: any) => BlogQuote(props),
@@ -31,31 +26,36 @@ const MdxComponents = {
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h1: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h2 {...props} className="blog-heading-gradient text-2xl font-medium leading-8 text-white/60" />
   ),
   h2: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h2 {...props} className="blog-heading-gradient text-2xl font-medium leading-8 text-white/60" />
   ),
   h3: (props: any) => (
-    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h3 {...props} className="blog-heading-gradient text-xl font-medium leading-8 text-white/60" />
   ),
   h4: (props: any) => (
-    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h4 {...props} className="blog-heading-gradient text-lg font-medium leading-8 text-white/60" />
   ),
   p: (props: any) => (
-    <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
+    <p {...props} className="text-left text-lg font-normal leading-8 text-white/60" />
   ),
-  code: (props: any) => (
-    <code
-      {...props}
-      className="inline font-mono text-xs rounded-lg leading-6 sm:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
-    />
-  ),
-  pre: (props: any) => BlogCodeBlockSingle(props),
-
-  BlogCodeBlock: (props: any) => BlogCodeBlock(props),
+  pre: BlogCodeBlockSingle,
+  BlogCodeBlock,
 };
 
-export function MdxContent({ source }: MdxContentProps) {
-  return <MDXRemote {...source} components={MdxComponents} />;
+interface MDXProps {
+  code: string;
+}
+
+export function MDX({ code }: MDXProps) {
+  const Component = useMDXComponent(code);
+
+  return (
+    <Component
+      components={{
+        ...MdxComponents,
+      }}
+    />
+  );
 }

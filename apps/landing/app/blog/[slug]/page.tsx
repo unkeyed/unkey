@@ -1,43 +1,49 @@
+import { BlogAuthors } from "@/components/blog/blog-authors";
+import { BlogContainer } from "@/components/blog/blog-container";
+import { SuggestedBlogs } from "@/components/blog/suggested-blogs";
 import { CTA } from "@/components/cta";
 import { Frame } from "@/components/frame";
-import { MdxContent } from "@/components/mdx-content";
+import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
-import { BLOG_PATH, getContentData, getFilePaths, getMeta, getPost } from "@/lib/mdx-helper";
-import { format } from "date-fns";
-import type { Metadata } from "next";
+import { format, parseISO } from "date-fns";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { BlogAuthors } from "../blog-authors";
-import { BlogContainer } from "../blog-container";
-import { SuggestedBlogs } from "../suggested-blogs";
-type Props = {
-  params: { slug: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
+import { Post, allPosts } from ".contentlayer/generated";
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  // read route params
-  const { frontmatter } = await getMeta(params.slug);
+export const generateStaticParams = async () =>
+  allPosts.map((post) => ({ slug: post._raw.flattenedPath.replace("blog/", "") }));
 
-  if (!frontmatter) {
-    return notFound();
+export const generateMetadata = ({ params }: { params: { slug: string } }) => {
+  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
+  if (!post) {
+    notFound();
   }
-
   return {
-    title: `${frontmatter.title} | Unkey`,
-    description: frontmatter.description,
+    title: `${post.title} | Unkey`,
+    description: post.description,
     openGraph: {
-      title: `${frontmatter.title} | Unkey`,
-      description: frontmatter.description,
-      url: `https://unkey.dev/blog/${params.slug}`,
+      title: `${post.title} | Unkey`,
+      description: post.description,
+      url: `https://unkey.dev/${post._raw.flattenedPath}`,
       siteName: "unkey.dev",
+      type: "article",
+      article: {
+        publishedTime: format(parseISO(post.date), "yyyy-MM-dd"),
+        modifiedTime: format(parseISO(post.date), "yyyy-MM-dd"),
+        tags: post.tags,
+      },
+      ogImage: {
+        url: `https://unkey.dev${post.image}`,
+        width: 800,
+        height: 600,
+      },
     },
     twitter: {
       card: "summary_large_image",
-      title: `${frontmatter.title} | Unkey`,
-      description: frontmatter.description,
+      title: `${post.title} | Unkey`,
+      description: post.description,
       site: "@unkeydev",
       creator: "@unkeydev",
     },
@@ -45,29 +51,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       shortcut: "/images/landing/unkey.png",
     },
   };
-}
-
-export const generateStaticParams = async () => {
-  const posts = await getFilePaths(BLOG_PATH);
-  const paths = posts
-    .filter((post) => post.includes(".mdx"))
-    .map((post) => {
-      return {
-        slug: post.replace(".mdx", ""),
-      };
-    });
-  return paths;
 };
 
 const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
-  const { serialized, frontmatter, headings } = await getPost(params.slug);
+  const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`) as Post;
+  if (!post) {
+    notFound();
+  }
 
-  const author = authors[frontmatter.author];
-  const _moreArticles = await getContentData({
-    contentPath: BLOG_PATH,
-    filepath: params.slug,
-  });
-
+  const author = authors[post.author];
   return (
     <>
       <BlogContainer className="mt-32 overflow-hidden scroll-smooth ">
@@ -138,10 +130,10 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         <div className="flex flex-col xl:flex-row">
           <div className="mx-6 flex flex-col sm:pl-4 md:px-12 lg:w-10/12 lg:pl-24 xl:mt-12">
             <h1 className="blog-heading-gradient xl:pr-30 pr-0 text-left text-6xl text-[40px] font-medium leading-[56px] tracking-tight sm:pt-8 sm:text-[56px] sm:leading-[72px] xl:mt-0 xl:w-3/4">
-              {frontmatter.title}
+              {post.title}
             </h1>
             <p className="mt-10 text-left text-lg font-normal leading-8 text-white/40 ">
-              {frontmatter.description}
+              {post.description}
             </p>
           </div>
           <div className="mt-6 flex w-full flex-col justify-start p-0 pl-6 lg:w-2/12">
@@ -149,9 +141,9 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <BlogAuthors author={author} className="mb-0 mt-0 w-40 sm:ml-4 lg:w-full" />
               <div className="mt-0 flex w-full flex-col">
                 <p className="mb-0 text-nowrap text-white/30">Published on</p>
-                <p className="mt-8 text-nowrap pt-1 text-white xl:pt-0">
-                  {format(new Date(frontmatter.date!), "MMM dd, yyyy")}
-                </p>
+                <time dateTime={post.date} className="mt-8 text-nowrap pt-1 text-white xl:pt-0">
+                  {format(parseISO(post.date), "MMM dd, yyyy")}
+                </time>
               </div>
             </div>
           </div>
@@ -161,46 +153,24 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             <div className="flex ">
               <Frame className="mx-6 h-full w-full px-0 shadow-sm xl:mx-12" size="lg">
                 <Image
-                  src={frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
+                  src={post.image ?? "/images/blog-images/defaultBlog.png"}
                   width={1200}
                   height={860}
-                  alt=""
+                  alt={post.title}
                 />
               </Frame>
             </div>
             <div className="mx-6 flex flex-col gap-12 sm:px-4 md:px-12 lg:px-24">
-              <MdxContent source={serialized} />
+              <MDX code={post.body.code} />
             </div>
           </div>
           <div className="hidden w-2/12 pt-12 text-white xl:ml-6 xl:flex xl:flex-col">
             <p className="text-md text-white/30">Contents</p>
-            <div className="relative mt-6 overflow-hidden ">
-              {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
-              {headings.map((heading) => {
-                return (
-                  <div
-                    key={`#${heading.slug}`}
-                    className="blog-heading-gradient z-0 my-8 text-ellipsis"
-                  >
-                    <a
-                      data-level={heading.level}
-                      className={
-                        heading.level === "two" || heading.level === "one"
-                          ? "text-md font-semibold"
-                          : "text-sm"
-                      }
-                      href={`#${heading.slug}`}
-                    >
-                      {heading.text}
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
+
             <div className="flex flex-col">
               <p className="text-md pt-10 text-white/30">Suggested</p>
               <div>
-                <SuggestedBlogs currentPostSlug={params.slug} />
+                <SuggestedBlogs currentPostSlug={post.url} />
               </div>
             </div>
           </div>

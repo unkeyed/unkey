@@ -2,22 +2,21 @@ import { RainbowDarkButton } from "@/components/button";
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { MeteorLines } from "@/components/ui/meteorLines";
-import { Tags } from "@/lib/mdx-helper";
-import { CHANGELOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
-import { ArrowRight } from "lucide-react";
-import { ChangelogGridItem } from "./changelog-grid-item";
-import { SideList } from "./side-list";
 
+import { allChangelogs } from "@/.contentlayer/generated";
+import { ChangelogGridItem } from "@/components/changelog/changelog-grid-item";
+import { SideList } from "@/components/changelog/side-list";
+import { ArrowRight } from "lucide-react";
 type Props = {
   searchParams?: {
-    tag?: Tags;
+    tag?: string[];
     page?: number;
   };
 };
 
-export default async function Changelog(_props: Props) {
-  const changelogs = (await getAllMDXData({ contentPath: CHANGELOG_PATH })).sort((a, b) => {
-    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
+export default async function Changelogs(_props: Props) {
+  const changelogs = allChangelogs.sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
   return (
@@ -97,8 +96,8 @@ export default async function Changelog(_props: Props) {
               </div>
             </div>
             <div className="flex flex-col w-full px-4 sm:overflow-hidden md:px-8 xl:pl-16 2xl:px-0">
-              {changelogs.map((changelog) => (
-                <ChangelogGridItem key={changelog.slug} changelog={changelog} />
+              {changelogs?.map((changelog) => (
+                <ChangelogGridItem key={changelog.title} changelog={changelog} />
               ))}
             </div>
           </div>

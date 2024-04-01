@@ -2,11 +2,11 @@ import { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
-import { Frame } from "../../components/frame";
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
+import { Frame } from "../frame";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 type BlogCardProps = {
-  tags?: string;
+  tags?: string[];
   imageUrl?: string;
   title?: string;
   subTitle?: string;
@@ -24,7 +24,6 @@ export function BlogCard({
   publishDate,
   className,
 }: BlogCardProps) {
-  const tagList = tags?.split(" ") || [];
   return (
     <div className={cn("flex flex-col p-0 m-0 gap-4", className)}>
       <div className="rounded-2xl bg-clip-border overflow-clip">
@@ -33,11 +32,11 @@ export function BlogCard({
         </Frame>
       </div>
       <div className="flex flex-row gap-3">
-        {tagList?.map((tag) => (
+        {tags?.map((tag) => (
           <div className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 my-4">
             {tag.charAt(0).toUpperCase() + tag.slice(1)}
           </div>
-        ))}{" "}
+        ))}
         : null
       </div>
 
