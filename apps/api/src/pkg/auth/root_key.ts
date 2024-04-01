@@ -19,7 +19,7 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
   const { val: rootKey, err } = await svc.verifyKey(c, { key: authorization, permissionQuery });
 
   if (err) {
-    switch (err.name) {
+    switch (err.id) {
       case "SchemaError":
         throw new UnkeyApiError({
           code: "BAD_REQUEST",
