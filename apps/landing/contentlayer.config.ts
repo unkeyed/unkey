@@ -31,7 +31,7 @@ export const Post = defineDocumentType(() => ({
           const flag = groups?.flag;
           const content = groups?.content;
           return {
-            level: flag?.length === 1 ? "one" : flag?.length === 2 ? "two" : "three",
+            level: flag?.length === 1 ? "one" : flag?.length === 2 ? "two" : "two",
             text: content,
             slug: content ? slugger.slug(content) : undefined,
           };
@@ -66,7 +66,6 @@ export const Changelog = defineDocumentType(() => ({
           text: content,
           slug: content ? slugger.slug(content) : undefined,
         };
-        console.log(headings);
         return headings;
       },
     },

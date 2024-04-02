@@ -14,7 +14,7 @@ Suppose you are getting ready to authenticate with a CLI—you might use a comma
 
 > Check out the demo used in this blog post [here](https://unkey.dev/templates/cli-auth)
 
-### CLI Auth Overview
+## CLI Auth Overview
 
 Before we look at any code, let us look at a diagram that explains the process.
 
@@ -30,7 +30,7 @@ The web application will then generate a new API key or token and return it to t
 
 The token is now securely stored on the user's machine, and each future CLI request will use this token to authenticate with the service without the user needing to re-authenticate each time.
 
-### From Terminal to API Key
+## From Terminal to API Key
 
 To better understand the process, let's walk through a real-world example. We'll use the `@unkey/cli-demo` package, a simple CLI demonstrating the authentication process. The package is available on npm, and you can use it by running the following command:
 
@@ -48,7 +48,7 @@ ls -a ~/
 
 You'll find `.unkey`, which holds your API key.
 
-### The Code Behind the Demo
+## The Code Behind the Demo
 
 We can break down the code into the CLI and the web application. The CLI is a simple Node server that creates a file named `.unkey` and stores your freshly created API key. The web application is a simple Next app that interacts with Unkey to generate a new API key.
 
@@ -174,6 +174,6 @@ export async function POST(request: Request) {
 
 As you can see, we are using Unkey's owner to associate the end user with the new API key, which makes it easy to find and revoke the key if needed.
 
-### Conclusion
+## Conclusion
 
 You can dive deeper into the CLI demo code in our [GitHub repository](https://github.com/unkeyed/examples/tree/main/unkey-cli) and see how the CLI and web application work together to authenticate a user and generate a new API key. The CLI and web application are simple examples of how to authenticate a user and generate a new API key using Unkey. You can use the same principles to create your CLI with minimal effort.
