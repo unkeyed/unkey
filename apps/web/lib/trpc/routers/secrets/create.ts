@@ -29,9 +29,15 @@ export const createSecret = t.procedure
       });
     }
 
-    const { key, version } = getEncryptionKeyFromEnv(env());
+    const encryptionKey = getEncryptionKeyFromEnv(env());
+    if (encryptionKey.err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "missing encryption key in env",
+      });
+    }
 
-    const aes = await AesGCM.withBase64Key(key);
+    const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
 
     const { iv, ciphertext } = await aes.encrypt(input.value);
 
@@ -46,7 +52,7 @@ export const createSecret = t.procedure
         comment: input.comment,
         name: input.name,
         workspaceId: ws.id,
-        encryptionKeyVersion: version,
+        encryptionKeyVersion: encryptionKey.val.version,
       })
       .catch((err) => {
         if (err instanceof DatabaseError && err.body.message.includes("desc = Duplicate entry")) {

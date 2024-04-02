@@ -65,9 +65,8 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
       .catch((err) =>
         Err(
           new CacheError({
-            namespace: namespace as keyof CacheNamespaces,
-            key,
             message: (err as Error).message,
+            context: { namespace: namespace as keyof CacheNamespaces, key },
           }),
         ),
       );
@@ -86,9 +85,8 @@ export class TieredCache<TNamespaces extends Record<string, unknown> = CacheName
       .catch((err) =>
         Err(
           new CacheError({
-            namespace: namespace as keyof CacheNamespaces,
-            key,
             message: (err as Error).message,
+            context: { namespace: namespace as keyof CacheNamespaces, key },
           }),
         ),
       );

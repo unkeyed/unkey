@@ -47,15 +47,21 @@ export const updateSecret = t.procedure
     }
 
     if (typeof input.value !== "undefined") {
-      const { key, version } = getEncryptionKeyFromEnv(env());
+      const encryptionKey = getEncryptionKeyFromEnv(env());
+      if (encryptionKey.err) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "missing encryption key in env",
+        });
+      }
 
-      const aes = await AesGCM.withBase64Key(key);
+      const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
 
       const { iv, ciphertext } = await aes.encrypt(input.value);
 
       update.iv = iv;
       update.ciphertext = ciphertext;
-      update.encryptionKeyVersion = version;
+      update.encryptionKeyVersion = encryptionKey.val.version;
     }
 
     if (typeof input.comment !== "undefined") {

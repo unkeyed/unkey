@@ -55,6 +55,6 @@ export class RBAC {
       return Ok({ valid: false, message: "No role matched" });
     }
 
-    return Err(new SchemaError("reached end of evaluate and no match"));
+    return Err(new SchemaError({ message: "reached end of evaluate and no match" }));
   }
 }

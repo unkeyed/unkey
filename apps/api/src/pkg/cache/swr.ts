@@ -84,9 +84,8 @@ export class SwrCache<TNamespaces extends Record<string, unknown> = CacheNamespa
     } catch (err) {
       return Err(
         new CacheError({
-          namespace: namespace as keyof CacheNamespaces,
-          key,
           message: (err as Error).message,
+          context: { namespace: namespace as keyof CacheNamespaces, key },
         }),
       );
     }
