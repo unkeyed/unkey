@@ -64,14 +64,14 @@ export function BlogHero({
         <div className="flex flex-row justify-center w-full gap-24 pb-8 mt-10 xl:justify-start lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
             <p className="text-sm text-white/30 ">Written by</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {/* Todo: Needs ability to add multiple authors at some point */}
-              <Avatar>
+
+              <Avatar className="">
                 <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
                 <AvatarFallback />
               </Avatar>
               <p className="text-sm text-white">{author.name}</p>
-
               {/* <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger className="pt-1 pl-4">
