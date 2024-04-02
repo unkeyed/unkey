@@ -85,7 +85,7 @@ export default async function Landing() {
         <div className="mt-[220px]" />
         <OpenSource />
         <SectionTitle
-          className="mt-[300px]"
+          className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
           title="Everything you need for your API"
           text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
           align="center"
@@ -100,7 +100,7 @@ export default async function Landing() {
           <OssLight className="absolute scale-[2] left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-250px]" />
         </div>
         <SectionTitle
-          className="mt-[300px]"
+          className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
           title="Secure and scalable from day one"
           text="We give you crucial security features out of the box, so that you can focus on rapidly iterating on your API."
           align="center"
@@ -128,7 +128,7 @@ export default async function Landing() {
           {/* TODO: horizontal scroll */}
           <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-150px] lg:right-[880px]" />
           <SectionTitle
-            className="mt-[400px] md:ml-10"
+            className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
             title="Leveled-up API management"
             text="With enhanced security, low latency, and better control, you can seamlessly integrate into your APIs and protect your data like never before."
             label="More"
@@ -148,7 +148,11 @@ export default async function Landing() {
         <div className="relative -z-10">
           <FeatureGridChip className="absolute top-[50px] left-[400px]" />
         </div>
-        <SectionTitle align="center" className="mt-[200px]" title="Protect your API. Start today.">
+        <SectionTitle
+          className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
+          align="center"
+          title="Protect your API. Start today."
+        >
           <div className="flex space-x-6 ">
             <Link key="get-started" href="/app">
               <PrimaryButton label="Start Now" IconRight={ChevronRight} />
