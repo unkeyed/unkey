@@ -26,7 +26,7 @@ export default async function Changelogs(_props: Props) {
           <div className="relative -z-100 max-w-[1000px] mx-auto">
             <ChangelogLight className="w-full" />
           </div>
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <MeteorLines number={1} xPos={60} direction="left" speed={10} delay={0} />
             <MeteorLines number={1} xPos={60} direction="left" speed={10} delay={5} />
 
@@ -89,9 +89,9 @@ export default async function Changelogs(_props: Props) {
             </div>
           </div>
 
-          <div className="flex flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
-            <div className="relative hidden w-80 xl:block">
-              <div className="sticky left-0 top-12 ">
+          <div className="flex sticky flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
+            <div className="relative hidden w-80 xl:block xl:sticky">
+              <div className="left-0 top-12 sticky">
                 <SideList logs={changelogs} className="xl:ml-12 2xl:ml-8 changlog-gradient" />
               </div>
             </div>

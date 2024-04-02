@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="min-h-screen overflow-x-hidden antialiased bg-[#010101] text-pretty">
-        <div className="relative overflow-hidden">
+        <div className="relative max-lg:overflow-hidden">
           <Navigation />
           {children}
         </div>
