@@ -483,3 +483,13 @@ li > p {
     top: -130px;
   }
 }
+
+.placeholder-parallelogram {
+  width: 60%;
+  height: 100%;
+  opacity: 0.98;
+  transform: skew(-30deg); 
+  background-position: 52%;
+  background-size: 600px 600px;
+  background-repeat: no-repeat;
+}
