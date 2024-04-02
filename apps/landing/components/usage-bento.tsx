@@ -5,30 +5,23 @@ import { AnimatedList } from "@/components/animated-list";
 import { UsageSparkles } from "@/components/svg/usage";
 export function UsageBento() {
   return (
-    <div className="w-full  overflow-hidden relative border-[.75px] h-[576px] w-[700px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10">
+    <div className="w-full  overflow-hidden relative border-[.75px] h-[576px]  rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10">
       <UsageSparkles className="absolute top-0" />
-      <div className="relative top-[-42px]">
+      <div className="relative ">
         <AnimatedList className="w-full">
-          <BillingItem
-            icon={<BillingIcon />}
-            text="Unkey sent invoice to customers"
-            latency="1 s"
-          />
-          <BillingItem
-            icon={<OptionsIcon />}
-            text="Andreas set invoice preferences"
-            latency="8 ms"
-          />
-          <BillingItem
-            icon={<ExchangeIcon />}
-            text="Andreas retrieved API key usage data"
-            latency="3 s"
-          />
+          <BillingItem icon={<ExchangeIcon />} text="Unkey created API key" latency="3 s" />
           <BillingItem
             icon={<LocationIcon />}
-            text="Unkey verified and logged API key"
+            text="User verified key and logged usage"
             latency="1 s"
           />
+
+          <BillingItem
+            icon={<OptionsIcon />}
+            text="Andreas enabled automatic billing"
+            latency="8 ms"
+          />
+          <BillingItem icon={<BillingIcon />} text="Unkey sent invoice to customer" latency="1 s" />
           <BillingItem icon={<PaymentsIcon />} text="Andreas collected payments" latency="2 s" />
         </AnimatedList>
       </div>
@@ -116,7 +109,7 @@ export function BillingItem({
       <div className="rounded-full bg-gray-500 flex items-center justify-center h-8 w-8 border-.75px border-white/20 bg-white/10">
         {icon}
       </div>
-      <p className="flex items-center text-sm text-white ml-6">
+      <p className="flex items-center ml-6 text-sm text-white">
         {first}
         <span className="ml-2 text-white/40">{rest}</span>
         <svg
