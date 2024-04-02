@@ -73,11 +73,11 @@ export default async function Landing() {
         className="flex md:hidden w-full absolute h-[300px] -z-10 "
         priority={true}
       />
+
       <div className="container relative flex flex-col px-0 mx-auto space-y- md:space-y-32">
         <Section>
           <Hero />
         </Section>
-
         <Section>
           <Suspense fallback={null}>
             <Stats />
@@ -128,6 +128,7 @@ export default async function Landing() {
             <HashedKeysBento />
             <AuditLogsBento />
           </div>
+<
           <div className="grid md:grid-cols-[1fr_1fr] xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
             <IpWhitelistingBento />
             <RateLimitsBento />
@@ -173,7 +174,7 @@ export default async function Landing() {
           </SectionTitle>
           <div className="mt-10 mb-[200px]">
             <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-              2500 verifications FREE per month.
+              2500 verifications and 100k successful rate-limited requests per month.
             </p>
             <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
               No CC required.
