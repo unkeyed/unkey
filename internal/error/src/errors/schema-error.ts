@@ -7,19 +7,16 @@ import { BaseError } from "./base";
  */
 export class SchemaError extends BaseError<{ raw: unknown }> {
   public readonly retry = false;
+  public readonly name = SchemaError.name;
 
-  constructor(
-    message: string,
-    opts?: {
-      context: { raw: unknown };
-      cause?: BaseError;
-    },
-  ) {
-    super(message, {
+  constructor(opts: {
+    message: string;
+    context?: { raw: unknown };
+    cause?: BaseError;
+  }) {
+    super({
       ...opts,
-      id: SchemaError.name,
     });
-    this.retry = false;
   }
   static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {
     const message = generateErrorMessage(e.issues, {
@@ -41,7 +38,8 @@ export class SchemaError extends BaseError<{ raw: unknown }> {
         label: "",
       },
     });
-    return new SchemaError(message, {
+    return new SchemaError({
+      message,
       context: {
         raw: JSON.stringify(raw),
       },

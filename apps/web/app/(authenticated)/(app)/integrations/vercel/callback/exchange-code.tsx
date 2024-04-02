@@ -3,18 +3,7 @@ import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey
 import { z } from "zod";
 export class VercelCodeExchangeError extends BaseError<{ status: number }> {
   public readonly retry = true;
-
-  constructor(
-    message: string,
-    opts?: {
-      context: { status: number };
-    },
-  ) {
-    super(message, {
-      id: VercelCodeExchangeError.name,
-      ...opts,
-    });
-  }
+  public readonly name = VercelCodeExchangeError.name;
 }
 
 export async function exchangeCode(code: string): Promise<
@@ -42,7 +31,8 @@ export async function exchangeCode(code: string): Promise<
       redirect_uri: "http://localhost:3000/integrations/vercel/callback",
     }),
   }).catch((e) => {
-    return new FetchError((e as Error).message, {
+    return new FetchError({
+      message: (e as Error).message,
       retry: true,
       context: {
         url,
@@ -55,7 +45,8 @@ export async function exchangeCode(code: string): Promise<
   }
   if (!res.ok) {
     return Err(
-      new VercelCodeExchangeError("failed to exchange code for access token", {
+      new VercelCodeExchangeError({
+        message: "failed to exchange code for access token",
         context: { status: res.status },
       }),
     );

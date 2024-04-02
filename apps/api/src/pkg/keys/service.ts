@@ -13,9 +13,10 @@ import type { Analytics } from "../analytics";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
   public readonly retry = false;
+  public readonly name = DisabledWorkspaceError.name;
   constructor(workspaceId: string) {
-    super("workspace is disabled", {
-      id: DisabledWorkspaceError.name,
+    super({
+      message: "workspace is disabled",
       context: {
         workspaceId,
       },
@@ -248,7 +249,8 @@ export class KeyService {
 
     if (err) {
       return Err(
-        new FetchError("unable to fetch required data", {
+        new FetchError({
+          message: "unable to fetch required data",
           retry: true,
           cause: err,
         }),
@@ -330,7 +332,8 @@ export class KeyService {
       const q = this.rbac.validateQuery(req.permissionQuery);
       if (q.err) {
         return Err(
-          new SchemaError("permission query is invalid", {
+          new SchemaError({
+            message: "permission query is invalid",
             cause: q.err,
             context: {
               raw: req.permissionQuery,
@@ -346,7 +349,8 @@ export class KeyService {
           permissions: JSON.stringify(data.permissions),
         });
         return Err(
-          new SchemaError("permission query is invalid", {
+          new SchemaError({
+            message: "permission query is invalid",
             cause: q.err,
             context: {
               raw: req.permissionQuery,

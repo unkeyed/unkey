@@ -12,7 +12,10 @@ export function getEncryptionKeyFromEnv(
 ): Result<{ key: string; version: number }, EnvError> {
   if (env.ENCRYPTION_KEYS.length === 0) {
     return Err(
-      new EnvError("encryption key array is empty", { context: { name: "ENCRYPTION_KEYS" } }),
+      new EnvError({
+        message: "encryption key array is empty",
+        context: { name: "ENCRYPTION_KEYS" },
+      }),
     );
   }
   let latest = env.ENCRYPTION_KEYS[0];
@@ -35,7 +38,8 @@ export function getDecryptionKeyFromEnv(env: Env, version: number): Result<strin
     }
   }
   return Err(
-    new EnvError(`No decryption key found for version ${version}`, {
+    new EnvError({
+      message: `No decryption key found for version ${version}`,
       context: { name: "ENCRYPTION_KEYS" },
     }),
   );

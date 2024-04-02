@@ -6,20 +6,6 @@ import { BaseError } from "./base";
 export class EnvError extends BaseError<{
   name: string;
 }> {
-  public readonly retry: boolean;
-
-  constructor(
-    message: string,
-    opts: {
-      context?: {
-        name: string;
-      };
-    },
-  ) {
-    super(message, {
-      ...opts,
-      id: EnvError.name,
-    });
-    this.retry = false;
-  }
+  public readonly retry = false;
+  public readonly name = EnvError.name;
 }
