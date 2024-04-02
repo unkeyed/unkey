@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
+    "build": "tsc",
     "dev": "wrangler dev",
     "start": "wrangler dev"
   },
