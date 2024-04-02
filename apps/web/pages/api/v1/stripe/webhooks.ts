@@ -1,9 +1,9 @@
-import { Readable } from "node:stream";
+import type { Readable } from "node:stream";
 import { db } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
 import { clerkClient } from "@clerk/nextjs";
 import { Resend } from "@unkey/resend";
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { z } from "zod";
 // Stripe requires the raw body to construct the event.

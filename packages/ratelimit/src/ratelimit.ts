@@ -1,8 +1,8 @@
 import { Unkey } from "@unkey/api";
 import { version } from "../package.json";
-import { Duration, ms } from "./duration";
-import { Ratelimiter } from "./interface";
-import { Limit, LimitOptions, RatelimitResponse } from "./types";
+import { type Duration, ms } from "./duration";
+import type { Ratelimiter } from "./interface";
+import type { Limit, LimitOptions, RatelimitResponse } from "./types";
 
 export type RatelimitConfig = Limit & {
   /**

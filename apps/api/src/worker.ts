@@ -1,4 +1,4 @@
-import { Env, zEnv } from "@/pkg/env";
+import { type Env, zEnv } from "@/pkg/env";
 import { newApp } from "@/pkg/hono/app";
 
 import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";

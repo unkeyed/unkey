@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { Permission } from "@unkey/db";
+import type { Permission } from "@unkey/db";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 

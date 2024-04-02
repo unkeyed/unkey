@@ -7,7 +7,7 @@ import * as React from "react";
 import { Loading } from "@/components/dashboard/loading";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import { OTPInput, SlotProps } from "input-otp";
+import { OTPInput, type SlotProps } from "input-otp";
 import { Minus } from "lucide-react";
 
 type Props = {

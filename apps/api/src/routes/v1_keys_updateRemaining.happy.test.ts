@@ -5,7 +5,7 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import {
+import type {
   V1KeysUpdateRemainingRequest,
   V1KeysUpdateRemainingResponse,
 } from "./v1_keys_updateRemaining";

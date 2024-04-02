@@ -21,12 +21,22 @@ export const env = () =>
       RESEND_API_KEY: z.string().optional(),
       RESEND_AUDIENCE_ID: z.string().optional(),
 
-      HEARTBEAT_UPDATE_USAGE_URL: z.string().optional(),
       PLAIN_API_KEY: z.string().optional(),
 
       TRIGGER_API_KEY: z.string().optional(),
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
+      ENCRYPTION_KEYS: z.string().transform((s) =>
+        z
+          .array(
+            z.object({
+              version: z.number().int().min(1),
+              key: z.string(),
+            }),
+          )
+          .min(1)
+          .parse(JSON.parse(s)),
+      ),
     })
     .parse(process.env);
 

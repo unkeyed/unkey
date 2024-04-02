@@ -3,7 +3,7 @@ import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
-import { MaybeArray } from "./types";
+import type { MaybeArray } from "./types";
 
 const token = env().TINYBIRD_TOKEN;
 const tb = token ? new Tinybird({ token }) : new NoopTinybird();
@@ -182,6 +182,23 @@ export const verifications = tb.buildPipe({
     success: z.number().int().nullable().default(0),
     ratelimited: z.number().int().nullable().default(0),
     usageExceeded: z.number().int().nullable().default(0),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const ratelimits = tb.buildPipe({
+  pipe: "endpoint__ratelimits_by_workspace__v1",
+  parameters: z.object({
+    workspaceId: z.string(),
+    year: z.number().int(),
+    month: z.number().int().min(1).max(12),
+  }),
+
+  data: z.object({
+    success: z.number().int().nullable().default(0),
+    total: z.number().int().nullable().default(0),
   }),
   opts: {
     cache: "no-store",
@@ -466,7 +483,10 @@ export function ingestAuditLogs(
         | "vercelBinding"
         | "vercelIntegration"
         | "ratelimitNamespace"
-        | "ratelimitOverride";
+        | "ratelimitOverride"
+        | "gateway"
+        | "secret";
+
       id: string;
       meta?: Record<string, string | number | boolean | null>;
     }>;

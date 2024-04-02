@@ -1,10 +1,10 @@
-import { BaseError, Result } from "@unkey/error";
-import { Context } from "hono";
+import { BaseError, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { z } from "zod";
 
 export class RatelimitError extends BaseError {
-  public readonly name = "RatelimitError";
   public readonly retry = false;
+  public readonly name = RatelimitError.name;
 }
 
 export const ratelimitRequestSchema = z.object({

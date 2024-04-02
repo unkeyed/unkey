@@ -10,14 +10,15 @@ import {
   Crown,
   GlobeLock,
   Loader2,
-  LucideIcon,
+  type LucideIcon,
   Settings,
   ShieldHalf,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter } from "next/navigation";
-import React, { useTransition } from "react";
+import type React from "react";
+import { useTransition } from "react";
 import { WorkspaceSwitcher } from "./team-switcher";
 import { UserButton } from "./user-button";
 type Props = {

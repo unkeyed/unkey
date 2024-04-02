@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 
 import { Banner } from "@/components/banner";
 import { Navbar } from "@/components/dashboard/navbar";

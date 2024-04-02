@@ -1,10 +1,10 @@
-import { Logger } from "../logging";
-import { Metrics } from "../metrics";
+import type { Logger } from "../logging";
+import type { Metrics } from "../metrics";
 import {
-  LimitRequest,
-  LimitResponse,
-  RevalidateRequest,
-  UsageLimiter,
+  type LimitRequest,
+  type LimitResponse,
+  type RevalidateRequest,
+  type UsageLimiter,
   limitResponseSchema,
 } from "./interface";
 

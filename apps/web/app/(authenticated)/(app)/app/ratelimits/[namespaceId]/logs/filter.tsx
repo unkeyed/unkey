@@ -19,7 +19,8 @@ import {
   parseAsString,
   useQueryState,
 } from "nuqs";
-import React, { useEffect, useState, useTransition } from "react";
+import type React from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import {
   DropdownMenu,

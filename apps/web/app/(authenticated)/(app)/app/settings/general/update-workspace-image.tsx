@@ -4,7 +4,8 @@ import { toast } from "@/components/ui/toaster";
 import { useOrganization } from "@clerk/nextjs";
 import { UploadCloud } from "lucide-react";
 import Link from "next/link";
-import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
+import type React from "react";
+import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 
 export const UpdateWorkspaceImage: React.FC = () => {
   const { organization } = useOrganization();

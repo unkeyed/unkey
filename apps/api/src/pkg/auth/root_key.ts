@@ -1,7 +1,9 @@
-import { PermissionQuery } from "@unkey/rbac";
-import { Context } from "hono";
+import { SchemaError } from "@unkey/error";
+import type { PermissionQuery } from "@unkey/rbac";
+import type { Context } from "hono";
 import { UnkeyApiError } from "../errors";
-import { HonoEnv } from "../hono/env";
+import type { HonoEnv } from "../hono/env";
+import { DisabledWorkspaceError } from "../keys/service";
 
 /**
  * rootKeyAuth takes the bearer token from the request and verifies the key
@@ -19,13 +21,13 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
   const { val: rootKey, err } = await svc.verifyKey(c, { key: authorization, permissionQuery });
 
   if (err) {
-    switch (err.name) {
-      case "SchemaError":
+    switch (true) {
+      case err instanceof SchemaError:
         throw new UnkeyApiError({
           code: "BAD_REQUEST",
           message: err.message,
         });
-      case "DisabledWorkspaceError":
+      case err instanceof DisabledWorkspaceError:
         throw new UnkeyApiError({
           code: "FORBIDDEN",
           message: "workspace is disabled",

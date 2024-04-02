@@ -1,13 +1,10 @@
 import { z } from "@hono/zod-openapi";
-import { Context } from "hono";
+import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { StatusCode } from "hono/utils/http-status";
-import { ZodError } from "zod";
+import type { StatusCode } from "hono/utils/http-status";
+import type { ZodError } from "zod";
 import { generateErrorMessage } from "zod-error";
-import { HonoEnv } from "../hono/env";
-import { ConsoleLogger } from "../logging";
-import { AxiomLogger } from "../logging/axiom";
-import { QueueLogger } from "../logging/queue";
+import type { HonoEnv } from "../hono/env";
 
 const ErrorCode = z.enum([
   "BAD_REQUEST",
@@ -21,6 +18,7 @@ const ErrorCode = z.enum([
   "UNAUTHORIZED",
   "PRECONDITION_FAILED",
   "INSUFFICIENT_PERMISSIONS",
+  "METHOD_NOT_ALLOWED",
 ]);
 
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
@@ -77,6 +75,8 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
       return 403;
     case "NOT_FOUND":
       return 404;
+    case "METHOD_NOT_ALLOWED":
+      return 405;
     case "NOT_UNIQUE":
       return 409;
     case "PRECONDITION_FAILED":
@@ -85,6 +85,27 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
       return 429;
     case "INTERNAL_SERVER_ERROR":
       return 500;
+  }
+}
+
+function statusToCode(status: StatusCode): z.infer<typeof ErrorCode> {
+  switch (status) {
+    case 400:
+      return "BAD_REQUEST";
+    case 401:
+      return "UNAUTHORIZED";
+    case 403:
+      return "FORBIDDEN";
+
+    case 404:
+      return "NOT_FOUND";
+
+    case 405:
+      return "METHOD_NOT_ALLOWED";
+    case 500:
+      return "INTERNAL_SERVER_ERROR";
+    default:
+      return "INTERNAL_SERVER_ERROR";
   }
 }
 
@@ -144,11 +165,11 @@ export function handleZodError(
 }
 
 export function handleError(err: Error, c: Context<HonoEnv>): Response {
-  const logger = c.env.LOGS
-    ? new QueueLogger({ queue: c.env.LOGS })
-    : c.env.AXIOM_TOKEN
-      ? new AxiomLogger({ axiomToken: c.env.AXIOM_TOKEN, environment: c.env.ENVIRONMENT })
-      : new ConsoleLogger();
+  const { logger } = c.get("services");
+
+  /**
+   * We can handle this very well, as it is something we threw ourselves
+   */
   if (err instanceof UnkeyApiError) {
     if (err.status >= 500) {
       logger.error(err.message, {
@@ -170,7 +191,36 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
     );
   }
 
-  logger.error("unhandled exception in hono", {
+  /**
+   * HTTPExceptions from hono at least give us some idea of what to do as they provide a status and
+   * message
+   */
+  if (err instanceof HTTPException) {
+    if (err.status >= 500) {
+      logger.error("HTTPException", {
+        message: err.message,
+        status: err.status,
+        requestId: c.get("requestId"),
+      });
+    }
+    const code = statusToCode(err.status);
+    return c.json<z.infer<typeof ErrorSchema>>(
+      {
+        error: {
+          code,
+          docs: `https://unkey.dev/docs/api-reference/errors/code/${code}`,
+          message: err.message,
+          requestId: c.get("requestId"),
+        },
+      },
+      { status: err.status },
+    );
+  }
+
+  /**
+   * We're lost here, all we can do is return a 500 and log it to investigate
+   */
+  logger.error("unhandled exception", {
     name: err.name,
     message: err.message,
     cause: err.cause,

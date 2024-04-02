@@ -1,7 +1,8 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-import React, { PropsWithChildren } from "react";
+import type React from "react";
+import type { PropsWithChildren } from "react";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Label } from "@/components/ui/label";

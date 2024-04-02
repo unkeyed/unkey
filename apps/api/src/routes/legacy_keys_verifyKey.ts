@@ -1,5 +1,5 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { type App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
