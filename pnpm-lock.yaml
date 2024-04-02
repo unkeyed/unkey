@@ -69,8 +69,8 @@ importers:
         specifier: ^0.9.8
         version: 0.9.8(hono@4.1.1)(zod@3.22.4)
       '@hono/zod-validator':
-        specifier: ^0.2.0
-        version: 0.2.0(hono@4.1.1)(zod@3.22.4)
+        specifier: ^0.2.1
+        version: 0.2.1(hono@4.1.1)(zod@3.22.4)
       '@microlabs/otel-cf-workers':
         specifier: 1.0.0-rc.24
         version: 1.0.0-rc.24
@@ -3962,8 +3962,8 @@ packages:
       zod: 3.22.4
     dev: false
 
-  /@hono/zod-validator@0.2.0(hono@4.1.1)(zod@3.22.4):
-    resolution: {integrity: sha512-PC7akbA/DCFY406BL3+ogjYb+7Fgfs/6XPvyURBYMczo0M7kYsTUMnF8hA9mez1RORNCWPqXuFGfKrkoUVPvrQ==}
+  /@hono/zod-validator@0.2.1(hono@4.1.1)(zod@3.22.4):
+    resolution: {integrity: sha512-HFoxln7Q6JsE64qz2WBS28SD33UB2alp3aRKmcWnNLDzEL1BLsWfbdX6e1HIiUprHYTIXf5y7ax8eYidKUwyaA==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
@@ -5930,6 +5930,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -17207,6 +17208,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
