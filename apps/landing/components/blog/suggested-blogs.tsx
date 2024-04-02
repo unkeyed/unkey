@@ -20,7 +20,7 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
     <div>
       {posts.map((post) => (
         <div className={cn("flex flex-col w-full mt-8", className)}>
-          <Link href={post._raw.flattenedPath} key={post._raw.flattenedPath}>
+          <Link href={post.url} key={post.url}>
             <div className="flex w-full mb-12">
               <div className="flex flex-col gap-4">
                 <Frame size="sm">
