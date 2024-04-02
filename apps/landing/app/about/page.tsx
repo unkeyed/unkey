@@ -238,14 +238,14 @@ export default async function Page() {
             align="center"
             text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
           />
-          <div className="mx-auto px-6 lg:px-8">
+          <div className="px-6 mx-auto lg:px-8">
             <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
               {Array.from({ length: 6 }).map(() => {
                 return (
                   <div className="flex flex-col justify-center items-center p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
                     <div>
-                      <h3 className="text-[18px] font-medium">One-way hashed keys</h3>
-                      <p className="text-white/60 text-[15px] leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
+                      <h3 className="font-medium ">One-way hashed keys</h3>
+                      <p className="text-white/60 text-sm leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
                         Enhance authentication security with one-way hashed keys, ensuring
                         irrersible encryption for sensitive information protection
                       </p>
@@ -346,14 +346,10 @@ export default async function Page() {
               {investors.map(({ name, firm, image }) => {
                 return (
                   <div className="pt-[88px] px-[40px] pb-[80px]">
-                    <div className="text-[15px] text-center flex flex-col justify-center items-center">
-                      <Image
-                        src={image}
-                        alt="Liu Jiang"
-                        className="h-[48px] w-[48px] rounded-[100%]"
-                      />
-                      <p className="text-sm font-bold text-white pt-[32px]">{name}</p>
-                      <p className="text-sm text-white/20">{firm}</p>
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <Image src={image} alt="Liu Jiang" className="w-12 h-12 rounded-full" />
+                      <p className="mt-8 text-sm font-bold text-white">{name}</p>
+                      <p className="text-sm text-white/60">{firm}</p>
                     </div>
                   </div>
                 );
@@ -420,7 +416,7 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
         "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20",
       )}
     >
-      <p className="text-white text-[13px]">{text}</p>
+      <p className="text-xs text-white">{text}</p>
     </div>
   );
 }
