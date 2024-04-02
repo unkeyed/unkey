@@ -29,14 +29,14 @@ export interface IProps {
 
 const Feature = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("text-left grid__item", className)} {...props} />
+    <div ref={ref} className={cn("text-left flex flex-col gap-4", className)} {...props} />
   ),
 );
 Feature.displayName = "Feature";
 
 const FeatureHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-row space-y-1.5 p-6 ", className)} {...props} />
+    <div ref={ref} className={cn("flex items-center gap-2", className)} {...props} />
   ),
 );
 FeatureHeader.displayName = "FeatureHeader";
@@ -57,7 +57,7 @@ const FeatureIcon = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { iconName: string }
 >(({ className, iconName }, ref) => (
-  <div ref={ref} className={cn("text-left pl-0 ml-0 pt-[9px] mr-4", className)}>
+  <div ref={ref} className={className}>
     {getSvg(iconName)}
   </div>
 ));
@@ -67,10 +67,7 @@ const FeatureContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTM
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(
-        "pb-4 pl-6 pr-4 pt-0 text-[rgba(255,255,255,0.6)] font-normal text-sm leading-6",
-        className,
-      )}
+      className={cn("text-white/60 font-normal text-sm leading-6", className)}
       {...props}
     />
   ),

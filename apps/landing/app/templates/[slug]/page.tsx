@@ -128,8 +128,8 @@ export default async function Templates(props: Props) {
 
           <dl className="grid grid-rows-2 mt-12 ">
             <div className="flex flex-row w-full my-4">
-              <span className="text-[13px] text-white/30 w-1/2">Written by </span>
-              <span className="text-[15px] font-medium text-white text-end w-1/2">
+              <span className="w-1/2 text-sm text-white/30">Written by </span>
+              <span className="w-1/2 text-sm font-medium text-white text-end">
                 {template.authors.join(", ")}
               </span>
             </div>

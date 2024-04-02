@@ -1,5 +1,5 @@
 "use client";
-import { SectionTitle } from "@/app/section-title";
+import { SectionTitle } from "@/app/section";
 import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { cn } from "@/lib/utils";
