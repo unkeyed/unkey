@@ -1,6 +1,7 @@
 "use client";
 
-import React, { PropsWithChildren, useState } from "react";
+import type React from "react";
+import { type PropsWithChildren, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 
 import { cn } from "@/lib/utils";

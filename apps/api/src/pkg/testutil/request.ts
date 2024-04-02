@@ -1,4 +1,4 @@
-import { type App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 export type StepRequest<TRequestBody> = {
   url: string;
   method: "POST" | "GET" | "PUT" | "DELETE";

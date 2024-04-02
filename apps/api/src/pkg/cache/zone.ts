@@ -1,7 +1,7 @@
-import { Err, Ok, Result } from "@unkey/error";
+import { BaseError, Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "hono";
 import superjson from "superjson";
-import { Cache, CacheError, Entry } from "./interface";
+import { type Cache, CacheError, type Entry } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-revalidate";
 
@@ -46,9 +46,11 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
     } catch (err) {
       return Err(
         new CacheError({
-          namespace: namespace as keyof CacheNamespaces,
-          key,
           message: (err as Error).message,
+          context: {
+            namespace: namespace as keyof CacheNamespaces,
+            key,
+          },
         }),
       );
     }
@@ -96,9 +98,12 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
     } catch (err) {
       return Err(
         new CacheError({
-          namespace: namespace as keyof CacheNamespaces,
-          key,
           message: (err as Error).message,
+          cause: err instanceof BaseError ? err : undefined,
+          context: {
+            namespace: namespace as keyof CacheNamespaces,
+            key,
+          },
         }),
       );
     }
@@ -129,9 +134,10 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
       .catch((err) =>
         Err(
           new CacheError({
-            namespace: namespace as keyof CacheNamespaces,
-            key,
             message: (err as Error).message,
+            cause: err instanceof BaseError ? err : undefined,
+
+            context: { namespace: namespace as keyof CacheNamespaces, key },
           }),
         ),
       );

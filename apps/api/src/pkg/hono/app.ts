@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { prettyJSON } from "hono/pretty-json";
 import { handleError, handleZodError } from "../errors";
-import { HonoEnv } from "./env";
+import type { HonoEnv } from "./env";
 
 export function newApp() {
   const app = new OpenAPIHono<HonoEnv>({

@@ -1,21 +1,22 @@
-import { type SwrCacher } from "@/pkg/cache/interface";
+import type { SwrCacher } from "@/pkg/cache/interface";
 import type { Api, Database, Key } from "@/pkg/db";
-import { Logger } from "@/pkg/logging";
-import { Metrics } from "@/pkg/metrics";
+import type { Logger } from "@/pkg/logging";
+import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { Span, SpanStatusCode, Tracer, trace } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, type Tracer, trace } from "@opentelemetry/api";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
-import { PermissionQuery, RBAC } from "@unkey/rbac";
+import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Context } from "hono";
-import { Analytics } from "../analytics";
+import type { Analytics } from "../analytics";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
-  public readonly name = "DisabledWorkspaceError";
   public readonly retry = false;
+  public readonly name = DisabledWorkspaceError.name;
   constructor(workspaceId: string) {
-    super("workspace is disabled", {
+    super({
+      message: "workspace is disabled",
       context: {
         workspaceId,
       },
@@ -248,7 +249,8 @@ export class KeyService {
 
     if (err) {
       return Err(
-        new FetchError("unable to fetch required data", {
+        new FetchError({
+          message: "unable to fetch required data",
           retry: true,
           cause: err,
         }),
@@ -330,7 +332,8 @@ export class KeyService {
       const q = this.rbac.validateQuery(req.permissionQuery);
       if (q.err) {
         return Err(
-          new SchemaError("permission query is invalid", {
+          new SchemaError({
+            message: "permission query is invalid",
             cause: q.err,
             context: {
               raw: req.permissionQuery,
@@ -346,7 +349,8 @@ export class KeyService {
           permissions: JSON.stringify(data.permissions),
         });
         return Err(
-          new SchemaError("permission query is invalid", {
+          new SchemaError({
+            message: "permission query is invalid",
             cause: q.err,
             context: {
               raw: req.permissionQuery,

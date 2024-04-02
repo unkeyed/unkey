@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { SchemaError } from "@unkey/error";
-import { BillingTier, calculateTieredPrices } from "./tiers";
+import { type BillingTier, calculateTieredPrices } from "./tiers";
 
 describe("calculateTieredPrices", () => {
   const testCases: {

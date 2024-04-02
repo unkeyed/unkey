@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc/client";
-import { type Workspace } from "@unkey/db";
+import type { Workspace } from "@unkey/db";
 import { Power } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
+import type React from "react";
 import { EmptyPlaceholder } from "./dashboard/empty-placeholder";
 
 import { toast } from "@/components/ui/toaster";

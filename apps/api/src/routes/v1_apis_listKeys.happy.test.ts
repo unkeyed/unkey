@@ -5,7 +5,7 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { type V1ApisListKeysResponse } from "./v1_apis_listKeys";
+import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
 test("get api", async (t) => {
   const h = await RouteHarness.init(t);

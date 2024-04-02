@@ -1,5 +1,5 @@
 import { version } from "../package.json";
-import { UnkeyOptions } from "./client";
+import type { UnkeyOptions } from "./client";
 
 export type Telemetry = {
   /**

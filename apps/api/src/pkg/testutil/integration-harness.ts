@@ -1,7 +1,7 @@
-import { TaskContext } from "vitest";
+import type { TaskContext } from "vitest";
 import { integrationTestEnv } from "./env";
 import { Harness } from "./harness";
-import { StepRequest, StepResponse, step } from "./request";
+import { type StepRequest, type StepResponse, step } from "./request";
 
 export class IntegrationHarness extends Harness {
   public readonly baseUrl: string;

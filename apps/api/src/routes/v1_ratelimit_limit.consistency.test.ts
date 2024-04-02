@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "../pkg/testutil/route-harness";
-import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
 describe.each<{ limit: number; duration: number; n: number }>([
   { limit: 10, duration: 1_000, n: 100 },

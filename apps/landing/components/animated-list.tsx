@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useInView } from "framer-motion";
-import React, { ReactElement, useEffect, useMemo, useState, useRef } from "react";
+import React, { type ReactElement, useEffect, useMemo, useState, useRef } from "react";
 
 export const AnimatedList = React.memo(
   ({

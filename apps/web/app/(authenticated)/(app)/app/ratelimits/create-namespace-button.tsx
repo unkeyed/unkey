@@ -17,7 +17,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 

@@ -1,5 +1,5 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { type Context } from "hono";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { type Cache, CacheError, type SwrCacher } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 
@@ -84,9 +84,8 @@ export class SwrCache<TNamespaces extends Record<string, unknown> = CacheNamespa
     } catch (err) {
       return Err(
         new CacheError({
-          namespace: namespace as keyof CacheNamespaces,
-          key,
           message: (err as Error).message,
+          context: { namespace: namespace as keyof CacheNamespaces, key },
         }),
       );
     }

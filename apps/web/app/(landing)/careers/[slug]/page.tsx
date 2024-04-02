@@ -4,7 +4,7 @@ import React from "react";
 
 import { MdxContent } from "@/components/landing/mdx-content";
 import { JOBS_PATH, getFilePaths, getJob } from "@/lib/mdx-helper";
-import { ArrowLeft, Banknote, BarChart, Cake, Globe, LucideIcon } from "lucide-react";
+import { ArrowLeft, Banknote, BarChart, Cake, Globe, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 

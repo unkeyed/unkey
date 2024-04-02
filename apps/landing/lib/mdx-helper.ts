@@ -1,7 +1,7 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import GithubSlugger from "github-slugger";
-import { type MDXRemoteSerializeResult } from "next-mdx-remote";
+import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeCodeTitles from "rehype-code-titles";
@@ -78,7 +78,7 @@ export type Frontmatter = {
   salary: string | undefined;
   level: string | undefined;
   image: string | undefined;
-  tags: Tags[] | undefined;
+  tags: string | undefined;
 };
 
 export type Tags = "product" | "engineering" | "company" | "industry" | "security";

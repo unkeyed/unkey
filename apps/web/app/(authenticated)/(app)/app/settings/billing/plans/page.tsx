@@ -17,6 +17,7 @@ const tiers = {
     features: [
       "100 Monthly Active Keys",
       "2500 Successful Verifications per month",
+      "100k Successful Ratelimits per month",
       "Unlimited APIs",
       "7 Days Analytics Retention",
     ],
@@ -31,14 +32,16 @@ const tiers = {
     features: [
       "250 Monthly Active keys included *",
       "150,000 Successful Verifications included **",
+      "2,500,000 Successful Ratelimits included ***",
       "Unlimited APIs",
       "Workspaces with team members",
       "90 Days Analytics Retention",
       "90 Days Audit Log Retention",
     ],
     footnotes: [
-      " *  Additional active keys are billed at $0.10",
-      " ** Additional verifications are billed at $10 per 100,000",
+      "*  Additional active keys are billed at $0.10",
+      "** Additional verifications are billed at $10 per 100,000",
+      "*** Additional ratelimits are billed at $1 per 100,000",
     ],
   },
   custom: {

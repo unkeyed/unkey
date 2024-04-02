@@ -1,4 +1,4 @@
-import type { IncomingHttpHeaders } from "http";
+import type { IncomingHttpHeaders } from "node:http";
 import { env } from "@/lib/env";
 import type { WebhookEvent } from "@clerk/nextjs/server";
 import { Resend } from "@unkey/resend";

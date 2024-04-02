@@ -12,7 +12,7 @@ export function Frame({
   children: React.ReactNode;
 }) {
   return (
-    <Component className={cn("bg-black relative", className)}>
+    <Component className={cn("relative", className)}>
       <div
         className={cn(
           "bg-gradient-to-r from-white/10 to-white/20 ",

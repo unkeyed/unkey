@@ -1,5 +1,5 @@
-import { PermissionQuery } from "@unkey/rbac";
-import { ErrorResponse } from "./errors";
+import type { PermissionQuery } from "@unkey/rbac";
+import type { ErrorResponse } from "./errors";
 import type { paths } from "./openapi";
 
 import { type Telemetry, getTelemetry } from "./telemetry";

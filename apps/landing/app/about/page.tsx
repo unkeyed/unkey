@@ -31,10 +31,35 @@ import james from "@/images/team/james.jpg";
 import { BLOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 
+export const metadata = {
+  title: "About | Unkey",
+  description: "Learn more about Unkey and how we operate.",
+  openGraph: {
+    title: "About | Unkey",
+    description: "Learn more about Unkey and how we operate.",
+    url: "https://unkey.dev/templates",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/images/landing/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "About | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/images/landing/unkey.png",
+  },
+};
+
 const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
-  { name: "Allison Pickets", firm: "The New Normal Fund", image: allison },
+  { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -45,7 +70,6 @@ export default async function Page() {
       return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
     })
     .filter((post) => SELECTED_POSTS.includes(post.slug));
-
   return (
     <Container>
       <div className="mt-[150px] flex flex-col items-center">
@@ -79,14 +103,14 @@ export default async function Page() {
         </div>
         <div className="relative mt-[200px] xl:mt-[400px]">
           <div className="absolute left-[-250px]">
-            <MeteorLines className="ml-2" delay={0.2} />
-            <MeteorLines className="ml-10" />
-            <MeteorLines className="ml-16" delay={0.4} />
+            <MeteorLines className="ml-2 fade-in-0" delay={0.2} number={1} />
+            <MeteorLines className="ml-10 fade-in-40" number={1} />
+            <MeteorLines className="ml-16 fade-in-100" delay={0.4} number={1} />
           </div>
           <div className="absolute right-[20px]">
-            <MeteorLines className="ml-2" delay={0.2} />
-            <MeteorLines className="ml-10" />
-            <MeteorLines className="ml-16" delay={0.4} />
+            <MeteorLines className="ml-2" delay={0.2} number={1} />
+            <MeteorLines className="ml-10" number={1} />
+            <MeteorLines className="ml-16" delay={0.4} number={1} />
 
             {/* <div className="absolute right-[640px] top-[700px]">
               <MeteorLines className="ml-2" delay={0.2} />
@@ -212,7 +236,7 @@ export default async function Page() {
             align="center"
             text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
           />
-          <div className="px-6 mx-auto lg:px-8">
+          <div className="mx-auto px-6 lg:px-8">
             <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
               {Array.from({ length: 6 }).map(() => {
                 return (

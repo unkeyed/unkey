@@ -1,4 +1,4 @@
-import { type UnkeyPermission } from "@unkey/rbac";
+import type { UnkeyPermission } from "@unkey/rbac";
 
 type UnkeyPermissions = {
   [action: string]: {
