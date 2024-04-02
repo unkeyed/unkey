@@ -10,7 +10,7 @@ import { authors } from "@/content/blog/authors";
 import { format, parseISO } from "date-fns";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Post, allPosts } from ".contentlayer/generated";
+import { type Post, allPosts } from ".contentlayer/generated";
 
 interface Heading {
   level: "one" | "two";

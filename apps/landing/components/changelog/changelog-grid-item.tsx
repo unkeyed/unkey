@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Changelog } from "@/.contentlayer/generated";
+import type { Changelog } from "@/.contentlayer/generated";
 import { Frame } from "../../components/frame";
 type Props = {
   changelog: Changelog;

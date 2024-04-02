@@ -1,4 +1,4 @@
-import { Changelog } from "@/.contentlayer/generated";
+import type { Changelog } from "@/.contentlayer/generated";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";

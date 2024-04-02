@@ -1,4 +1,4 @@
-import { Post, allPosts } from "@/.contentlayer/generated";
+import { type Post, allPosts } from "@/.contentlayer/generated";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";

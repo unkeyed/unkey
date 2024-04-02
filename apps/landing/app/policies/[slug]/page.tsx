@@ -1,4 +1,4 @@
-import { Policy, allPolicies } from "@/.contentlayer/generated";
+import { type Policy, allPolicies } from "@/.contentlayer/generated";
 import { MDX } from "@/components/mdx-content";
 import { notFound } from "next/navigation";
 

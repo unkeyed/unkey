@@ -1,4 +1,4 @@
-import { Post, allPosts } from "@/.contentlayer/generated";
+import { type Post, allPosts } from "@/.contentlayer/generated";
 import { BlogContainer } from "@/components/blog/blog-container";
 import { BlogHero } from "@/components/blog/blog-hero";
 import { BlogGrid } from "@/components/blog/blogs-grid";

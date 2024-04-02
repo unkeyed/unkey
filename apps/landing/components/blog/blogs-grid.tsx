@@ -1,6 +1,6 @@
 import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
-import { Post } from "contentlayer/generated";
+import type { Post } from "contentlayer/generated";
 import Link from "next/link";
 import { BlogCard } from "./blog-card";
 import { BlogPagination } from "./blog-pagination";
