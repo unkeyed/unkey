@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
-    "@chronark/zod-bird": "0.3.4",
+    "@chronark/zod-bird": "0.3.5",
     "@hono/zod-openapi": "^0.9.8",
     "@hono/zod-validator": "^0.2.0",
     "@microlabs/otel-cf-workers": "1.0.0-rc.24",
