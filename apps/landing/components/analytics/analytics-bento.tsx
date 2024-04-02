@@ -366,7 +366,7 @@ function AnalyticsWebAppView() {
     >
       <div className="w-full bg-[#000000] lg:w-[1180px] lg:rounded-3xl relative flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
         <WebAppLight className="absolute top-[-100px] left-[40px]" />
-        <div className="flex flex-col w-[216px] h-full text-white/20  text-[13px] pt-6 px-4 md:border-r md:border-white/5">
+        <div className="flex flex-col w-[216px] h-full text-white/20  text-xs pt-6 px-4 md:border-r md:border-white/5">
           <div className="flex justify-between items-center w-[160px]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -567,7 +567,7 @@ function AnalyticsWebAppView() {
               QuantumWeather
             </div>
             <div className="flex items-center">
-              <div className="bg-white/5 font-mono rounded-md font-sm text-white/40 text-[13px] items-center rounded-lg px-3 py-1 flex gap-2">
+              <div className="flex items-center gap-2 px-3 py-1 font-mono text-xs rounded-md rounded-lg bg-white/5 font-sm text-white/40">
                 api_UNWrXjYp6AF2h7Nx
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -585,40 +585,40 @@ function AnalyticsWebAppView() {
                   />
                 </svg>
               </div>
-              <div className="ml-4 bg-white text-black text-[13px] px-3 py-1 rounded-lg font-bold">
+              <div className="px-3 py-1 ml-4 text-xs font-bold text-black bg-white rounded-lg">
                 Create key
               </div>
             </div>
           </div>
-          <div className="pl-3 border-b-[0.75px] before:left-0 before:top-[30px] before:w-[85px] before:h-[1px] before:bg-white before:absolute relative border-white/15 mt-[34px] text-[13px] pb-[10px] flex flex-row gap-x-8">
+          <div className="pl-3 border-b-[0.75px] before:left-0 before:top-[30px] before:w-[85px] before:h-[1px] before:bg-white before:absolute relative border-white/15 mt-[34px] text-xs pb-[10px] flex flex-row gap-x-8">
             <p className="">Overview</p>
             <p className="text-white/40">Keys</p>
             <p className="text-white/40">Settings</p>
           </div>
           <div className="border-[0.75px] border-white/15 p-6 gap-x-6 mt-[32px] rounded-2xl flex">
             <div className="flex flex-col min-w-[100px]">
-              <p className="text-white/40 text-[13px]">Usage 30 days</p>
-              <p className="font-medium pt-2">7</p>
+              <p className="text-xs text-white/40">Usage 30 days</p>
+              <p className="pt-2 font-medium">7</p>
             </div>
             <div className="flex flex-col min-w-[100px]">
-              <p className="text-white/40 text-[13px]">Expires</p>
-              <p className="font-medium pt-2">-</p>
+              <p className="text-xs text-white/40">Expires</p>
+              <p className="pt-2 font-medium">-</p>
             </div>
             <div className="flex flex-col min-w-[100px]">
-              <p className="text-white/40 text-[13px]">Remaining</p>
-              <p className="font-medium pt-2">73</p>
+              <p className="text-xs text-white/40">Remaining</p>
+              <p className="pt-2 font-medium">73</p>
             </div>
             <div className="flex flex-col min-w-[100px]">
-              <p className="text-white/40 text-[13px]">Last used</p>
-              <p className="font-medium pt-2">4d ago</p>
+              <p className="text-xs text-white/40">Last used</p>
+              <p className="pt-2 font-medium">4d ago</p>
             </div>
             <div className="flex flex-col min-w-[100px]">
-              <p className="text-white/40 text-[13px]">Total uses</p>
-              <p className="font-medium pt-2">7</p>
+              <p className="text-xs text-white/40">Total uses</p>
+              <p className="pt-2 font-medium">7</p>
             </div>
             <div className="flex flex-col">
-              <p className="text-white/40 text-[13px]">Key ID</p>
-              <div className="bg-white/5 font-mono rounded-md font-sm text-white/40 text-[12px] items-center rounded-lg px-2 py-1 flex gap-2">
+              <p className="text-xs text-white/40">Key ID</p>
+              <div className="flex items-center gap-2 px-2 py-1 font-mono text-xs rounded-md rounded-lg bg-white/5 font-sm text-white/40">
                 api_UNWrXjYp6AF2H7Nx
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -639,9 +639,9 @@ function AnalyticsWebAppView() {
             </div>
           </div>
           <div className="border-[0.75px] border-white/15 p-6 gap-x-6 mt-[32px] rounded-2xl flex flex-col">
-            <div className="flex justify-between w-full items-center text-white/30 text-[13px]">
+            <div className="flex items-center justify-between w-full text-xs text-white/30">
               <div className="min-w-[400px]">
-                <h3 className="text-base text-white font-medium">Usage 30 days</h3>
+                <h3 className="text-base font-medium text-white">Usage 30 days</h3>
                 <p>See when this key was verified</p>
               </div>
               <div className="flex items-center">
@@ -657,7 +657,7 @@ function AnalyticsWebAppView() {
                 <p>Usage exceeded</p>
               </div>
             </div>
-            <div className="bar-chart mt-4 flex items-end space-x-10">
+            <div className="flex items-end mt-4 space-x-10 bar-chart">
               <div className="bg-white h-[20px] min-w-[10px] mb-[20px] ml-6" />
               <div className="bg-white h-[100px] min-w-[10px] mb-[20px]" />
               <div className="bg-white h-[80px] min-w-[10px] mb-[20px]" />
