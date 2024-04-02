@@ -1,4 +1,4 @@
-import { ErrorResponse, Unkey } from "@unkey/api";
+import { type ErrorResponse, Unkey } from "@unkey/api";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { version } from "../package.json";

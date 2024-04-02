@@ -1,5 +1,5 @@
-import { Ratelimiter } from "./interface";
-import { LimitOptions, RatelimitResponse } from "./types";
+import type { Ratelimiter } from "./interface";
+import type { LimitOptions, RatelimitResponse } from "./types";
 
 export class NoopRatelimit implements Ratelimiter {
   public limit(_identifier: string, _opts?: LimitOptions): Promise<RatelimitResponse> {

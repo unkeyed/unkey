@@ -1,7 +1,7 @@
-import { SectionTitle } from "@/app/section-title";
+import { SectionTitle } from "@/app/section";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import type React from "react";
 import { PrimaryButton } from "./button";
 
 export const CTA: React.FC = () => {
@@ -26,7 +26,7 @@ export const CTA: React.FC = () => {
         </SectionTitle>
         <div className="mt-10">
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-            2500 verifications FREE per month.
+            2500 verifications and 100k successful rate-limited requests per month.
           </p>
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             No CC required.

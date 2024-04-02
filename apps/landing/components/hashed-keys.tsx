@@ -79,7 +79,7 @@ export function HashedKeys() {
             stiffness: 100,
             mass: 12,
             delay: 1.5,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             duration: 1,
           }}
           onUpdate={(latest: { x: number }) => {
@@ -193,7 +193,7 @@ function Key({ className, text }: { className?: string; text: string }) {
             </defs>
           </svg>
         </div>
-        <p className="relative right-4 text-[13px]">{text}</p>
+        <p className="relative text-xs">{text}</p>
       </div>
     </div>
   );

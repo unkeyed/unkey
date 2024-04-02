@@ -143,7 +143,7 @@ export default function RatelimitPage() {
             <Input
               type="number"
               value={limit}
-              onChange={(e) => setLimit(parseInt(e.currentTarget.value))}
+              onChange={(e) => setLimit(Number.parseInt(e.currentTarget.value))}
             />
           </div>
           <div key="duration" className="flex flex-col gap-1">

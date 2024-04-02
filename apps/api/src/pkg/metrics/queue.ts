@@ -1,4 +1,4 @@
-import { Queue } from "@cloudflare/workers-types";
+import type { Queue } from "@cloudflare/workers-types";
 import { type Metric, metricSchema } from "@unkey/metrics";
 import { BufferQueue } from "@unkey/zod-queue";
 import type { Metrics } from "./interface";

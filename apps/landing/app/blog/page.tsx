@@ -46,7 +46,7 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <BlogContainer className="max-w-full mt-32 scroll-smooth">
+      <BlogContainer className="w-[1440px] mt-32 scroll-smooth">
         <div>
           <TopLeftShiningLight />
         </div>

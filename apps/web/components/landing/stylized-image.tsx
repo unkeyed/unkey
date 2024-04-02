@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import Image, { ImageProps, StaticImageData } from "next/image";
+import Image, { type ImageProps, type StaticImageData } from "next/image";
 import { useId } from "react";
 
 const shapes = [

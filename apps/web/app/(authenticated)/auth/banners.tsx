@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
-import React, { PropsWithChildren } from "react";
+import type React from "react";
+import type { PropsWithChildren } from "react";
 
 export const ErrorBanner: React.FC<PropsWithChildren> = ({ children }) => (
   <div className="border border-[#FB1048]/15 text-[#FB1048] p-4 rounded-lg bg-[#FB1048]/15 flex items-center gap-4">

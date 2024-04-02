@@ -17,6 +17,7 @@ export type TieredSubscription = z.infer<typeof tieredSubscriptionSchema>;
 export const subscriptionsSchema = z.object({
   activeKeys: tieredSubscriptionSchema.optional(),
   verifications: tieredSubscriptionSchema.optional(),
+  ratelimits: tieredSubscriptionSchema.optional(),
   plan: fixedSubscriptionSchema.optional(),
   support: fixedSubscriptionSchema.optional(),
 });
@@ -28,6 +29,7 @@ export function defaultProSubscriptions(): Subscriptions | null {
     STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
     STRIPE_PRODUCT_ID_ACTIVE_KEYS: z.string(),
     STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
+    STRIPE_PRODUCT_ID_RATELIMITS: z.string(),
     STRIPE_PRODUCT_ID_SUPPORT: z.string(),
   });
   const env = stripeEnv.parse(process.env);
@@ -66,6 +68,21 @@ export function defaultProSubscriptions(): Subscriptions | null {
           firstUnit: 100_001,
           lastUnit: null,
           centsPerUnit: "0.01", // $0.0001 per verification or  $10 per 100k verifications
+        },
+      ],
+    },
+    ratelimits: {
+      productId: env.STRIPE_PRODUCT_ID_KEY_VERIFICATIONS,
+      tiers: [
+        {
+          firstUnit: 1,
+          lastUnit: 2_500_000,
+          centsPerUnit: null,
+        },
+        {
+          firstUnit: 2_500_001,
+          lastUnit: null,
+          centsPerUnit: "0.001", // $0.00001 per ratelimit or  $1 per 100k verifications
         },
       ],
     },

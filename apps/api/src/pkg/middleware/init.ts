@@ -23,10 +23,10 @@ import { RBAC } from "@unkey/rbac";
  * Use the hono context for that.
  */
 import type { MiddlewareHandler } from "hono";
-import { Cache } from "../cache/interface";
-import { CacheNamespaces } from "../cache/namespaces";
+import type { Cache } from "../cache/interface";
+import type { CacheNamespaces } from "../cache/namespaces";
 import { SwrCache } from "../cache/swr";
-import { HonoEnv } from "../hono/env";
+import type { HonoEnv } from "../hono/env";
 
 /**
  * These maps persist between worker executions and are used for caching

@@ -1,13 +1,16 @@
 import { describe, expect, test } from "vitest";
 
-import { ErrorResponse } from "@/pkg/errors";
+import type { ErrorResponse } from "@/pkg/errors";
 
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse } from "./legacy_keys_verifyKey";
+import type {
+  LegacyKeysVerifyKeyRequest,
+  LegacyKeysVerifyKeyResponse,
+} from "./legacy_keys_verifyKey";
 
 test("returns 200", async (t) => {
   const h = await RouteHarness.init(t);

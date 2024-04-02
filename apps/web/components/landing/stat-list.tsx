@@ -1,6 +1,6 @@
 import { Border } from "@/components/landing/border";
 import { FadeIn, FadeInStagger } from "@/components/landing/fade-in";
-import React from "react";
+import type React from "react";
 
 export function StatList({
   children,

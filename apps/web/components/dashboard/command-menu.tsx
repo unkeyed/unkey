@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpen, LucideIcon, MessagesSquare } from "lucide-react";
+import { BookOpen, type LucideIcon, MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -137,7 +137,7 @@ const Feedback: React.FC = () => {
   const create = trpc.plain.createIssue.useMutation({
     onSuccess: () => {
       setOpen(false);
-      toast("Your issue has been created, we'll get back to you as soon as possible");
+      toast.success("Your issue has been created, we'll get back to you as soon as possible");
     },
     onError: (err) => {
       toast.error("Issue creation failed", {

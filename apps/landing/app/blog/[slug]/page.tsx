@@ -68,7 +68,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const author = authors[post.author];
   return (
     <>
-      <BlogContainer className="mt-32 overflow-hidden scroll-smooth ">
+      <BlogContainer className="w-[1440px] mt-32 overflow-hidden scroll-smooth ">
         <div>
           <TopLeftShiningLight className="-z-40 hidden h-full sm:block" />
         </div>
@@ -155,9 +155,9 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           </div>
         </div>
         <div className="mb-40 flex ">
-          <div className="flex w-full flex-col gap-12 xl:w-10/12 ">
-            <div className="flex ">
-              <Frame className="mx-6 h-full w-full px-0 shadow-sm xl:mx-12" size="lg">
+          <div className="flex w-full flex-col gap-12 xl:w-9/12 ">
+            <div className="flex px-12">
+              <Frame className="overflow-clip h-full w-full px-0" size="lg">
                 <Image
                   src={post.image ?? "/images/blog-images/defaultBlog.png"}
                   width={1200}
@@ -170,7 +170,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <MDX code={post.body.code} />
             </div>
           </div>
-          <div className="hidden w-2/12 pt-12 text-white xl:ml-6 xl:flex xl:flex-col">
+          <div className="hidden w-3/12 pt-12 text-white xl:ml-6 xl:flex xl:flex-col">
             <p className="text-md text-white/30">Contents</p>
             <div className="relative mt-6 overflow-hidden ">
               {/* <div className="absolute top-0 left-0 z-20 w-full h-full bg-gradient-to-r from-transparent via-[#010101]/30 to-[#010101]/100" /> */}
@@ -195,7 +195,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 );
               })}
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col mr-12">
               <p className="text-md pt-10 text-white/30">Suggested</p>
               <div>
                 <SuggestedBlogs currentPostSlug={post.url} />

@@ -1,12 +1,12 @@
 "use client";
-import { SectionTitle } from "@/app/section-title";
+import { SectionTitle } from "@/app/section";
 import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { PrismTheme } from "prism-react-renderer";
+import type { PrismTheme } from "prism-react-renderer";
 import React from "react";
 import { useState } from "react";
 const Tabs = TabsPrimitive.Root;
@@ -159,18 +159,6 @@ const PythonIcon: React.FC<IconProps> = ({ active }) => (
   </svg>
 );
 
-const FlaskIcon: React.FC<IconProps> = ({ active }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path
-      opacity={active ? 1 : 0.3}
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M9.05263 5.64352C9.05263 5.92219 8.95628 6.17757 8.79618 6.37597L11.6316 7.54939C11.6316 12.1235 13.8421 15.1729 17.5263 16.6976L19 17.4599L18.2632 18.4284C11.6316 18.9846 6.0806 16.3411 5 9.07408L7.37195 6.62004C7.05419 6.41918 6.84211 6.05698 6.84211 5.64352C6.84211 5.01197 7.33695 4.5 7.94737 4.5C8.55779 4.5 9.05263 5.01197 9.05263 5.64352ZM9.17544 8.56585L8.68421 9.07408L8.78922 10.4864C9.12713 15.0313 13.1916 18.2754 17.5263 17.4599L17.186 17.3426C13.4289 16.0468 10.8948 12.4091 10.8948 8.31174L10.1579 7.54939L7.21052 8.31174V9.07408L9.17544 8.56585Z"
-      fill={active ? "url(#paint0_linear_574_1420)" : "white"}
-    />
-  </svg>
-);
-
 const TSIcon: React.FC<IconProps> = ({ active }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g opacity={active ? 1 : 0.3}>
@@ -223,14 +211,11 @@ if ( !result.valid ) {
 
 const nextJsCodeBlock = `import { withUnkey } from '@unkey/nextjs';
 export const POST = withUnkey(async (req) => {
-
   // Process the request here
   // You have access to the typed verification response using \`req.unkey\`
   console.log(req.unkey);
-  
   return new Response('Your API key is valid!');
-});
-`;
+});`;
 
 const nuxtCodeBlock = `export default defineEventHandler(async (event) => {
   if (!event.context.unkey.valid) {
@@ -253,25 +238,21 @@ async def main() -> None:
 
   result = await client.keys.verify_key("prefix_abc123")
 
-  if result.is_ok:
-    print(data.valid)
-  else:
-    print(result.unwrap_err())
-`;
+ if result.is_ok:
+   print(data.valid)
+ else:
+   print(result.unwrap_err())`;
 
 const honoCodeBlock = `import { Hono } from "hono"
 import { UnkeyContext, unkey } from "@unkey/hono";
 
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
-
 app.use("*", unkey());
-
 
 app.get("/somewhere", (c) => {
   // access the unkey response here to get metadata of the key etc
-  const ... = c.get("unkey")
-
-  return c.text("yo")
+  const unkey = c.get("unkey")
+ return c.text("yo")
 })`;
 
 const goCodeBlock = `package main
@@ -299,8 +280,7 @@ const curlCodeBlock = `curl --request POST \\
   --data \'{
     "apiId": "api_1234",
     "key": "sk_1234"
-  }\'
-`;
+  }\'`;
 
 const elixirCodeBlock = `UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
 # returns
@@ -314,18 +294,17 @@ const rustCodeBlock = `use unkey::models::{VerifyKeyRequest, Wrapped};
 use unkey::Client;
 
 async fn verify_key() {
-    let c = Client::new("unkey_ABC");
-    let req = VerifyKeyRequest::new("test_DEF", "api_JJJ");
+    let api_key = env::var("UNKEY_API_KEY").expect("Environment variable UNKEY_API_KEY not found");
+    let c = Client::new(&api_key);
+    let req = VerifyKeyRequest::new("test_req", "api_458vdYdbwut5LWABzXZP3Z8jPVas");
 
     match c.verify_key(req).await {
         Wrapped::Ok(res) => println!("{res:?}"),
         Wrapped::Err(err) => eprintln!("{err:?}"),
     }
-}
-`;
+}`;
 
 const javaCodeBlock = `package com.example.myapp;
-
 import com.unkey.unkeysdk.dto.KeyVerifyRequest;
 import com.unkey.unkeysdk.dto.KeyVerifyResponse;
 
@@ -336,7 +315,7 @@ public class APIController {
 
     @PostMapping("/verify")
     public KeyVerifyResponse verifyKey(
-            @RequestBody KeyVerifyRequest keyVerifyRequest) {
+        @RequestBody KeyVerifyRequest keyVerifyRequest) {
         // Delegate the creation of the key to the KeyService from the SDK
         return keyService.verifyKey(keyVerifyRequest);
     }
@@ -380,12 +359,6 @@ const languagesList = {
     {
       name: "Python",
       Icon: PythonIcon,
-      codeBlock: pythonCodeBlock,
-      editorLanguage: "python",
-    },
-    {
-      name: "Flask",
-      Icon: FlaskIcon,
       codeBlock: pythonCodeBlock,
       editorLanguage: "python",
     },

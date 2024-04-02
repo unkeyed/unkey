@@ -2,7 +2,7 @@ import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "@/routes/v1_apis_createApi";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "@/routes/v1_apis_deleteApi";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "@/routes/v1_keys_createKey";
-import { V1KeysGetKeyResponse } from "@/routes/v1_keys_getKey";
+import type { V1KeysGetKeyResponse } from "@/routes/v1_keys_getKey";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "@/routes/v1_keys_verifyKey";
 import { expect, test } from "vitest";
 

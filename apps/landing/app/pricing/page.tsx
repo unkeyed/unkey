@@ -82,7 +82,7 @@ export default function PricingPage() {
 
           <PricingCardContent>
             <Cost dollar="$25" />
-            <Button label="Get Started with Pr" />
+            <Button label="Get Started with Pro" />
             <Bullets>
               <Bullet Icon={Check} label="250 active keys / month" color={Color.Yellow} />
               <Bullet
@@ -90,7 +90,11 @@ export default function PricingPage() {
                 label="150k successful verifications / month"
                 color={Color.Yellow}
               />
-              <Bullet Icon={Check} label="2.5M successful ratelimits / month" color={Color.White} />
+              <Bullet
+                Icon={Check}
+                label="2.5M successful ratelimits / month"
+                color={Color.Yellow}
+              />
               <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
               <Bullet Icon={Check} label="90-day audit log retention" color={Color.Yellow} />
               <Bullet Icon={Check} label="Unlimited APIs" color={Color.Yellow} />

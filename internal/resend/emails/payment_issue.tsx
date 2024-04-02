@@ -10,16 +10,17 @@ import { Section } from "@react-email/section";
 import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
+import tailwindConfig from "../tailwind.config";
 export type Props = {
   username: string;
   date: string;
 };
 
-export function PaymentIssue({ username = "username", date = "date" }: Props) {
+export function PaymentIssue({ username, date }: Props) {
   return (
-    <Tailwind>
-      <Head />
+    <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
+        <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
             <Heading className="font-sans text-2xl text-semibold">
@@ -58,5 +59,10 @@ export function PaymentIssue({ username = "username", date = "date" }: Props) {
     </Tailwind>
   );
 }
+
+PaymentIssue.PreviewProps = {
+  username: "Mr. Pilkington",
+  date: "2024 03 08",
+} satisfies Props;
 
 export default PaymentIssue;

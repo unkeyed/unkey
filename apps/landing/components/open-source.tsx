@@ -1,5 +1,5 @@
 "use client";
-import { SectionTitle } from "@/app/section-title";
+import { SectionTitle } from "@/app/section";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import Image from "next/image";

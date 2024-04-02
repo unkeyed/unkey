@@ -8,7 +8,7 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "dependencies": {
-    "@chronark/zod-bird": "^0.3.4",
+    "@chronark/zod-bird": "^0.3.5",
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",

@@ -31,10 +31,35 @@ import andreas from "@/images/team/andreas.jpeg";
 import james from "@/images/team/james.jpg";
 import { cn } from "@/lib/utils";
 
+export const metadata = {
+  title: "About | Unkey",
+  description: "Learn more about Unkey and how we operate.",
+  openGraph: {
+    title: "About | Unkey",
+    description: "Learn more about Unkey and how we operate.",
+    url: "https://unkey.dev/templates",
+    siteName: "unkey.dev",
+    images: [
+      {
+        url: "https://unkey.dev/images/landing/og.png",
+        width: 1200,
+        height: 675,
+      },
+    ],
+  },
+  twitter: {
+    title: "About | Unkey",
+    card: "summary_large_image",
+  },
+  icons: {
+    shortcut: "/images/landing/unkey.png",
+  },
+};
+
 const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
-  { name: "Allison Pickets", firm: "The New Normal Fund", image: allison },
+  { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -48,20 +73,18 @@ export default async function Page() {
       <div className="mt-[150px] flex flex-col items-center">
         <ChangelogLight />
         <div className="absolute flex -z-50">
-          <div className="parallelogram">
-            <BorderBeam size={300} delay={1} />
-          </div>
+          <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
           <div className="parallelogram parallelogram-1">
-            <BorderBeam size={300} delay={0} />
+            <BorderBeam size={300} anchor={150} />
           </div>
           <div className="parallelogram parallelogram-2">
-            <BorderBeam size={300} delay={0.15} />
+            <BorderBeam size={300} anchor={100} />
           </div>
           <div className="parallelogram parallelogram-3">
-            <BorderBeam size={300} delay={0.3} />
+            <BorderBeam size={300} anchor={50} />
           </div>
           <div className="parallelogram parallelogram-4">
-            <BorderBeam size={300} delay={5} />
+            <BorderBeam size={300} anchor={0} />
           </div>
         </div>
         <div className="mt-[120px]">
@@ -120,7 +143,7 @@ export default async function Page() {
           text="We grew in number, and we love that. Here are some of our precious moments. Although we collaborate as a fully remote team, occasionally we unite!"
         />
         <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
-          <div className="image w-[200px] h-[400px] rounded-lg relative">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
             <PhotoLabel
               className="absolute bottom-[40px] left-[calc(50%-40px)]"
               text="Label text"
@@ -131,64 +154,64 @@ export default async function Page() {
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
               className="object-cover w-full h-full rounded-lg"
             />
           </div>
-          <div className="image w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
-          <div className="image w-[200px] h-[400px] rounded-lg">
+          <div className="image w-full md:w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
+          <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
             <Image
               src={placeholder}
               alt="photo of a car"
@@ -217,8 +240,8 @@ export default async function Page() {
                 return (
                   <div className="flex flex-col justify-center items-center p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
                     <div>
-                      <h3 className="text-[18px] font-medium">One-way hashed keys</h3>
-                      <p className="text-white/60 text-[15px] leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
+                      <h3 className="font-medium ">One-way hashed keys</h3>
+                      <p className="text-white/60 text-sm leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
                         Enhance authentication security with one-way hashed keys, ensuring
                         irrersible encryption for sensitive information protection
                       </p>
@@ -319,14 +342,10 @@ export default async function Page() {
               {investors.map(({ name, firm, image }) => {
                 return (
                   <div className="pt-[88px] px-[40px] pb-[80px]">
-                    <div className="text-[15px] text-center flex flex-col justify-center items-center">
-                      <Image
-                        src={image}
-                        alt="Liu Jiang"
-                        className="h-[48px] w-[48px] rounded-[100%]"
-                      />
-                      <p className="text-sm font-bold text-white pt-[32px]">{name}</p>
-                      <p className="text-sm text-white/20">{firm}</p>
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <Image src={image} alt="Liu Jiang" className="w-12 h-12 rounded-full" />
+                      <p className="mt-8 text-sm font-bold text-white">{name}</p>
+                      <p className="text-sm text-white/60">{firm}</p>
                     </div>
                   </div>
                 );
@@ -395,7 +414,7 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
         "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20",
       )}
     >
-      <p className="text-white text-[13px]">{text}</p>
+      <p className="text-xs text-white">{text}</p>
     </div>
   );
 }

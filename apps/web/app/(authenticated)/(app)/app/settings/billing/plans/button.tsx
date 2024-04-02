@@ -13,9 +13,10 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
-import { type Workspace } from "@unkey/db";
+import type { Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 type Props = {
   newPlan: "free" | "pro";
   workspace: Workspace;

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMousePosition } from "@/lib/mouse";
-import React, { useEffect, useRef } from "react";
+import type React from "react";
+import { useEffect, useRef } from "react";
 
 interface ParticlesProps {
   className?: string;
@@ -15,7 +16,7 @@ interface ParticlesProps {
 }
 function hexToRgb(hex: string): number[] {
   // Convert the hex color code to an integer
-  const hexInt = parseInt(hex.replace("#", ""), 16);
+  const hexInt = Number.parseInt(hex.replace("#", ""), 16);
 
   // Extract the red, green, and blue components from the hex color code
   const red = (hexInt >> 16) & 255;
@@ -118,7 +119,7 @@ export const Particles: React.FC<ParticlesProps> = ({
     const translateY = 0;
     const size = Math.floor(Math.random() * 2) + 0.5;
     const alpha = 0;
-    const targetAlpha = parseFloat((Math.random() * 0.6 + 0.1).toFixed(1));
+    const targetAlpha = Number.parseFloat((Math.random() * 0.6 + 0.1).toFixed(1));
     const dx = (Math.random() - 0.5) * 0.2;
     const dy = (Math.random() - 0.5) * 0.2;
     const magnetism = 0.1 + Math.random() * 4;
@@ -180,7 +181,7 @@ export const Particles: React.FC<ParticlesProps> = ({
         canvasSize.current.h - circle.y - circle.translateY - circle.size, // distance from bottom edge
       ];
       const closestEdge = edge.reduce((a, b) => Math.min(a, b));
-      const remapClosestEdge = parseFloat(remapValue(closestEdge, 0, 20, 0, 1).toFixed(2));
+      const remapClosestEdge = Number.parseFloat(remapValue(closestEdge, 0, 20, 0, 1).toFixed(2));
       if (remapClosestEdge > 1) {
         circle.alpha += 0.02;
         if (circle.alpha > circle.targetAlpha) {

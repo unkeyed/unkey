@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Author } from "@/content/blog/authors";
+import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -49,7 +49,7 @@ export function BlogHero({
           {tags?.map((tag) => (
             <p
               key={tag}
-              className="text-white/70 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 "
+              className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 flex items-center capitalize py-1"
             >
               {tag.charAt(0).toUpperCase() + tag.slice(1)}
             </p>
@@ -64,14 +64,14 @@ export function BlogHero({
         <div className="flex flex-row justify-center w-full gap-24 pb-8 mt-10 xl:justify-start lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
             <p className="text-sm text-white/30 ">Written by</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {/* Todo: Needs ability to add multiple authors at some point */}
-              <Avatar>
+
+              <Avatar className="">
                 <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
                 <AvatarFallback />
               </Avatar>
               <p className="text-sm text-white">{author.name}</p>
-
               {/* <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger className="pt-1 pl-4">

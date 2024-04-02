@@ -1,10 +1,10 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { type V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
+import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
 runCommonRouteTests<V1KeysCreateKeyRequest>({
   prepareRequest: async (rh) => {

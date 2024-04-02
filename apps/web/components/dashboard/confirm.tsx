@@ -10,7 +10,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { Loading } from "./loading";
 
 export type ConfirmProps = {
