@@ -15,6 +15,8 @@ export const zEnv = z.object({
   DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
 
+  BILLING: z.custom<AnalyticsEngineDataset>((aed) => typeof aed === "object"),
+
   LOGS: z.custom<Queue<any>>((ns) => typeof ns === "object").optional(),
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object").optional(),
   METRICS: z.custom<Queue<Metric[]>>((ns) => typeof ns === "object").optional(),

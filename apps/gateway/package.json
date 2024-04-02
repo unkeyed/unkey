@@ -13,7 +13,7 @@
     "@cloudflare/workers-types": "^4.20240222.0",
     "typescript": "^5.0.4",
     "vitest": "1.3.0",
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.42.0"
   },
   "dependencies": {
     "@planetscale/database": "^1.16.0",
