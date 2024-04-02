@@ -1,4 +1,6 @@
+import { OssLight } from "@/components/svg/oss-light";
 import { cn } from "@/lib/utils";
+import type { PropsWithChildren } from "react";
 
 type SectionTitleProps = {
   label?: string;
@@ -56,3 +58,10 @@ export function SectionTitle({
     </div>
   );
 }
+
+export const Section: React.FC<PropsWithChildren<{ className?: string }>> = ({
+  children,
+  className,
+}) => {
+  return <section className={cn(className)}>{children}</section>;
+};
