@@ -76,7 +76,12 @@ export const registerV1KeysGetVerifications = (app: App) =>
     const { keyId, ownerId, start, end } = c.req.query();
 
     const { analytics, cache, db } = c.get("services");
-
+    if (!keyId && !ownerId) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "keyId or ownerId must be provided",
+      });
+    }
     const ids: {
       keyId: string;
       apiId: string;
@@ -214,8 +219,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
         });
       }
       throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "Either keyId or ownerId must be provided",
+        code: "NOT_FOUND",
+        message: "No verifications found",
       });
     })();
 
