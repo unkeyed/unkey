@@ -1,12 +1,12 @@
 "use client";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
-import {
-  UnkeyFooterLogo,
-  UnkeyFooterLogoMobile,
-  UnkeyLogoSmall,
-  UnkeyLogoSmallMobile,
-} from "./footer-svgs";
-import { socialMediaProfiles } from "./social-media";
+import { UnkeyFooterLogo, UnkeyLogo } from "./footer-svgs";
+
+type NavLink = {
+  title: string;
+  href: string;
+};
 const navigation = [
   {
     title: "Company",
@@ -31,7 +31,15 @@ const navigation = [
   },
   {
     title: "Connect",
-    links: socialMediaProfiles,
+    links: [
+      { title: "X(Twitter)", href: "https://twitter.com/unkeydev" },
+      { title: "GitHub", href: "https://github.com/unkeyed" },
+      { title: "OSS Friends", href: "/oss-friends" },
+      {
+        title: "Book a Call",
+        href: "https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss",
+      },
+    ],
   },
   {
     title: "Legal",
@@ -40,140 +48,54 @@ const navigation = [
       { title: "Privacy Policy", href: "/policies/privacy" },
     ],
   },
-];
+] satisfies Array<{ title: string; links: Array<NavLink> }>;
 
-function CompanyInfo() {
+const Column: React.FC<{ title: string; links: Array<NavLink>; className?: string }> = ({
+  title,
+  links,
+  className,
+}) => {
   return (
-    <div className="flex flex-col sm:mx-auto">
-      <UnkeyLogoSmall />
-      <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.5)] mt-8">
-        Seriously Fast API Authentication.
-      </div>
-      <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.3)]">
-        Unkeyed, Inc. {new Date().getUTCFullYear()}
-      </div>
-    </div>
-  );
-}
-
-function CompanyInfoMobile() {
-  return (
-    <div className="flex flex-col items-center">
-      <UnkeyLogoSmallMobile />
-      <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.5)] mt-10">
-        Seriously Fast API Authentication.
-      </div>
-      <div className="font-normal text-sm leading-6 text-[rgba(255,255,255,0.3)]">
-        Unkeyed, Inc. 2023
-      </div>
-      <div className="mt-10">
-        {navigation.map((section) => (
-          <div key={section.title}>
-            <h3 className="py-4 text-sm font-medium text-white">{section.title}</h3>
-            <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal">
-              {section.links.map((link) => (
-                <li key={link.href.toString()} className="py-4">
-                  {link.href.startsWith("https://") ? (
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="transition hover:text-[rgba(255,255,255,0.4)]"
-                    >
-                      {link.title}
-                    </a>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      className="transition hover:text-[rgba(255,255,255,0.4)]"
-                    >
-                      {link.title}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-center w-full lg:mt-24">
-        <UnkeyFooterLogo />
-      </div>
-    </div>
-  );
-}
-
-function Navigation() {
-  return (
-    <nav className=" sm:w-full">
-      <ul className="flex flex-col flex-auto gap-16 text-left sm:flex-row sm:mx-auto justify-evenly">
-        {navigation.map((section) => (
-          <li key={section.title.toString()}>
-            <div className="text-sm font-medium tracking-wider text-white font-display">
-              {section.title}
-            </div>
-            <ul className="text-sm text-[rgba(255,255,255,0.7)] font-normal gap-4 flex flex-col md:gap-8 mt-4 md:mt-8 ">
-              {section.links.map((link) => (
-                <li key={link.href.toString()}>
-                  {link.href.startsWith("https://") ? (
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="transition hover:text-[rgba(255,255,255,0.4)] "
-                    >
-                      {link.title}
-                    </a>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      className="transition hover:text-[rgba(255,255,255,0.4)] "
-                    >
-                      {link.title}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </li>
+    <ul className={cn("flex flex-col gap-8 md:gap-12 text-left", className)}>
+      <span className="text-sm font-medium tracking-wider text-white font-display">{title}</span>
+      <ul className="flex flex-col gap-4 md:gap-8">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            target={link.href.startsWith("https://") ? "_blank" : undefined}
+            rel={link.href.startsWith("https://") ? "noopener noreferrer" : undefined}
+            className="text-sm font-normal transition hover:text-white/40 text-white/70"
+          >
+            {link.title}
+          </Link>
         ))}
       </ul>
-    </nav>
+    </ul>
   );
-}
-
-function MobileNavigation() {
-  return (
-    <nav className="flex flex-col pt-4 sm:hidden mobile-blog-footer-radial">
-      <div className="flex flex-col items-center justify-center w-full text-center">
-        <CompanyInfoMobile />
-      </div>
-      <div className="flex justify-center w-full lg:mt-24">
-        <UnkeyFooterLogoMobile />
-      </div>
-    </nav>
-  );
-}
+};
 
 export function Footer() {
   return (
-    <>
-      <footer className="relative hidden pt-32 overflow-hidden border-t sm:block xl:pt-10 max-sm:pt-8 border-white/10 blog-footer-radial-gradient">
-        <div className="container flex flex-col mx-auto">
-          <div className="flex flex-row justify-center max-sm:flex-col sm:flex-col md:flex-row xl:gap-20 xxl:gap-48">
-            <div className="flex mb-8 lg:mx-auto max-sm:pl-12 max-sm:flex sm:flex-row sm:w-full xl:pl-14 md:w-fit shrink-0 xxl:pl-28">
-              <CompanyInfo />
-            </div>
-            <div className="flex w-full max-sm:pl-12 max-sm:pt-6 max-sm:mt-22 md:pl-18 lg:pl-6 max-sm:mb-8 pb-6">
-              <Navigation />
-            </div>
+    <div className="border-t border-white/20 blog-footer-radial-gradient">
+      <footer className="container relative grid grid-cols-1 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
+        <div className="flex flex-col items-start cols-span-1 sm:col-span-3 xl:col-span-2">
+          <UnkeyLogo />
+          <div className="mt-8 text-sm font-normal leading-6 text-white/60">
+            Seriously Fast API Authentication.
+          </div>
+          <div className="text-sm font-normal leading-6 text-white/40">
+            Unkeyed, Inc. {new Date().getUTCFullYear()}
           </div>
         </div>
-        <div className="flex justify-center w-full">
-          <UnkeyFooterLogo className="mt-4" />
-        </div>
+
+        {navigation.map(({ title, links }) => (
+          <Column key={title} title={title} links={links} className="col-span-1" />
+        ))}
       </footer>
-      <MobileNavigation />
-    </>
+      <div className="flex justify-center w-full mt-8 lg:mt-16">
+        <UnkeyFooterLogo />
+      </div>
+    </div>
   );
 }
