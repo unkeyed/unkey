@@ -12,7 +12,7 @@
     "@ant-design/graphs": "^1.4.1",
     "@ant-design/plots": "^1.2.5",
     "@chronark/zod-bird": "0.3.5",
-    "@clerk/nextjs": "^4.29.9",
+    "@clerk/nextjs": "^4.29.10",
     "@hookform/resolvers": "^3.3.4",
     "@planetscale/database": "^1.16.0",
     "@radix-ui/react-accordion": "^1.1.2",
