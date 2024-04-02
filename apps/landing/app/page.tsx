@@ -64,17 +64,15 @@ export default async function Landing() {
         src={mainboard}
         alt="Animated SVG showing computer circuits lighting up"
         className="hidden md:flex w-full absolute right-0 top-[-140px] -z-10"
-        priority={true}
+        priority
       />
-
       <Image
         src={mainboardMobile}
         alt="Animated SVG showing computer circuits lighting up"
         className="flex md:hidden w-full absolute h-[300px] -z-10 "
-        priority={true}
+        priority
       />
-
-      <div className="container relative flex flex-col px-0 mx-auto space-y- md:space-y-32">
+      <div className="container relative flex flex-col px-0 mx-auto space-y-16 md:space-y-32">
         <Section>
           <Hero />
         </Section>
@@ -89,6 +87,7 @@ export default async function Landing() {
         <Section>
           <OpenSource />
         </Section>
+
         <Section>
           <SectionTitle
             className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
@@ -128,7 +127,7 @@ export default async function Landing() {
             <HashedKeysBento />
             <AuditLogsBento />
           </div>
-<
+
           <div className="grid md:grid-cols-[1fr_1fr] xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
             <IpWhitelistingBento />
             <RateLimitsBento />
@@ -181,7 +180,7 @@ export default async function Landing() {
             </p>
           </div>
         </Section>
-      </div>
+      </div>{" "}
     </>
   );
 }
