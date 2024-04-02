@@ -5,7 +5,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { HelpCircle, KeySquare, ListChecks } from "lucide-react";
 import React, { useState } from "react";
 
-import { SectionTitle } from "../section-title";
+import { SectionTitle } from "../section";
 import {
   Bullet,
   Color,
