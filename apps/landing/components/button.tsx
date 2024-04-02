@@ -1,8 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { SparkleIcon } from "./svg/template-page";
-import { HoverBorderGradient } from "./ui/hover-border-gradient";
-
 type Props = {
   className?: string;
   IconLeft?: LucideIcon;
@@ -55,30 +53,15 @@ export const SecondaryButton: React.FC<Props> = ({ className, IconLeft, label, I
 
 export const RainbowDarkButton: React.FC<Props> = ({ className, label, IconRight }) => {
   return (
-    <div className={cn("p-[.75px] w-fit mx-auto", className)}>
-      <HoverBorderGradient
-        containerClassName="rounded-full"
-        as="button"
-        className="bg-black text-white flex items-center space-x-2"
+    <div className={cn("p-[.75px] hero-hiring-gradient rounded-full w-fit mx-auto", className)}>
+      <button
+        type="button"
+        className="items-center gap-4 px-3 py-1.5 xs:flex bg-black text-white  rounded-full"
       >
-        <SparkleIcon className="text-white mr-2" />
+        <SparkleIcon className="text-white" />
         {label}
         {IconRight ? <IconRight className="w-4 h-4" /> : null}
-      </HoverBorderGradient>
+      </button>
     </div>
   );
 };
-
-export function HoverBorderGradientButton() {
-  return (
-    <div className="m-40 flex justify-center text-center">
-      <HoverBorderGradient
-        containerClassName="rounded-full"
-        as="button"
-        className="bg-black text-white flex items-center space-x-2"
-      >
-        <span>Aceternity UI</span>
-      </HoverBorderGradient>
-    </div>
-  );
-}
