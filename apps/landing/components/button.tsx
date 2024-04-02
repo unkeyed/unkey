@@ -8,13 +8,21 @@ type Props = {
   IconLeft?: LucideIcon;
   label: string;
   IconRight?: LucideIcon;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 };
 
-export const PrimaryButton: React.FC<Props> = ({ className, IconLeft, label, IconRight }) => {
+export const PrimaryButton: React.FC<Props> = ({
+  className,
+  IconLeft,
+  label,
+  IconRight,
+  onClick,
+}) => {
   return (
     <div className="relative group/button">
       <div className="absolute -inset-0.5 bg-white rounded-lg blur-2xl group-hover/button:opacity-30 transition duration-300  opacity-0 " />
       <button
+        onClick={onClick}
         type="button"
         className={cn(
           "relative flex items-center px-4 gap-2 text-sm font-semibold text-black  bg-white group-hover:bg-white/90 duration-1000 rounded-lg h-10",

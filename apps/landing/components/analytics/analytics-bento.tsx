@@ -1,8 +1,10 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Wand2 } from "lucide-react";
 import { Highlight, type PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
+import { PrimaryButton } from "../button";
 import { AnalyticsStars } from "../svg/analytics-stars";
 import { WebAppLight } from "../svg/web-app-light";
 
@@ -57,46 +59,14 @@ export function AnalyticsBento() {
 
   return (
     <div className="relative flex justify-center w-full">
-      <button
-        type="button"
-        onClick={() => toggleShowApi(!showApi)}
-        className="bg-white top-0 absolute top-14 z-50 rounded-lg py-1.5 px-1 font-semibold text-sm flex items-center pr-3 w-[164px]"
-      >
-        <div className="mr-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="34"
-            height="34"
-            viewBox="0 0 34 34"
-            className="scale-90"
-            fill="none"
-          >
-            <rect width="34" height="34" rx="8" fill="black" fillOpacity="0.08" />
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M22.5579 9.32588C22.8019 9.0818 23.1977 9.0818 23.4418 9.32588L24.674 10.5581C24.9181 10.8022 24.9181 11.1979 24.674 11.442L21.9114 14.2046L19.7953 12.0884L22.5579 9.32588ZM19.0882 12.7956L9.32564 22.5581C9.08156 22.8022 9.08156 23.1979 9.32564 23.442L10.5579 24.6742C10.8019 24.9183 11.1977 24.9183 11.4418 24.6742L21.2043 14.9117L19.0882 12.7956ZM24.3256 8.442C23.5934 7.70976 22.4062 7.70976 21.674 8.442L8.44175 21.6742C7.70952 22.4065 7.70952 23.5936 8.44175 24.3259L9.67399 25.5581C10.4062 26.2903 11.5934 26.2903 12.3256 25.5581L25.5579 12.3259C26.2901 11.5936 26.2901 10.4065 25.5579 9.67423L24.3256 8.442Z"
-              fill="black"
-            />
-            <path
-              opacity="0.4"
-              d="M15.25 8.25L16 6.5L16.75 8.25L18.5 9L16.75 9.75L16 11.5L15.25 9.75L13.5 9L15.25 8.25Z"
-              fill="black"
-            />
-            <path
-              opacity="0.6"
-              d="M8.5 11.5L9.5 9L10.5 11.5L13 12.5L10.5 13.5L9.5 16L8.5 13.5L6 12.5L8.5 11.5Z"
-              fill="black"
-            />
-            <path
-              opacity="0.9"
-              d="M21.5 20.5L22.5 18L23.5 20.5L26 21.5L23.5 22.5L22.5 25L21.5 22.5L19 21.5L21.5 20.5Z"
-              fill="black"
-            />
-          </svg>
-        </div>
-        {showApi ? "Hide API Code" : "Show API code"}
-      </button>
+      <div className="absolute">
+        <PrimaryButton
+          label="Show API code"
+          IconLeft={Wand2}
+          onClick={() => toggleShowApi(!showApi)}
+        />
+      </div>
+
       <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border border-white/10 relative">
         {/* TODO: horizontal scroll */}
         <LightSvg className="absolute hidden md:flex top-[-180px] left:0 lg:left-[300px] z-50 pointer-events-none" />
