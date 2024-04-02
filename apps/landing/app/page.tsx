@@ -11,11 +11,7 @@ import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
-import {
-  SubHeroMainboardStuff,
-  TopLeftShiningLight,
-  TopRightShiningLight,
-} from "@/components/svg/hero";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
 import { LeveledUpApiAuthChip } from "@/components/svg/leveled-up-api-auth-chip";
 import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
