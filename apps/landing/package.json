@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@chronark/zod-bird": "^0.3.4",
+    "@chronark/zod-bird": "^0.3.5",
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
     "@planetscale/database": "^1.11.0",
