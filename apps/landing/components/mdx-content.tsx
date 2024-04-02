@@ -1,9 +1,8 @@
 import { useMDXComponent } from "next-contentlayer/hooks";
-import { BlogCodeBlock } from "./blog/blog-code-block";
+import { BlogCodeBlock, BlogCodeBlockSingle } from "./blog/blog-code-block";
 import { BlogImage } from "./blog/blog-image";
 import { BlogList, BlogListItem, BlogListNumbered } from "./blog/blog-list";
 import { BlogQuote } from "./blog/blog-quote";
-import { BlogCodeBlockSingle } from "./blog/code-block";
 import { Alert } from "./ui/alert/alert";
 /** Custom components here!*/
 export const MdxComponents = {
