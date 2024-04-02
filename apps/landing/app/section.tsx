@@ -1,4 +1,3 @@
-import { OssLight } from "@/components/svg/oss-light";
 import { cn } from "@/lib/utils";
 import type { PropsWithChildren } from "react";
 
