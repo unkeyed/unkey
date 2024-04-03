@@ -16,11 +16,18 @@ export function PageIntro({
 }) {
   return (
     <Container className={clsx(centered && "text-center")}>
-      <RainbowDarkButton
-        label="Submit your template"
-        IconRight={ArrowRight}
-        className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0  sm:mt-12 md:mt-20 lg:mt-32 bg-black"
-      />
+      <a
+        href="https://github.com/unkeyed/examples"
+        className="text-white/60 hover:text-white/80"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <RainbowDarkButton
+          label="Submit your template"
+          IconRight={ArrowRight}
+          className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0  sm:mt-12 md:mt-20 lg:mt-32 bg-black"
+        />
+      </a>
       <h1>
         <span className="block font-sans text-base font-semibold text-white font-display">
           {eyebrow}
