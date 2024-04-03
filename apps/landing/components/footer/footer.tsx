@@ -77,7 +77,7 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
 
 export function Footer() {
   return (
-    <div className="border-t border-white/20 blog-footer-radial-gradient">
+    <div className="border-t border-white/20">
       <footer className="container relative grid grid-cols-1 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
         <div className="flex flex-col items-start cols-span-1 sm:col-span-3 xl:col-span-2">
           <UnkeyLogo />
