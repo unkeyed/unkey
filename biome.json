@@ -60,6 +60,14 @@
   },
   "organizeImports": {
     "enabled": true,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".wrangler",
+      ".react-email",
+      ".contentlayer"
+    ]
   }
 }

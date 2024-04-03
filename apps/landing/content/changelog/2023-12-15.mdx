@@ -2,6 +2,7 @@
   title: Unkey is faster, we have improved analytics, and a new billing page
   date: 2023-12-15
   description: We've been working on improvements to the Unkey dashboard. We also moved the Unkey API to Cloudlfare workers.
+  image: "/images/changelog/tempimage.png"
   tags: ["analytics", "engineering"]
 ---
 
@@ -43,18 +44,18 @@ With the move to Cloudflare workers, we decided to move to RPC methods. RPC make
 
 All our RPC methods are now in the format: 
 
-```
+```bash
 https://api.unkey.dev/{version}/{service}.{method}
 ```
 
 Below are a couple of examples of RPC methods: one is a GET request, and the other is a POST request. 
 
-```
+```bash
 curl "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
   -H "Authorization: Bearer <ROOT_KEY>"
 ```
 ----------------
-```
+```bash
 curl -XPOST "https://api.unkey.dev/v1/keys.createKey" \
   -H "Authorization: Bearer <ROOT_KEY>" \
   -H "Content-Type: application/json" \
