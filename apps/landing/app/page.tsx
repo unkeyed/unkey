@@ -87,7 +87,7 @@ export default async function Landing() {
 
         <Section>
           <SectionTitle
-            className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
+            className="mt-8 md:mt-16 lg:mt-32"
             title="Everything you need for your API"
             titleWidth={600}
             text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
