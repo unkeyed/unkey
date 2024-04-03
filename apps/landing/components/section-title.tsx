@@ -24,7 +24,7 @@ export function SectionTitle({
   return (
     <div
       className={cn(
-        "flex flex-col items-center",
+        "flex flex-col items-center text-balance",
         {
           "md:items-start": align === "left",
         },

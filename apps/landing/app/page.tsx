@@ -1,5 +1,5 @@
 import { Hero } from "@/app/hero";
-import { Section, SectionTitle } from "@/app/section";
+import { Section } from "@/app/section";
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
@@ -9,6 +9,7 @@ import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
+import { SectionTitle } from "@/components/section-title";
 import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
@@ -88,6 +89,7 @@ export default async function Landing() {
           <SectionTitle
             className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
             title="Everything you need for your API"
+            titleWidth={600}
             text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
             align="center"
             label="Platform"
