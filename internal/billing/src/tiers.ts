@@ -51,13 +51,15 @@ export function calculateTieredPrices(
       const currentFirstUnit = tiers[i].firstUnit;
       const previousLastUnit = tiers[i - 1].lastUnit;
       if (previousLastUnit === null) {
-        return Err(new SchemaError("Every tier except the last one must have a lastUnit"));
+        return Err(
+          new SchemaError({ message: "Every tier except the last one must have a lastUnit" }),
+        );
       }
       if (currentFirstUnit > previousLastUnit + 1) {
-        return Err(new SchemaError("There is a gap between tiers"));
+        return Err(new SchemaError({ message: "There is a gap between tiers" }));
       }
       if (currentFirstUnit < previousLastUnit + 1) {
-        return Err(new SchemaError("There is an overlap between tiers"));
+        return Err(new SchemaError({ message: "There is an overlap between tiers" }));
       }
     }
   }

@@ -1,3 +1,4 @@
+import { Response } from "@cloudflare/workers-types";
 import { AesGCM, getDecryptionKeyFromEnv } from "@unkey/encryption";
 import { createConnection } from "./db";
 import { type Env, zEnv } from "./env";
@@ -15,7 +16,7 @@ export default {
     const url = new URL(request.url);
     const subdomain = url.hostname.replace(`.${env.APEX_DOMAIN}`, "");
 
-    const proxy = await db.query.proxies.findFirst({
+    const gateway = await db.query.gateways.findFirst({
       where: (table, { eq }) => eq(table.name, subdomain),
       with: {
         headerRewrites: {
@@ -26,18 +27,23 @@ export default {
       },
     });
 
-    if (!proxy) {
-      throw new Error("no proxy");
+    if (!gateway) {
+      throw new Error("no gateway");
     }
 
     const headers = new Headers(request.headers);
     headers.delete("authorization");
-    headers.set("Unkey-Proxy", "1");
-    console.log("rewrite", proxy.headerRewrites);
-    for (const rewrite of proxy.headerRewrites) {
+    headers.set("Unkey-Gateway", "1");
+    console.log("rewrite", gateway.headerRewrites);
+    for (const rewrite of gateway.headerRewrites) {
       const decryptionKey = getDecryptionKeyFromEnv(env, rewrite.secret.encryptionKeyVersion);
+      if (decryptionKey.err) {
+        return new Response(
+          `unable to load encryption key version ${rewrite.secret.encryptionKeyVersion}`,
+        );
+      }
 
-      const aes = await AesGCM.withBase64Key(decryptionKey);
+      const aes = await AesGCM.withBase64Key(decryptionKey.val);
       const value = await aes.decrypt({
         iv: rewrite.secret.iv,
         ciphertext: rewrite.secret.ciphertext,
@@ -46,9 +52,11 @@ export default {
       headers.set(rewrite.name, value);
     }
 
-    return fetch(new URL(url.pathname, `https://${proxy.origin}`), {
+    const res = fetch(new URL(url.pathname, `https://${gateway.origin}`), {
       ...request,
       headers,
     });
+    // @ts-expect-error
+    return res;
   },
 };

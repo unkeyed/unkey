@@ -42,7 +42,7 @@ export function BlogCard({
       </div>
 
       <h2 className="text-3xl font-medium leading-10 sm:text-xl blog-heading-gradient">{title}</h2>
-      <p className="text-base sm:text-[15px] leading-6 font-normal text-white/60 line-clamp-2">
+      <p className="text-base font-normal leading-6 sm:text-sm text-white/60 line-clamp-2">
         {subTitle}
       </p>
       <div className="flex flex-row">

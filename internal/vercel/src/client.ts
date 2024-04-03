@@ -63,7 +63,8 @@ export class Vercel {
         const error = (await res.json()) as VercelErrorResponse;
         console.error(error);
         return Err(
-          new FetchError(error.message, {
+          new FetchError({
+            message: error.message,
             retry: true,
             context: {
               url: url.toString(),
@@ -76,7 +77,8 @@ export class Vercel {
       return Ok(body);
     } catch (e) {
       return Err(
-        new FetchError((e as Error).message, {
+        new FetchError({
+          message: (e as Error).message,
           retry: true,
           context: {
             url: url.toString(),

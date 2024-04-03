@@ -185,7 +185,7 @@ export class DurableRateLimiter implements RateLimiter {
     } catch (e) {
       const err = e as Error;
       this.logger.error("ratelimit failed", { identifier: req.identifier, error: err.message });
-      return Err(new RatelimitError(err.message));
+      return Err(new RatelimitError({ message: err.message }));
     }
   }
 }

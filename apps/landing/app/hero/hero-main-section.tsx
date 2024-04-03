@@ -13,12 +13,11 @@ export function HeroMainSection() {
           IconRight={ArrowRight}
         />
       </Link>
-
       <h1 className="bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-sm sm:max-w-md via-30% to-white/30 font-medium text-[32px] leading-[48px]  sm:text-[56px] sm:leading-[72px] md:text-[64px] md:leading-[80px] xl:text-[64px] xl:leading-[80px]  ">
         Build better APIs faster
       </h1>
 
-      <p className="mt-8 bg-gradient-to-br text-transparent text-pretty bg-gradient-stop bg-clip-text max-w-sm sm:max-w-md  from-white via-white via-40% to-white/30 md:max-w-lg text-sm sm:text-[15px] sm:text-base leading-[28px]">
+      <p className="mt-8 bg-gradient-to-br text-transparent text-pretty bg-gradient-stop bg-clip-text max-w-sm sm:max-w-md  from-white via-white via-40% to-white/30 md:max-w-lg text-sm sm:text-sm leading-[28px]">
         Redefined API management for developers. Quickly add API keys, rate limiting, and usage
         analytics to your API at any scale.
       </p>
