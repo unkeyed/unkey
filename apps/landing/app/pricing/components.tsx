@@ -33,7 +33,7 @@ export const PricingCardHeader: React.FC<{
       {withIcon ? (
         <div
           className={cn(
-            "relative z-30 flex items-center justify-center ring-1 h-14 w-14 duration-150 rounded-xl backdrop-blur rounded-2 overflow-hidden drop-shadow-[0_20px_20px_rgba(256,0,0,1) ]",
+            "relative z-30 flex items-center justify-center ring-1 h-14 min-w-14 w-14 duration-150 rounded-xl backdrop-blur rounded-2 overflow-hidden drop-shadow-[0_20px_20px_rgba(256,0,0,1) ]",
             {
               " ring-white/10 hover:ring-white/25 ": color === Color.White,
               " ring-[#FFD600]/10 hover:ring-[#FFD600]/25": color === Color.Yellow,
@@ -105,7 +105,7 @@ export const Bullet: React.FC<{
   return (
     <li className="flex items-center gap-4">
       <div
-        className={cn("h-6 w-6 flex items-center justify-center rounded-md", {
+        className={cn("h-6 min-w-6 w-6 flex items-center justify-center rounded-md", {
           "text-[#FFFFFF] bg-[#FFFFFF]/10": color === Color.White,
           "text-[#FFD600] bg-[#FFD600]/10": color === Color.Yellow,
           "text-[#9D72FF] bg-[#9D72FF]/10": color === Color.Purple,
@@ -113,7 +113,9 @@ export const Bullet: React.FC<{
       >
         <Icon className="w-3 h-3" />
       </div>
-      <span className={cn("text-sm text-white whitespace-nowrap", textColor)}>{label}</span>
+      <span className={cn("text-sm text-white md:whitespace-nowrap sm:text-xs", textColor)}>
+        {label}
+      </span>
     </li>
   );
 };
