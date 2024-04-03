@@ -72,8 +72,8 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1(hono@4.1.1)(zod@3.22.4)
       '@microlabs/otel-cf-workers':
-        specifier: 1.0.0-rc.24
-        version: 1.0.0-rc.24
+        specifier: 1.0.0-rc.31
+        version: 1.0.0-rc.31
       '@opentelemetry/api':
         specifier: 1.4.1
         version: 1.4.1
@@ -4394,8 +4394,8 @@ packages:
       '@types/react': 18.2.67
       react: 18.2.0
 
-  /@microlabs/otel-cf-workers@1.0.0-rc.24:
-    resolution: {integrity: sha512-T7MX03qFFqQ6s4eHRA06kW7LYaa4gsfcMcWWQ8xHIcHhab4ydsgHXVczP2JXTJQDHiwWAfRpkiCPsCTCmBZh9A==}
+  /@microlabs/otel-cf-workers@1.0.0-rc.31:
+    resolution: {integrity: sha512-C5OhbNJ8c1O505TxGMCt+v1gD9jZ5nv/7eKgHJgHn8jkCeAXedImzbea/lQ+0DxeWtdyjepKgQJQSk+DAHZvOw==}
     dependencies:
       '@opentelemetry/api': 1.4.1
       '@opentelemetry/core': 1.13.0(@opentelemetry/api@1.4.1)
