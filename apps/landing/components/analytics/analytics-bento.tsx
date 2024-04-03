@@ -803,7 +803,7 @@ export function BentoText() {
       </div>
       <p className="mt-4 leading-6 text-white/60">
         Access real-time insights into your API usage through our dashboard, or build your own on
-        top of our APi.
+        top of our API.
       </p>
     </div>
   );
