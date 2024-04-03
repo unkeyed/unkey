@@ -48,10 +48,26 @@
     "indentWidth": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email",".contentlayer"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".wrangler",
+      ".react-email",
+      ".contentlayer"
+    ]
   },
   "organizeImports": {
     "enabled": true,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email",".contentlayer"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".wrangler",
+      ".react-email",
+      ".contentlayer"
+    ]
   }
 }
