@@ -59,7 +59,7 @@ export function AnalyticsBento() {
 
   return (
     <div className="relative flex justify-center w-full">
-      <div className="absolute">
+      <div className="absolute top-14 z-50">
         <PrimaryButton
           label="Show API code"
           IconLeft={Wand2}
