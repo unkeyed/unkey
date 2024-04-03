@@ -11,7 +11,7 @@
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.30.5",
+    "drizzle-orm": "^0.30.6",
     "mysql2": "^3.9.2",
     "zod": "^3.22.4"
   },
