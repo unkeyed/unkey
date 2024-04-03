@@ -3,13 +3,7 @@
 import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { AvatarImage } from "@radix-ui/react-avatar";
-import { Avatar, AvatarFallback } from "../../components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../components/ui/tooltip";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 //Todo: Add ability to have multiple authors
 

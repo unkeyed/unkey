@@ -1,11 +1,11 @@
 "use client";
+import { CopyButton } from "@/components/copy-button";
+import { BlogCodeDownload } from "@/components/svg/blog-code-block";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-tabs";
 import { cn } from "@/lib/utils";
 import { Highlight } from "prism-react-renderer";
 import { useState } from "react";
 import React from "react";
-import { CopyButton } from "../../components/copy-button";
-import { BlogCodeDownload } from "../../components/svg/blog-code-block";
 import darkTheme from "./dark-theme";
 
 export function BlogCodeBlock({ className, children }: any) {
@@ -35,7 +35,7 @@ export function BlogCodeBlock({ className, children }: any) {
   return (
     <div
       className={cn(
-        "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)]",
+        "flex flex-col rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)]",
         className,
       )}
     >
@@ -45,7 +45,7 @@ export function BlogCodeBlock({ className, children }: any) {
         className="flex flex-col"
       >
         <div className="flex flex-row border-b-[.5px] border-white/10 p-2">
-          <TabsList className="w-full flex flex-row gap-4 justify-start h-fit align-bottom">
+          <TabsList className="flex h-fit w-full flex-row justify-start gap-4 align-bottom">
             {React.Children.map(buttonLabels, (label: string) => {
               return (
                 <TabsTrigger key={label} value={label} className="capitalize text-white/30">
@@ -54,9 +54,9 @@ export function BlogCodeBlock({ className, children }: any) {
               );
             })}
           </TabsList>
-          <div className="flex flex-row gap-4 pr-4 pt-2">
+          <div className="flex flex-row gap-4 pr-4 pt-0">
             <CopyButton value={copyData} />
-            <button type="button" className="p-0 m-0 bg-transparent" onClick={handleDownload}>
+            <button type="button" className="m-0 bg-transparent p-0" onClick={handleDownload}>
               <BlogCodeDownload />
             </button>
           </div>
@@ -70,14 +70,14 @@ export function BlogCodeBlock({ className, children }: any) {
                 language={block.className.replace(/language-/, "")}
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
-                  <pre className="leading-10 border-none rounded-none bg-transparent overflow-x-auto ">
+                  <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-10 ">
                     {tokens.map((line, i) => (
                       <div
                         // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
                         key={`${line}-${i}`}
                         {...getLineProps({ line })}
                       >
-                        <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
+                        <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
                         {line.map((token, key) => (
                           <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                         ))}
@@ -113,33 +113,38 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         className,
       )}
     >
-      <div className="flex flex-row gap-2 border-white/10 p-2 pr-4 justify-end w-full ">
-        <CopyButton value={copyData} />
-        <button type="button" className="p-0 m-0 bg-transparent" onClick={handleDownload}>
-          <BlogCodeDownload />
-        </button>
-      </div>
       <Highlight
         theme={darkTheme}
         code={block.children}
-        language={block.className.replace(/language-/, "")}
+        language={block.className?.replace(/language-/, "") || "jsx"}
       >
-        {({ tokens, getLineProps, getTokenProps }) => (
-          <pre className="leading-10 border-none rounded-none bg-transparent overflow-x-auto ">
-            {tokens.map((line, i) => (
-              <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                key={`${line}-${i}`}
-                {...getLineProps({ line })}
-              >
-                <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
-                {line.map((token, key) => (
-                  <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                ))}
+        {({ tokens, getLineProps, getTokenProps }) => {
+          if (tokens.length > 1) {
+            tokens.pop()?.toString();
+          }
+          return (
+            <pre className="leading-10 border-none rounded-none bg-transparent overflow-x-auto pb-5">
+              <div className="flex flex-row gap-4 border-white/10 pr-4 justify-end w-full relative top-4 right-2">
+                <CopyButton value={copyData} />
+                <button type="button" className="p-0 m-0 bg-transparent" onClick={handleDownload}>
+                  <BlogCodeDownload />
+                </button>
               </div>
-            ))}
-          </pre>
-        )}
+              {tokens.map((line, i) => (
+                <div
+                  // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                  key={`${line}-${i}`}
+                  {...getLineProps({ line })}
+                >
+                  <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
+                  {line.map((token, key) => (
+                    <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              ))}
+            </pre>
+          );
+        }}
       </Highlight>
     </div>
   );
