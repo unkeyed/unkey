@@ -69,8 +69,8 @@ importers:
         specifier: ^0.9.8
         version: 0.9.8(hono@4.1.1)(zod@3.22.4)
       '@hono/zod-validator':
-        specifier: ^0.2.0
-        version: 0.2.0(hono@4.1.1)(zod@3.22.4)
+        specifier: ^0.2.1
+        version: 0.2.1(hono@4.1.1)(zod@3.22.4)
       '@microlabs/otel-cf-workers':
         specifier: 1.0.0-rc.24
         version: 1.0.0-rc.24
@@ -3954,8 +3954,8 @@ packages:
       zod: 3.22.4
     dev: false
 
-  /@hono/zod-validator@0.2.0(hono@4.1.1)(zod@3.22.4):
-    resolution: {integrity: sha512-PC7akbA/DCFY406BL3+ogjYb+7Fgfs/6XPvyURBYMczo0M7kYsTUMnF8hA9mez1RORNCWPqXuFGfKrkoUVPvrQ==}
+  /@hono/zod-validator@0.2.1(hono@4.1.1)(zod@3.22.4):
+    resolution: {integrity: sha512-HFoxln7Q6JsE64qz2WBS28SD33UB2alp3aRKmcWnNLDzEL1BLsWfbdX6e1HIiUprHYTIXf5y7ax8eYidKUwyaA==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
