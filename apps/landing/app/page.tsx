@@ -139,7 +139,7 @@ export default async function Landing() {
               className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
               title="Leveled-up API management"
               text="With enhanced security, low latency, and better control, you can seamlessly integrate into your APIs and protect your data like never before."
-              label="More"
+              label="Features"
             >
               <div className="flex mt-10 mb-10 space-x-6">
                 <Link href="/app" className="group">
