@@ -78,17 +78,16 @@ function MobileLinks({ className }: { className?: string }) {
                 className="flex justify-center w-full text-center"
               />
             </Link>
-            <DrawerClose asChild>
-              <button
-                type="button"
-                className={cn(
-                  "px-4 duration-500 text-white/75 hover:text-white/80 h-10 border rounded-lg text-center bg-black",
-                  className,
-                )}
-              >
-                Close
-              </button>
-            </DrawerClose>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className={cn(
+                "px-4 duration-500 text-white/75 hover:text-white/80 h-10 border rounded-lg text-center bg-black",
+                className,
+              )}
+            >
+              Close
+            </button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
