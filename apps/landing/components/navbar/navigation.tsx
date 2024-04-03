@@ -10,31 +10,49 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PrimaryButton, SecondaryButton } from "../button";
 import { DesktopNavLink, MobileNavLink } from "./link";
 
 export function Navigation() {
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollThreshold = 100;
+      const scrollPercent = Math.min(window.scrollY / 2 / scrollThreshold, 1);
+      setOpacity(scrollPercent);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <nav className="container px-[30px] lg:px-0 flex items-center justify-between w-full h-20 mx-auto pt-[20px]">
-      <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
-        <Link href="/">
-          <Logo className="min-w-[50px]" />
-        </Link>
-        <MobileLinks className="lg:hidden" />
-        <DesktopLinks className="hidden lg:flex" />
-      </div>
-      <div className="hidden sm:flex">
-        <Link href="/auth/sign-up">
-          <SecondaryButton
-            label="Create Account"
-            IconRight={ChevronRight}
-            className="h-8 text-sm"
-          />
-        </Link>
-        <Link href="/app">
-          <PrimaryButton label="Sign In" IconRight={ChevronRight} className="h-8" />
-        </Link>
+    <nav
+      style={{ backgroundColor: `rgba(0, 0, 0, ${opacity})` }}
+      className="sticky z-[1000] top-0 px-[30px] lg:px-0 w-full py-3"
+    >
+      <div className="container px-0 flex items-center justify-between">
+        <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
+          <Link href="/">
+            <Logo className="min-w-[50px]" />
+          </Link>
+          <MobileLinks className="lg:hidden" />
+          <DesktopLinks className="hidden lg:flex" />
+        </div>
+        <div className="hidden sm:flex">
+          <Link href="/auth/sign-up">
+            <SecondaryButton
+              label="Create Account"
+              IconRight={ChevronRight}
+              className="h-8 text-sm"
+            />
+          </Link>
+          <Link href="/app">
+            <PrimaryButton label="Sign In" IconRight={ChevronRight} className="h-8" />
+          </Link>
+        </div>
       </div>
     </nav>
   );
