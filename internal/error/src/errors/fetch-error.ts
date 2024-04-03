@@ -8,24 +8,21 @@ export class FetchError extends BaseError<{
   method: string;
   [more: string]: unknown;
 }> {
-  public readonly name = "FetchError";
   public readonly retry: boolean;
+  public readonly name = FetchError.name;
 
-  constructor(
-    message: string,
-    opts: {
-      retry: boolean;
-      cause?: BaseError;
-      context?: {
-        url: string;
-        method: string;
-        [more: string]: unknown;
-      };
-    },
-  ) {
-    super(message, {
-      ...opts,
-    });
+  constructor(opts: {
+    message: string;
+
+    retry: boolean;
+    cause?: BaseError;
+    context?: {
+      url: string;
+      method: string;
+      [more: string]: unknown;
+    };
+  }) {
+    super(opts);
     this.retry = opts.retry;
   }
 }

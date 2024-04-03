@@ -3,23 +3,9 @@ import type { Context } from "hono";
 import type { MaybePromise } from "../types/maybe";
 import type { CacheNamespaces } from "./namespaces";
 
-export class CacheError extends BaseError {
-  public readonly name = "CacheError";
+export class CacheError extends BaseError<{ namespace: keyof CacheNamespaces; key: string }> {
   public readonly retry = false;
-
-  public readonly namespace: keyof CacheNamespaces;
-  public readonly key: string;
-
-  constructor(opts: {
-    namespace: keyof CacheNamespaces;
-    key: string;
-    message: string;
-  }) {
-    super(opts.message);
-    this.name = "CacheError";
-    this.namespace = opts.namespace;
-    this.key = opts.key;
-  }
+  public readonly name = CacheError.name;
 }
 
 export type Entry<TValue> = {

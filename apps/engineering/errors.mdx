@@ -90,7 +90,6 @@ import { BaseError } from "./base";
  * Parsing a permission query failed
  */
 export class SchemaError extends BaseError<{ raw: unknown }> {
-  public readonly name = "SchemaError";
   public readonly retry = false;
 
   static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {
@@ -114,6 +113,7 @@ export class SchemaError extends BaseError<{ raw: unknown }> {
       },
     });
     return new SchemaError(message, {
+      id: SchemaError.name,
       context: {
         raw: JSON.stringify(raw),
       },

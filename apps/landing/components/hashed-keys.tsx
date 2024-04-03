@@ -193,7 +193,7 @@ function Key({ className, text }: { className?: string; text: string }) {
             </defs>
           </svg>
         </div>
-        <p className="relative right-4 text-[13px]">{text}</p>
+        <p className="relative text-xs">{text}</p>
       </div>
     </div>
   );

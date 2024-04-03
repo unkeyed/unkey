@@ -43,9 +43,14 @@ export const decryptSecret = t.procedure
       });
     }
 
-    const key = getDecryptionKeyFromEnv(env(), secret.encryptionKeyVersion);
-
-    const aes = await AesGCM.withBase64Key(key);
+    const decryptionKey = getDecryptionKeyFromEnv(env(), secret.encryptionKeyVersion);
+    if (decryptionKey.err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "missing encryption key in env",
+      });
+    }
+    const aes = await AesGCM.withBase64Key(decryptionKey.val);
 
     const value = await aes.decrypt({ iv: secret.iv, ciphertext: secret.ciphertext });
 

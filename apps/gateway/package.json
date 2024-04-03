@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
+    "build": "tsc",
     "dev": "wrangler dev",
     "start": "wrangler dev"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.1.0",
+    "@cloudflare/vitest-pool-workers": "^0.1.10",
     "@cloudflare/workers-types": "^4.20240222.0",
     "typescript": "^5.0.4",
     "vitest": "1.3.0",
@@ -19,7 +20,7 @@
     "@unkey/db": "workspace:^",
     "@unkey/encoding": "workspace:^",
     "@unkey/encryption": "workspace:^",
-    "drizzle-orm": "^0.30.5",
+    "drizzle-orm": "^0.30.6",
     "zod": "^3.22.4"
   }
 }

@@ -115,7 +115,7 @@ export function RateLimits() {
                 </defs>
               </svg>
             </div>
-            <p className="relative right-4 text-[13px]">sk_TEwCE9AY9BFTq1XJdIO</p>
+            <p className="relative text-xs right-4">sk_TEwCE9AY9BFTq1XJdIO</p>
           </div>
         </div>
         <div className="inline-flex w-[205px] opacity-70 items-center ml-[150px] mt-[30px] h-[36px] text-white font-mono text-sm ratelimits-link ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded-xl">
@@ -200,7 +200,7 @@ export function RateLimits() {
               </filter>
             </defs>
           </svg>
-          <p className="relative right-4 text-[13px]">sk_UNWrXjYp6AF2h7Nx</p>
+          <p className="relative text-xs right-4">sk_UNWrXjYp6AF2h7Nx</p>
         </div>
       </div>
     </div>
