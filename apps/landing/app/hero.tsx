@@ -1,13 +1,42 @@
+"use client";
 import { YoutubeEmbed } from "@/components/youtube-embed";
+import { motion } from "framer-motion";
 import { HeroMainSection } from "./hero/hero-main-section";
 
 export const Hero: React.FC = () => {
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.3,
+      },
+    },
+  };
+
+  const childVariants = {
+    hidden: { opacity: 0, y: 25 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
+
   return (
-    <div className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-[250px] sm:mt-[250px] xl:mt-[200px] ">
-      <HeroMainSection />
-      <YoutubeEmbed />
+    <motion.div
+      className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-[250px] sm:mt-[250px] xl:mt-[200px]"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div variants={childVariants}>
+        <HeroMainSection />
+      </motion.div>
+      <motion.div variants={childVariants}>
+        <YoutubeEmbed />
+      </motion.div>
       <SubHeroMainboardStuff className="absolute hidden md:flex left-[400px] top-[250px]" />
-    </div>
+    </motion.div>
   );
 };
 
