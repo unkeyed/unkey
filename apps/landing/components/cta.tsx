@@ -8,7 +8,7 @@ export const CTA: React.FC = () => {
   return (
     <div className="w-full h-full">
       <div className="relative pb-40 pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 overflow-hidden w-full" />
+        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full" />
         <SectionTitle
           align="center"
           title={

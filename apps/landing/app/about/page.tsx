@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { BorderBeam } from "@/components/border-beam";
+import { PrimaryButton } from "@/components/button";
 import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { SectionTitle } from "@/components/section-title";
@@ -14,12 +15,14 @@ import {
   AccordionTriggerAbout,
 } from "@/components/ui/accordion";
 import { MeteorLines } from "@/components/ui/meteorLines";
-import { CTA } from "@/components/cta";
+
 import { allPosts } from "@/.contentlayer/generated";
 import { BlogCard } from "@/components/blog/blog-card";
+import { CTA } from "@/components/cta";
 import { AboutLight } from "@/components/svg/about-light";
 import { authors } from "@/content/blog/authors";
 import allison from "@/images/about/allison5.png";
+import bottomlight from "@/images/about/bottomlight.svg";
 import downlight from "@/images/about/down-light.svg";
 import placeholder from "@/images/about/landscape-placeholder.svg";
 import liu from "@/images/about/liujiang.jpeg";
@@ -69,7 +72,7 @@ export default async function Page() {
   return (
     <div>
       <Container>
-        <div className="mt-[150px] flex flex-col items-center overflow-hidden mb-[200px]">
+        <div className="mt-[150px] flex flex-col items-center mb-[200px]">
           <ChangelogLight />
           <div className="absolute flex -z-50">
             <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
@@ -108,6 +111,12 @@ export default async function Page() {
               <MeteorLines className="ml-2" delay={0.2} number={1} />
               <MeteorLines className="ml-10" number={1} />
               <MeteorLines className="ml-16" delay={0.4} number={1} />
+
+              {/* <div className="absolute right-[640px] top-[700px]">
+              <MeteorLines className="ml-2" delay={0.2} />
+              <MeteorLines className="ml-10" />
+              <MeteorLines className="ml-16" delay={0.4} />
+            </div> */}
             </div>
             <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/20 max-w-[1000px]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center">
@@ -286,6 +295,7 @@ export default async function Page() {
                   </div>
                 </div>
               </div>
+            </div>
             <div className="relative w-full max-w-[680px] z-0">
               <div className="relative z-50 w-full bg-black">
                 <Accordion
@@ -321,6 +331,7 @@ export default async function Page() {
                 <Image src={downlight} alt="Light effect" className="scale-[1.5]" />
               </div>
             </div>
+
             <div className="flex flex-col max-w-full">
               <SectionTitle
                 className="mt-[250px]"
@@ -350,21 +361,21 @@ export default async function Page() {
                 text="Explore insights, tips, and updates directly from our team members"
               />
               <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
-              {posts.map((post) => {
-                return (
-                  <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
-                    <BlogCard
-                      tags={post.tags}
-                      imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
-                      title={post.title}
-                      subTitle={post.description}
-                      author={authors[post.author]}
-                      publishDate={post.date}
-                    />
-                  </Link>
-                );
-              })}
-            </div>
+                {posts.map((post) => {
+                  return (
+                    <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
+                      <BlogCard
+                        tags={post.tags}
+                        imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
+                        title={post.title}
+                        subTitle={post.description}
+                        author={authors[post.author]}
+                        publishDate={post.date}
+                      />
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
