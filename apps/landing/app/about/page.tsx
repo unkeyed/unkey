@@ -14,9 +14,9 @@ import {
   AccordionTriggerAbout,
 } from "@/components/ui/accordion";
 import { MeteorLines } from "@/components/ui/meteorLines";
-
-import { BlogCard } from "@/app/blog/blog-card";
 import { CTA } from "@/components/cta";
+import { allPosts } from "@/.contentlayer/generated";
+import { BlogCard } from "@/components/blog/blog-card";
 import { AboutLight } from "@/components/svg/about-light";
 import { authors } from "@/content/blog/authors";
 import allison from "@/images/about/allison5.png";
@@ -27,7 +27,6 @@ import sidelight from "@/images/about/side-light.svg";
 import tim from "@/images/about/tim.png";
 import andreas from "@/images/team/andreas.jpeg";
 import james from "@/images/team/james.jpg";
-import { BLOG_PATH, getAllMDXData } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
@@ -64,11 +63,9 @@ const investors = [
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
 
 export default async function Page() {
-  const selectedPosts = (await getAllMDXData({ contentPath: BLOG_PATH }))
-    .sort((a, b) => {
-      return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
-    })
-    .filter((post) => SELECTED_POSTS.includes(post.slug));
+  const posts = allPosts.filter((post) =>
+    SELECTED_POSTS.includes(post._raw.flattenedPath.replace("blog/", "")),
+  );
   return (
     <div>
       <Container>
@@ -289,7 +286,6 @@ export default async function Page() {
                   </div>
                 </div>
               </div>
-            </div>
             <div className="relative w-full max-w-[680px] z-0">
               <div className="relative z-50 w-full bg-black">
                 <Accordion
@@ -354,19 +350,21 @@ export default async function Page() {
                 text="Explore insights, tips, and updates directly from our team members"
               />
               <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
-                {selectedPosts.map((post) => {
-                  return (
+              {posts.map((post) => {
+                return (
+                  <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
                     <BlogCard
-                      tags={post.frontmatter.tags?.toString()}
-                      imageUrl={post.frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
-                      title={post.frontmatter.title}
-                      subTitle={post.frontmatter.description}
-                      author={authors[post.frontmatter.author]}
-                      publishDate={post.frontmatter.date}
+                      tags={post.tags}
+                      imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
+                      title={post.title}
+                      subTitle={post.description}
+                      author={authors[post.author]}
+                      publishDate={post.date}
                     />
-                  );
-                })}
-              </div>
+                  </Link>
+                );
+              })}
+            </div>
             </div>
           </div>
         </div>

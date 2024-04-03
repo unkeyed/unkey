@@ -21,6 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FrostedGlassFilter } from "@/components/ui/image-glass-filter";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -333,13 +334,15 @@ export function TemplatesClient() {
               >
                 <div className="relative w-full">
                   {template.image ? (
-                    <Image
-                      src={template.image}
-                      alt=""
-                      width={800}
-                      height={400}
-                      className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
-                    />
+                    <FrostedGlassFilter>
+                      <Image
+                        src={template.image}
+                        alt=""
+                        width={800}
+                        height={400}
+                        className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
+                      />
+                    </FrostedGlassFilter>
                   ) : (
                     <div className="flex items-center justify-center w-full h-full">
                       <VenetianMask className="w-8 h-8 text-white/60" />

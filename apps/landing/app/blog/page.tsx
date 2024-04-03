@@ -1,12 +1,12 @@
+import { type Post, allPosts } from "@/.contentlayer/generated";
+import { BlogContainer } from "@/components/blog/blog-container";
+import { BlogHero } from "@/components/blog/blog-hero";
+import { BlogGrid } from "@/components/blog/blogs-grid";
 import { CTA } from "@/components/cta";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
-import { BLOG_PATH, type Tags, getAllMDXData } from "@/lib/mdx-helper";
 import Link from "next/link";
-import { BlogContainer } from "./blog-container";
-import { BlogHero } from "./blog-hero";
-import { BlogGrid } from "./blogs-grid";
 
 export const metadata = {
   title: "Blog | Unkey",
@@ -35,16 +35,15 @@ export const metadata = {
 
 type Props = {
   searchParams?: {
-    tag?: Tags;
+    tag?: string;
     page?: number;
   };
 };
 
 export default async function Blog(props: Props) {
-  const posts = (await getAllMDXData({ contentPath: BLOG_PATH })).sort((a, b) => {
-    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
+  const posts = allPosts.sort((a: Post, b: Post) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
-  const postTags: string[] = posts[0].frontmatter.tags?.toString().split(" ") || [];
   return (
     <>
       <BlogContainer className="w-[1440px] mt-32 scroll-smooth">
@@ -112,14 +111,14 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
-        <Link href={`/blog/${posts[0].slug}`} key={posts[0].slug}>
+        <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
           <BlogHero
-            tags={postTags}
-            imageUrl={posts[0].frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
-            title={posts[0].frontmatter.title}
-            subTitle={posts[0].frontmatter.description}
-            author={authors[posts[0].frontmatter.author]}
-            publishDate={posts[0].frontmatter.date}
+            tags={posts[0].tags}
+            imageUrl={posts[0].image ?? "/images/blog-images/defaultBlog.png"}
+            title={posts[0].title}
+            subTitle={posts[0].description}
+            author={authors[posts[0].author]}
+            publishDate={posts[0].date}
             className="px-4"
           />
         </Link>

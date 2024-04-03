@@ -1,24 +1,24 @@
 import { authors } from "@/content/blog/authors";
-import type { Frontmatter, Tags } from "@/lib/mdx-helper";
 import { cn } from "@/lib/utils";
+import type { Post } from "contentlayer/generated";
 import Link from "next/link";
 import { BlogCard } from "./blog-card";
 import { BlogPagination } from "./blog-pagination";
 
 type Props = {
-  posts: { frontmatter: Frontmatter; slug: string }[];
+  posts: Post[];
   className?: string;
 
   searchParams?: {
-    tag?: Tags;
+    tag?: string;
     page?: number;
   };
 };
 
-function getAllTags(posts: any[]) {
+function getAllTags(posts: Post[]) {
   const tempTags = ["all"];
   posts.forEach((post) => {
-    const newTags = post.frontmatter.tags?.toString().split(" ");
+    const newTags = post.tags;
     newTags?.forEach((tag: string) => {
       if (!tempTags.includes(tag)) {
         tempTags.push(tag);
@@ -33,8 +33,8 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
   const allTags = getAllTags(posts);
   const selectedTag = searchParams?.tag;
   const filteredPosts =
-    selectedTag && selectedTag !== ("all" as Tags)
-      ? posts.filter((p) => p.frontmatter.tags?.includes(selectedTag))
+    selectedTag && selectedTag !== "all"
+      ? posts.filter((p) => p.tags?.includes(selectedTag))
       : posts;
 
   const page = Number(searchParams?.page ?? 1);
@@ -42,7 +42,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
 
   return (
     <div className="">
-      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full px-12 ", className)}>
+      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full ", className)}>
         {allTags.map((tag) => (
           <Link
             key={tag}
@@ -51,8 +51,8 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
             className={cn(
               tag === (selectedTag ?? "all")
                 ? "bg-white text-black"
-                : "sm:text-sm bg-white/10 text-white/50",
-              "py-1 px-3 rounded-lg flex items-center",
+                : "sm:text-sm bg-white/10 text-white/60",
+              "py-1 px-3 rounded-lg",
               className,
             )}
           >
@@ -62,14 +62,14 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
       </div>
       <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 px-4", className)}>
         {visiblePosts.map((post) => (
-          <Link href={`/blog/${post.slug}`} key={post.slug}>
+          <Link href={`${post._raw.flattenedPath}`} key={post._raw.flattenedPath}>
             <BlogCard
-              tags={post.frontmatter.tags?.toString()}
-              imageUrl={post.frontmatter.image ?? "/images/blog-images/defaultBlog.png"}
-              title={post.frontmatter.title}
-              subTitle={post.frontmatter.description}
-              author={authors[post.frontmatter.author]}
-              publishDate={post.frontmatter.date}
+              tags={post.tags}
+              imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
+              title={post.title}
+              subTitle={post.description}
+              author={authors[post.author]}
+              publishDate={post.date}
             />
           </Link>
         ))}
