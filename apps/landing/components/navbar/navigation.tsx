@@ -49,7 +49,7 @@ function MobileLinks({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="flex items-center justify-center h-8 gap-2 px-3 py-2 mr-3 text-sm duration-150 text-white/60 hover:text-white"
+            className="flex items-center justify-center h-8 gap-2 px-3 py-2 mr-3 text-sm duration-150 text-white/60 hover:text-white/80"
           >
             Menu
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
@@ -82,7 +82,7 @@ function MobileLinks({ className }: { className?: string }) {
               <button
                 type="button"
                 className={cn(
-                  "px-4 duration-500 text-white/75 hover:text-white h-10 border rounded-lg text-center bg-black",
+                  "px-4 duration-500 text-white/75 hover:text-white/80 h-10 border rounded-lg text-center bg-black",
                   className,
                 )}
               >

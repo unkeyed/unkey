@@ -65,7 +65,7 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
             href={link.href}
             target={link.href.startsWith("https://") ? "_blank" : undefined}
             rel={link.href.startsWith("https://") ? "noopener noreferrer" : undefined}
-            className="text-sm font-normal transition hover:text-white/40 text-white/70"
+            className="text-sm font-normal transition hover:text-white/90 text-white/50"
           >
             {link.title}
           </Link>
