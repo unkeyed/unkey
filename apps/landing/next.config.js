@@ -1,9 +1,11 @@
+const { withContentlayer } = require("next-contentlayer");
 /** @type {import('next').NextConfig} */
-
 const APP_URL = process.env.APP_URL ?? "https://app.unkey.dev";
 
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
+  reactStrictMode: true,
+  swcMinify: true,
   rewrites: () => [
     {
       source: "/docs",
@@ -32,4 +34,4 @@ const nextConfig = {
   ],
 };
 
-export default nextConfig;
+module.exports = withContentlayer(nextConfig);

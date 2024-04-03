@@ -3,7 +3,7 @@ import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import Image from "next/image";
-import { Frame } from "../../components/frame";
+import { Frame } from "../frame";
 export function QuestionCircle({ className }: { className?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -51,7 +51,7 @@ export function BlogHero({
               key={tag}
               className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 flex items-center capitalize py-1"
             >
-              {tag}
+              {tag.charAt(0).toUpperCase() + tag.slice(1)}
             </p>
           ))}
         </div>

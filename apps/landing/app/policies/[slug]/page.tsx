@@ -1,27 +1,24 @@
-import { MdxContent } from "@/components/mdx-content";
-import { POLICY_PATH, getFilePaths, getPolicy } from "@/lib/mdx-helper";
+import { type Policy, allPolicies } from "@/.contentlayer/generated";
+import { MDX } from "@/components/mdx-content";
 import { notFound } from "next/navigation";
 
-export const generateStaticParams = async () => {
-  const policies = await getFilePaths(POLICY_PATH);
-  // Remove file extensions for page paths
-  policies.map((path) => path.replace(/\.mdx?$/, "")).map((slug) => ({ params: { slug } }));
-  return policies;
-};
+export const generateStaticParams = async () =>
+  allPolicies.map((policy) => ({ slug: policy._raw.flattenedPath.replace("policies/", "") }));
 
 export const generateMetadata = async ({ params }: { params: { slug: string } }) => {
-  const { frontmatter } = await getPolicy(params.slug);
-  if (!frontmatter) {
-    return notFound();
+  const policy = allPolicies.find(
+    (policy) => policy._raw.flattenedPath === `policies/${params.slug}`,
+  );
+  if (!policy) {
+    notFound();
   }
   return {
-    title: frontmatter.title,
-    description: frontmatter.title,
+    title: policy.title,
+    description: policy.title,
     openGraph: {
-      title: frontmatter.title,
-      description: frontmatter.title,
+      title: policy.title,
+      description: policy.title,
       type: "article",
-      image: `https://unkey.dev/og?title=${encodeURIComponent(frontmatter.title)}`,
     },
     robots: {
       index: true,
@@ -40,18 +37,17 @@ export const generateMetadata = async ({ params }: { params: { slug: string } })
 };
 
 const PolicyLayout = async ({ params }: { params: { slug: string } }) => {
-  const { frontmatter, serialized } = await getPolicy(params.slug);
-  if (!serialized) {
-    return notFound();
-  }
+  const policy = allPolicies.find(
+    (post) => post._raw.flattenedPath === `policies/${params.slug}`,
+  ) as Policy;
 
   return (
     <>
       <article className="w-full max-w-3xl p-4 mx-auto prose-invert">
         <div className="max-w-2xl py-8 mx-auto mb-8 ">
-          <h1 className="text-center text-white/90 text-4xl">{frontmatter.title}</h1>
+          <h1 className="text-center text-white/90 text-4xl">{policy.title}</h1>
         </div>
-        <MdxContent source={serialized} />
+        <MDX code={policy.body.code} />
       </article>
     </>
   );

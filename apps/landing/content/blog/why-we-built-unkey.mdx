@@ -3,10 +3,11 @@ date: 2023-07-04
 title: Why we built Unkey
 description: Why we built Unkey, the open source API management tool and what features we have.
 author: james
-tags: product engineering
+tags: [product, engineering]
 ---
 
 ## What is Unkey?
+
 Unkey provides a way for you to create, manage and revoke API Keys that belong to your API. It's a simple concept, but one that we think is important. We built Unkey to layer it into your API so that you can issue keys, manage them and revoke them as needed. This means we need a simple and great DX and fast response times.
 
 ## Why did we build it?
@@ -35,7 +36,6 @@ Our admin dashboard gives you access to several features in a simple-to-use inte
 
 <Image src="/images/blog-images/admin-dashboard.png" alt="Admin dashboard" width="1920" height="1080"/>
 
-
 ### Simple API with SDKs
 
 We wanted the DX for Unkey to be as simple as possible. We've built a simple API that you can use to create, manage and revoke keys. We wanted to make sure the API was easy to integrate and didn't take engineering time away.
@@ -43,6 +43,7 @@ We wanted the DX for Unkey to be as simple as possible. We've built a simple API
 No API is great without SDKs so we built a typescript one and our community also built an Elixir and Python SDK.
 
 ### Short-lived keys
+
 When we started Unkey we wanted the ability to issue a short-lived key but we didn't want to restrict the period. We understand that each use case is different so you can pass us an expiration or select it in the UI.
 
 Once the key expires, we revoke the key and the user can no longer access your content. This is great for audit teams, trials, or payment systems that give you access for some time.
@@ -53,14 +54,13 @@ Rate limiting is essential to all businesses that have an API. Unkey gives you t
 
 Once you have the key with the limits, with each request we return the amount the request limit, how many remaining, and the reset time. Once a user hits the rate limit we will return `json "valid": false` alongside a code `RATE_LIMITED` if the rate limit has been hit, so you know that this user shouldn't be able to access your endpoints.
 
-
 ### Metadata attached to keys
 
 We wanted to give you the ability to attach metadata to your keys so you can easily make business decisions based on the data instead of having to look up the key in your database. You can include anything that you want to read on the server, for example:
 
 ```json
 {
-  "billingTier":"PRO",
+  "billingTier": "PRO",
   "trialEnds": "2023-06-16T17:16:37.161Z"
 }
 ```
