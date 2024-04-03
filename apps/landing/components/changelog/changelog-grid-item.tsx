@@ -36,7 +36,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           </Link>
         </h3>
         <p className="pt-12">{format(changelog.date, "MMMM dd, yyyy")}</p>
-        <p className="my-8 ">{changelog.description}</p>
+        <p className="my-8 text-lg font-normal">{changelog.description}</p>
       </div>
       {changelog.image && (
         <Frame className="shadow-sm my-14 2xl:ml-24" size="md">
