@@ -32,7 +32,7 @@
     "cmdk": "^0.2.0",
     "contentlayer": "^0.3.4",
     "date-fns": "^3.6.0",
-    "drizzle-orm": "^0.30.5",
+    "drizzle-orm": "^0.30.6",
     "framer-motion": "11.0.23",
     "fslightbox-react": "^1.7.6",
     "geist": "^1.2.2",
