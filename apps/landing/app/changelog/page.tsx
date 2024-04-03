@@ -89,9 +89,9 @@ export default async function Changelogs(_props: Props) {
             </div>
           </div>
 
-          <div className="flex sticky flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
+          <div className="flex sticky top-0 flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
             <div className="relative hidden w-80 xl:block xl:sticky">
-              <div className="left-0 top-12 sticky">
+              <div className="left-0 top-20 sticky">
                 <SideList logs={changelogs} className="xl:ml-12 2xl:ml-8 changlog-gradient" />
               </div>
             </div>
