@@ -159,8 +159,9 @@ export default async function Landing() {
         </Section>
         <Section>
           <SectionTitle
-            className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
+            className="mt-8 md:mt-16 lg:mt-32 xl:mt-48 text-pretty"
             align="center"
+            titleWidth={437}
             title="Protect your API. Start today."
           >
             <div className="flex space-x-6 ">
