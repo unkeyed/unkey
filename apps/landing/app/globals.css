@@ -324,7 +324,7 @@ li > p {
 
 
 .blog-footer-radial-gradient {
-    background: radial-gradient(at top center, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 40%);
+    background: radial-gradient(at top center, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0) 40%);
 }
 
 .mobile-blog-footer-radial {
