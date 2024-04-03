@@ -35,7 +35,6 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
             {changelog.title}
           </Link>
         </h3>
-        <p className="pt-12">{format(changelog.date, "MMMM dd, yyyy")}</p>
         <p className="my-8 text-lg font-normal">{changelog.description}</p>
       </div>
       {changelog.image && (
@@ -51,7 +50,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           value={`${baseUrl}/changelog#${changelog.tableOfContents.slug}`}
           className="mb-6 mt-12 2xl:pl-36 "
         >
-          <p className="">Copy Link</p>
+          <p className="">share on twitter</p>
         </CopyButton>
         <Separator orientation="horizontal" className="mb-12" />
       </div>
