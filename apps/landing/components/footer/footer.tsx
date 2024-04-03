@@ -82,7 +82,7 @@ export function Footer() {
         <div className="flex flex-col items-start cols-span-1 sm:col-span-3 xl:col-span-2">
           <UnkeyLogo />
           <div className="mt-8 text-sm font-normal leading-6 text-white/60">
-            Seriously Fast API Authentication.
+            Build better APIs faster.
           </div>
           <div className="text-sm font-normal leading-6 text-white/40">
             Unkeyed, Inc. {new Date().getUTCFullYear()}

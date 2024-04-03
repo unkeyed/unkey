@@ -69,7 +69,7 @@
     "d3-array": "^3.2.4",
     "dagre": "^0.8.5",
     "date-fns": "^3.6.0",
-    "drizzle-orm": "^0.30.5",
+    "drizzle-orm": "^0.30.6",
     "framer-motion": "11.0.23",
     "free-email-domains": "^1.2.13",
     "github-slugger": "^2.0.0",
