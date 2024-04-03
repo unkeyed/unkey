@@ -1,7 +1,7 @@
 "use client";
-import { SectionTitle } from "@/app/section";
 import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
+import { SectionTitle } from "@/components/section-title";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
@@ -484,6 +484,8 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
+        titleWidth={700}
+        contentWidth={700}
         text="Add authentication to your APIs in a few lines of code. We provide SDKs for a range of languages and frameworks, and an intuitive REST API with public OpenAPI spec."
         align="center"
         className="relative"
