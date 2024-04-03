@@ -20,7 +20,7 @@
     "@unkey/db": "workspace:^",
     "@unkey/encoding": "workspace:^",
     "@unkey/encryption": "workspace:^",
-    "drizzle-orm": "^0.30.5",
+    "drizzle-orm": "^0.30.6",
     "zod": "^3.22.4"
   }
 }
