@@ -1,14 +1,14 @@
 import { SectionTitle } from "@/app/section";
-import { ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
-import { PrimaryButton } from "./button";
+import { PrimaryButton, SecondaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
     <div className="w-full h-full bg-[#010101]">
       <div className="relative pb-40 overflow-hidden pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 overflow-hidden w-full" />
+        <Highlights className="absolute inset-x-0 w-full mx-auto overflow-hidden pointer-events-none -bottom-80 max-sm:w-8" />
         <SectionTitle
           align="center"
           title={
@@ -18,8 +18,11 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex space-x-6 ">
-            <Link key="get-started" href="/app">
+          <div className="flex flex-col gap-6 sm:flex-row ">
+            <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
+              <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
+            </Link>
+            <Link href="/app">
               <PrimaryButton label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
