@@ -42,7 +42,12 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
 
   return (
     <div className="">
-      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full ", className)}>
+      <div
+        className={cn(
+          "flex flex-wrap py-24 justify-center gap-2 sm:gap-4 md:gap-6 w-full ",
+          className,
+        )}
+      >
         {allTags.map((tag) => (
           <Link
             key={tag}
