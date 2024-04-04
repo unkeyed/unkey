@@ -39,6 +39,12 @@ export const MdxComponents = {
   p: (props: any) => (
     <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
   ),
+  code: (props: any) => (
+    <span
+      {...props}
+      className="font-mono rounded-md code-inline-gradient text-white/50 px-3 pt-0.5 pb-0.5 mx-0.5"
+    />
+  ),
   pre: BlogCodeBlockSingle,
   BlogCodeBlock,
 };
