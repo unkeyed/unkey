@@ -50,6 +50,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
       >
         {allTags.map((tag) => (
           <Link
+            scroll={false}
             key={tag}
             prefetch
             href={tag === "all" ? "/blog" : `/blog?tag=${tag}`}
