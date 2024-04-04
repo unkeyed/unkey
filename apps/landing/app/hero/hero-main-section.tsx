@@ -17,7 +17,7 @@ export function HeroMainSection() {
         Build better APIs faster
       </h1>
 
-      <p className="mt-8 bg-gradient-to-br text-transparent text-pretty bg-gradient-stop bg-clip-text max-w-sm sm:max-w-md  from-white via-white via-40% to-white/30 md:max-w-lg text-sm sm:text-sm leading-[28px]">
+      <p className="mt-8 bg-gradient-to-br text-transparent text-pretty bg-gradient-stop bg-clip-text max-w-sm sm:max-w-md  from-white via-white via-40% to-white/30 md:max-w-lg text-sm sm:text-base">
         Redefined API management for developers. Quickly add API keys, rate limiting, and usage
         analytics to your API at any scale.
       </p>

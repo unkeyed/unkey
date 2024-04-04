@@ -59,7 +59,7 @@ export function AnalyticsBento() {
 
   return (
     <div className="relative flex justify-center w-full">
-      <div className="absolute">
+      <div className="absolute top-14 z-50">
         <PrimaryButton
           label="Show API code"
           IconLeft={Wand2}
@@ -464,7 +464,7 @@ function AnalyticsWebAppView() {
         <div className="text-white pt-4 pl-8 flex w-full px-[40px] flex-col">
           <div className="flex justify-between w-full h-[40px] items-center">
             <div className="flex items-center text-lg font-medium min-w-[400px]">
-              <div className="bg-[#6E56CF] rounded-lg mr-3.5 w-[40px] h-[40px] rounded-[9px]">
+              <div className="bg-[#4c32b3] rounded-lg mr-3.5 w-[40px] h-[40px] rounded-[9px]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="40"
@@ -803,7 +803,7 @@ export function BentoText() {
       </div>
       <p className="mt-4 leading-6 text-white/60">
         Access real-time insights into your API usage through our dashboard, or build your own on
-        top of our APi.
+        top of our API.
       </p>
     </div>
   );

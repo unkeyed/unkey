@@ -165,8 +165,11 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
                 return (
                   <TableRow key={`${l.auditLogId}_${i}`}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white" suppressHydrationWarning>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="text-xs text-white whitespace-nowrap"
+                          suppressHydrationWarning
+                        >
                           {new Date(l.time).toLocaleTimeString()}
                         </span>
                         <span className="text-xxs text-white/60" suppressHydrationWarning>
