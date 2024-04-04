@@ -44,10 +44,6 @@ export function BlogHero({
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
       <div className="flex flex-col order-1 w-full lg:order-2 z-100">
-      <Frame className="order-2 w-full my-auto shadow-sm lg:order-1 z-100" size="lg">
-        <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
-      </Frame>
-      <div className="flex flex-col order-1 w-full lg:order-2 md:pl-12 z-100">
         <div className="flex flex-row justify-center gap-4 lg:justify-start">
           {tags?.map((tag) => (
             <p
@@ -66,7 +62,7 @@ export function BlogHero({
         </p>
         <div className="flex flex-row justify-center w-full gap-24 pb-8 mt-10 lg:justify-start lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
-            <p className="text-sm text-white/30 ">Written by</p>
+            <span className="text-sm text-white/30 ">Written by</span>
             <div className="flex items-center gap-4">
               {/* Todo: Needs ability to add multiple authors at some point */}
 
@@ -74,31 +70,16 @@ export function BlogHero({
                 <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
                 <AvatarFallback />
               </Avatar>
-              <p className="text-sm text-white">{author.name}</p>
-              {/* <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger className="pt-1 pl-4">
-                    <QuestionCircle />
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="bottom"
-                    align="center"
-                    sideOffset={5}
-                    className="text-white/60"
-                  >
-                    <p>{author.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider> */}
+              <span className="text-sm text-white">{author.name}</span>
               <div />
             </div>
           </div>
           <div className="flex flex-col gap-6">
-            <p className="text-sm text-white/30">Published on</p>
+            <span className="text-sm text-white/30">Published on</span>
             <div>
-              <p className="pt-3 text-sm text-white">
+              <span className="pt-3 text-sm text-white">
                 {format(new Date(publishDate!), "MMM dd, yyyy")}
-              </p>
+              </span>
             </div>
           </div>
         </div>
