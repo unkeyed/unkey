@@ -114,7 +114,7 @@ export default async function Landing() {
                 <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
               </Link>
 
-              <Link href="/docs">
+              <Link href="/docs/security/overview">
                 <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
               </Link>
             </div>
