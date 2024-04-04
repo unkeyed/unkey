@@ -4,6 +4,7 @@ import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { CodeIcon, FrameworkIcon } from "@/components/svg/template-page";
 import { Checkbox } from "@/components/template/checkbox";
+
 import {
   Form,
   FormControl,
@@ -329,9 +330,9 @@ export function TemplatesClient() {
               <Link
                 key={id}
                 href={`/templates/${id}`}
-                className="flex flex-col items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
+                className="flex flex-col h-full items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
               >
-                <div className="relative w-full">
+                <div className="relative w-full h-full">
                   {template.image ? (
                     <FrostedGlassFilter>
                       <Image
@@ -339,7 +340,7 @@ export function TemplatesClient() {
                         alt=""
                         width={800}
                         height={400}
-                        className="aspect-[16/9] w-full  bg-gray-100 object-cover  sm:aspect-[2/1] "
+                        className="w-full bg-gray-100 object-cover aspect-video"
                       />
                     </FrostedGlassFilter>
                   ) : (
@@ -348,38 +349,44 @@ export function TemplatesClient() {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col justify-start w-full p-4 h-3/5">
+                <div className="flex flex-col justify-start w-full p-4 h-full">
                   <div>
-                    <div className="flex flex-row justify-start w-full gap-3">
+                    <div className="flex flex-row justify-start w-full h-full gap-3">
                       {template.framework !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
+                        <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
                           {template.framework?.toString()}
                         </div>
                       ) : null}
                       {template.language !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
+                        <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
                           {template.language?.toString()}
                         </div>
                       ) : null}
                     </div>
-                    <h3 className="mt-6 text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
-                      {template.title}
-                    </h3>
-                    <p className="mt-5 text-sm leading-6 text-white/60 line-clamp-2 ">
-                      {template.description}
-                    </p>
                   </div>
-                  <div className="flex flex-col justify-end w-full h-full">
+                  <div className="flex flex-col justify-end w-full content-end items-end h-full">
+                    <div className="w-full h-12 mt-6">
+                      <h3 className="text-left text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
+                        {template.title}
+                      </h3>
+                    </div>
+                    <div className="w-full h-12">
+                      <p className="text-sm leading-6 text-white/60 line-clamp-2 text-left mt-4 mb-6">
+                        {template.description}
+                      </p>
+                    </div>
                     {/* No images currently in author */}
                     {/* <Avatar className="w-8 h-8 rounded-full" >
                       <AvatarImage src={template.authors} />
                     </Avatar> */}
-                    <div className="relative w-full pb-4">
-                      <p className="absolute left-0 text-xs leading-6 text-left text-white">
+
+                    <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0">
+                      <p className="w-full text-xs leading-6 text-left text-white justify-start content-end">
                         {template.authors.join(", ")}
                       </p>
-                      <div className="absolute right-0">
-                        <ArrowRight className="flex w-4 h-4 mr-2 text-white/40 " />
+                      <div className="justify-end content-end">
+                        {" "}
+                        <ArrowRight className="text-white/40" />
                       </div>
                     </div>
                   </div>

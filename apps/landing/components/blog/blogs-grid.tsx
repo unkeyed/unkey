@@ -42,7 +42,12 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
 
   return (
     <div className="">
-      <div className={cn("flex flex-wrap py-24 justify-center gap-6 w-full ", className)}>
+      <div
+        className={cn(
+          "flex flex-wrap py-24 justify-center gap-2 sm:gap-4 md:gap-6 w-full ",
+          className,
+        )}
+      >
         {allTags.map((tag) => (
           <Link
             key={tag}
@@ -51,7 +56,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
             className={cn(
               tag === (selectedTag ?? "all")
                 ? "bg-white text-black"
-                : "sm:text-sm bg-white/10 text-white/60",
+                : "sm:text-sm bg-[rgb(26,26,26)] text-white/60",
               "py-1 px-3 rounded-lg",
               className,
             )}

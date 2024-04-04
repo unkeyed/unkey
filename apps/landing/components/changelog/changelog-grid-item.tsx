@@ -1,10 +1,9 @@
-import { CopyButton } from "@/components/copy-button";
 import { MDX } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
+import { XShareButton } from "../x-share-button";
 
 import type { Changelog } from "@/.contentlayer/generated";
 import { Frame } from "../../components/frame";
@@ -35,8 +34,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
             {changelog.title}
           </Link>
         </h3>
-        <p className="pt-12">{format(changelog.date, "MMMM dd, yyyy")}</p>
-        <p className="my-8 ">{changelog.description}</p>
+        <p className="my-8 text-lg font-normal">{changelog.description}</p>
       </div>
       {changelog.image && (
         <Frame className="shadow-sm my-14 2xl:ml-24" size="md">
@@ -45,14 +43,12 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       )}
       <div className="w-full flex flex-col gap-12 2xl:pl-36 2xl:pr-12 prose-thead:border-none">
         <MDX code={changelog.body.code} />
+        <XShareButton
+          className="my-2"
+          url={`https://twitter.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.tableOfContents.slug}`}
+        />
       </div>
       <div>
-        <CopyButton
-          value={`${baseUrl}/changelog#${changelog.tableOfContents.slug}`}
-          className="mb-6 mt-12 2xl:pl-36 "
-        >
-          <p className="">Copy Link</p>
-        </CopyButton>
         <Separator orientation="horizontal" className="mb-12" />
       </div>
     </div>

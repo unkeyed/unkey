@@ -92,7 +92,7 @@ export function UnkeyFooterLogoMobile({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 1376 248"
-      className={`fill-current xl:max-w-[1376px] ${className}`}
+      className={`fill-current xl:max-w-[1376px] px-5 ${className}`}
       xmlns="http://www.w3.org/2000/svg"
     >
       <path

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export const TopLeftShiningLight: React.FC = () => (
   <svg
-    className="absolute top-0 left-0 pointer-events-none"
+    className="absolute top-0 left-0 pointer-events-none hidden md:flex"
     width="579"
     height="511"
     viewBox="0 0 579 511"
@@ -216,7 +216,7 @@ export const TopLeftShiningLight: React.FC = () => (
 export const TopRightShiningLight: React.FC = () => {
   return (
     <svg
-      className="absolute top-0 right-0 pointer-events-none"
+      className="absolute top-0 right-0 pointer-events-none hidden md:flex"
       width="445"
       height="699"
       viewBox="0 0 445 699"
