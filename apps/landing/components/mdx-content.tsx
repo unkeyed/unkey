@@ -10,11 +10,11 @@ export const MdxComponents = {
   img: (props: any) => <BlogImage size="sm" imageUrl={props} />,
   Callout: Alert,
   th: (props: any) => (
-    <th {...props} className="pb-4 text-left text-base font-semibold text-white" />
+    <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
   ),
   tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
   td: (props: any) => (
-    <td {...props} className="py-4 text-left text-base font-normal text-white/70" />
+    <td {...props} className="py-4 text-base font-normal text-left text-white/70" />
   ),
   a: (props: any) => (
     <a {...props} className="text-left text-white underline hover:text-white/60" />
@@ -25,19 +25,19 @@ export const MdxComponents = {
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h1: (props: any) => (
-    <h2 {...props} className="blog-heading-gradient text-2xl font-medium leading-8 text-white/60" />
+    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   h2: (props: any) => (
-    <h2 {...props} className="blog-heading-gradient text-2xl font-medium leading-8 text-white/60" />
+    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   h3: (props: any) => (
-    <h3 {...props} className="blog-heading-gradient text-xl font-medium leading-8 text-white/60" />
+    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   h4: (props: any) => (
-    <h4 {...props} className="blog-heading-gradient text-lg font-medium leading-8 text-white/60" />
+    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   p: (props: any) => (
-    <p {...props} className="text-left text-lg font-normal leading-8 text-white/60" />
+    <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
   ),
   pre: BlogCodeBlockSingle,
   BlogCodeBlock,
