@@ -15,7 +15,7 @@ export function Frame({
     <Component className={cn("relative", className)}>
       <div
         className={cn(
-          "bg-gradient-to-r from-white/10 to-white/20 ",
+          "bg-gradient-to-r from-[rgb(62,62,62)] to-[rgb(26,26,26)] ",
           {
             "rounded-[36px] p-[8px]": size === "lg",
             "rounded-[24px] p-[6px]": size === "md",
