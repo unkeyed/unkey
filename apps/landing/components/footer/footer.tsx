@@ -6,6 +6,7 @@ import { UnkeyFooterLogo, UnkeyLogo } from "./footer-svgs";
 type NavLink = {
   title: string;
   href: string;
+  external?: boolean;
 };
 const navigation = [
   {
@@ -18,26 +19,31 @@ const navigation = [
       {
         title: "Analytics",
         href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
+        external: true,
       },
       {
         title: "Source Code",
-        href: "https://github.com/unkeyed/unkey",
+        href: "/github",
+        external: true,
       },
       {
         title: "Docs",
         href: "https://unkey.dev/docs",
+        external: true,
       },
     ],
   },
   {
     title: "Connect",
     links: [
-      { title: "X(Twitter)", href: "https://twitter.com/unkeydev" },
-      { title: "GitHub", href: "https://github.com/unkeyed" },
+      { title: "X(Twitter)", href: "https://x.com/unkeydev", external: true },
+      { title: "Discord", href: "/discord", external: true },
+      { title: "GitHub", href: "/github", external: true },
       { title: "OSS Friends", href: "/oss-friends" },
       {
         title: "Book a Call",
         href: "https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss",
+        external: true,
       },
     ],
   },
@@ -56,15 +62,17 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
   className,
 }) => {
   return (
-    <ul className={cn("flex flex-col gap-8 md:gap-12 text-left", className)}>
-      <span className="text-sm font-medium tracking-wider text-white font-display">{title}</span>
+    <ul className={cn("flex flex-col gap-8 md:gap-12 text-left ", className)}>
       <ul className="flex flex-col gap-4 md:gap-8">
+        <span className="w-full text-sm font-medium tracking-wider text-white font-display">
+          {title}
+        </span>
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            target={link.href.startsWith("https://") ? "_blank" : undefined}
-            rel={link.href.startsWith("https://") ? "noopener noreferrer" : undefined}
+            target={link.external ? "_blank" : undefined}
+            rel={link.external ? "noopener noreferrer" : undefined}
             className="text-sm font-normal transition hover:text-white/40 text-white/70"
           >
             {link.title}
@@ -78,8 +86,8 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
 export function Footer() {
   return (
     <div className="border-t border-white/20 blog-footer-radial-gradient">
-      <footer className="container relative grid grid-cols-1 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
-        <div className="flex flex-col items-start cols-span-1 sm:col-span-3 xl:col-span-2">
+      <footer className="container relative grid grid-cols-2 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
+        <div className="flex flex-col items-center col-span-2 sm:items-start sm:col-span-3 xl:col-span-2">
           <UnkeyLogo />
           <div className="mt-8 text-sm font-normal leading-6 text-white/60">
             Build better APIs faster.
@@ -90,7 +98,7 @@ export function Footer() {
         </div>
 
         {navigation.map(({ title, links }) => (
-          <Column key={title} title={title} links={links} className="col-span-1" />
+          <Column key={title} title={title} links={links} className="col-span-1 " />
         ))}
       </footer>
       <div className="flex justify-center w-full mt-8 lg:mt-16">
