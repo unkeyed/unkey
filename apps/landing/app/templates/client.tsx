@@ -352,12 +352,12 @@ export function TemplatesClient() {
                   <div>
                     <div className="flex flex-row justify-start w-full h-full gap-3">
                       {template.framework !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
+                        <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
                           {template.framework?.toString()}
                         </div>
                       ) : null}
                       {template.language !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60">
+                        <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
                           {template.language?.toString()}
                         </div>
                       ) : null}

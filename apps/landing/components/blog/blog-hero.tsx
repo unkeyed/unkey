@@ -39,17 +39,17 @@ export function BlogHero({
   className,
 }: BlogHeroProps) {
   return (
-    <div className={cn("flex flex-col xl:flex-row w-full relative z-1 xl:px-28", className)}>
+    <div className={cn("flex flex-col xl:flex-row w-full relative z-100 xl:px-28", className)}>
       {}
-      <Frame className="order-2 w-full my-auto shadow-sm xl:order-1 " size="lg">
+      <Frame className="order-2 w-full my-auto shadow-sm xl:order-1 z-100" size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
-      <div className="flex flex-col order-1 w-full xl:order-2 md:pl-12">
+      <div className="flex flex-col order-1 w-full xl:order-2 md:pl-12 z-100">
         <div className="flex flex-row justify-center gap-4 xl:justify-start">
           {tags?.map((tag) => (
             <p
               key={tag}
-              className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md w-fit leading-6 flex items-center capitalize py-1"
+              className="text-white/50 text-sm bg-[rgb(26,26,26)] px-[9px] rounded-md w-fit leading-6 flex items-center capitalize py-1 z-100"
             >
               {tag.charAt(0).toUpperCase() + tag.slice(1)}
             </p>
