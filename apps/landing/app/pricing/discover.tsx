@@ -5,6 +5,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { Gauge, HelpCircle, KeySquare, ListChecks } from "lucide-react";
 import React, { useState } from "react";
 
+import { RateLimitsText } from "@/components/rate-limits-bento";
 import { SectionTitle } from "../section";
 import {
   Bullet,
@@ -100,86 +101,116 @@ export const Discover: React.FC = () => {
           <Separator />
           <PricingCardContent>
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Cost dollar={totalCostDisplay} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="w-4 h-4 text-white/40" style={{ strokeWidth: "1px" }} />
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-black">
-                    <p className="text-sm text-white/40">Cost break down:</p>
+              <div className="flex flex-col items-start gap-4 md:items-center md:flex-row">
+                <div className="flex items-center gap-4">
+                  <Cost dollar={totalCostDisplay} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle
+                        className="w-4 h-4 text-white/40"
+                        style={{ strokeWidth: "1px" }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-black">
+                      <p className="text-sm text-white/40">Cost break down:</p>
 
-                    <div className="grid grid-cols-2 mt-4 gap-x-4 gap-y-2">
-                      <span className="text-white">{fmtDollar(25)}</span>
-                      <span className="text-sm text-white/40">Base Plan</span>
-                      <span className="text-white">{activeKeysCostDisplay}</span>
-                      <span className="text-sm text-white/40">Active Keys</span>
-                      <span className="text-white">{verificationsCostDisplay}</span>
-                      <span className="text-sm text-white/40">Verifications</span>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                      <div className="grid grid-cols-2 mt-4 gap-x-4 gap-y-2">
+                        <span className="text-white">{fmtDollar(25)}</span>
+                        <span className="text-sm text-white/40">Base Plan</span>
+                        <span className="text-white">{activeKeysCostDisplay}</span>
+                        <span className="text-sm text-white/40">Active Keys</span>
+                        <span className="text-white">{verificationsCostDisplay}</span>
+                        <span className="text-sm text-white/40">Verifications</span>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-sm text-white/40">Resources are summed and billed monthly</p>
               </div>
-              <p className="text-sm text-white/40">Resources are summed and billed monthly</p>
             </div>
 
-            <div className="flex flex-col gap-8">
-              <Row
-                label={<Bullet Icon={KeySquare} label="Active keys" color={Color.Purple} />}
-                slider={
-                  <Slider
-                    min={0}
-                    max={activeKeysSteps.length - 1}
-                    value={[activeKeysIndex]}
-                    className=""
-                    onValueChange={([v]) => setActiveKeysIndex(v)}
-                  />
-                }
-                quantity={
-                  <div className="flex items-center gap-2">
-                    <span className="text-white">{activeKeysQuantityDisplay}</span>
-                    <span className="text-sm text-white/40">Keys</span>
-                  </div>
-                }
-                cost={<PriceTag dollar={activeKeysCostDisplay} />}
+            <div className="grid w-full grid-cols-12 gap-8">
+              <Bullet
+                className="col-span-12 sm:col-span-4 md:col-span-2"
+                Icon={KeySquare}
+                label="Active keys"
+                color={Color.Purple}
               />
-              <Row
-                label={<Bullet Icon={ListChecks} label="Verifications" color={Color.Purple} />}
-                slider={
-                  <Slider
-                    min={0}
-                    max={verificationsSteps.length - 1}
-                    value={[verificationsIndex]}
-                    className=""
-                    onValueChange={([v]) => setVerificationsIndex(v)}
-                  />
-                }
-                quantity={
-                  <div className="flex items-center gap-2">
-                    <span className="text-white">{verificationsQuantityDisplay}</span>
-                    <span className="text-sm text-white/40">Verifications</span>
-                  </div>
-                }
-                cost={<PriceTag dollar={verificationsCostDisplay} />}
+              <Slider
+                min={0}
+                max={activeKeysSteps.length - 1}
+                value={[activeKeysIndex]}
+                className="hidden md:flex md:col-span-6"
+                onValueChange={([v]) => setActiveKeysIndex(v)}
               />
-              <Row
-                label={<Bullet Icon={Gauge} label="Rate limits" color={Color.Purple} />}
-                slider={
-                  <Slider
-                    min={0}
-                    max={rateLimitsSteps.length - 1}
-                    value={[rateLimitsIndex]}
-                    className=""
-                    onValueChange={([v]) => setRateLimitsIndex(v)}
-                  />
-                }
-                quantity={
-                  <div className="flex items-center gap-2">
-                    <span className="text-white">{rateLimitsQuantityDisplay}</span>
-                    <span className="text-sm text-white/40">Successful ratelimits</span>
-                  </div>
-                }
-                cost={<PriceTag dollar={rateLimitsCostDisplay} />}
+              <span className="col-span-6 text-white sm:col-span-4 md:col-span-2">
+                {activeKeysQuantityDisplay}
+              </span>
+              <PriceTag
+                className="col-span-6 md:col-span-2 sm:col-span-4"
+                dollar={activeKeysCostDisplay}
+              />
+              <Slider
+                min={0}
+                max={activeKeysSteps.length - 1}
+                value={[activeKeysIndex]}
+                className="col-span-12 md:col-span-6 md:hidden"
+                onValueChange={([v]) => setActiveKeysIndex(v)}
+              />
+
+              <Bullet
+                className="col-span-12 sm:col-span-4 md:col-span-2"
+                Icon={ListChecks}
+                label="Verifications"
+                color={Color.Purple}
+              />
+              <Slider
+                min={0}
+                max={verificationsSteps.length - 1}
+                value={[verificationsIndex]}
+                className="hidden md:flex md:col-span-6"
+                onValueChange={([v]) => setVerificationsIndex(v)}
+              />
+              <span className="col-span-6 text-white sm:col-span-4 md:col-span-2">
+                {verificationsQuantityDisplay}
+              </span>
+              <PriceTag
+                className="col-span-6 md:col-span-2 sm:col-span-4"
+                dollar={verificationsCostDisplay}
+              />
+              <Slider
+                min={0}
+                max={verificationsSteps.length - 1}
+                value={[verificationsIndex]}
+                className="col-span-12 md:col-span-6 md:hidden"
+                onValueChange={([v]) => setVerificationsIndex(v)}
+              />
+              <Bullet
+                className="col-span-12 sm:col-span-4 md:col-span-2"
+                Icon={Gauge}
+                label="Ratelimits"
+                color={Color.Purple}
+              />
+              <Slider
+                min={0}
+                max={rateLimitsSteps.length - 1}
+                value={[rateLimitsIndex]}
+                className="hidden md:flex md:col-span-6"
+                onValueChange={([v]) => setRateLimitsIndex(v)}
+              />
+              <span className="col-span-6 text-white sm:col-span-4 md:col-span-2">
+                {rateLimitsQuantityDisplay}
+              </span>
+              <PriceTag
+                className="col-span-6 md:col-span-2 sm:col-span-4"
+                dollar={rateLimitsCostDisplay}
+              />
+              <Slider
+                min={0}
+                max={rateLimitsSteps.length - 1}
+                value={[rateLimitsIndex]}
+                className="col-span-12 md:col-span-6 md:hidden"
+                onValueChange={([v]) => setRateLimitsIndex(v)}
               />
             </div>
           </PricingCardContent>
@@ -187,24 +218,6 @@ export const Discover: React.FC = () => {
         </TooltipProvider>
       </PricingCard>
       <SubDiscoverySvg className="container max-w-4xl mx-auto" />
-    </div>
-  );
-};
-
-const Row: React.FC<{
-  label: React.ReactNode;
-  slider: React.ReactNode;
-  quantity: React.ReactNode;
-  cost: React.ReactNode;
-}> = ({ label, slider, quantity, cost }) => {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="w-2/12">{label}</div>
-      <div className="w-6/12">{slider}</div>
-
-      <div className="w-2/12">{quantity}</div>
-
-      <div className="w-2/12">{cost}</div>
     </div>
   );
 };
@@ -217,12 +230,10 @@ function fmtDollar(n: number): string {
   return Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 }
 
-const PriceTag: React.FC<{ dollar: string }> = ({ dollar }) => {
+const PriceTag: React.FC<{ dollar: string; className?: string }> = ({ dollar, className }) => {
   return (
-    <div className="flex justify-end w-full">
-      <span className="h-6 px-2 text-sm font-semibold text-white rounded bg-white/10">
-        {dollar}
-      </span>
+    <div className={cn("h-6 px-2 text-sm font-semibold text-white rounded bg-white/10", className)}>
+      {dollar}
     </div>
   );
 };

@@ -61,9 +61,9 @@ export const PricingCardHeader: React.FC<{
   );
 };
 
-export const Cost: React.FC<{ dollar: string }> = ({ dollar }) => {
+export const Cost: React.FC<{ dollar: string; className?: string }> = ({ dollar, className }) => {
   return (
-    <div className="flex items-center gap-4">
+    <div className={cn("flex items-center gap-4", className)}>
       <span className="text-4xl font-semibold text-transparent bg-gradient-to-br bg-clip-text from-white via-white to-white/30">
         {dollar}
       </span>
@@ -101,9 +101,10 @@ export const Bullet: React.FC<{
   label: string;
   color: Color;
   textColor?: string;
-}> = ({ Icon, label, color, textColor }) => {
+  className?: string;
+}> = ({ Icon, label, color, textColor, className }) => {
   return (
-    <li className="flex items-center gap-4">
+    <li className={cn("flex items-center gap-4", className)}>
       <div
         className={cn("h-6 min-w-6 w-6 flex items-center justify-center rounded-md", {
           "text-[#FFFFFF] bg-[#FFFFFF]/10": color === Color.White,
