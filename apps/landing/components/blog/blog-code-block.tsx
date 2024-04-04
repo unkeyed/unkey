@@ -70,7 +70,7 @@ export function BlogCodeBlock({ className, children }: any) {
                 language={block.className.replace(/language-/, "")}
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
-                  <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-10 ">
+                  <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-7 ">
                     {tokens.map((line, i) => (
                       <div
                         // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
@@ -123,7 +123,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
             tokens.pop()?.toString();
           }
           return (
-            <pre className="leading-10 border-none rounded-none bg-transparent overflow-x-auto pb-5">
+            <pre className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5">
               <div className="flex flex-row gap-4 border-white/10 pr-4 justify-end w-full relative top-4 right-2">
                 <CopyButton value={copyData} />
                 <button type="button" className="p-0 m-0 bg-transparent" onClick={handleDownload}>

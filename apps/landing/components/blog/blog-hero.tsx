@@ -44,6 +44,10 @@ export function BlogHero({
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
       <div className="flex flex-col order-1 w-full lg:order-2 z-100">
+      <Frame className="order-2 w-full my-auto shadow-sm lg:order-1 z-100" size="lg">
+        <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
+      </Frame>
+      <div className="flex flex-col order-1 w-full lg:order-2 md:pl-12 z-100">
         <div className="flex flex-row justify-center gap-4 lg:justify-start">
           {tags?.map((tag) => (
             <p
