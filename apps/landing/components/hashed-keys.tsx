@@ -67,8 +67,6 @@ export function HashedKeys() {
     }, 20);
   }
 
-  console.log(fadeInOut(opacity));
-
   useEffect(() => {
     updateTextContainer();
   }, []);

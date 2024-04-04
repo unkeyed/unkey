@@ -99,7 +99,7 @@ export default async function Landing() {
           </div>
         </Section>
         <div className="relative w-full -z-10 ">
-          <OssLight className="absolute scale-[2] left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-250px]" />
+          <OssLight className="absolute scale-[2] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-340px]" />
         </div>
 
         <Section>
