@@ -2,9 +2,7 @@ import { Container } from "@/components/container";
 import { StatList, StatListItem } from "@/components/stat-list";
 import { db, schema, sql } from "@/lib/db";
 import { getTotalVerifications } from "@/lib/tinybird";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
-import { NumberTicker } from "./number-ticker";
+import { FadeInStagger } from "./fade-in";
 
 const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   db
@@ -42,53 +40,21 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
   { next: { revalidate: 3600 } },
 ]);
 
-function StatsItem({
-  value,
-  label,
-  className,
-}: { value: number; label: string; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "flex-col-reverse pl-8 border-white/[.15] border-l max-w-[200px] md:mb-0",
-        className,
-      )}
-    >
-      <dd className="text-4xl font-semibold font-display stats-number-gradient">
-        <NumberTicker value={value} />
-      </dd>
-      <dt className="mt-2 text-white/50">{label}</dt>
-    </div>
-  );
-}
-
 export function Stats() {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2, // Adjust the delay between each child here
-      },
-    },
-  };
   return (
-    <motion.div
-      className="flex justify-center w-full xl:px-10"
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-    >
+    <div className="flex justify-center w-full xl:px-10">
       <div className="w-full rounded-4xl py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white max-w-[1096px]">
         <Container>
-          <StatList>
-            <StatsItem value={totalVerifications} label="Verifications" />
-            <StatsItem value={keys} label="Keys" />
-            <StatsItem value={apis} label="APIs" className="mb-8" />
-            <StatsItem value={workspaces} label="Workspaces" className="mb-8" />
-          </StatList>
+          <FadeInStagger faster>
+            <StatList>
+              <StatListItem value={totalVerifications} label="Verifications" />
+              <StatListItem value={keys} label="Keys" />
+              <StatListItem value={apis} label="APIs" className="mb-8" />
+              <StatListItem value={workspaces} label="Workspaces" className="mb-8" />
+            </StatList>
+          </FadeInStagger>
         </Container>
       </div>
-    </motion.div>
+    </div>
   );
 }
