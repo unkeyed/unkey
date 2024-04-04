@@ -135,14 +135,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         <div className="overflow-hidden -z-40">
           <TopRightShiningLight />
         </div>
-        <div className="flex flex-col xl:flex-row">
-          <div className="flex flex-col mx-6 sm:pl-4 md:px-12 lg:w-10/12 lg:pl-24 xl:mt-12">
-            <h1 className="blog-heading-gradient xl:pr-30 pr-0 text-left text-6xl text-[40px] font-medium leading-[56px] tracking-tight sm:pt-8 sm:text-[56px] sm:leading-[72px] xl:mt-0 xl:w-3/4">
-              {post.title}
-            </h1>
-            <p className="mt-10 text-lg font-normal leading-8 text-left text-white/40 ">
-              {post.description}
-            </p>
+        <div className="flex gap-8 mx-auto lg:gap-16">
+          <div className="flex flex-col items-center w-full xl:w-9/12">
+            <div className="prose sm:prose-sm md:prose-md">
+              <h1 className="blog-heading-gradient text-left text-4xl font-medium leading-[56px] tracking-tight  sm:text-5xl sm:leading-[72px]">
+                {post.title}
+              </h1>
+              <p className="text-lg font-normal leading-8 text-white/40 ">{post.description}</p>
+            </div>
           </div>
           <div className="flex flex-col justify-start w-full p-0 pl-6 mt-6 lg:w-2/12">
             <div className="flex flex-row items-start w-full gap-2 mb-8 md:ml-12 lg:ml-24 lg:gap-12 xl:ml-0 xl:flex-col">
@@ -156,19 +156,17 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             </div>
           </div>
         </div>
-        <div className="flex mb-40 ">
-          <div className="flex flex-col w-full gap-12 xl:w-9/12 ">
-            <div className="flex px-12">
-              <Frame className="w-full h-full px-0 overflow-clip" size="lg">
-                <Image
-                  src={post.image ?? "/images/blog-images/defaultBlog.png"}
-                  width={1200}
-                  height={860}
-                  alt={post.title}
-                />
-              </Frame>
-            </div>
-            <div className="flex flex-col gap-12 mx-6 sm:px-4 md:px-12 lg:px-24">
+        <div className="flex gap-8 mx-auto mb-40 lg:gap-16">
+          <div className="flex flex-col items-center w-full gap-12 xl:w-9/12 ">
+            <Frame className="w-full h-full px-0 overflow-clip" size="lg">
+              <Image
+                src={post.image ?? "/images/blog-images/defaultBlog.png"}
+                width={1200}
+                height={860}
+                alt={post.title}
+              />
+            </Frame>
+            <div className="flex flex-col gap-4 prose md:gap-8 lg:gap-12 sm:prose-sm md:prose-md ">
               <MDX code={post.body.code} />
             </div>
           </div>

@@ -45,11 +45,11 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <div className="container mx-auto mt-32 border border-red-500 scroll-smooth">
+      <div className="container mx-auto mt-32 scroll-smooth">
         <div>
           <TopLeftShiningLight />
         </div>
-        <div className="w-full h-full overflow-clip -z-20">
+        <div className="w-full h-full overflow -z-20">
           <MeteorLinesAngular
             number={1}
             xPos={0}
@@ -110,6 +110,7 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
+
         <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
           <BlogHero
             tags={posts[0].tags}
