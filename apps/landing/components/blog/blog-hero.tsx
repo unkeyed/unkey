@@ -39,8 +39,7 @@ export function BlogHero({
   className,
 }: BlogHeroProps) {
   return (
-    <div className={cn("flex flex-col xl:flex-row w-full relative z-100 xl:px-28", className)}>
-      {}
+    <div className={cn("flex flex-col xl:flex-row w-full relative z-100", className)}>
       <Frame className="order-2 w-full my-auto shadow-sm xl:order-1 z-100" size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
