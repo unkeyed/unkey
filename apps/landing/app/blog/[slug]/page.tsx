@@ -133,30 +133,27 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         <div className="-z-40 overflow-hidden">
           <TopRightShiningLight />
         </div>
-        <div className="flex flex-col xl:flex-row">
-          <div className="mx-6 flex flex-col sm:pl-4 md:px-12 lg:w-10/12 lg:pl-24 xl:mt-12">
-            <h1 className="blog-heading-gradient xl:pr-30 pr-0 text-left text-6xl text-[40px] font-medium leading-[56px] tracking-tight sm:pt-8 sm:text-[56px] sm:leading-[72px] xl:mt-0 xl:w-3/4">
+        <div className="flex flex-col xl:flex-row pl-6 sm:pl-12 md:pl-[72px] lg:pl-28 xl:pl-0 xl:ml-0 w-full">
+          <div className="flex flex-col lg:w-8/12 xl:mt-12 xl:ml-32 w-full ">
+            <h1 className="text-left pt-4 sm:pt-8 text-[40px] sm:text-[56px] text-6xl font-medium tracking-tight blog-heading-gradient leading-[56px] sm:leading-[72px] xl:w-3/4">
               {post.title}
             </h1>
-            <p className="mt-10 text-left text-lg font-normal leading-8 text-white/40 ">
+            <p className="mt-10 text-left text-lg font-normal leading-8 text-white/40">
               {post.description}
             </p>
           </div>
-          <div className="mt-6 flex w-full flex-col justify-start p-0 pl-6 lg:w-2/12">
-            <div className="mb-8 flex w-full flex-row items-start gap-2 md:ml-12 lg:ml-24 lg:gap-12 xl:ml-0 xl:flex-col">
-              <BlogAuthors author={author} className="mb-0 mt-0 w-40 sm:ml-4 lg:w-full" />
-              <div className="mt-0 flex w-full flex-col">
-                <p className="mb-0 text-nowrap text-white/30">Published on</p>
-                <time dateTime={post.date} className="mt-8 text-nowrap pt-1 text-white xl:pt-0">
-                  {format(parseISO(post.date), "MMM dd, yyyy")}
-                </time>
-              </div>
-            </div>
+          <div className="sm:mt-8 mt-12 xl:mt-24 flex w-full flex-col justify-start lg:w-4/12 xl:pl-20">
+            <BlogAuthors author={author} className="mb-0 mt-0 w-40 lg:ml-0 lg:w-full" />
+
+            <p className="mt-4 text-nowrap text-white/30">Published on</p>
+            <time dateTime={post.date} className="mt-2 text-nowrap pt-1 text-white xl:pt-0">
+              {format(parseISO(post.date), "MMM dd, yyyy")}
+            </time>
           </div>
         </div>
-        <div className="mb-40 flex ">
+        <div className="mb-40 flex mt-12 ">
           <div className="flex w-full flex-col gap-12 xl:w-9/12 ">
-            <div className="flex px-12">
+            <div className="flex mx-2 md:px-12">
               <Frame className="overflow-clip h-full w-full px-0" size="lg">
                 <Image
                   src={post.image ?? "/images/blog-images/defaultBlog.png"}
