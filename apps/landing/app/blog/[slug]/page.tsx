@@ -140,8 +140,8 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <div className="flex flex-col items-start justify-between w-full gap-8 lg:flex-row lg:gap-16">
             <div className="w-full lg:w-3/4">
               <div className="mx-auto prose sm:prose-sm md:prose-md">
-                <div className="flex items-center gap-5 mb-8 font-medium">
-                  <span className="text-transparent bg-gradient-to-r bg-clip-text from-white to-white/60">
+                <div className="flex items-center gap-5 mb-8 font-medium text-xl leading-8">
+                  <span className="text-transparent bg-gradient-to-r bg-clip-text from-white to-white/60 ">
                     Blog
                   </span>
                   <span className="text-white/40">/</span>
