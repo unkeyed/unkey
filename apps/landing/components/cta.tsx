@@ -1,8 +1,8 @@
 import { SectionTitle } from "@/app/section";
-import { ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
-import { PrimaryButton } from "./button";
+import { PrimaryButton, SecondaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
@@ -18,8 +18,11 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex space-x-6 ">
-            <Link key="get-started" href="/app">
+          <div className="flex flex-col gap-6 sm:flex-row ">
+            <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
+              <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
+            </Link>
+            <Link href="/app">
               <PrimaryButton label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>

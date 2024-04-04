@@ -26,12 +26,12 @@ export const Post = defineDocumentType(() => ({
       type: "list",
       resolve: (doc) => {
         const slugger = new GithubSlugger();
-        const regXHeader = /\n(?<flag>#{1,2})\s+(?<content>.+)/g;
+        const regXHeader = /\n(?<flag>#+)\s+(?<content>.+)/g;
         const headings = Array.from(doc.body.raw.matchAll(regXHeader)).map(({ groups }) => {
           const flag = groups?.flag;
           const content = groups?.content;
           return {
-            level: flag?.length === 1 ? "one" : flag?.length === 2 ? "two" : "two",
+            level: flag?.length,
             text: content,
             slug: content ? slugger.slug(content) : undefined,
           };
