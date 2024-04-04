@@ -6,6 +6,15 @@ const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   reactStrictMode: true,
   swcMinify: true,
+  async redirects() {
+    return [
+      {
+        source: "/changelog/:slug",
+        destination: "/changelog#:slug", // Matched parameters can be used in the destination
+        permanent: true,
+      },
+    ];
+  },
   rewrites: () => [
     {
       source: "/docs",
