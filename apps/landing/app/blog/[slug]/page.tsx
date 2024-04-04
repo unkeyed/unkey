@@ -153,7 +153,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 <h1 className="not-prose blog-heading-gradient text-left text-4xl font-medium leading-[56px] tracking-tight  sm:text-5xl sm:leading-[72px]">
                   {post.title}
                 </h1>
-                <p className="mt-8 text-lg font-normal leading-8 not-prose text-white/40 ">
+                <p className="mt-8 text-lg font-normal leading-8 not-prose text-white/60 ">
                   {post.description}
                 </p>
               </div>
@@ -203,7 +203,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 alt={post.title}
               />
             </Frame>
-            <div className="prose xs:prose:xs sm:prose-sm md:prose-md">
+            <div className="prose xs:prose:xs sm:prose-sm md:prose-md text-white/60">
               <MDX code={post.body.code} />
             </div>
           </div>
