@@ -8,7 +8,7 @@ export function LeveledUpApiAuthChip({ className }: { className: string }) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <g opacity={0.7}>
+      <g opacity={0.9}>
         <rect
           width={21}
           height={24}

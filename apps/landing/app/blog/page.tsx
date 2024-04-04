@@ -1,5 +1,4 @@
 import { type Post, allPosts } from "@/.contentlayer/generated";
-import { BlogContainer } from "@/components/blog/blog-container";
 import { BlogHero } from "@/components/blog/blog-hero";
 import { BlogGrid } from "@/components/blog/blogs-grid";
 import { CTA } from "@/components/cta";
@@ -46,11 +45,11 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <BlogContainer className="w-[1440px] mt-32 scroll-smooth">
+      <div className="container mx-auto mt-32 scroll-smooth">
         <div>
           <TopLeftShiningLight />
         </div>
-        <div className="w-full h-full overflow-clip -z-20">
+        <div className="w-full h-full overflow -z-20">
           <MeteorLinesAngular
             number={1}
             xPos={0}
@@ -111,6 +110,7 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
+
         <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
           <BlogHero
             tags={posts[0].tags}
@@ -119,12 +119,11 @@ export default async function Blog(props: Props) {
             subTitle={posts[0].description}
             author={authors[posts[0].author]}
             publishDate={posts[0].date}
-            className="px-4"
           />
         </Link>
         <BlogGrid posts={posts} searchParams={props.searchParams} />
         <CTA />
-      </BlogContainer>
+      </div>
     </>
   );
 }
