@@ -158,7 +158,9 @@ export function UsageText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="ml-4 text-lg font-medium text-white">Monetize your API</h3>
+        <h3 className="ml-4 text-lg font-medium text-white bg-black z-50 relative">
+          Monetize your API
+        </h3>
       </div>
       <p className="mt-4 text-white/60 leading-6 max-w-[350px]">
         Unkey tracks all user actions in your API, making it straightforward to bill users based on
