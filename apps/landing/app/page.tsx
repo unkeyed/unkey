@@ -3,6 +3,7 @@ import { Section, SectionTitle } from "@/app/section";
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
+import { CTA } from "@/components/cta";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
 import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
@@ -156,27 +157,9 @@ export default async function Landing() {
           </div>
         </Section>
         <Section>
-          <SectionTitle
-            className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
-            align="center"
-            title="Protect your API. Start today."
-          >
-            <div className="flex space-x-6 ">
-              <Link key="get-started" href="/app">
-                <PrimaryButton label="Start Now" IconRight={ChevronRight} />
-              </Link>
-            </div>
-          </SectionTitle>
-          <div className="mt-10 mb-[200px]">
-            <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-              2500 verifications and 100k successful rate-limited requests per month.
-            </p>
-            <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-              No CC required.
-            </p>
-          </div>
+          <CTA />
         </Section>
-      </div>{" "}
+      </div>
     </>
   );
 }
