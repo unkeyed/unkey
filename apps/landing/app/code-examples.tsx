@@ -445,7 +445,7 @@ type FrameworkName =
 export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [language, setLanguage] = useState<Language>("Typescript");
   const [framework, setFramework] = useState<FrameworkName>("Typescript");
-
+  const [languageHover, setLanguageHover] = useState("");
   function getLanguage({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
     const currentFramework = frameworks.find((f) => f.name === framework);
@@ -465,6 +465,8 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
     <TabsPrimitive.Trigger
       ref={ref}
       value={value}
+      onMouseEnter={() => setLanguageHover(value)}
+      onMouseLeave={() => setLanguageHover("")}
       onClick={() => {
         const language = value as Language;
         setLanguage(language);
@@ -473,6 +475,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       className={cn(
         "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
         className,
+        { "text-white/80": languageHover === value },
       )}
       {...props}
     />
@@ -510,31 +513,31 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
-              <TSIcon active={language === "Typescript"} />
+              <TSIcon active={language === "Typescript" || languageHover === "Typescript"} />
               Typescript
             </LanguageTrigger>
             <LanguageTrigger value="Python">
-              <PythonIcon active={language === "Python"} />
+              <PythonIcon active={language === "Python" || languageHover === "Python"} />
               Python
             </LanguageTrigger>
             <LanguageTrigger value="Golang">
-              <GoIcon active={language === "Golang"} />
+              <GoIcon active={language === "Golang" || languageHover === "Golang"} />
               Golang
             </LanguageTrigger>
             <LanguageTrigger value="Curl">
-              <CurlIcon active={language === "Curl"} />
+              <CurlIcon active={language === "Curl" || languageHover === "Curl"} />
               Curl
             </LanguageTrigger>
             <LanguageTrigger value="Elixir">
-              <ElixirIcon active={language === "Elixir"} />
+              <ElixirIcon active={language === "Elixir" || languageHover === "Elixir"} />
               Elixir
             </LanguageTrigger>
             <LanguageTrigger value="Rust">
-              <RustIcon active={language === "Rust"} />
+              <RustIcon active={language === "Rust" || languageHover === "Rust"} />
               Rust
             </LanguageTrigger>
             <LanguageTrigger value="Java">
-              <JavaIcon active={language === "Java"} />
+              <JavaIcon active={language === "Java" || languageHover === "Java"} />
               Java
             </LanguageTrigger>
           </TabsPrimitive.List>
@@ -625,10 +628,13 @@ function FrameworkSwitcher({
             onClick={() => {
               setFramework(framework.name as FrameworkName);
             }}
-            className={cn("flex items-center cursor-pointer py-1 px-2 rounded-lg w-[184px] ", {
-              "bg-white/10 text-white": currentFramework === framework.name,
-              "text-white/40": currentFramework !== framework.name,
-            })}
+            className={cn(
+              "flex items-center cursor-pointer hover:bg-white/10 py-1 px-2 rounded-lg w-[184px] ",
+              {
+                "bg-white/10 text-white": currentFramework === framework.name,
+                "text-white/40": currentFramework !== framework.name,
+              },
+            )}
           >
             <framework.Icon active={currentFramework === framework.name} />
             <div className="ml-3">{framework.name}</div>

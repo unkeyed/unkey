@@ -661,10 +661,24 @@ export function Editor({
   language,
   theme,
 }: { codeBlock: string; language: string; theme?: PrismTheme }) {
+  const animationVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
+
   return (
     <Highlight theme={theme} code={codeBlock} language={language}>
       {({ tokens, getLineProps, getTokenProps }) => (
-        <pre className="leading-8">
+        <motion.pre
+          key={codeBlock} // Use codeBlock as a key to trigger animations on change
+          variants={animationVariants} // Pass the defined animation variants
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.5 }} // Customize the transition duration
+          className="leading-8"
+        >
           {tokens.map((line, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
@@ -674,7 +688,7 @@ export function Editor({
               ))}
             </div>
           ))}
-        </pre>
+        </motion.pre>
       )}
     </Highlight>
   );
