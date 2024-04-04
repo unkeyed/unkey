@@ -8,6 +8,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { motion, useAnimation } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -15,13 +16,25 @@ import { PrimaryButton, SecondaryButton } from "../button";
 import { DesktopNavLink, MobileNavLink } from "./link";
 
 export function Navigation() {
-  const [opacity, setOpacity] = useState(0);
+  const [scrollPercent, setScrollPercent] = useState(0);
+
+  const containerVariants = {
+    hidden: {
+      opacity: 0,
+      y: -20,
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: "easeOut" },
+    },
+  };
 
   useEffect(() => {
     const handleScroll = () => {
       const scrollThreshold = 100;
       const scrollPercent = Math.min(window.scrollY / 2 / scrollThreshold, 1);
-      setOpacity(scrollPercent);
+      setScrollPercent(scrollPercent);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -29,9 +42,15 @@ export function Navigation() {
   }, []);
 
   return (
-    <nav
-      style={{ backgroundColor: `rgba(0, 0, 0, ${opacity})` }}
-      className="sticky z-[1000] top-0 px-[30px] lg:px-0 w-full py-3"
+    <motion.nav
+      style={{
+        backgroundColor: `rgba(0, 0, 0, ${scrollPercent})`,
+        borderColor: `rgba(255, 255, 255, ${Math.min(scrollPercent / 5, 0.15)})`,
+      }}
+      className="sticky z-[1000] top-0 px-[30px] border-b-[.75px] border-white/10 lg:px-0 w-full py-3"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
     >
       <div className="container px-0 flex items-center justify-between">
         <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
@@ -54,7 +73,7 @@ export function Navigation() {
           </Link>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 }
 
