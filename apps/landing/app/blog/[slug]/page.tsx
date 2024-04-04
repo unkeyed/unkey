@@ -207,7 +207,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <MDX code={post.body.code} />
             </div>
           </div>
-          <div className="hidden w-1/4 pt-12 text-white lg:flex lg:flex-col">
+          <div className="hidden w-1/4 text-white lg:flex lg:flex-col">
             {post.tableOfContents.length !== 0 ? (
               <>
                 <p className="text-md text-white/50">Contents</p>

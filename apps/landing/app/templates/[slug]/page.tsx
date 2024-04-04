@@ -95,7 +95,7 @@ export default async function Templates(props: Props) {
         <div className="flex flex-col self-start w-full px-0 mx-0 xl:w-1/3 xl:sticky top-20">
           <Link
             href="/templates"
-            className="flex items-center gap-1 text-xs duration-200 text-white/60 hover:text-white/80"
+            className="flex items-center gap-1 text-sm duration-200 text-white/60 hover:text-white/80"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Templates
           </Link>
@@ -107,7 +107,7 @@ export default async function Templates(props: Props) {
               {template.description}
             </p>
           </div>
-          <div className="flex items-center justify-between gap-6 sm:mt-20">
+          <div className="flex items-center justify-between gap-4 sm:mt-20">
             {template.url ? (
               <Link
                 target="_blank"
@@ -119,7 +119,7 @@ export default async function Templates(props: Props) {
             ) : null}
             <Link
               target="_blank"
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center duration-200 border rounded-md text-white/60 border-white/10 hover:border-white hover:text-white max-w-1/2"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center  text-black transition-all duration-200 transform bg-white border border-white rounded-md hover:bg-black hover:text-white max-w-1/2"
               href={template.repository}
             >
               Repository
@@ -147,10 +147,10 @@ export default async function Templates(props: Props) {
               ))}
           </dl>
         </div>
-        <div className="flex flex-col w-full mb-24 xl:w-2/3 sm:mt-20 md:mt-0 xl:pt-24 xl:pl-24">
+        <div className="flex flex-col w-full mb-24 xl:w-2/3 mt-8 md:mt-0 xl:pt-24 xl:pl-24">
           <div>
             {template.image ? (
-              <Frame size={"lg"} className="">
+              <Frame size={"sm"} className="">
                 <img src={template.image} alt={template.description} />
               </Frame>
             ) : null}
