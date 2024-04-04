@@ -52,10 +52,10 @@ function Navigation() {
       <ul className="grid grid-cols-2 gap-8 sm:grid-cols-3">
         {navigation.map((section) => (
           <li key={section.title}>
-            <div className="font-display text-sm font-semibold tracking-wider text-gray-950">
+            <div className="font-display text-sm font-semibold tracking-wider text-white/50">
               {section.title}
             </div>
-            <ul className="mt-4 text-sm text-gray-700">
+            <ul className="mt-4 text-sm text-white/50">
               {section.links.map((link) => (
                 <li key={link.href} className="mt-4">
                   {link.href.startsWith("https://") ? (
@@ -63,12 +63,12 @@ function Navigation() {
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="transition hover:text-gray-950"
+                      className="transition hover:text-white/90"
                     >
                       {link.title}
                     </a>
                   ) : (
-                    <Link href={link.href} className="transition hover:text-gray-950">
+                    <Link href={link.href} className="transition hover:text-white/90">
                       {link.title}
                     </Link>
                   )}
