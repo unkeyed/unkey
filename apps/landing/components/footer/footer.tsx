@@ -6,6 +6,7 @@ import { UnkeyFooterLogo, UnkeyLogo } from "./footer-svgs";
 type NavLink = {
   title: string;
   href: string;
+  external?: boolean;
 };
 const navigation = [
   {
@@ -18,26 +19,31 @@ const navigation = [
       {
         title: "Analytics",
         href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
+        external: true,
       },
       {
         title: "Source Code",
-        href: "https://github.com/unkeyed/unkey",
+        href: "/github",
+        external: true,
       },
       {
         title: "Docs",
         href: "https://unkey.dev/docs",
+        external: true,
       },
     ],
   },
   {
     title: "Connect",
     links: [
-      { title: "X(Twitter)", href: "https://twitter.com/unkeydev" },
-      { title: "GitHub", href: "https://github.com/unkeyed" },
+      { title: "X(Twitter)", href: "https://x.com/unkeydev", external: true },
+      { title: "Discord", href: "/discord", external: true },
+      { title: "GitHub", href: "/github", external: true },
       { title: "OSS Friends", href: "/oss-friends" },
       {
         title: "Book a Call",
         href: "https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss",
+        external: true,
       },
     ],
   },
@@ -63,9 +69,9 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
           <Link
             key={link.href}
             href={link.href}
-            target={link.href.startsWith("https://") ? "_blank" : undefined}
-            rel={link.href.startsWith("https://") ? "noopener noreferrer" : undefined}
-            className="text-sm font-normal transition hover:text-white/90 text-white/50"
+            target={link.external ? "_blank" : undefined}
+            rel={link.external ? "noopener noreferrer" : undefined}
+            className="text-sm font-normal transition hover:text-white/40 text-white/70"
           >
             {link.title}
           </Link>
