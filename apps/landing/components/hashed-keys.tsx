@@ -33,12 +33,20 @@ function fadeInOut(value: number) {
   if (value <= 50) {
     return 0;
   }
-  if (value <= 92.5) {
+  if (value <= 70) {
+    // Adjust this value as needed
+    // Smooth fade-in from 50 to 70
+    // Calculate how far into the fade-in range the value is, on a scale from 0 to 1
+    const fadeInRange = (value - 50) / (70 - 50);
+    // Linearly interpolate the opacity based on the fadeInRange
+    return fadeInRange * 100;
+  }
+  if (value <= 95) {
     return 100;
   }
   // Quadratic ease out for a rapid decrease
   // Calculate how far into the final 10% the value is, on a scale from 0 to 1
-  const finalStretch = (value - 92.6) / 10;
+  const finalStretch = (value - 95.1) / 10;
   // Reverse the ease in formula to decrease
   return Math.max(100 * (1 - finalStretch ** 2), 0);
 }
