@@ -80,7 +80,7 @@
     "next-mdx-remote": "^4.4.1",
     "next-themes": "^0.3.0",
     "nuqs": "^1.17.1",
-    "postcss": "8.4.37",
+    "postcss": "8.4.38",
     "postcss-focus-visible": "^9.0.1",
     "posthog-js": "^1.116.3",
     "react": "^18.2.0",
@@ -118,7 +118,7 @@
     "@types/react": "18.2.67",
     "@types/react-dom": "18.2.22",
     "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.37",
+    "postcss": "^8.4.38",
     "tailwindcss": "^3.3.2",
     "typescript": "^5.1.3"
   }
