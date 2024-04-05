@@ -105,7 +105,7 @@ export function TemplatesClient() {
   );
 
   return (
-    <div className="flex flex-col mx-auto py-10 lg:py-0 text-white/60">
+    <div className="flex flex-col py-10 mx-auto lg:py-0 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full" />
@@ -227,7 +227,7 @@ export function TemplatesClient() {
                                 return (
                                   <FormItem
                                     key={language}
-                                    className="flex flex-row items-center p-2 space-x-3 h-12 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
                                       <Checkbox
@@ -246,7 +246,7 @@ export function TemplatesClient() {
                                     </FormControl>
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{language}</span>
-                                      <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
+                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
                                     </FormLabel>
@@ -289,7 +289,7 @@ export function TemplatesClient() {
                                 return (
                                   <FormItem
                                     key={framework}
-                                    className="flex flex-row items-center h-12 p-2 space-x-3 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
                                       <Checkbox
@@ -307,7 +307,7 @@ export function TemplatesClient() {
                                     </FormControl>
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{framework}</span>
-                                      <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
+                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
                                     </FormLabel>
@@ -330,7 +330,7 @@ export function TemplatesClient() {
               <Link
                 key={id}
                 href={`/templates/${id}`}
-                className="flex flex-col h-full items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
+                className="flex flex-col items-start justify-between h-full overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
               >
                 <div className="relative w-full h-full">
                   {template.image ? (
@@ -340,7 +340,7 @@ export function TemplatesClient() {
                         alt=""
                         width={800}
                         height={400}
-                        className="w-full bg-gray-100 object-cover aspect-video"
+                        className="object-cover w-full bg-gray-100 aspect-video"
                       />
                     </FrostedGlassFilter>
                   ) : (
@@ -349,7 +349,7 @@ export function TemplatesClient() {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col justify-start w-full p-4 h-full">
+                <div className="flex flex-col justify-start w-full h-full p-4">
                   <div>
                     <div className="flex flex-row justify-start w-full h-full gap-3">
                       {template.framework !== undefined ? (
@@ -364,14 +364,14 @@ export function TemplatesClient() {
                       ) : null}
                     </div>
                   </div>
-                  <div className="flex flex-col justify-end w-full content-end items-end h-full">
+                  <div className="flex flex-col items-end content-end justify-end w-full h-full">
                     <div className="w-full h-12 mt-6">
-                      <h3 className="text-left text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
+                      <h3 className="text-lg font-semibold leading-6 text-left text-white group-hover:text-gray-600 line-clamp-2">
                         {template.title}
                       </h3>
                     </div>
                     <div className="w-full h-12">
-                      <p className="text-sm leading-6 text-white/60 line-clamp-2 text-left mt-4 mb-6">
+                      <p className="mt-4 mb-6 text-sm leading-6 text-left text-white/60 line-clamp-2">
                         {template.description}
                       </p>
                     </div>
@@ -381,10 +381,10 @@ export function TemplatesClient() {
                     </Avatar> */}
 
                     <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0">
-                      <p className="w-full text-xs leading-6 text-left text-white justify-start content-end">
+                      <p className="content-end justify-start w-full text-xs leading-6 text-left text-white">
                         {template.authors.join(", ")}
                       </p>
-                      <div className="justify-end content-end">
+                      <div className="content-end justify-end">
                         {" "}
                         <ArrowRight className="text-white/40" />
                       </div>
