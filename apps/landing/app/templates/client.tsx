@@ -227,7 +227,7 @@ export function TemplatesClient() {
                                 return (
                                   <FormItem
                                     key={language}
-                                    className="flex flex-row items-center p-2 space-x-3 h-12 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
                                       <Checkbox
@@ -246,7 +246,7 @@ export function TemplatesClient() {
                                     </FormControl>
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{language}</span>
-                                      <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
+                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
                                     </FormLabel>
@@ -289,7 +289,7 @@ export function TemplatesClient() {
                                 return (
                                   <FormItem
                                     key={framework}
-                                    className="flex flex-row items-center h-12 p-2 space-x-3 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
                                       <Checkbox
@@ -307,7 +307,7 @@ export function TemplatesClient() {
                                     </FormControl>
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{framework}</span>
-                                      <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
+                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
                                     </FormLabel>
