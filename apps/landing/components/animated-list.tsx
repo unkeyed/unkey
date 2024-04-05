@@ -17,13 +17,22 @@ export const AnimatedList = React.memo(
 
     const ref = useRef(null);
     const inView = useInView(ref);
+    const timeoutRef = useRef<NodeJS.Timeout>();
+
+    useEffect(() => {
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }, []);
 
     useEffect(() => {
       if (inView) {
         const interval = setInterval(() => {
           setIndex((prevIndex) => {
             if (prevIndex >= childrenArray.length - 1) {
-              setTimeout(() => {
+              timeoutRef.current = setTimeout(() => {
                 setIndex(-1);
               }, 1000);
             }
@@ -37,7 +46,7 @@ export const AnimatedList = React.memo(
 
     const itemsToShow = useMemo(() => {
       if (index === -1) {
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           setIndex(0);
         }, 1000);
         return [];
