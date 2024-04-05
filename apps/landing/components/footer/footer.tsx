@@ -62,9 +62,11 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
   className,
 }) => {
   return (
-    <ul className={cn("flex flex-col gap-8 md:gap-12 text-left", className)}>
-      <span className="text-sm font-medium tracking-wider text-white font-display">{title}</span>
+    <ul className={cn("flex flex-col gap-8 md:gap-12 text-left ", className)}>
       <ul className="flex flex-col gap-4 md:gap-8">
+        <span className="w-full text-sm font-medium tracking-wider text-white font-display">
+          {title}
+        </span>
         {links.map((link) => (
           <Link
             key={link.href}
@@ -84,8 +86,8 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
 export function Footer() {
   return (
     <div className="border-t border-white/20 blog-footer-radial-gradient">
-      <footer className="container relative grid grid-cols-1 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
-        <div className="flex flex-col items-start cols-span-1 sm:col-span-3 xl:col-span-2">
+      <footer className="container relative grid grid-cols-2 gap-8 pt-8 mx-auto overflow-hidden lg:gap-16 sm:grid-cols-3 xl:grid-cols-5 sm:pt-12 md:pt-16 lg:pt-24 xl:pt-32">
+        <div className="flex flex-col items-center col-span-2 sm:items-start sm:col-span-3 xl:col-span-2">
           <UnkeyLogo />
           <div className="mt-8 text-sm font-normal leading-6 text-white/60">
             Build better APIs faster.
@@ -96,7 +98,7 @@ export function Footer() {
         </div>
 
         {navigation.map(({ title, links }) => (
-          <Column key={title} title={title} links={links} className="col-span-1" />
+          <Column key={title} title={title} links={links} className="col-span-1 " />
         ))}
       </footer>
       <div className="flex justify-center w-full mt-8 lg:mt-16">
