@@ -105,7 +105,7 @@ export function TemplatesClient() {
   );
 
   return (
-    <div className="flex flex-col py-10 mx-auto  lg:py-0 text-white/60">
+    <div className="flex flex-col py-10 mx-auto lg:py-0 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full" />
@@ -207,13 +207,11 @@ export function TemplatesClient() {
                       <Separator className="mb-4 " orientation="horizontal" />
 
                       <AccordionItem value="languages">
-                        <AccordionTrigger className="items-start w-full text-left">
+                        <AccordionTrigger className="flex items-center w-full text-left">
                           <span className="w-6 h-6 rounded-md bg-white/10">
                             <CodeIcon />
                           </span>
-                          <span className="justify-start w-full pl-4 text-sm font-medium text-left">
-                            Languages
-                          </span>
+                          <span className="w-full pl-4 text-sm text-left ">Language</span>
                         </AccordionTrigger>
 
                         <AccordionContent>
@@ -269,13 +267,11 @@ export function TemplatesClient() {
                   render={() => (
                     <FormItem className="mt-4 mb-4">
                       <AccordionItem value="frameworks">
-                        <AccordionTrigger className="items-start w-full text-left">
+                        <AccordionTrigger className="flex items-center w-full text-left">
                           <span className="w-6 h-6 rounded-md bg-white/10">
                             <FrameworkIcon />
                           </span>
-                          <span className="justify-start w-full pl-4 text-sm text-left">
-                            Framework
-                          </span>
+                          <span className="w-full pl-4 text-sm text-left ">Framework</span>
                         </AccordionTrigger>
 
                         <AccordionContent>
