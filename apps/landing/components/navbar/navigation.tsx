@@ -33,7 +33,7 @@ export function Navigation() {
       style={{ backgroundColor: `rgba(0, 0, 0, ${opacity})` }}
       className="sticky z-[1000] top-0 px-[30px] lg:px-0 w-full py-3"
     >
-      <div className="container px-0 flex items-center justify-between">
+      <div className="container flex items-center justify-between px-0">
         <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
           <Link href="/">
             <Logo className="min-w-[50px]" />
@@ -67,7 +67,7 @@ function MobileLinks({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="flex items-center justify-center h-8 gap-2 px-3 py-2 mr-3 text-sm duration-150 text-white/60 hover:text-white/80"
+            className="flex items-center justify-end h-8 gap-2 px-3 py-2 text-sm duration-150 text-white/60 hover:text-white/80"
           >
             Menu
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
