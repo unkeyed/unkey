@@ -50,6 +50,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
       >
         {allTags.map((tag) => (
           <Link
+            scroll={false}
             key={tag}
             prefetch
             href={tag === "all" ? "/blog" : `/blog?tag=${tag}`}
@@ -65,7 +66,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
           </Link>
         ))}
       </div>
-      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-8 mb-24 px-4", className)}>
+      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 mx-auto", className)}>
         {visiblePosts.map((post) => (
           <Link href={`${post._raw.flattenedPath}`} key={post._raw.flattenedPath}>
             <BlogCard
