@@ -41,15 +41,15 @@ export function BlogHero({
   return (
     <div
       className={cn(
-        "flex flex-col lg:flex-row items-center w-full gap-8 lg:gap-16 relative z-100",
+        "flex flex-col lg:flex-row items-center w-full gap-8 lg:gap-16 relative z-100 mx-0",
         className,
       )}
     >
       <Frame className="order-2 w-full my-auto lg:order-1 z-100" size="lg">
         <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
       </Frame>
-      <div className="flex flex-col order-1 w-full lg:order-2 z-100">
-        <div className="flex flex-row justify-center gap-4 lg:justify-start">
+      <div className="flex flex-col order-1 w-fit lg:order-2 z-100">
+        <div className="flex flex-row justify-center gap-4 lg:justify-start w-full">
           {tags?.map((tag) => (
             <p
               key={tag}
@@ -59,13 +59,13 @@ export function BlogHero({
             </p>
           ))}
         </div>
-        <h2 className="flex justify-center my-6 text-3xl font-medium leading-10 blog-heading-gradient sm:text-center lg:justify-start lg:text-left">
+        <h2 className="flex justify-center my-6 text-3xl font-medium leading-10 blog-heading-gradient text-center lg:justify-start lg:text-left w-full">
           {title}
         </h2>
-        <p className="flex justify-center text-base font-normal leading-7 text-white/60 lg:pr-16 lg:justify-start">
+        <p className="flex text-center lg:text-left justify-center text-base font-normal leading-7 text-white/60 lg:justify-start">
           {subTitle}
         </p>
-        <div className="flex flex-row justify-center w-full gap-24 pb-8 mt-10 lg:justify-start lg:pt-0">
+        <div className="flex flex-row justify-center w-full gap-24 md:gap-12 pb-8 mt-10 lg:justify-start lg:pt-0">
           <div className="flex flex-col gap-6 text-nowrap">
             <span className="text-sm text-white/30 ">Written by</span>
             <div className="flex items-center gap-4">
@@ -79,10 +79,10 @@ export function BlogHero({
               <div />
             </div>
           </div>
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-8">
             <span className="text-sm text-white/30">Published on</span>
             <div>
-              <span className="pt-3 text-sm text-white">
+              <span className="pt-4 text-sm text-white">
                 {format(new Date(publishDate!), "MMM dd, yyyy")}
               </span>
             </div>
