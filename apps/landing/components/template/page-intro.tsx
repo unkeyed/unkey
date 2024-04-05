@@ -2,6 +2,7 @@ import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
 import clsx from "clsx";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export function PageIntro({
   eyebrow,
@@ -16,7 +17,7 @@ export function PageIntro({
 }) {
   return (
     <Container className={clsx(centered && "text-center")}>
-      <a
+      <Link
         href="https://github.com/unkeyed/examples"
         className="text-white/60 hover:text-white/80"
         target="_blank"
@@ -27,7 +28,7 @@ export function PageIntro({
           IconRight={ArrowRight}
           className="mx-auto mb-12 hover:shadow-md hover:scale-[1.01] flex-shrink-0  sm:mt-12 md:mt-20 lg:mt-32 bg-black"
         />
-      </a>
+      </Link>
       <h1>
         <span className="block font-sans text-base font-semibold text-white font-display">
           {eyebrow}
