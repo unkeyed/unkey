@@ -105,7 +105,7 @@ export function TemplatesClient() {
   );
 
   return (
-    <div className="flex flex-col py-10 mx-auto lg:py-0 text-white/60">
+    <div className="flex flex-col py-10 mx-auto  lg:py-0 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full" />
@@ -171,7 +171,7 @@ export function TemplatesClient() {
       </div>
 
       <PageIntro title="Find your template">
-        <p className="mt-[26px] text-base about-founders-text-gradient ">
+        <p className="mt-6 text-base about-founders-text-gradient ">
           Jumpstart your API development with our pre-built solutions.
         </p>
       </PageIntro>
