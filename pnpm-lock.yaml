@@ -518,8 +518,8 @@ importers:
         specifier: ^8.13.2
         version: 8.13.2(react-dom@18.2.0)(react@18.2.0)
       '@team-plain/typescript-sdk':
-        specifier: ^2.19.0
-        version: 2.19.0
+        specifier: ^3.8.1
+        version: 3.8.1
       '@trpc/client':
         specifier: ^10.45.2
         version: 10.45.2(@trpc/server@10.45.2)
@@ -8852,10 +8852,12 @@ packages:
     engines: {node: '>=12'}
     dev: false
 
-  /@team-plain/typescript-sdk@2.19.0:
-    resolution: {integrity: sha512-BloaZrzHLS2jfgdM9Q/wvpmkHw8ZoVCNaq3z5YsR8NOgbDuVNdzmAUzGqMDmdCRiZ5xbD8CUILHxap1AAJrY5A==}
+  /@team-plain/typescript-sdk@3.8.1:
+    resolution: {integrity: sha512-ZQPUgBcSDrWkWTHhS+cgUFuRWX4cVDJ1sviWNwrfBCb0XgSQpQOt9E4lvlY/hePNPKa5OK9uNjCMv8JYwa+zRw==}
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.1)
+      ajv: 8.12.0
+      ajv-formats: 2.1.1(ajv@8.12.0)
       graphql: 16.8.1
       zod: 3.22.4
     dev: false
@@ -10638,6 +10640,17 @@ packages:
       ajv: 8.12.0
     dev: true
 
+  /ajv-formats@2.1.1(ajv@8.12.0):
+    resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
+    peerDependencies:
+      ajv: ^8.0.0
+    peerDependenciesMeta:
+      ajv:
+        optional: true
+    dependencies:
+      ajv: 8.12.0
+    dev: false
+
   /ajv-keywords@3.5.2(ajv@6.12.6):
     resolution: {integrity: sha512-5p6WTN0DdTGVQk6VjcEju19IgaHudalcfabD7yhDGeA6bcQnmL+CpveLJq/3hvfwd1aof6L386Ougkx6RfyMIQ==}
     peerDependencies:
@@ -10662,7 +10675,6 @@ packages:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
       uri-js: 4.4.1
-    dev: true
 
   /align-text@0.1.4:
     resolution: {integrity: sha512-GrTZLRpmp6wIC2ztrWW9MjjTgSKccffgFagbNDOX95/dcjEcYZibYTeaOntySQLcdw1ztBoFkviiUvTMbb9MYg==}
@@ -16050,7 +16062,6 @@ packages:
 
   /json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
-    dev: true
 
   /json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
@@ -20234,7 +20245,6 @@ packages:
   /require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /require-main-filename@2.0.0:
     resolution: {integrity: sha512-NKN5kMDylKuldxYLSUfrbo5Tuzh4hd+2E8NPPX02mZtn1VuREQToYe/ZdlJy+J3uCpfaiGF05e7B8W0iXbQHmg==}
