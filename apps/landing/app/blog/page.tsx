@@ -110,7 +110,7 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
-        <div className="xl:pl-6 w-full px-0 mx-0 px-6">
+        <div className="w-full px-0 mx-0">
           <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
             <BlogHero
               tags={posts[0].tags}
