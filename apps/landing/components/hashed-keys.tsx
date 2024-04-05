@@ -25,8 +25,35 @@ export const getRandomString = () => {
   return randomStrings[Math.floor(Math.random() * 5)];
 };
 
+const normalizeXPos = (x: number) => {
+  return Math.min(((x + 250) * 100) / 524);
+};
+
+function fadeInOut(value: number) {
+  if (value <= 50) {
+    return 0;
+  }
+  if (value <= 70) {
+    // Adjust this value as needed
+    // Smooth fade-in from 50 to 70
+    // Calculate how far into the fade-in range the value is, on a scale from 0 to 1
+    const fadeInRange = (value - 50) / (70 - 50);
+    // Linearly interpolate the opacity based on the fadeInRange
+    return fadeInRange * 100;
+  }
+  if (value <= 95) {
+    return 100;
+  }
+  // Quadratic ease out for a rapid decrease
+  // Calculate how far into the final 10% the value is, on a scale from 0 to 1
+  const finalStretch = (value - 95.1) / 10;
+  // Reverse the ease in formula to decrease
+  return Math.max(100 * (1 - finalStretch ** 2), 0);
+}
+
 export function HashedKeys() {
   const [hasReachedThreshold, setHasReachedThreshold] = useState(false);
+  const [opacity, setOpacity] = useState(0);
   const randomStringRef = useRef(getRandomString());
   const textContainerRef = useRef<HTMLParagraphElement>(null); // Ref for the text container
   function generateRandomStrings(iterations = 50) {
@@ -83,6 +110,7 @@ export function HashedKeys() {
             duration: 1,
           }}
           onUpdate={(latest: { x: number }) => {
+            setOpacity(normalizeXPos(latest.x));
             if (latest.x > 0) {
               setHasReachedThreshold(true);
             }
@@ -99,6 +127,7 @@ export function HashedKeys() {
         <p
           className="text-white/40 break-words whitespace-pre-wrap w-[160px] h-[240px] overflow-hidden font-mono text-sm"
           ref={textContainerRef}
+          style={{ opacity: `${fadeInOut(opacity) / 100}` }}
         />
       </div>
     </div>
