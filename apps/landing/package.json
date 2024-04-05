@@ -60,6 +60,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.12",
     "@types/fslightbox-react": "^1.7.7",
     "@types/node": "^20.11.28",
