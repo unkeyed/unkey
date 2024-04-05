@@ -1,6 +1,6 @@
 const { withContentlayer } = require("next-contentlayer");
 /** @type {import('next').NextConfig} */
-const APP_URL = "https://unkey.dev";
+const APP_URL = "https://app.unkey.com";
 
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
