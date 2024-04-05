@@ -1,6 +1,6 @@
 const { withContentlayer } = require("next-contentlayer");
 /** @type {import('next').NextConfig} */
-const APP_URL = "https://app.unkey.com";
+const APP_URL = "https://web-dsxijq4zr-unkey.vercel.app/";
 
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
