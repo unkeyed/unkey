@@ -340,10 +340,10 @@ export default async function Page() {
                 contentWidth={630}
                 text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe."
               />
-              <div className="flex flex-col mx-auto lg:flex-row lg:gap-x-16">
+              <div className="flex flex-col mx-auto md:flex-row lg:gap-x-16 pt-12">
                 {investors.map(({ name, firm, image }) => {
                   return (
-                    <div className="pt-[88px] px-[40px] pb-[80px]">
+                    <div className="px-[40px] pb-[80px]">
                       <div className="flex flex-col items-center justify-center text-center">
                         <Image src={image} alt="Liu Jiang" className="w-12 h-12 rounded-full" />
                         <p className="mt-8 text-sm font-bold text-white">{name}</p>
@@ -353,7 +353,7 @@ export default async function Page() {
                   );
                 })}
               </div>
-              <div className="w-full h-[0.75px] bg-gradient-to-r from-white/10 to-white/10 via-white/40 mt-[100px] lg:mt-[200px]" />
+              <div className="w-full h-[1px] bg-gradient-to-r from-white/10 to-white/10 via-white/40 mt-[100px] lg:mt-[200px]" />
               <SectionTitle
                 className="mt-[100px] lg:mt-[200px]"
                 align="center"
