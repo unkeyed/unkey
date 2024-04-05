@@ -34,11 +34,11 @@ const nextConfig = {
     },
     {
       source: "/app",
-      destination: `${APP_URL}/app`,
+      destination: `${APP_URL}`,
     },
     {
       source: "/app/:path*",
-      destination: `${APP_URL}/app/:path*`,
+      destination: `${APP_URL}/:path*`,
     },
   ],
 };
