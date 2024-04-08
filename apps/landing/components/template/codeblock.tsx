@@ -7,8 +7,8 @@ import { Highlight } from "prism-react-renderer";
 import React, { useState } from "react";
 
 export function CodeBlock(props: any) {
-  console.log(props.node.children[0].properties);
   let language = props.node.children[0].properties?.className;
+  // for some reason... occasionally for no reason at all. the className is not in the properties
   if (!language) {
     language = "language-jsx";
   }
@@ -39,23 +39,26 @@ export function CodeBlock(props: any) {
       </div>
       <Highlight theme={darkTheme} code={block} language={language[0].replace(/language-/, "")}>
         {({ tokens, getLineProps, getTokenProps }) => {
-          if (tokens.length > 1) {
-            tokens.pop();
-          }
           return (
             <pre className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
-              {tokens.map((line, i) => (
-                <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                  key={`${line}-${i}`}
-                  {...getLineProps({ line })}
-                >
-                  <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
-                  {line.map((token, key) => (
-                    <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                  ))}
-                </div>
-              ))}
+              {tokens.map((line, i) => {
+                // if the last line is empty, don't render it
+                if (i === tokens.length - 1 && line[0].empty === true) {
+                  return null;
+                }
+                return (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                    key={`${line}-${i}`}
+                    {...getLineProps({ line })}
+                  >
+                    <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
+                    {line.map((token, key) => (
+                      <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                    ))}
+                  </div>
+                );
+              })}
             </pre>
           );
         }}
