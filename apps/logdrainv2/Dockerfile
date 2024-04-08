@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 COPY . .
 RUN bun install
 
+
 # run the app
 USER bun
 EXPOSE 8000/tcp
