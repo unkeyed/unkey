@@ -10,7 +10,7 @@ export function CodeBlock(props: any) {
   let language = props.node.children[0].properties?.className;
   // for some reason... occasionally for no reason at all. the className is not in the properties
   if (!language) {
-    language = "language-jsx";
+    language = ["language-jsx"];
   }
   const block =
     props.node.children[0].properties?.value || props.node.children[0].children[0].value;
