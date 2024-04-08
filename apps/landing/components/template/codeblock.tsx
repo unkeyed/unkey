@@ -7,7 +7,11 @@ import { Highlight } from "prism-react-renderer";
 import React, { useState } from "react";
 
 export function CodeBlock(props: any) {
-  const language = props.node.children[0].properties.className[0];
+  console.log(props.node.children[0].properties);
+  let language = props.node.children[0].properties?.className;
+  if (!language) {
+    language = "language-jsx";
+  }
   const block =
     props.node.children[0].properties?.value || props.node.children[0].children[0].value;
   const [copyData, _setCopyData] = useState(block);
@@ -33,11 +37,7 @@ export function CodeBlock(props: any) {
           <BlogCodeDownload />
         </button>
       </div>
-      <Highlight
-        theme={darkTheme}
-        code={block}
-        language={language?.replace(/language-/, "") || "jsx"}
-      >
+      <Highlight theme={darkTheme} code={block} language={language[0].replace(/language-/, "")}>
         {({ tokens, getLineProps, getTokenProps }) => {
           if (tokens.length > 1) {
             tokens.pop();
