@@ -1,5 +1,4 @@
 "use client";
-import { Container } from "@/components/container";
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { CodeIcon, FrameworkIcon } from "@/components/svg/template-page";
