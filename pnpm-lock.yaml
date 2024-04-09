@@ -1102,7 +1102,13 @@ importers:
       '@unkey/rbac':
         specifier: workspace:^
         version: link:../rbac
+      api:
+        specifier: workspace:^
+        version: link:../../apps/api
     devDependencies:
+      '@hono/zod-openapi':
+        specifier: ^0.9.8
+        version: 0.9.8(hono@4.1.1)(zod@3.22.4)
       '@types/node':
         specifier: ^20.11.28
         version: 20.11.28
@@ -1847,7 +1853,6 @@ packages:
     dependencies:
       openapi3-ts: 4.3.1
       zod: 3.22.4
-    dev: false
 
   /@axiomhq/js@1.0.0-rc.2:
     resolution: {integrity: sha512-BQJQNkumdKZgbLGhf3DZb6A8w/31jtX3hWtdv0mMiSE3O5PioeIZNxRTMoWRChxt8TylZrJoVezqrw/ooWPoyQ==}
@@ -4157,7 +4162,6 @@ packages:
       '@hono/zod-validator': 0.1.11(hono@4.1.1)(zod@3.22.4)
       hono: 4.1.1
       zod: 3.22.4
-    dev: false
 
   /@hono/zod-validator@0.1.11(hono@4.1.1)(zod@3.22.4):
     resolution: {integrity: sha512-PQXeHUP0+36qpRt8yfeD7N2jbK3ETlGvSN6dMof/HwUC/APRokQRjpXZm4rrlG71Ft0aWE01+Bm4XejqPie5Uw==}
@@ -4167,7 +4171,6 @@ packages:
     dependencies:
       hono: 4.1.1
       zod: 3.22.4
-    dev: false
 
   /@hono/zod-validator@0.2.1(hono@4.1.1)(zod@3.22.4):
     resolution: {integrity: sha512-HFoxln7Q6JsE64qz2WBS28SD33UB2alp3aRKmcWnNLDzEL1BLsWfbdX6e1HIiUprHYTIXf5y7ax8eYidKUwyaA==}
@@ -18524,7 +18527,6 @@ packages:
     resolution: {integrity: sha512-ha/kTOLhMQL7MvS9Abu/cpCXx5qwHQ++88YkUzn1CGfmM8JvCOG/4ZE6tRsexgXRFaoJrcwLyf81H2Y/CXALtA==}
     dependencies:
       yaml: 2.4.1
-    dev: false
 
   /optionator@0.9.3:
     resolution: {integrity: sha512-JjCoypp+jKn1ttEFExxhetCKeJt9zhAgAve5FXHixTvFDW/5aEktX9bufBKLRRMdU7bNtpLfcGu94B3cdEJgjg==}

@@ -1,27 +1,11 @@
 import { z } from "@hono/zod-openapi";
+import { ErrorCode } from "@unkey/api/src";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { StatusCode } from "hono/utils/http-status";
 import type { ZodError } from "zod";
 import { generateErrorMessage } from "zod-error";
 import type { HonoEnv } from "../hono/env";
-
-const ErrorCode = z.enum([
-  "BAD_REQUEST",
-  "FORBIDDEN",
-  "INTERNAL_SERVER_ERROR",
-  "USAGE_EXCEEDED",
-  "DISABLED",
-  "NOT_FOUND",
-  "NOT_UNIQUE",
-  "RATE_LIMITED",
-  "UNAUTHORIZED",
-  "PRECONDITION_FAILED",
-  "INSUFFICIENT_PERMISSIONS",
-  "METHOD_NOT_ALLOWED",
-]);
-
-export type ErrorCodeType = z.infer<typeof ErrorCode>;
 
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
   return z.object({

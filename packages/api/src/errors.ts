@@ -1,5 +1,22 @@
+import { z } from "@hono/zod-openapi";
 import type { paths } from "./openapi";
-export type { ErrorCodeType } from "../../../apps/api/src/pkg/errors/http";
+
+export const ErrorCode = z.enum([
+  "BAD_REQUEST",
+  "FORBIDDEN",
+  "INTERNAL_SERVER_ERROR",
+  "USAGE_EXCEEDED",
+  "DISABLED",
+  "NOT_FOUND",
+  "NOT_UNIQUE",
+  "RATE_LIMITED",
+  "UNAUTHORIZED",
+  "PRECONDITION_FAILED",
+  "INSUFFICIENT_PERMISSIONS",
+  "METHOD_NOT_ALLOWED",
+]);
+
+export type ErrorCodeType = z.infer<typeof ErrorCode>;
 
 // this is what a json body response looks like
 export type ErrorResponse =

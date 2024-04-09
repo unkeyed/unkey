@@ -21,6 +21,7 @@
     "build": "pnpm generate && tsup"
   },
   "devDependencies": {
+    "@hono/zod-openapi": "^0.9.8",
     "@types/node": "^20.11.28",
     "@unkey/tsconfig": "workspace:^",
     "openapi-typescript": "^6.7.5",
