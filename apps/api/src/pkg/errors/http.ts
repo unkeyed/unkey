@@ -21,6 +21,8 @@ const ErrorCode = z.enum([
   "METHOD_NOT_ALLOWED",
 ]);
 
+export type ErrorCodeType = z.infer<typeof ErrorCode>;
+
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
   return z.object({
     error: z.object({
