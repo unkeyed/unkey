@@ -131,7 +131,7 @@ export default async function Page() {
                 solution stands as a powerful tool, continuously evolving to meet the dynamic needs
                 of a worldwide developer community
               </p>
-              <div className="absolute scale-[1.5] bottom-[-350px]">
+              <div className="absolute pointer-events-none scale-[1.5] bottom-[-350px]">
                 <AboutLight />
               </div>
             </div>
