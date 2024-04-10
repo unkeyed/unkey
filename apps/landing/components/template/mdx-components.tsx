@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert } from "../ui/alert/alert";
 import { Separator } from "../ui/separator";
+import { CodeBlock } from "./codeblock";
 
 export const TemplateComponents = {
   Callout: Alert,
@@ -39,14 +40,9 @@ export const TemplateComponents = {
   hr: (_props: any) => <Separator orientation="horizontal" />,
   code: (props: any) => (
     <code
+      className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-medium text-gray-600 before:hidden after:hidden"
       {...props}
-      className="inline font-mono text-xs rounded-lg leading-6 sm:text-xs md:text-base font-normal bg-white/10 text-white px-1.5 py-1 w-full text-nowrap overflow-x-auto"
     />
   ),
-  pre: (props: any) => (
-    <pre
-      {...props}
-      className="bg-transparent [&>*]my-6 [&>*]:py-6 [&>*]:px-4 [&>*]:block w-full [&>*]:rounded-xl m-0 p-0"
-    />
-  ),
+  pre: (props: any) => <CodeBlock {...props} />,
 };
