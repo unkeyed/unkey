@@ -89,7 +89,7 @@ export default async function Page() {
               <BorderBeam size={300} anchor={0} />
             </div>
           </div>
-          <div className="mt-[120px]">
+          <div className="mt-12">
             <Link href="/blog/introducing-ratelimiting" target="">
               <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
             </Link>
@@ -118,26 +118,27 @@ export default async function Page() {
               <MeteorLines className="ml-16" delay={0.4} />
             </div> */}
             </div>
-            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/20 max-w-[1000px]">
-              <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center">
+            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
+              <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center text-balance">
                 Founded to level up the API authentication landscape
               </h2>
               <p className="mt-[40px] text-white/50 leading-[32px] max-w-[720px] text-center">
-                Unkey emerged in 2023 from the frustration of <span>James Perkins</span> and
-                <span> Andreas Thomas</span> with the lack of a straightforward, fast, and scalable
-                API authentication solution. This void prompted a mission to create a tool
-                themselves. Thus, the platform was born, driven by their shared determination to
-                simplify API authentication and democratize access for all developers. Today, the
-                solution stands as a powerful tool, continuously evolving to meet the dynamic needs
-                of a worldwide developer community
+                Unkey emerged in 2023 from the frustration of{" "}
+                <span className="font-medium text-white">James Perkins</span> and
+                <span className="font-medium text-white"> Andreas Thomas</span> with the lack of a
+                straightforward, fast, and scalable API authentication solution. This void prompted
+                a mission to create a tool themselves. Thus, the platform was born, driven by their
+                shared determination to simplify API authentication and democratize access for all
+                developers. Today, the solution stands as a powerful tool, continuously evolving to
+                meet the dynamic needs of a worldwide developer community
               </p>
-              <div className="absolute scale-[1.5] bottom-[-350px]">
+              <div className="absolute pointer-events-none scale-[1.5] bottom-[-350px]">
                 <AboutLight />
               </div>
             </div>
           </div>
           <SectionTitle
-            className="mt-20"
+            className="mt-80"
             align="center"
             title="And now, we got people to take care of"
             titleWidth={640}
@@ -256,7 +257,7 @@ export default async function Page() {
           </div>
           <div className="flex flex-col items-center max-w-full">
             <SectionTitle
-              className="mt-[100px] px-[10px]"
+              className="mt-[100px] px-[10px] text-balance"
               title="A few words from the founders"
               align="center"
               contentWidth={640}
@@ -271,7 +272,7 @@ export default async function Page() {
                 were sown for what ultimately inspired us to launch Unkey. Below, we've compiled
                 some questions we frequently encounter, as well as those we're eager to address.
               </p>
-              <div className="flex flex-col mt-8 md:flex-row">
+              <div className="flex flex-col mt-12 md:flex-row">
                 <div className="flex md:left-[5px]">
                   <div className="text-sm text-right">
                     <p className="font-bold">James Perkins</p>
@@ -299,8 +300,7 @@ export default async function Page() {
             <div className="relative w-full max-w-[680px] z-0">
               <div className="relative z-50 w-full bg-black">
                 <Accordion
-                  type="single"
-                  collapsible
+                  type="multiple"
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
                 >
                   <AccordionItem
@@ -327,8 +327,8 @@ export default async function Page() {
                   </AccordionItem>
                 </Accordion>
               </div>
-              <div className="absolute -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
-                <Image src={downlight} alt="Light effect" className="scale-[1.5]" />
+              <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
+                <Image src={downlight} alt="Light effect" className="scale-[1.5] opacity-[0.7]" />
               </div>
             </div>
 
@@ -340,12 +340,12 @@ export default async function Page() {
                 contentWidth={630}
                 text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe."
               />
-              <div className="flex flex-col mx-auto md:flex-row lg:gap-x-16 pt-12">
+              <div className="flex flex-col w-[800px] justify-between mx-auto md:flex-row lg:gap-x-16 pt-24">
                 {investors.map(({ name, firm, image }) => {
                   return (
-                    <div className="px-[40px] pb-[80px]">
+                    <div className="px-[40px] pb-[80px] w-[224px]">
                       <div className="flex flex-col items-center justify-center text-center">
-                        <Image src={image} alt="Liu Jiang" className="w-12 h-12 rounded-full" />
+                        <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
                         <p className="mt-8 text-sm font-bold text-white">{name}</p>
                         <p className="text-sm text-white/60">{firm}</p>
                       </div>
