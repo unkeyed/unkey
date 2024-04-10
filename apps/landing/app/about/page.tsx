@@ -118,7 +118,7 @@ export default async function Page() {
               <MeteorLines className="ml-16" delay={0.4} />
             </div> */}
             </div>
-            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/20 max-w-[1000px]">
+            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center">
                 Founded to level up the API authentication landscape
               </h2>
