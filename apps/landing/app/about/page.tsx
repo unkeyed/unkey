@@ -112,13 +112,13 @@ export default async function Page() {
               <MeteorLines className="ml-10" number={1} />
               <MeteorLines className="ml-16" delay={0.4} number={1} />
 
-              {/* <div className="absolute right-[640px] top-[700px]">
-              <MeteorLines className="ml-2" delay={0.2} />
-              <MeteorLines className="ml-10" />
-              <MeteorLines className="ml-16" delay={0.4} />
-            </div> */}
+              <div className="absolute right-[640px] top-[550px] -z-50">
+                <MeteorLines className="ml-2" delay={0.2} number={1} />
+                <MeteorLines className="ml-10" number={1} />
+                <MeteorLines className="ml-16" delay={0.4} number={1} />
+              </div>
             </div>
-            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
+            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center text-balance">
                 Founded to level up the API authentication landscape
               </h2>
@@ -298,7 +298,7 @@ export default async function Page() {
               </div>
             </div>
             <div className="relative w-full max-w-[680px] z-0">
-              <div className="relative z-50 w-full bg-black">
+              <div className="relative z-100 w-full bg-black">
                 <Accordion
                   type="multiple"
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
@@ -326,6 +326,11 @@ export default async function Page() {
                     <AccordionContent className="pl-10">TBC</AccordionContent>
                   </AccordionItem>
                 </Accordion>
+                <div className="absolute right-[500px] top-[150px] -z-50">
+                  <MeteorLines className="ml-2" delay={0.2} number={1} />
+                  <MeteorLines className="ml-10" number={1} />
+                  <MeteorLines className="ml-16" delay={0.4} number={1} />
+                </div>
               </div>
               <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
                 <Image src={downlight} alt="Light effect" className="scale-[1.5] opacity-[0.7]" />
