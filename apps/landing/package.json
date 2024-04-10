@@ -60,11 +60,12 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.12",
     "@types/fslightbox-react": "^1.7.7",
     "@types/node": "^20.11.28",
     "@types/react": "^18.2.67",
-    "@types/react-dom": "^18.2.22",
+    "@types/react-dom": "^18.2.24",
     "autoprefixer": "^10.0.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

@@ -31,7 +31,7 @@ import {
   updateUrl,
 } from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, VenetianMask } from "lucide-react";
+import { ArrowRight, SearchX, VenetianMask } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
@@ -105,7 +105,7 @@ export function TemplatesClient() {
   );
 
   return (
-    <div className="flex flex-col mx-auto py-10 lg:py-0 text-white/60">
+    <div className="flex flex-col py-10 mx-auto lg:py-0 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full" />
@@ -171,11 +171,11 @@ export function TemplatesClient() {
       </div>
 
       <PageIntro title="Find your template">
-        <p className="mt-[26px] text-base about-founders-text-gradient ">
+        <p className="mt-6 text-base about-founders-text-gradient ">
           Jumpstart your API development with our pre-built solutions.
         </p>
       </PageIntro>
-      <Container className="mt-24 text-white">
+      <div className="container mx-auto mt-24 overflow-hidden text-white">
         <div className="flex flex-col mb-24 lg:space-x-8 lg:flex-row">
           <div className="w-full lg:w-[232px]">
             <Form {...form}>
@@ -207,13 +207,11 @@ export function TemplatesClient() {
                       <Separator className="mb-4 " orientation="horizontal" />
 
                       <AccordionItem value="languages">
-                        <AccordionTrigger className="items-start w-full text-left">
+                        <AccordionTrigger className="flex items-center w-full text-left">
                           <span className="w-6 h-6 rounded-md bg-white/10">
                             <CodeIcon />
                           </span>
-                          <span className="justify-start w-full pl-4 text-sm font-medium text-left">
-                            Languages
-                          </span>
+                          <span className="w-full pl-4 text-sm text-left ">Language</span>
                         </AccordionTrigger>
 
                         <AccordionContent>
@@ -227,7 +225,7 @@ export function TemplatesClient() {
                                 return (
                                   <FormItem
                                     key={language}
-                                    className="flex flex-row items-center p-2 space-x-3 h-12 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
                                       <Checkbox
@@ -246,7 +244,7 @@ export function TemplatesClient() {
                                     </FormControl>
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{language}</span>
-                                      <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
+                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
                                     </FormLabel>
@@ -269,13 +267,11 @@ export function TemplatesClient() {
                   render={() => (
                     <FormItem className="mt-4 mb-4">
                       <AccordionItem value="frameworks">
-                        <AccordionTrigger className="items-start w-full text-left">
+                        <AccordionTrigger className="flex items-center w-full text-left">
                           <span className="w-6 h-6 rounded-md bg-white/10">
                             <FrameworkIcon />
                           </span>
-                          <span className="justify-start w-full pl-4 text-sm text-left">
-                            Framework
-                          </span>
+                          <span className="w-full pl-4 text-sm text-left ">Framework</span>
                         </AccordionTrigger>
 
                         <AccordionContent>
@@ -289,7 +285,7 @@ export function TemplatesClient() {
                                 return (
                                   <FormItem
                                     key={framework}
-                                    className="flex flex-row items-center h-12 p-2 space-x-3 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
                                       <Checkbox
@@ -307,7 +303,7 @@ export function TemplatesClient() {
                                     </FormControl>
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{framework}</span>
-                                      <span className="p-1 px-4 text-xs duration-150 rounded-full text-white/70 bg-white/20 group-hover:text-white/80">
+                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
                                         {occurences}
                                       </span>
                                     </FormLabel>
@@ -325,77 +321,102 @@ export function TemplatesClient() {
               </Accordion>
             </Form>
           </div>
-          <div className="grid w-full grid-cols-1 gap-8 xl:w-3/4 auto-rows-fr xl:grid-cols-3 md:grid-cols-2 grid-col-1">
-            {Object.entries(filteredTemplates).map(([id, template]) => (
-              <Link
-                key={id}
-                href={`/templates/${id}`}
-                className="flex flex-col h-full items-start justify-between overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
-              >
-                <div className="relative w-full h-full">
-                  {template.image ? (
-                    <FrostedGlassFilter>
-                      <Image
-                        src={template.image}
-                        alt=""
-                        width={800}
-                        height={400}
-                        className="w-full bg-gray-100 object-cover aspect-video"
-                      />
-                    </FrostedGlassFilter>
-                  ) : (
-                    <div className="flex items-center justify-center w-full h-full">
-                      <VenetianMask className="w-8 h-8 text-white/60" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col justify-start w-full p-4 h-full">
-                  <div>
-                    <div className="flex flex-row justify-start w-full h-full gap-3">
-                      {template.framework !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
-                          {template.framework?.toString()}
-                        </div>
-                      ) : null}
-                      {template.language !== undefined ? (
-                        <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
-                          {template.language?.toString()}
-                        </div>
-                      ) : null}
-                    </div>
+          <div className="flex-grow block w-full xl:w-3/4">
+            {Object.entries(filteredTemplates).length === 0 ? (
+              <div className="animate-in relative fade-in-50 w-full flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-white/60 p-8 text-center">
+                <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+                  <div className="flex items-center justify-center w-20 h-20 border rounded-full border-white/60">
+                    <SearchX />
                   </div>
-                  <div className="flex flex-col justify-end w-full content-end items-end h-full">
-                    <div className="w-full h-12 mt-6">
-                      <h3 className="text-left text-lg font-semibold leading-6 text-white group-hover:text-gray-600 line-clamp-2">
-                        {template.title}
-                      </h3>
+                  <h2 className="mt-6 text-xl font-semibold">No template found</h2>
+                  <p className="mt-2 mb-8 text-sm font-normal leading-6 text-center text-white/60">
+                    Try removing some filters or{" "}
+                    <Link
+                      href="https://github.com/unkeyed/examples"
+                      className="underline text-white/60 hover:text-white/80"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      submit a template
+                    </Link>
+                    .
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-8 auto-rows-fr xl:grid-cols-3 md:grid-cols-2 grid-col-1">
+                {Object.entries(filteredTemplates).map(([id, template]) => (
+                  <Link
+                    key={id}
+                    href={`/templates/${id}`}
+                    className="flex flex-col items-start justify-between h-full overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
+                  >
+                    <div className="relative w-full h-full">
+                      {template.image ? (
+                        <FrostedGlassFilter>
+                          <Image
+                            src={template.image}
+                            alt=""
+                            width={800}
+                            height={400}
+                            className="object-cover w-full bg-gray-100 aspect-video"
+                          />
+                        </FrostedGlassFilter>
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full">
+                          <VenetianMask className="w-8 h-8 text-white/60" />
+                        </div>
+                      )}
                     </div>
-                    <div className="w-full h-12">
-                      <p className="text-sm leading-6 text-white/60 line-clamp-2 text-left mt-4 mb-6">
-                        {template.description}
-                      </p>
-                    </div>
-                    {/* No images currently in author */}
-                    {/* <Avatar className="w-8 h-8 rounded-full" >
+                    <div className="flex flex-col justify-start w-full h-full p-4">
+                      <div>
+                        <div className="flex flex-row justify-start w-full h-full gap-3">
+                          {template.framework !== undefined ? (
+                            <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
+                              {template.framework?.toString()}
+                            </div>
+                          ) : null}
+                          {template.language !== undefined ? (
+                            <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
+                              {template.language?.toString()}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end content-end justify-end w-full h-full">
+                        <div className="w-full h-12 mt-6">
+                          <h3 className="text-lg font-semibold leading-6 text-left text-white group-hover:text-gray-600 line-clamp-2">
+                            {template.title}
+                          </h3>
+                        </div>
+                        <div className="w-full h-12">
+                          <p className="mt-4 mb-6 text-sm leading-6 text-left text-white/60 line-clamp-2">
+                            {template.description}
+                          </p>
+                        </div>
+                        {/* No images currently in author */}
+                        {/* <Avatar className="w-8 h-8 rounded-full" >
                       <AvatarImage src={template.authors} />
                     </Avatar> */}
 
-                    <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0">
-                      <p className="w-full text-xs leading-6 text-left text-white justify-start content-end">
-                        {template.authors.join(", ")}
-                      </p>
-                      <div className="justify-end content-end">
-                        {" "}
-                        <ArrowRight className="text-white/40" />
+                        <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0">
+                          <p className="content-end justify-start w-full text-xs leading-6 text-left text-white">
+                            {template.authors.join(", ")}
+                          </p>
+                          <div className="content-end justify-end">
+                            {" "}
+                            <ArrowRight className="text-white/40" />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </Container>
+      </div>
       <CTA />
     </div>
   );

@@ -1,11 +1,20 @@
 const { withContentlayer } = require("next-contentlayer");
 /** @type {import('next').NextConfig} */
-const APP_URL = process.env.APP_URL ?? "https://app.unkey.dev";
+const APP_URL = "https://app.unkey.com";
 
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   reactStrictMode: true,
   swcMinify: true,
+  async redirects() {
+    return [
+      {
+        source: "/changelog/:slug",
+        destination: "/changelog#:slug", // Matched parameters can be used in the destination
+        permanent: true,
+      },
+    ];
+  },
   rewrites: () => [
     {
       source: "/docs",
@@ -24,8 +33,8 @@ const nextConfig = {
       destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
     {
-      source: "/:path*",
-      destination: "/:path*",
+      source: "/app",
+      destination: `${APP_URL}/app`,
     },
     {
       source: "/app/:path*",
