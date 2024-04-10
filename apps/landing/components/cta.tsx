@@ -27,11 +27,11 @@ export const CTA: React.FC = () => {
             </Link>
           </div>
         </SectionTitle>
-        <div className="mt-10">
+        <div className="mt-10 text-balance">
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             2500 verifications and 100k successful rate-limited requests per month.
           </p>
-          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
+          <p className="w-full mt-1 mx-auto text-sm leading-6 text-center text-white/60">
             No CC required.
           </p>
         </div>
