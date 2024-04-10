@@ -74,7 +74,7 @@ export function BlogCodeBlock({ className, children }: any) {
                     <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-7 ">
                       {tokens.map((line, i) => {
                         if (i === tokens.length - 1 && line[0].empty === true) {
-                          return null;
+                          return <></>;
                         }
                         return (
                           <div
@@ -136,7 +136,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
             <pre className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
               {tokens.map((line, i) => {
                 if (i === tokens.length - 1 && line[0].empty === true) {
-                  return null;
+                  return <></>;
                 }
                 return (
                   <div
