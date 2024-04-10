@@ -8,7 +8,7 @@ export const CTA: React.FC = () => {
   return (
     <div className="w-full h-full">
       <div className="relative pb-40 pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full" />
+        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full pointer-events-none" />
         <SectionTitle
           align="center"
           title={
@@ -27,11 +27,11 @@ export const CTA: React.FC = () => {
             </Link>
           </div>
         </SectionTitle>
-        <div className="mt-10">
+        <div className="mt-10 text-balance">
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             2500 verifications and 100k successful rate-limited requests per month.
           </p>
-          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
+          <p className="w-full mt-1 mx-auto text-sm leading-6 text-center text-white/60">
             No CC required.
           </p>
         </div>

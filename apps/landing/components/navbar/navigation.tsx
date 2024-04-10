@@ -105,7 +105,6 @@ function MobileLinks({ className }: { className?: string }) {
               <MobileNavLink onClick={() => setIsOpen(false)} href="/changelog" label="Changelog" />
               <MobileNavLink onClick={() => setIsOpen(false)} href="/templates" label="Templates" />
               <MobileNavLink onClick={() => setIsOpen(false)} href="/docs" label="Docs" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/github" label="GitHub" />
               <MobileNavLink onClick={() => setIsOpen(false)} href="/discord" label="Discord" />
             </ul>
           </div>
@@ -142,7 +141,6 @@ const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
     <DesktopNavLink href="/changelog" label="Changelog" />
     <DesktopNavLink href="/templates" label="Templates" />
     <DesktopNavLink href="/docs" label="Docs" />
-    <DesktopNavLink href="/github" label="GitHub" external />
     <DesktopNavLink href="/discord" label="Discord" external />
   </ul>
 );
