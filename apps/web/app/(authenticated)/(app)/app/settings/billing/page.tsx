@@ -13,11 +13,18 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
-import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import {
+  type BillingTier,
+  QUOTA,
+  calculateTieredPrices,
+  forecastUsage,
+  getCurrentUsageBill,
+} from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+import { BudgetsSection } from "./budgets";
 
 export const revalidate = 0;
 
@@ -202,7 +209,10 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
+  const [budgets, usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
+    db.query.budgets.findMany({
+      where: (table, { eq }) => eq(table.workspaceId, workspace.id),
+    }),
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -220,35 +230,17 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     }).then((res) => res.data.at(0)?.success ?? 0),
   ]);
 
-  let currentPrice = 0;
-  let estimatedTotalPrice = 0;
-  if (workspace.subscriptions?.plan) {
-    const cost = Number.parseFloat(workspace.subscriptions.plan.cents);
-    currentPrice += cost;
-    estimatedTotalPrice += cost; // does not scale
-  }
-  if (workspace.subscriptions?.support) {
-    const cost = Number.parseFloat(workspace.subscriptions.support.cents);
-    currentPrice += cost;
-    estimatedTotalPrice += cost; // does not scale
-  }
-  if (workspace.subscriptions?.activeKeys) {
-    const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
-    if (cost.err) {
-      return <div className="text-red-500">{cost.err.message}</div>;
-    }
-    currentPrice += cost.val.totalCentsEstimate;
-  }
-  if (workspace.subscriptions?.verifications) {
-    const cost = calculateTieredPrices(
-      workspace.subscriptions.verifications.tiers,
-      usedVerifications,
-    );
-    if (cost.err) {
-      return <div className="text-red-500">{cost.err.message}</div>;
-    }
-    currentPrice += cost.val.totalCentsEstimate;
-    estimatedTotalPrice += forecastUsage(cost.val.totalCentsEstimate);
+  const { currentPrice, estimatedTotalPrice, error } = getCurrentUsageBill(
+    {
+      activeKeys: usedActiveKeys,
+      verifications: usedVerifications,
+      ratelimits: usedRatelimits,
+    },
+    workspace.subscriptions,
+  );
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
   }
   if (workspace.subscriptions?.ratelimits) {
     const cost = calculateTieredPrices(workspace.subscriptions.ratelimits.tiers, usedRatelimits);
@@ -259,71 +251,78 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pro plan</CardTitle>
-        <CardDescription>
-          Current billing cycle:{" "}
-          <span className="font-medium text-primary">
-            {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
-          </span>{" "}
-        </CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-8 ">
+      <Card>
+        <CardHeader>
+          <CardTitle>Pro plan</CardTitle>
+          <CardDescription>
+            Current billing cycle:{" "}
+            <span className="font-medium text-primary">
+              {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            </span>{" "}
+          </CardDescription>
+        </CardHeader>
 
-      <CardContent>
-        <ol className="flex flex-col space-y-6">
-          {workspace.subscriptions?.plan ? (
-            <LineItem title="Pro plan" cents={workspace.subscriptions.plan.cents} />
-          ) : null}
-          {workspace.subscriptions?.support ? (
-            <LineItem title="Professional support" cents={workspace.subscriptions.support.cents} />
-          ) : null}
-          {workspace.subscriptions?.activeKeys ? (
-            <MeteredLineItem
-              displayPrice
-              title="Active keys"
-              tiers={workspace.subscriptions.activeKeys.tiers}
-              used={usedActiveKeys}
-              max={workspace.plan === "free" ? QUOTA.free.maxActiveKeys : undefined}
-            />
-          ) : null}
-          {workspace.subscriptions?.verifications ? (
-            <MeteredLineItem
-              displayPrice
-              title="Verifications"
-              tiers={workspace.subscriptions.verifications.tiers}
-              used={usedVerifications}
-              max={workspace.plan === "free" ? QUOTA.free.maxVerifications : undefined}
-              forecast
-            />
-          ) : null}
-          {workspace.subscriptions?.ratelimits ? (
-            <MeteredLineItem
-              displayPrice
-              title="Ratelimits"
-              tiers={workspace.subscriptions.ratelimits.tiers}
-              used={usedRatelimits}
-              max={workspace.plan === "free" ? QUOTA.free.maxRatelimits : undefined}
-              forecast
-            />
-          ) : null}
-        </ol>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4">
-        <div className="flex items-center justify-between w-full">
-          <span className="text-sm font-semibold text-content">Current Total</span>
-          <span className="text-sm font-semibold tabular-nums text-content">
-            {formatCentsToDollar(currentPrice)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between w-full">
-          <span className="text-xs text-content-subtle">Estimated by end of month</span>
-          <span className="text-xs tabular-nums text-content-subtle">
-            {formatCentsToDollar(estimatedTotalPrice)}
-          </span>
-        </div>
-      </CardFooter>
-    </Card>
+        <CardContent>
+          <ol className="flex flex-col space-y-6">
+            {workspace.subscriptions?.plan ? (
+              <LineItem title="Pro plan" cents={workspace.subscriptions.plan.cents} />
+            ) : null}
+            {workspace.subscriptions?.support ? (
+              <LineItem
+                title="Professional support"
+                cents={workspace.subscriptions.support.cents}
+              />
+            ) : null}
+            {workspace.subscriptions?.activeKeys ? (
+              <MeteredLineItem
+                displayPrice
+                title="Active keys"
+                tiers={workspace.subscriptions.activeKeys.tiers}
+                used={usedActiveKeys}
+                max={workspace.plan === "free" ? QUOTA.free.maxActiveKeys : undefined}
+              />
+            ) : null}
+            {workspace.subscriptions?.verifications ? (
+              <MeteredLineItem
+                displayPrice
+                title="Verifications"
+                tiers={workspace.subscriptions.verifications.tiers}
+                used={usedVerifications}
+                max={workspace.plan === "free" ? QUOTA.free.maxVerifications : undefined}
+                forecast
+              />
+            ) : null}
+            {workspace.subscriptions?.ratelimits ? (
+              <MeteredLineItem
+                displayPrice
+                title="Ratelimits"
+                tiers={workspace.subscriptions.ratelimits.tiers}
+                used={usedRatelimits}
+                max={workspace.plan === "free" ? QUOTA.free.maxRatelimits : undefined}
+                forecast
+              />
+            ) : null}
+          </ol>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <div className="flex items-center justify-between w-full">
+            <span className="text-sm font-semibold text-content">Current Total</span>
+            <span className="text-sm font-semibold tabular-nums text-content">
+              {formatCentsToDollar(currentPrice)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between w-full">
+            <span className="text-xs text-content-subtle">Estimated by end of month</span>
+            <span className="text-xs tabular-nums text-content-subtle">
+              {formatCentsToDollar(estimatedTotalPrice)}
+            </span>
+          </div>
+        </CardFooter>
+      </Card>
+
+      <BudgetsSection currentBilling={currentPrice / 100} budgets={budgets} />
+    </div>
   );
 };
 
@@ -344,20 +343,6 @@ const LineItem: React.FC<{
     </span>
   </div>
 );
-
-function forecastUsage(currentUsage: number): number {
-  const t = new Date();
-  t.setUTCDate(1);
-  t.setUTCHours(0, 0, 0, 0);
-
-  const start = t.getTime();
-  t.setUTCMonth(t.getUTCMonth() + 1);
-  const end = t.getTime() - 1;
-
-  const passed = (Date.now() - start) / (end - start);
-
-  return currentUsage * (1 + 1 / passed);
-}
 
 const MeteredLineItem: React.FC<{
   displayPrice?: boolean;
@@ -480,7 +465,7 @@ function percentage(num: number, total: number): `${number}%` {
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
-  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
+  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
     <div className="mt-16 font-mono text-content whitespace-nowrap">
       •••• •••• •••• {paymentMethod.card?.last4}
     </div>
@@ -495,7 +480,7 @@ const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ payment
 );
 
 const MissingCreditCard: React.FC = () => (
-  <div className="relative aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8">
+  <div className="relative aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8">
     <div className="z-50 mt-16 font-mono text-content whitespace-nowrap blur-sm">
       •••• •••• •••• ••••
     </div>

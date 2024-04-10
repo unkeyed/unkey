@@ -16,6 +16,7 @@ const prefixes = {
   ratelimitNamespace: "rlns",
   ratelimitOverride: "rlor",
   permission: "perm",
+  budget: "bud",
   secret: "sec",
   headerRewrite: "hrw",
   gateway: "gw",

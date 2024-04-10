@@ -3,6 +3,9 @@ import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
+import { createBudget } from "./budget/create";
+import { deleteBudget } from "./budget/delete";
+import { updateBudget } from "./budget/update";
 import { createGateway } from "./gateway/create";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
@@ -113,6 +116,11 @@ export const router = t.router({
       update: updateOverride,
       delete: deleteOverride,
     }),
+  }),
+  budget: t.router({
+    create: createBudget,
+    update: updateBudget,
+    delete: deleteBudget,
   }),
 });
 
