@@ -328,7 +328,7 @@ export default async function Page() {
                 </Accordion>
               </div>
               <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
-                <Image src={downlight} alt="Light effect" className="scale-[1.5]" />
+                <Image src={downlight} alt="Light effect" className="scale-[1.5] opacity-[0.7]" />
               </div>
             </div>
 
