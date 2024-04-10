@@ -40,9 +40,9 @@ export const MdxComponents = {
     <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
   ),
   code: (props: any) => (
-    <span
+    <code
+      className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-medium text-gray-600 before:hidden after:hidden"
       {...props}
-      className="font-mono rounded-md code-inline-gradient text-white/50 px-3 pt-0.5 pb-0.5 mx-0.5"
     />
   ),
   pre: BlogCodeBlockSingle,
