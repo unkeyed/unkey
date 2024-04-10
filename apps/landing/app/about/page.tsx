@@ -301,7 +301,6 @@ export default async function Page() {
               <div className="relative z-50 w-full bg-black">
                 <Accordion
                   type="multiple"
-                  collapsible
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
                 >
                   <AccordionItem
