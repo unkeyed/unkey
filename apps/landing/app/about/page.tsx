@@ -89,7 +89,7 @@ export default async function Page() {
               <BorderBeam size={300} anchor={0} />
             </div>
           </div>
-          <div className="mt-[120px]">
+          <div className="mt-12">
             <Link href="/blog/introducing-ratelimiting" target="">
               <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
             </Link>
