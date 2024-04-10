@@ -70,23 +70,25 @@ export function BlogCodeBlock({ className, children }: any) {
                 language={block.className.replace(/language-/, "")}
               >
                 {({ tokens, getLineProps, getTokenProps }) => {
-                  if (i === tokens.length - 1 && line[0].empty === true) {
-                    return null;
-                  }
                   return (
                     <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-7 ">
-                      {tokens.map((line, i) => (
-                        <div
-                          // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                          key={`${line}-${i}`}
-                          {...getLineProps({ line })}
-                        >
-                          <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
-                          {line.map((token, key) => (
-                            <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                          ))}
-                        </div>
-                      ))}
+                      {tokens.map((line, i) => {
+                        if (i === tokens.length - 1 && line[0].empty === true) {
+                          return null;
+                        }
+                        return (
+                          <div
+                            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                            key={`${line}-${i}`}
+                            {...getLineProps({ line })}
+                          >
+                            <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
+                            {line.map((token, key) => (
+                              <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                            ))}
+                          </div>
+                        );
+                      })}
                     </pre>
                   );
                 }}
@@ -130,23 +132,25 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         language={block.className?.replace(/language-/, "") || "jsx"}
       >
         {({ tokens, getLineProps, getTokenProps }) => {
-          if (tokens.length > 1) {
-            tokens.pop()?.toString();
-          }
           return (
             <pre className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
-              {tokens.map((line, i) => (
-                <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                  key={`${line}-${i}`}
-                  {...getLineProps({ line })}
-                >
-                  <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
-                  {line.map((token, key) => (
-                    <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                  ))}
-                </div>
-              ))}
+              {tokens.map((line, i) => {
+                if (i === tokens.length - 1 && line[0].empty === true) {
+                  return null;
+                }
+                return (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                    key={`${line}-${i}`}
+                    {...getLineProps({ line })}
+                  >
+                    <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
+                    {line.map((token, key) => (
+                      <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                    ))}
+                  </div>
+                );
+              })}
             </pre>
           );
         }}
