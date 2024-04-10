@@ -17,7 +17,6 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
 
-  console.log(changelog.date);
   return (
     <div id={changelog.tableOfContents.slug} className={cn("w-full", className)}>
       <div className="2xl:pl-36">
