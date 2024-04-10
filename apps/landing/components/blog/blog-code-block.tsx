@@ -69,22 +69,27 @@ export function BlogCodeBlock({ className, children }: any) {
                 code={block.children}
                 language={block.className.replace(/language-/, "")}
               >
-                {({ tokens, getLineProps, getTokenProps }) => (
-                  <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-7 ">
-                    {tokens.map((line, i) => (
-                      <div
-                        // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                        key={`${line}-${i}`}
-                        {...getLineProps({ line })}
-                      >
-                        <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
-                        {line.map((token, key) => (
-                          <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                        ))}
-                      </div>
-                    ))}
-                  </pre>
-                )}
+                {({ tokens, getLineProps, getTokenProps }) => {
+                  if (i === tokens.length - 1 && line[0].empty === true) {
+                    return null;
+                  }
+                  return (
+                    <pre className="overflow-x-auto rounded-none border-none bg-transparent leading-7 ">
+                      {tokens.map((line, i) => (
+                        <div
+                          // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                          key={`${line}-${i}`}
+                          {...getLineProps({ line })}
+                        >
+                          <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
+                          {line.map((token, key) => (
+                            <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                          ))}
+                        </div>
+                      ))}
+                    </pre>
+                  );
+                }}
               </Highlight>
             </TabsContent>
           );
