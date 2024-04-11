@@ -103,19 +103,19 @@ export default async function Page() {
           </div>
           <div className="relative mt-[200px] xl:mt-[400px]">
             <div className="absolute left-[-250px]">
-              <MeteorLines className="ml-2 fade-in-0" delay={0.2} number={1} />
-              <MeteorLines className="ml-10 fade-in-40" number={1} />
-              <MeteorLines className="ml-16 fade-in-100" delay={0.4} number={1} />
+              <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+              <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+              <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
             </div>
             <div className="absolute right-[20px]">
-              <MeteorLines className="ml-2" delay={0.2} number={1} />
-              <MeteorLines className="ml-10" number={1} />
-              <MeteorLines className="ml-16" delay={0.4} number={1} />
+              <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+              <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+              <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
 
               <div className="absolute right-[640px] top-[550px] -z-50">
-                <MeteorLines className="ml-2" delay={0.2} number={1} />
-                <MeteorLines className="ml-10" number={1} />
-                <MeteorLines className="ml-16" delay={0.4} number={1} />
+                <MeteorLines className="ml-2 fade-in-0" delay={2} number={1} />
+                <MeteorLines className="ml-10 fade-in-40" number={1} delay={0} />
+                <MeteorLines className="ml-16 fade-in-100" delay={4} number={1} />
               </div>
             </div>
             <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
@@ -327,9 +327,9 @@ export default async function Page() {
                   </AccordionItem>
                 </Accordion>
                 <div className="absolute right-[500px] top-[150px] -z-50">
-                  <MeteorLines className="ml-2" delay={0.2} number={1} />
-                  <MeteorLines className="ml-10" number={1} />
-                  <MeteorLines className="ml-16" delay={0.4} number={1} />
+                  <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+                  <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+                  <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
                 </div>
               </div>
               <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
