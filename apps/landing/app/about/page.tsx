@@ -20,6 +20,7 @@ import { allPosts } from "@/.contentlayer/generated";
 import { BlogCard } from "@/components/blog/blog-card";
 import { CTA } from "@/components/cta";
 import { AboutLight } from "@/components/svg/about-light";
+import { StarDots } from "@/components/svg/star-dots";
 import { authors } from "@/content/blog/authors";
 import allison from "@/images/about/allison5.png";
 import bottomlight from "@/images/about/bottomlight.svg";
@@ -256,8 +257,9 @@ export default async function Page() {
             </div>
           </div>
           <div className="flex flex-col items-center max-w-full">
+            <StarDots className="absolute" />
             <SectionTitle
-              className="mt-[100px] px-[10px] text-balance"
+              className="mt-60 px-[10px] text-balance"
               title="A few words from the founders"
               align="center"
               contentWidth={640}
@@ -358,7 +360,7 @@ export default async function Page() {
                   );
                 })}
               </div>
-              <div className="w-full h-[1px] bg-gradient-to-r from-white/10 to-white/10 via-white/40 mt-[100px] lg:mt-[200px]" />
+              <div className="w-full h-[1px] bg-gradient-to-r from-black to-black via-white/40 mt-[100px] lg:mt-[200px]" />
               <SectionTitle
                 className="mt-[100px] lg:mt-[200px]"
                 align="center"
