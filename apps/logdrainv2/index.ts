@@ -1,13 +1,15 @@
+import { decompressSync, strFromU8, strToU8 } from "fflate";
+
 Bun.serve({
   port: 8000,
   async fetch(req) {
-    const body = await req.text();
+    const b = await req.blob();
 
-    console.log(JSON.stringify(req.headers));
+    const buf = await b.arrayBuffer();
 
-    const buf = Buffer.from(body, "utf-8");
-    console.log("base64", buf.toString("base64"));
-    const data = Bun.gunzipSync(buf);
+    const dec = decompressSync(new Uint8Array(buf));
+    const data = strFromU8(dec);
+
     console.log(data);
 
     return new Response("ok");

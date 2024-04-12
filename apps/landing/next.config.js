@@ -1,6 +1,6 @@
 const { withContentlayer } = require("next-contentlayer");
 /** @type {import('next').NextConfig} */
-const APP_URL = process.env.APP_URL ?? "https://app.unkey.dev";
+const APP_URL = "https://app.unkey.com";
 
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
@@ -33,8 +33,8 @@ const nextConfig = {
       destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
     {
-      source: "/:path*",
-      destination: "/:path*",
+      source: "/app",
+      destination: `${APP_URL}/app`,
     },
     {
       source: "/app/:path*",

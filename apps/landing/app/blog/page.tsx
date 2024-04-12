@@ -45,11 +45,11 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <div className="container mx-auto mt-32 scroll-smooth">
-        <div>
+      <div className="container mx-auto mt-32 scroll-smooth w-full overflow-hidden">
+        {/* <div>
           <TopLeftShiningLight />
-        </div>
-        <div className="w-full h-full overflow -z-20">
+        </div> */}
+        <div className="w-full h-full overflow-hidden -z-20">
           <MeteorLinesAngular
             number={1}
             xPos={0}
@@ -69,58 +69,59 @@ export default async function Blog(props: Props) {
             xPos={100}
             speed={10}
             delay={7}
-            className="hidden overflow-hidden md:block"
+            className="overflow-hidden md:hidden"
           />
           <MeteorLinesAngular
             number={1}
             xPos={100}
             speed={10}
             delay={2}
-            className="hidden overflow-hidden md:block"
+            className="overflow-hidden md:hidden"
           />
           <MeteorLinesAngular
             number={1}
             xPos={200}
             speed={10}
             delay={7}
-            className="overflow-hidden"
+            className="overflow-hidden hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={200}
             speed={10}
             delay={2}
-            className="overflow-hidden"
+            className="overflow-hidden hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={400}
             speed={10}
             delay={5}
-            className="hidden overflow-hidden md:block"
+            className="hidden overflow-hidden lg:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={400}
             speed={10}
             delay={0}
-            className="hidden overflow-hidden md:block"
+            className="hidden overflow-hidden lg:block"
           />
         </div>
         <div>
           <TopRightShiningLight />
         </div>
-
-        <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
-          <BlogHero
-            tags={posts[0].tags}
-            imageUrl={posts[0].image ?? "/images/blog-images/defaultBlog.png"}
-            title={posts[0].title}
-            subTitle={posts[0].description}
-            author={authors[posts[0].author]}
-            publishDate={posts[0].date}
-          />
-        </Link>
+        <div className="w-full px-0 mx-0">
+          <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
+            <BlogHero
+              tags={posts[0].tags}
+              imageUrl={posts[0].image ?? "/images/blog-images/defaultBlog.png"}
+              title={posts[0].title}
+              subTitle={posts[0].description}
+              author={authors[posts[0].author]}
+              publishDate={posts[0].date}
+            />
+          </Link>
+        </div>
         <BlogGrid posts={posts} searchParams={props.searchParams} />
         <CTA />
       </div>
