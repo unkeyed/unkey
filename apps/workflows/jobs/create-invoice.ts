@@ -122,31 +122,6 @@ export const createInvoiceJob = client.defineJob({
     }
 
     /**
-     * Active keys
-     */
-    if (workspace.subscriptions?.activeKeys) {
-      const activeKeys = await io.runTask(`get active keys for ${workspace.id}`, async () =>
-        tinybird
-          .activeKeys({
-            workspaceId: workspace.id,
-            year,
-            month,
-          })
-          .then((res) => res.data.at(0)?.keys ?? 0),
-      );
-
-      await createTieredInvoiceItem({
-        stripe,
-        invoiceId,
-        stripeCustomerId: workspace.stripeCustomerId!,
-        io,
-        name: "Active Keys",
-        sub: workspace.subscriptions.activeKeys,
-        usage: activeKeys,
-      });
-    }
-
-    /**
      * Verifications
      */
     if (workspace.subscriptions?.verifications) {
