@@ -57,7 +57,7 @@ export default function PricingPage() {
             <Cost dollar="$0" />
             <Button label="Start for Free" />
             <Bullets>
-              <Bullet Icon={Check} label="100 active keys / month" color={Color.White} />
+              <Bullet Icon={Check} label="1k API keys" color={Color.White} />
               <Bullet
                 Icon={Check}
                 label="2.5k successful verifications / month"
@@ -84,7 +84,7 @@ export default function PricingPage() {
             <Cost dollar="$25" />
             <Button label="Get Started with Pro" />
             <Bullets>
-              <Bullet Icon={Check} label="250 active keys / month" color={Color.Yellow} />
+              <Bullet Icon={Check} label="1M API keys" color={Color.Yellow} />
               <Bullet
                 Icon={Check}
                 label="150k successful verifications / month"
@@ -109,7 +109,6 @@ export default function PricingPage() {
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
-              <Asterisk tag="$0.10" label="/ additional active key" />
               <Asterisk tag="$1" label="/ additional 10k successful verifications" />
               <Asterisk tag="$1" label="/ additional 100k successful ratelimits" />
             </div>
