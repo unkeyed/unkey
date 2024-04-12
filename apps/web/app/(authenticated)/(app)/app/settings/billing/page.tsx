@@ -202,7 +202,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
+  const [_usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
     activeKeys({
       workspaceId: workspace.id,
       year,
@@ -232,13 +232,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     currentPrice += cost;
     estimatedTotalPrice += cost; // does not scale
   }
-  if (workspace.subscriptions?.activeKeys) {
-    const cost = calculateTieredPrices(workspace.subscriptions.activeKeys.tiers, usedActiveKeys);
-    if (cost.err) {
-      return <div className="text-red-500">{cost.err.message}</div>;
-    }
-    currentPrice += cost.val.totalCentsEstimate;
-  }
+
   if (workspace.subscriptions?.verifications) {
     const cost = calculateTieredPrices(
       workspace.subscriptions.verifications.tiers,
@@ -277,15 +271,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
           ) : null}
           {workspace.subscriptions?.support ? (
             <LineItem title="Professional support" cents={workspace.subscriptions.support.cents} />
-          ) : null}
-          {workspace.subscriptions?.activeKeys ? (
-            <MeteredLineItem
-              displayPrice
-              title="Active keys"
-              tiers={workspace.subscriptions.activeKeys.tiers}
-              used={usedActiveKeys}
-              max={workspace.plan === "free" ? QUOTA.free.maxActiveKeys : undefined}
-            />
           ) : null}
           {workspace.subscriptions?.verifications ? (
             <MeteredLineItem
