@@ -37,7 +37,6 @@ export const Banner: React.FC<PropsWithChildren<Props>> = ({
     ref: bannerRef,
     onResize: ({ height }) => {
       if (height !== bannerHeightRef.current) {
-        console.log("onResize");
         // Update Banners.
         updateBannersBottomPosition();
 
