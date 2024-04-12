@@ -18,6 +18,7 @@ const prefixes = {
   permission: "perm",
   secret: "sec",
   headerRewrite: "hrw",
+  user: "u",
   gateway: "gw",
 } as const;
 

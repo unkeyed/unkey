@@ -7,3 +7,4 @@ export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./secrets";
 export * from "./gateway";
+export * from "./auth";
