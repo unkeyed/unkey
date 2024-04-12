@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StripeLinkLogo } from "@/components/ui/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { type Workspace, db } from "@/lib/db";
@@ -168,10 +169,14 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     <div className="w-full px-4 md:px-0 lg:w-2/5">
       <div className="flex flex-col items-center justify-center gap-8 md:flex-row lg:flex-col">
         <div className="flex flex-col w-full gap-8">
-          {paymentMethod?.card ? (
+          {!paymentMethod ? (
+            <MissingPaymentMethod />
+          ) : paymentMethod.card ? (
             <CreditCard paymentMethod={paymentMethod} />
+          ) : paymentMethod.link ? (
+            <StripeLink paymentMethod={paymentMethod} />
           ) : (
-            <MissingCreditCard />
+            <FallbackPaymentMethod paymentMethod={paymentMethod} />
           )}
 
           <div className="flex items-center gap-8">
@@ -480,7 +485,7 @@ function percentage(num: number, total: number): `${number}%` {
 }
 
 const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
-  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
+  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
     <div className="mt-16 font-mono text-content whitespace-nowrap">
       •••• •••• •••• {paymentMethod.card?.last4}
     </div>
@@ -494,8 +499,31 @@ const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ payment
   </div>
 );
 
-const MissingCreditCard: React.FC = () => (
-  <div className="relative aspect-[86/54] max-w-[320px] border border-gray-200 dark:border-gray-800 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8">
+const StripeLink: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
+  <div className="max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
+    <StripeLinkLogo className="rounded" />
+    <div className="mt-6 font-mono text-content whitespace-nowrap">
+      {paymentMethod.link?.email ?? ""}
+    </div>
+    <div className="mt-1 font-mono text-sm text-content-subtle">
+      {paymentMethod.billing_details.name ?? "Anonymous"}
+    </div>
+  </div>
+);
+
+const FallbackPaymentMethod: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({
+  paymentMethod,
+}) => (
+  <div className="max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
+    <div className="font-mono text-sm text-content">
+      {paymentMethod.billing_details.name ?? "Anonymous"}
+    </div>
+    <div className="z-50 mt-2 font-mono text-x text-content-subtle ">Saved payment method</div>
+  </div>
+);
+
+const MissingPaymentMethod: React.FC = () => (
+  <div className="relative aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8">
     <div className="z-50 mt-16 font-mono text-content whitespace-nowrap blur-sm">
       •••• •••• •••• ••••
     </div>
