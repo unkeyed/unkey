@@ -24,7 +24,7 @@ export default async function Changelogs(_props: Props) {
       <div className="flex flex-col w-full mt-32 text-white/60">
         <div>
           <div className="relative -z-100 max-w-[1000px] mx-auto">
-            <ChangelogLight className="w-full" />
+            <ChangelogLight className="w-full -top-[20rem]" />
           </div>
           <div className="w-full">
             <MeteorLines number={1} xPos={60} direction="left" speed={10} delay={0} />
@@ -79,9 +79,7 @@ export default async function Changelogs(_props: Props) {
               <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
                 <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
               </a>
-              <h2 className="blog-heading-gradient text-[4rem] font-medium leading-[5rem] mt-16">
-                Changelog
-              </h2>
+              <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Changelog</h2>
               <p className="mt-6 font-normal leading-7 ">
                 We are constantly improving our product, fixing bugs and introducing features.
               </p>
