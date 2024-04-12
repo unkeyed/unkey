@@ -202,12 +202,7 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = startOfMonth.getUTCFullYear();
   const month = startOfMonth.getUTCMonth() + 1;
 
-  const [_usedActiveKeys, usedVerifications, usedRatelimits] = await Promise.all([
-    activeKeys({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.keys ?? 0),
+  const [usedVerifications, usedRatelimits] = await Promise.all([
     verifications({
       workspaceId: workspace.id,
       year,
