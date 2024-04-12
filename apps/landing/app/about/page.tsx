@@ -20,6 +20,7 @@ import { allPosts } from "@/.contentlayer/generated";
 import { BlogCard } from "@/components/blog/blog-card";
 import { CTA } from "@/components/cta";
 import { AboutLight } from "@/components/svg/about-light";
+import { StarDots } from "@/components/svg/star-dots";
 import { authors } from "@/content/blog/authors";
 import allison from "@/images/about/allison5.png";
 import bottomlight from "@/images/about/bottomlight.svg";
@@ -103,22 +104,22 @@ export default async function Page() {
           </div>
           <div className="relative mt-[200px] xl:mt-[400px]">
             <div className="absolute left-[-250px]">
-              <MeteorLines className="ml-2 fade-in-0" delay={0.2} number={1} />
-              <MeteorLines className="ml-10 fade-in-40" number={1} />
-              <MeteorLines className="ml-16 fade-in-100" delay={0.4} number={1} />
+              <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+              <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+              <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
             </div>
             <div className="absolute right-[20px]">
-              <MeteorLines className="ml-2" delay={0.2} number={1} />
-              <MeteorLines className="ml-10" number={1} />
-              <MeteorLines className="ml-16" delay={0.4} number={1} />
+              <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+              <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+              <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
 
-              {/* <div className="absolute right-[640px] top-[700px]">
-              <MeteorLines className="ml-2" delay={0.2} />
-              <MeteorLines className="ml-10" />
-              <MeteorLines className="ml-16" delay={0.4} />
-            </div> */}
+              <div className="absolute right-[640px] top-[550px] -z-50">
+                <MeteorLines className="ml-2 fade-in-0" delay={2} number={1} />
+                <MeteorLines className="ml-10 fade-in-40" number={1} delay={0} />
+                <MeteorLines className="ml-16 fade-in-100" delay={4} number={1} />
+              </div>
             </div>
-            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
+            <div className="about-radial relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center text-balance">
                 Founded to level up the API authentication landscape
               </h2>
@@ -256,8 +257,9 @@ export default async function Page() {
             </div>
           </div>
           <div className="flex flex-col items-center max-w-full">
+            <StarDots className="absolute" />
             <SectionTitle
-              className="mt-[100px] px-[10px] text-balance"
+              className="mt-60 px-[10px] text-balance"
               title="A few words from the founders"
               align="center"
               contentWidth={640}
@@ -298,7 +300,7 @@ export default async function Page() {
               </div>
             </div>
             <div className="relative w-full max-w-[680px] z-0">
-              <div className="relative z-50 w-full bg-black">
+              <div className="relative z-100 w-full bg-black">
                 <Accordion
                   type="multiple"
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
@@ -326,6 +328,11 @@ export default async function Page() {
                     <AccordionContent className="pl-10">TBC</AccordionContent>
                   </AccordionItem>
                 </Accordion>
+                <div className="absolute right-[500px] top-[150px] -z-50">
+                  <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+                  <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+                  <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
+                </div>
               </div>
               <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
                 <Image src={downlight} alt="Light effect" className="scale-[1.5] opacity-[0.7]" />
@@ -353,7 +360,7 @@ export default async function Page() {
                   );
                 })}
               </div>
-              <div className="w-full h-[1px] bg-gradient-to-r from-white/10 to-white/10 via-white/40 mt-[100px] lg:mt-[200px]" />
+              <div className="w-full h-[1px] bg-gradient-to-r from-black to-black via-white/40 mt-[100px] lg:mt-[200px]" />
               <SectionTitle
                 className="mt-[100px] lg:mt-[200px]"
                 align="center"
