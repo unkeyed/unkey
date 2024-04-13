@@ -16,18 +16,26 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
+
   return (
     <div id={changelog.tableOfContents.slug} className={cn("w-full", className)}>
       <div className="2xl:pl-36">
-        <div className="flex flex-row pb-10 gap-4 ">
-          {changelog.tags?.map((tag) => (
-            <span
-              key={tag}
-              className="text-white text-xs bg-white/10 rounded-full px-3 py-[0.15rem]"
-            >
-              {tag.charAt(0).toUpperCase() + tag.slice(1)}
-            </span>
-          ))}
+        <div className="flex flex-col sm:flex-row pb-10 gap-4 font-medium">
+          {new Date(changelog.date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+          <div className="flex flex-row gap-x-3">
+            {changelog.tags?.map((tag) => (
+              <span
+                key={tag}
+                className="text-white inline-flex text-xs bg-white/10 rounded-full px-3 py-[0.15rem] leading-[1.5]"
+              >
+                {tag.charAt(0).toUpperCase() + tag.slice(1)}
+              </span>
+            ))}
+          </div>
         </div>
         <h3 className="font-display text-4xl font-medium blog-heading-gradient ">
           <Link href={`#${changelog.tableOfContents.slug}`} scroll={false} replace={true}>
