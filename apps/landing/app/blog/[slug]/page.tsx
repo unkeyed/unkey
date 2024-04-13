@@ -233,7 +233,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               </>
             ) : null}
             <div className="flex flex-col mt-10">
-              <p className="pt-10 text-md text-white/50 mb-8">Suggested</p>
+              <p className="pt-10 text-md text-white/50">Suggested</p>
               <div>
                 <SuggestedBlogs currentPostSlug={post.url} />
               </div>

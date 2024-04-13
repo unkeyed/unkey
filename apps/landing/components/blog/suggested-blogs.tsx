@@ -19,10 +19,10 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
   return (
     <div>
       {posts.map((post) => (
-        <div className={cn("flex flex-col w-full mt-0", className)}>
+        <div className={cn("flex flex-col w-full mt-8", className)}>
           <Link href={post.url} key={post.url}>
-            <div className="flex w-full mb-12">
-              <div className="flex flex-col gap-4">
+            <div className="flex w-full">
+              <div className="flex flex-col gap-2">
                 <Frame size="sm">
                   <Image
                     alt="Blog Image"
