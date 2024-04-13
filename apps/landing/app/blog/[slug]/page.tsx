@@ -141,13 +141,17 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             <div className="w-full lg:w-3/4">
               <div className="mx-auto prose sm:prose-sm md:prose-md">
                 <div className="flex items-center gap-5 mb-8 font-medium text-xl leading-8">
-                  <span className="text-transparent bg-gradient-to-r bg-clip-text from-white to-white/60 ">
-                    Blog
-                  </span>
+                  <Link href="/blog">
+                    <span className="text-transparent bg-gradient-to-r bg-clip-text from-white to-white/60 ">
+                      Blog
+                    </span>
+                  </Link>
                   <span className="text-white/40">/</span>
-                  <span className="text-transparent capitalize bg-gradient-to-r bg-clip-text from-white to-white/60">
-                    {post.tags?.at(0)}
-                  </span>
+                  <Link href={`/blog?tag=${post.tags?.at(0)}`}>
+                    <span className="text-transparent capitalize bg-gradient-to-r bg-clip-text from-white to-white/60">
+                      {post.tags?.at(0)}
+                    </span>
+                  </Link>
                 </div>
 
                 <h1 className="not-prose blog-heading-gradient text-left text-4xl font-medium leading-[56px] tracking-tight  sm:text-5xl sm:leading-[72px]">
