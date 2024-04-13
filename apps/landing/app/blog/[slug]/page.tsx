@@ -136,10 +136,10 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         <div className="overflow-hidden -z-40">
           <TopRightShiningLight />
         </div>
-        <div className="flex flex-col gap-8 mx-auto">
-          <div className="flex flex-col items-start justify-between w-full gap-8 lg:flex-row lg:gap-16 sm:mx-6">
-            <div className="w-full lg:w-3/4">
-              <div className="mx-auto prose sm:prose-sm md:prose-md">
+        <div className="flex flex-col">
+          <div className="flex flex-col items-start justify-between w-full lg:flex-row sm:mx-6 lg:pl-4">
+            <div className="w-fit justify-left mr-0 pr-0">
+              <div className="prose sm:prose-sm md:prose-md">
                 <div className="flex items-center gap-5 mb-8 font-medium text-xl leading-8">
                   <span className="text-transparent bg-gradient-to-r bg-clip-text from-white to-white/60 ">
                     Blog
@@ -159,9 +159,9 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               </div>
             </div>
 
-            <div className="w-full prose sm:prose-sm md:prose-md lg:w-1/4">
-              <div className="flex flex-row items-start w-full gap-16 md:mt-16 not-prose lg:mt-0 lg:flex-col ">
-                <div className="flex flex-col gap-4 lg:gap-4">
+            <div className="w-full h-full prose sm:prose-sm md:prose-md lg:flex lg:flex-col lg:w-1/4 mr-2">
+              <div className="flex flex-row items-start lg:w-full w-fit mt-4 gap-16 md:mt-16 not-prose lg:mt-0 lg:flex-col h-full">
+                <div className="flex flex-col gap-4 lg:gap-4 w-full lg:mt-12">
                   <p className="text-white/40">Written by</p>
                   <div className="flex flex-col ">
                     <div className="flex items-center sm:gap-0 gap-2">
@@ -175,12 +175,12 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                         />
                         <AvatarFallback />
                       </Avatar>
-                      <p className="text-white text-nowrap lg:block">{author.name}</p>
+                      <p className="text-white text-nowrap lg:block ml-2">{author.name}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4 not-prose lg:gap-4">
+                <div className="flex flex-col gap-4 not-prose lg:gap-2">
                   <p className="mb-0 text-nowrap text-white/30">Published on</p>
                   <time
                     dateTime={post.date}
@@ -193,7 +193,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             </div>
           </div>
         </div>
-        <div className="flex justify-between w-full gap-8 mx-auto mt-12 mb-40 lg:gap-16">
+        <div className="flex justify-between w-full gap-8 mx-auto mt-12 mb-40 lg:gap-16 ">
           <div className="flex flex-col w-full gap-8 lg:gap-16 lg:w-3/4 ">
             <Frame className="px-0 overflow-clip" size="lg">
               <Image
