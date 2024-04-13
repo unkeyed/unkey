@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { StripeLinkLogo } from "@/components/ui/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { type Workspace, db } from "@/lib/db";
@@ -19,6 +18,7 @@ import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+import { UserPaymentMethod } from "./user-payment-method";
 
 export const revalidate = 0;
 
@@ -169,15 +169,7 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     <div className="w-full px-4 md:px-0 lg:w-2/5">
       <div className="flex flex-col items-center justify-center gap-8 md:flex-row lg:flex-col">
         <div className="flex flex-col w-full gap-8">
-          {!paymentMethod ? (
-            <MissingPaymentMethod />
-          ) : paymentMethod.card ? (
-            <CreditCard paymentMethod={paymentMethod} />
-          ) : paymentMethod.link ? (
-            <StripeLink paymentMethod={paymentMethod} />
-          ) : (
-            <FallbackPaymentMethod paymentMethod={paymentMethod} />
-          )}
+          <UserPaymentMethod paymentMethod={paymentMethod} />
 
           <div className="flex items-center gap-8">
             <Link href="/app/settings/billing/stripe" className="w-full">
@@ -483,57 +475,6 @@ function percentage(num: number, total: number): `${number}%` {
   }
   return `${Math.min(100, (num / total) * 100)}%`;
 }
-
-const CreditCard: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
-  <div className="aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
-    <div className="mt-16 font-mono text-content whitespace-nowrap">
-      •••• •••• •••• {paymentMethod.card?.last4}
-    </div>
-    <div className="mt-2 font-mono text-sm text-content-subtle">
-      {paymentMethod.billing_details.name ?? "Anonymous"}
-    </div>
-    <div className="mt-1 font-mono text-xs text-content-subtle">
-      Expires {paymentMethod.card?.exp_month.toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
-      {paymentMethod.card?.exp_year}
-    </div>
-  </div>
-);
-
-const StripeLink: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({ paymentMethod }) => (
-  <div className="max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
-    <StripeLinkLogo className="rounded" />
-    <div className="mt-6 font-mono text-content whitespace-nowrap">
-      {paymentMethod.link?.email ?? ""}
-    </div>
-    <div className="mt-1 font-mono text-sm text-content-subtle">
-      {paymentMethod.billing_details.name ?? "Anonymous"}
-    </div>
-  </div>
-);
-
-const FallbackPaymentMethod: React.FC<{ paymentMethod: Stripe.PaymentMethod }> = ({
-  paymentMethod,
-}) => (
-  <div className="max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8 ">
-    <div className="font-mono text-sm text-content">
-      {paymentMethod.billing_details.name ?? "Anonymous"}
-    </div>
-    <div className="z-50 mt-2 font-mono text-x text-content-subtle ">Saved payment method</div>
-  </div>
-);
-
-const MissingPaymentMethod: React.FC = () => (
-  <div className="relative aspect-[86/54] max-w-[320px] border border-gray-200 justify-between rounded-lg bg-gradient-to-tr from-gray-200/70 dark:from-black to-gray-100 dark:to-gray-900 dark:border dark:border-gray-800  shadow-lg p-8">
-    <div className="z-50 mt-16 font-mono text-content whitespace-nowrap blur-sm">
-      •••• •••• •••• ••••
-    </div>
-    <div className="z-50 mt-2 font-mono text-sm text-content-subtle ">No credit card on file</div>
-    <div className="mt-1 font-mono text-xs text-content-subtle blur-sm">
-      Expires {(new Date().getUTCMonth() - 1).toLocaleString("en-US", { minimumIntegerDigits: 2 })}/
-      {new Date().getUTCFullYear()}
-    </div>
-  </div>
-);
 
 const Coupon: React.FC<{ coupon: Stripe.Coupon }> = ({ coupon }) => (
   <div className="w-full p-8 border border-gray-200 rounded-lg dark:border-gray-800">
