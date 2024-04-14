@@ -1,13 +1,18 @@
 # use the official Bun image
 # see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1
+FROM node:latest
 WORKDIR /usr/src/app
 
-COPY . .
-RUN bun install
+RUN npm i -g pnpm
 
+COPY . .
+RUN pnpm install
+RUN pnpm build
 
 # run the app
-USER bun
-EXPOSE 8000/tcp
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+
+
+ARG PORT
+EXPOSE ${PORT:-3000}
+
+ENTRYPOINT [ "node", "./dist/index.js" ]

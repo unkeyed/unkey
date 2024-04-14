@@ -8,12 +8,9 @@ config:
       rampTo: 10
     - name: Sustain
       duration: 5m
-      arrivalRate: 10
-      rampTo: 10
-    - name: Spike Up
-      duration: 1m
-      arrivalRate: 10
-      rampTo: 100
+      arrivalRate: 500
+      rampTo: 500
+    
     - name: Ramp down
       duration: 5m
       arrivalRate: 10
