@@ -25,19 +25,34 @@ export const MdxComponents = {
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h1: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h2
+      {...props}
+      className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
+    />
   ),
   h2: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h2
+      {...props}
+      className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
+    />
   ),
   h3: (props: any) => (
-    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h3
+      {...props}
+      className="text-xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
+    />
   ),
   h4: (props: any) => (
     <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   p: (props: any) => (
     <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
+  ),
+  code: (props: any) => (
+    <code
+      className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-medium text-gray-600 before:hidden after:hidden"
+      {...props}
+    />
   ),
   pre: BlogCodeBlockSingle,
   BlogCodeBlock,

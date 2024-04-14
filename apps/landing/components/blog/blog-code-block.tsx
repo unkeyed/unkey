@@ -129,9 +129,9 @@ export function BlogCodeBlockSingle({ className, children }: any) {
             tokens.pop()?.toString();
           }
           return (
-            <pre className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
+            <div className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
               {tokens.map((line, i) => (
-                <div
+                <pre
                   // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
                   key={`${line}-${i}`}
                   {...getLineProps({ line })}
@@ -140,9 +140,9 @@ export function BlogCodeBlockSingle({ className, children }: any) {
                   {line.map((token, key) => (
                     <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                   ))}
-                </div>
+                </pre>
               ))}
-            </pre>
+            </div>
           );
         }}
       </Highlight>

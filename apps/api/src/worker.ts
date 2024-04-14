@@ -31,7 +31,7 @@ const app = newApp();
 
 app.use("*", (c, next) => {
   for (let i = 0; i < 10; i++) {
-    console.log({ metric: "fake", url: c.req.url, i });
+    console.log(JSON.stringify({ metric: "fake", url: c.req.url, i }));
   }
   return next();
 });

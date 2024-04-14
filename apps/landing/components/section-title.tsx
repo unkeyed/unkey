@@ -40,7 +40,7 @@ export function SectionTitle({
       </p>
       <h1
         className={cn(
-          "text-[32px] md:text-[52px] leading-[48px] md:leading-[64px] bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-sm sm:max-w-md via-30% to-white/30  md:max-w-[463px] pt-4 font-medium text-center",
+          "text-[32px] md:text-[52px] leading-[48px] md:leading-[64px] bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white max-w-sm sm:max-w-md via-30% to-white/30  md:max-w-[463px] pt-4 font-medium text-center",
           { "md:text-left": align === "left" },
         )}
         style={{ maxWidth: titleWidth ? `${titleWidth}px` : "none" }}

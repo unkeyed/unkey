@@ -147,7 +147,7 @@ export default async function Templates(props: Props) {
               ))}
           </dl>
         </div>
-        <div className="flex flex-col w-full mb-24 xl:w-2/3 mt-8 md:mt-0 xl:pt-24 xl:pl-24">
+        <div className="flex flex-col w-full mb-24 xl:w-2/3 mt-8 md:mt-0 xl:pt-24 xl:pl-24 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md">
           <div>
             {template.image ? (
               <Frame size={"sm"} className="">

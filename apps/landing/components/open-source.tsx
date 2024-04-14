@@ -8,6 +8,7 @@ import GithubSvg from "../images/unkey-github.svg";
 import { PrimaryButton } from "./button";
 import { OssChip } from "./svg/oss-chip";
 import { OssLight } from "./svg/oss-light";
+import { MeteorLines } from "./ui/meteorLines";
 
 export const OpenSource: React.FC = () => {
   return (
@@ -15,6 +16,11 @@ export const OpenSource: React.FC = () => {
       <div className="absolute top-[-480px] md:right-[120px] -z-[10]">
         {/* TODO: horizontal scroll */}
         <OssLight className="scale-[2]" />
+        <div className="absolute right-[270px] top-[250px] -z-50">
+          <MeteorLines className="ml-2 fade-in-0" delay={2} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" number={1} delay={0} />
+          <MeteorLines className="ml-16 fade-in-100" delay={4} number={1} />
+        </div>
       </div>
       <div className="flex flex-col items-center justify-center w-full xl:flex-row xl:justify-between">
         <motion.div
