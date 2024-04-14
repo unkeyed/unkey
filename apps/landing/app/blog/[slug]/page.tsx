@@ -199,11 +199,11 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         </div>
         <div className="flex justify-between w-full gap-8 mx-auto mt-12 mb-40 lg:gap-16 ">
           <div className="flex flex-col w-full gap-8 lg:gap-16 lg:w-3/4 ">
-            <Frame className="px-0 overflow-clip" size="lg">
+            <Frame className="overflow-clip" size="lg">
               <Image
-                src={post.image ?? "/images/blog-images/defaultBlog.png"}
-                width={1200}
-                height={860}
+                src={post.image ?? "/images/blog-images/BlogSpaceMan.jpeg"}
+                width={1920}
+                height={1080}
                 alt={post.title}
               />
             </Frame>
