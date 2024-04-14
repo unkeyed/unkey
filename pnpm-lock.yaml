@@ -60,8 +60,8 @@ importers:
   apps/api:
     dependencies:
       '@axiomhq/js':
-        specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2
+        specifier: 1.0.0-rc.3
+        version: 1.0.0-rc.3
       '@chronark/zod-bird':
         specifier: 0.3.5
         version: 0.3.5
@@ -378,8 +378,8 @@ importers:
   apps/logdrain:
     dependencies:
       '@axiomhq/js':
-        specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2
+        specifier: 1.0.0-rc.3
+        version: 1.0.0-rc.3
       '@unkey/metrics':
         specifier: workspace:^
         version: link:../../internal/metrics
@@ -403,8 +403,8 @@ importers:
   apps/logdrainv2:
     dependencies:
       '@axiomhq/js':
-        specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2
+        specifier: 1.0.0-rc.3
+        version: 1.0.0-rc.3
       '@hono/node-server':
         specifier: ^1.10.0
         version: 1.10.0
@@ -1877,11 +1877,11 @@ packages:
       zod: 3.22.4
     dev: false
 
-  /@axiomhq/js@1.0.0-rc.2:
-    resolution: {integrity: sha512-BQJQNkumdKZgbLGhf3DZb6A8w/31jtX3hWtdv0mMiSE3O5PioeIZNxRTMoWRChxt8TylZrJoVezqrw/ooWPoyQ==}
+  /@axiomhq/js@1.0.0-rc.3:
+    resolution: {integrity: sha512-Zm10TczcMLounWqC42nMkXQ7XKLqjzLrd5ia022oBKDUZqAFVg2y9d1quQVNV4FlXyg9MKDdfMjpKQRmzEGaog==}
     engines: {node: '>=16'}
     dependencies:
-      fetch-retry: 5.0.6
+      fetch-retry: 6.0.0
       uuid: 8.3.2
     dev: false
 
@@ -6310,6 +6310,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -14038,8 +14039,8 @@ packages:
       web-streams-polyfill: 3.3.3
     dev: false
 
-  /fetch-retry@5.0.6:
-    resolution: {integrity: sha512-3yurQZ2hD9VISAhJJP9bpYFNQrHHBXE2JxxjY5aLEcDi46RmAzJE2OC9FAde0yis5ElW0jTTzs0zfg/Cca4XqQ==}
+  /fetch-retry@6.0.0:
+    resolution: {integrity: sha512-BUFj1aMubgib37I3v4q78fYo63Po7t4HUPTpQ6/QE6yK6cIQrP+W43FYToeTEyg5m2Y7eFUtijUuAv/PDlWuag==}
     dev: false
 
   /fflate@0.4.8:
@@ -17730,6 +17731,10 @@ packages:
     resolution: {integrity: sha512-oLxFY2gd2IqnjcYyOXD8XGCftpGtZP2AbHbOkthDkvRywH5ayNtPVy9YlOPcHckXzbLTCHpkb7FB+yuxKV13pQ==}
     engines: {node: ^18 || >=20}
     hasBin: true
+    dev: true
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
     dev: true
 
   /natural-compare@1.4.0:
