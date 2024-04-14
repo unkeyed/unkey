@@ -59,7 +59,7 @@ export function AnalyticsBento() {
 
   return (
     <div className="relative flex justify-center w-full">
-      <div className="absolute">
+      <div className="absolute top-14 z-50">
         <PrimaryButton
           label="Show API code"
           IconLeft={Wand2}
@@ -70,7 +70,7 @@ export function AnalyticsBento() {
       <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border border-white/10 relative">
         {/* TODO: horizontal scroll */}
         <LightSvg className="absolute hidden md:flex top-[-180px] left:0 lg:left-[300px] z-50 pointer-events-none" />
-        <AnalyticsStars className="w-[120px] shrink-0 hidden md:flex" />
+        <AnalyticsStars className="w-[90px] shrink-0 hidden md:flex" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
         <BentoText />
       </div>
@@ -88,7 +88,7 @@ function AnalyticsApiView() {
       whileInView="visible"
       className="w-full overflow-x-hidden"
     >
-      <div className="w-full bg-black bg-opacity-02 lg:w-[1180px] lg:rounded-3xl analytics-background-gradient xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <div className="w-full bg-black bg-opacity-02 lg:w-[1220px] lg:rounded-3xl analytics-background-gradient xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
         <div className="flex flex-col w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
           <div className="flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]">
             <TerminalIcon className="w-6 h-6" />
@@ -334,7 +334,7 @@ function AnalyticsWebAppView() {
       whileInView="visible"
       className="w-full overflow-x-hidden"
     >
-      <div className="w-full bg-[#000000] lg:w-[1180px] lg:rounded-3xl relative flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <div className="w-full bg-[#000000] lg:w-[1220px] lg:rounded-3xl relative flex-wrap md:flex-nowrap cursor-default analytics-background-gradient select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
         <WebAppLight className="absolute top-[-100px] left-[40px]" />
         <div className="flex flex-col w-[216px] h-full text-white/20  text-xs pt-6 px-4 md:border-r md:border-white/5">
           <div className="flex justify-between items-center w-[160px]">
@@ -464,7 +464,7 @@ function AnalyticsWebAppView() {
         <div className="text-white pt-4 pl-8 flex w-full px-[40px] flex-col">
           <div className="flex justify-between w-full h-[40px] items-center">
             <div className="flex items-center text-lg font-medium min-w-[400px]">
-              <div className="bg-[#6E56CF] rounded-lg mr-3.5 w-[40px] h-[40px] rounded-[9px]">
+              <div className="bg-[#4c32b3] rounded-lg mr-3.5 w-[40px] h-[40px] rounded-[9px]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="40"
@@ -661,10 +661,24 @@ export function Editor({
   language,
   theme,
 }: { codeBlock: string; language: string; theme?: PrismTheme }) {
+  const animationVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
+
   return (
     <Highlight theme={theme} code={codeBlock} language={language}>
       {({ tokens, getLineProps, getTokenProps }) => (
-        <pre className="leading-8">
+        <motion.pre
+          key={codeBlock} // Use codeBlock as a key to trigger animations on change
+          variants={animationVariants} // Pass the defined animation variants
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.5 }} // Customize the transition duration
+          className="leading-8"
+        >
           {tokens.map((line, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
@@ -674,7 +688,7 @@ export function Editor({
               ))}
             </div>
           ))}
-        </pre>
+        </motion.pre>
       )}
     </Highlight>
   );
@@ -803,7 +817,7 @@ export function BentoText() {
       </div>
       <p className="mt-4 leading-6 text-white/60">
         Access real-time insights into your API usage through our dashboard, or build your own on
-        top of our APi.
+        top of our API.
       </p>
     </div>
   );

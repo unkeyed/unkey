@@ -4,12 +4,6 @@ import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { AvatarImage } from "@radix-ui/react-avatar";
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../components/ui/tooltip";
 
 //Todo: Add ability to have multiple authors
 
@@ -33,20 +27,22 @@ export function QuestionCircle({ className }: { className?: string }) {
 }
 export function BlogAuthors({ author, className }: BlogAuthorsProps) {
   return (
-    <div className={cn("flex flex-col p-0 m-0 xl:gap-2 lg:gap-2 ", className)}>
+    <div className={cn("flex flex-col gap-4 lg:gap-8 xl:gap-16 ", className)}>
       <p className="text-white/40">Written by</p>
       <div className="flex flex-col ">
-        <Avatar className={cn("w-12 h-12 xl:mt-4 mt-4 ml-0", "z-10")}>
-          <AvatarImage
-            alt={author.name}
-            src={author.image.src}
-            width={12}
-            height={12}
-            className="w-full"
-          />
-          <AvatarFallback />
-        </Avatar>
-        <p className="text-white mt-4 ml-0 text-nowrap xl:block">{author.name}</p>
+        <div className="flex items-center gap-2">
+          <Avatar className="w-10 h-10">
+            <AvatarImage
+              alt={author.name}
+              src={author.image.src}
+              width={12}
+              height={12}
+              className="w-full"
+            />
+            <AvatarFallback />
+          </Avatar>
+          <p className="text-white text-nowrap xl:block">{author.name}</p>
+        </div>
 
         {/* <TooltipProvider>
           <Tooltip>

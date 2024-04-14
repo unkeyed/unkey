@@ -30,18 +30,18 @@ export default function PricingPage() {
     <div className="px-4 mx-auto lg:px-0">
       <HeroSvg className="absolute inset-x-0 top-0 pointer-events-none" />
 
-      <div className="flex flex-col items-center justify-center mt-32 min-h-72">
+      <div className="flex flex-col items-center justify-center my-16 xl:my-24">
         <h1 className="section-title-heading-gradient font-medium text-[4rem] leading-[4rem] max-w-xl text-center ">
-          Pricing built for everyone.
+          Start for free, scale as you go
         </h1>
 
-        <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-center">
+        {/* <p className="mt-8 bg-gradient-to-br text-transparent bg-gradient-stop bg-clip-text from-white via-white via-40% to-white/30 max-w-lg text-center">
           We wanted pricing to be simple and affordable for anyone, so we've created flexible plans
           that don't need an accounting degree to figure out.
-        </p>
+        </p>  */}
       </div>
 
-      <ShinyCardGroup className="grid h-full max-w-4xl grid-cols-2 gap-6 mx-auto mt-32 group">
+      <ShinyCardGroup className="grid h-full max-w-4xl grid-cols-2 gap-6 mx-auto group">
         <PricingCard color={Color.White} className="col-span-2 md:col-span-1">
           <FreeCardHighlight className="absolute top-0 right-0 pointer-events-none" />
 
@@ -57,7 +57,7 @@ export default function PricingPage() {
             <Cost dollar="$0" />
             <Button label="Start for Free" />
             <Bullets>
-              <Bullet Icon={Check} label="100 active keys / month" color={Color.White} />
+              <Bullet Icon={Check} label="1k API keys" color={Color.White} />
               <Bullet
                 Icon={Check}
                 label="2.5k successful verifications / month"
@@ -84,7 +84,7 @@ export default function PricingPage() {
             <Cost dollar="$25" />
             <Button label="Get Started with Pro" />
             <Bullets>
-              <Bullet Icon={Check} label="250 active keys / month" color={Color.Yellow} />
+              <Bullet Icon={Check} label="1M API keys" color={Color.Yellow} />
               <Bullet
                 Icon={Check}
                 label="150k successful verifications / month"
@@ -109,7 +109,6 @@ export default function PricingPage() {
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
-              <Asterisk tag="$0.10" label="/ additional active key" />
               <Asterisk tag="$1" label="/ additional 10k successful verifications" />
               <Asterisk tag="$1" label="/ additional 100k successful ratelimits" />
             </div>

@@ -1,14 +1,14 @@
 import { SectionTitle } from "@/app/section";
-import { ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
-import { PrimaryButton } from "./button";
+import { PrimaryButton, SecondaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="w-full h-full bg-[#010101]">
-      <div className="relative pb-40 overflow-hidden pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 overflow-hidden w-full" />
+    <div className="w-full h-full">
+      <div className="relative pb-40 pt-14 ">
+        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full pointer-events-none" />
         <SectionTitle
           align="center"
           title={
@@ -18,17 +18,20 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex space-x-6 ">
-            <Link key="get-started" href="/app">
+          <div className="flex flex-col gap-6 sm:flex-row ">
+            <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
+              <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
+            </Link>
+            <Link href="/app">
               <PrimaryButton label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
         </SectionTitle>
-        <div className="mt-10">
+        <div className="mt-10 text-balance">
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             2500 verifications and 100k successful rate-limited requests per month.
           </p>
-          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
+          <p className="w-full mt-1 mx-auto text-sm leading-6 text-center text-white/60">
             No CC required.
           </p>
         </div>

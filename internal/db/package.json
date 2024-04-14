@@ -22,6 +22,6 @@
   "dependencies": {
     "@planetscale/database": "^1.16.0",
     "@unkey/billing": "workspace:^",
-    "mysql2": "^3.9.2"
+    "mysql2": "^3.9.4"
   }
 }

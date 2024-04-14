@@ -8,35 +8,72 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { motion, useAnimation } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PrimaryButton, SecondaryButton } from "../button";
 import { DesktopNavLink, MobileNavLink } from "./link";
 
 export function Navigation() {
+  const [scrollPercent, setScrollPercent] = useState(0);
+
+  const containerVariants = {
+    hidden: {
+      opacity: 0,
+      y: -20,
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: "easeOut" },
+    },
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollThreshold = 100;
+      const scrollPercent = Math.min(window.scrollY / 2 / scrollThreshold, 1);
+      setScrollPercent(scrollPercent);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <nav className="container px-[30px] lg:px-0 flex items-center justify-between w-full h-20 mx-auto pt-[20px]">
-      <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
-        <Link href="/">
-          <Logo className="min-w-[50px]" />
-        </Link>
-        <MobileLinks className="lg:hidden" />
-        <DesktopLinks className="hidden lg:flex" />
+    <motion.nav
+      style={{
+        backgroundColor: `rgba(0, 0, 0, ${scrollPercent})`,
+        borderColor: `rgba(255, 255, 255, ${Math.min(scrollPercent / 5, 0.15)})`,
+      }}
+      className="sticky z-[1000] top-0 px-[30px] border-b-[.75px] border-white/10 lg:px-0 w-full py-3"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="container flex items-center justify-between px-0">
+        <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
+          <Link href="/">
+            <Logo className="min-w-[50px]" />
+          </Link>
+          <MobileLinks className="lg:hidden" />
+          <DesktopLinks className="hidden lg:flex" />
+        </div>
+        <div className="hidden sm:flex">
+          <Link href="/auth/sign-up">
+            <SecondaryButton
+              label="Create Account"
+              IconRight={ChevronRight}
+              className="h-8 text-sm"
+            />
+          </Link>
+          <Link href="/app">
+            <PrimaryButton label="Sign In" IconRight={ChevronRight} className="h-8" />
+          </Link>
+        </div>
       </div>
-      <div className="hidden sm:flex">
-        <Link href="/auth/sign-up">
-          <SecondaryButton
-            label="Create Account"
-            IconRight={ChevronRight}
-            className="h-8 text-sm"
-          />
-        </Link>
-        <Link href="/app">
-          <PrimaryButton label="Sign In" IconRight={ChevronRight} className="h-8" />
-        </Link>
-      </div>
-    </nav>
+    </motion.nav>
   );
 }
 
@@ -49,7 +86,7 @@ function MobileLinks({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="flex items-center justify-center h-8 gap-2 px-3 py-2 mr-3 text-sm duration-150 text-white/60 hover:text-white"
+            className="flex items-center justify-end h-8 gap-2 px-3 py-2 text-sm duration-150 text-white/60 hover:text-white/80"
           >
             Menu
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
@@ -68,6 +105,7 @@ function MobileLinks({ className }: { className?: string }) {
               <MobileNavLink onClick={() => setIsOpen(false)} href="/changelog" label="Changelog" />
               <MobileNavLink onClick={() => setIsOpen(false)} href="/templates" label="Templates" />
               <MobileNavLink onClick={() => setIsOpen(false)} href="/docs" label="Docs" />
+              <MobileNavLink onClick={() => setIsOpen(false)} href="/discord" label="Discord" />
             </ul>
           </div>
           <DrawerFooter>
@@ -78,17 +116,16 @@ function MobileLinks({ className }: { className?: string }) {
                 className="flex justify-center w-full text-center"
               />
             </Link>
-            <DrawerClose asChild>
-              <button
-                type="button"
-                className={cn(
-                  "px-4 duration-500 text-white/75 hover:text-white h-10 border rounded-lg text-center bg-black",
-                  className,
-                )}
-              >
-                Close
-              </button>
-            </DrawerClose>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className={cn(
+                "px-4 duration-500 text-white/75 hover:text-white/80 h-10 border rounded-lg text-center bg-black",
+                className,
+              )}
+            >
+              Close
+            </button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -104,6 +141,7 @@ const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
     <DesktopNavLink href="/changelog" label="Changelog" />
     <DesktopNavLink href="/templates" label="Templates" />
     <DesktopNavLink href="/docs" label="Docs" />
+    <DesktopNavLink href="/discord" label="Discord" external />
   </ul>
 );
 

@@ -11,7 +11,7 @@ export const DesktopNavLink: React.FC<Props> = ({ href, label, external }) => {
     <Link
       href={href}
       target={external ? "_blank" : undefined}
-      className={cn("text-white/50 hover:text-white duration-200 text-sm tracking-[0.07px]", {
+      className={cn("text-white/50 hover:text-white/90 duration-200 text-sm tracking-[0.07px]", {
         "text-white": href.startsWith(`/${segment}`),
       })}
     >

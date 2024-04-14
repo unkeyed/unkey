@@ -3,7 +3,7 @@ date: 2023-09-21
 title: "Using Unkey with your Authentication Provider"
 description: "Learn how to use Unkey with an auth provider, to associate your keys with your users."
 author: james
-tags: company product engineering
+tags: ["company", "product", "engineering"]
 ---
 
 When working with your external facing API and having a client application, you need to identify which user owns an API Key. Having a way to identify the user allows you to understand their usage of your product better. This blog is going to cover how you can use your authentication provider to add a way to identify the user.
@@ -26,27 +26,21 @@ We will use my favorite authentication provider, Clerk, in this example. The con
 The first thing we want to do is create our Next.js application and install our dependencies.
 
 ```bash
-
 npx create-next-app@latest unkey-with-auth
-
 ```
 
 We need Unkey's typescript library and Clerk's next.js package for dependencies.
 
 ```bash
-
 npm install @unkey/api @clerk/nextjs
-
 ```
 
 Then, finally, we are going to use Shadcn to speed up the styling. If you copy the two commands below, it will install everything you need.
 
 ```bash
-
 npx shadcn-ui@latest init
 
 npx shadcn-ui@latest add button input label card
-
 ```
 
 Make sure you include your Clerk secret key and publishable key in your `.env.local` file. You can find these in your Clerk dashboard. You will also need an Unkey root key and API ID. You can find these in your Unkey dashboard.
@@ -472,7 +466,6 @@ The response from the API will look like this, and as you can see, we now associ
 In the dashboard for Unkey, you can see the key and the owner ID and the name associated with it
 
 <Image src="/images/blog-images/unkey-with-auth/dashboard-example.png" alt ="Unkey Dashboard"/>
-
 
 ## Conclusion
 

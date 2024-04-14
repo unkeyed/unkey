@@ -66,7 +66,8 @@ const config = {
           },
         },
         meteor: {
-          "0%": { transform: "rotate(270deg) translateX(0)", opacity: ".9" },
+          "0%": { transform: "rotate(270deg) translateX(0)", opacity: "0" },
+          "5%": { opacity: ".9" },
           "50%": { opacity: ".4" },
           "100%": {
             transform: "rotate(270deg) translateX(-500px)",
@@ -76,7 +77,11 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+    require("@tailwindcss/aspect-ratio"),
+  ],
 } satisfies Config;
 
 export default config;

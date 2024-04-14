@@ -45,7 +45,7 @@ const MeteorLines = ({
           key={idx.toString()}
           className={clsx(
             className,
-            "-z-20 pointer-events-none absolute left-0 top-0 h-[.75px] w-20 rotate-[90deg] animate-meteor rounded-[9999px] bg-gradient-to-r from-white/90 to-transparent shadow-[0_0_0_1px_#ffffff10]",
+            "-z-20 pointer-events-none absolute left-0 top-0 h-[.75px] w-20 rotate-[90deg] opacity-0 animate-meteor rounded-[9999px] bg-gradient-to-r from-white/90 to-transparent shadow-[0_0_0_1px_#ffffff10]",
           )}
           style={style}
         >

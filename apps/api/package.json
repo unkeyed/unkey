@@ -21,11 +21,11 @@
     "wrangler": "^3.32.0"
   },
   "dependencies": {
-    "@axiomhq/js": "1.0.0-rc.2",
+    "@axiomhq/js": "1.0.0-rc.3",
     "@chronark/zod-bird": "0.3.5",
-    "@hono/zod-openapi": "^0.9.8",
-    "@hono/zod-validator": "^0.2.0",
-    "@microlabs/otel-cf-workers": "1.0.0-rc.24",
+    "@hono/zod-openapi": "^0.11.0",
+    "@hono/zod-validator": "^0.2.1",
+    "@microlabs/otel-cf-workers": "1.0.0-rc.36",
     "@opentelemetry/api": "1.8.0",
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",

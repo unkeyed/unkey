@@ -7,7 +7,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "../../components/ui/pagination";
+} from "../ui/pagination";
 
 export function BlogPagination({
   currentPage,

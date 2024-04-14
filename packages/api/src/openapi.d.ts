@@ -296,7 +296,7 @@ export interface paths {
                * @default fast
                * @enum {string}
                */
-              type: "fast" | "consistent";
+              type?: "fast" | "consistent";
               /** @description The total amount of burstable requests. */
               limit: number;
               /** @description How many tokens to refill during each refillInterval. */
@@ -1252,7 +1252,7 @@ export interface paths {
                * @default fast
                * @enum {string}
                */
-              type: "fast" | "consistent";
+              type?: "fast" | "consistent";
               /** @description The total amount of burstable requests. */
               limit: number;
               /** @description How many tokens to refill during each refillInterval. */
@@ -1829,7 +1829,7 @@ export interface components {
          * @default fast
          * @enum {string}
          */
-        type: "fast" | "consistent";
+        type?: "fast" | "consistent";
         /** @description The total amount of burstable requests. */
         limit: number;
         /** @description How many tokens to refill during each refillInterval. */
