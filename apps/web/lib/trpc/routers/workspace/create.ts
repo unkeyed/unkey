@@ -23,6 +23,8 @@ export const createWorkspace = t.procedure
       });
     }
 
+    const subscriptions = defaultProSubscriptions();
+
     const org = await clerkClient.organizations.createOrganization({
       name: input.name,
       createdBy: userId,
@@ -40,7 +42,7 @@ export const createWorkspace = t.procedure
       betaFeatures: {},
       planLockedUntil: null,
       planChanged: null,
-      subscriptions: defaultProSubscriptions(),
+      subscriptions,
       createdAt: new Date(),
       deletedAt: null,
       planDowngradeRequest: null,
