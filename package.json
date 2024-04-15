@@ -26,7 +26,7 @@
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^9.0.11",
     "is-ci": "^3.0.1",
-    "knip": "^5.0.2",
+    "knip": "^5.9.4",
     "lint-staged": "^15.2.2",
     "turbo": "^1.12.4",
     "typescript": "^5.3.3",
