@@ -62,6 +62,7 @@ const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]
 
 const app = new Hono<{ Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string } }>({});
 app.all("*", async (c) => {
+  console.info("incoming", c.req.url);
   const authorization = c.req.header("Authorization");
   if (!authorization || authorization !== c.env.AUTHORIZATION) {
     return c.text("unauthorized", { status: 403 });
@@ -71,7 +72,7 @@ app.all("*", async (c) => {
     token: c.env.AXIOM_TOKEN,
     orgId: "unkey-hsbi",
   });
-  const _start = performance.now();
+  const start = performance.now();
   try {
     const b = await c.req.blob();
 
@@ -138,6 +139,7 @@ app.all("*", async (c) => {
     await axiom.flush();
     return new Response(err.message, { status: 500 });
   } finally {
+    console.info("latency", Math.floor(performance.now() - start), "ms");
   }
 });
 
