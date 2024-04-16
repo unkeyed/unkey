@@ -8,6 +8,6 @@
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "mintlify": "^4.0.131"
+    "mintlify": "^4.0.144"
   }
 }
