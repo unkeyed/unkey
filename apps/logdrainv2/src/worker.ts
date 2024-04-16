@@ -60,7 +60,9 @@ const alarmSchema = z.object({
 
 const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]);
 
-const app = new Hono<{ Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string } }>({});
+const app = new Hono<{
+  Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string; AXIOM_ORG_ID: string };
+}>({});
 app.all("*", async (c) => {
   console.info("incoming", c.req.url);
   const authorization = c.req.header("Authorization");
@@ -70,7 +72,7 @@ app.all("*", async (c) => {
 
   const axiom = new Axiom({
     token: c.env.AXIOM_TOKEN,
-    orgId: "unkey-hsbi",
+    orgId: c.env.AXIOM_ORG_ID,
   });
   const start = performance.now();
   try {
@@ -121,11 +123,6 @@ app.all("*", async (c) => {
       }
     }
 
-    axiom.ingest("logdrain", {
-      level: "info",
-      message: `ingested ${lines.length} events`,
-      events: lines.length,
-    });
     await axiom.flush();
     return c.json({ url: c.req.url });
   } catch (e) {
