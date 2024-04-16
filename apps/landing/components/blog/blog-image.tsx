@@ -3,8 +3,6 @@ import Image from "next/image";
 import { Frame } from "../frame";
 
 export function BlogImage({
-  size,
-  className,
   imageUrl,
 }: {
   size: "sm" | "md" | "lg";
@@ -14,9 +12,5 @@ export function BlogImage({
     alt?: string;
   };
 }) {
-  return (
-    <Frame className={cn("shadow-sm", className)} size={size}>
-      <Image src={imageUrl.src!} width={1920} height={1080} alt="" />
-    </Frame>
-  );
+  return <Image src={imageUrl.src!} width={1920} height={1080} alt="" />;
 }
