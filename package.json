@@ -1,6 +1,9 @@
 {
   "name": "unkey",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -26,7 +29,7 @@
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^9.0.11",
     "is-ci": "^3.0.1",
-    "knip": "^5.0.2",
+    "knip": "^5.9.4",
     "lint-staged": "^15.2.2",
     "turbo": "^1.12.4",
     "typescript": "^5.3.3",
@@ -52,5 +55,5 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "biome check --apply"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90"
 }

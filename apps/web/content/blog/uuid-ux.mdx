@@ -1,6 +1,6 @@
 ---
 date: 2023-12-07
-title: "The UX of UUIDs "
+title: "The UX of UUIDs"
 description: "Unique identifiers play a crucial role in all applications, from user authentication to resource management. While using a standard UUID will satisfy all your security concerns, there’s a lot we can improve for our users."
 author: andreas
 tags: ["company"]
@@ -98,7 +98,7 @@ We generated a 22 character long ID here, which can encode ~100x as many states 
 
 Not all identifiers need to have a high level of collision resistance. In some cases, shorter identifiers can be sufficient, depending on the specific requirements of the application. By reducing the entropy of the identifiers, we can generate shorter IDs while still maintaining an acceptable level of uniqueness.
 
-Reducing the length of your IDs can be nice, but you need to be careful and ensure your system is protected against ID collissions. Fortunately, this is pretty easy to do in your database layer. In our MySQL database we use IDs mostly as primary key and the database protects us from collisions. In case an ID exists already, we just generate a new one and try again. If our collision rate would go up significantly, we could simply increase the length of all future IDs and we’d be fine.
+Reducing the length of your IDs can be nice, but you need to be careful and ensure your system is protected against ID collisions. Fortunately, this is pretty easy to do in your database layer. In our MySQL database we use IDs mostly as primary key and the database protects us from collisions. In case an ID exists already, we just generate a new one and try again. If our collision rate would go up significantly, we could simply increase the length of all future IDs and we’d be fine.
 
 
 
