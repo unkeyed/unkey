@@ -16,7 +16,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "20.11.28",
+    "@types/node": "20.12.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
     "tsx": "^4.7.1",
