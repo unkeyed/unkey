@@ -50,6 +50,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
                 method: c.req.method,
                 path: c.req.path,
                 error: err.message,
+                telemetry,
               });
             }),
         );
