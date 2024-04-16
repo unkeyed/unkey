@@ -109,7 +109,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@clerk/types": "^3.63.0",
+    "@clerk/types": "^3.63.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/d3-array": "^3.2.1",
     "@types/dagre": "^0.7.52",
