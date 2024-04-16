@@ -14,7 +14,6 @@ export const CreateRatelimit: React.FC = async () => {
     return null;
   }
   const tenantId = getTenantId();
-  console.log(sessionClaims);
 
   const trpc = createCallerFactory()(router)({
     req: {} as any,

@@ -48,14 +48,14 @@ async function runLambda(region: string): Promise<void> {
 async function main() {
   const ps: Promise<unknown>[] = [];
   for (const region of regions) {
-    console.log("starting", region);
+    console.info("starting", region);
     const p = runLambda(region);
     ps.push(p);
-    console.log("sleeping 60s");
+    console.info("sleeping 60s");
     await new Promise((r) => setTimeout(r, 60_000));
   }
   await Promise.all(ps);
-  console.log("done");
+  console.info("done");
 }
 
 main();

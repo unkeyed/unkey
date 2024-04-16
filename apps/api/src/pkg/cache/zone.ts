@@ -126,8 +126,6 @@ export class ZoneCache<TNamespaces extends Record<string, unknown> = CacheNamesp
         body: JSON.stringify({
           files: [this.createCacheKey(namespace, key).toString()],
         }),
-      }).then(async (res) => {
-        console.log("purged cache", res.status, await res.text());
       }),
     ])
       .then(() => Ok())

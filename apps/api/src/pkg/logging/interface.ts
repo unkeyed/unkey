@@ -7,5 +7,4 @@ export interface Logger {
   info(message: string, fields?: Fields): void;
   warn(message: string, fields?: Fields): void;
   error(message: string, fields?: Fields): void;
-  flush(): Promise<void>;
 }

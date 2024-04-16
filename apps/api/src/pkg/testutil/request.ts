@@ -39,6 +39,7 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
       promise.catch(() => {});
     },
     passThroughOnException: () => {},
+    abort: (_reason?: any) => {},
   };
 
   const res = await app.request(

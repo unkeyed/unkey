@@ -1,14 +1,9 @@
 import { Axiom } from "@axiomhq/js";
+import { logSchema } from "@unkey/logs";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
-import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-
-const axiom = new Axiom({
-  token: process.env.AXIOM_TOKEN!,
-  orgId: "unkey-hsbi",
-});
 
 const logsSchema = z.array(
   z
@@ -21,7 +16,8 @@ const logsSchema = z.array(
             return JSON.parse(s);
           } catch (err) {
             console.error((err as Error).message, s);
-            return {};
+
+            return s;
           }
         }),
       ),
@@ -66,13 +62,20 @@ const alarmSchema = z.object({
 
 const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]);
 
-setInterval(() => {
-  console.log("I'm still alive");
-}, 5000);
-
-const app = new Hono({});
+const app = new Hono<{
+  Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string; AXIOM_ORG_ID: string };
+}>({});
 app.all("*", async (c) => {
-  console.log("incoming request", c.req.url);
+  console.info("incoming", c.req.url);
+  const authorization = c.req.header("Authorization");
+  if (!authorization || authorization !== c.env.AUTHORIZATION) {
+    return c.text("unauthorized", { status: 403 });
+  }
+
+  const axiom = new Axiom({
+    token: c.env.AXIOM_TOKEN,
+    orgId: c.env.AXIOM_ORG_ID,
+  });
   try {
     const b = await c.req.blob();
 
@@ -87,13 +90,11 @@ app.all("*", async (c) => {
         try {
           return eventSchema.parse(JSON.parse(l));
         } catch (err) {
-          console.error((err as Error).message, l);
+          console.error((err as Error).message, JSON.stringify(lines));
           return null;
         }
       })
       .filter((l) => l !== null) as Array<z.infer<typeof eventSchema>>;
-
-    console.log("received", lines.length, "lines");
 
     const now = Date.now();
     axiom.ingest(
@@ -104,35 +105,59 @@ app.all("*", async (c) => {
         latency: now - l.EventTimestampMs,
       })),
     );
-    axiom.ingest(
-      "playing-with-logdrains",
-      lines.map((l) => ({
-        ...l,
-      })),
-    );
+
     for (const line of lines) {
       for (const log of line.Logs) {
-        for (const message of log.Message) {
-          axiom.ingest("logdrain-logs", {
-            rayId: "RayID" in line.Event ? line.Event.RayID : null,
-            time: log.TimestampMs,
-            level: log.Level,
-            message,
-          });
+        for (const raw of log.Message) {
+          if (typeof raw === "string") {
+            axiom.ingest("logdrain", {
+              level: "warn",
+              message: "log is not JSON",
+              raw,
+            });
+            continue;
+          }
+          const logParsed = logSchema.safeParse(raw);
+          if (!logParsed.success) {
+            axiom.ingest("logdrain", {
+              level: "error",
+              message: logParsed.error.message,
+              raw: JSON.stringify(raw),
+              log: JSON.stringify(log),
+              line: JSON.stringify(line),
+            });
+            continue;
+          }
+          const message = logParsed.data;
+
+          switch (message.type) {
+            case "log": {
+              axiom.ingest("cf_api_logs_production", {
+                rayId: "RayID" in line.Event ? line.Event.RayID : null,
+                time: message.time,
+                level: log.Level,
+                message: message.message,
+                context: message.context,
+              });
+              break;
+            }
+            case "metric": {
+              axiom.ingest("cf_api_metrics_production", message.metric);
+              break;
+            }
+
+            default:
+              break;
+          }
         }
       }
     }
 
-    axiom.ingest("logdrain", {
-      level: "info",
-      message: `ingested ${lines.length} events`,
-      events: lines.length,
-    });
     await axiom.flush();
     return c.json({ url: c.req.url });
   } catch (e) {
     const err = e as Error;
-    console.error(err.message);
+    console.error(err.message, JSON.stringify(err));
 
     axiom.ingest("logdrain", {
       level: "error",
@@ -142,17 +167,5 @@ app.all("*", async (c) => {
     return new Response(err.message, { status: 500 });
   }
 });
-const port = process.env.PORT ?? 8000;
 
-const srv = serve({
-  fetch: app.fetch,
-  port: Number(port),
-});
-
-srv.on("listening", () => {
-  console.log("listening", port);
-});
-
-srv.on("close", () => {
-  console.log("closing");
-});
+export default app;

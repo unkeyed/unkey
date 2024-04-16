@@ -56,7 +56,6 @@ export const POST = async (req: Request): Promise<Response> => {
       .then((res) => ({ ...res, latency: performance.now() - t1 })),
     upstash.limit(id).then((res) => ({ ...res, latency: performance.now() - t1 })),
   ]);
-  console.log({ unkeyAsyncResponse, unkeySyncResponse, upstashResponse });
 
   return Response.json({
     time: Date.now(),

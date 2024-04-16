@@ -2,7 +2,6 @@ import { type Database, type Key, and, createConnection, eq, gt, schema, sql } f
 import { instrumentDO } from "@microlabs/otel-cf-workers";
 import type { Env } from "../env";
 import { ConsoleLogger, type Logger } from "../logging";
-import { AxiomLogger } from "../logging/axiom";
 import { traceConfig } from "../tracing/config";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
@@ -23,14 +22,9 @@ class DO implements DurableObject {
     const defaultFields = {
       durableObjectId: state.id.toString(),
       durableObjectClass: "DurableObjectUsagelimiter",
+      environment: env.ENVIRONMENT,
     };
-    this.logger = env.AXIOM_TOKEN
-      ? new AxiomLogger({
-          axiomToken: env.AXIOM_TOKEN,
-          environment: env.ENVIRONMENT,
-          defaultFields,
-        })
-      : new ConsoleLogger({ defaultFields });
+    this.logger = new ConsoleLogger({ defaultFields });
   }
 
   async fetch(request: Request) {

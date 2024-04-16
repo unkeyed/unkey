@@ -25,7 +25,8 @@
         "noDelete": "off"
       },
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noConsoleLog": "warn"
       },
       "complexity": {
         "noForEach": "off"

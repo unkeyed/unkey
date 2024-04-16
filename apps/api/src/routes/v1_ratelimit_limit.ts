@@ -296,16 +296,6 @@ export const registerV1RatelimitLimit = (app: App) =>
         ? // @ts-ignore - this is a bug in the types
           c.req.raw?.cf?.colo
         : "global";
-
-    console.log({
-      namespaceId: namespace.id,
-      identifier: [namespace.id, req.identifier, limit, duration].join("::"),
-      interval: duration,
-      limit,
-      shard,
-      cost: req.cost,
-      async: req.async,
-    });
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
       workspaceId: rootKey.authorizedWorkspaceId,
       namespaceId: namespace.id,

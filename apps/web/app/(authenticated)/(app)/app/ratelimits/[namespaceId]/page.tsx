@@ -72,7 +72,6 @@ export default async function RatelimitNamespacePage(props: {
     end,
     identifier: selectedIdentifier.length > 0 ? selectedIdentifier : undefined,
   };
-  console.log({ query });
   const [customLimits, ratelimitEvents, identifiers, ratelimitsInBillingCycle, lastUsed] =
     await Promise.all([
       db
