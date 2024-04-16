@@ -34,7 +34,6 @@ export default {
     const headers = new Headers(request.headers);
     headers.delete("authorization");
     headers.set("Unkey-Gateway", "1");
-    console.log("rewrite", gateway.headerRewrites);
     for (const rewrite of gateway.headerRewrites) {
       const decryptionKey = getDecryptionKeyFromEnv(env, rewrite.secret.encryptionKeyVersion);
       if (decryptionKey.err) {
@@ -48,7 +47,6 @@ export default {
         iv: rewrite.secret.iv,
         ciphertext: rewrite.secret.ciphertext,
       });
-      console.log({ value });
       headers.set(rewrite.name, value);
     }
 

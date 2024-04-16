@@ -2,13 +2,7 @@ import { Axiom } from "@axiomhq/js";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
-import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-
-const axiom = new Axiom({
-  token: process.env.AXIOM_TOKEN!,
-  orgId: "unkey-hsbi",
-});
 
 const logsSchema = z.array(
   z
@@ -66,13 +60,18 @@ const alarmSchema = z.object({
 
 const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]);
 
-setInterval(() => {
-  console.log("I'm still alive");
-}, 5000);
-
-const app = new Hono({});
+const app = new Hono<{ Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string } }>({});
 app.all("*", async (c) => {
-  console.log("incoming request", c.req.url);
+  const authorization = c.req.header("Authorization");
+  if (!authorization || authorization !== c.env.AUTHORIZATION) {
+    return c.text("unauthorized", { status: 403 });
+  }
+
+  const axiom = new Axiom({
+    token: c.env.AXIOM_TOKEN,
+    orgId: "unkey-hsbi",
+  });
+  const _start = performance.now();
   try {
     const b = await c.req.blob();
 
@@ -92,8 +91,6 @@ app.all("*", async (c) => {
         }
       })
       .filter((l) => l !== null) as Array<z.infer<typeof eventSchema>>;
-
-    console.log("received", lines.length, "lines");
 
     const now = Date.now();
     axiom.ingest(
@@ -132,7 +129,7 @@ app.all("*", async (c) => {
     return c.json({ url: c.req.url });
   } catch (e) {
     const err = e as Error;
-    console.error(err.message);
+    console.error(err.message, JSON.stringify(err));
 
     axiom.ingest("logdrain", {
       level: "error",
@@ -140,19 +137,8 @@ app.all("*", async (c) => {
     });
     await axiom.flush();
     return new Response(err.message, { status: 500 });
+  } finally {
   }
 });
-const port = process.env.PORT ?? 8000;
 
-const srv = serve({
-  fetch: app.fetch,
-  port: Number(port),
-});
-
-srv.on("listening", () => {
-  console.log("listening", port);
-});
-
-srv.on("close", () => {
-  console.log("closing");
-});
+export default app;
