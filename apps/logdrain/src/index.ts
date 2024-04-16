@@ -49,7 +49,6 @@ async function flushMetrics(batch: MessageBatch<unknown>, env: Env) {
   await ax
     .flush()
     .then(() => {
-      console.log(`Ingested ${messages.length} into ${dataset} on axiom`);
       batch.ackAll();
     })
     .catch((err) => {
@@ -85,7 +84,6 @@ async function flushLogs(batch: MessageBatch<unknown>, env: Env) {
   await ax
     .flush()
     .then(() => {
-      console.log(`Ingested ${messages.length} into ${dataset} on axiom`);
       batch.ackAll();
     })
     .catch((err) => {

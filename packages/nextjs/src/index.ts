@@ -121,8 +121,6 @@ export function withUnkey<TContext extends NextContext = NextContext>(
         return config.handleInvalidKey(req, res.result);
       }
 
-      console.log(`Invalid key - ${res.result.code}`);
-
       return new NextResponse("Unauthorized", { status: 500 });
     }
 

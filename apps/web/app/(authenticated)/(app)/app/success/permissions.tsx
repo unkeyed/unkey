@@ -30,7 +30,6 @@ export async function Permissions() {
   const chartData = Object.entries(
     permissions.reduce(
       (acc, role) => {
-        console.log(role);
         sum += 1;
         const startOfDay = role.createdAt!;
         startOfDay.setUTCHours(0, 0, 0, 0);

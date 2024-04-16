@@ -79,7 +79,6 @@ export default async function AuthenticatedLayout({
   const { userId } = auth();
 
   if (userId) {
-    console.log("user is signed in already, redirecting to /app/apis");
     return redirect("/app/apis");
   }
   const quote = quotes[Math.floor(Math.random() * quotes.length)];

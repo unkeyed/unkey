@@ -30,7 +30,6 @@ export async function Roles() {
   const chartData = Object.entries(
     roles.reduce(
       (acc, role) => {
-        console.log(role);
         sum += 1;
         const startOfDay = role.createdAt!;
         startOfDay.setUTCHours(0, 0, 0, 0);

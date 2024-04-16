@@ -1,9 +1,8 @@
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { BorderBeam } from "@/components/border-beam";
-import { PrimaryButton } from "@/components/button";
 import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { SectionTitle } from "@/components/section-title";
@@ -225,11 +224,15 @@ export default async function Page() {
           </div>
 
           <div className="relative w-screen max-w-full">
-            <Image src={sidelight} alt="lightbeam effect" className="absolute right-[-300px]" />
             <Image
               src={sidelight}
               alt="lightbeam effect"
-              className="absolute right-0 scale-x-[-1] left-[-300px]"
+              className="absolute right-[-300px] pointer-events-none"
+            />
+            <Image
+              src={sidelight}
+              alt="lightbeam effect"
+              className="absolute right-0 scale-x-[-1] left-[-300px] pointer-events-none"
             />
             <SectionTitle
               title="Driven by values"
@@ -240,19 +243,30 @@ export default async function Page() {
             />
             <div className="px-6 mx-auto lg:px-8">
               <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
-                {Array.from({ length: 6 }).map(() => {
-                  return (
-                    <div className="flex flex-col justify-center items-center p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
-                      <div>
-                        <h3 className="font-medium ">One-way hashed keys</h3>
-                        <p className="text-white/60 text-sm leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
-                          Enhance authentication security with one-way hashed keys, ensuring
-                          irrersible encryption for sensitive information protection
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                <Value
+                  text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."
+                  title="Quality"
+                />
+                <Value
+                  text="Our default is to be open rather than closed. Simplicity, transparency, and honesty lead to the best results."
+                  title="Open company"
+                />
+                <Value
+                  title="Ownership"
+                  text="Our team members are given a high degree of autonomy to develop, implement, and iterate on their ideas."
+                />
+                <Value
+                  text="We prioritize quality while ensuring our team has a work-life balance that ensures they can deliver maximum value."
+                  title="Sustainability"
+                />
+                <Value
+                  text="We ship fast and work together with our users to solve real problems."
+                  title="Customer obsessed"
+                />
+                <Value
+                  text="We take security seriously and don't compromise in favour of velocity or user experience."
+                  title="Security first"
+                />
               </div>
             </div>
           </div>
@@ -401,6 +415,21 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
       )}
     >
       <p className="text-xs text-white">{text}</p>
+    </div>
+  );
+}
+
+function Value({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="flex p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
+      <div>
+        <div className="flex items-center">
+          <h3 className="font-medium">{title}</h3>
+        </div>
+        <p className="text-white/60 text-sm leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
+          {text}
+        </p>
+      </div>
     </div>
   );
 }

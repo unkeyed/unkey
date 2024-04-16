@@ -127,7 +127,7 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const env = stripeEnv();
   if (!env) {
-    console.log("No stripe env");
+    console.warn("No stripe env");
     return null;
   }
 

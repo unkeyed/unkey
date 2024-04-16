@@ -56,7 +56,6 @@ export const Client: React.FC<Props> = ({ permission }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("XXX");
     updatePermission.mutate({
       id: permission.id,
       name: values.name,
