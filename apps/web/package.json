@@ -85,7 +85,7 @@
     "posthog-js": "^1.116.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hook-form": "^7.51.0",
+    "react-hook-form": "^7.51.3",
     "react-markdown": "^8.0.7",
     "reactflow": "^11.11.1",
     "rehype-autolink-headings": "^7.1.0",

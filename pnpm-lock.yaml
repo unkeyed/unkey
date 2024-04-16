@@ -207,7 +207,7 @@ importers:
         version: 8.4.1
       '@hookform/resolvers':
         specifier: ^3.3.4
-        version: 3.3.4(react-hook-form@7.51.0)
+        version: 3.3.4(react-hook-form@7.51.3)
       '@planetscale/database':
         specifier: ^1.11.0
         version: 1.16.0
@@ -308,8 +308,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       react-hook-form:
-        specifier: ^7.51.0
-        version: 7.51.0(react@18.2.0)
+        specifier: ^7.51.3
+        version: 7.51.3(react@18.2.0)
       react-markdown:
         specifier: ^8.0.7
         version: 8.0.7(@types/react@18.2.67)(react@18.2.0)
@@ -490,7 +490,7 @@ importers:
         version: 4.29.10(next@14.1.3)(react-dom@18.2.0)(react@18.2.0)
       '@hookform/resolvers':
         specifier: ^3.3.4
-        version: 3.3.4(react-hook-form@7.51.0)
+        version: 3.3.4(react-hook-form@7.51.3)
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.16.0
@@ -705,8 +705,8 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       react-hook-form:
-        specifier: ^7.51.0
-        version: 7.51.0(react@18.2.0)
+        specifier: ^7.51.3
+        version: 7.51.3(react@18.2.0)
       react-markdown:
         specifier: ^8.0.7
         version: 8.0.7(@types/react@18.2.67)(react@18.2.0)
@@ -4225,12 +4225,12 @@ packages:
       zod: 3.22.4
     dev: false
 
-  /@hookform/resolvers@3.3.4(react-hook-form@7.51.0):
+  /@hookform/resolvers@3.3.4(react-hook-form@7.51.3):
     resolution: {integrity: sha512-o5cgpGOuJYrd+iMKvkttOclgwRW86EsWJZZRC23prf0uU2i48Htq4PuT73AVb9ionFyZrwYEITuOFGF+BydEtQ==}
     peerDependencies:
       react-hook-form: ^7.0.0
     dependencies:
-      react-hook-form: 7.51.0(react@18.2.0)
+      react-hook-form: 7.51.3(react@18.2.0)
     dev: false
 
   /@humanwhocodes/config-array@0.12.3:
@@ -19810,8 +19810,8 @@ packages:
       - webpack-cli
     dev: false
 
-  /react-hook-form@7.51.0(react@18.2.0):
-    resolution: {integrity: sha512-BggOy5j58RdhdMzzRUHGOYhSz1oeylFAv6jUSG86OvCIvlAvS7KvnRY7yoAf2pfEiPN7BesnR0xx73nEk3qIiw==}
+  /react-hook-form@7.51.3(react@18.2.0):
+    resolution: {integrity: sha512-cvJ/wbHdhYx8aviSWh28w9ImjmVsb5Y05n1+FW786vEZQJV5STNM0pW6ujS+oiBecb0ARBxJFyAnXj9+GHXACQ==}
     engines: {node: '>=12.22.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18
