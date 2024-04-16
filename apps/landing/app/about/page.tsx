@@ -22,14 +22,23 @@ import { AboutLight } from "@/components/svg/about-light";
 import { StarDots } from "@/components/svg/star-dots";
 import { authors } from "@/content/blog/authors";
 import allison from "@/images/about/allison5.png";
-import bottomlight from "@/images/about/bottomlight.svg";
 import downlight from "@/images/about/down-light.svg";
-import placeholder from "@/images/about/landscape-placeholder.svg";
 import liu from "@/images/about/liujiang.jpeg";
 import sidelight from "@/images/about/side-light.svg";
 import tim from "@/images/about/tim.png";
+import art_intensifies from "@/images/offsite/art_intensifies.jpg";
+import breakfast from "@/images/offsite/breakfast.jpg";
+import cooking_crew from "@/images/offsite/cooking_crew.jpg";
+import cto_prayers_answered from "@/images/offsite/cto_prayers_answered.jpg";
+import dom_thinking from "@/images/offsite/dom_thinking.jpg";
+import doomsday from "@/images/offsite/doomsday.jpg";
+import james_fence from "@/images/offsite/james_fence.jpg";
+import james_thinking from "@/images/offsite/james_thinking.jpg";
+import mike_morning_neck_exercise from "@/images/offsite/mike_morning_neck_exercise.jpg";
+import yardwork from "@/images/offsite/yardwork.jpg";
 import andreas from "@/images/team/andreas.jpeg";
 import james from "@/images/team/james.jpg";
+
 import { cn } from "@/lib/utils";
 
 export const metadata = {
@@ -64,6 +73,19 @@ const investors = [
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
+
+const offsiteImages = [
+  { src: breakfast, label: "Cooking breakfast" },
+  { src: art_intensifies, label: "Art intensifies" },
+  { src: dom_thinking, label: "Hard at work" },
+  { src: cooking_crew, label: "Lunch refuel" },
+  { src: cto_prayers_answered, label: "Golden hour" },
+  { src: doomsday, label: "Escape room W" },
+  { src: james_fence, label: "James recruiting" },
+  { src: james_thinking, label: "Deep in thought", className: "object-left" },
+  { src: mike_morning_neck_exercise, label: "CEO + CTO", className: "object-left" },
+  { src: yardwork, label: "Caffeinated" },
+];
 
 export default async function Page() {
   const posts = allPosts.filter((post) =>
@@ -140,87 +162,27 @@ export default async function Page() {
           <SectionTitle
             className="mt-80"
             align="center"
-            title="And now, we got people to take care of"
+            title="Meet the team"
             titleWidth={640}
             contentWidth={640}
-            text="We grew in number, and we love that. Here are some of our precious moments. Although we collaborate as a fully remote team, occasionally we unite!"
+            text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
           <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
-              <PhotoLabel
-                className="absolute bottom-[40px] left-[calc(50%-40px)]"
-                text="Label text"
-              />
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
+            {offsiteImages.map(({ src, label, className }) => {
+              return (
+                <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
+                  <PhotoLabel
+                    className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
+                    text={label}
+                  />
+                  <Image
+                    src={src}
+                    alt={label}
+                    className={cn("object-cover w-full h-full rounded-lg", className)}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           <div className="relative w-screen max-w-full">
@@ -411,7 +373,7 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
     <div
       className={cn(
         className,
-        "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20",
+        "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20 min-w-[140px] flex justify-center",
       )}
     >
       <p className="text-xs text-white">{text}</p>
