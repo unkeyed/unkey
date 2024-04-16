@@ -85,7 +85,7 @@
     "posthog-js": "^1.116.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hook-form": "^7.51.0",
+    "react-hook-form": "^7.51.3",
     "react-markdown": "^8.0.7",
     "reactflow": "^11.11.1",
     "rehype-autolink-headings": "^7.1.0",
@@ -101,7 +101,7 @@
     "superjson": "^2.2.1",
     "svix": "^1.21.0",
     "tailwind-merge": "^2.2.2",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
     "trpc-tools": "^0.12.0",
     "typescript": "5.3.3",
@@ -119,7 +119,7 @@
     "@types/react-dom": "18.2.25",
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.38",
-    "tailwindcss": "^3.3.2",
+    "tailwindcss": "^3.4.3",
     "typescript": "^5.1.3"
   }
 }
