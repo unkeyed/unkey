@@ -12,5 +12,5 @@ export function BlogImage({
     alt?: string;
   };
 }) {
-  return <Image src={imageUrl.src!} width={1920} height={1080} alt="" />;
+  return <Image src={imageUrl.src!} width={1920} height={1080} alt="" className="rounded-md" />;
 }
