@@ -28,7 +28,7 @@ async function main() {
   });
 
   for (const ws of workspaces) {
-    console.log(ws.name);
+    console.info(ws.name);
 
     const subscriptions = {
       ...ws.subscriptions,
@@ -49,8 +49,8 @@ async function main() {
       },
     } satisfies Subscriptions;
 
-    console.log("OLD", JSON.stringify(ws.subscriptions));
-    console.log("NEW", JSON.stringify(subscriptions));
+    console.info("OLD", JSON.stringify(ws.subscriptions));
+    console.info("NEW", JSON.stringify(subscriptions));
 
     await db
       .update(schema.workspaces)

@@ -64,7 +64,6 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
             if (err.errors[0].code === "form_identifier_exists") {
               toast.error("Sorry, it looks like you have an account. Please use sign in");
             } else {
-              console.log("Supress error");
             }
           });
       }
