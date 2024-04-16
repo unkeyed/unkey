@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
+    "@unkey/logs": "workspace:^",
+    "@unkey/metrics": "workspace:^",
     "fflate": "^0.8.2",
     "hono": "^4.1.1",
     "zod": "^3.22.4"
