@@ -1,4 +1,5 @@
 import { Axiom } from "@axiomhq/js";
+import { logSchema } from "@unkey/logs";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
@@ -111,13 +112,38 @@ app.all("*", async (c) => {
     );
     for (const line of lines) {
       for (const log of line.Logs) {
-        for (const message of log.Message) {
-          axiom.ingest("logdrain-logs", {
-            rayId: "RayID" in line.Event ? line.Event.RayID : null,
-            time: log.TimestampMs,
-            level: log.Level,
-            message,
-          });
+        for (const raw of log.Message) {
+          const logParsed = logSchema.safeParse(raw);
+          if (!logParsed.success) {
+            axiom.ingest("logdrain", {
+              level: "error",
+              message: logParsed.error.message,
+              raw: JSON.stringify(raw),
+              log: JSON.stringify(log),
+            });
+            continue;
+          }
+          const message = logParsed.data;
+
+          switch (message.type) {
+            case "log": {
+              axiom.ingest("cf_api_logs_production", {
+                rayId: "RayID" in line.Event ? line.Event.RayID : null,
+                time: message.time,
+                level: log.Level,
+                message: message.message,
+                context: message.context,
+              });
+              break;
+            }
+            case "metric": {
+              axiom.ingest("cf_api_metrics_production", message.metric);
+              break;
+            }
+
+            default:
+              break;
+          }
         }
       }
     }
