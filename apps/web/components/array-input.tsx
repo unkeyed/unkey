@@ -32,7 +32,6 @@ export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setS
           }
         }
         if (e.key === "Enter" && input.value !== "") {
-          console.log(selected, input.value);
           setSelected(Array.from(new Set([...selected, input.value])));
           setInputValue("");
         }

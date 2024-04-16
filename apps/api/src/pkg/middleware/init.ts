@@ -9,10 +9,11 @@ import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
 import { AxiomLogger } from "@/pkg/logging/axiom";
 import { QueueLogger } from "@/pkg/logging/queue";
-import { AxiomMetrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
+import { AxiomMetrics, type Metrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { trace } from "@opentelemetry/api";
+import type { Metric } from "@unkey/metrics";
 import { RBAC } from "@unkey/rbac";
 /**
  * This is special, all of these services will be available globally and are initialized
@@ -27,6 +28,7 @@ import type { Cache } from "../cache/interface";
 import type { CacheNamespaces } from "../cache/namespaces";
 import { SwrCache } from "../cache/swr";
 import type { HonoEnv } from "../hono/env";
+import { LogdrainMetrics } from "../metrics/logdrain";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -49,7 +51,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       password: c.env.DATABASE_PASSWORD,
     });
 
-    const metrics = c.env.METRICS
+    const oldMetrics = c.env.METRICS
       ? new QueueMetrics({ queue: c.env.METRICS })
       : c.env.AXIOM_TOKEN
         ? new AxiomMetrics({
@@ -57,6 +59,18 @@ export function init(): MiddlewareHandler<HonoEnv> {
             environment: c.env.ENVIRONMENT,
           })
         : new NoopMetrics();
+
+    /**
+     * temporarily dual logging metrics to try out logdrains
+     */
+    const logdrainMetrics = new LogdrainMetrics();
+    const metrics: Metrics = {
+      emit: (metric: Metric) => {
+        oldMetrics.emit(metric);
+        logdrainMetrics.emit(metric);
+      },
+      flush: () => oldMetrics.flush(),
+    };
 
     const logger = c.env.LOGS
       ? new QueueLogger({ queue: c.env.LOGS })
