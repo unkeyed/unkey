@@ -16,7 +16,8 @@ const logsSchema = z.array(
             return JSON.parse(s);
           } catch (err) {
             console.error((err as Error).message, s);
-            return {};
+
+            return s;
           }
         }),
       ),
@@ -89,7 +90,7 @@ app.all("*", async (c) => {
         try {
           return eventSchema.parse(JSON.parse(l));
         } catch (err) {
-          console.error((err as Error).message, l);
+          console.error((err as Error).message, JSON.stringify(lines));
           return null;
         }
       })
@@ -104,15 +105,18 @@ app.all("*", async (c) => {
         latency: now - l.EventTimestampMs,
       })),
     );
-    axiom.ingest(
-      "playing-with-logdrains",
-      lines.map((l) => ({
-        ...l,
-      })),
-    );
+
     for (const line of lines) {
       for (const log of line.Logs) {
         for (const raw of log.Message) {
+          if (typeof raw === "string") {
+            axiom.ingest("logdrain", {
+              level: "warn",
+              message: "log is not JSON",
+              raw,
+            });
+            continue;
+          }
           const logParsed = logSchema.safeParse(raw);
           if (!logParsed.success) {
             axiom.ingest("logdrain", {
@@ -120,6 +124,7 @@ app.all("*", async (c) => {
               message: logParsed.error.message,
               raw: JSON.stringify(raw),
               log: JSON.stringify(log),
+              line: JSON.stringify(line),
             });
             continue;
           }
