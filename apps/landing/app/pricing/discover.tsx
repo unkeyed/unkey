@@ -67,7 +67,7 @@ export const Discover: React.FC = () => {
   const rateLimitsCostDisplay = rateLimits === null ? "Custom" : fmtDollar(rateLimitsCost);
 
   const totalCostDisplay =
-    verifications === null || activeKeys === null
+    verifications === null || activeKeys === null || rateLimits === null
       ? "Custom"
       : fmtDollar(25 + activeKeysCost + verificationsCost + rateLimitsCost);
 
