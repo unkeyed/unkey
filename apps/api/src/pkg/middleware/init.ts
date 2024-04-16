@@ -7,8 +7,6 @@ import { ZoneCache } from "@/pkg/cache/zone";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
-import { AxiomLogger } from "@/pkg/logging/axiom";
-import { QueueLogger } from "@/pkg/logging/queue";
 import { AxiomMetrics, type Metrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
@@ -72,11 +70,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       flush: () => oldMetrics.flush(),
     };
 
-    const logger = c.env.LOGS
-      ? new QueueLogger({ queue: c.env.LOGS })
-      : c.env.AXIOM_TOKEN
-        ? new AxiomLogger({ axiomToken: c.env.AXIOM_TOKEN, environment: c.env.ENVIRONMENT })
-        : new ConsoleLogger();
+    const logger = new ConsoleLogger({ defaultFields: { environment: c.env.ENVIRONMENT } });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({

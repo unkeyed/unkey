@@ -408,6 +408,12 @@ importers:
       '@axiomhq/js':
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
+      '@unkey/logs':
+        specifier: workspace:^
+        version: link:../../internal/logs
+      '@unkey/metrics':
+        specifier: workspace:^
+        version: link:../../internal/metrics
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
