@@ -63,8 +63,8 @@ importers:
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
       '@chronark/zod-bird':
-        specifier: 0.3.5
-        version: 0.3.5
+        specifier: 0.3.7
+        version: 0.3.7
       '@hono/zod-openapi':
         specifier: ^0.11.0
         version: 0.11.0(hono@4.1.1)(zod@3.22.4)
@@ -200,8 +200,8 @@ importers:
   apps/landing:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: ^0.3.7
+        version: 0.3.7
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -383,31 +383,6 @@ importers:
       '@axiomhq/js':
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
-      '@unkey/metrics':
-        specifier: workspace:^
-        version: link:../../internal/metrics
-      '@unkey/zod-queue':
-        specifier: workspace:^
-        version: link:../../internal/zod-queue
-      zod:
-        specifier: ^3.22.4
-        version: 3.22.4
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20240222.0
-        version: 4.20240405.0
-      typescript:
-        specifier: ^5.3.3
-        version: 5.3.3
-      wrangler:
-        specifier: ^3.50.0
-        version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
-
-  apps/logdrainv2:
-    dependencies:
-      '@axiomhq/js':
-        specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2
       '@unkey/logs':
         specifier: workspace:^
         version: link:../../internal/logs
@@ -483,8 +458,8 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5(react-dom@18.2.0)(react@18.2.0)
       '@chronark/zod-bird':
-        specifier: 0.3.5
-        version: 0.3.5
+        specifier: 0.3.7
+        version: 0.3.7
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.1.3)(react-dom@18.2.0)(react@18.2.0)
@@ -799,8 +774,8 @@ importers:
   apps/workflows:
     dependencies:
       '@chronark/zod-bird':
-        specifier: 0.3.5
-        version: 0.3.5
+        specifier: 0.3.7
+        version: 0.3.7
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.1.3)(react-dom@18.2.0)(react@18.2.0)
@@ -1346,8 +1321,8 @@ importers:
   tools/migrate:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: ^0.3.7
+        version: 0.3.7
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.16.0
@@ -2552,8 +2527,8 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@chronark/zod-bird@0.3.5:
-    resolution: {integrity: sha512-AQPjZm0vYf50EFxYuuK5dFDQWl+jRtWJLMBGWnfoBr+ygZHKHn14fL211WQCXMkuYYitANgfplj8+Bed8wuNKg==}
+  /@chronark/zod-bird@0.3.7:
+    resolution: {integrity: sha512-6IbCXqaaWtjxsYMbPHOUBZYCRRct4JufZ55LW9zHgyQNM0fP1KO7SQG2sIGD2ZHjd9P9OIESNmeYaxBxXTqWgA==}
     dependencies:
       zod: 3.22.4
     dev: false

@@ -1,21 +1,23 @@
 {
   "name": "logdrain",
-  "version": "0.0.0",
-  "private": true,
+  "module": "index.ts",
+  "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev"
   },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240222.0",
-    "typescript": "^5.3.3",
-    "wrangler": "^3.50.0"
-  },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
+    "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
-    "@unkey/zod-queue": "workspace:^",
+    "fflate": "^0.8.2",
+    "hono": "^4.1.1",
     "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20240405.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.50.0"
   }
 }
