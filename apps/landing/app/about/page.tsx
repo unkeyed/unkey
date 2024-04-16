@@ -102,11 +102,11 @@ export default async function Page() {
               <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
             </Link>
             <SectionTitle
-              title="API auth for fast and scalable software"
+              title="API management for fast and scalable software"
               titleWidth={680}
               contentWidth={680}
               align="center"
-              text="Unkey simplifies API authentication and authorization, making securing and managing APIs effortless. The platform delivers a fast and seamless developer experience for creating and verifying API keys, ensuring smooth integration and robust security."
+              text="Unkey redefines API management for developers. You can add authentication, analytics, and rate-limiting to your APIs in minutes. "
             />
           </div>
           <div className="relative mt-[200px] xl:mt-[400px]">
@@ -128,17 +128,14 @@ export default async function Page() {
             </div>
             <div className="about-radial relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center text-balance">
-                Founded to level up the API authentication landscape
+                Founded to redefine the API management landscape
               </h2>
               <p className="mt-[40px] text-white/50 leading-[32px] max-w-[720px] text-center">
                 Unkey emerged in 2023 from the frustration of{" "}
                 <span className="font-medium text-white">James Perkins</span> and
                 <span className="font-medium text-white"> Andreas Thomas</span> with the lack of a
-                straightforward, fast, and scalable API authentication solution. This void prompted
-                a mission to create a tool themselves. Thus, the platform was born, driven by their
-                shared determination to simplify API authentication and democratize access for all
-                developers. Today, the solution stands as a powerful tool, continuously evolving to
-                meet the dynamic needs of a worldwide developer community
+                straightforward, fast, and scalable API management solution. This void prompted a
+                mission to create a tool themselves.
               </p>
               <div className="absolute pointer-events-none scale-[1.5] bottom-[-350px]">
                 <AboutLight />
@@ -292,15 +289,14 @@ export default async function Page() {
               align="center"
               contentWidth={640}
               titleWidth={640}
-              text="Take a peek into the minds behind Unkey. Here, our founders share their thoughts and stories, giving you a glimpse into what drives us forward."
+              text="Why we started Unkey and what we believe in."
             />
             <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
               <p className="about-founders-text-gradient">
-                Nice to meet you! We're James and Andreas. We crossed paths while working together
-                at a leading tech firm, where James led the design team, and Andreas was
-                instrumental in developing cutting-edge design systems. It was there that the seeds
-                were sown for what ultimately inspired us to launch Unkey. Below, we've compiled
-                some questions we frequently encounter, as well as those we're eager to address.
+                We're James and Andreas. We founded Unkey with the vision of creating an API
+                management platform that is both powerful and easy to use. We believe that APIs are
+                the building blocks of the modern web, and we want to make it easier for developers
+                to build and manage them.
               </p>
               <div className="flex flex-col mt-12 md:flex-row">
                 <div className="flex md:left-[5px]">
@@ -338,13 +334,23 @@ export default async function Page() {
                     className="border border-white/10 rounded-tr-[20px] rounded-tl-[20px]"
                   >
                     <AccordionTriggerAbout>What's your goal with Unkey?</AccordionTriggerAbout>
-                    <AccordionContent className="pl-10">TBC</AccordionContent>
+                    <AccordionContent className="pl-10">
+                      Our goal with Unkey is build an open source API management platform that
+                      doesn’t require the burden or cost of traditional API management platforms
+                      like Kong or Azure APM. We want to embrace what developers know today, a
+                      global REST API that allows you to deploy and protect your API on the edge in
+                      under 5 minutes.{" "}
+                    </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="item-2" className="border border-white/10">
                     <AccordionTriggerAbout>
                       What's something you're particularly happy about at Unkey?
                     </AccordionTriggerAbout>
-                    <AccordionContent className="pl-10">TBC</AccordionContent>
+                    <AccordionContent className="pl-10">
+                      We are extremely happy with the culture we have built at Unkey, our team is
+                      small but powerful. Everyone in our team has input on the next feature or idea
+                      we have for Unkey, allowing us to build the best API management platform.{" "}
+                    </AccordionContent>
                   </AccordionItem>
                   <AccordionItem
                     value="item-3"
@@ -353,7 +359,12 @@ export default async function Page() {
                     <AccordionTriggerAbout>
                       What's something you're less happy about?
                     </AccordionTriggerAbout>
-                    <AccordionContent className="pl-10">TBC</AccordionContent>
+                    <AccordionContent className="pl-10">
+                      While we are happy with Unkey overall knowing when to build tall or wide is a
+                      problem we run into frequently. Having a small team and focusing on incredible
+                      DX means that adding new features or improving currents ones means that we
+                      have to be certain that it will bring value to our users.{" "}
+                    </AccordionContent>
                   </AccordionItem>
                 </Accordion>
                 <div className="absolute right-[500px] top-[150px] -z-50">
