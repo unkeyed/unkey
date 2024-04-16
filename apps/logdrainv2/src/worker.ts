@@ -74,7 +74,6 @@ app.all("*", async (c) => {
     token: c.env.AXIOM_TOKEN,
     orgId: c.env.AXIOM_ORG_ID,
   });
-  const start = performance.now();
   try {
     const b = await c.req.blob();
 
@@ -135,8 +134,6 @@ app.all("*", async (c) => {
     });
     await axiom.flush();
     return new Response(err.message, { status: 500 });
-  } finally {
-    console.info("latency", Math.floor(performance.now() - start), "ms");
   }
 });
 
