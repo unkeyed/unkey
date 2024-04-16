@@ -51,7 +51,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       password: c.env.DATABASE_PASSWORD,
     });
 
-    let metrics: Metrics = c.env.METRICS
+    const oldMetrics = c.env.METRICS
       ? new QueueMetrics({ queue: c.env.METRICS })
       : c.env.AXIOM_TOKEN
         ? new AxiomMetrics({
@@ -64,12 +64,12 @@ export function init(): MiddlewareHandler<HonoEnv> {
      * temporarily dual logging metrics to try out logdrains
      */
     const logdrainMetrics = new LogdrainMetrics();
-    metrics = {
+    const metrics: Metrics = {
       emit: (metric: Metric) => {
-        metrics.emit(metric);
+        oldMetrics.emit(metric);
         logdrainMetrics.emit(metric);
       },
-      flush: () => metrics.flush(),
+      flush: () => oldMetrics.flush(),
     };
 
     const logger = c.env.LOGS
