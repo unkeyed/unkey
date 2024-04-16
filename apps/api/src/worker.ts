@@ -29,10 +29,6 @@ import { traceConfig } from "./pkg/tracing/config";
 
 const app = newApp();
 
-app.use("*", (_c, next) => {
-  for (let i = 0; i < 10; i++) {}
-  return next();
-});
 app.use("*", init());
 app.use("*", cors());
 app.use(otel());
