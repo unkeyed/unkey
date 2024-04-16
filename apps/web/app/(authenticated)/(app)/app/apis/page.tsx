@@ -60,17 +60,16 @@ export default async function ApisOverviewPage() {
           </section>
           <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">
             <h3 className="text-center text-xl font-semibold leading-none tracking-tight md:text-2xl">
-              Please add billing to your account
+              Upgrade your plan
             </h3>
             <p className="text-center text-sm text-gray-500 md:text-base">
-              Team workspaces is a paid feature. Please add billing to your account to continue
-              using it.
+              Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
             </p>
             <Link
               href="/app/settings/billing"
               className="mr-3 rounded-lg bg-gray-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
             >
-              Add billing
+              Subscribe
             </Link>
           </div>
         </div>
