@@ -232,7 +232,12 @@ function fmtDollar(n: number): string {
 
 const PriceTag: React.FC<{ dollar: string; className?: string }> = ({ dollar, className }) => {
   return (
-    <div className={cn("h-6 px-2 text-sm font-semibold text-white rounded bg-white/10", className)}>
+    <div
+      className={cn(
+        "flex justify-start items-center h-6 px-2 text-sm font-semibold text-white rounded bg-white/10",
+        className,
+      )}
+    >
       {dollar}
     </div>
   );
