@@ -7,11 +7,9 @@ import { ZoneCache } from "@/pkg/cache/zone";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
-import { AxiomMetrics, type Metrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { trace } from "@opentelemetry/api";
-import type { Metric } from "@unkey/metrics";
 import { RBAC } from "@unkey/rbac";
 /**
  * This is special, all of these services will be available globally and are initialized
@@ -49,26 +47,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       password: c.env.DATABASE_PASSWORD,
     });
 
-    const oldMetrics = c.env.METRICS
-      ? new QueueMetrics({ queue: c.env.METRICS })
-      : c.env.AXIOM_TOKEN
-        ? new AxiomMetrics({
-            axiomToken: c.env.AXIOM_TOKEN,
-            environment: c.env.ENVIRONMENT,
-          })
-        : new NoopMetrics();
-
-    /**
-     * temporarily dual logging metrics to try out logdrains
-     */
-    const logdrainMetrics = new LogdrainMetrics();
-    const metrics: Metrics = {
-      emit: (metric: Metric) => {
-        oldMetrics.emit(metric);
-        logdrainMetrics.emit(metric);
-      },
-      flush: () => oldMetrics.flush(),
-    };
+    const metrics = new LogdrainMetrics();
 
     const logger = new ConsoleLogger({ defaultFields: { environment: c.env.ENVIRONMENT } });
 
