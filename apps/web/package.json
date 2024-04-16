@@ -114,7 +114,7 @@
     "@types/d3-array": "^3.2.1",
     "@types/dagre": "^0.7.52",
     "@types/ms": "^0.7.34",
-    "@types/node": "^20.11.28",
+    "@types/node": "^20.12.7",
     "@types/react": "18.2.67",
     "@types/react-dom": "18.2.25",
     "autoprefixer": "^10.4.14",

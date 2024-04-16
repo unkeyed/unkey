@@ -9,7 +9,7 @@
   "license": "AGPL-3.0",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240222.0",
-    "@types/node": "^20.11.28",
+    "@types/node": "^20.12.7",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.3.3"
   },
