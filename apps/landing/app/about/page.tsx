@@ -15,17 +15,27 @@ import {
 } from "@/components/ui/accordion";
 import { MeteorLines } from "@/components/ui/meteorLines";
 
-import { allPosts } from "@/.contentlayer/generated";
 import { BlogCard } from "@/components/blog/blog-card";
 import { CTA } from "@/components/cta";
 import { AboutLight } from "@/components/svg/about-light";
 import { StarDots } from "@/components/svg/star-dots";
 import { authors } from "@/content/blog/authors";
-import allison from "@/images/about/allison5.png";
+
+import { allPosts } from "@/.contentlayer/generated";
+
 import downlight from "@/images/about/down-light.svg";
-import liu from "@/images/about/liujiang.jpeg";
 import sidelight from "@/images/about/side-light.svg";
-import tim from "@/images/about/tim.png";
+
+import andrew from "@/images/about/angels/andrew.jpeg";
+import ant from "@/images/about/angels/ant.jpeg";
+import paul from "@/images/about/angels/copple.jpeg";
+import theo from "@/images/about/angels/theo.jpeg";
+import tom from "@/images/about/angels/tom.jpeg";
+import zain from "@/images/about/angels/zain.jpeg";
+import allison from "@/images/about/investors/allison5.png";
+import liu from "@/images/about/investors/liujiang.jpeg";
+import tim from "@/images/about/investors/tim.png";
+
 import art_intensifies from "@/images/offsite/art_intensifies.jpg";
 import breakfast from "@/images/offsite/breakfast.jpg";
 import cooking_crew from "@/images/offsite/cooking_crew.jpg";
@@ -70,6 +80,12 @@ const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
   { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
+  { name: "Andrew Miklas", firm: "Ex PageDuty CTO", image: andrew },
+  { name: "Tom Preston-Werner", firm: "Github founder", image: tom },
+  { name: "Theo Browne", firm: "CEO @ ping.gg", image: theo },
+  { name: "Paul Copplestone", firm: "CEO @ supabase", image: paul },
+  { name: "Ant Wilson", firm: "CTO @ supabase", image: ant },
+  { name: "zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -332,9 +348,9 @@ export default async function Page() {
                 align="center"
                 title="Backed by the finest"
                 contentWidth={630}
-                text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe."
+                text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe. Here are just a few of them: "
               />
-              <div className="flex flex-col w-[800px] justify-between mx-auto md:flex-row lg:gap-x-16 pt-24">
+              <div className="flex flex-col lg:w-[800px] items-center justify-between mx-auto md:flex-row md:flex-wrap lg:gap-x-16 pt-24">
                 {investors.map(({ name, firm, image }) => {
                   return (
                     <div className="px-[40px] pb-[80px] w-[224px]">
@@ -347,9 +363,9 @@ export default async function Page() {
                   );
                 })}
               </div>
-              <div className="w-full h-[1px] bg-gradient-to-r from-black to-black via-white/40 mt-[100px] lg:mt-[200px]" />
+              <div className="w-full h-[1px] bg-gradient-to-r from-black to-black via-white/40 mt-[100px] lg:mt-[80px]" />
               <SectionTitle
-                className="mt-[100px] lg:mt-[200px]"
+                className="mt-[100px] lg:mt-[100px]"
                 align="center"
                 title="From our blog"
                 text="Explore insights, tips, and updates directly from our team members"
