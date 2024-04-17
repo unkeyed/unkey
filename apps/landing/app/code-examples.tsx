@@ -506,7 +506,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       >
         <div className="mt-10">
           <div className="flex space-x-6 pb-14">
-            <Link key="get-started" href="/app">
+            <Link key="get-started" href="https://app.unkey.dev">
               <PrimaryButton label="Get Started" IconRight={ChevronRight} />
             </Link>
             ,

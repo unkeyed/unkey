@@ -22,7 +22,7 @@ export const CTA: React.FC = () => {
             <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
-            <Link href="/app">
+            <Link href="https://app.unkey.dev">
               <PrimaryButton label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>

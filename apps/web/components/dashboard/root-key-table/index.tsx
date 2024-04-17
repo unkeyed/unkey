@@ -168,7 +168,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                   }}
                 >
                   <MoreVertical className="w-4 h-4 mr-2" />
-                  <Link href={`/app/settings/root-keys/${row.original.id}`}>Details</Link>
+                  <Link href={`/settings/root-keys/${row.original.id}`}>Details</Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem

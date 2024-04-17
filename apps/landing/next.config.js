@@ -1,6 +1,5 @@
 const { withContentlayer } = require("next-contentlayer");
 /** @type {import('next').NextConfig} */
-const APP_URL = "https://unkey.dev";
 
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
@@ -33,12 +32,16 @@ const nextConfig = {
       destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
     {
-      source: "/app",
-      destination: `${APP_URL}/app`,
+      source: "/discord",
+      destination: "https://discord.gg/fDbezjbJbD",
     },
     {
-      source: "/app/:path*",
-      destination: `${APP_URL}/app/:path*`,
+      source: "/github",
+      destination: "https://github.com/unkeyed/unkey",
+    },
+    {
+      source: "/meet",
+      destination: "https://cal.com/team/unkey",
     },
   ],
 };

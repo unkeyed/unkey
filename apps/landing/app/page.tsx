@@ -114,7 +114,7 @@ export default async function Landing() {
               label="Security"
             >
               <div className="flex mt-10 mb-10 space-x-6">
-                <Link href="/app" className="group">
+                <Link href="https://app.unkey.dev" className="group">
                   <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
                 </Link>
 
@@ -144,7 +144,7 @@ export default async function Landing() {
                 label="Features"
               >
                 <div className="flex mt-10 mb-10 space-x-6">
-                  <Link href="/app" className="group">
+                  <Link href="https://app.unkey.dev" className="group">
                     <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
                   </Link>
 

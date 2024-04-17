@@ -23,7 +23,7 @@ export function HeroMainSection() {
       </p>
 
       <div className="flex items-center gap-6 mt-16">
-        <Link href="/app" className="group">
+        <Link href="https://app.unkey.dev" className="group">
           <PrimaryButton IconLeft={LogIn} label="Get started" className="h-10" />
         </Link>
 
