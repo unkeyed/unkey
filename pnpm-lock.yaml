@@ -107,9 +107,6 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
-      '@unkey/zod-queue':
-        specifier: workspace:^
-        version: link:../../internal/zod-queue
       drizzle-orm:
         specifier: ^0.30.6
         version: 0.30.6(@cloudflare/workers-types@4.20240405.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
@@ -1102,25 +1099,6 @@ importers:
       '@types/node':
         specifier: ^20.12.7
         version: 20.12.7
-      typescript:
-        specifier: ^5.3.3
-        version: 5.3.3
-
-  internal/zod-queue:
-    dependencies:
-      zod:
-        specifier: ^3.22.4
-        version: 3.22.4
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20240222.0
-        version: 4.20240405.0
-      '@types/node':
-        specifier: ^20.12.7
-        version: 20.12.7
-      '@unkey/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
