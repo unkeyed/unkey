@@ -62,7 +62,7 @@
     "@visx/shape": "^3.5.0",
     "@visx/text": "^3.3.0",
     "@visx/tooltip": "^3.3.0",
-    "autoprefixer": "^10.4.17",
+    "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cmdk": "^0.2.1",
@@ -117,7 +117,7 @@
     "@types/node": "^20.12.7",
     "@types/react": "18.2.79",
     "@types/react-dom": "18.2.25",
-    "autoprefixer": "^10.4.14",
+    "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.1.3"
