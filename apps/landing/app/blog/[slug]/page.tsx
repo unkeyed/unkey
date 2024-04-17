@@ -69,7 +69,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const author = authors[post.author];
   return (
     <>
-      <div className="container mx-auto mt-32 overflow-hidden lg:overflow-visible scroll-smooth ">
+      <div className="container mx-auto mt-32 sm:overflow-hidden md:overflow-visible scroll-smooth ">
         <div>
           <TopLeftShiningLight className="hidden h-full -z-40 sm:block" />
         </div>
@@ -190,14 +190,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 </div>
               </div>
             </div>
-            <div className="lg:mr-24 xs:prose:xs sm:prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md mt-12">
+            <div className="lg:pr-24 xs:prose:xs sm:prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md mt-12">
               <MDX code={post.body.code} />
             </div>
           </div>
 
-          <div className="lg:sticky top-0 items-start lg:w-1/4 mt-4 gap-4 md:mt-16 not-prose lg:mt-12 h-full prose sm:prose-sm md:prose-md hidden lg:flex lg:flex-col">
+          <div className="lg:sticky top-24 items-start lg:w-1/4 pt-8 gap-4 not-prose lg:mt-12 h-full prose hidden lg:flex lg:flex-col">
             <p className="text-white/40">Written by</p>
-            <div className="inline-flex h-full">
+            <div className="flex flex-col h-full gap-4">
               <Avatar className="w-10 h-10 mr-4">
                 <AvatarImage
                   alt={author.name}
@@ -210,7 +210,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               </Avatar>
               <p className="text-white text-nowrap my-auto">{author.name}</p>
             </div>
-            <div className="flex flex-col gap-4 not-prose lg:gap-2 mt-12">
+            <div className="flex flex-col gap-4 not-prose lg:gap-2 mt-4">
               <p className="text-nowrap text-white/30">Published on</p>
               <time
                 dateTime={post.date}
@@ -220,7 +220,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               </time>
             </div>
             {post.tableOfContents.length !== 0 ? (
-              <div className="prose ">
+              <div className="prose prose-lg ">
                 <p className="text-md text-white/50 mt-8 prose">Contents</p>
                 <ul className="relative flex flex-col gap-2 overflow-hidden">
                   {post.tableOfContents.map((heading: Heading) => {
@@ -231,8 +231,8 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                         className={cn({
                           "text-md font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/40 to-black truncate":
                             heading.level === 1 || heading.level === 2,
-                          "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/10 to-black truncate":
-                            heading.level === 3,
+                          "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white/50 via-white/20 to-black truncate":
+                            heading.level === 3 || heading.level === 4,
                         })}
                         href={`#${heading.slug}`}
                       >
