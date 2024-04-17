@@ -1,8 +1,5 @@
-import { BlogAuthors } from "@/components/blog/blog-authors";
-import { BlogContainer } from "@/components/blog/blog-container";
 import { SuggestedBlogs } from "@/components/blog/suggested-blogs";
 import { CTA } from "@/components/cta";
-import { Frame } from "@/components/frame";
 import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +7,6 @@ import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type Post, allPosts } from ".contentlayer/generated";
@@ -207,16 +203,16 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             {post.tableOfContents.length !== 0 ? (
               <>
                 <p className="text-md text-white/50">Contents</p>
-                <ul className="relative flex flex-col gap-2 mt-2 overflow-hidden">
+                <ul className="relative flex flex-col gap-2 mt-2 overflow-hidden min-w-full">
                   {post.tableOfContents.map((heading: Heading) => {
                     return (
                       <Link
                         key={`#${heading.slug}`}
                         data-level={heading.level}
                         className={cn({
-                          "text-sm  font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60":
+                          "text-md font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/40 to-black truncate":
                             heading.level === 1 || heading.level === 2,
-                          "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white/50 to-white/40":
+                          "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/10 to-black truncate":
                             heading.level === 3,
                         })}
                         href={`#${heading.slug}`}
