@@ -1,6 +1,5 @@
 import { Banner } from "@/components/banner";
-import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import type { Workspace } from "@/lib/db";
 import { activeKeys, verifications } from "@/lib/tinybird";
 import { QUOTA } from "@unkey/billing";
 import ms from "ms";
@@ -9,18 +8,9 @@ import Link from "next/link";
 /**
  * Shows a banner if necessary
  */
-export const UsageBanner: React.FC = async () => {
-  const tenantId = getTenantId();
-
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
-    with: {
-      apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
-      },
-    },
-  });
+export const UsageBanner: React.FC<{ workspace: Workspace | undefined }> = async ({
+  workspace,
+}) => {
   if (!workspace) {
     return null;
   }

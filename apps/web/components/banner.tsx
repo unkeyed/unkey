@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-import { type PropsWithChildren, useState } from "react";
-import { useLocalStorage } from "usehooks-ts";
+import { type PropsWithChildren, useEffect, useRef, useState } from "react";
+import { useLocalStorage, useResizeObserver } from "usehooks-ts";
 
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
@@ -26,17 +26,47 @@ export const Banner: React.FC<PropsWithChildren<Props>> = ({
   variant,
   persistChoice,
 }) => {
-  const [visible, setVisible] = persistChoice
+  const bannerHeightRef = useRef<number>(0);
+  const bannerRef = useRef<HTMLDivElement>(null);
+
+  const [visible, setVisible] = !persistChoice
     ? useState(true)
-    : useLocalStorage(`unkey_banner_${persistChoice}`, true);
+    : useLocalStorage(`unkey_banner_${persistChoice}`, true, { initializeWithValue: false });
+
+  useResizeObserver({
+    ref: bannerRef,
+    onResize: ({ height }) => {
+      if (height !== bannerHeightRef.current) {
+        // Update Banners.
+        updateBannersBottomPosition();
+
+        // Set current banner height.
+        bannerHeightRef.current = height ?? 0;
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (visible && bannerRef.current) {
+      updateBannersBottomPosition();
+
+      bannerHeightRef.current = bannerRef.current.getBoundingClientRect().height;
+    }
+  }, [visible]);
+
   if (!visible) {
     return null;
   }
+
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none sm:flex sm:justify-center sm:px-6 sm:pb-5 lg:px-8">
+    <div
+      ref={bannerRef}
+      style={{ opacity: 0 }}
+      className="Unkey__Banner fixed inset-x-0 bottom-0 z-50 pointer-events-none sm:flex sm:justify-center sm:px-6 sm:mb-5 lg:px-8"
+    >
       <div
         className={cn(
-          "pointer-events-auto flex items-center justify-between gap-x-6  px-6 py-2.5 sm:rounded-lg sm:py-3 sm:pl-4 sm:pr-3.5",
+          "pointer-events-auto flex items-center justify-between gap-x-6 px-6 py-2.5 sm:rounded-lg sm:py-3 sm:pl-4 sm:pr-3.5",
           {
             "bg-primary text-primary-foreground": variant === undefined,
             "bg-alert text-alert-foreground": variant === "alert",
@@ -52,3 +82,18 @@ export const Banner: React.FC<PropsWithChildren<Props>> = ({
     </div>
   );
 };
+
+/**
+ * Retrieves all the <Banner /> elements and re-orders their bottom fixed positions.
+ */
+function updateBannersBottomPosition() {
+  const banners = document.getElementsByClassName("Unkey__Banner");
+
+  let yOffset = 0;
+
+  // Must iterate backwards.
+  for (let i = banners.length - 1; i >= 0; i--) {
+    banners[i].setAttribute("style", `bottom:${yOffset}px;`);
+    yOffset += banners[i].getBoundingClientRect().height + 6;
+  }
+}

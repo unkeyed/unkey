@@ -43,7 +43,6 @@ class DO implements DurableObject {
       case "/limit": {
         const req = limitRequestSchema.parse(await request.json());
         if (!this.key) {
-          this.logger.info("Fetching key from origin", { id: req.keyId });
           this.key = await this.db.query.keys.findFirst({
             where: (table, { and, eq, isNull }) =>
               and(eq(table.id, req.keyId), isNull(table.deletedAt)),
