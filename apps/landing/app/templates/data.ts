@@ -40,6 +40,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "express-with-middleware-permissions": {
+    title: "Protecting express routes with permissions",
+    description: "Prevent unauthorized access to routes using RBAC",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/examples/tree/main/express-with-middleware-permissions",
+    image: "/images/templates/express-middleware.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unkeyed/examples/main/express-with-middleware-permissions/README.md",
+    language: "Typescript",
+    framework: "Express",
+  },
   "ratelimit-nextjs": {
     title: "Ratelimit your Next.js routes",
     description: "Using @unkey/ratelimit to protect your API routes from abuse",
