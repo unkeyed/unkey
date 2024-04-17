@@ -40,12 +40,23 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "express-with-middleware-permissions": {
+    title: "Protecting express routes with permissions",
+    description: "Prevent unauthorized access to routes using RBAC",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/examples/tree/main/express-with-middleware-permissions",
+    image: "/images/templates/express-middleware.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unkeyed/examples/main/express-with-middleware-permissions/README.md",
+    language: "Typescript",
+    framework: "Express",
+  },
   "bun-koyeb": {
     title: "Global API authentication with Unkey and Koyeb",
     description: "Deploy and secure your API globally with Unkey and Koyeb.",
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/examples/tree/main/bun-koyeb",
-    image: "/templates/bun_koyeb.png",
+    image: "/images/templates/bun_koyeb.png",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/bun-koyeb/README.md",
     language: "Typescript",
     framework: "Bun",
