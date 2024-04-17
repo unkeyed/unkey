@@ -682,7 +682,7 @@ export function Editor({
           {tokens.map((line, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
             <div key={`${line}-${i}`} {...getLineProps({ line })}>
-              <span className="line-number">{i + 1}</span>
+              <span className="line-number select-none">{i + 1}</span>
               {line.map((token, key) => (
                 <span key={`${key}-${token}`} {...getTokenProps({ token })} />
               ))}
