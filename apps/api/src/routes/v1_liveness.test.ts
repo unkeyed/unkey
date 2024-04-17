@@ -14,7 +14,7 @@ test("confirms services", async (t) => {
     body: {
       status: "we're so back",
       services: {
-        metrics: "NoopMetrics",
+        // metrics: "NoopMetrics",
         logger: "ConsoleLogger",
         ratelimit: "DurableRateLimiter",
         usagelimit: "DurableUsageLimiter",

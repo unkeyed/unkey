@@ -54,7 +54,6 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
     switch (event.type) {
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        console.log("invoice failed", invoice.id);
         if (!resend) {
           break;
         }

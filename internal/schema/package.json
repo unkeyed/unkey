@@ -6,7 +6,7 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@types/node": "^20.11.28",
+    "@types/node": "^20.12.7",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "^5.3.3"
   },

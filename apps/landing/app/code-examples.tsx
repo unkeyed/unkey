@@ -2,6 +2,7 @@
 import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { SectionTitle } from "@/components/section-title";
+import { MeteorLines } from "@/components/ui/meteorLines";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
@@ -484,6 +485,16 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [copied, setCopied] = useState(false);
   return (
     <section className={className}>
+      <div className="absolute left-[-50px]">
+        <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+        <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
+      </div>
+      <div className="absolute right-[200px]">
+        <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+        <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
+      </div>
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"

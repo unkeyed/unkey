@@ -75,7 +75,6 @@ export function EmailSignIn(props: {
       })
       .catch((err) => {
         setIsLoading(false);
-        console.log(err);
         if (err.errors[0].code === "form_identifier_not_found") {
           props.setAccountNotFound(true);
           props.email(email);

@@ -50,6 +50,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
                 method: c.req.method,
                 path: c.req.path,
                 error: err.message,
+                telemetry,
               });
             }),
         );
@@ -70,7 +71,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
       c.res.headers.append("Unkey-Version", c.env.VERSION);
       metrics.emit(m);
-      c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
+      c.executionCtx.waitUntil(metrics.flush());
     }
   };
 }

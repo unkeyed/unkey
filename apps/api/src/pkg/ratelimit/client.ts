@@ -143,7 +143,7 @@ export class DurableRateLimiter implements RateLimiter {
     });
   }
 
-  public async callDurableObject(req: {
+  private async callDurableObject(req: {
     identifier: string;
     objectName: string;
     window: number;
@@ -184,7 +184,12 @@ export class DurableRateLimiter implements RateLimiter {
       });
     } catch (e) {
       const err = e as Error;
-      this.logger.error("ratelimit failed", { identifier: req.identifier, error: err.message });
+      this.logger.error("ratelimit failed", {
+        identifier: req.identifier,
+        error: err.message,
+        stack: err.stack,
+        cause: err.cause,
+      });
       return Err(new RatelimitError({ message: err.message }));
     }
   }

@@ -7,9 +7,6 @@ import { ZoneCache } from "@/pkg/cache/zone";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
-import { AxiomLogger } from "@/pkg/logging/axiom";
-import { QueueLogger } from "@/pkg/logging/queue";
-import { AxiomMetrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { trace } from "@opentelemetry/api";
@@ -27,6 +24,7 @@ import type { Cache } from "../cache/interface";
 import type { CacheNamespaces } from "../cache/namespaces";
 import { SwrCache } from "../cache/swr";
 import type { HonoEnv } from "../hono/env";
+import { LogdrainMetrics } from "../metrics/logdrain";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -49,20 +47,9 @@ export function init(): MiddlewareHandler<HonoEnv> {
       password: c.env.DATABASE_PASSWORD,
     });
 
-    const metrics = c.env.METRICS
-      ? new QueueMetrics({ queue: c.env.METRICS })
-      : c.env.AXIOM_TOKEN
-        ? new AxiomMetrics({
-            axiomToken: c.env.AXIOM_TOKEN,
-            environment: c.env.ENVIRONMENT,
-          })
-        : new NoopMetrics();
+    const metrics = new LogdrainMetrics();
 
-    const logger = c.env.LOGS
-      ? new QueueLogger({ queue: c.env.LOGS })
-      : c.env.AXIOM_TOKEN
-        ? new AxiomLogger({ axiomToken: c.env.AXIOM_TOKEN, environment: c.env.ENVIRONMENT })
-        : new ConsoleLogger();
+    const logger = new ConsoleLogger({ defaultFields: { environment: c.env.ENVIRONMENT } });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({

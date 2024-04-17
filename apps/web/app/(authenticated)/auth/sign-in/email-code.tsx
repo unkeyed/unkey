@@ -20,7 +20,6 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const verifyCode = async (otp: string) => {
-    console.log("verifying", otp);
     if (!signInLoaded || typeof otp !== "string") {
       return null;
     }

@@ -42,7 +42,6 @@ const WorkspacesCounter: React.FC = async () => {
     .from(schema.workspaces)
     .then((res) => {
       const c = res.at(0)?.count;
-      console.log(`found ${c} workspaces`);
       return c ?? 0;
     })
     .catch((err) => {
@@ -64,7 +63,6 @@ const ApisCounter: React.FC = async () => {
     .from(schema.apis)
     .then((res) => {
       const c = res.at(0)?.count;
-      console.log(`found ${c} apis`);
       return c ?? 0;
     })
     .catch((err) => {
@@ -86,7 +84,6 @@ const KeysCounter: React.FC = async () => {
     .from(schema.keys)
     .then((res) => {
       const c = res.at(0)?.count;
-      console.log(`found ${c} keys`);
       return c ?? 0;
     })
     .catch((err) => {
@@ -106,7 +103,6 @@ const VerificationsCounter: React.FC = async () => {
   const verifications = await getTotalVerifications({})
     .then((res) => {
       const c = res.data.reduce((acc, curr) => acc + curr.verifications, 0);
-      console.log(`found ${c} verifications`);
       return c;
     })
     .catch((err) => {

@@ -25,13 +25,22 @@ export const MdxComponents = {
   ul: (props: any) => BlogList(props),
   li: (props: any) => BlogListItem(props),
   h1: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h2
+      {...props}
+      className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
+    />
   ),
   h2: (props: any) => (
-    <h2 {...props} className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h2
+      {...props}
+      className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
+    />
   ),
   h3: (props: any) => (
-    <h3 {...props} className="text-xl font-medium leading-8 blog-heading-gradient text-white/60" />
+    <h3
+      {...props}
+      className="text-xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
+    />
   ),
   h4: (props: any) => (
     <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />

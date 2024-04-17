@@ -1,0 +1,237 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency: "only one deploy at a time"
+
+jobs:
+  test_routes:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+          ]
+    name: Test API Routes ${{matrix.shard}}/8
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      DATABASE_BRANCH_NAME: pre-release-tests-${{matrix.shard}}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pscale
+        uses: planetscale/setup-pscale-action@v1
+        with:
+          version: latest
+
+      - name: Create a branch
+        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
+
+      - name: Create a password
+        id: database_password
+        run: |
+          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --debug --org=unkey --format=json)
+
+          # Extract secrets
+          database_host=$(echo $res | jq -r '.access_host_url')
+          database_username=$(echo $res | jq -r '.username')
+          database_password=$(echo $res | jq -r '.plain_text')
+
+          # Mask secrets
+          echo "::add-mask::$database_host"
+          echo "::add-mask::$database_username"
+          echo "::add-mask::$database_password"
+
+          # Set outputs
+          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
+          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
+          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
+
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+      - name: Test Routes
+        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/8
+        working-directory: apps/api
+        env:
+          WORKER_LOCATION: local
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Delete planetscale branch
+        if: always()
+        run: |
+          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+
+  preview:
+    environment: Preview
+    runs-on: ubuntu-latest
+    name: Preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3.0.0
+        with:
+          version: latest
+
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
+
+      - name: Deploy
+        run: wrangler deploy --env=preview --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  preview-tests:
+    environment: Preview
+    needs: preview
+    name: End to End Test Preview
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+      - name: Test
+        run: pnpm test:integration
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: https://preview-api.unkey.dev
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+
+  canary:
+    needs:
+      - test_routes
+      - preview-tests
+    environment: Canary
+    runs-on: ubuntu-latest
+    name: Deploy Canary
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
+
+      - name: Deploy
+        run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  canary-tests:
+    environment: Canary
+    needs: canary
+    name: End to End Test Canary
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+      - name: Test
+        run: pnpm test:integration
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: https://canary.unkey.dev
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+
+  canary-benchmarks:
+    environment: Canary
+    needs: canary
+    name: Benchmark Canary
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+      - name: Test
+        run: pnpm test:benchmark
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: https://canary.unkey.dev
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          PLANETFALL_URL: ${{ secrets.PLANETFALL_URL }}
+          PLANETFALL_API_KEY: ${{ secrets.PLANETFALL_API_KEY }}
+          WORKER_LOCATION: local
+
+  production-api:
+    needs:
+      - canary-tests
+    environment: Production
+    runs-on: ubuntu-latest
+    name: Deploy API
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
+
+      - name: Deploy
+        run: wrangler deploy --env=production --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  production-logdrain:
+    needs:
+      - production-api
+    environment: Production
+    runs-on: ubuntu-latest
+    name: Deploy Logdrain
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/logdrain'
+
+      - name: Deploy
+        run: wrangler deploy
+        working-directory: apps/logdrain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

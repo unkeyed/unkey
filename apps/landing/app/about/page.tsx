@@ -1,9 +1,8 @@
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { BorderBeam } from "@/components/border-beam";
-import { PrimaryButton } from "@/components/button";
 import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { SectionTitle } from "@/components/section-title";
@@ -16,20 +15,40 @@ import {
 } from "@/components/ui/accordion";
 import { MeteorLines } from "@/components/ui/meteorLines";
 
-import { allPosts } from "@/.contentlayer/generated";
 import { BlogCard } from "@/components/blog/blog-card";
 import { CTA } from "@/components/cta";
 import { AboutLight } from "@/components/svg/about-light";
+import { StarDots } from "@/components/svg/star-dots";
 import { authors } from "@/content/blog/authors";
-import allison from "@/images/about/allison5.png";
-import bottomlight from "@/images/about/bottomlight.svg";
+
+import { allPosts } from "@/.contentlayer/generated";
+
 import downlight from "@/images/about/down-light.svg";
-import placeholder from "@/images/about/landscape-placeholder.svg";
-import liu from "@/images/about/liujiang.jpeg";
 import sidelight from "@/images/about/side-light.svg";
-import tim from "@/images/about/tim.png";
+
+import andrew from "@/images/about/angels/andrew.jpeg";
+import ant from "@/images/about/angels/ant.jpeg";
+import paul from "@/images/about/angels/copple.jpeg";
+import theo from "@/images/about/angels/theo.jpeg";
+import tom from "@/images/about/angels/tom.jpeg";
+import zain from "@/images/about/angels/zain.jpeg";
+import allison from "@/images/about/investors/allison5.png";
+import liu from "@/images/about/investors/liujiang.jpeg";
+import tim from "@/images/about/investors/tim.png";
+
+import art_intensifies from "@/images/offsite/art_intensifies.jpg";
+import breakfast from "@/images/offsite/breakfast.jpg";
+import cooking_crew from "@/images/offsite/cooking_crew.jpg";
+import cto_prayers_answered from "@/images/offsite/cto_prayers_answered.jpg";
+import dom_thinking from "@/images/offsite/dom_thinking.jpg";
+import doomsday from "@/images/offsite/doomsday.jpg";
+import james_fence from "@/images/offsite/james_fence.jpg";
+import james_thinking from "@/images/offsite/james_thinking.jpg";
+import mike_morning_neck_exercise from "@/images/offsite/mike_morning_neck_exercise.jpg";
+import yardwork from "@/images/offsite/yardwork.jpg";
 import andreas from "@/images/team/andreas.jpeg";
 import james from "@/images/team/james.jpg";
+
 import { cn } from "@/lib/utils";
 
 export const metadata = {
@@ -61,9 +80,28 @@ const investors = [
   { name: "Timothy Chen", firm: "Essence VC", image: tim },
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
   { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
+  { name: "Andrew Miklas", firm: "Ex PageDuty CTO", image: andrew },
+  { name: "Tom Preston-Werner", firm: "Github founder", image: tom },
+  { name: "Theo Browne", firm: "CEO @ ping.gg", image: theo },
+  { name: "Paul Copplestone", firm: "CEO @ supabase", image: paul },
+  { name: "Ant Wilson", firm: "CTO @ supabase", image: ant },
+  { name: "zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
+
+const offsiteImages = [
+  { src: breakfast, label: "Cooking breakfast" },
+  { src: art_intensifies, label: "Art intensifies" },
+  { src: dom_thinking, label: "Hard at work" },
+  { src: cooking_crew, label: "Lunch refuel" },
+  { src: cto_prayers_answered, label: "Golden hour" },
+  { src: doomsday, label: "Escape room W" },
+  { src: james_fence, label: "James recruiting" },
+  { src: james_thinking, label: "Deep in thought", className: "object-left" },
+  { src: mike_morning_neck_exercise, label: "CEO + CTO", className: "object-left" },
+  { src: yardwork, label: "Caffeinated" },
+];
 
 export default async function Page() {
   const posts = allPosts.filter((post) =>
@@ -94,43 +132,40 @@ export default async function Page() {
               <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
             </Link>
             <SectionTitle
-              title="API auth for fast and scalable software"
+              title="API management for fast and scalable software"
               titleWidth={680}
               contentWidth={680}
               align="center"
-              text="Unkey simplifies API authentication and authorization, making securing and managing APIs effortless. The platform delivers a fast and seamless developer experience for creating and verifying API keys, ensuring smooth integration and robust security."
+              text="Unkey redefines API management for developers. You can add authentication, analytics, and rate-limiting to your APIs in minutes. "
             />
           </div>
           <div className="relative mt-[200px] xl:mt-[400px]">
             <div className="absolute left-[-250px]">
-              <MeteorLines className="ml-2 fade-in-0" delay={0.2} number={1} />
-              <MeteorLines className="ml-10 fade-in-40" number={1} />
-              <MeteorLines className="ml-16 fade-in-100" delay={0.4} number={1} />
+              <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+              <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+              <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
             </div>
             <div className="absolute right-[20px]">
-              <MeteorLines className="ml-2" delay={0.2} number={1} />
-              <MeteorLines className="ml-10" number={1} />
-              <MeteorLines className="ml-16" delay={0.4} number={1} />
+              <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+              <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+              <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
 
-              {/* <div className="absolute right-[640px] top-[700px]">
-              <MeteorLines className="ml-2" delay={0.2} />
-              <MeteorLines className="ml-10" />
-              <MeteorLines className="ml-16" delay={0.4} />
-            </div> */}
+              <div className="absolute right-[640px] top-[550px] -z-50">
+                <MeteorLines className="ml-2 fade-in-0" delay={2} number={1} />
+                <MeteorLines className="ml-10 fade-in-40" number={1} delay={0} />
+                <MeteorLines className="ml-16 fade-in-100" delay={4} number={1} />
+              </div>
             </div>
-            <div className="relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
+            <div className="about-radial relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center text-balance">
-                Founded to level up the API authentication landscape
+                Founded to redefine the API management landscape
               </h2>
               <p className="mt-[40px] text-white/50 leading-[32px] max-w-[720px] text-center">
                 Unkey emerged in 2023 from the frustration of{" "}
                 <span className="font-medium text-white">James Perkins</span> and
                 <span className="font-medium text-white"> Andreas Thomas</span> with the lack of a
-                straightforward, fast, and scalable API authentication solution. This void prompted
-                a mission to create a tool themselves. Thus, the platform was born, driven by their
-                shared determination to simplify API authentication and democratize access for all
-                developers. Today, the solution stands as a powerful tool, continuously evolving to
-                meet the dynamic needs of a worldwide developer community
+                straightforward, fast, and scalable API management solution. This void prompted a
+                mission to create a tool themselves.
               </p>
               <div className="absolute pointer-events-none scale-[1.5] bottom-[-350px]">
                 <AboutLight />
@@ -140,95 +175,39 @@ export default async function Page() {
           <SectionTitle
             className="mt-80"
             align="center"
-            title="And now, we got people to take care of"
+            title="Meet the team"
             titleWidth={640}
             contentWidth={640}
-            text="We grew in number, and we love that. Here are some of our precious moments. Although we collaborate as a fully remote team, occasionally we unite!"
+            text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
           <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
-              <PhotoLabel
-                className="absolute bottom-[40px] left-[calc(50%-40px)]"
-                text="Label text"
-              />
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
-            <div className="image w-full md:w-[200px] h-[400px] hidden md:block xl:hidden bg-black rounded-lg" />
-            <div className="image w-full md:w-[200px] h-[400px] rounded-lg">
-              <Image
-                src={placeholder}
-                alt="photo of a car"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
+            {offsiteImages.map(({ src, label, className }) => {
+              return (
+                <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
+                  <PhotoLabel
+                    className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
+                    text={label}
+                  />
+                  <Image
+                    src={src}
+                    alt={label}
+                    className={cn("object-cover w-full h-full rounded-lg", className)}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           <div className="relative w-screen max-w-full">
-            <Image src={sidelight} alt="lightbeam effect" className="absolute right-[-300px]" />
             <Image
               src={sidelight}
               alt="lightbeam effect"
-              className="absolute right-0 scale-x-[-1] left-[-300px]"
+              className="absolute right-[-300px] pointer-events-none"
+            />
+            <Image
+              src={sidelight}
+              alt="lightbeam effect"
+              className="absolute right-0 scale-x-[-1] left-[-300px] pointer-events-none"
             />
             <SectionTitle
               title="Driven by values"
@@ -239,38 +218,49 @@ export default async function Page() {
             />
             <div className="px-6 mx-auto lg:px-8">
               <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
-                {Array.from({ length: 6 }).map(() => {
-                  return (
-                    <div className="flex flex-col justify-center items-center p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
-                      <div>
-                        <h3 className="font-medium ">One-way hashed keys</h3>
-                        <p className="text-white/60 text-sm leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
-                          Enhance authentication security with one-way hashed keys, ensuring
-                          irrersible encryption for sensitive information protection
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                <Value
+                  text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."
+                  title="Quality"
+                />
+                <Value
+                  text="Our default is to be open rather than closed. Simplicity, transparency, and honesty lead to the best results."
+                  title="Open company"
+                />
+                <Value
+                  title="Ownership"
+                  text="Our team members are given a high degree of autonomy to develop, implement, and iterate on their ideas."
+                />
+                <Value
+                  text="We prioritize quality while ensuring our team has a work-life balance that ensures they can deliver maximum value."
+                  title="Sustainability"
+                />
+                <Value
+                  text="We ship fast and work together with our users to solve real problems."
+                  title="Customer obsessed"
+                />
+                <Value
+                  text="We take security seriously and don't compromise in favour of velocity or user experience."
+                  title="Security first"
+                />
               </div>
             </div>
           </div>
           <div className="flex flex-col items-center max-w-full">
+            <StarDots className="absolute" />
             <SectionTitle
-              className="mt-[100px] px-[10px] text-balance"
+              className="mt-60 px-[10px] text-balance"
               title="A few words from the founders"
               align="center"
               contentWidth={640}
               titleWidth={640}
-              text="Take a peek into the minds behind Unkey. Here, our founders share their thoughts and stories, giving you a glimpse into what drives us forward."
+              text="Why we started Unkey and what we believe in."
             />
             <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
               <p className="about-founders-text-gradient">
-                Nice to meet you! We're James and Andreas. We crossed paths while working together
-                at a leading tech firm, where James led the design team, and Andreas was
-                instrumental in developing cutting-edge design systems. It was there that the seeds
-                were sown for what ultimately inspired us to launch Unkey. Below, we've compiled
-                some questions we frequently encounter, as well as those we're eager to address.
+                We're James and Andreas. We founded Unkey with the vision of creating an API
+                management platform that is both powerful and easy to use. We believe that APIs are
+                the building blocks of the modern web, and we want to make it easier for developers
+                to build and manage them.
               </p>
               <div className="flex flex-col mt-12 md:flex-row">
                 <div className="flex md:left-[5px]">
@@ -298,7 +288,7 @@ export default async function Page() {
               </div>
             </div>
             <div className="relative w-full max-w-[680px] z-0">
-              <div className="relative z-50 w-full bg-black">
+              <div className="relative z-100 w-full bg-black">
                 <Accordion
                   type="multiple"
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
@@ -308,13 +298,23 @@ export default async function Page() {
                     className="border border-white/10 rounded-tr-[20px] rounded-tl-[20px]"
                   >
                     <AccordionTriggerAbout>What's your goal with Unkey?</AccordionTriggerAbout>
-                    <AccordionContent className="pl-10">TBC</AccordionContent>
+                    <AccordionContent className="pl-10">
+                      Our goal with Unkey is build an open source API management platform that
+                      doesn’t require the burden or cost of traditional API management platforms
+                      like Kong or Azure APM. We want to embrace what developers know today, a
+                      global REST API that allows you to deploy and protect your API on the edge in
+                      under 5 minutes.{" "}
+                    </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="item-2" className="border border-white/10">
                     <AccordionTriggerAbout>
                       What's something you're particularly happy about at Unkey?
                     </AccordionTriggerAbout>
-                    <AccordionContent className="pl-10">TBC</AccordionContent>
+                    <AccordionContent className="pl-10">
+                      We are extremely happy with the culture we have built at Unkey, our team is
+                      small but powerful. Everyone in our team has input on the next feature or idea
+                      we have for Unkey, allowing us to build the best API management platform.{" "}
+                    </AccordionContent>
                   </AccordionItem>
                   <AccordionItem
                     value="item-3"
@@ -323,9 +323,19 @@ export default async function Page() {
                     <AccordionTriggerAbout>
                       What's something you're less happy about?
                     </AccordionTriggerAbout>
-                    <AccordionContent className="pl-10">TBC</AccordionContent>
+                    <AccordionContent className="pl-10">
+                      While we are happy with Unkey overall knowing when to build tall or wide is a
+                      problem we run into frequently. Having a small team and focusing on incredible
+                      DX means that adding new features or improving currents ones means that we
+                      have to be certain that it will bring value to our users.{" "}
+                    </AccordionContent>
                   </AccordionItem>
                 </Accordion>
+                <div className="absolute right-[500px] top-[150px] -z-50">
+                  <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+                  <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+                  <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
+                </div>
               </div>
               <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
                 <Image src={downlight} alt="Light effect" className="scale-[1.5] opacity-[0.7]" />
@@ -338,9 +348,9 @@ export default async function Page() {
                 align="center"
                 title="Backed by the finest"
                 contentWidth={630}
-                text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe."
+                text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe. Here are just a few of them: "
               />
-              <div className="flex flex-col w-[800px] justify-between mx-auto md:flex-row lg:gap-x-16 pt-24">
+              <div className="flex flex-col lg:w-[800px] items-center justify-between mx-auto md:flex-row md:flex-wrap lg:gap-x-16 pt-24">
                 {investors.map(({ name, firm, image }) => {
                   return (
                     <div className="px-[40px] pb-[80px] w-[224px]">
@@ -353,9 +363,9 @@ export default async function Page() {
                   );
                 })}
               </div>
-              <div className="w-full h-[1px] bg-gradient-to-r from-white/10 to-white/10 via-white/40 mt-[100px] lg:mt-[200px]" />
+              <div className="w-full h-[1px] bg-gradient-to-r from-black to-black via-white/40 mt-[100px] lg:mt-[80px]" />
               <SectionTitle
-                className="mt-[100px] lg:mt-[200px]"
+                className="mt-[100px] lg:mt-[100px]"
                 align="center"
                 title="From our blog"
                 text="Explore insights, tips, and updates directly from our team members"
@@ -390,10 +400,25 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
     <div
       className={cn(
         className,
-        "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20",
+        "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20 min-w-[140px] flex justify-center",
       )}
     >
       <p className="text-xs text-white">{text}</p>
+    </div>
+  );
+}
+
+function Value({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="flex p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
+      <div>
+        <div className="flex items-center">
+          <h3 className="font-medium">{title}</h3>
+        </div>
+        <p className="text-white/60 text-sm leading-6 lg:max-w-[4500px] xl:max-w-[280px] pt-2">
+          {text}
+        </p>
+      </div>
     </div>
   );
 }

@@ -111,7 +111,7 @@ app.post("/v1/keys/createKey", validateCreateKey, async (c) => {
   }
 });
 
-console.log(`Server is running on port ${port}`);
+console.info(`Server is running on port ${port}`);
 
 serve({
   fetch: app.fetch,

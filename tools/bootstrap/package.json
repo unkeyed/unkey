@@ -11,12 +11,12 @@
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.30.6",
-    "mysql2": "^3.9.2",
+    "drizzle-orm": "^0.30.8",
+    "mysql2": "^3.9.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "20.11.28",
+    "@types/node": "20.12.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
     "tsx": "^4.7.1",
