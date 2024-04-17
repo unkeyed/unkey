@@ -199,7 +199,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         </div>
         <div className="flex justify-between w-full gap-8 mx-auto mt-12 mb-40 lg:gap-16 ">
           <div className="flex flex-col w-full gap-8 lg:gap-16 lg:w-3/4 ">
-            <div className="xs:prose:xs sm:prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md">
+            <div className="xs:prose:xs sm:prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6">
               <MDX code={post.body.code} />
             </div>
           </div>
