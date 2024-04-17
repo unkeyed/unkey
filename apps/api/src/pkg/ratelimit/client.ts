@@ -143,7 +143,7 @@ export class DurableRateLimiter implements RateLimiter {
     });
   }
 
-  public async callDurableObject(req: {
+  private async callDurableObject(req: {
     identifier: string;
     objectName: string;
     window: number;
