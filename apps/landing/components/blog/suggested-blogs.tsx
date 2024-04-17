@@ -19,7 +19,7 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
   return (
     <div>
       {posts.map((post) => (
-        <div className={cn("flex flex-col w-full mt-8", className)}>
+        <div className={cn("flex flex-col w-full mt-8 prose", className)}>
           <Link href={post.url} key={post.url}>
             <div className="flex w-full">
               <div className="flex flex-col gap-2">
@@ -31,7 +31,7 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
                     height={400}
                   />
                 </Frame>
-                <p>{post?.title}</p>
+                <p className="text-white">{post?.title}</p>
                 <p className="text-white/40 text-sm">
                   {format(new Date(post?.date!), "MMM dd, yyyy")}
                 </p>
