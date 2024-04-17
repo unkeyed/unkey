@@ -137,7 +137,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <TopRightShiningLight />
         </div>
         <div className="flex flex-col">
-          <div className="flex flex-col items-start justify-between w-full lg:flex-row sm:mx-6 lg:pl-4">
+          <div className="flex flex-col items-start justify-between w-full lg:flex-row sm:mx-6 ">
             <div className="w-fit justify-left mr-0 pr-0">
               <div className="prose sm:prose-sm md:prose-md">
                 <div className="flex items-center gap-5 mb-8 font-medium text-xl leading-8">
@@ -157,7 +157,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 <h1 className="not-prose blog-heading-gradient text-left text-4xl font-medium leading-[56px] tracking-tight  sm:text-5xl sm:leading-[72px]">
                   {post.title}
                 </h1>
-                <p className="mt-8 text-lg font-normal leading-8 not-prose text-white/60 sm:pr-8">
+                <p className="mt-8 text-lg font-medium leading-8 not-prose text-white/60 lg:text-xl">
                   {post.description}
                 </p>
               </div>
@@ -199,14 +199,6 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
         </div>
         <div className="flex justify-between w-full gap-8 mx-auto mt-12 mb-40 lg:gap-16 ">
           <div className="flex flex-col w-full gap-8 lg:gap-16 lg:w-3/4 ">
-            <Frame className="overflow-clip" size="lg">
-              <Image
-                src={post.image ?? "/images/blog-images/BlogSpaceMan.jpeg"}
-                width={1920}
-                height={1080}
-                alt={post.title}
-              />
-            </Frame>
             <div className="xs:prose:xs sm:prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md">
               <MDX code={post.body.code} />
             </div>
