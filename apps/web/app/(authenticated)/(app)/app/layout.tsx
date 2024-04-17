@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { UsageBanner } from "./banner";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileSideBar } from "./mobile-sidebar";
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -29,7 +30,7 @@ export default async function Layout({ children }: LayoutProps) {
   return (
     <>
       <div className="relative flex flex-col min-h-screen bg-gray-100 lg:flex-row dark:bg-gray-950">
-        <UsageBanner />
+        <UsageBanner workspace={workspace} />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar className="lg:hidden" />
         <div className="p-4 border-l bg-background border-border lg:w-full lg:p-8 lg:ml-64">
