@@ -324,7 +324,6 @@ li > p {
     rgba(200, 200, 200, 0.08)
   );
   content: "";
-  border-top-left-radius: 24px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
   position: absolute;
