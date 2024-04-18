@@ -46,9 +46,6 @@ export default async function Blog(props: Props) {
   return (
     <>
       <div className="container w-full px-4 mx-auto mt-32 overflow-hidden md:px-0 scroll-smooth">
-        {/* <div>
-          <TopLeftShiningLight />
-        </div> */}
         <div className="w-full h-full overflow-hidden -z-20">
           <MeteorLinesAngular
             number={1}
