@@ -1,4 +1,4 @@
-import { SectionTitle } from "@/app/section";
+import { SectionTitle } from "@/components/section";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
@@ -8,7 +8,7 @@ export const CTA: React.FC = () => {
   return (
     <div className="w-full h-full">
       <div className="relative pb-40 pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full pointer-events-none" />
+        <Highlights className="absolute inset-x-0 w-full mx-auto pointer-events-none -bottom-80 max-sm:w-8" />
         <SectionTitle
           align="center"
           title={
@@ -31,7 +31,7 @@ export const CTA: React.FC = () => {
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             2500 verifications and 100k successful rate-limited requests per month.
           </p>
-          <p className="w-full mt-1 mx-auto text-sm leading-6 text-center text-white/60">
+          <p className="w-full mx-auto mt-1 text-sm leading-6 text-center text-white/60">
             No CC required.
           </p>
         </div>

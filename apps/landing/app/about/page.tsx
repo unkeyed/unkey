@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BorderBeam } from "@/components/border-beam";
 import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
-import { SectionTitle } from "@/components/section-title";
+import { SectionTitle } from "@/components/section";
 import { ChangelogLight } from "@/components/svg/changelog";
 import {
   Accordion,
@@ -135,8 +135,6 @@ export default async function Page() {
             </Link>
             <SectionTitle
               title="API management for fast and scalable software"
-              titleWidth={680}
-              contentWidth={680}
               align="center"
               text="Unkey redefines API management for developers. You can add authentication, analytics, and rate-limiting to your APIs in minutes. "
             />
@@ -178,8 +176,6 @@ export default async function Page() {
             className="mt-80"
             align="center"
             title="Meet the team"
-            titleWidth={640}
-            contentWidth={640}
             text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
           <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
@@ -214,7 +210,6 @@ export default async function Page() {
             <SectionTitle
               title="Driven by values"
               className="mt-[200px] max-w-full"
-              contentWidth={640}
               align="center"
               text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
             />
@@ -253,8 +248,6 @@ export default async function Page() {
               className="mt-60 px-[10px] text-balance"
               title="A few words from the founders"
               align="center"
-              contentWidth={640}
-              titleWidth={640}
               text="Why we started Unkey and what we believe in."
             />
             <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
@@ -290,7 +283,7 @@ export default async function Page() {
               </div>
             </div>
             <div className="relative w-full max-w-[680px] z-0">
-              <div className="relative z-100 w-full bg-black">
+              <div className="relative w-full bg-black z-100">
                 <Accordion
                   type="multiple"
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
@@ -349,7 +342,6 @@ export default async function Page() {
                 className="mt-[250px]"
                 align="center"
                 title="Backed by the finest"
-                contentWidth={630}
                 text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe. Here are just a few of them: "
               />
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mx-auto justify-center w-full pt-24 ">
