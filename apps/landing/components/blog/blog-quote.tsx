@@ -15,7 +15,7 @@ export function BlogQuote({ children, className, ...props }: BlogQuoteProps) {
       )}
     >
       <div className="align-middle h-fit ">
-        <blockquote className="not-prose my-auto sm:my-0 font-medium text-white leading-8 sm:text-xs">
+        <blockquote className="my-auto sm:my-0 font-medium text-white leading-8 sm:text-xs">
           {children}
         </blockquote>
         {props.author && (
