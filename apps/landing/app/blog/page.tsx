@@ -45,7 +45,7 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <div className="container mx-auto mt-32 scroll-smooth w-full overflow-hidden">
+      <div className="container w-full px-4 mx-auto mt-32 overflow-hidden md:px-0 scroll-smooth">
         {/* <div>
           <TopLeftShiningLight />
         </div> */}
@@ -83,14 +83,14 @@ export default async function Blog(props: Props) {
             xPos={200}
             speed={10}
             delay={7}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={200}
             speed={10}
             delay={2}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}

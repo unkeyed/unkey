@@ -71,7 +71,7 @@ export default async function Landing() {
           className="flex md:hidden w-full absolute h-[300px] -z-10 "
           priority
         />
-        <div className="container relative flex flex-col px-0 mx-auto space-y-16 md:space-y-32">
+        <div className="container relative flex flex-col px-4 mx-auto space-y-16 md:px-0 md:space-y-32">
           <Section>
             <Hero />
           </Section>
