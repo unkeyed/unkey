@@ -178,10 +178,10 @@ export default async function Page() {
             title="Meet the team"
             text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
-          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
+          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px] md:w-screen md:px-20">
             {offsiteImages.map(({ src, label, className }) => {
               return (
-                <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
+                <div className="image w-full h-[400px] rounded-lg relative">
                   <PhotoLabel
                     className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
                     text={label}
