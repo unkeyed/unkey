@@ -41,7 +41,7 @@ export const SecondaryButton: React.FC<Props> = ({ className, IconLeft, label, I
     <button
       type="button"
       className={cn(
-        "items-center gap-2 px-4 duration-500 text-white/50 hover:text-white h-10 hidden sm:flex",
+        "items-center gap-2 px-4 duration-500 text-white/50 hover:text-white h-10 flex",
         className,
       )}
     >

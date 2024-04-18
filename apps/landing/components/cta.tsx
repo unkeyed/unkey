@@ -8,7 +8,7 @@ export const CTA: React.FC = () => {
   return (
     <div className="w-full h-full">
       <div className="relative pb-40 pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full pointer-events-none" />
+        <Highlights className="absolute inset-x-0 w-full mx-auto pointer-events-none -bottom-80 max-sm:w-8" />
         <SectionTitle
           align="center"
           title={
@@ -18,7 +18,7 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex flex-col gap-6 sm:flex-row ">
+          <div className="flex flex-col items-center justify-center gap-6 sm:flex-row ">
             <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
@@ -31,7 +31,7 @@ export const CTA: React.FC = () => {
           <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
             2500 verifications and 100k successful rate-limited requests per month.
           </p>
-          <p className="w-full mt-1 mx-auto text-sm leading-6 text-center text-white/60">
+          <p className="w-full mx-auto mt-1 text-sm leading-6 text-center text-white/60">
             No CC required.
           </p>
         </div>
