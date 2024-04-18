@@ -61,16 +61,18 @@ export default async function Landing() {
         <Image
           src={mainboard}
           alt="Animated SVG showing computer circuits lighting up"
-          className="hidden md:flex w-full absolute right-0 top-[-140px] -z-10"
+          className="hidden md:flex absolute -z-10 lg:-top-20 xl:-top-32 xl:-right-32"
+          style={{ transform: "scale(1.2)" }}
           priority
         />
         <Image
           src={mainboardMobile}
           alt="Animated SVG showing computer circuits lighting up"
-          className="flex md:hidden w-full absolute h-[300px] -z-10 "
+          className="flex md:hidden w-full absolute h-[300px] right-10 -z-10 "
+          style={{ transform: "scale(1)" }}
           priority
         />
-        <div className="container relative flex flex-col px-0 mx-auto space-y-16 md:space-y-32">
+        <div className="container relative flex flex-col px-0 mx-auto space-y-16 md:space-y-32 lg:mt-24">
           <Section>
             <Hero />
           </Section>
