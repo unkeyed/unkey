@@ -38,7 +38,7 @@ test("when the api does not exist", async (t) => {
 test("when the api has no keyAuth", async (t) => {
   const h = await RouteHarness.init(t);
   const apiId = newId("api");
-  await h.db.insert(schema.apis).values({
+  await h.db.primary.insert(schema.apis).values({
     id: apiId,
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
