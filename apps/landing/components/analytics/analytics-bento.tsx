@@ -659,22 +659,30 @@ export function Editor({
 }: { codeBlock: string; language: string; theme?: PrismTheme }) {
   return (
     <Highlight theme={theme} code={codeBlock} language={language}>
-      {({ tokens, getLineProps, getTokenProps }) => (
-        <pre
-          key={codeBlock} // Use codeBlock as a key to trigger animations on change
-          className="leading-8"
-        >
-          {tokens.map((line, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-            <div key={`${line}-${i}`} {...getLineProps({ line })}>
-              <span className="line-number select-none">{i + 1}</span>
-              {line.map((token, key) => (
-                <span key={`${key}-${token}`} {...getTokenProps({ token })} />
-              ))}
-            </div>
-          ))}
-        </pre>
-      )}
+      {({ tokens, getLineProps, getTokenProps }) => {
+        const amountLines = tokens.length;
+        const gutterPadLength = Math.max(String(amountLines).length, 2);
+        return (
+          <pre
+            key={codeBlock} // Use codeBlock as a key to trigger animations on change
+            className="leading-8"
+          >
+            {tokens.map((line, i) => {
+              const lineNumber = i + 1;
+              const paddedLineGutter = String(lineNumber).padStart(gutterPadLength, " ");
+              return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                <div key={`${line}-${i}`} {...getLineProps({ line })}>
+                  <span className="line-number select-none">{paddedLineGutter}</span>
+                  {line.map((token, key) => (
+                    <span key={`${key}-${token}`} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              );
+            })}
+          </pre>
+        );
+      }}
     </Highlight>
   );
 }
