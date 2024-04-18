@@ -1,4 +1,4 @@
-import { SectionTitle } from "@/app/section";
+import { SectionTitle } from "@/components/section";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type React from "react";

@@ -1,7 +1,7 @@
 "use client";
 import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
-import { SectionTitle } from "@/components/section-title";
+import { SectionTitle } from "@/components/section";
 import { MeteorLines } from "@/components/ui/meteorLines";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
@@ -607,25 +607,23 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [copied, setCopied] = useState(false);
   return (
     <section className={className}>
-      <div className="absolute left-[-50px]">
-        <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
-        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
-        <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
-      </div>
-      <div className="absolute right-[200px]">
-        <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
-        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
-        <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
-      </div>
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
-        titleWidth={700}
-        contentWidth={700}
         text="Add authentication to your APIs in a few lines of code. We provide SDKs for a range of languages and frameworks, and an intuitive REST API with public OpenAPI spec."
         align="center"
         className="relative"
       >
+        <div className="absolute bottom-32 left-[-50px]">
+          <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+          <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
+        </div>
+        <div className="absolute bottom-32 right-[200px]">
+          <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+          <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
+        </div>
         <div className="mt-10">
           <div className="flex gap-6 pb-14">
             <Link key="get-started" href="/app">

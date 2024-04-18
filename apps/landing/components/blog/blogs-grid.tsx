@@ -44,7 +44,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
     <div className="">
       <div
         className={cn(
-          "flex flex-wrap py-24 justify-center gap-2 sm:gap-4 md:gap-6 w-full ",
+          "flex flex-wrap py-24 justify-center gap-2 sm:gap-4 md:gap-6 w-full",
           className,
         )}
       >
