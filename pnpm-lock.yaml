@@ -145,6 +145,21 @@ importers:
         specifier: ^3.50.0
         version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
 
+  apps/customer-worker-1:
+    devDependencies:
+      '@cloudflare/vitest-pool-workers':
+        specifier: ^0.1.0
+        version: 0.1.10(@cloudflare/workers-types@4.20240405.0)(@vitest/runner@1.3.0)(@vitest/snapshot@1.3.0)(vitest@1.3.0)
+      typescript:
+        specifier: ^5.0.4
+        version: 5.3.3
+      vitest:
+        specifier: 1.3.0
+        version: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
+      wrangler:
+        specifier: ^3.0.0
+        version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
+
   apps/docs:
     devDependencies:
       mintlify:
@@ -192,6 +207,28 @@ importers:
         version: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
       wrangler:
         specifier: ^3.50.0
+        version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
+
+  apps/gateway-router:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
+    devDependencies:
+      '@cloudflare/vitest-pool-workers':
+        specifier: ^0.1.0
+        version: 0.1.10(@cloudflare/workers-types@4.20240405.0)(@vitest/runner@1.3.0)(@vitest/snapshot@1.3.0)(vitest@1.3.0)
+      '@cloudflare/workers-types':
+        specifier: ^4.20240405.0
+        version: 4.20240405.0
+      typescript:
+        specifier: ^5.0.4
+        version: 5.3.3
+      vitest:
+        specifier: 1.3.0
+        version: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
+      wrangler:
+        specifier: ^3.0.0
         version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
 
   apps/landing:
@@ -6366,7 +6403,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -6376,7 +6413,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.8
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.4.1
+      tslib: 2.6.2
       webcrypto-core: 1.7.9
     dev: false
 
@@ -12757,7 +12794,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /dot-prop@8.0.2:
@@ -16468,7 +16505,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -17995,7 +18032,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /node-addon-api@7.1.0:
@@ -20921,7 +20958,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.2
     dev: false
 
   /snakecase-keys@3.2.1:
@@ -21573,7 +21610,7 @@ packages:
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       didyoumean: 1.2.2
       dlv: 1.1.3
       fast-glob: 3.3.2
