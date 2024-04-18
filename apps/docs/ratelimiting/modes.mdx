@@ -1,0 +1,33 @@
+---
+title: Consistency vs Latency
+description: Optimize for consistency or latency with different ratelimiting modes.
+---
+
+## Synchronous
+
+The default ratelimiting mode is synchronous, which means that the request will be blocked until the current limit has been confirmed by the origin source of truth. The problem with this is that it can introduce more latency.
+We constantly relocate the origin dynamically to the closest edge location of the caller, but there's still a roundtrip to the origin to confirm the limit. And if the same identifier is being used in multiple geographic regions, only one of them is the closest, the remaining ones are likely doing longer network requests across the globe.
+The benefit of this mode is that it's absolutely correct, as every single request is checked against the same source of truth.
+
+
+## Asynchronous
+Asynchronous mode is a tradeoff between correctness and latency. It's faster because we don't need to confirm the limit with the origin before returning a decision, but it's also less correct because the limit is checked against the local edge cache and then updated asynchronously in the background. This means that if the same identifier is being used in multiple geographic regions, they might not be aware of each other's usage and could potentially exceed the limit until everything is synchronized to the edge.
+
+
+<Warning>
+As you might notice, the `remaining` response value is not always accurate in async mode for low frequency requests.
+You should always use the returned `success` value to determine if the request was allowed or not.
+</Warning>
+
+
+
+## What should I use?
+
+With every request we measure whether our async `success` respones would have matched a synchronous `success` response and we observe 98% accuracy across all of our users. 
+
+If you have strict requirements for correctness, you should use the synchronous mode.
+In all other cases, we recommend using the asynchronous mode to optimize for latency as that will give you the best performance and lowest latency for your users. Most of the time, your ratelimits will not get reached, so the small tradeoff in correctness is usually worth it for the performance gain. In case your API gets abused, the async mode will sync quickly due to the high frequency of requests and will stop the abuse quickly.
+
+<Info>
+If you're still unsure which mode to use, please join our [Discord](https://unkey.dev/discord) and we'll help you decide.
+</Info>
