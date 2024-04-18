@@ -211,7 +211,7 @@ export const registerV1KeysCreateKey = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.id, req.apiId), isNull(table.deletedAt)),
         })) ?? null
@@ -264,7 +264,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const rootKeyId = auth.key.id;
 
     let roleIds: string[] = [];
-    await db.transaction(async (tx) => {
+    await db.primary.transaction(async (tx) => {
       if (req.roles && req.roles.length > 0) {
         const roles = await tx.query.roles.findMany({
           where: (table, { inArray, and, eq }) =>

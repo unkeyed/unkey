@@ -28,7 +28,7 @@ describe("simple", () => {
 
     expect(res.status).toEqual(200);
 
-    const found = await h.db.query.keys.findFirst({
+    const found = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(found).toBeDefined();
@@ -82,7 +82,7 @@ describe("with prefix", () => {
 
     expect(res.status).toEqual(200);
 
-    const key = await h.db.query.keys.findFirst({
+    const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();

@@ -10,7 +10,7 @@ runCommonRouteTests<V1KeysDeleteKeyRequest>({
   prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await rh.db.insert(schema.keys).values({
+    await rh.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: rh.resources.userKeyAuth.id,
       hash: await sha256(key),
