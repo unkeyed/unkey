@@ -87,7 +87,7 @@ const investors = [
   { name: "Paul Copplestone", firm: "CEO @ Supabase", image: paul },
   { name: "Ant Wilson", firm: "CTO @ Supabase", image: ant },
   { name: "Rory Wilding", firm: "Head of Growth @ Supabase", image: rory },
-  { name: "Zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
+  { name: "Zain Allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
