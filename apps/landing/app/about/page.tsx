@@ -364,7 +364,7 @@ export default async function Page() {
                 title="From our blog"
                 text="Explore insights, tips, and updates directly from our team members"
               />
-              <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
+              <div className="columns-3 w-full mx-auto gap-8 mt-[96px]">
                 {posts.map((post) => {
                   return (
                     <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
