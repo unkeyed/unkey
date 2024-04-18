@@ -5,8 +5,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { Gauge, HelpCircle, KeySquare, ListChecks } from "lucide-react";
 import React, { useState } from "react";
 
-import { RateLimitsText } from "@/components/rate-limits-bento";
-import { SectionTitle } from "../section";
+import { SectionTitle } from "@/components/section";
 import {
   Bullet,
   Color,
