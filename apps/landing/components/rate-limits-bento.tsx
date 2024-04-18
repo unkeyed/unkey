@@ -118,7 +118,7 @@ export function RateLimits() {
             <p className="relative text-xs right-4">sk_TEwCE9AY9BFTq1XJdIO</p>
           </div>
         </div>
-        <div className="inline-flex w-[205px] opacity-70 items-center ml-[150px] mt-[30px] h-[36px] text-white font-mono text-sm ratelimits-link ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded-xl">
+        <div className="inline-flex w-[205px] opacity-50 items-center ml-[150px] mt-[30px] h-[36px] text-white font-mono text-sm ratelimits-link ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded-xl">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="84"
@@ -204,7 +204,7 @@ export function RateLimits() {
               </filter>
             </defs>
           </svg>
-          <p className="relative text-xs right-4">dom@unkey.dev</p>
+          <p className="relative text-xs right-4">dom@keyauth.dev</p>
         </div>
       </div>
     </div>
