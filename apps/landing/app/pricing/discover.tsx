@@ -20,8 +20,6 @@ import {
 } from "./components";
 import { SubDiscoverySvg } from "./svgs";
 
-const activeKeysSteps = [250, 1_000, 2_000, 5_000, 10_000, 50_000, 100_000, null];
-
 const verificationsSteps = [
   150_000,
   250_000,
@@ -45,13 +43,6 @@ const rateLimitsSteps = [
 ];
 
 export const Discover: React.FC = () => {
-  const [activeKeysIndex, setActiveKeysIndex] = useState(0);
-  const activeKeys = activeKeysSteps[activeKeysIndex];
-  const billableKeys = Math.max(0, (activeKeys ?? 0) - 250);
-  const activeKeysCost = billableKeys * 0.1;
-  const activeKeysQuantityDisplay = fmtNumber(activeKeys ?? Number.POSITIVE_INFINITY);
-  const activeKeysCostDisplay = activeKeys === null ? "Custom" : fmtDollar(activeKeysCost);
-
   const [verificationsIndex, setVerificationsIndex] = useState(0);
   const verifications = verificationsSteps[verificationsIndex];
   const billableVerifications = Math.max(0, (verifications ?? 0) - 150_000);
@@ -67,9 +58,9 @@ export const Discover: React.FC = () => {
   const rateLimitsCostDisplay = rateLimits === null ? "Custom" : fmtDollar(rateLimitsCost);
 
   const totalCostDisplay =
-    verifications === null || activeKeys === null || rateLimits === null
+    verifications === null || rateLimits === null
       ? "Custom"
-      : fmtDollar(25 + activeKeysCost + verificationsCost + rateLimitsCost);
+      : fmtDollar(25 + verificationsCost + rateLimitsCost);
 
   return (
     <div>
@@ -117,7 +108,6 @@ export const Discover: React.FC = () => {
                       <div className="grid grid-cols-2 mt-4 gap-x-4 gap-y-2">
                         <span className="text-white">{fmtDollar(25)}</span>
                         <span className="text-sm text-white/40">Base Plan</span>
-                        <span className="text-white">{activeKeysCostDisplay}</span>
                         <span className="text-sm text-white/40">Active Keys</span>
                         <span className="text-white">{verificationsCostDisplay}</span>
                         <span className="text-sm text-white/40">Verifications</span>
@@ -130,34 +120,6 @@ export const Discover: React.FC = () => {
             </div>
 
             <div className="grid w-full grid-cols-12 gap-8">
-              <Bullet
-                className="col-span-12 sm:col-span-4 md:col-span-2"
-                Icon={KeySquare}
-                label="Active keys"
-                color={Color.Purple}
-              />
-              <Slider
-                min={0}
-                max={activeKeysSteps.length - 1}
-                value={[activeKeysIndex]}
-                className="hidden md:flex md:col-span-6"
-                onValueChange={([v]) => setActiveKeysIndex(v)}
-              />
-              <span className="col-span-6 text-white sm:col-span-4 md:col-span-2">
-                {activeKeysQuantityDisplay}
-              </span>
-              <PriceTag
-                className="col-span-6 md:col-span-2 sm:col-span-4"
-                dollar={activeKeysCostDisplay}
-              />
-              <Slider
-                min={0}
-                max={activeKeysSteps.length - 1}
-                value={[activeKeysIndex]}
-                className="col-span-12 md:col-span-6 md:hidden"
-                onValueChange={([v]) => setActiveKeysIndex(v)}
-              />
-
               <Bullet
                 className="col-span-12 sm:col-span-4 md:col-span-2"
                 Icon={ListChecks}

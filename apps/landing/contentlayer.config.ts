@@ -1,8 +1,10 @@
 import { defineDocumentType, makeSource } from "contentlayer/source-files";
 import GithubSlugger from "github-slugger";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypeCodeTitles from "rehype-code-titles";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+
 export const Post = defineDocumentType(() => ({
   name: "Post",
   filePathPattern: "**/blog/*.mdx",
@@ -100,6 +102,7 @@ export default makeSource({
   mdx: {
     remarkPlugins: [remarkGfm],
     rehypePlugins: [
+      rehypeCodeTitles,
       rehypeSlug,
       [
         rehypeAutolinkHeadings,
