@@ -157,10 +157,10 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <p className="mt-8 text-lg font-medium leading-8 not-prose text-white/60 lg:text-xl">
                 {post.description}
               </p>
-              <div className="flex flex-row sm:mt-12 gap-4 md:gap-16 lg:hidden">
+              <div className="flex flex-row sm:mt-12 gap-8 md:gap-16 lg:hidden justify-stretch ">
                 <div className="flex flex-col h-full">
                   <p className="text-white/40">Written by</p>
-                  <div className="flex flex-col sm:flex-row h-full">
+                  <div className="flex flex-row h-full">
                     <Avatar className="flex items-center my-auto">
                       <AvatarImage
                         alt={author.name}
@@ -171,7 +171,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                       />
                       <AvatarFallback />
                     </Avatar>
-                    <p className="flex m-0 p-0 text-white text-nowrap sm:ml-2 pt-2 justify-center items-center">
+                    <p className="flex m-0 p-0 text-white text-nowrap ml-2 pt-2 justify-center items-center">
                       {author.name}
                     </p>
                   </div>
@@ -179,7 +179,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 <div className="flex flex-col h-full">
                   {" "}
                   <p className="text-nowrap text-white/30">Published on</p>
-                  <div className="flex mt-12 sm:mt-6">
+                  <div className="flex mt-2 sm:mt-6">
                     <time
                       dateTime={post.date}
                       className="inline-flex items-center text-white text-nowrap"
@@ -190,7 +190,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 </div>
               </div>
             </div>
-            <div className="lg:pr-24 xs:prose:xs sm:prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md mt-12">
+            <div className="lg:pr-24 prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md mt-12">
               <MDX code={post.body.code} />
             </div>
           </div>
