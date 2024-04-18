@@ -607,16 +607,6 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [copied, setCopied] = useState(false);
   return (
     <section className={className}>
-      <div className="absolute left-[-50px]">
-        <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
-        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
-        <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
-      </div>
-      <div className="absolute right-[200px]">
-        <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
-        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
-        <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
-      </div>
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
@@ -626,6 +616,16 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         align="center"
         className="relative"
       >
+        <div className="absolute bottom-32 left-[-50px]">
+          <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+          <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
+        </div>
+        <div className="absolute bottom-32 right-[200px]">
+          <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+          <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
+        </div>
         <div className="mt-10">
           <div className="flex space-x-6 pb-14">
             <Link key="get-started" href="/app">

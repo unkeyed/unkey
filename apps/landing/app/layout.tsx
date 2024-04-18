@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`scroll-smooth ${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="min-h-screen overflow-x-hidden antialiased bg-black text-pretty">
-        <div className="relative w-screen overflow-x-clip">
+        <div className="relative overflow-x-clip">
           <Navigation />
           {children}
           {process.env.NODE_ENV !== "production" ? (
