@@ -45,7 +45,7 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <div className="container w-full px-4 mx-auto mt-32 overflow-hidden md:px-0 scroll-smooth">
+      <div className="container mx-auto mt-32 scroll-smooth w-full overflow-hidden">
         <div>
           <TopLeftShiningLight />
         </div>
@@ -110,7 +110,7 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
-        <div className="w-full px-0 mx-0">
+        <div className="w-full px-0 mx-0 rounded-3xl">
           <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
             <BlogHero
               tags={posts[0].tags}
