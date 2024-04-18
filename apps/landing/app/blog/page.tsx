@@ -2,7 +2,7 @@ import { type Post, allPosts } from "@/.contentlayer/generated";
 import { BlogHero } from "@/components/blog/blog-hero";
 import { BlogGrid } from "@/components/blog/blogs-grid";
 import { CTA } from "@/components/cta";
-import { TopRightShiningLight } from "@/components/svg/background-shiny";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import Link from "next/link";
@@ -46,6 +46,9 @@ export default async function Blog(props: Props) {
   return (
     <>
       <div className="container w-full px-4 mx-auto mt-32 overflow-hidden md:px-0 scroll-smooth">
+        <div>
+          <TopLeftShiningLight />
+        </div>
         <div className="w-full h-full overflow-hidden -z-20">
           <MeteorLinesAngular
             number={1}
