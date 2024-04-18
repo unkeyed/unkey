@@ -334,9 +334,9 @@ function AnalyticsWebAppView() {
       whileInView="visible"
       className="w-full overflow-x-hidden"
     >
-      <div className="w-full bg-[#000000] lg:w-[1220px] analytics-background-gradient lg:rounded-3xl relative flex-wrap md:flex-nowrap cursor-default select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <div className="w-full bg-[#000000] lg:w-[1220px] analytics-background-gradient lg:rounded-2xl relative flex-wrap md:flex-nowrap cursor-default select-none bg-opacity-02 xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
         <WebAppLight className="absolute top-[-100px] left-[40px]" />
-        <div className="flex flex-col w-[216px] h-full text-white/20  text-xs pt-6 px-4 md:border-r md:border-white/5">
+        <div className="flex flex-col rounded-2xl w-[216px] h-full text-white/20  text-xs pt-6 px-4 md:border-r md:border-white/5">
           <div className="flex justify-between items-center w-[160px]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -555,7 +555,7 @@ function AnalyticsWebAppView() {
                   />
                 </svg>
               </div>
-              <div className="px-3 py-1 ml-4 text-xs font-bold text-black bg-white rounded-lg">
+              <div className="px-3 py-1 ml-4 text-xs font-bold text-black bg-white rounded">
                 Create key
               </div>
             </div>

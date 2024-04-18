@@ -5,7 +5,7 @@ import { AnimatedList } from "@/components/animated-list";
 import { UsageSparkles } from "@/components/svg/usage";
 export function UsageBento() {
   return (
-    <div className="w-full  overflow-hidden relative border-[.75px] h-[576px]  rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10">
+    <div className="w-full overflow-hidden relative border-[.75px] h-[576px] rounded-[32px] usage-bento-bg-gradient border-[#ffffff]/10">
       <UsageSparkles className="absolute top-0" />
       <div className="relative ">
         <AnimatedList className="w-full">
@@ -103,7 +103,7 @@ export function BillingItem({
   rest = rest.join(" ");
   return (
     <div
-      className={`flex rounded-xl border-[.75px] w-[440px] usage-item-gradient border-white/20 mt-4 md:ml-5 lg:ml-0 flex items-center py-[12px] px-[16px] ${className}`}
+      className={`flex relative -top-7 left-14 md:left-0 rounded-xl border-[.75px] w-[440px] usage-item-gradient border-white/20 mt-4 md:ml-5 lg:ml-0 flex items-center py-[12px] px-[16px] ${className}`}
     >
       <div className="rounded-full bg-gray-500 flex items-center justify-center h-8 w-8 border-.75px border-white/20 bg-white/10">
         {icon}
@@ -158,7 +158,7 @@ export function UsageText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="ml-4 text-lg font-medium text-white bg-black z-50 relative">
+        <h3 className="ml-4 text-lg font-medium text-white bg-transparent z-50 relative">
           Monetize your API
         </h3>
       </div>
