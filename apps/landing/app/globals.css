@@ -20,7 +20,8 @@
 }
 
 .usage-bento-bg-gradient {
-  background: linear-gradient(180deg, rgba(17, 17, 17, 0.70) 0%, rgba(0, 0, 0, 0.50) 100%), #000;
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0.70) 0%, rgba(0, 0, 0, 0.50) 100%);
+  backdrop-filter: blur(150px);
 }
 
 .stats-border-gradient {
