@@ -26,17 +26,18 @@ export type Resources = {
 
 export abstract class Harness {
   private readonly t: TaskContext;
-  public readonly db: Database;
+  public readonly db: { primary: Database; readonly: Database };
   public resources: Resources;
 
   constructor(t: TaskContext) {
     this.t = t;
     const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
-    this.db = createConnection({
+    const db = createConnection({
       host: DATABASE_HOST,
       username: DATABASE_USERNAME,
       password: DATABASE_PASSWORD,
     });
+    this.db = { primary: db, readonly: db };
     this.resources = this.createResources();
   }
 
@@ -46,7 +47,9 @@ export abstract class Harness {
     }
     const deleteWorkspaces = async () => {
       for (const workspaceId of workspaceIds) {
-        await this.db.delete(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
+        await this.db.primary
+          .delete(schema.workspaces)
+          .where(eq(schema.workspaces.id, workspaceId));
       }
     };
     for (let i = 1; i <= 5; i++) {
@@ -70,7 +73,7 @@ export abstract class Harness {
     const keyId = newId("test");
     const hash = await sha256(rootKey);
 
-    await this.db.insert(schema.keys).values({
+    await this.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: this.resources.unkeyKeyAuth.id,
       hash,
@@ -90,8 +93,8 @@ export abstract class Harness {
         updatedAt: null,
       }));
 
-      await this.db.insert(schema.permissions).values(create);
-      await this.db.insert(schema.keysPermissions).values(
+      await this.db.primary.insert(schema.permissions).values(create);
+      await this.db.primary.insert(schema.keysPermissions).values(
         create.map((p) => ({
           keyId,
           permissionId: p.id,
@@ -116,7 +119,7 @@ export abstract class Harness {
      */
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     const keyId = newId("test");
-    await this.db.insert(schema.keys).values({
+    await this.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: this.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -130,7 +133,7 @@ export abstract class Harness {
         this.resources.userWorkspace.id,
         role.name,
       );
-      await this.db.insert(schema.keysRoles).values({
+      await this.db.primary.insert(schema.keysRoles).values({
         keyId,
         roleId,
         workspaceId: this.resources.userWorkspace.id,
@@ -141,7 +144,7 @@ export abstract class Harness {
           this.resources.userWorkspace.id,
           permissionName,
         );
-        await this.db
+        await this.db.primary
           .insert(schema.rolesPermissions)
           .values({
             roleId,
@@ -173,13 +176,13 @@ export abstract class Harness {
       updatedAt: null,
       description: null,
     };
-    await this.db
+    await this.db.primary
       .insert(schema.permissions)
       .values(permission)
       .catch(async (err) => {
         // it's a duplicate
 
-        const found = await this.db.query.permissions.findFirst({
+        const found = await this.db.readonly.query.permissions.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
         });
@@ -201,13 +204,13 @@ export abstract class Harness {
       updatedAt: null,
       description: null,
     };
-    await this.db
+    await this.db.primary
       .insert(schema.roles)
       .values(role)
       .catch(async (err) => {
         // it's a duplicate
 
-        const found = await this.db.query.roles.findFirst({
+        const found = await this.db.readonly.query.roles.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
         });
@@ -307,12 +310,12 @@ export abstract class Harness {
       this.teardown(this.resources.userWorkspace.id, this.resources.unkeyWorkspace.id),
     );
 
-    await this.db.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
-    await this.db.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
-    await this.db.insert(schema.apis).values(this.resources.unkeyApi);
+    await this.db.primary.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
+    await this.db.primary.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
+    await this.db.primary.insert(schema.apis).values(this.resources.unkeyApi);
 
-    await this.db.insert(schema.workspaces).values(this.resources.userWorkspace);
-    await this.db.insert(schema.keyAuth).values(this.resources.userKeyAuth);
-    await this.db.insert(schema.apis).values(this.resources.userApi);
+    await this.db.primary.insert(schema.workspaces).values(this.resources.userWorkspace);
+    await this.db.primary.insert(schema.keyAuth).values(this.resources.userKeyAuth);
+    await this.db.primary.insert(schema.apis).values(this.resources.userApi);
   }
 }

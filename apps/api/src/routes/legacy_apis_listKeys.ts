@@ -73,7 +73,7 @@ export const registerLegacyApisListKeys = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
@@ -106,7 +106,7 @@ export const registerLegacyApisListKeys = (app: App) =>
       keysWhere.push(eq(schema.keys.ownerId, ownerId));
     }
 
-    const keys = await db.query.keys.findMany({
+    const keys = await db.readonly.query.keys.findMany({
       where: and(...keysWhere),
       limit: Number.parseInt(limit),
       orderBy: schema.keys.id,

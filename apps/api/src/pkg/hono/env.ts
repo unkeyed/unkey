@@ -12,7 +12,7 @@ import type { UsageLimiter } from "../usagelimit";
 export type ServiceContext = {
   rbac: RBAC;
   cache: SwrCacher;
-  db: Database;
+  db: { primary: Database; readonly: Database };
   metrics: Metrics;
   logger: Logger;
   keyService: KeyService;
