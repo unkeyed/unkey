@@ -29,6 +29,7 @@ import sidelight from "@/images/about/side-light.svg";
 import andrew from "@/images/about/angels/andrew.jpeg";
 import ant from "@/images/about/angels/ant.jpeg";
 import paul from "@/images/about/angels/copple.jpeg";
+import rory from "@/images/about/angels/rory.png";
 import theo from "@/images/about/angels/theo.jpeg";
 import tom from "@/images/about/angels/tom.jpeg";
 import zain from "@/images/about/angels/zain.jpeg";
@@ -81,11 +82,12 @@ const investors = [
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
   { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
   { name: "Andrew Miklas", firm: "Ex PageDuty CTO", image: andrew },
-  { name: "Tom Preston-Werner", firm: "Github founder", image: tom },
-  { name: "Theo Browne", firm: "CEO @ ping.gg", image: theo },
-  { name: "Paul Copplestone", firm: "CEO @ supabase", image: paul },
-  { name: "Ant Wilson", firm: "CTO @ supabase", image: ant },
-  { name: "zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
+  { name: "Tom Preston-Werner", firm: "GitHub founder", image: tom },
+  { name: "Theo Browne", firm: "CEO @ Ping Labs", image: theo },
+  { name: "Paul Copplestone", firm: "CEO @ Supabase", image: paul },
+  { name: "Ant Wilson", firm: "CTO @ Supabase", image: ant },
+  { name: "Rory Wilding", firm: "Head of Growth @ Supabase", image: rory },
+  { name: "Zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -342,15 +344,15 @@ export default async function Page() {
                 title="Backed by the finest"
                 text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe. Here are just a few of them: "
               />
-              <div className="flex flex-col lg:w-[800px] items-center justify-between mx-auto md:flex-row md:flex-wrap lg:gap-x-16 pt-24">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mx-auto justify-center w-full pt-24 ">
                 {investors.map(({ name, firm, image }) => {
                   return (
-                    <div className="px-[40px] pb-[80px] w-[224px]">
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
-                        <p className="mt-8 text-sm font-bold text-white">{name}</p>
-                        <p className="text-sm text-white/60">{firm}</p>
-                      </div>
+                    <div className="flex flex-col items-center justify-center text-center pb-12 md:last:col-span-3 lg:last:col-span-1">
+                      <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
+                      <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
+                        {name}
+                      </p>
+                      <p className="text-sm text-white/60 md:whitespace-nowrap">{firm}</p>
                     </div>
                   );
                 })}
