@@ -132,7 +132,7 @@ export default function PricingPage() {
             <div className="flex flex-col w-full gap-8">
               <PricingCardHeader
                 title="Enterprise Tier"
-                description={<>Need more support or pricing doesn't work for your business?</>}
+                description="Need more support or pricing doesn't work for your business?"
                 color={Color.Purple}
                 className="bg-gradient-to-tr from-transparent to-[#9D72FF]/10 "
               />
