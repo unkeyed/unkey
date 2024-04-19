@@ -6,7 +6,7 @@ import { PrimaryButton, SecondaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-hidden">
       <div className="relative pb-40 pt-14 ">
         <Highlights className="absolute inset-x-0 w-full mx-auto pointer-events-none -bottom-80 max-sm:w-8" />
         <SectionTitle
