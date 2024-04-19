@@ -86,7 +86,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
 
     if (keyId) {
       const data = await cache.withCache(c, "keyById", keyId, async () => {
-        const dbRes = await db.query.keys.findFirst({
+        const dbRes = await db.readonly.query.keys.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
             permissions: { with: { permission: true } },
@@ -133,7 +133,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       }
 
       const keys = await cache.withCache(c, "keysByOwnerId", ownerId, async () => {
-        const dbRes = await db.query.keys.findMany({
+        const dbRes = await db.readonly.query.keys.findMany({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
           with: {

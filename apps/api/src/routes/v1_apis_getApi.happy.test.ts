@@ -35,7 +35,7 @@ test("with ip whitelist", async (t) => {
     deletedAt: null,
   };
 
-  await h.db.insert(schema.apis).values(api);
+  await h.db.primary.insert(schema.apis).values(api);
 
   const root = await h.createRootKey(["api.*.read_api"]);
 
