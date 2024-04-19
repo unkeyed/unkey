@@ -47,7 +47,7 @@ export function Navigation() {
         backgroundColor: `rgba(0, 0, 0, ${scrollPercent})`,
         borderColor: `rgba(255, 255, 255, ${Math.min(scrollPercent / 5, 0.15)})`,
       }}
-      className="fixed z-[1000] top-0 px-[30px] border-b-[.75px] border-white/10 lg:px-0 w-full py-3"
+      className="fixed z-[100] top-0 px-[30px] border-b-[.75px] border-white/10  lg:px-0 w-full py-3"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -92,11 +92,11 @@ function MobileLinks({ className }: { className?: string }) {
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
           </button>
         </DrawerTrigger>
-        <DrawerContent className="bg-black/90">
+        <DrawerContent className=" bg-black/90 z-[110]">
           <DrawerHeader className="flex justify-center">
             <Logo />
           </DrawerHeader>
-          <div className="relative w-full mx-auto antialiased">
+          <div className="relative w-full mx-auto antialiased z-[110]">
             <ul className="flex flex-col px-8 divide-y divide-white/25">
               <MobileNavLink onClick={() => setIsOpen(false)} href="/" label="Home" />
               <MobileNavLink onClick={() => setIsOpen(false)} href="/about" label="About" />
