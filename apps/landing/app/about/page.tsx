@@ -217,8 +217,8 @@ export default async function Page() {
               align="center"
               text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
             />
-            <div className="px-5 mx-auto lg:px-8">
-              <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
+            <div className="md:px-5 mx-auto lg:px-8">
+              <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10 ">
                 <Value
                   text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."
                   title="Quality"
@@ -410,7 +410,7 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
 
 function Value({ title, text }: { title: string; text: string }) {
   return (
-    <div className="flex p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
+    <div className="flex p-[40px] border-white/10 md:border-r-[1px] border-b-[0.75px] rounded-tl-[24px] max-sm:last:border-none">
       <div>
         <div className="flex items-center">
           <h3 className="font-medium">{title}</h3>
