@@ -10,7 +10,7 @@ test("returns an empty verifications array", async (t) => {
   const h = await RouteHarness.init(t);
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.db.insert(schema.keys).values({
+  await h.db.primary.insert(schema.keys).values({
     id: keyId,
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
@@ -38,7 +38,7 @@ test("ownerId works too", async (t) => {
   const keyIds = [newId("key"), newId("key"), newId("key")];
   for (const keyId of keyIds) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),

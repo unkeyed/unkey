@@ -78,7 +78,14 @@ export class SwrCache<TNamespaces extends Record<string, unknown> = CacheNamespa
     }
 
     try {
+      const originStart = performance.now();
       const value = await loadFromOrigin(key);
+      c.get("services").metrics.emit({
+        metric: "metric.db.read",
+        query: "loadFromOrigin",
+        latency: performance.now() - originStart,
+      });
+
       await this.set(c, namespace, key, value);
       return Ok(value);
     } catch (err) {

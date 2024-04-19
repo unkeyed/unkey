@@ -23,7 +23,7 @@ test("increment", async (t) => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.db.insert(schema.keys).values(key);
+  await h.db.primary.insert(schema.keys).values(key);
 
   const root = await h.createRootKey(["api.*.update_key"]);
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
@@ -56,7 +56,7 @@ test("decrement", async (t) => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.db.insert(schema.keys).values(key);
+  await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
@@ -89,7 +89,7 @@ test("set", async (t) => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.db.insert(schema.keys).values(key);
+  await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
@@ -122,7 +122,7 @@ test("invalid operation", async (t) => {
     remaining: 100,
     createdAt: new Date(),
   };
-  await h.db.insert(schema.keys).values(key);
+  await h.db.primary.insert(schema.keys).values(key);
   const root = await h.createRootKey(["api.*.update_key"]);
 
   const res = await h.post<V1KeysUpdateRemainingRequest, V1KeysUpdateRemainingResponse>({
