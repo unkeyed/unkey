@@ -48,7 +48,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.db.read"),
-    query: z.enum(["getKeyAndApiByHash"]),
+    query: z.enum(["getKeyAndApiByHash", "loadFromOrigin", "getKeysByKeyAuthId"]),
     latency: z.number(),
   }),
   z.object({

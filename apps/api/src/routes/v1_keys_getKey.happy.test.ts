@@ -18,7 +18,7 @@ test("returns 200", async (t) => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.db.insert(schema.keys).values(key);
+  await h.db.primary.insert(schema.keys).values(key);
 
   const res = await h.get<V1KeysGetKeyResponse>({
     url: `/v1/keys.getKey?keyId=${key.id}`,

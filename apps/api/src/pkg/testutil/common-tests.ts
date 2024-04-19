@@ -34,7 +34,7 @@ export function runCommonRouteTests<TReq>(config: {
   describe("disabled workspace", () => {
     test("should reject the request", async (t) => {
       const h = await RouteHarness.init(t);
-      await h.db
+      await h.db.primary
         .update(schema.workspaces)
         .set({ enabled: false })
         .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));

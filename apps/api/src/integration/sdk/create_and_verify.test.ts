@@ -15,7 +15,7 @@ test("create with roles and permissions", async (t) => {
   type Permissions = Flatten<Resources, ".">;
 
   const roleId = newId("role");
-  await h.db.insert(schema.roles).values({
+  await h.db.primary.insert(schema.roles).values({
     id: roleId,
     name: "domain.manager",
     workspaceId: h.resources.userWorkspace.id,
@@ -23,13 +23,13 @@ test("create with roles and permissions", async (t) => {
 
   for (const name of ["domain.create", "dns.record.create", "domain.delete"]) {
     const permissionId = newId("permission");
-    await h.db.insert(schema.permissions).values({
+    await h.db.primary.insert(schema.permissions).values({
       id: permissionId,
       name,
       workspaceId: h.resources.userWorkspace.id,
     });
 
-    await h.db.insert(schema.rolesPermissions).values({
+    await h.db.primary.insert(schema.rolesPermissions).values({
       roleId,
       permissionId,
       workspaceId: h.resources.userWorkspace.id,

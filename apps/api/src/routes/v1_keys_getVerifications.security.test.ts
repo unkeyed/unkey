@@ -12,7 +12,7 @@ runCommonRouteTests({
   prepareRequest: async (rh) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await rh.db.insert(schema.keys).values({
+    await rh.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: rh.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -47,7 +47,7 @@ describe("correct roles", () => {
       const h = await RouteHarness.init(t);
       const keyId = newId("key");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.db.insert(schema.keys).values({
+      await h.db.primary.insert(schema.keys).values({
         id: keyId,
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
@@ -74,7 +74,7 @@ test("cannot read keys from a different workspace", async (t) => {
   const h = await RouteHarness.init(t);
 
   const workspaceId = newId("workspace");
-  await h.db.insert(schema.workspaces).values({
+  await h.db.primary.insert(schema.workspaces).values({
     id: workspaceId,
     tenantId: randomUUID(),
     name: randomUUID(),
@@ -83,13 +83,13 @@ test("cannot read keys from a different workspace", async (t) => {
   });
 
   const keyAuthId = newId("keyAuth");
-  await h.db.insert(schema.keyAuth).values({
+  await h.db.primary.insert(schema.keyAuth).values({
     id: keyAuthId,
     workspaceId,
   });
 
   const apiId = newId("api");
-  await h.db.insert(schema.apis).values({
+  await h.db.primary.insert(schema.apis).values({
     id: apiId,
     name: randomUUID(),
     workspaceId,
@@ -99,7 +99,7 @@ test("cannot read keys from a different workspace", async (t) => {
 
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.db.insert(schema.keys).values({
+  await h.db.primary.insert(schema.keys).values({
     id: keyId,
     keyAuthId: keyAuthId,
     hash: await sha256(key),
@@ -110,7 +110,7 @@ test("cannot read keys from a different workspace", async (t) => {
 
   const keyId2 = newId("key");
   const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.db.insert(schema.keys).values({
+  await h.db.primary.insert(schema.keys).values({
     id: keyId2,
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key2),

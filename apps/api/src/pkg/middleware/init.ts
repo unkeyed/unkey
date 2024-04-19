@@ -41,15 +41,30 @@ export function init(): MiddlewareHandler<HonoEnv> {
   const tracer = trace.getTracer("init");
   return async (c, next) => {
     const span = tracer.startSpan("mw.init");
-    const db = createConnection({
+    const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
       password: c.env.DATABASE_PASSWORD,
     });
 
+    const readonly =
+      c.env.DATABASE_HOST_READONLY &&
+      c.env.DATABASE_USERNAME_READONLY &&
+      c.env.DATABASE_PASSWORD_READONLY
+        ? createConnection({
+            host: c.env.DATABASE_HOST_READONLY,
+            username: c.env.DATABASE_USERNAME_READONLY,
+            password: c.env.DATABASE_PASSWORD_READONLY,
+          })
+        : primary;
+
+    const db = { primary, readonly };
+
     const metrics = new LogdrainMetrics();
 
-    const logger = new ConsoleLogger({ defaultFields: { environment: c.env.ENVIRONMENT } });
+    const logger = new ConsoleLogger({
+      defaultFields: { environment: c.env.ENVIRONMENT },
+    });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({

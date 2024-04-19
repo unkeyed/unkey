@@ -76,7 +76,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
         createdAt: new Date(),
         name: "namespace",
       };
-      await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+      await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
       const identifier = randomUUID();
 
