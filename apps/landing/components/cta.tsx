@@ -18,21 +18,19 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex flex-col items-center justify-center gap-6 sm:flex-row ">
+          <div className="mt-2 sm:mt-5 flex flex-col items-center justify-center gap-6 sm:flex-row">
             <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
             <Link href="/app">
-              <PrimaryButton label="Start Now" IconRight={ChevronRight} />
+              <PrimaryButton shiny label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
         </SectionTitle>
-        <div className="mt-10 text-balance">
-          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-            2500 verifications and 100k successful rate-limited requests per month.
-          </p>
-          <p className="w-full mx-auto mt-1 text-sm leading-6 text-center text-white/60">
-            No CC required.
+        <div className="mt-8 sm:mt-10 text-balance">
+          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60 max-w-[500px]">
+            2500 verifications and 100K successful rate&#8209;limited requests per month. No CC
+            required.
           </p>
         </div>
       </div>

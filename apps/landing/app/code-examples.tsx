@@ -8,7 +8,7 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { PrismTheme } from "prism-react-renderer";
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 const Tabs = TabsPrimitive.Root;
 
@@ -290,6 +290,29 @@ app.get("/somewhere", (c) => {
  return c.text("yo")
 })`;
 
+const tsRatelimitCodeBlock = `import { Ratelimit } from "@unkey/ratelimit"
+
+const unkey = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "my-app",
+  limit: 10,
+  duration: "30s",
+  async: true
+})
+
+// elsewhere
+async function handler(request) {
+  const identifier = request.getUserId() // or ip or anything else you want
+  
+  const ratelimit = await unkey.limit(identifier)
+  if (!ratelimit.success){
+    return new Response("try again later", { status: 429 })
+  }
+  
+  // handle the request here
+  
+}`;
+
 const goVerifyKeyCodeBlock = `package main
 import (
 	"fmt"
@@ -373,6 +396,18 @@ const curlCreateKeyCodeBlock = `curl --request POST \\
       "duration": 60_000
     },
   }'`;
+
+const curlRatelimitCodeBlock = `curl --request POST \
+  --url https://api.unkey.dev/v1/ratelimits.limit \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "namespace": "email.outbound",
+    "identifier": "user_123",
+    "limit": 10,
+    "duration": 60000,
+    "async": true
+}'`;
 
 const elixirCodeBlock = `UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
 # returns
@@ -464,6 +499,12 @@ const languagesList = {
       codeBlock: honoCodeBlock,
       editorLanguage: "ts",
     },
+    {
+      name: "Ratelimiting",
+      Icon: TSIcon,
+      codeBlock: tsRatelimitCodeBlock,
+      editorLanguage: "ts",
+    },
   ],
   Python: [
     {
@@ -536,6 +577,12 @@ const languagesList = {
       codeBlock: curlCreateKeyCodeBlock,
       editorLanguage: "tsx",
     },
+    {
+      name: "Ratelimit",
+      Icon: CurlIcon,
+      codeBlock: curlRatelimitCodeBlock,
+      editorLanguage: "tsx",
+    },
   ],
 } as const satisfies {
   [key: string]: Framework[];
@@ -568,12 +615,16 @@ type FrameworkName = (typeof languagesList)[Language][number]["name"];
 export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [language, setLanguage] = useState<Language>("Typescript");
   const [framework, setFramework] = useState<FrameworkName>("Typescript");
-  const [languageHover, setLanguageHover] = useState("");
+  const [languageHover, setLanguageHover] = useState("Typescript");
   function getLanguage({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
     const currentFramework = frameworks.find((f) => f.name === framework);
     return currentFramework?.editorLanguage || "tsx";
   }
+
+  useEffect(() => {
+    setFramework(languagesList[language].at(0)!.name);
+  }, [language]);
 
   function getCodeBlock({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
@@ -589,16 +640,9 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       ref={ref}
       value={value}
       onMouseEnter={() => setLanguageHover(value)}
-      onMouseLeave={() => setLanguageHover("")}
-      onClick={() => {
-        const language = value as Language;
-        setLanguage(language);
-        setFramework(languagesList[language][0].name);
-      }}
       className={cn(
-        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
+        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all hover:text-white/80 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
         className,
-        { "text-white/80": languageHover === value },
       )}
       {...props}
     />
@@ -627,7 +671,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         <div className="mt-10">
           <div className="flex gap-6 pb-14">
             <Link key="get-started" href="/app">
-              <PrimaryButton label="Get Started" IconRight={ChevronRight} />
+              <PrimaryButton shiny label="Get Started" IconRight={ChevronRight} />
             </Link>
             <Link key="docs" href="/docs">
               <SecondaryButton label="Visit the docs" IconRight={ChevronRight} />
@@ -639,35 +683,36 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
         <Tabs
           defaultValue={language}
+          onValueChange={(l) => setLanguage(l as Language)}
           className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
-              <TSIcon active={language === "Typescript" || languageHover === "Typescript"} />
+              <TSIcon active={languageHover === "Typescript" || language === "Typescript"} />
               Typescript
             </LanguageTrigger>
             <LanguageTrigger value="Python">
-              <PythonIcon active={language === "Python" || languageHover === "Python"} />
+              <PythonIcon active={languageHover === "Python" || language === "Python"} />
               Python
             </LanguageTrigger>
             <LanguageTrigger value="Golang">
-              <GoIcon active={language === "Golang" || languageHover === "Golang"} />
+              <GoIcon active={languageHover === "Golang" || language === "Golang"} />
               Golang
             </LanguageTrigger>
             <LanguageTrigger value="Curl">
-              <CurlIcon active={language === "Curl" || languageHover === "Curl"} />
+              <CurlIcon active={languageHover === "Curl" || language === "Curl"} />
               Curl
             </LanguageTrigger>
             <LanguageTrigger value="Elixir">
-              <ElixirIcon active={language === "Elixir" || languageHover === "Elixir"} />
+              <ElixirIcon active={languageHover === "Elixir" || language === "Elixir"} />
               Elixir
             </LanguageTrigger>
             <LanguageTrigger value="Rust">
-              <RustIcon active={language === "Rust" || languageHover === "Rust"} />
+              <RustIcon active={languageHover === "Rust" || language === "Rust"} />
               Rust
             </LanguageTrigger>
             <LanguageTrigger value="Java">
-              <JavaIcon active={language === "Java" || languageHover === "Java"} />
+              <JavaIcon active={languageHover === "Java" || language === "Java"} />
               Java
             </LanguageTrigger>
           </TabsPrimitive.List>

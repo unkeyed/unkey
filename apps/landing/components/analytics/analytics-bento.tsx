@@ -59,8 +59,9 @@ export function AnalyticsBento() {
 
   return (
     <div className="relative flex justify-center w-full">
-      <div className="absolute top-14 z-50">
+      <div className="absolute z-50 top-14">
         <PrimaryButton
+          shiny
           label="Show API code"
           IconLeft={Wand2}
           onClick={() => toggleShowApi(!showApi)}
@@ -665,7 +666,7 @@ export function Editor({
         return (
           <pre
             key={codeBlock} // Use codeBlock as a key to trigger animations on change
-            className="leading-8"
+            className="leading-6"
           >
             {tokens.map((line, i) => {
               const lineNumber = i + 1;
@@ -673,7 +674,7 @@ export function Editor({
               return (
                 // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
                 <div key={`${line}-${i}`} {...getLineProps({ line })}>
-                  <span className="line-number select-none">{paddedLineGutter}</span>
+                  <span className="select-none line-number">{paddedLineGutter}</span>
                   {line.map((token, key) => (
                     <span key={`${key}-${token}`} {...getTokenProps({ token })} />
                   ))}

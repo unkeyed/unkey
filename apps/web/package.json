@@ -33,7 +33,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@tailwindcss/typography": "^0.5.12",
     "@tanstack/react-query": "^4.36.1",
-    "@tanstack/react-table": "^8.13.2",
+    "@tanstack/react-table": "^8.16.0",
     "@team-plain/typescript-sdk": "^2.19.0",
     "@trpc/client": "^10.45.2",
     "@trpc/react-query": "^10.45.2",
@@ -65,7 +65,7 @@
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "cmdk": "^0.2.1",
+    "cmdk": "^1.0.0",
     "d3-array": "^3.2.4",
     "dagre": "^0.8.5",
     "date-fns": "^3.6.0",
@@ -106,7 +106,7 @@
     "trpc-tools": "^0.12.0",
     "typescript": "5.3.3",
     "usehooks-ts": "^3.0.1",
-    "zod": "^3.22.4"
+    "zod": "^3.22.5"
   },
   "devDependencies": {
     "@clerk/types": "^3.63.1",

@@ -1,7 +1,8 @@
 "use client";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { UnkeyFooterLogo, UnkeyLogo } from "./footer-svgs";
+import { UnkeyLogo } from "./footer-svgs";
+import { Wordmark } from "./wordmark";
 
 type NavLink = {
   title: string;
@@ -28,7 +29,7 @@ const navigation = [
       },
       {
         title: "Docs",
-        href: "https://unkey.dev/docs",
+        href: "/docs",
         external: true,
       },
     ],
@@ -36,7 +37,7 @@ const navigation = [
   {
     title: "Connect",
     links: [
-      { title: "X(Twitter)", href: "https://x.com/unkeydev", external: true },
+      { title: "X (Twitter)", href: "https://x.com/unkeydev", external: true },
       { title: "Discord", href: "/discord", external: true },
       { title: "GitHub", href: "/github", external: true },
       { title: "OSS Friends", href: "/oss-friends" },
@@ -101,8 +102,8 @@ export function Footer() {
           <Column key={title} title={title} links={links} className="col-span-1 " />
         ))}
       </footer>
-      <div className="flex justify-center w-full mt-8 lg:mt-16">
-        <UnkeyFooterLogo />
+      <div className="flex justify-center w-full mt-8 lg:mt-16 h-[100px]">
+        <Wordmark className="flex justify-center w-screen px-8 mx-auto " />
       </div>
     </div>
   );
