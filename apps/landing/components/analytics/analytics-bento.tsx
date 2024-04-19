@@ -61,6 +61,7 @@ export function AnalyticsBento() {
     <div className="relative flex justify-center w-full">
       <div className="absolute z-50 top-14">
         <PrimaryButton
+          shiny
           label="Show API code"
           IconLeft={Wand2}
           onClick={() => toggleShowApi(!showApi)}

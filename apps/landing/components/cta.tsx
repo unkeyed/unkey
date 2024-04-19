@@ -23,7 +23,7 @@ export const CTA: React.FC = () => {
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
             <Link href="/app">
-              <PrimaryButton label="Start Now" IconRight={ChevronRight} />
+              <PrimaryButton shiny label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
         </SectionTitle>

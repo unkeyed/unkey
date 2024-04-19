@@ -24,7 +24,7 @@ export function HeroMainSection() {
 
       <div className="flex items-center gap-6 mt-16">
         <Link href="/app" className="group">
-          <PrimaryButton IconLeft={LogIn} label="Get started" className="h-10" />
+          <PrimaryButton IconLeft={LogIn} label="Get started" className="h-10" shiny />
         </Link>
 
         <Link href="/docs" className="hidden sm:flex">

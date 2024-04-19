@@ -69,7 +69,7 @@ export function Navigation() {
             />
           </Link>
           <Link href="/app">
-            <PrimaryButton label="Sign In" IconRight={ChevronRight} className="h-8" />
+            <PrimaryButton shiny label="Sign In" IconRight={ChevronRight} className="h-8" />
           </Link>
         </div>
       </div>

@@ -115,7 +115,7 @@ export default async function Landing() {
             >
               <div className="flex mt-10 mb-10 space-x-6">
                 <Link href="/app" className="group">
-                  <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+                  <PrimaryButton shiny IconLeft={LogIn} label="Get Started" className="h-10" />
                 </Link>
 
                 <Link href="/docs">
@@ -145,7 +145,7 @@ export default async function Landing() {
               >
                 <div className="flex mt-10 mb-10 space-x-6">
                   <Link href="/app" className="group">
-                    <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+                    <PrimaryButton shiny IconLeft={LogIn} label="Get Started" className="h-10" />
                   </Link>
 
                   <Link href="/docs">
