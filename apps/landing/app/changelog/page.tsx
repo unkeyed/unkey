@@ -21,7 +21,7 @@ export default async function Changelogs(_props: Props) {
 
   return (
     <>
-      <div className="flex flex-col w-full mt-32 text-white/60">
+      <div className="flex flex-col w-full mt-48 text-white/60">
         <div>
           <div className="relative -z-100 max-w-[1000px] mx-auto">
             <ChangelogLight className="w-full -top-[20rem]" />
