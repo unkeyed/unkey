@@ -1,7 +1,8 @@
 "use client";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { UnkeyFooterLogo, UnkeyLogo } from "./footer-svgs";
+import { UnkeyLogo } from "./footer-svgs";
+import { Wordmark } from "./wordmark";
 
 type NavLink = {
   title: string;
@@ -102,7 +103,7 @@ export function Footer() {
         ))}
       </footer>
       <div className="flex justify-center w-full mt-8 lg:mt-16">
-        <UnkeyFooterLogo />
+        <Wordmark />
       </div>
     </div>
   );
