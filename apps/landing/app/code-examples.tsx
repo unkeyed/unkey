@@ -634,7 +634,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </Link>
           </div>
         </div>
-        <HighlightAbove className="absolute hidden sm:flex sm:bottom-[-70px] md:bottom-0 w-full h-full mx-auto pointer-events-none" />
+        <HighlightAbove className="absolute hidden sm:flex sm:bottom-[-58px] md:bottom-[-13px] lg:bottom-0 w-full h-full mx-auto pointer-events-none" />
       </SectionTitle>
       <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
         <Tabs
