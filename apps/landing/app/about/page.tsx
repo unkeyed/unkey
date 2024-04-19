@@ -101,7 +101,11 @@ const offsiteImages = [
   { src: doomsday, label: "Escape room W" },
   { src: james_fence, label: "James recruiting" },
   { src: james_thinking, label: "Deep in thought", className: "object-left" },
-  { src: mike_morning_neck_exercise, label: "CEO + CTO", className: "object-left" },
+  {
+    src: mike_morning_neck_exercise,
+    label: "CEO + CTO",
+    className: "object-left",
+  },
   { src: yardwork, label: "Caffeinated" },
 ];
 
@@ -364,19 +368,21 @@ export default async function Page() {
                 title="From our blog"
                 text="Explore insights, tips, and updates directly from our team members"
               />
-              <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
+              <div className="flex flex-row w-full mx-auto gap-6 mt-[96px] flex-wrap lg:flex-nowrap">
                 {posts.map((post) => {
                   return (
-                    <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
-                      <BlogCard
-                        tags={post.tags}
-                        imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
-                        title={post.title}
-                        subTitle={post.description}
-                        author={authors[post.author]}
-                        publishDate={post.date}
-                      />
-                    </Link>
+                    <div className="flex mx-auto w-full mt-6 ">
+                      <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
+                        <BlogCard
+                          tags={post.tags}
+                          imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
+                          title={post.title}
+                          subTitle={post.description}
+                          author={authors[post.author]}
+                          publishDate={post.date}
+                        />
+                      </Link>
+                    </div>
                   );
                 })}
               </div>
