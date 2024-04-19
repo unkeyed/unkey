@@ -97,8 +97,8 @@ export function HashedKeys() {
       <StarsSvg className="absolute" />
       <AnimatePresence>
         <motion.div
-          initial={{ x: -250 }}
-          exit={{ x: -250 }}
+          initial={{ x: "-100%" }}
+          exit={{ x: "-100%" }}
           whileInView={{ x: 320 }}
           transition={{
             type: "spring",
@@ -107,9 +107,10 @@ export function HashedKeys() {
             mass: 12,
             delay: 1.5,
             repeat: Number.POSITIVE_INFINITY,
-            duration: 1,
+            duration: 1.5,
           }}
           onUpdate={(latest: { x: number }) => {
+            console.log("updating");
             setOpacity(normalizeXPos(latest.x));
             if (latest.x > 0) {
               setHasReachedThreshold(true);
@@ -137,7 +138,7 @@ export function HashedKeys() {
 function Key({ className, text }: { className?: string; text: string }) {
   return (
     <div className={className}>
-      <div className="inline-flex items-center overflow-hidden ml-4 h-[36px] text-white font-mono text-sm ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded-xl">
+      <div className="inline-flex items-center overflow-hidden mx-4 pr-4 h-[36px] text-white font-mono text-sm ratelimits-key-gradient border-[.75px] border-[#ffffff]/20 rounded">
         <div className="w-[62px] h-[36px]">
           <svg
             className="ratelimits-key-icon "
