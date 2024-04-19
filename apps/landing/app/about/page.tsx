@@ -58,11 +58,11 @@ export const metadata = {
   openGraph: {
     title: "About | Unkey",
     description: "Learn more about Unkey and how we operate.",
-    url: "https://unkey.dev/templates",
+    url: "https://unkey.com/templates",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/images/landing/og.png",
+        url: "https://unkey.com/images/landing/og.png",
         width: 1200,
         height: 675,
       },
