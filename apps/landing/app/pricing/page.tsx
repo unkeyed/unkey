@@ -70,11 +70,14 @@ export default function PricingPage() {
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
-              <p className="text-white text-sm font-bold">What counts as successful? </p>
-              <p className="text-white text-xs">
-                Unkey only tracks usage for request that return a 200 response from our API. If the
-                request is ratelimited or returns an error, this won&apos;t be included in your
-                usage.{" "}
+              <p className="text-sm font-bold text-white">What counts as successful? </p>
+              <p className="text-xs text-white/60">
+                A successful request means everything is fine and you should grant access to the
+                user. Requests may be unsuccessful due to exceeding limits, keys being expired or
+                disabled, or other factors.
+              </p>
+              <p className="text-xs text-white/60">
+                To protect your business from abuse, we do not charge for unsuccessful requests.
               </p>
             </div>
           </PricingCardFooter>

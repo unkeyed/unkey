@@ -70,7 +70,7 @@ export const Discover: React.FC = () => {
             Discover your pricing. <br /> Pay only for what you use
           </>
         }
-        text={<></>}
+        text={null}
       />
       <PricingCard color={Color.White} className="relative max-w-4xl mx-auto mt-20">
         <FreeCardHighlight className="absolute top-0 right-0" />
