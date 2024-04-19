@@ -106,7 +106,7 @@
     "trpc-tools": "^0.12.0",
     "typescript": "5.3.3",
     "usehooks-ts": "^3.0.1",
-    "zod": "^3.22.4"
+    "zod": "^3.22.5"
   },
   "devDependencies": {
     "@clerk/types": "^3.63.1",
