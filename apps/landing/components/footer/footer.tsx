@@ -29,7 +29,7 @@ const navigation = [
       },
       {
         title: "Docs",
-        href: "https://unkey.dev/docs",
+        href: "/docs",
         external: true,
       },
     ],
