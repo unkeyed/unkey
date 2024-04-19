@@ -1,8 +1,10 @@
 "use client";
 import { YoutubeEmbed } from "@/components/youtube-embed";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { HeroMainSection } from "./hero/hero-main-section";
 
+import mainboard from "../images/mainboard.svg";
 export const Hero: React.FC = () => {
   const containerVariants = {
     hidden: {},
@@ -24,7 +26,7 @@ export const Hero: React.FC = () => {
 
   return (
     <motion.div
-      className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-48"
+      className="relative flex flex-col items-center justify-between mt-48 xl:flex-row xl:items-start"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -32,9 +34,19 @@ export const Hero: React.FC = () => {
       <motion.div variants={childVariants}>
         <HeroMainSection />
       </motion.div>
-      <motion.div variants={childVariants}>
-        <YoutubeEmbed />
-      </motion.div>
+      <div className="relative ">
+        <Image
+          src={mainboard}
+          alt="Animated SVG showing computer circuits lighting up"
+          className="absolute hidden xl:right-32 xl:flex -z-10 xl:-top-56"
+          style={{ transform: "scale(2)" }}
+          priority
+        />
+
+        <motion.div variants={childVariants}>
+          <YoutubeEmbed />
+        </motion.div>
+      </div>
       <SubHeroMainboardStuff className="absolute hidden md:flex left-[400px] top-[250px]" />
     </motion.div>
   );
