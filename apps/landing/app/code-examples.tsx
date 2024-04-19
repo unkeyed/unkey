@@ -8,7 +8,7 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { PrismTheme } from "prism-react-renderer";
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 const Tabs = TabsPrimitive.Root;
 
@@ -613,7 +613,7 @@ type Language = "Typescript" | "Python" | "Rust" | "Golang" | "Curl" | "Elixir" 
 type FrameworkName = (typeof languagesList)[Language][number]["name"];
 
 export const CodeExamples: React.FC<Props> = ({ className }) => {
-  const [language] = useState<Language>("Typescript");
+  const [language, setLanguage] = useState<Language>("Typescript");
   const [framework, setFramework] = useState<FrameworkName>("Typescript");
   const [languageHover, setLanguageHover] = useState("Typescript");
   function getLanguage({ language, framework }: { language: Language; framework: FrameworkName }) {
@@ -621,6 +621,10 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
     const currentFramework = frameworks.find((f) => f.name === framework);
     return currentFramework?.editorLanguage || "tsx";
   }
+
+  useEffect(() => {
+    setFramework(languagesList[language].at(0)!.name);
+  }, [language]);
 
   function getCodeBlock({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
@@ -679,35 +683,36 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
         <Tabs
           defaultValue={language}
+          onValueChange={(l) => setLanguage(l as Language)}
           className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
-              <TSIcon active={languageHover === "Typescript"} />
+              <TSIcon active={languageHover === "Typescript" || language === "Typescript"} />
               Typescript
             </LanguageTrigger>
             <LanguageTrigger value="Python">
-              <PythonIcon active={languageHover === "Python"} />
+              <PythonIcon active={languageHover === "Python" || language === "Python"} />
               Python
             </LanguageTrigger>
             <LanguageTrigger value="Golang">
-              <GoIcon active={languageHover === "Golang"} />
+              <GoIcon active={languageHover === "Golang" || language === "Golang"} />
               Golang
             </LanguageTrigger>
             <LanguageTrigger value="Curl">
-              <CurlIcon active={languageHover === "Curl"} />
+              <CurlIcon active={languageHover === "Curl" || language === "Curl"} />
               Curl
             </LanguageTrigger>
             <LanguageTrigger value="Elixir">
-              <ElixirIcon active={languageHover === "Elixir"} />
+              <ElixirIcon active={languageHover === "Elixir" || language === "Elixir"} />
               Elixir
             </LanguageTrigger>
             <LanguageTrigger value="Rust">
-              <RustIcon active={languageHover === "Rust"} />
+              <RustIcon active={languageHover === "Rust" || language === "Rust"} />
               Rust
             </LanguageTrigger>
             <LanguageTrigger value="Java">
-              <JavaIcon active={languageHover === "Java"} />
+              <JavaIcon active={languageHover === "Java" || language === "Java"} />
               Java
             </LanguageTrigger>
           </TabsPrimitive.List>
