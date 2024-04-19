@@ -79,7 +79,7 @@ async function main() {
     createdAt: new Date(),
   });
 
-  console.info("Add these to /apps/agent/.env and /apps/web/.env");
+  console.info("Add these to /apps/agent/.env and /apps/dashboard/.env");
   console.info(`
 UNKEY_WORKSPACE_ID="${workspaceId}"
 UNKEY_API_ID="${apiId}"

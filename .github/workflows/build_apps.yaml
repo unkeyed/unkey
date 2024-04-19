@@ -20,12 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         app:
-          - "./apps/web"
+          - "./apps/dashboard"
           - "./apps/api"
           - "./apps/workflows" 
           - "./apps/logdrain"
           - "./apps/planetfall"
-          - "./apps/landing"
+          - "./apps/www"
 
     name: Build ${{matrix.app}}
     runs-on: ubuntu-latest
