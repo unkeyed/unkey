@@ -178,7 +178,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 </div>
                 <div className="flex flex-col h-full">
                   {" "}
-                  <p className="text-nowrap text-white/50">Published on</p>
+                  <p className="text-xs text-nowrap text-white/50">Published on</p>
                   <div className="flex mt-2 sm:mt-6">
                     <time
                       dateTime={post.date}
@@ -195,23 +195,25 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             </div>
           </div>
 
-          <div className="items-start hidden h-full gap-4 pt-8 prose lg:sticky top-24 lg:w-1/4 not-prose lg:mt-12 lg:flex lg:flex-col">
-            <p className="text-white/50">Written by</p>
-            <div className="flex flex-col h-full gap-4">
-              <Avatar className="w-10 h-10 mr-4">
-                <AvatarImage
-                  alt={author.name}
-                  src={author.image.src}
-                  width={12}
-                  height={12}
-                  className="w-full"
-                />
-                <AvatarFallback />
-              </Avatar>
-              <p className="my-auto text-white text-nowrap">{author.name}</p>
+          <div className="items-start hidden h-full gap-4 pt-8 space-y-4 prose lg:sticky top-24 lg:w-1/4 not-prose lg:mt-12 lg:flex lg:flex-col">
+            <div className="flex flex-col gap-4 not-prose lg:gap-2">
+              <p className="text-sm text-white/50">Written by</p>
+              <div className="flex flex-col h-full gap-2 mt-1 xl:flex-row">
+                <Avatar className="w-10 h-10 mr-4">
+                  <AvatarImage
+                    alt={author.name}
+                    src={author.image.src}
+                    width={12}
+                    height={12}
+                    className="w-full"
+                  />
+                  <AvatarFallback />
+                </Avatar>
+                <p className="my-auto text-white text-nowrap">{author.name}</p>
+              </div>
             </div>
             <div className="flex flex-col gap-4 mt-4 not-prose lg:gap-2">
-              <p className="text-nowrap text-white/50">Published on</p>
+              <p className="text-sm text-nowrap text-white/50">Published on</p>
               <time
                 dateTime={post.date}
                 className="inline-flex items-center h-10 text-white text-nowrap"
@@ -220,18 +222,18 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               </time>
             </div>
             {post.tableOfContents.length !== 0 ? (
-              <div className="prose prose-lg ">
-                <p className="mt-8 prose text-md text-white/50">Contents</p>
-                <ul className="relative flex flex-col gap-2 overflow-hidden">
+              <div className="flex flex-col gap-4 not-prose lg:gap-2">
+                <p className="text-sm prose text-nowrap text-white/50">Contents</p>
+                <ul className="relative flex flex-col gap-1 overflow-hidden">
                   {post.tableOfContents.map((heading: Heading) => {
                     return (
                       <li key={`#${heading.slug}`}>
                         <Link
                           data-level={heading.level}
                           className={cn({
-                            "text-md font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/40 to-black truncate":
+                            "text-md font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white  to-white/70 truncate":
                               heading.level === 1 || heading.level === 2,
-                            "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white/50 via-white/20 to-black truncate":
+                            "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white/60  to-white/50 truncate":
                               heading.level === 3 || heading.level === 4,
                           })}
                           href={`#${heading.slug}`}
