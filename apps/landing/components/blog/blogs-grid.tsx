@@ -41,7 +41,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
   const visiblePosts = filteredPosts.slice(blogsPerPage * (page - 1), blogsPerPage * page);
 
   return (
-    <div className="">
+    <div>
       <div
         className={cn(
           "flex flex-wrap py-24 justify-center gap-2 sm:gap-4 md:gap-6 w-full",
@@ -66,7 +66,12 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
           </Link>
         ))}
       </div>
-      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 mx-auto", className)}>
+      <div
+        className={cn(
+          "max-sm:flex max-sm:flex-col max-sm:h-full grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 mx-auto",
+          className,
+        )}
+      >
         {visiblePosts.map((post) => (
           <Link href={`${post._raw.flattenedPath}`} key={post._raw.flattenedPath}>
             <BlogCard

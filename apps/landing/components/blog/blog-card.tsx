@@ -25,7 +25,7 @@ export function BlogCard({
   className,
 }: BlogCardProps) {
   return (
-    <div className={cn("flex flex-col rounded-3xl", className)}>
+    <div className={cn("flex flex-col rounded-3xl max-sm:h-full", className)}>
       <div className="rounded-2xl bg-clip-border w-full">
         <Frame size="sm">
           <div className="relative aspect-video">
@@ -40,7 +40,7 @@ export function BlogCard({
       </div>
       <div className="flex flex-col px-6 h-full ">
         <div className="flex flex-col h-80">
-          <div className="flex flex-inline my-4 gap-4">
+          <div className="flex flex-inline my-4 gap-4 h-6 flex-wrap">
             {tags?.map((tag) => (
               <div className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md content-center">
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}
