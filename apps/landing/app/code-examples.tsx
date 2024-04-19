@@ -290,6 +290,29 @@ app.get("/somewhere", (c) => {
  return c.text("yo")
 })`;
 
+const tsRatelimitCodeBlock = `import { Ratelimit } from "@unkey/ratelimit"
+
+const unkey = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "my-app",
+  limit: 10,
+  duration: "30s",
+  async: true
+})
+
+// elsewhere
+async function handler(request) {
+  const identifier = request.getUserId() // or ip or anything else you want
+  
+  const ratelimit = await unkey.limit(identifier)
+  if (!ratelimit.success){
+    return new Response("try again later", { status: 429 })
+  }
+  
+  // handle the request here
+  
+}`;
+
 const goVerifyKeyCodeBlock = `package main
 import (
 	"fmt"
@@ -373,6 +396,18 @@ const curlCreateKeyCodeBlock = `curl --request POST \\
       "duration": 60_000
     },
   }'`;
+
+const curlRatelimitCodeBlock = `curl --request POST \
+  --url https://api.unkey.dev/v1/ratelimits.limit \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "namespace": "email.outbound",
+    "identifier": "user_123",
+    "limit": 10,
+    "duration": 60000,
+    "async": true
+}'`;
 
 const elixirCodeBlock = `UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
 # returns
@@ -464,6 +499,12 @@ const languagesList = {
       codeBlock: honoCodeBlock,
       editorLanguage: "ts",
     },
+    {
+      name: "Ratelimiting",
+      Icon: TSIcon,
+      codeBlock: tsRatelimitCodeBlock,
+      editorLanguage: "ts",
+    },
   ],
   Python: [
     {
@@ -534,6 +575,12 @@ const languagesList = {
       name: "Create key",
       Icon: CurlIcon,
       codeBlock: curlCreateKeyCodeBlock,
+      editorLanguage: "tsx",
+    },
+    {
+      name: "Ratelimit",
+      Icon: CurlIcon,
+      codeBlock: curlRatelimitCodeBlock,
       editorLanguage: "tsx",
     },
   ],
