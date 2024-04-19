@@ -20,7 +20,6 @@ import { ChevronRight, LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import mainboardMobile from "../images/mainboard-mobile.svg";
 import mainboard from "../images/mainboard.svg";
 import { CodeExamples } from "./code-examples";
 
@@ -57,22 +56,16 @@ export default async function Landing() {
     <>
       <TopRightShiningLight />
       <TopLeftShiningLight />
-      <div className="relative w-full overflow-hidden pt-6">
-        <Image
-          src={mainboard}
-          alt="Animated SVG showing computer circuits lighting up"
-          className="hidden md:flex absolute -z-10 lg:-top-20 xl:-top-32 xl:-right-32"
-          style={{ transform: "scale(1.2)" }}
-          priority
-        />
-        <Image
-          src={mainboardMobile}
-          alt="Animated SVG showing computer circuits lighting up"
-          className="flex md:hidden w-full absolute h-[300px] right-10 -z-10 "
-          style={{ transform: "scale(1)" }}
-          priority
-        />
-        <div className="container relative flex flex-col lg:px-0 mx-auto space-y-16 md:space-y-32">
+      <div className="relative w-full pt-6 overflow-hidden">
+        <div className="container relative mx-auto">
+          <Image
+            src={mainboard}
+            alt="Animated SVG showing computer circuits lighting up"
+            className="absolute inset-x-0 flex  xl:hidden -z-10 scale-[2]"
+            priority
+          />
+        </div>
+        <div className="container relative flex flex-col mx-auto space-y-16 lg:px-0 md:space-y-32">
           <Section>
             <Hero />
           </Section>
