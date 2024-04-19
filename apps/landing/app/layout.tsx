@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Unkey",
     description: "Build better APIs faster",
-    url: "https://unkey.dev/",
-    siteName: "unkey.dev",
+    url: "https://unkey.com/",
+    siteName: "unkey.com",
     images: [
       {
-        url: "https://unkey.dev/og.png",
+        url: "https://unkey.com/og.png",
         width: 1200,
         height: 675,
       },

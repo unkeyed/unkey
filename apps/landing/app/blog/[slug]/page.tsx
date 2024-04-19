@@ -33,7 +33,7 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
     openGraph: {
       title: `${post.title} | Unkey`,
       description: post.description,
-      url: `https://unkey.dev/${post._raw.flattenedPath}`,
+      url: `https://unkey.com/${post._raw.flattenedPath}`,
       siteName: "unkey.dev",
       type: "article",
       article: {
@@ -42,7 +42,7 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
         tags: post.tags,
       },
       ogImage: {
-        url: `https://unkey.dev${post.image}`,
+        url: `https://unkey.com${post.image}`,
         width: 800,
         height: 600,
       },

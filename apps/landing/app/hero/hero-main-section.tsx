@@ -6,7 +6,7 @@ import { ArrowRight, BookOpen, ChevronRight, LogIn } from "lucide-react";
 export function HeroMainSection() {
   return (
     <div className="relative flex flex-col items-center text-center xl:text-left xl:items-start">
-      <Link href="https://unkey.dev/blog/introducing-ratelimiting" target="">
+      <Link href="/blog/introducing-ratelimiting" target="">
         <RainbowDarkButton
           className="mb-4"
           label="New: global rate limiting"

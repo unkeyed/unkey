@@ -112,11 +112,11 @@ export const metadata = {
   openGraph: {
     title: "Changelog | Unkey",
     description: "Stay up-to-date with the latest updates and changes to Unkey",
-    url: "https://unkey.dev/changelog",
+    url: "https://unkey.com/changelog",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og/changelog",
+        url: "https://unkey.com/og/changelog",
         width: 1200,
         height: 675,
       },
