@@ -26,7 +26,7 @@ test("creates key", async (t) => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.db.query.keys.findFirst({
+  const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(found).toBeDefined();
@@ -53,7 +53,7 @@ describe("with enabled flag", () => {
 
       expect(res.status).toEqual(200);
 
-      const found = await h.db.query.keys.findFirst({
+      const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -81,7 +81,7 @@ describe("with enabled flag", () => {
 
       expect(res.status).toEqual(200);
 
-      const found = await h.db.query.keys.findFirst({
+      const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -109,7 +109,7 @@ describe("with enabled flag", () => {
 
       expect(res.status).toEqual(200);
 
-      const found = await h.db.query.keys.findFirst({
+      const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -140,7 +140,7 @@ describe("with prefix", () => {
 
     expect(res.status).toEqual(200);
 
-    const key = await h.db.query.keys.findFirst({
+    const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();
@@ -152,7 +152,7 @@ describe("roles", () => {
   test("connects the specified roles", async (t) => {
     const h = await RouteHarness.init(t);
     const roles = ["r1", "r2"];
-    await h.db.insert(schema.roles).values(
+    await h.db.primary.insert(schema.roles).values(
       roles.map((name) => ({
         id: newId("role"),
         name,
@@ -176,7 +176,7 @@ describe("roles", () => {
 
     expect(res.status).toEqual(200);
 
-    const key = await h.db.query.keys.findFirst({
+    const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
       with: {
         roles: {
@@ -214,7 +214,7 @@ test("creates a key with environment", async (t) => {
 
   expect(res.status).toEqual(200);
 
-  const key = await h.db.query.keys.findFirst({
+  const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(key).toBeDefined();

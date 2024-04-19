@@ -87,7 +87,7 @@ const investors = [
   { name: "Paul Copplestone", firm: "CEO @ Supabase", image: paul },
   { name: "Ant Wilson", firm: "CTO @ Supabase", image: ant },
   { name: "Rory Wilding", firm: "Head of Growth @ Supabase", image: rory },
-  { name: "Zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
+  { name: "Zain Allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -116,7 +116,7 @@ export default async function Page() {
   return (
     <div>
       <Container>
-        <div className="mt-[150px] flex flex-col items-center mb-[200px]">
+        <div className="mt-[215px] flex flex-col items-center mb-[200px]">
           <ChangelogLight />
           <div className="absolute flex -z-50">
             <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
@@ -182,10 +182,10 @@ export default async function Page() {
             title="Meet the team"
             text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
-          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
+          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px] md:w-screen md:px-20">
             {offsiteImages.map(({ src, label, className }) => {
               return (
-                <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
+                <div className="image w-full h-[400px] rounded-lg relative">
                   <PhotoLabel
                     className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
                     text={label}

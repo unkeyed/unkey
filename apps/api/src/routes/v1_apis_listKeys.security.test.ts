@@ -9,7 +9,7 @@ import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 runCommonRouteTests({
   prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await rh.db.insert(schema.apis).values({
+    await rh.db.primary.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
       workspaceId: rh.resources.userWorkspace.id,
@@ -54,13 +54,13 @@ describe("correct roles", () => {
     test("returns 200", async (t) => {
       const h = await RouteHarness.init(t);
       const keyAuthId = newId("keyAuth");
-      await h.db.insert(schema.keyAuth).values({
+      await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
       });
 
       const apiId = newId("api");
-      await h.db.insert(schema.apis).values({
+      await h.db.primary.insert(schema.apis).values({
         id: apiId,
         name: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,

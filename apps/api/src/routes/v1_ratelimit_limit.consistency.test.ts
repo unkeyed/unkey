@@ -23,7 +23,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
         createdAt: new Date(),
         name: "namespace",
       };
-      await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+      await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
       const identifier = randomUUID();
 

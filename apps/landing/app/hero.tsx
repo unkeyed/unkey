@@ -24,7 +24,7 @@ export const Hero: React.FC = () => {
 
   return (
     <motion.div
-      className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-[250px] sm:mt-[250px] xl:mt-[200px]"
+      className="flex relative flex-col xl:flex-row justify-between items-center xl:items-start mt-48"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

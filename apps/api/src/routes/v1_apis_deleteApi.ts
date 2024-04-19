@@ -60,7 +60,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
@@ -78,7 +78,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    await db.transaction(async (tx) => {
+    await db.primary.transaction(async (tx) => {
       await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
 
       await analytics.ingestUnkeyAuditLogs({

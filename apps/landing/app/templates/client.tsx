@@ -104,10 +104,10 @@ export function TemplatesClient() {
   );
 
   return (
-    <div className="flex flex-col py-10 mx-auto lg:py-0 text-white/60">
+    <div className="flex flex-col py-28 mx-auto lg:py-16 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
-          <ChangelogLight className="w-full" />
+          <ChangelogLight className="w-full -top-52" />
         </div>
         <div className="w-full h-full overflow-clip -z-20">
           <MeteorLinesAngular

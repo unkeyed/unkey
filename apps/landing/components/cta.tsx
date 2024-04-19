@@ -18,7 +18,7 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex flex-col gap-6 sm:flex-row ">
+          <div className="flex flex-col items-center justify-center gap-6 sm:flex-row ">
             <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
