@@ -625,11 +625,10 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
           <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
         </div>
         <div className="mt-10">
-          <div className="flex space-x-6 pb-14">
+          <div className="flex gap-6 pb-14">
             <Link key="get-started" href="/app">
               <PrimaryButton label="Get Started" IconRight={ChevronRight} />
             </Link>
-            ,
             <Link key="docs" href="/docs">
               <SecondaryButton label="Visit the docs" IconRight={ChevronRight} />
             </Link>
