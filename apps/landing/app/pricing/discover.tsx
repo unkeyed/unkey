@@ -19,16 +19,7 @@ import {
 } from "./components";
 import { SubDiscoverySvg } from "./svgs";
 
-const verificationsSteps = [
-  150_000,
-  250_000,
-  500_000,
-  1_000_000,
-  10_000_000,
-  100_000_000,
-  1_000_000_000,
-  null,
-];
+const verificationsSteps = [150_000, 250_000, 500_000, 1_000_000, 10_000_000, 100_000_000, null];
 
 const rateLimitsSteps = [
   2_500_000,
@@ -67,23 +58,17 @@ export const Discover: React.FC = () => {
         align="center"
         title={
           <>
-            Discover your pricing. <br /> Pay only what matters to you
+            Discover your pricing. <br /> Pay only for what you use
           </>
         }
-        text={
-          <>
-            Find out exactly what your cost will be with Unkey, with our estimated cost calculator.
-            <br />
-            Explore the cost based on your expected usage.
-          </>
-        }
+        text={null}
       />
       <PricingCard color={Color.White} className="relative max-w-4xl mx-auto mt-20">
         <FreeCardHighlight className="absolute top-0 right-0" />
         <TooltipProvider delayDuration={10}>
           <PricingCardHeader
             title="Estimated cost calculator"
-            description="Find out how much you will pay by using Unkey"
+            description="A quick, simple way to figure out the cost of Unkey for your business."
             withIcon={false}
             color={Color.Purple}
             className="bg-gradient-to-tr from-transparent to-[#ffffff]/10 "

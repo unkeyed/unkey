@@ -101,7 +101,11 @@ const offsiteImages = [
   { src: doomsday, label: "Escape room W" },
   { src: james_fence, label: "James recruiting" },
   { src: james_thinking, label: "Deep in thought", className: "object-left" },
-  { src: mike_morning_neck_exercise, label: "CEO + CTO", className: "object-left" },
+  {
+    src: mike_morning_neck_exercise,
+    label: "CEO + CTO",
+    className: "object-left",
+  },
   { src: yardwork, label: "Caffeinated" },
 ];
 
@@ -112,7 +116,7 @@ export default async function Page() {
   return (
     <div>
       <Container>
-        <div className="mt-[150px] flex flex-col items-center mb-[200px]">
+        <div className="mt-[215px] flex flex-col items-center mb-[200px]">
           <ChangelogLight />
           <div className="absolute flex -z-50">
             <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
@@ -213,7 +217,7 @@ export default async function Page() {
               align="center"
               text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
             />
-            <div className="px-6 mx-auto lg:px-8">
+            <div className="px-5 mx-auto lg:px-8">
               <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
                 <Value
                   text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."
@@ -364,19 +368,21 @@ export default async function Page() {
                 title="From our blog"
                 text="Explore insights, tips, and updates directly from our team members"
               />
-              <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
+              <div className="flex flex-row w-full mx-auto gap-6 mt-[96px] flex-wrap lg:flex-nowrap">
                 {posts.map((post) => {
                   return (
-                    <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
-                      <BlogCard
-                        tags={post.tags}
-                        imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
-                        title={post.title}
-                        subTitle={post.description}
-                        author={authors[post.author]}
-                        publishDate={post.date}
-                      />
-                    </Link>
+                    <div className="flex mx-auto w-full mt-6 ">
+                      <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
+                        <BlogCard
+                          tags={post.tags}
+                          imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
+                          title={post.title}
+                          subTitle={post.description}
+                          author={authors[post.author]}
+                          publishDate={post.date}
+                        />
+                      </Link>
+                    </div>
                   );
                 })}
               </div>

@@ -57,7 +57,7 @@ export default async function Landing() {
     <>
       <TopRightShiningLight />
       <TopLeftShiningLight />
-      <div className="relative w-full overflow-hidden">
+      <div className="relative w-full overflow-hidden pt-6">
         <Image
           src={mainboard}
           alt="Animated SVG showing computer circuits lighting up"
@@ -72,7 +72,7 @@ export default async function Landing() {
           style={{ transform: "scale(1)" }}
           priority
         />
-        <div className="container relative flex flex-col lg:px-0 mx-auto">
+        <div className="container relative flex flex-col lg:px-0 mx-auto space-y-16 md:space-y-32">
           <Section>
             <Hero />
           </Section>
