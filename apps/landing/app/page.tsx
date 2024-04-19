@@ -72,7 +72,7 @@ export default async function Landing() {
           style={{ transform: "scale(1)" }}
           priority
         />
-        <div className="container relative flex flex-col px-0 mx-auto space-y-16 md:space-y-32 lg:mt-24">
+        <div className="container relative flex flex-col md:px-0 mx-auto space-y-16 md:space-y-32">
           <Section>
             <Hero />
           </Section>
