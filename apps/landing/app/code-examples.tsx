@@ -566,9 +566,9 @@ type Language = "Typescript" | "Python" | "Rust" | "Golang" | "Curl" | "Elixir" 
 type FrameworkName = (typeof languagesList)[Language][number]["name"];
 
 export const CodeExamples: React.FC<Props> = ({ className }) => {
-  const [language, setLanguage] = useState<Language>("Typescript");
+  const [language] = useState<Language>("Typescript");
   const [framework, setFramework] = useState<FrameworkName>("Typescript");
-  const [languageHover, setLanguageHover] = useState("");
+  const [languageHover, setLanguageHover] = useState("Typescript");
   function getLanguage({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
     const currentFramework = frameworks.find((f) => f.name === framework);
@@ -589,16 +589,9 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       ref={ref}
       value={value}
       onMouseEnter={() => setLanguageHover(value)}
-      onMouseLeave={() => setLanguageHover("")}
-      onClick={() => {
-        const language = value as Language;
-        setLanguage(language);
-        setFramework(languagesList[language][0].name);
-      }}
       className={cn(
-        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
+        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all hover:text-white/80 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
         className,
-        { "text-white/80": languageHover === value },
       )}
       {...props}
     />
@@ -643,31 +636,31 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
-              <TSIcon active={language === "Typescript" || languageHover === "Typescript"} />
+              <TSIcon active={languageHover === "Typescript"} />
               Typescript
             </LanguageTrigger>
             <LanguageTrigger value="Python">
-              <PythonIcon active={language === "Python" || languageHover === "Python"} />
+              <PythonIcon active={languageHover === "Python"} />
               Python
             </LanguageTrigger>
             <LanguageTrigger value="Golang">
-              <GoIcon active={language === "Golang" || languageHover === "Golang"} />
+              <GoIcon active={languageHover === "Golang"} />
               Golang
             </LanguageTrigger>
             <LanguageTrigger value="Curl">
-              <CurlIcon active={language === "Curl" || languageHover === "Curl"} />
+              <CurlIcon active={languageHover === "Curl"} />
               Curl
             </LanguageTrigger>
             <LanguageTrigger value="Elixir">
-              <ElixirIcon active={language === "Elixir" || languageHover === "Elixir"} />
+              <ElixirIcon active={languageHover === "Elixir"} />
               Elixir
             </LanguageTrigger>
             <LanguageTrigger value="Rust">
-              <RustIcon active={language === "Rust" || languageHover === "Rust"} />
+              <RustIcon active={languageHover === "Rust"} />
               Rust
             </LanguageTrigger>
             <LanguageTrigger value="Java">
-              <JavaIcon active={language === "Java" || languageHover === "Java"} />
+              <JavaIcon active={languageHover === "Java"} />
               Java
             </LanguageTrigger>
           </TabsPrimitive.List>
