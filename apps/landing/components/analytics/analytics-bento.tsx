@@ -60,15 +60,12 @@ export function AnalyticsBento() {
   return (
     <div className="relative flex justify-center w-full">
       <div className="absolute z-50 top-14">
-        <PrimaryButton
-          shiny
-          label="Show API code"
-          IconLeft={Wand2}
-          onClick={() => toggleShowApi(!showApi)}
-        />
+        <button type="button" aria-label="Show API code" onClick={() => toggleShowApi(!showApi)}>
+          <PrimaryButton shiny label="Show API code" IconLeft={Wand2} />
+        </button>
       </div>
 
-      <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end border rounded-3xl border border-white/10 relative">
+      <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end rounded-3xl border border-white/10">
         {/* TODO: horizontal scroll */}
         <LightSvg className="absolute hidden md:flex top-[-180px] left:0 lg:left-[300px] z-50 pointer-events-none" />
         <AnalyticsStars className="w-[90px] shrink-0 hidden md:flex" />
