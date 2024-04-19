@@ -7,7 +7,7 @@ const config: KnipConfig = {
     ".": {
       entry: "checkly.config.ts",
     },
-    "apps/web": {
+    "apps/dashboard": {
       entry: ["lib/trpc/index.ts", "trpc.config.ts"],
     },
     "apps/api": {
