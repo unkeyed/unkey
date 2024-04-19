@@ -99,7 +99,7 @@ export const Discover: React.FC = () => {
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <p className="text-sm text-white/40">Resources are summed and billed monthly</p>
+                <p className="text-sm text-white/50">Resources are summed and billed monthly</p>
               </div>
             </div>
 
@@ -202,6 +202,7 @@ const Slider = React.forwardRef<
       <SliderPrimitive.Range className="absolute h-full bg-gradient-to-r from-[#02DEFC] via-[#0239FC] to-[#7002FC]" />
     </SliderPrimitive.Track>
     <SliderPrimitive.Thumb
+      aria-label="Thumb"
       className={cn(
         "block w-4 h-4 transition-colors bg-white border-2 border-white rounded-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
         "sm:drop-shadow-[0_0_5px_rgba(255,255,255,1)]", // this causes nasty artifacts on my iphone and I am not smart enough to figure out why, so I am removing it on xs screens

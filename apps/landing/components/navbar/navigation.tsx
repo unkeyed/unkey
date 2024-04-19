@@ -47,14 +47,14 @@ export function Navigation() {
         backgroundColor: `rgba(0, 0, 0, ${scrollPercent})`,
         borderColor: `rgba(255, 255, 255, ${Math.min(scrollPercent / 5, 0.15)})`,
       }}
-      className="fixed z-[1000] top-0 px-[30px] border-b-[.75px] border-white/10 lg:px-0 w-full py-3"
+      className="fixed z-[100] top-0 px-[30px] border-b-[.75px] border-white/10  lg:px-0 w-full py-3"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       <div className="container flex items-center justify-between px-0">
         <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
-          <Link href="/">
+          <Link href="/" aria-label="Home">
             <Logo className="min-w-[50px]" />
           </Link>
           <MobileLinks className="lg:hidden" />
@@ -92,20 +92,44 @@ function MobileLinks({ className }: { className?: string }) {
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
           </button>
         </DrawerTrigger>
-        <DrawerContent className="bg-black/90">
+        <DrawerContent className="bg-black/90 z-[110]">
           <DrawerHeader className="flex justify-center">
             <Logo />
           </DrawerHeader>
-          <div className="relative w-full mx-auto antialiased">
+          <div className="relative w-full mx-auto antialiased z-[110]">
             <ul className="flex flex-col px-8 divide-y divide-white/25">
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/" label="Home" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/about" label="About" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/blog" label="Blog" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/pricing" label="Pricing" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/changelog" label="Changelog" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/templates" label="Templates" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/docs" label="Docs" />
-              <MobileNavLink onClick={() => setIsOpen(false)} href="/discord" label="Discord" />
+              <li>
+                <MobileNavLink onClick={() => setIsOpen(false)} href="/" label="Home" />
+              </li>
+              <li>
+                <MobileNavLink onClick={() => setIsOpen(false)} href="/about" label="About" />
+              </li>
+              <li>
+                <MobileNavLink onClick={() => setIsOpen(false)} href="/blog" label="Blog" />
+              </li>
+              <li>
+                <MobileNavLink onClick={() => setIsOpen(false)} href="/pricing" label="Pricing" />
+              </li>
+              <li>
+                <MobileNavLink
+                  onClick={() => setIsOpen(false)}
+                  href="/changelog"
+                  label="Changelog"
+                />
+              </li>
+              <li>
+                <MobileNavLink
+                  onClick={() => setIsOpen(false)}
+                  href="/templates"
+                  label="Templates"
+                />
+              </li>
+              <li>
+                <MobileNavLink onClick={() => setIsOpen(false)} href="/docs" label="Docs" />
+              </li>
+              <li>
+                <MobileNavLink onClick={() => setIsOpen(false)} href="/discord" label="Discord" />
+              </li>
             </ul>
           </div>
           <DrawerFooter>
@@ -135,13 +159,27 @@ function MobileLinks({ className }: { className?: string }) {
 
 const DesktopLinks: React.FC<{ className: string }> = ({ className }) => (
   <ul className={cn("items-center hidden gap-8 lg:flex xl:gap-12", className)}>
-    <DesktopNavLink href="/about" label="About" />
-    <DesktopNavLink href="/blog" label="Blog" />
-    <DesktopNavLink href="/pricing" label="Pricing" />
-    <DesktopNavLink href="/changelog" label="Changelog" />
-    <DesktopNavLink href="/templates" label="Templates" />
-    <DesktopNavLink href="/docs" label="Docs" />
-    <DesktopNavLink href="/discord" label="Discord" external />
+    <li>
+      <DesktopNavLink href="/about" label="About" />
+    </li>
+    <li>
+      <DesktopNavLink href="/blog" label="Blog" />
+    </li>
+    <li>
+      <DesktopNavLink href="/pricing" label="Pricing" />
+    </li>
+    <li>
+      <DesktopNavLink href="/changelog" label="Changelog" />
+    </li>
+    <li>
+      <DesktopNavLink href="/templates" label="Templates" />
+    </li>
+    <li>
+      <DesktopNavLink href="/docs" label="Docs" />
+    </li>
+    <li>
+      <DesktopNavLink href="/discord" label="Discord" external />
+    </li>
   </ul>
 );
 

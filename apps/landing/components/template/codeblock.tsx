@@ -31,16 +31,21 @@ export function CodeBlock(props: any) {
         props.className,
       )}
     >
-      <div className="flex flex-row gap-4 border-white/10 justify-end mt-2 mr-4">
+      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
         <CopyButton value={copyData} />
-        <button type="button" className="p-0 m-0 bg-transparent align-top" onClick={handleDownload}>
+        <button
+          type="button"
+          className="p-0 m-0 align-top bg-transparent"
+          onClick={handleDownload}
+          aria-label="Download code snippet"
+        >
           <BlogCodeDownload />
         </button>
       </div>
       <Highlight theme={darkTheme} code={block} language={language[0].replace(/language-/, "")}>
         {({ tokens, getLineProps, getTokenProps }) => {
           return (
-            <pre className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
+            <pre className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
               {tokens.map((line, i) => {
                 // if the last line is empty, don't render it
                 if (i === tokens.length - 1 && line[0].empty === true) {
@@ -52,7 +57,7 @@ export function CodeBlock(props: any) {
                     key={`${line}-${i}`}
                     {...getLineProps({ line })}
                   >
-                    <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
+                    <span className="pl-4 pr-8 text-center text-white/20">{i + 1}</span>
                     {line.map((token, key) => (
                       <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                     ))}

@@ -90,7 +90,7 @@ export const Button: React.FC<{ label: string }> = ({ label }) => {
 export const Bullets: React.FC<PropsWithChildren> = ({ children }) => {
   return (
     <div>
-      <p className="text-white/40">What's included:</p>
+      <p className="text-white/50">What's included:</p>
       <ul className="flex flex-col gap-4 mt-6">{children}</ul>
     </div>
   );
@@ -104,7 +104,7 @@ export const Bullet: React.FC<{
   className?: string;
 }> = ({ Icon, label, color, textColor, className }) => {
   return (
-    <li className={cn("flex items-center gap-4", className)}>
+    <div className={cn("flex items-center gap-4", className)}>
       <div
         className={cn("h-6 min-w-6 w-6 flex items-center justify-center rounded-md", {
           "text-[#FFFFFF] bg-[#FFFFFF]/10": color === Color.White,
@@ -117,7 +117,7 @@ export const Bullet: React.FC<{
       <span className={cn("text-sm text-white md:whitespace-nowrap sm:text-xs", textColor)}>
         {label}
       </span>
-    </li>
+    </div>
   );
 };
 
