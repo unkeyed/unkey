@@ -68,6 +68,16 @@ export default function PricingPage() {
               <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
             </Bullets>
           </PricingCardContent>
+          <PricingCardFooter>
+            <div className="flex flex-col gap-2">
+              <p className="text-white text-sm font-bold">What counts as successful? </p>
+              <p className="text-white text-xs">
+                Unkey only tracks usage for request that return a 200 response from our API. If the
+                request is ratelimited or returns an error, this won&apos;t be included in your
+                usage.{" "}
+              </p>
+            </div>
+          </PricingCardFooter>
         </PricingCard>
         <PricingCard color={Color.Yellow} className="col-span-2 md:col-span-1">
           <ProCardHighlight className="absolute top-0 right-0 pointer-events-none" />
@@ -122,12 +132,7 @@ export default function PricingPage() {
             <div className="flex flex-col w-full gap-8">
               <PricingCardHeader
                 title="Enterprise Tier"
-                description={
-                  <>
-                    Need something custom?
-                    <br /> We'll find a way.
-                  </>
-                }
+                description={<>Need more support or pricing doesn't work for your business?</>}
                 color={Color.Purple}
                 className="bg-gradient-to-tr from-transparent to-[#9D72FF]/10 "
               />
