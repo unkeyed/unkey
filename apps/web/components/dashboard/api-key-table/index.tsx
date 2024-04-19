@@ -158,7 +158,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                     long: true,
                   })}{" "}
                   ago.
-                  <Link href={`/app/keys/${row.original.id}/settings`} className="ml-2">
+                  <Link href={`/keys/${row.original.id}/settings`} className="ml-2">
                     <Button variant="ghost">Update Key</Button>
                   </Link>
                 </p>
@@ -249,7 +249,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                   }}
                 >
                   <MoreVertical className="w-4 h-4 mr-2" />
-                  <Link href={`/app/keys/${row.original.id}`}>Details</Link>
+                  <Link href={`/keys/${row.original.id}`}>Details</Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem
