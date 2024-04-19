@@ -45,7 +45,7 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <div className="container mx-auto mt-32 scroll-smooth w-full overflow-hidden">
+      <div className="container mx-auto pt-48 scroll-smooth w-full overflow-hidden">
         <div>
           <TopLeftShiningLight />
         </div>
