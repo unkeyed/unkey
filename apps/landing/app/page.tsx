@@ -72,23 +72,23 @@ export default async function Landing() {
           style={{ transform: "scale(1)" }}
           priority
         />
-        <div className="container relative flex flex-col md:px-0 mx-auto space-y-16 md:space-y-32">
+        <div className="container relative flex flex-col lg:px-0 mx-auto space-y-16 md:space-y-32">
           <Section>
             <Hero />
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <Suspense fallback={null}>
               <Stats />
             </Suspense>
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-18">
             <CodeExamples />
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-18">
             <OpenSource />
           </Section>
 
-          <Section>
+          <Section className="mt-16 md:mt-20">
             <SectionTitle
               className="mt-8 md:mt-16 lg:mt-32"
               title="Everything you need for your API"
@@ -106,7 +106,7 @@ export default async function Landing() {
             <OssLight className="absolute scale-[2] left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-250px]" />
           </div>
 
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <SectionTitle
               title="Secure and scalable from day one"
               text="We give you crucial security features out of the box, so that you can focus on rapidly iterating on your API."
@@ -133,7 +133,7 @@ export default async function Landing() {
               <RateLimitsBento />
             </div>
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <div className="relative">
               {/* TODO: horizontal scroll */}
               <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-150px] lg:right-[880px]" />
@@ -159,7 +159,7 @@ export default async function Landing() {
               <FeatureGridChip className="absolute top-[50px] left-[400px]" />
             </div>
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <CTA />
           </Section>
         </div>
