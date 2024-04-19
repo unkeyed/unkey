@@ -103,7 +103,7 @@ export function Footer() {
         ))}
       </footer>
       <div className="flex justify-center w-full mt-8 lg:mt-16 h-[100px]">
-        <Wordmark className="flex w-screen px-8 " />
+        <Wordmark className="flex justify-center w-screen px-8 mx-auto " />
       </div>
     </div>
   );
