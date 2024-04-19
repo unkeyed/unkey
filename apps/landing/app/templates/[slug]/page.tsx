@@ -182,7 +182,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${template?.title} | Unkey`,
       description: template?.description,
-      url: `https://unkey.dev/blog/${params.slug}`,
+      url: `https://unkey.com/blog/${params.slug}`,
       siteName: "unkey.dev",
     },
     twitter: {

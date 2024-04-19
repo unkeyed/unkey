@@ -58,11 +58,11 @@ export const metadata = {
   openGraph: {
     title: "About | Unkey",
     description: "Learn more about Unkey and how we operate.",
-    url: "https://unkey.dev/templates",
+    url: "https://unkey.com/templates",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/images/landing/og.png",
+        url: "https://unkey.com/images/landing/og.png",
         width: 1200,
         height: 675,
       },
@@ -217,7 +217,7 @@ export default async function Page() {
               align="center"
               text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
             />
-            <div className="md:px-6 mx-auto lg:px-8">
+            <div className="md:px-5 mx-auto lg:px-8">
               <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10 ">
                 <Value
                   text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."

@@ -29,7 +29,7 @@
     "@vercel/og": "^0.6.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "cmdk": "^0.2.0",
+    "cmdk": "^1.0.0",
     "contentlayer": "^0.3.4",
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.30.8",
