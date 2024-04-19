@@ -69,7 +69,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const author = authors[post.author];
   return (
     <>
-      <div className="container mx-auto pt-48 sm:overflow-hidden md:overflow-visible scroll-smooth ">
+      <div className="container pt-48 mx-auto sm:overflow-hidden md:overflow-visible scroll-smooth ">
         <div>
           <TopLeftShiningLight className="hidden h-full -z-40 sm:block" />
         </div>
@@ -107,14 +107,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             xPos={200}
             speed={10}
             delay={7}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
             xPos={200}
             speed={10}
             delay={2}
-            className="overflow-hidden hidden md:block"
+            className="hidden overflow-hidden md:block"
           />
           <MeteorLinesAngular
             number={1}
@@ -135,9 +135,9 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
           <TopRightShiningLight />
         </div>
         <div className="flex flex-row w-full">
-          <div className="flex flex-col lg:w-3/4 w-full">
+          <div className="flex flex-col w-full lg:w-3/4">
             <div className="prose sm:prose-sm md:prose-md sm:mx-6">
-              <div className="flex items-center gap-5 mb-8 font-medium text-xl leading-8 p-0 m-0">
+              <div className="flex items-center gap-5 p-0 m-0 mb-8 text-xl font-medium leading-8">
                 <Link href="/blog">
                   <span className="text-transparent bg-gradient-to-r bg-clip-text from-white to-white/60 ">
                     Blog
@@ -157,9 +157,9 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
               <p className="mt-8 text-lg font-medium leading-8 not-prose text-white/60 lg:text-xl">
                 {post.description}
               </p>
-              <div className="flex flex-row sm:mt-12 gap-8 md:gap-16 lg:hidden justify-stretch ">
+              <div className="flex flex-row gap-8 sm:mt-12 md:gap-16 lg:hidden justify-stretch ">
                 <div className="flex flex-col h-full">
-                  <p className="text-white/40">Written by</p>
+                  <p className="text-white/50">Written by</p>
                   <div className="flex flex-row h-full">
                     <Avatar className="flex items-center my-auto">
                       <AvatarImage
@@ -171,14 +171,14 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                       />
                       <AvatarFallback />
                     </Avatar>
-                    <p className="flex m-0 p-0 text-white text-nowrap ml-2 pt-2 justify-center items-center">
+                    <p className="flex items-center justify-center p-0 pt-2 m-0 ml-2 text-white text-nowrap">
                       {author.name}
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col h-full">
                   {" "}
-                  <p className="text-nowrap text-white/30">Published on</p>
+                  <p className="text-nowrap text-white/50">Published on</p>
                   <div className="flex mt-2 sm:mt-6">
                     <time
                       dateTime={post.date}
@@ -190,13 +190,13 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 </div>
               </div>
             </div>
-            <div className="lg:pr-24 prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md mt-12 prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6">
+            <div className="mt-12 prose-sm lg:pr-24 md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6">
               <MDX code={post.body.code} />
             </div>
           </div>
 
-          <div className="lg:sticky top-24 items-start lg:w-1/4 pt-8 gap-4 not-prose lg:mt-12 h-full prose hidden lg:flex lg:flex-col">
-            <p className="text-white/40">Written by</p>
+          <div className="items-start hidden h-full gap-4 pt-8 prose lg:sticky top-24 lg:w-1/4 not-prose lg:mt-12 lg:flex lg:flex-col">
+            <p className="text-white/50">Written by</p>
             <div className="flex flex-col h-full gap-4">
               <Avatar className="w-10 h-10 mr-4">
                 <AvatarImage
@@ -208,10 +208,10 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
                 />
                 <AvatarFallback />
               </Avatar>
-              <p className="text-white text-nowrap my-auto">{author.name}</p>
+              <p className="my-auto text-white text-nowrap">{author.name}</p>
             </div>
-            <div className="flex flex-col gap-4 not-prose lg:gap-2 mt-4">
-              <p className="text-nowrap text-white/30">Published on</p>
+            <div className="flex flex-col gap-4 mt-4 not-prose lg:gap-2">
+              <p className="text-nowrap text-white/50">Published on</p>
               <time
                 dateTime={post.date}
                 className="inline-flex items-center h-10 text-white text-nowrap"
@@ -221,23 +221,24 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
             </div>
             {post.tableOfContents.length !== 0 ? (
               <div className="prose prose-lg ">
-                <p className="text-md text-white/50 mt-8 prose">Contents</p>
+                <p className="mt-8 prose text-md text-white/50">Contents</p>
                 <ul className="relative flex flex-col gap-2 overflow-hidden">
                   {post.tableOfContents.map((heading: Heading) => {
                     return (
-                      <Link
-                        key={`#${heading.slug}`}
-                        data-level={heading.level}
-                        className={cn({
-                          "text-md font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/40 to-black truncate":
-                            heading.level === 1 || heading.level === 2,
-                          "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white/50 via-white/20 to-black truncate":
-                            heading.level === 3 || heading.level === 4,
-                        })}
-                        href={`#${heading.slug}`}
-                      >
-                        {heading.text}
-                      </Link>
+                      <li key={`#${heading.slug}`}>
+                        <Link
+                          data-level={heading.level}
+                          className={cn({
+                            "text-md font-medium mt-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/40 to-black truncate":
+                              heading.level === 1 || heading.level === 2,
+                            "text-sm ml-4 leading-8 text-transparent bg-clip-text bg-gradient-to-r from-white/50 via-white/20 to-black truncate":
+                              heading.level === 3 || heading.level === 4,
+                          })}
+                          href={`#${heading.slug}`}
+                        >
+                          {heading.text}
+                        </Link>
+                      </li>
                     );
                   })}
                 </ul>

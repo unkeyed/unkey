@@ -731,6 +731,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             />
             <button
               type="button"
+              aria-label="Copy code"
               className="absolute hidden cursor-pointer top-5 right-5 lg:flex"
               onClick={() => {
                 navigator.clipboard.writeText(getCodeBlock({ language, framework }));
