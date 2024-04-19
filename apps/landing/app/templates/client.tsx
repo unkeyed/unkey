@@ -104,7 +104,7 @@ export function TemplatesClient() {
   );
 
   return (
-    <div className="flex flex-col py-28 mx-auto lg:py-16 text-white/60">
+    <div className="flex flex-col mx-auto py-28 lg:py-16 text-white/60">
       <div>
         <div className="relative -z-100 max-w-[1000px] mx-auto">
           <ChangelogLight className="w-full -top-52" />
@@ -228,6 +228,7 @@ export function TemplatesClient() {
                                   >
                                     <FormControl>
                                       <Checkbox
+                                        aria-label={`Checkbox for ${language}`}
                                         className="ml-2"
                                         checked={field.value?.includes(language)}
                                         onCheckedChange={(checked) => {
@@ -288,6 +289,7 @@ export function TemplatesClient() {
                                   >
                                     <FormControl>
                                       <Checkbox
+                                        aria-label={`Checkbox for ${framework}`}
                                         checked={field.value?.includes(framework)}
                                         onCheckedChange={(checked) => {
                                           return checked
