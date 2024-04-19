@@ -667,7 +667,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         <div className="mt-10">
           <div className="flex gap-6 pb-14">
             <Link key="get-started" href="/app">
-              <PrimaryButton label="Get Started" IconRight={ChevronRight} />
+              <PrimaryButton shiny label="Get Started" IconRight={ChevronRight} />
             </Link>
             <Link key="docs" href="/docs">
               <SecondaryButton label="Visit the docs" IconRight={ChevronRight} />

@@ -42,8 +42,26 @@ const config = {
         meteor: "meteor 20s linear infinite",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "button-shine": "shine .6s linear forwards",
       },
       keyframes: {
+        shine: {
+          "0%": {
+            backgroundPosition: "0 0",
+            opacity: "0",
+          },
+          "1%": {
+            backgroundPosition: "0 0",
+            opacity: "1",
+          },
+          "80%": {
+            backgroundPosition: "180% 0",
+            opacity: "1",
+          },
+          "85%": {
+            opacity: "0",
+          },
+        },
         "border-beam": {
           "100%": {
             "offset-distance": "100%",
