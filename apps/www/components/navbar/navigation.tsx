@@ -61,14 +61,14 @@ export function Navigation() {
           <DesktopLinks className="hidden lg:flex" />
         </div>
         <div className="hidden sm:flex">
-          <Link href="/auth/sign-up">
+          <Link href="https://app.unkey.com/auth/sign-up">
             <SecondaryButton
               label="Create Account"
               IconRight={ChevronRight}
               className="h-8 text-sm"
             />
           </Link>
-          <Link href="https://app.unkey.dev">
+          <Link href="https://app.unkey.com">
             <PrimaryButton shiny label="Sign In" IconRight={ChevronRight} className="h-8" />
           </Link>
         </div>
