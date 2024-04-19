@@ -119,35 +119,35 @@ export default async function Templates(props: Props) {
             ) : null}
             <Link
               target="_blank"
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center  text-black transition-all duration-200 transform bg-white border border-white rounded-md hover:bg-black hover:text-white max-w-1/2"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black transition-all duration-200 transform bg-white border border-white rounded-md hover:bg-black hover:text-white max-w-1/2"
               href={template.repository}
             >
               Repository
             </Link>
           </div>
 
-          <dl className="grid grid-rows-2 mt-12 ">
-            <div className="flex flex-row w-full my-4">
-              <span className="w-1/2 text-sm text-white/30">Written by </span>
-              <span className="w-1/2 text-sm font-medium text-white text-end">
+          <div className="grid grid-rows-2 mt-12 ">
+            <dl className="flex flex-row w-full my-4">
+              <dt className="w-1/2 text-sm text-white/50">Written by </dt>
+              <dd className="w-1/2 text-sm font-medium text-white text-end">
                 {template.authors.join(", ")}
-              </span>
-            </div>
+              </dd>
+            </dl>
 
             {Object.entries(tags)
               .filter(([_, value]) => !!value)
               .map(([key, value]) => (
                 <div key={key}>
                   <Separator orientation="horizontal" />
-                  <div className="flex flex-row w-full my-4">
-                    <dd className="w-1/2 text-sm text-white/30">{key}</dd>
-                    <dt className="w-1/2 text-sm font-medium text-white text-end">{value}</dt>
-                  </div>
+                  <dl className="flex flex-row w-full my-4">
+                    <dt className="w-1/2 text-sm text-white/50">{key}</dt>
+                    <dl className="w-1/2 text-sm font-medium text-white text-end">{value}</dl>
+                  </dl>
                 </div>
               ))}
-          </dl>
+          </div>
         </div>
-        <div className="flex flex-col w-full mb-24 xl:w-2/3 mt-8 md:mt-0 xl:pt-24 xl:pl-24 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md">
+        <div className="flex flex-col w-full mt-8 mb-24 xl:w-2/3 md:mt-0 xl:pt-24 xl:pl-24 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md">
           <div>
             {template.image ? (
               <Frame size={"sm"} className="">

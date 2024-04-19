@@ -57,15 +57,29 @@ export default function PricingPage() {
             <Cost dollar="$0" />
             <Button label="Start for Free" />
             <Bullets>
-              <Bullet Icon={Check} label="1k API keys" color={Color.White} />
-              <Bullet
-                Icon={Check}
-                label="2.5k successful verifications / month"
-                color={Color.White}
-              />
-              <Bullet Icon={Check} label="100k successful ratelimits / month" color={Color.White} />
-              <Bullet Icon={Check} label="7-day analytics retention" color={Color.White} />
-              <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
+              <li>
+                <Bullet Icon={Check} label="1k API keys" color={Color.White} />
+              </li>
+              <li>
+                <Bullet
+                  Icon={Check}
+                  label="2.5k successful verifications / month"
+                  color={Color.White}
+                />
+              </li>
+              <li>
+                <Bullet
+                  Icon={Check}
+                  label="100k successful ratelimits / month"
+                  color={Color.White}
+                />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="7-day analytics retention" color={Color.White} />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
+              </li>
             </Bullets>
           </PricingCardContent>
           <PricingCardFooter>
@@ -97,27 +111,43 @@ export default function PricingPage() {
             <Cost dollar="$25" />
             <Button label="Get Started with Pro" />
             <Bullets>
-              <Bullet Icon={Check} label="1M API keys" color={Color.Yellow} />
-              <Bullet
-                Icon={Check}
-                label="150k successful verifications / month"
-                color={Color.Yellow}
-              />
-              <Bullet
-                Icon={Check}
-                label="2.5M successful ratelimits / month"
-                color={Color.Yellow}
-              />
-              <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
-              <Bullet Icon={Check} label="90-day audit log retention" color={Color.Yellow} />
-              <Bullet Icon={Check} label="Unlimited APIs" color={Color.Yellow} />
-              <Bullet Icon={Check} label="Workspaces with team members" color={Color.Yellow} />
-              <Bullet
-                Icon={Stars}
-                label="More coming soon"
-                color={Color.Yellow}
-                textColor="text-white/40"
-              />
+              <li>
+                <Bullet Icon={Check} label="1M API keys" color={Color.Yellow} />
+              </li>
+              <li>
+                <Bullet
+                  Icon={Check}
+                  label="150k successful verifications / month"
+                  color={Color.Yellow}
+                />
+              </li>
+              <li>
+                <Bullet
+                  Icon={Check}
+                  label="2.5M successful ratelimits / month"
+                  color={Color.Yellow}
+                />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="90-day audit log retention" color={Color.Yellow} />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="Unlimited APIs" color={Color.Yellow} />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="Workspaces with team members" color={Color.Yellow} />
+              </li>
+              <li>
+                <Bullet
+                  Icon={Stars}
+                  label="More coming soon"
+                  color={Color.Yellow}
+                  textColor="text-white/50"
+                />
+              </li>
             </Bullets>
           </PricingCardContent>
           <PricingCardFooter>
@@ -163,15 +193,23 @@ export default function PricingPage() {
                 vy={-0.1}
               />
               <Bullets>
-                <Bullet Icon={Check} label="Custom Quotas" color={Color.Purple} />
-                <Bullet Icon={Check} label="IP Whitelisting" color={Color.Purple} />
-                <Bullet Icon={Check} label="Dedicated Support" color={Color.Purple} />
-                <Bullet
-                  Icon={Stars}
-                  label="More coming soon"
-                  color={Color.Purple}
-                  textColor="text-white/40"
-                />
+                <li>
+                  <Bullet Icon={Check} label="Custom Quotas" color={Color.Purple} />
+                </li>
+                <li>
+                  <Bullet Icon={Check} label="IP Whitelisting" color={Color.Purple} />
+                </li>
+                <li>
+                  <Bullet Icon={Check} label="Dedicated Support" color={Color.Purple} />
+                </li>
+                <li>
+                  <Bullet
+                    Icon={Stars}
+                    label="More coming soon"
+                    color={Color.Purple}
+                    textColor="text-white/50"
+                  />
+                </li>
               </Bullets>
             </div>
           </div>

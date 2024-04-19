@@ -24,6 +24,7 @@ export function CopyButton({ value, className, src, children, ...props }: CopyBu
 
   return (
     <button
+      aria-label="Copy code snippet"
       type="button"
       className={cn(
         "relative p-1 text-primary focus:outline-none flex items-center gap-2",

@@ -32,7 +32,7 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
                   />
                 </Frame>
                 <p className="text-white">{post?.title}</p>
-                <p className="text-white/40 text-sm">
+                <p className="text-sm text-white/50">
                   {format(new Date(post?.date!), "MMM dd, yyyy")}
                 </p>
               </div>
