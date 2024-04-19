@@ -217,7 +217,7 @@ export default async function Page() {
               align="center"
               text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
             />
-            <div className="md:px-5 mx-auto lg:px-8">
+            <div className="mx-auto md:px-5 lg:px-8">
               <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10 ">
                 <Value
                   text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."
@@ -265,7 +265,7 @@ export default async function Page() {
                 <div className="flex md:left-[5px]">
                   <div className="text-sm text-right">
                     <p className="font-bold">James Perkins</p>
-                    <p className="text-white/40">Founder and CEO</p>
+                    <p className="text-white/50">Founder and CEO</p>
                   </div>
                   <Image
                     src={james}
@@ -279,9 +279,9 @@ export default async function Page() {
                     alt="CTO Andreas"
                     className="border-2 border-black mr-4 md:mr-[32px] rounded-full h-[40px] w-[40px]"
                   />
-                  <div className="text-sm">
+                  <div className="text-sm text-left">
                     <p className="font-bold">Andreas Thomas</p>
-                    <p className="text-white/40">Founder and CTO</p>
+                    <p className="text-white/50">Founder and CTO</p>
                   </div>
                 </div>
               </div>
@@ -348,10 +348,10 @@ export default async function Page() {
                 title="Backed by the finest"
                 text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe. Here are just a few of them: "
               />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mx-auto justify-center w-full pt-24 ">
+              <div className="grid justify-center w-full grid-cols-2 pt-24 mx-auto md:grid-cols-3 lg:grid-cols-5 ">
                 {investors.map(({ name, firm, image }) => {
                   return (
-                    <div className="flex flex-col items-center justify-center text-center pb-12 md:last:col-span-3 lg:last:col-span-1">
+                    <div className="flex flex-col items-center justify-center pb-12 text-center md:last:col-span-3 lg:last:col-span-1">
                       <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
                       <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
                         {name}
@@ -371,7 +371,7 @@ export default async function Page() {
               <div className="flex flex-row w-full mx-auto gap-6 mt-[96px] flex-wrap lg:flex-nowrap">
                 {posts.map((post) => {
                   return (
-                    <div className="flex mx-auto w-full mt-6 ">
+                    <div className="flex w-full mx-auto mt-6 ">
                       <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
                         <BlogCard
                           tags={post.tags}

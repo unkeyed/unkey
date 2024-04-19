@@ -34,12 +34,10 @@ export function StatListItem({
         className,
       )}
     >
-      <div>
-        <dd className="text-4xl font-semibold font-display stats-number-gradient">
-          <NumberTicker value={value} />
-        </dd>
-        <dt className="mt-2 text-base font-light text-white/50">{label}</dt>
-      </div>
+      <dd className="text-4xl font-semibold font-display stats-number-gradient">
+        <NumberTicker value={value} />
+      </dd>
+      <dt className="mt-2 text-base font-light text-white/50">{label}</dt>
     </Border>
   );
 }

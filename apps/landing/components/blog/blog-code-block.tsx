@@ -45,7 +45,7 @@ export function BlogCodeBlock({ className, children }: any) {
         className="flex flex-col"
       >
         <div className="flex flex-row border-b-[.5px] border-white/10 p-2">
-          <TabsList className="flex h-fit w-full flex-row justify-start gap-4 align-bottom">
+          <TabsList className="flex flex-row justify-start w-full gap-4 align-bottom h-fit">
             {React.Children.map(buttonLabels, (label: string) => {
               return (
                 <TabsTrigger key={label} value={label} className="capitalize text-white/30">
@@ -54,10 +54,10 @@ export function BlogCodeBlock({ className, children }: any) {
               );
             })}
           </TabsList>
-          <div className="flex flex-row gap-4 pr-4 pt-0">
+          <div className="flex flex-row gap-4 pt-0 pr-4">
             <div>{}</div>
             <CopyButton value={copyData} />
-            <button type="button" className="m-0 bg-transparent p-0" onClick={handleDownload}>
+            <button type="button" className="p-0 m-0 bg-transparent" onClick={handleDownload}>
               <BlogCodeDownload />
             </button>
           </div>
@@ -71,7 +71,7 @@ export function BlogCodeBlock({ className, children }: any) {
                 language={block.className.replace(/language-/, "")}
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
-                  <div className="overflow-x-auto rounded-none border-none bg-transparent py-0 my-0">
+                  <div className="py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
                     {tokens.map((line, i) => {
                       // if the last line is empty, don't render it
                       if (i === tokens.length - 1 && line[0].empty === true) {
@@ -120,9 +120,14 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         className,
       )}
     >
-      <div className="flex flex-row gap-4 border-white/10 justify-end mt-2 mr-4">
+      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
         <CopyButton value={copyData} />
-        <button type="button" className="p-0 m-0 bg-transparent align-top" onClick={handleDownload}>
+        <button
+          type="button"
+          aria-label="Download code"
+          className="p-0 m-0 align-top bg-transparent"
+          onClick={handleDownload}
+        >
           <BlogCodeDownload />
         </button>
       </div>
@@ -133,7 +138,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
       >
         {({ tokens, getLineProps, getTokenProps }) => {
           return (
-            <div className="leading-7 border-none rounded-none bg-transparent overflow-x-auto pb-5 pt-0 mt-0">
+            <div className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
               {tokens.map((line, i) => {
                 // if the last line is empty, don't render it
                 if (i === tokens.length - 1 && line[0].empty === true) {
@@ -145,7 +150,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
                     key={`${line}-${i}`}
                     {...getLineProps({ line })}
                   >
-                    <span className="pl-4 pr-8 text-white/20 text-center">{i + 1}</span>
+                    <span className="pl-4 pr-8 text-center text-white/20">{i + 1}</span>
                     {line.map((token, key) => (
                       <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                     ))}

@@ -63,24 +63,25 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
   className,
 }) => {
   return (
-    <ul className={cn("flex flex-col gap-8 md:gap-12 text-left ", className)}>
+    <div className={cn("flex flex-col gap-8  text-left ", className)}>
+      <span className="w-full text-sm font-medium tracking-wider text-white font-display">
+        {title}
+      </span>
       <ul className="flex flex-col gap-4 md:gap-8">
-        <span className="w-full text-sm font-medium tracking-wider text-white font-display">
-          {title}
-        </span>
         {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            target={link.external ? "_blank" : undefined}
-            rel={link.external ? "noopener noreferrer" : undefined}
-            className="text-sm font-normal transition hover:text-white/40 text-white/70"
-          >
-            {link.title}
-          </Link>
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              target={link.external ? "_blank" : undefined}
+              rel={link.external ? "noopener noreferrer" : undefined}
+              className="text-sm font-normal transition hover:text-white/40 text-white/70"
+            >
+              {link.title}
+            </Link>
+          </li>
         ))}
       </ul>
-    </ul>
+    </div>
   );
 };
 

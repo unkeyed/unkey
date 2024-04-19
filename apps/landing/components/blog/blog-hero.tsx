@@ -42,14 +42,14 @@ export function BlogHero({
     <div
       className={cn("flex flex-col lg:flex-row w-full gap-8 xl:gap-16 relative z-100", className)}
     >
-      <div className="flex flex-col h-full w-full  lg:w-1/2">
-        <Frame className="order-2 w-full lg:order-1 z-100 h-full" size="sm">
+      <div className="flex flex-col w-full h-full lg:w-1/2">
+        <Frame className="order-2 w-full h-full lg:order-1 z-100" size="sm">
           <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
         </Frame>
       </div>
       <div className="lg:w-1/2">
-        <div className="flex flex-col order-1 lg:order-2 z-100 h-full justify-evenly">
-          <div className="flex flex-row gap-4 lg:justify-start justify-center pb-4">
+        <div className="flex flex-col order-1 h-full lg:order-2 z-100 justify-evenly">
+          <div className="flex flex-row justify-center gap-4 pb-4 lg:justify-start">
             {tags?.map((tag) => (
               <p
                 key={tag}
@@ -59,15 +59,15 @@ export function BlogHero({
               </p>
             ))}
           </div>
-          <h2 className="flex justify-center text-3xl font-medium leading-10 blog-heading-gradient text-center lg:justify-start lg:text-left w-full">
+          <h2 className="flex justify-center w-full text-3xl font-medium leading-10 text-center blog-heading-gradient lg:justify-start lg:text-left">
             {title}
           </h2>
-          <p className="flex text-center lg:text-left justify-center text-base font-normal leading-7 text-white/60 lg:justify-start">
+          <p className="flex justify-center text-base font-normal leading-7 text-center lg:text-left text-white/60 lg:justify-start">
             {subTitle}
           </p>
-          <div className="flex flex-row justify-center w-full lg:justify-start gap-6 pt-6">
-            <div className="flex flex-col text-nowrap gap-2">
-              <span className="text-sm text-white/30 ">Written by</span>
+          <div className="flex flex-row justify-center w-full gap-6 pt-6 lg:justify-start">
+            <div className="flex flex-col gap-2 text-nowrap">
+              <span className="text-sm text-white/50 ">Written by</span>
               <div className="flex items-center gap-4">
                 {/* Todo: Needs ability to add multiple authors at some point */}
 
@@ -75,14 +75,14 @@ export function BlogHero({
                   <AvatarImage alt={author.name} src={author.image.src} width={12} height={12} />
                   <AvatarFallback />
                 </Avatar>
-                <span className="text-sm text-white mt-4">{author.name}</span>
+                <span className="mt-4 text-sm text-white">{author.name}</span>
                 <div />
               </div>
             </div>
             <div className="flex flex-col gap-8">
-              <span className="text-sm text-white/30">Published on</span>
+              <span className="text-sm text-white/50">Published on</span>
               <div>
-                <span className="text-sm text-white pt-2">
+                <span className="pt-2 text-sm text-white">
                   {format(new Date(publishDate!), "MMM dd, yyyy")}
                 </span>
               </div>
