@@ -195,13 +195,18 @@ const Slider = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SliderPrimitive.Root
     ref={ref}
-    className={cn("relative flex w-full touch-none select-none items-center", className)}
+    className={cn("relative flex w-full touch-none select-none items-center bg-black", className)}
     {...props}
   >
     <SliderPrimitive.Track className="relative w-full h-px overflow-hidden rounded-full bg-gradient-to-r from-white/20 to-white/60 grow">
       <SliderPrimitive.Range className="absolute h-full bg-gradient-to-r from-[#02DEFC] via-[#0239FC] to-[#7002FC]" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block w-4 h-4 transition-colors bg-white border-2 border-white rounded-full drop-shadow-[0_0_5px_rgba(255,255,255,1)]  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50" />
+    <SliderPrimitive.Thumb
+      className={cn(
+        "block w-4 h-4 transition-colors bg-white border-2 border-white rounded-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
+        "sm:drop-shadow-[0_0_5px_rgba(255,255,255,1)]", // this causes nasty artifacts on my iphone and I am not smart enough to figure out why, so I am removing it on xs screens
+      )}
+    />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;
