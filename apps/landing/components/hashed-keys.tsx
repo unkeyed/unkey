@@ -110,7 +110,6 @@ export function HashedKeys() {
             duration: 1.5,
           }}
           onUpdate={(latest: { x: number }) => {
-            console.log("updating");
             setOpacity(normalizeXPos(latest.x));
             if (latest.x > 0) {
               setHasReachedThreshold(true);
