@@ -135,6 +135,7 @@ function MobileLinks({ className }: { className?: string }) {
           <DrawerFooter>
             <Link href="https://app.unkey.dev">
               <PrimaryButton
+                shiny
                 label="Sign In"
                 IconRight={ChevronRight}
                 className="flex justify-center w-full text-center"
